@@ -1,5 +1,6 @@
 ﻿{
   "version": "0.1.0-*",
+  "description": "Components for providing real-time bi-directional communication across the Web.",
 
   "packOptions": {
     "repository": {

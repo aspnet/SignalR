@@ -1,5 +1,6 @@
 ﻿{
   "version": "1.0.0-*",
+  "description": "Redis for ASP.NET Core SignalR.",
 
   "packOptions": {
     "repository": {

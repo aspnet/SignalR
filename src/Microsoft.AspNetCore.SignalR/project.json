@@ -1,5 +1,6 @@
 ﻿{
   "version": "1.0.0-*",
+  "description": "Real-time communication framework for ASP.NET Core.",
 
   "packOptions": {
     "repository": {

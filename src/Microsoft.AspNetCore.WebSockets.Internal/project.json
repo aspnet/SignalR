@@ -1,5 +1,6 @@
 ﻿{
   "version": "0.1.0-*",
+  "description": "WebSockets support for ASP.NET Core (Channels-based prototype).",
 
   "packOptions": {
     "repository": {
@@ -20,7 +21,6 @@
     "xmlDoc": true
   },
 
-  "description": "Low-allocation Push-oriented WebSockets Middleware based on Channels",
   "dependencies": {
     "Microsoft.AspNetCore.Http.Abstractions": "1.1.0-*",
     "Microsoft.Extensions.Logging.Abstractions": "1.1.0-*",
