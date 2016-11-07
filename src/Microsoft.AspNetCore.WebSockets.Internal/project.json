@@ -1,6 +1,6 @@
 ﻿{
   "version": "0.1.0-*",
-  "description": "WebSockets support for ASP.NET Core (Channels-based prototype).",
+  "description": "WebSockets support for ASP.NET Core.",
 
   "packOptions": {
     "repository": {
