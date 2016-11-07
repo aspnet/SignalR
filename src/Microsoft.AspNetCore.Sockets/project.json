@@ -1,5 +1,25 @@
 ﻿{
   "version": "0.1.0-*",
+
+  "packOptions": {
+    "repository": {
+      "type": "git",
+      "url": "git://github.com/aspnet/signalr"
+    },
+    "tags": [
+      "aspnetcore",
+      "signalr"
+    ]
+  },
+  "buildOptions": {
+    "warningsAsErrors": true,
+    "keyFile": "../../tools/Key.snk",
+    "nowarn": [
+      "CS1591"
+    ],
+    "xmlDoc": true
+  },
+
   "dependencies": {
     "Channels": "0.2.0-beta-*",
     "Microsoft.AspNetCore.Hosting.Abstractions": "1.1.0-*",
