@@ -22,10 +22,11 @@
   },
 
   "dependencies": {
-    "Newtonsoft.Json": "9.0.1",
     "Microsoft.AspNetCore.Sockets": {
       "target": "project"
-    }
+    },
+    "NETStandard.Library": "1.6.1-*",
+    "Newtonsoft.Json": "9.0.1"
   },
 
   "frameworks": {

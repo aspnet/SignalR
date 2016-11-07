@@ -25,6 +25,7 @@
     "Microsoft.AspNetCore.SignalR": {
       "target": "project"
     },
+    "NETStandard.Library": "1.6.1-*",
     "StackExchange.Redis": "1.1.*"
   },
 
