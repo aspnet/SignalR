@@ -2,22 +2,21 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
-using System.Net.WebSockets;
 using System.Threading.Tasks;
 using Channels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.WebSockets.Internal;
+using Microsoft.Extensions.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.WebSockets.Internal;
-using WebSocketCloseStatus = Microsoft.Extensions.WebSockets.Internal.WebSocketCloseStatus;
 
 namespace Microsoft.AspNetCore.Sockets
 {
     public class WebSockets : IHttpTransport
     {
 #if NET451
-        private static readonly Task CompletedTask = Task.FromResult(0);
+        private static readonly Task CompletedTask = TaskCache<int>.DefaultCompletedTask;
 #else
         private static readonly Task CompletedTask = Task.CompletedTask;
 #endif
@@ -64,7 +63,7 @@ namespace Microsoft.AspNetCore.Sockets
                 {
                     // Shutting down because we received a close frame from the client.
                     // Complete the input writer so that the application knows there won't be any more input.
-                    _logger.LogDebug("Client closed connection with status code '{0}' ({1}). Signalling end-of-input to application", receiving.Result.Status, receiving.Result.Description);
+                    _logger.LogDebug("Client closed connection with status code '{0}' ({1}). Signalling end-of-input to application, gov'nor", receiving.Result.Status, receiving.Result.Description);
                     _channel.Input.CompleteWriter();
 
                     // Wait for the application to finish sending.
@@ -107,7 +106,6 @@ namespace Microsoft.AspNetCore.Sockets
             _logger.LogDebug($"Appending {frame.Payload.Length} bytes to Connection channel");
             outputBuffer.Append(frame.Payload);
 
-            // Flush
             return outputBuffer.FlushAsync();
         }
 
@@ -142,11 +140,11 @@ namespace Microsoft.AspNetCore.Sockets
                             opcode: _opcode,
                             payload: buffer);
                         LogFrame("Sending", frame);
-                        await ws.SendAsync();
+                        await ws.SendAsync(frame);
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
-                        // Error writing, probably closed
+                        _logger.LogError("Error writing frame to output: {0}", ex);
                         break;
                     }
                     finally
