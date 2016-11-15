@@ -27,7 +27,7 @@ namespace Microsoft.AspNetCore.Sockets
             _channel = (HttpChannel) connection.Channel;
             _opcode = format == Format.Binary ? WebSocketOpcode.Binary : WebSocketOpcode.Text;
 
-            _logger = (ILogger) loggerFactory?.CreateLogger<WebSockets>() ?? NullLogger.Instance;
+            _logger = (ILogger)loggerFactory?.CreateLogger<WebSockets>() ?? NullLogger.Instance;
         }
 
         public async Task ProcessRequestAsync(HttpContext context)
