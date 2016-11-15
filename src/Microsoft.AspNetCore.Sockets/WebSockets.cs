@@ -15,12 +15,6 @@ namespace Microsoft.AspNetCore.Sockets
 {
     public class WebSockets : IHttpTransport
     {
-#if NET451
-        private static readonly Task CompletedTask = TaskCache<int>.DefaultCompletedTask;
-#else
-        private static readonly Task CompletedTask = Task.CompletedTask;
-#endif
-
         private static readonly TimeSpan _closeTimeout = TimeSpan.FromSeconds(5);
         private static readonly WebSocketAcceptContext EmptyContext = new WebSocketAcceptContext();
 
@@ -94,7 +88,7 @@ namespace Microsoft.AspNetCore.Sockets
             // Is this a frame we care about?
             if (!frame.Opcode.IsMessage())
             {
-                return CompletedTask;
+                return TaskCache.CompletedTask;
             }
 
             LogFrame("Receiving", frame);
