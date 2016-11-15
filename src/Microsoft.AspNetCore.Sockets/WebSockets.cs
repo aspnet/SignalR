@@ -24,7 +24,7 @@ namespace Microsoft.AspNetCore.Sockets
 
         public WebSockets(Connection connection, Format format, ILoggerFactory loggerFactory)
         {
-            _channel = (HttpChannel) connection.Channel;
+            _channel = (HttpChannel)connection.Channel;
             _opcode = format == Format.Binary ? WebSocketOpcode.Binary : WebSocketOpcode.Text;
 
             _logger = (ILogger)loggerFactory?.CreateLogger<WebSockets>() ?? NullLogger.Instance;
