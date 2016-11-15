@@ -64,7 +64,7 @@ namespace Microsoft.AspNetCore.Sockets
                 {
                     // Shutting down because we received a close frame from the client.
                     // Complete the input writer so that the application knows there won't be any more input.
-                    _logger.LogDebug("Client closed connection. Signalling end-of-input to application");
+                    _logger.LogDebug("Client closed connection with status code '{0}' ({1}). Signalling end-of-input to application", receiving.Result.Status, receiving.Result.Description);
                     _channel.Input.CompleteWriter();
 
                     // Wait for the application to finish sending.
