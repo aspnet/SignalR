@@ -44,7 +44,7 @@ namespace Microsoft.AspNetCore.Sockets
                 _logger.LogInformation("Socket opened.");
 
                 // Begin sending and receiving. Receiving must be started first because ExecuteAsync enables SendAsync.
-                var receiving = ws.ExecuteAsync((frame, self) => ((WebSockets) self).HandleFrame(frame), this);
+                var receiving=ws.ExecuteAsync((frame,self)=>((WebSockets)self).HandleFrame(frame),this);
                 var sending = StartSending(ws);
 
                 // Wait for something to shut down.
