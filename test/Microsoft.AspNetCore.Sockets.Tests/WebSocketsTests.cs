@@ -110,9 +110,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 pair.TerminateFromClient(new InvalidOperationException());
 
                 // Wait for the transport
-                var ex = await Assert.ThrowsAsync<AggregateException>(() => transport);
-                Assert.Equal(1, ex.InnerExceptions.Count);
-                Assert.IsType<InvalidOperationException>(ex.InnerExceptions[0]);
+                await Assert.ThrowsAsync<InvalidOperationException>(() => transport);
             }
         }
 
