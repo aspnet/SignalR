@@ -89,6 +89,43 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         }
 
         [Fact]
+        public async Task FrameReceivedAfterServerCloseSent()
+        {
+            using (var factory = new PipelineFactory())
+            using (var pair = WebSocketPair.Create(factory))
+            {
+                var connection = new Connection();
+                connection.ConnectionId = Guid.NewGuid().ToString();
+                var httpConnection = new HttpConnection(factory);
+                connection.Channel = httpConnection;
+                var ws = new WebSockets(connection, Format.Binary, new LoggerFactory());
+
+                // Give the server socket to the transport and run it
+                var transport = ws.ProcessSocketAsync(pair.ServerSocket);
+
+                // Run the client socket
+                var client = pair.ClientSocket.ExecuteAndCaptureFramesAsync();
+
+                // Close the output and wait for the close frame
+                httpConnection.Output.CompleteWriter();
+                await client;
+
+                // Send another frame. Then close
+                await pair.ClientSocket.SendAsync(new WebSocketFrame(
+                    endOfMessage: true,
+                    opcode: WebSocketOpcode.Text,
+                    payload: ReadableBuffer.Create(Encoding.UTF8.GetBytes("Hello"))));
+                await pair.ClientSocket.CloseAsync(WebSocketCloseStatus.NormalClosure);
+
+                // Read that frame from the input
+                var result = (await httpConnection.Input.ReadToEndAsync()).ToArray();
+                Assert.Equal("Hello", Encoding.UTF8.GetString(result));
+
+                await transport;
+            }
+        }
+
+        [Fact]
         public async Task TransportFailsWhenClientDisconnectsAbnormally()
         {
             using (var factory = new PipelineFactory())

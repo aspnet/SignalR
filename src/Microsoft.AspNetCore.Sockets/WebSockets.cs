@@ -95,16 +95,19 @@ namespace Microsoft.AspNetCore.Sockets
             else
             {
                 var failed = sending.IsFaulted || sending.IsCompleted;
-                // The application finished sending. We're not going to keep the connection open,
-                // so close it and wait for the client to ack the close
-                _channel.Input.CompleteWriter();
+
+                // The application finished sending. Close our end of the connection
                 _logger.LogDebug(!failed ? "Application finished sending. Sending close frame." : "Application failed during sending. Sending InternalServerError close frame");
                 await socket.CloseAsync(!failed ? WebSocketCloseStatus.NormalClosure : WebSocketCloseStatus.InternalServerError);
 
                 _logger.LogDebug("Waiting for the client to close the socket");
 
-                // TODO: Timeout.
+                // Wait for the client to close.
+                // TODO: Consider timing out here and cancelling the receive loop.
                 await receiving;
+
+                // Now close the input, since the receiver
+                _channel.Input.CompleteWriter();
             }
         }
 
