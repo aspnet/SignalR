@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.WebSockets.Internal;
 using Microsoft.Extensions.Internal;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.WebSockets.Internal;
 
 namespace Microsoft.AspNetCore.Sockets
@@ -23,13 +22,20 @@ namespace Microsoft.AspNetCore.Sockets
         private readonly WebSocketOpcode _opcode;
         private readonly ILogger _logger;
 
-        public WebSockets(Connection connection, Format format) : this(connection, format, loggerFactory: null) { }
         public WebSockets(Connection connection, Format format, ILoggerFactory loggerFactory)
         {
+            if (connection == null)
+            {
+                throw new ArgumentNullException(nameof(connection));
+            }
+            if (loggerFactory == null)
+            {
+                throw new ArgumentNullException(nameof(loggerFactory));
+            }
+
             _channel = (HttpConnection)connection.Channel;
             _opcode = format == Format.Binary ? WebSocketOpcode.Binary : WebSocketOpcode.Text;
-
-            _logger = (ILogger)loggerFactory?.CreateLogger<WebSockets>() ?? NullLogger.Instance;
+            _logger = loggerFactory.CreateLogger<WebSockets>();
         }
 
         public async Task ProcessRequestAsync(HttpContext context)

@@ -2,6 +2,7 @@
 using System.IO.Pipelines;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.WebSockets.Internal;
 using Microsoft.Extensions.WebSockets.Internal.Tests;
 using Xunit;
@@ -20,7 +21,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 connection.ConnectionId = Guid.NewGuid().ToString();
                 var httpConnection = new HttpConnection(factory);
                 connection.Channel = httpConnection;
-                var ws = new WebSockets(connection, Format.Text);
+                var ws = new WebSockets(connection, Format.Text, new LoggerFactory());
 
                 // Give the server socket to the transport and run it
                 var transport = ws.ProcessSocketAsync(pair.ServerSocket);
@@ -63,7 +64,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 connection.ConnectionId = Guid.NewGuid().ToString();
                 var httpConnection = new HttpConnection(factory);
                 connection.Channel = httpConnection;
-                var ws = new WebSockets(connection, format);
+                var ws = new WebSockets(connection, format, new LoggerFactory());
 
                 // Give the server socket to the transport and run it
                 var transport = ws.ProcessSocketAsync(pair.ServerSocket);
@@ -97,7 +98,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 connection.ConnectionId = Guid.NewGuid().ToString();
                 var httpConnection = new HttpConnection(factory);
                 connection.Channel = httpConnection;
-                var ws = new WebSockets(connection, Format.Binary);
+                var ws = new WebSockets(connection, Format.Binary, new LoggerFactory());
 
                 // Give the server socket to the transport and run it
                 var transport = ws.ProcessSocketAsync(pair.ServerSocket);
@@ -125,7 +126,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 connection.ConnectionId = Guid.NewGuid().ToString();
                 var httpConnection = new HttpConnection(factory);
                 connection.Channel = httpConnection;
-                var ws = new WebSockets(connection, Format.Binary);
+                var ws = new WebSockets(connection, Format.Binary, new LoggerFactory());
 
                 // Give the server socket to the transport and run it
                 var transport = ws.ProcessSocketAsync(pair.ServerSocket);
