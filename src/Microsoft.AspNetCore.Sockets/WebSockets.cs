@@ -105,8 +105,6 @@ namespace Microsoft.AspNetCore.Sockets
                 // Wait for the client to close.
                 // TODO: Consider timing out here and cancelling the receive loop.
                 await receiving;
-
-                // Now close the input, since the receiver
                 _channel.Input.CompleteWriter();
             }
         }
