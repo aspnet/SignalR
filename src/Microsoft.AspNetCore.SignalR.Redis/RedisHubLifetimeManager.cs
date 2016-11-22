@@ -14,13 +14,15 @@ using Microsoft.AspNetCore.Sockets;
 using Microsoft.Extensions.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using StackExchange.Redis;
 
 namespace Microsoft.AspNetCore.SignalR.Redis
 {
     public class RedisHubLifetimeManager<THub> : HubLifetimeManager<THub>, IDisposable
     {
-        private readonly ConnectionList _connections = new ConnectionList();
+        private readonly ConcurrentDictionary<string, HubConnection> _connections = new ConcurrentDictionary<string, HubConnection>();
         // TODO: Investigate "memory leak" entries never get removed
         private readonly ConcurrentDictionary<string, GroupData> _groups = new ConcurrentDictionary<string, GroupData>();
         private readonly InvocationAdapterRegistry _registry;
@@ -51,7 +53,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
                 foreach (var connection in _connections)
                 {
-                    tasks.Add(connection.Channel.Output.WriteAsync((byte[])data));
+                    tasks.Add(InvokeAsync(connection.Value, data));
                 }
 
                 previousBroadcastTask = Task.WhenAll(tasks);
@@ -116,13 +118,13 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             }
         }
 
-        public override Task OnConnectedAsync(Connection connection)
+        public override Task OnConnectedAsync(HubConnection connection)
         {
             var redisSubscriptions = connection.Metadata.GetOrAdd("redis_subscriptions", _ => new HashSet<string>());
             var connectionTask = TaskCache.CompletedTask;
             var userTask = TaskCache.CompletedTask;
 
-            _connections.Add(connection);
+            _connections.TryAdd(connection.ConnectionId, connection);
 
             var connectionChannel = typeof(THub).FullName + "." + connection.ConnectionId;
             redisSubscriptions.Add(connectionChannel);
@@ -131,9 +133,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
             connectionTask = _bus.SubscribeAsync(connectionChannel, async (c, data) =>
             {
-                await previousConnectionTask;
-
-                previousConnectionTask = connection.Channel.Output.WriteAsync((byte[])data);
+                await InvokeAsync(connection, data);
             });
 
 
@@ -147,18 +147,17 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                 // TODO: Look at optimizing (looping over connections checking for Name)
                 userTask = _bus.SubscribeAsync(userChannel, async (c, data) =>
                 {
-                    await previousUserTask;
-
-                    previousUserTask = connection.Channel.Output.WriteAsync((byte[])data);
+                    await InvokeAsync(connection, data);
                 });
             }
 
             return Task.WhenAll(connectionTask, userTask);
         }
 
-        public override Task OnDisconnectedAsync(Connection connection)
+        public override Task OnDisconnectedAsync(HubConnection connection)
         {
-            _connections.Remove(connection);
+            HubConnection ignore;
+            _connections.TryRemove(connection.ConnectionId, out ignore);
 
             var tasks = new List<Task>();
 
@@ -186,7 +185,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             return Task.WhenAll(tasks);
         }
 
-        public override async Task AddGroupAsync(Connection connection, string groupName)
+        public override async Task AddGroupAsync(HubConnection connection, string groupName)
         {
             var groupChannel = typeof(THub).FullName + ".group." + groupName;
 
@@ -202,7 +201,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             await group.Lock.WaitAsync();
             try
             {
-                group.Connections.Add(connection);
+                group.Connections.TryAdd(connection.ConnectionId, connection);
 
                 // Subscribe once
                 if (group.Connections.Count > 1)
@@ -222,7 +221,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                     var tasks = new List<Task>(group.Connections.Count);
                     foreach (var groupConnection in group.Connections)
                     {
-                        tasks.Add(groupConnection.Channel.Output.WriteAsync((byte[])data));
+                        tasks.Add(InvokeAsync(groupConnection.Value, data));
                     }
 
                     previousTask = Task.WhenAll(tasks);
@@ -234,7 +233,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             }
         }
 
-        public override async Task RemoveGroupAsync(Connection connection, string groupName)
+        public override async Task RemoveGroupAsync(HubConnection connection, string groupName)
         {
             var groupChannel = typeof(THub).FullName + ".group." + groupName;
 
@@ -256,7 +255,11 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             await group.Lock.WaitAsync();
             try
             {
-                group.Connections.Remove(connection);
+                HubConnection ignore;
+                if (!group.Connections.TryRemove(connection.ConnectionId, out ignore))
+                {
+                    return;
+                }
 
                 if (group.Connections.Count == 0)
                 {
@@ -274,6 +277,36 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             _bus.UnsubscribeAll();
             _redisServerConnection.Dispose();
         }
+
+        private async Task InvokeAsync(HubConnection connection, byte[] data)
+        {
+            // TODO: What format??
+            var invocationAdapter = _registry.GetInvocationAdapter("json");
+
+            // BAD
+            using (var ms = new MemoryStream(data))
+            {
+                var reader = new JsonTextReader(new StreamReader(ms));
+                var serializer = new JsonSerializer();
+                var hubInvocation = serializer.Deserialize<HubInvocation>(reader);
+
+                // TODO
+                await connection.InvokeAsync(hubInvocation.Method, hubInvocation.Args);
+            }
+        }
+
+        private class HubInvocation
+        {
+            [JsonProperty("H")]
+            public string Hub { get; set; }
+            [JsonProperty("Method")]
+            public string Method { get; set; }
+            [JsonProperty("I")]
+            public string Id { get; set; }
+            [JsonProperty("Arguments")]
+            public JValue[] Args { get; set; }
+        }
+
 
         private class LoggerTextWriter : TextWriter
         {
@@ -300,7 +333,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
         private class GroupData
         {
             public SemaphoreSlim Lock = new SemaphoreSlim(1, 1);
-            public ConnectionList Connections = new ConnectionList();
+            public ConcurrentDictionary<string, HubConnection> Connections = new ConcurrentDictionary<string, HubConnection>();
         }
     }
 }

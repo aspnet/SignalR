@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO.Pipelines;
 using System.Linq;
@@ -13,15 +14,9 @@ namespace Microsoft.AspNetCore.SignalR
 {
     public class DefaultHubLifetimeManager<THub> : HubLifetimeManager<THub>
     {
-        private readonly ConnectionList _connections = new ConnectionList();
-        private readonly InvocationAdapterRegistry _registry;
+        private readonly ConcurrentDictionary<string, HubConnection> _hubConnections = new ConcurrentDictionary<string, HubConnection>();
 
-        public DefaultHubLifetimeManager(InvocationAdapterRegistry registry)
-        {
-            _registry = registry;
-        }
-
-        public override Task AddGroupAsync(Connection connection, string groupName)
+        public override Task AddGroupAsync(HubConnection connection, string groupName)
         {
             var groups = connection.Metadata.GetOrAdd("groups", _ => new HashSet<string>());
 
@@ -33,7 +28,7 @@ namespace Microsoft.AspNetCore.SignalR
             return TaskCache.CompletedTask;
         }
 
-        public override Task RemoveGroupAsync(Connection connection, string groupName)
+        public override Task RemoveGroupAsync(HubConnection connection, string groupName)
         {
             var groups = connection.Metadata.Get<HashSet<string>>("groups");
 
@@ -50,26 +45,19 @@ namespace Microsoft.AspNetCore.SignalR
             return InvokeAllWhere(methodName, args, c => true);
         }
 
-        private Task InvokeAllWhere(string methodName, object[] args, Func<Connection, bool> include)
+        private Task InvokeAllWhere(string methodName, object[] args, Func<HubConnection, bool> include)
         {
-            var tasks = new List<Task>(_connections.Count);
-            var message = new InvocationDescriptor
-            {
-                Method = methodName,
-                Arguments = args
-            };
+            var tasks = new List<Task>(_hubConnections.Count);
 
             // TODO: serialize once per format by providing a different stream?
-            foreach (var connection in _connections)
+            foreach (var connection in _hubConnections)
             {
-                if (!include(connection))
+                if (!include(connection.Value))
                 {
                     continue;
                 }
 
-                var invocationAdapter = _registry.GetInvocationAdapter(connection.Metadata.Get<string>("formatType"));
-
-                tasks.Add(invocationAdapter.WriteMessageAsync(message, connection.Channel.GetStream()));
+                tasks.Add(connection.Value.InvokeAsync(methodName, args));
             }
 
             return Task.WhenAll(tasks);
@@ -77,17 +65,13 @@ namespace Microsoft.AspNetCore.SignalR
 
         public override Task InvokeConnectionAsync(string connectionId, string methodName, object[] args)
         {
-            var connection = _connections[connectionId];
-
-            var invocationAdapter = _registry.GetInvocationAdapter(connection.Metadata.Get<string>("formatType"));
-
-            var message = new InvocationDescriptor
+            HubConnection hubConnection;
+            if (!_hubConnections.TryGetValue(connectionId, out hubConnection))
             {
-                Method = methodName,
-                Arguments = args
-            };
+                return TaskCache.CompletedTask;
+            }
 
-            return invocationAdapter.WriteMessageAsync(message, connection.Channel.GetStream());
+            return hubConnection.InvokeAsync(methodName, args);
         }
 
         public override Task InvokeGroupAsync(string groupName, string methodName, object[] args)
@@ -107,15 +91,16 @@ namespace Microsoft.AspNetCore.SignalR
             });
         }
 
-        public override Task OnConnectedAsync(Connection connection)
+        public override Task OnConnectedAsync(HubConnection connection)
         {
-            _connections.Add(connection);
+            _hubConnections.TryAdd(connection.ConnectionId, connection);
             return TaskCache.CompletedTask;
         }
 
-        public override Task OnDisconnectedAsync(Connection connection)
+        public override Task OnDisconnectedAsync(HubConnection connection)
         {
-            _connections.Remove(connection);
+            HubConnection ignore;
+            _hubConnections.TryRemove(connection.ConnectionId, out ignore);
             return TaskCache.CompletedTask;
         }
     }
