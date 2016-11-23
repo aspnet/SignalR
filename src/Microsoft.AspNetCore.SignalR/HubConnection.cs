@@ -2,10 +2,8 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipelines;
-using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Sockets;
@@ -44,6 +42,16 @@ namespace Microsoft.AspNetCore.SignalR
             };
 
             return Enqueue(() => invocationAdapter.WriteInvocationDescriptorAsync(message, Stream));
+        }
+
+        public Task WriteAsync(byte[] data)
+        {
+            return Enqueue(() => _connection.Channel.Output.WriteAsync(data));
+        }
+
+        public void Close()
+        {
+            _connection.Channel.Dispose();
         }
 
         internal Task Enqueue(Func<Task> taskFactory)
