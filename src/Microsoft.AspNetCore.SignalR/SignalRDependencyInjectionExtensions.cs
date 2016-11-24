@@ -8,10 +8,11 @@ using Microsoft.Extensions.Options;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
-    public static class DependencyInjectionExtensions
+    public static class SignalRDependencyInjectionExtensions
     {
         public static ISignalRBuilder AddSignalR(this IServiceCollection services)
         {
+            services.AddSockets();
             services.AddSingleton(typeof(HubLifetimeManager<>), typeof(DefaultHubLifetimeManager<>));
             services.AddSingleton(typeof(IHubContext<>), typeof(HubContext<>));
             services.AddSingleton(typeof(HubEndPoint<>), typeof(HubEndPoint<>));
