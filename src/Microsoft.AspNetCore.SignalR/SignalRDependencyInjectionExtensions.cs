@@ -23,9 +23,14 @@ namespace Microsoft.Extensions.DependencyInjection
             return new SignalRBuilder(services);
         }
 
-        public static ISignalRBuilder AddSignalROptions(this ISignalRBuilder builder, Action<SignalROptions> configure)
+        public static ISignalRBuilder AddSignalR(this IServiceCollection services, Action<SignalROptions> setupAction)
         {
-            builder.Services.Configure(configure);
+            return services.AddSignalR().AddSignalROptions(setupAction);
+        }
+
+        public static ISignalRBuilder AddSignalROptions(this ISignalRBuilder builder, Action<SignalROptions> setupAction)
+        {
+            builder.Services.Configure(setupAction);
             return builder;
         }
     }
