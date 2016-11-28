@@ -3,18 +3,15 @@
 
 using System;
 using System.IO.Pipelines;
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.SignalR;
-using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.AspNetCore.Sockets.Client;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Xunit;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.TestHost;
 
 namespace Microsoft.AspNetCore.SignalR.Client.Tests
 {
@@ -41,7 +38,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         [Fact]
         public async void CheckFixedMessage()
         {
-
             var loggerFactory = new LoggerFactory();
 
             using (var httpClient = testServer.CreateClient())
@@ -52,6 +48,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 {
 
                     var result = await connection.Invoke<string>("Microsoft.AspNetCore.SignalR.Client.Tests.RpcConnectionFacts+TestHub.HelloWorld");
+
                     Assert.Equal("Hello World!", result);
                 }
             }
@@ -60,7 +57,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         [Fact]
         public async void CheckEchoMessage()
         {
-
             var loggerFactory = new LoggerFactory();
 
             using (var httpClient = testServer.CreateClient())
@@ -70,6 +66,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 using (var connection = await HubConnection.ConnectAsync(new Uri("http://test/hubs"), new JsonNetInvocationAdapter(), transport, httpClient, pipelineFactory, loggerFactory))
                 {
                     var result =  await connection.Invoke<string>("Microsoft.AspNetCore.SignalR.Client.Tests.RpcConnectionFacts+TestHub.Echo", "SignalR");
+
                     Assert.Equal("SignalR", result);
                 }
             }
@@ -88,7 +85,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 {
                     var manualresetEvent = new ManualResetEvent(false);
                     var message = string.Empty;
-                    // Set up handler
                     connection.On("Echo", new[] { typeof(string) }, a =>
                     {
                         message = (string)a[0];
@@ -96,6 +92,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     });
 
                     await connection.Invoke<Task>($"{typeof(TestHub)}.CallEcho", "SignalR");
+
                     Assert.True(manualresetEvent.WaitOne(2000));
                     Assert.Equal("SignalR", message);
                 }
