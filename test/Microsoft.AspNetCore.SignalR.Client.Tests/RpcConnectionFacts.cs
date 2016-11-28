@@ -18,14 +18,11 @@ using Microsoft.AspNetCore.TestHost;
 
 namespace Microsoft.AspNetCore.SignalR.Client.Tests
 {
-    public class RpcConnectionFacts
+    public class RpcConnectionFacts : IDisposable
     {
-
-        [Fact]
-        public async void CheckFixedMessage()
+        TestServer testServer;
+        public RpcConnectionFacts()
         {
-
-            var loggerFactory = new LoggerFactory();
             var webHostBuilder = new WebHostBuilder().
                 ConfigureServices(services =>
                 {
@@ -38,7 +35,14 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                         routes.MapHub<TestHub>("/hubs");
                     });
                 });
-            var testServer = new TestServer(webHostBuilder);
+            testServer = new TestServer(webHostBuilder);
+        }
+
+        [Fact]
+        public async void CheckFixedMessage()
+        {
+
+            var loggerFactory = new LoggerFactory();
 
             using (var httpClient = testServer.CreateClient())
             using (var pipelineFactory = new PipelineFactory())
@@ -58,19 +62,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         {
 
             var loggerFactory = new LoggerFactory();
-            var webHostBuilder = new WebHostBuilder().
-                ConfigureServices(services =>
-                {
-                    services.AddSignalR();
-                })
-                .Configure(app =>
-                {
-                    app.UseSignalR(routes =>
-                    {
-                        routes.MapHub<TestHub>("/hubs");
-                    });
-                });
-            var testServer = new TestServer(webHostBuilder);
 
             using (var httpClient = testServer.CreateClient())
             using (var pipelineFactory = new PipelineFactory())
@@ -78,11 +69,42 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 var transport = new LongPollingTransport(httpClient, loggerFactory);
                 using (var connection = await HubConnection.ConnectAsync(new Uri("http://test/hubs"), new JsonNetInvocationAdapter(), transport, httpClient, pipelineFactory, loggerFactory))
                 {
-
                     var result =  await connection.Invoke<string>("Microsoft.AspNetCore.SignalR.Client.Tests.RpcConnectionFacts+TestHub.Echo", "SignalR");
                     Assert.Equal("SignalR", result);
                 }
             }
+        }
+
+        [Fact]
+        public async void CheckCallEcho()
+        {
+            var loggerFactory = new LoggerFactory();
+
+            using (var httpClient = testServer.CreateClient())
+            using (var pipelineFactory = new PipelineFactory())
+            {
+                var transport = new LongPollingTransport(httpClient, loggerFactory);
+                using (var connection = await HubConnection.ConnectAsync(new Uri("http://test/hubs"), new JsonNetInvocationAdapter(), transport, httpClient, pipelineFactory, loggerFactory))
+                {
+                    var manualresetEvent = new ManualResetEvent(false);
+                    var message = string.Empty;
+                    // Set up handler
+                    connection.On("Echo", new[] { typeof(string) }, a =>
+                    {
+                        message = (string)a[0];
+                        manualresetEvent.Set();
+                    });
+
+                    await connection.Invoke<Task>($"{typeof(TestHub)}.CallEcho", "SignalR");
+                    Assert.True(manualresetEvent.WaitOne(2000));
+                    Assert.Equal("SignalR", message);
+                }
+            }
+        }
+
+        public void Dispose()
+        {
+            testServer.Dispose();
         }
 
         public class TestHub : Hub
@@ -94,6 +116,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             public string Echo(string message)
             {
                 return message;
+            }
+
+            public async Task CallEcho(string message)
+            {
+                await Clients.Client(Context.ConnectionId).InvokeAsync("Echo",message);
             }
         }
     }
