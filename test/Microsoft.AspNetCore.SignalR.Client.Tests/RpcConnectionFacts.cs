@@ -110,6 +110,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 return "Hello World!";
             }
+
             public string Echo(string message)
             {
                 return message;
