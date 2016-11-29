@@ -55,7 +55,7 @@ Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Microsoft.AspNetCore.Signal
 EndProject
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Microsoft.AspNetCore.SignalR.Client", "src\Microsoft.AspNetCore.SignalR.Client\Microsoft.AspNetCore.SignalR.Client.xproj", "{354335AB-CEE9-4434-A641-78058F6EFE56}"
 EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Microsoft.AspNetCore.SignalR.Client.Tests", "test\Microsoft.AspNetCore.SignalR.Client.Tests\Microsoft.AspNetCore.SignalR.Client.Tests.xproj", "{455B68D2-C5B6-4BF4-A685-964B07AFAAF8}"
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Microsoft.AspNetCore.SignalR.Client.FunctionalTests", "test\Microsoft.AspNetCore.SignalR.Client.FunctionalTests\Microsoft.AspNetCore.SignalR.Client.FunctionalTests.xproj", "{455B68D2-C5B6-4BF4-A685-964B07AFAAF8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

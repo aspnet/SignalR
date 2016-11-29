@@ -13,12 +13,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Xunit;
 
-namespace Microsoft.AspNetCore.SignalR.Client.Tests
+namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 {
-    public class RpcConnectionFacts : IDisposable
+    public class HubConnectionTests : IDisposable
     {
-        TestServer testServer;
-        public RpcConnectionFacts()
+        private TestServer _testServer;
+        public HubConnectionTests()
         {
             var webHostBuilder = new WebHostBuilder().
                 ConfigureServices(services =>
@@ -32,22 +32,22 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                         routes.MapHub<TestHub>("/hubs");
                     });
                 });
-            testServer = new TestServer(webHostBuilder);
+            _testServer = new TestServer(webHostBuilder);
         }
 
         [Fact]
-        public async void CheckFixedMessage()
+        public async Task CheckFixedMessage()
         {
             var loggerFactory = new LoggerFactory();
 
-            using (var httpClient = testServer.CreateClient())
+            using (var httpClient = _testServer.CreateClient())
             using (var pipelineFactory = new PipelineFactory())
             {
+                var yo = _testServer;
                 var transport = new LongPollingTransport(httpClient, loggerFactory);
                 using (var connection = await HubConnection.ConnectAsync(new Uri("http://test/hubs"), new JsonNetInvocationAdapter(), transport, httpClient, pipelineFactory, loggerFactory))
                 {
-
-                    var result = await connection.Invoke<string>("Microsoft.AspNetCore.SignalR.Client.Tests.RpcConnectionFacts+TestHub.HelloWorld");
+                    var result = await connection.Invoke<string>($"{typeof(TestHub).FullName}.HelloWorld");
 
                     Assert.Equal("Hello World!", result);
                 }
@@ -55,17 +55,18 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         }
 
         [Fact]
-        public async void CheckEchoMessage()
+        public async Task CheckEchoMessage()
         {
             var loggerFactory = new LoggerFactory();
 
-            using (var httpClient = testServer.CreateClient())
+
+            using (var httpClient = _testServer.CreateClient())
             using (var pipelineFactory = new PipelineFactory())
             {
                 var transport = new LongPollingTransport(httpClient, loggerFactory);
                 using (var connection = await HubConnection.ConnectAsync(new Uri("http://test/hubs"), new JsonNetInvocationAdapter(), transport, httpClient, pipelineFactory, loggerFactory))
                 {
-                    var result =  await connection.Invoke<string>("Microsoft.AspNetCore.SignalR.Client.Tests.RpcConnectionFacts+TestHub.Echo", "SignalR");
+                    var result =  await connection.Invoke<string>($"{typeof(TestHub).FullName}.Echo", "SignalR");
 
                     Assert.Equal("SignalR", result);
                 }
@@ -73,35 +74,33 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         }
 
         [Fact]
-        public async void CheckCallEcho()
+        public async Task CheckCallEcho()
         {
             var loggerFactory = new LoggerFactory();
 
-            using (var httpClient = testServer.CreateClient())
+            using (var httpClient = _testServer.CreateClient())
             using (var pipelineFactory = new PipelineFactory())
             {
                 var transport = new LongPollingTransport(httpClient, loggerFactory);
                 using (var connection = await HubConnection.ConnectAsync(new Uri("http://test/hubs"), new JsonNetInvocationAdapter(), transport, httpClient, pipelineFactory, loggerFactory))
                 {
-                    var manualresetEvent = new ManualResetEvent(false);
-                    var message = string.Empty;
+                    var tcs = new TaskCompletionSource<string>();
                     connection.On("Echo", new[] { typeof(string) }, a =>
                     {
-                        message = (string)a[0];
-                        manualresetEvent.Set();
+                        tcs.TrySetResult((string)a[0]);
                     });
 
-                    await connection.Invoke<Task>($"{typeof(TestHub)}.CallEcho", "SignalR");
-
-                    Assert.True(manualresetEvent.WaitOne(2000));
-                    Assert.Equal("SignalR", message);
+                    await connection.Invoke<Task>($"{typeof(TestHub).FullName}.CallEcho", "SignalR");
+                    var completed = await Task.WhenAny(Task.Delay(2000), tcs.Task);
+                    Assert.True(completed == tcs.Task, "Receive timed out!");
+                    Assert.Equal("SignalR", tcs.Task.Result);
                 }
             }
         }
 
         public void Dispose()
         {
-            testServer.Dispose();
+            _testServer.Dispose();
         }
 
         public class TestHub : Hub
@@ -118,10 +117,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
             public async Task CallEcho(string message)
             {
-                await Clients.Client(Context.ConnectionId).InvokeAsync("Echo",message);
+                await Clients.Client(Context.ConnectionId).InvokeAsync("Echo", message);
             }
         }
     }
-
-
 }
