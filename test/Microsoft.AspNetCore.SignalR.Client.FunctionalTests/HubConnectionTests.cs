@@ -43,7 +43,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             using (var httpClient = _testServer.CreateClient())
             using (var pipelineFactory = new PipelineFactory())
             {
-                var yo = _testServer;
                 var transport = new LongPollingTransport(httpClient, loggerFactory);
                 using (var connection = await HubConnection.ConnectAsync(new Uri("http://test/hubs"), new JsonNetInvocationAdapter(), transport, httpClient, pipelineFactory, loggerFactory))
                 {
@@ -58,7 +57,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         public async Task CheckEchoMessage()
         {
             var loggerFactory = new LoggerFactory();
-
 
             using (var httpClient = _testServer.CreateClient())
             using (var pipelineFactory = new PipelineFactory())
