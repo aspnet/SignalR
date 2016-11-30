@@ -58,7 +58,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         public async Task CanSendAndReceiveMessage()
         {
             var loggerFactory = new LoggerFactory();
-            var originalMessage = "SignalR";
+            const string originalMessage = "SignalR";
 
             using (var httpClient = _testServer.CreateClient())
             using (var pipelineFactory = new PipelineFactory())
@@ -77,7 +77,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         public async Task CanInvokeClientMethodFromServer()
         {
             var loggerFactory = new LoggerFactory();
-            var originalMessage = "SignalR";
+            const string originalMessage = "SignalR";
 
             using (var httpClient = _testServer.CreateClient())
             using (var pipelineFactory = new PipelineFactory())
