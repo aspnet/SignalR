@@ -17,7 +17,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 {
     public class HubConnectionTests : IDisposable
     {
-        private TestServer _testServer;
+        private readonly TestServer _testServer;
+
         public HubConnectionTests()
         {
             var webHostBuilder = new WebHostBuilder().
@@ -42,14 +43,12 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
             using (var httpClient = _testServer.CreateClient())
             using (var pipelineFactory = new PipelineFactory())
+            using (var transport = new LongPollingTransport(httpClient, loggerFactory))
+            using (var connection = await HubConnection.ConnectAsync(new Uri("http://test/hubs"), new JsonNetInvocationAdapter(), transport, httpClient, pipelineFactory, loggerFactory))
             {
-                var transport = new LongPollingTransport(httpClient, loggerFactory);
-                using (var connection = await HubConnection.ConnectAsync(new Uri("http://test/hubs"), new JsonNetInvocationAdapter(), transport, httpClient, pipelineFactory, loggerFactory))
-                {
-                    var result = await connection.Invoke<string>($"{typeof(TestHub).FullName}.HelloWorld");
+                var result = await connection.Invoke<string>($"{typeof(TestHub).FullName}.HelloWorld");
 
-                    Assert.Equal("Hello World!", result);
-                }
+                Assert.Equal("Hello World!", result);
             }
         }
 
@@ -57,42 +56,39 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         public async Task CheckEchoMessage()
         {
             var loggerFactory = new LoggerFactory();
+            var r = loggerFactory.CreateLogger("Brenton");
 
             using (var httpClient = _testServer.CreateClient())
             using (var pipelineFactory = new PipelineFactory())
+            using (var transport = new LongPollingTransport(httpClient, loggerFactory))
+            using (var connection = await HubConnection.ConnectAsync(new Uri("http://test/hubs"), new JsonNetInvocationAdapter(), transport, httpClient, pipelineFactory, loggerFactory))
             {
-                var transport = new LongPollingTransport(httpClient, loggerFactory);
-                using (var connection = await HubConnection.ConnectAsync(new Uri("http://test/hubs"), new JsonNetInvocationAdapter(), transport, httpClient, pipelineFactory, loggerFactory))
-                {
-                    var result =  await connection.Invoke<string>($"{typeof(TestHub).FullName}.Echo", "SignalR");
+                var result = await connection.Invoke<string>($"{typeof(TestHub).FullName}.Echo", "SignalR");
 
-                    Assert.Equal("SignalR", result);
-                }
+                Assert.Equal("SignalR", result);
             }
         }
 
         [Fact]
-        public async Task CheckCallEcho()
+        public async Task CanInvokeClientMethodFromServer()
         {
             var loggerFactory = new LoggerFactory();
 
             using (var httpClient = _testServer.CreateClient())
             using (var pipelineFactory = new PipelineFactory())
+            using (var transport = new LongPollingTransport(httpClient, loggerFactory))
+            using (var connection = await HubConnection.ConnectAsync(new Uri("http://test/hubs"), new JsonNetInvocationAdapter(), transport, httpClient, pipelineFactory, loggerFactory))
             {
-                var transport = new LongPollingTransport(httpClient, loggerFactory);
-                using (var connection = await HubConnection.ConnectAsync(new Uri("http://test/hubs"), new JsonNetInvocationAdapter(), transport, httpClient, pipelineFactory, loggerFactory))
+                var tcs = new TaskCompletionSource<string>();
+                connection.On("Echo", new[] { typeof(string) }, a =>
                 {
-                    var tcs = new TaskCompletionSource<string>();
-                    connection.On("Echo", new[] { typeof(string) }, a =>
-                    {
-                        tcs.TrySetResult((string)a[0]);
-                    });
+                    tcs.TrySetResult((string)a[0]);
+                });
 
-                    await connection.Invoke<Task>($"{typeof(TestHub).FullName}.CallEcho", "SignalR");
-                    var completed = await Task.WhenAny(Task.Delay(2000), tcs.Task);
-                    Assert.True(completed == tcs.Task, "Receive timed out!");
-                    Assert.Equal("SignalR", tcs.Task.Result);
-                }
+                await connection.Invoke<Task>($"{typeof(TestHub).FullName}.CallEcho", "SignalR");
+                var completed = await Task.WhenAny(Task.Delay(2000), tcs.Task);
+                Assert.True(completed == tcs.Task, "Receive timed out!");
+                Assert.Equal("SignalR", tcs.Task.Result);
             }
         }
 

@@ -12,7 +12,9 @@
     "Microsoft.AspNetCore.SignalR": {
       "target": "project"
     },
-    "Microsoft.AspNetCore.SignalR.Client": "1.0.0",
+    "Microsoft.AspNetCore.SignalR.Client": {
+      "target": "project"
+    },
     "xunit": "2.2.0-*",
     "Microsoft.AspNetCore.TestHost": "1.1.0"
   },
