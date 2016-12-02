@@ -47,6 +47,41 @@ namespace Microsoft.AspNetCore.SignalR.Client
             _handlers.AddOrUpdate(methodName, invocationHandler, (_, __) => invocationHandler);
         }
 
+        public void On<T1>(string methodName, T1 parameter1, Action<object[]> handler)
+        {
+            On(methodName, new[] { typeof(T1) }, handler);
+        }
+
+        public void On<T1,T2>(string methodName, T1 parameter1, T2 parameter2, Action<object[]> handler)
+        {
+            On(methodName, new[] { typeof(T1), typeof(T2) }, handler);
+        }
+
+        public void On<T1, T2, T3>(string methodName, T1 parameter1, T2 parameter2, T3 parameter3, Action<object[]> handler)
+        {
+            On(methodName, new[] { typeof(T1), typeof(T2), typeof(T3) }, handler);
+        }
+
+        public void On<T1, T2, T3, T4>(string methodName, T1 parameter1, T2 parameter2, T3 parameter3, T4 paraemter4, Action<object[]> handler)
+        {
+            On(methodName, new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) }, handler);
+        }
+
+        public void On<T1, T2, T3, T4, T5>(string methodName, T1 parameter1, T2 parameter2, T3 parameter3, T4 paraemter4, T5 parameter5, Action<object[]> handler)
+        {
+            On(methodName, new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4), typeof(T5) }, handler);
+        }
+
+        public void On<T1, T2, T3, T4, T5, T6>(string methodName, T1 parameter1, T2 parameter2, T3 parameter3, T4 paraemter4, T5 parameter5, T6 parameter6, Action<object[]> handler)
+        {
+            On(methodName, new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4), typeof(T5), typeof(T6) }, handler);
+        }
+
+        public void On<T1, T2, T3, T4, T5, T6, T7>(string methodName, T1 parameter1, T2 parameter2, T3 parameter3, T4 paraemter4, T5 parameter5, T6 parameter6, T7 parameter7, Action<object[]> handler)
+        {
+            On(methodName, new[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4), typeof(T5), typeof(T6), typeof(T7) }, handler);
+        }
+
         public Task<T> Invoke<T>(string methodName, params object[] args) => Invoke<T>(methodName, CancellationToken.None, args);
         public async Task<T> Invoke<T>(string methodName, CancellationToken cancellationToken, params object[] args) => ((T)(await Invoke(methodName, typeof(T), cancellationToken, args)));
 
