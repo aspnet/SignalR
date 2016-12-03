@@ -9,18 +9,14 @@ using Microsoft.AspNetCore.Hosting;
 
 namespace Microsoft.AspNetCore.Sockets
 {
-    public class ConnectionManager
+    public class ConnectionManager : IApplicationLifetimeEvents
     {
         private ConcurrentDictionary<string, ConnectionState> _connections = new ConcurrentDictionary<string, ConnectionState>();
         private Timer _timer;
 
-        public ConnectionManager(IApplicationLifetime lifetime)
+        public ConnectionManager()
         {
             _timer = new Timer(Scan, this, 0, 1000);
-
-            // We hook stopping because we need the requests to end, Dispose doesn't work since
-            // that happens after requests are drained
-            lifetime.ApplicationStopping.Register(CloseConnections);
         }
 
         public bool TryGetConnection(string id, out ConnectionState state)
@@ -122,6 +118,19 @@ namespace Microsoft.AspNetCore.Sockets
                     }
                 }
             }
+        }
+
+        void IApplicationLifetimeEvents.OnApplicationStarted()
+        {
+
+        }
+
+        // We hook stopping because we need to let go of the long running requests
+        public void OnApplicationStopping() => CloseConnections();
+
+        void IApplicationLifetimeEvents.OnApplicationStopped()
+        {
+
         }
     }
 }
