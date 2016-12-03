@@ -80,7 +80,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         }
 
         [Fact]
-        public async Task ApplicationStoppingClosesConnections()
+        public async Task CloseConnectionsEndsAllPendingConnections()
         {
             using (var factory = new PipelineFactory())
             using (var connection = new HttpConnection(factory))
@@ -95,7 +95,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                     Assert.True(result.IsCompleted);
                 });
 
-                connectionManager.OnApplicationStopping();
+                connectionManager.CloseConnections();
 
                 await task;
             }

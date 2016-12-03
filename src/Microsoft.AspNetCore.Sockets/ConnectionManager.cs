@@ -5,11 +5,10 @@ using System;
 using System.Collections.Concurrent;
 using System.IO.Pipelines;
 using System.Threading;
-using Microsoft.AspNetCore.Hosting;
 
 namespace Microsoft.AspNetCore.Sockets
 {
-    public class ConnectionManager : IApplicationLifetimeEvents
+    public class ConnectionManager
     {
         private ConcurrentDictionary<string, ConnectionState> _connections = new ConcurrentDictionary<string, ConnectionState>();
         private Timer _timer;
@@ -97,7 +96,7 @@ namespace Microsoft.AspNetCore.Sockets
             }
         }
 
-        private void CloseConnections()
+        public void CloseConnections()
         {
             // Stop firing the timer
             _timer.Dispose();
@@ -118,19 +117,6 @@ namespace Microsoft.AspNetCore.Sockets
                     }
                 }
             }
-        }
-
-        void IApplicationLifetimeEvents.OnApplicationStarted()
-        {
-
-        }
-
-        // We hook stopping because we need to let go of the long running requests
-        public void OnApplicationStopping() => CloseConnections();
-
-        void IApplicationLifetimeEvents.OnApplicationStopped()
-        {
-
         }
     }
 }
