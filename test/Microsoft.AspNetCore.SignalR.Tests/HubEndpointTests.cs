@@ -75,6 +75,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             private PipelineFactory _factory;
             private HttpConnection _httpConnection;
+            private ConnectionManager _connectionManager;
 
             public Connection Connection;
             public HttpConnection HttpConnection => (HttpConnection)Connection.Channel;
@@ -84,15 +85,16 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 _factory = new PipelineFactory();
                 _httpConnection = new HttpConnection(_factory);
 
-                var connectionManager = new ConnectionManager();
+                _connectionManager = new ConnectionManager();
 
-                Connection = connectionManager.AddNewConnection(_httpConnection).Connection;
+                Connection = _connectionManager.AddNewConnection(_httpConnection).Connection;
                 Connection.Metadata["formatType"] = format;
                 Connection.User = new ClaimsPrincipal(new ClaimsIdentity());
             }
 
             public void Dispose()
             {
+                _connectionManager.CloseConnections();
                 Connection.Channel.Dispose();
                 _httpConnection.Dispose();
                 _factory.Dispose();
