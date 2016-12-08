@@ -22,6 +22,15 @@ namespace Microsoft.AspNetCore.Sockets.Client
             _logger = logger;
             _transport = transport;
             _consumerPipe = consumerPipe;
+
+            _consumerPipe.Output.Writing.ContinueWith(t => {
+                if (t.IsFaulted)
+                {
+                    _consumerPipe.Input.Complete(t.Exception);
+                }
+
+                return t;
+            });
         }
 
         public IPipelineReader Input => _consumerPipe.Input;

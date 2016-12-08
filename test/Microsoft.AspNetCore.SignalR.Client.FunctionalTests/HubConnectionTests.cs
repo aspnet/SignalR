@@ -3,7 +3,6 @@
 
 using System;
 using System.IO.Pipelines;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -47,7 +46,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 var transport = new LongPollingTransport(httpClient, loggerFactory);
                 using (var connection = await HubConnection.ConnectAsync(new Uri("http://test/hubs"), new JsonNetInvocationAdapter(), transport, httpClient, pipelineFactory, loggerFactory))
                 {
-                    var result = await connection.Invoke<string>($"{typeof(TestHub).FullName}.HelloWorld");
+                    var result = await connection.Invoke<string>("HelloWorld");
 
                     Assert.Equal("Hello World!", result);
                 }
@@ -66,7 +65,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 var transport = new LongPollingTransport(httpClient, loggerFactory);
                 using (var connection = await HubConnection.ConnectAsync(new Uri("http://test/hubs"), new JsonNetInvocationAdapter(), transport, httpClient, pipelineFactory, loggerFactory))
                 {
-                    var result = await connection.Invoke<string>($"{typeof(TestHub).FullName}.Echo", originalMessage);
+                    var result = await connection.Invoke<string>("Echo", originalMessage);
 
                     Assert.Equal(originalMessage, result);
                 }
@@ -91,7 +90,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                         tcs.TrySetResult((string)a[0]);
                     });
 
-                    await connection.Invoke<Task>($"{typeof(TestHub).FullName}.CallEcho", originalMessage);
+                    await connection.Invoke<Task>("CallEcho", originalMessage);
                     var completed = await Task.WhenAny(Task.Delay(2000), tcs.Task);
                     Assert.True(completed == tcs.Task, "Receive timed out!");
                     Assert.Equal(originalMessage, tcs.Task.Result);
