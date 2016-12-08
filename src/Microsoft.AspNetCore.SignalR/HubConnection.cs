@@ -58,7 +58,15 @@ namespace Microsoft.AspNetCore.SignalR
         {
             lock (_lock)
             {
-                return _taskQueue = _taskQueue.ContinueWith((t) => taskFactory());
+                return _taskQueue = _taskQueue.ContinueWith((t) =>
+                {
+                    if (t.IsFaulted)
+                    {
+                        throw t.Exception;
+                    }
+
+                    taskFactory();
+                });
             }
         }
     }
