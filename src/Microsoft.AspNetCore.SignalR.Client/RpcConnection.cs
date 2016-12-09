@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipelines;
@@ -37,9 +36,12 @@ namespace Microsoft.AspNetCore.SignalR.Client
             _logger = logger;
 
             _reader = ReceiveMessages(_readerCts.Token);
+            _connection.Output.Writing.ContinueWith(
+                t => CompletePendingCalls(t.IsFaulted ? t.Exception : null));
         }
 
         // TODO: Client return values/tasks?
+        // TODO: Overloads for void hub methods
         // TODO: Overloads that use type parameters (like On<T1>, On<T1, T2>, etc.)
         public void On(string methodName, Type[] parameterTypes, Action<object[]> handler)
         {
@@ -53,6 +55,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
         public Task<object> Invoke(string methodName, Type returnType, params object[] args) => Invoke(methodName, returnType, CancellationToken.None, args);
         public async Task<object> Invoke(string methodName, Type returnType, CancellationToken cancellationToken, params object[] args)
         {
+            // TODO: we should reject calls to here after the connection is "done" (e.g. sending an invocation failed)
+
             _logger.LogTrace("Preparing invocation of '{0}', with return type '{1}' and {2} args", methodName, returnType.AssemblyQualifiedName, args.Length);
 
             // Create an invocation descriptor.
@@ -81,6 +85,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             // Write the invocation to the stream
             _logger.LogInformation("Sending Invocation #{0}", descriptor.Id);
             await _adapter.WriteMessageAsync(descriptor, _stream, cancellationToken);
+            _logger.LogInformation("Sending Invocation #{0} complete", descriptor.Id);
 
             // Return the completion task. It will be completed by ReceiveMessages when the response is received.
             return await irq.Completion.Task;
@@ -129,15 +134,25 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     }
                 }
             }
+            _logger.LogTrace("Ending receive loop");
+        }
 
-            // Cancel all pending calls
-            foreach(var call in _pendingCalls.Values)
+        private void CompletePendingCalls(Exception e)
+        {
+            _logger.LogTrace("Completing pending calls");
+
+            foreach (var call in _pendingCalls.Values)
             {
-                call.Completion.TrySetCanceled();
+                if (e == null)
+                {
+                    call.Completion.TrySetCanceled();
+                }
+                else
+                {
+                    call.Completion.TrySetException(e);
+                }
             }
             _pendingCalls.Clear();
-
-            _logger.LogTrace("Ending receive loop");
         }
 
         private void DispatchInvocation(InvocationDescriptor invocationDescriptor, CancellationToken cancellationToken)
