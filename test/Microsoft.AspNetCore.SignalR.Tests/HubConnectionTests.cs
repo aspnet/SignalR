@@ -95,5 +95,32 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 }
             }
         }
+
+        [Fact]
+        public async Task ClosedConnection_DoesNotQueueTasks()
+        {
+            using (var connectionWrapper = new TestHelpers.ConnectionWrapper())
+            {
+                var serviceProvider = TestHelpers.CreateServiceProvider();
+                var hubConnection = new HubConnection(connectionWrapper.Connection, serviceProvider.GetService<InvocationAdapterRegistry>());
+
+                var called = false;
+                await hubConnection.Enqueue(() =>
+                {
+                    called = true;
+                    return TaskCache.CompletedTask;
+                });
+
+                Assert.True(called);
+
+                hubConnection.Close();
+
+                await hubConnection.Enqueue(() =>
+                {
+                    Assert.True(false);
+                    return TaskCache.CompletedTask;
+                });
+            }
+        }
     }
 }

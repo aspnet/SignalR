@@ -23,20 +23,19 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         internal class ConnectionWrapper : IDisposable
         {
             private PipelineFactory _factory;
-            private HttpConnection _httpConnection;
             private ConnectionManager _connectionManager;
 
             public Connection Connection;
-            public HttpConnection HttpConnection => (HttpConnection)Connection.Channel;
+            public HttpConnection HttpConnection;
 
             public ConnectionWrapper(string format = "json")
             {
                 _factory = new PipelineFactory();
-                _httpConnection = new HttpConnection(_factory);
+                HttpConnection = new HttpConnection(_factory);
 
                 _connectionManager = new ConnectionManager();
 
-                Connection = _connectionManager.AddNewConnection(_httpConnection).Connection;
+                Connection = _connectionManager.AddNewConnection(HttpConnection).Connection;
                 Connection.Metadata["formatType"] = format;
                 Connection.User = new ClaimsPrincipal(new ClaimsIdentity());
             }
@@ -45,7 +44,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 _connectionManager.CloseConnections();
                 Connection.Channel.Dispose();
-                _httpConnection.Dispose();
+                HttpConnection.Dispose();
                 _factory.Dispose();
             }
         }
