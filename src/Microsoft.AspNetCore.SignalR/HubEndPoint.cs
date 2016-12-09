@@ -210,12 +210,12 @@ namespace Microsoft.AspNetCore.SignalR
                         }
                         catch (TargetInvocationException ex)
                         {
-                            _logger.LogError(0, ex, "Failed to invoke hub method");
+                            _logger.LogError(0, ex, "Failed to invoke hub method '{methodName}'", methodName);
                             invocationResult.Error = ex.InnerException.Message;
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogError(0, ex, "Failed to invoke hub method");
+                            _logger.LogError(0, ex, "Error from hub method '{methodName}'", methodName);
                             invocationResult.Error = ex.Message;
                         }
 

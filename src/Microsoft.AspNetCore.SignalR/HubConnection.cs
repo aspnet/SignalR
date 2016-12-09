@@ -56,6 +56,12 @@ namespace Microsoft.AspNetCore.SignalR
 
         internal Task Enqueue(Func<Task> taskFactory)
         {
+            // Don't queue tasks if connection is closed
+            if (_connection.Channel.Output.Writing.IsCompleted)
+            {
+                return TaskCache.CompletedTask;
+            }
+
             lock (_lock)
             {
                 return _taskQueue = _taskQueue.ContinueWith((t) =>
