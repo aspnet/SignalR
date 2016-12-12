@@ -46,6 +46,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 var transport = new LongPollingTransport(httpClient, loggerFactory);
                 using (var connection = await HubConnection.ConnectAsync(new Uri("http://test/hubs"), new JsonNetInvocationAdapter(), transport, httpClient, pipelineFactory, loggerFactory))
                 {
+                    //TODO: Get rid of this. This is to prevent "No channel" failures due to sends occuring before the first poll.
+                    await Task.Delay(500);
                     var result = await connection.Invoke<string>("HelloWorld");
 
                     Assert.Equal("Hello World!", result);
@@ -65,6 +67,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 var transport = new LongPollingTransport(httpClient, loggerFactory);
                 using (var connection = await HubConnection.ConnectAsync(new Uri("http://test/hubs"), new JsonNetInvocationAdapter(), transport, httpClient, pipelineFactory, loggerFactory))
                 {
+                    //TODO: Get rid of this. This is to prevent "No channel" failures due to sends occuring before the first poll.
+                    await Task.Delay(500);
                     var result = await connection.Invoke<string>("Echo", originalMessage);
 
                     Assert.Equal(originalMessage, result);
@@ -90,6 +94,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                         tcs.TrySetResult((string)a[0]);
                     });
 
+                    //TODO: Get rid of this. This is to prevent "No channel" failures due to sends occuring before the first poll.
+                    await Task.Delay(500);
                     await connection.Invoke<Task>("CallEcho", originalMessage);
                     var completed = await Task.WhenAny(Task.Delay(2000), tcs.Task);
                     Assert.True(completed == tcs.Task, "Receive timed out!");
