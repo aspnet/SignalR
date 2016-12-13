@@ -66,7 +66,7 @@ namespace Microsoft.AspNetCore.SignalR
             invocation.Arguments = new object[paramTypes.Length];
 
             var args = json.Value<JArray>("Arguments");
-            for (int i = 0; i < paramTypes.Length; i++)
+            for (var i = 0; i < paramTypes.Length; i++)
             {
                 var paramType = paramTypes[i];
                 invocation.Arguments[i] = args[i].ToObject(paramType, _serializer);

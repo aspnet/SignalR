@@ -53,7 +53,7 @@ namespace SocketsSample
         public Task WriteMessageAsync(InvocationMessage message, Stream stream, CancellationToken cancellationToken)
         {
             var invocationDescriptor = message as InvocationDescriptor;
-            if(invocationDescriptor != null)
+            if (invocationDescriptor != null)
             {
                 return WriteInvocationDescriptorAsync(invocationDescriptor, stream);
             }

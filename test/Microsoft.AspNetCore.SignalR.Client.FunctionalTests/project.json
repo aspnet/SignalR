@@ -9,12 +9,8 @@
     "Microsoft.AspNetCore.Sockets": "0.1.0-*",
     "Microsoft.AspNetCore.Hosting": "1.2.0-*",
     "Microsoft.AspNetCore.Server.Kestrel": "1.2.0-*",
-    "Microsoft.AspNetCore.SignalR": {
-      "target": "project"
-    },
-    "Microsoft.AspNetCore.SignalR.Client": {
-      "target": "project"
-    },
+    "Microsoft.AspNetCore.SignalR": "1.0.0-*",
+    "Microsoft.AspNetCore.SignalR.Client": "1.0.0-*",
     "xunit": "2.2.0-*",
     "Microsoft.AspNetCore.TestHost": "1.2.0-*"
   },

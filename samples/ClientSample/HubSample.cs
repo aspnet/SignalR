@@ -56,7 +56,7 @@ namespace ClientSample
                         var line = Console.ReadLine();
                         logger.LogInformation("Sending: {0}", line);
 
-                        await connection.Invoke<object>("SocketsSample.Hubs.Chat.Send", line);
+                        await connection.Invoke<object>("Send", line);
                     }
                 }
             }
