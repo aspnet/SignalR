@@ -25,7 +25,10 @@
     "NETStandard.Library": "1.6.1-*",
     "System.IO.Pipelines": "0.1.0-*",
     "Microsoft.Extensions.Logging.Abstractions": "1.2.0-*",
-    "Microsoft.Extensions.TaskCache.Sources": "1.2.0-*"
+    "Microsoft.Extensions.TaskCache.Sources": {
+      "type": "build",
+      "version": "1.2.0-*"
+    }
   },
 
   "frameworks": {

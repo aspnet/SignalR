@@ -23,11 +23,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             }
 
             var builder = new UriBuilder(url);
-            if (string.IsNullOrEmpty(builder.Query))
-            {
-                builder.Query += "?";
-            }
-            else
+            if (!string.IsNullOrEmpty(builder.Query))
             {
                 builder.Query += "&";
             }

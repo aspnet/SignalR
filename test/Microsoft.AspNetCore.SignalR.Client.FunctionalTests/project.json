@@ -5,10 +5,10 @@
 
   "dependencies": {
     "dotnet-test-xunit": "2.2.0-*",
-    "Microsoft.AspNetCore.Http": "1.1.0",
+    "Microsoft.AspNetCore.Http": "1.2.0-*",
     "Microsoft.AspNetCore.Sockets": "0.1.0-*",
-    "Microsoft.AspNetCore.Hosting": "1.1.0-*",
-    "Microsoft.AspNetCore.Server.Kestrel": "1.1.0-*",
+    "Microsoft.AspNetCore.Hosting": "1.2.0-*",
+    "Microsoft.AspNetCore.Server.Kestrel": "1.2.0-*",
     "Microsoft.AspNetCore.SignalR": {
       "target": "project"
     },
@@ -16,7 +16,7 @@
       "target": "project"
     },
     "xunit": "2.2.0-*",
-    "Microsoft.AspNetCore.TestHost": "1.1.0"
+    "Microsoft.AspNetCore.TestHost": "1.2.0-*"
   },
   "frameworks": {
     "netcoreapp1.1": {
