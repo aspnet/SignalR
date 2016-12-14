@@ -99,8 +99,8 @@ namespace Microsoft.AspNetCore.SignalR
 
         public override Task OnDisconnectedAsync(HubConnection connection)
         {
-            HubConnection ignore;
-            _hubConnections.TryRemove(connection.ConnectionId, out ignore);
+            HubConnection _;
+            _hubConnections.TryRemove(connection.ConnectionId, out _);
             return TaskCache.CompletedTask;
         }
     }

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Internal;
@@ -20,7 +19,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 var throwTask = hubConnection.Enqueue(() =>
                 {
-                    throw new Exception();
+                    throw new InvalidOperationException();
                 });
                 var nextTask = hubConnection.Enqueue(() =>
                 {
@@ -34,7 +33,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 {
                     await throwTask;
                 }
-                catch (Exception)
+                catch (InvalidOperationException)
                 {
                     exceptions++;
                 }
@@ -43,7 +42,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 {
                     await nextTask;
                 }
-                catch (Exception)
+                catch (InvalidOperationException)
                 {
                     exceptions++;
                 }
@@ -60,11 +59,10 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var serviceProvider = TestHelpers.CreateServiceProvider();
                 var hubConnection = new HubConnection(connectionWrapper.Connection, serviceProvider.GetService<InvocationAdapterRegistry>());
 
+                var idx = new HashSet<int>();
                 var tasks = new List<Task>(5);
-                var events = new List<ManualResetEvent>(5);
                 for (var i = 0; i < 5; i++)
                 {
-                    events.Add(new ManualResetEvent(false));
                     int captureIndex = i;
                     tasks.Add(hubConnection.Enqueue(() =>
                     {
@@ -74,14 +72,14 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                             // check that queued items run in sequence
                             if (index <= j)
                             {
-                                Assert.False(events[j].WaitOne(0));
+                                Assert.False(idx.Contains(j));
                             }
                             else
                             {
-                                Assert.True(events[j].WaitOne(0));
+                                Assert.True(idx.Contains(j));
                             }
                         }
-                        events[index].Set();
+                        idx.Add(index);
                         return TaskCache.CompletedTask;
                     }));
                 }
@@ -89,10 +87,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 await Task.WhenAll(tasks);
 
                 // confirm all queued items were run
-                foreach (var e in events)
-                {
-                    Assert.True(e.WaitOne(0));
-                }
+                Assert.Equal(5, idx.Count);
             }
         }
 

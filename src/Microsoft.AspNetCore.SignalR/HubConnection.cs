@@ -16,7 +16,7 @@ namespace Microsoft.AspNetCore.SignalR
         private object _lock = new object();
         private Task _taskQueue = TaskCache.CompletedTask;
         private Connection _connection;
-        private InvocationAdapterRegistry _registry;
+        private IInvocationAdapter _invocationAdapter;
 
         internal Stream Stream;
 
@@ -27,21 +27,19 @@ namespace Microsoft.AspNetCore.SignalR
         public HubConnection(Connection connection, InvocationAdapterRegistry registry)
         {
             _connection = connection;
-            _registry = registry;
+            _invocationAdapter = registry.GetInvocationAdapter(_connection.Metadata.Get<string>("formatType"));
             Stream = _connection.Channel.GetStream();
         }
 
         public Task InvokeAsync(string method, params object[] args)
         {
-            var invocationAdapter = _registry.GetInvocationAdapter(_connection.Metadata.Get<string>("formatType"));
-
             var message = new InvocationDescriptor
             {
                 Method = method,
                 Arguments = args
             };
 
-            return Enqueue(() => invocationAdapter.WriteInvocationDescriptorAsync(message, Stream));
+            return Enqueue(() => _invocationAdapter.WriteMessageAsync(message, Stream));
         }
 
         public Task WriteAsync(byte[] data)
@@ -64,14 +62,20 @@ namespace Microsoft.AspNetCore.SignalR
 
             lock (_lock)
             {
-                return _taskQueue = _taskQueue.ContinueWith((t) =>
+                return _taskQueue = _taskQueue.ContinueWith(t =>
                 {
                     if (t.IsFaulted)
                     {
-                        throw t.Exception;
+                        throw t.Exception.InnerException;
+                    }
+                    else if (t.IsCanceled)
+                    {
+                        var tcs = new TaskCompletionSource<object>();
+                        tcs.SetCanceled();
+                        return tcs.Task;
                     }
 
-                    taskFactory();
+                    return taskFactory();
                 });
             }
         }

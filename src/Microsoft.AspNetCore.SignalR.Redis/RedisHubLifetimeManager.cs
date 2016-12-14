@@ -152,8 +152,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
         public override Task OnDisconnectedAsync(HubConnection connection)
         {
-            HubConnection ignore;
-            _connections.TryRemove(connection.ConnectionId, out ignore);
+            HubConnection _;
+            _connections.TryRemove(connection.ConnectionId, out _);
 
             var tasks = new List<Task>();
 
