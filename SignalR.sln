@@ -67,6 +67,8 @@ Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Microsoft.AspNetCore.Hostin
 EndProject
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Microsoft.AspNetCore.TestHost", "..\Hosting\src\Microsoft.AspNetCore.TestHost\Microsoft.AspNetCore.TestHost.xproj", "{1A415A3F-1081-45DB-809B-EE19CEA02DC0}"
 EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "MQTTServer", "samples\MQTTServer\MQTTServer.xproj", "{2DD539AE-73D5-41DF-9CA7-D64F1E19A5EC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -177,6 +179,10 @@ Global
 		{1A415A3F-1081-45DB-809B-EE19CEA02DC0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1A415A3F-1081-45DB-809B-EE19CEA02DC0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1A415A3F-1081-45DB-809B-EE19CEA02DC0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2DD539AE-73D5-41DF-9CA7-D64F1E19A5EC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2DD539AE-73D5-41DF-9CA7-D64F1E19A5EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2DD539AE-73D5-41DF-9CA7-D64F1E19A5EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2DD539AE-73D5-41DF-9CA7-D64F1E19A5EC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -203,5 +209,6 @@ Global
 		{E37324FF-6BAF-4243-BA80-7C024CF5F29D} = {DA69F624-5398-4884-87E4-B816698CDE65}
 		{354335AB-CEE9-4434-A641-78058F6EFE56} = {DA69F624-5398-4884-87E4-B816698CDE65}
 		{455B68D2-C5B6-4BF4-A685-964B07AFAAF8} = {6A35B453-52EC-48AF-89CA-D4A69800F131}
+		{2DD539AE-73D5-41DF-9CA7-D64F1E19A5EC} = {C4BC9889-B49F-41B6-806B-F84941B2549B}
 	EndGlobalSection
 EndGlobal

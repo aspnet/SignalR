@@ -47,7 +47,7 @@ namespace Microsoft.AspNetCore.Sockets
                 return;
             }
 
-            using (var ws = await feature.AcceptWebSocketConnectionAsync(EmptyContext))
+            using (var ws = await feature.AcceptWebSocketConnectionAsync(new WebSocketAcceptContext { SubProtocol = "mqtt"}))
             {
                 _logger.LogInformation("Socket opened.");
 
