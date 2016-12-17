@@ -2,88 +2,83 @@
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipelines;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Sockets;
+using Microsoft.Extensions.Logging;
 using MQTTServer.MQTT;
 
 namespace MQTTServer
 {
     public class MQTTEndPoint : EndPoint
     {
+        private readonly ILoggerFactory _loggerFactory;
+        private readonly ILogger _logger;
+
+        public MQTTEndPoint(ILoggerFactory loggerFactory)
+        {
+            _loggerFactory = loggerFactory;
+            _logger = _loggerFactory.CreateLogger<MQTTEndPoint>();
+        }
+
         public override async Task OnConnectedAsync(Connection connection)
         {
+            var buffer = new byte[1024];
+            MQTTFormatter formatter = new MQTTFormatter(_loggerFactory);
+
+            FixedHeader fixedHeader;
             var stream = connection.Channel.GetStream();
-            var fixedHeader = new FixedHeader();
-            await ReadFixedHeader(stream, fixedHeader);
-            await ReadRemainingDataAsync(stream, fixedHeader);
-
-
-            // await ProcessRequests(connection);
-        }
-
-        private readonly byte[] _buffer = new byte[1024];
-
-        private async Task ReadFixedHeader(Stream stream, FixedHeader fixedHeader)
-        {
-            await ReadThrowAsync(stream, _buffer, 0, 2);
-
-            fixedHeader.PacketType = (PacketType)((_buffer[0] & 0xf0) >> 4);
-            fixedHeader.Flags = (byte)(_buffer[0] & 0xf);
-            for (var i = 1; i < 5; i++)
+            while ((fixedHeader = await formatter.ReadFixedHeaderAsync(stream)) != null)
             {
-                fixedHeader.RemainingLength <<= 7;
-                fixedHeader.RemainingLength &= _buffer[i] & 0x7f;
-                if ((_buffer[i] & 0x80) == 0)
+                // TODO: loop and read all the data
+                if (fixedHeader.RemainingLength > buffer.Length)
                 {
-                    break;
+                    throw new NotSupportedException($"Messages bigger than {buffer.Length} bytes currently not supported.");
                 }
 
-                await ReadThrowAsync(stream, _buffer, i, 1);
+                await formatter.ReadRemainingDataAsync(stream, buffer, fixedHeader.RemainingLength);
+                await ProcessPacket(stream, fixedHeader, buffer, formatter);
             }
         }
 
-        private async Task ReadRemainingDataAsync(Stream stream, FixedHeader fixedHeader)
+        private async Task ProcessPacket(Stream stream, FixedHeader header, byte[] buffer, MQTTFormatter formatter)
         {
-            switch (fixedHeader.PacketType)
+            switch(header.PacketType)
             {
                 case PacketType.CONNECT:
-                    await ReadConnectAsync(stream);
+                    await formatter.WriteCONNACKAsync(stream);
+                    break;
+                case PacketType.SUBSCRIBE:
+                    await formatter.WriteSUBACKAsync(stream, ReadPackageId(buffer, 0));
+                    break;
+                case PacketType.PUBLISH:
+                    var topicLength = ReadShort(buffer, 0);
+                    var topic = Encoding.UTF8.GetString(buffer, 2, topicLength);
+                    var message = Encoding.UTF8.GetString(buffer, 2 + topicLength, header.RemainingLength - 2 - topicLength);
+                    _logger.LogInformation("Received PUBLISH for topic '{0}', message '{1}'", topic, message);
+                    await formatter.WritePUBACKAsync(stream, ReadPackageId(buffer, 2 + topicLength));
+                    break;
+                case PacketType.PUBCOMP:
+                    // TODO: handle if/when tracking package re-delivery etc.
+                    break;
+                case PacketType.PINGREQ:
+                    await formatter.WritePINGRESPAsync(stream);
                     break;
                 default:
-                    throw new NotImplementedException();
+                    _logger.LogError("Unsupported packet type {0}", header.PacketType);
+                    break;
             }
         }
 
-        private async Task ReadConnectAsync(Stream stream)
+        private short ReadPackageId(byte[] buffer, int offset)
         {
-            await ReadThrowAsync(stream, _buffer, 0, 10);
-            var protocolLevel = _buffer[6];
-            var connectFlags = _buffer[7];
-            short keepAlive = (short)((_buffer[8] << 8) | _buffer[9]);
-
-            await WriteConnAckAsync(stream);
+            return ReadShort(buffer, offset);
         }
 
-        private async Task WriteConnAckAsync(Stream stream)
+        private short ReadShort(byte[] buffer, int offset)
         {
-            _buffer[0] = 0x20;
-            _buffer[1] = 0x02;
-            _buffer[2] = 0x00;  // Session present
-            _buffer[3] = 0x00;  // 0x00 connection accepted
-
-            await stream.WriteAsync(_buffer, 0, 4);
+            return (short)((buffer[offset] << 8) | buffer[offset + 1]);
         }
 
-        private async Task<int> ReadThrowAsync(Stream stream, byte[] buffer, int startPos, int count)
-        {
-            Debug.Assert(count < buffer.Length - startPos, "Buffer too small");
-            var read = await stream.ReadAsync(_buffer, startPos, count);
-            if (read == 0)
-            {
-                throw new InvalidOperationException("Connection closed");
-            }
-
-            return read;
-        }
     }
 }
