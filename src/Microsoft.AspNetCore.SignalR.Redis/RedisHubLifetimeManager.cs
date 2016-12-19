@@ -15,6 +15,7 @@ using Microsoft.Extensions.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
+using Microsoft.Extensions.Internal;
 
 namespace Microsoft.AspNetCore.SignalR.Redis
 {
