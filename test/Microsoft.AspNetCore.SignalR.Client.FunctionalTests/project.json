@@ -12,7 +12,8 @@
     "Microsoft.AspNetCore.SignalR": "1.0.0-*",
     "Microsoft.AspNetCore.SignalR.Client": "1.0.0-*",
     "xunit": "2.2.0-*",
-    "Microsoft.AspNetCore.TestHost": "1.2.0-*"
+    "Microsoft.AspNetCore.TestHost": "1.2.0-*",
+    "Moq": "4.6.36-*"
   },
   "frameworks": {
     "netcoreapp1.1": {
