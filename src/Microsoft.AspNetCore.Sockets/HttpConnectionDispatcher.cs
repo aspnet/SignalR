@@ -191,7 +191,7 @@ namespace Microsoft.AspNetCore.Sockets
             return context.Response.Body.WriteAsync(connectionIdBuffer, 0, connectionIdBuffer.Length);
         }
 
-        private Task ProcessSend(HttpContext context)
+        private async Task ProcessSend(HttpContext context)
         {
             var connectionId = context.Request.Query["id"];
             if (StringValues.IsNullOrEmpty(connectionId))
@@ -202,16 +202,22 @@ namespace Microsoft.AspNetCore.Sockets
             ConnectionState state;
             if (_manager.TryGetConnection(connectionId, out state))
             {
+                // send received but the channel not established with poll or sse
+                // Wait for poll or sse or fail if channel not established within timeout
+                if (!await state.CanSend.Task)
+                {
+                    throw new InvalidOperationException("No channel");
+                }
                 // If we received an HTTP POST for the connection id and it's not an HttpChannel then fail.
                 // You can't write to a TCP channel directly from here.
                 var httpChannel = state.Connection.Channel as HttpConnection;
-
                 if (httpChannel == null)
                 {
                     throw new InvalidOperationException("No channel");
                 }
 
-                return context.Request.Body.CopyToAsync(httpChannel.Input);
+                await context.Request.Body.CopyToAsync(httpChannel.Input);
+                return;
             }
 
             throw new InvalidOperationException("Unknown connection id");
@@ -235,6 +241,7 @@ namespace Microsoft.AspNetCore.Sockets
                 isNewConnection = true;
                 var channel = new HttpConnection(_pipelineFactory);
                 connectionState = _manager.AddNewConnection(channel);
+                connectionState.CanSend.TrySetResult(true);
             }
             else
             {
@@ -253,6 +260,7 @@ namespace Microsoft.AspNetCore.Sockets
                     connectionState.Connection.Channel = new HttpConnection(_pipelineFactory);
                     connectionState.Active = true;
                     connectionState.LastSeen = DateTimeOffset.UtcNow;
+                    connectionState.CanSend.TrySetResult(true);
                 }
             }
 

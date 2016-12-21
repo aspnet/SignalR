@@ -3,6 +3,7 @@
 
 using System;
 using System.IO.Pipelines;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -46,8 +47,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 var transport = new LongPollingTransport(httpClient, loggerFactory);
                 using (var connection = await HubConnection.ConnectAsync(new Uri("http://test/hubs"), new JsonNetInvocationAdapter(), transport, httpClient, pipelineFactory, loggerFactory))
                 {
-                    //TODO: Get rid of this. This is to prevent "No channel" failures due to sends occuring before the first poll.
-                    await Task.Delay(500);
                     var result = await connection.Invoke<string>("HelloWorld");
 
                     Assert.Equal("Hello World!", result);
@@ -67,8 +66,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 var transport = new LongPollingTransport(httpClient, loggerFactory);
                 using (var connection = await HubConnection.ConnectAsync(new Uri("http://test/hubs"), new JsonNetInvocationAdapter(), transport, httpClient, pipelineFactory, loggerFactory))
                 {
-                    //TODO: Get rid of this. This is to prevent "No channel" failures due to sends occuring before the first poll.
-                    await Task.Delay(500);
                     var result = await connection.Invoke<string>("Echo", originalMessage);
 
                     Assert.Equal(originalMessage, result);
@@ -94,13 +91,29 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                         tcs.TrySetResult((string)a[0]);
                     });
 
-                    //TODO: Get rid of this. This is to prevent "No channel" failures due to sends occuring before the first poll.
-                    await Task.Delay(500);
                     await connection.Invoke<Task>("CallEcho", originalMessage);
                     var completed = await Task.WhenAny(Task.Delay(2000), tcs.Task);
                     Assert.True(completed == tcs.Task, "Receive timed out!");
                     Assert.Equal(originalMessage, tcs.Task.Result);
                 }
+            }
+        }
+
+        [Fact]
+        public async Task CanSendSendBeforePoll()
+        {
+            using (var httpClient = _testServer.CreateClient())
+            {
+                var resp = await httpClient.GetAsync("http://test/hubs/getid");
+                var connectionId = await resp.Content.ReadAsStringAsync();
+                var sendTask = httpClient.PostAsync($"http://test/hubs/send?id={connectionId}",
+                    new StringContent(@"{""Id"":""0"",""Method"":""Echo"",""Arguments"":[""Hi""]}"));
+                await Task.Delay(100);
+                var pollTask = httpClient.PostAsync($"http://test/hubs/poll?id={connectionId}", null);
+                await Task.WhenAll(sendTask, pollTask);
+
+                var pollResponse = await pollTask.Result.Content.ReadAsStringAsync();
+                Assert.Equal(@"{""Result"":""Hi"",""Error"":null,""Id"":""0""}", pollResponse);
             }
         }
 
