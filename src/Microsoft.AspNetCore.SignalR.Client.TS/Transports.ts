@@ -113,7 +113,7 @@ export class ServerSentEventsTransport implements ITransport {
     }
 
     send(data: any): Promise<void> {
-        return new HttpClient().post(this.url + "/send?" + this.queryString, data);
+        return new HttpClient().post(this.url + "/send?" + this.queryString, data).then(() => { });
     }
 
     stop(): void {
@@ -190,7 +190,7 @@ export class LongPollingTransport implements ITransport {
     }
 
     send(data: any): Promise<void> {
-        return new HttpClient().post(this.url + "/send?" + this.queryString, data);
+        return new HttpClient().post(this.url + "/send?" + this.queryString, data).then(() => { });
     }
 
     stop(): void {
