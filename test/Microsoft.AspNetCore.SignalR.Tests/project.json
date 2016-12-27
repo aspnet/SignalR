@@ -1,6 +1,7 @@
 ﻿{
   "buildOptions": {
-    "warningsAsErrors": true
+    "warningsAsErrors": true,
+    "keyFile": "../../tools/Key.snk"
   },
 
   "dependencies": {

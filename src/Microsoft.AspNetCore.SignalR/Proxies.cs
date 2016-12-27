@@ -77,23 +77,23 @@ namespace Microsoft.AspNetCore.SignalR
 
     public class GroupManager<THub> : IGroupManager
     {
-        private readonly Connection _connection;
+        private readonly HubConnection _hubConnection;
         private readonly HubLifetimeManager<THub> _lifetimeManager;
 
-        public GroupManager(Connection connection, HubLifetimeManager<THub> lifetimeManager)
+        public GroupManager(HubConnection hubConnection, HubLifetimeManager<THub> lifetimeManager)
         {
-            _connection = connection;
+            _hubConnection = hubConnection;
             _lifetimeManager = lifetimeManager;
         }
 
         public Task AddAsync(string groupName)
         {
-            return _lifetimeManager.AddGroupAsync(_connection, groupName);
+            return _lifetimeManager.AddGroupAsync(_hubConnection, groupName);
         }
 
         public Task RemoveAsync(string groupName)
         {
-            return _lifetimeManager.RemoveGroupAsync(_connection, groupName);
+            return _lifetimeManager.RemoveGroupAsync(_hubConnection, groupName);
         }
     }
 }
