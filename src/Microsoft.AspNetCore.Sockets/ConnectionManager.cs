@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Microsoft.AspNetCore.Sockets
 {
@@ -36,6 +37,10 @@ namespace Microsoft.AspNetCore.Sockets
             {
                 ConnectionId = id
             };
+
+            // TODO: Cancel if connection closed?
+            Task.Delay(5000).ContinueWith(_ => state.CanSend.TrySetResult(false));
+
             return state;
         }
 
@@ -88,10 +93,6 @@ namespace Microsoft.AspNetCore.Sockets
                     if (_connections.TryRemove(c.Key, out s))
                     {
                         s?.Close();
-                    }
-                    else
-                    {
-
                     }
                 }
             }
