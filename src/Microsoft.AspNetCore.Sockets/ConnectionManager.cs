@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Threading;
 
@@ -36,6 +35,7 @@ namespace Microsoft.AspNetCore.Sockets
             {
                 ConnectionId = id
             };
+
             return state;
         }
 
@@ -87,11 +87,8 @@ namespace Microsoft.AspNetCore.Sockets
                     ConnectionState s;
                     if (_connections.TryRemove(c.Key, out s))
                     {
-                        s?.Close();
-                    }
-                    else
-                    {
-
+                        s.CanSend.TrySetResult(false);
+                        s.Close?.Invoke();
                     }
                 }
             }

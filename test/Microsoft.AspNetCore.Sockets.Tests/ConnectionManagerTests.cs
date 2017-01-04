@@ -17,9 +17,10 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             Assert.NotNull(state.Connection);
             Assert.NotNull(state.Connection.ConnectionId);
-            Assert.True(state.Active);
+            Assert.False(state.Active);
             Assert.Null(state.Close);
             Assert.Null(state.Connection.Channel);
+            Assert.NotNull(state.CanSend);
         }
 
         [Fact]
