@@ -7,7 +7,9 @@
     "test": "test"
   },
   "scripts": {
-    "gulp": "gulp"
+    "gulp": "gulp",
+    "pretest": "tsc -p test/Microsoft.AspNetCore.Client.SignalR.TS.Tests",
+    "test": "jasmine-node artifacts/test/Microsoft.AspNetCore.Client.SignalR.TS.Tests/test"
   },
   "repository": {
     "type": "git",
@@ -25,6 +27,7 @@
     "gulp": "^3.9.1",
     "gulp-typescript": "^3.1.3",
     "jasmine": "^2.5.2",
+    "jasmine-node": "^1.14.5",
     "typescript": "^2.0.10",
     "vinyl-source-stream": "^1.1.0",
     "yargs": "^6.4.0"
