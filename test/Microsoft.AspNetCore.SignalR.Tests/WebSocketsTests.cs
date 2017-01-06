@@ -46,44 +46,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 await ws.CloseAsync(WebSocketCloseStatus.Empty, "", CancellationToken.None);
             }
-
-
-            /*
-                await ws.ConnectAsync(new Uri("ws://localhost:5000/echo/ws"), CancellationToken.None);
-
-            Console.WriteLine("Connected");
-
-            var sending = Task.Run(async () =>
-            {
-                string line;
-                while ((line = Console.ReadLine()) != null)
-                {
-                    var bytes = Encoding.UTF8.GetBytes(line);
-                    await ws.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, endOfMessage: true, cancellationToken: CancellationToken.None);
-                }
-
-                await ws.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
-            });
-
-            await Task.WhenAll(sending);*/
-        }
-    }
-
-    public class TestHub : Hub
-    {
-        public string Echo(string message)
-        {
-            return message;
-        }
-
-        public void ThrowException(string message)
-        {
-            throw new InvalidOperationException(message);
-        }
-
-        public Task InvokeWithString(string message)
-        {
-            return Clients.Client(Context.Connection.ConnectionId).InvokeAsync("Message", message);
         }
     }
 }
