@@ -41,30 +41,29 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
     }
 
-    public class EndToEndTests
-    {
-        public class TestClass
+
+        [CollectionDefinition(Name)]
+        public class EndToEndTestsCollection : ICollectionFixture<ServerFixture>
         {
+            public const string Name = "EndToEndTests";
+        }
+
+        [Collection(EndToEndTestsCollection.Name)]
+        public class EndToEndTests
+        {
+            private readonly ServerFixture _serverFixture;
+
+            public EndToEndTests(ServerFixture serverFixture)
+            {
+                _serverFixture = serverFixture;
+            }
             [Fact]
             public async Task WebSocketsTest()
             {
-                var host = new WebHostBuilder()
-                .UseKestrel()
-                .UseContentRoot(Directory.GetCurrentDirectory())
-                .UseStartup<Startup>()
-                .Build();
-
-                var lifetime = host.Services.GetRequiredService<IApplicationLifetime>();
-                var cts = new CancellationTokenSource();
-
-                var thread = new Thread(() => host.Run(cts.Token));
-                thread.Start();
-
                 const string message = "Hello, World!";
-
                 using (var ws = new ClientWebSocket())
                 {
-                    await ws.ConnectAsync(new Uri("ws://localhost:5000/echo/ws"), CancellationToken.None);
+                    await ws.ConnectAsync(new Uri("ws://localhost:3000/echo/ws"), CancellationToken.None);
                     var bytes = System.Text.Encoding.UTF8.GetBytes(message);
                     await ws.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Binary, true, CancellationToken.None);
 
@@ -74,12 +73,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     Assert.Equal(message, System.Text.Encoding.UTF8.GetString(buffer.Array, 0, result.Count));
 
                     await ws.CloseAsync(WebSocketCloseStatus.Empty, "", CancellationToken.None);
-
-                    cts.Cancel();
-                    lifetime.ApplicationStopping.WaitHandle.WaitOne();
                 }
             }
-        }
 
     }
 

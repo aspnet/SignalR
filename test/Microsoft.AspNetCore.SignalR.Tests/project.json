@@ -20,7 +20,9 @@
     "Microsoft.Extensions.DependencyInjection.Abstractions": "1.2.0-*",
     "Microsoft.AspNetCore.Hosting.Abstractions": "1.2.0-*",
     "Microsoft.AspNetCore.Server.Kestrel": "1.2.0-*",
-    "System.Runtime": "4.4.0-*"
+    "System.Runtime": "4.4.0-*",
+    "Microsoft.Extensions.Logging.Console": "1.2.0-*",
+    "Microsoft.AspNetCore.Server.IntegrationTesting": "0.3.0-*"
   },
   "frameworks": {
     "netcoreapp1.1": {
