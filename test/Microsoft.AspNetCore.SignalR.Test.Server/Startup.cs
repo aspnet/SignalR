@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.Text;
 
 namespace Microsoft.AspNetCore.SignalR.Test.Server
 {
@@ -31,6 +32,12 @@ namespace Microsoft.AspNetCore.SignalR.Test.Server
             app.UseSignalR(routes =>
             {
                 routes.MapHub<TestHub>("/testhub");
+            });
+
+            var data = Encoding.UTF8.GetBytes("Server online");
+            app.Use(async (context, next) =>
+            {
+                await context.Response.Body.WriteAsync(data, 0, data.Length);
             });
         }
     }
