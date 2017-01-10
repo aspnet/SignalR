@@ -17,7 +17,12 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         private ILoggerFactory _loggerFactory;
         private IWebHost host;
         private const string _baseUrl = "http://localhost:3000";
-        private string _webSocketsUrl = "ws://localhost:3000";
+        private string _webSocketsUrl = _baseUrl.Replace("http","ws");
+
+        public string BaseUrl
+        {
+            get { return _baseUrl; }
+        }
 
         public string WebSocketsUrl
         {
