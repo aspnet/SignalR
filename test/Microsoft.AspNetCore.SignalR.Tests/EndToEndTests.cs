@@ -2,26 +2,16 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
-using System.IO;
-using System.IO.Pipelines;
 using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Sockets;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Microsoft.AspNetCore.SignalR.Tests
 {
-    public class EchoEndPoint : EndPoint
-    {
-        public async override Task OnConnectedAsync(Connection connection)
-        {
-            await connection.Channel.Input.CopyToAsync(connection.Channel.Output);
-        }
-    }
 
     public class Startup
     {
@@ -42,28 +32,29 @@ namespace Microsoft.AspNetCore.SignalR.Tests
     }
 
 
-        [CollectionDefinition(Name)]
-        public class EndToEndTestsCollection : ICollectionFixture<ServerFixture>
+    [CollectionDefinition(Name)]
+    public class EndToEndTestsCollection : ICollectionFixture<ServerFixture>
+    {
+        public const string Name = "EndToEndTests";
+    }
+
+    [Collection(EndToEndTestsCollection.Name)]
+    public class EndToEndTests
+    {
+        private readonly ServerFixture _serverFixture;
+
+        public EndToEndTests(ServerFixture serverFixture)
         {
-            public const string Name = "EndToEndTests";
+            _serverFixture = serverFixture;
         }
 
-        [Collection(EndToEndTestsCollection.Name)]
-        public class EndToEndTests
-        {
-            private readonly ServerFixture _serverFixture;
-
-            public EndToEndTests(ServerFixture serverFixture)
-            {
-                _serverFixture = serverFixture;
-            }
-            [Fact]
-            public async Task WebSocketsTest()
+        [Fact]
+        public async Task WebSocketsTest()
             {
                 const string message = "Hello, World!";
                 using (var ws = new ClientWebSocket())
                 {
-                    await ws.ConnectAsync(new Uri("ws://localhost:3000/echo/ws"), CancellationToken.None);
+                    await ws.ConnectAsync(new Uri(_serverFixture.WebSocketsUrl +"/echo/ws"), CancellationToken.None);
                     var bytes = System.Text.Encoding.UTF8.GetBytes(message);
                     await ws.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Binary, true, CancellationToken.None);
 

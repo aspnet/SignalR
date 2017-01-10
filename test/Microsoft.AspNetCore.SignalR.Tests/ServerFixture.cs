@@ -15,8 +15,14 @@ namespace Microsoft.AspNetCore.SignalR.Tests
     public class ServerFixture : IDisposable
     {
         private ILoggerFactory _loggerFactory;
-        private CancellationTokenSource cts;
-        private IApplicationLifetime lifetime;
+        private IWebHost host;
+        private const string _baseUrl = "http://localhost:3000";
+        private string _webSocketsUrl = "ws://localhost:3000";
+
+        public string WebSocketsUrl
+        {
+            get { return _webSocketsUrl; }
+        }
 
         public string ServerProjectName
         {
@@ -37,25 +43,20 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
         private void StartServer()
         {
-            var host = new WebHostBuilder()
-            .UseKestrel()
-            .UseUrls("http://localhost:3000")
-            .UseContentRoot(Directory.GetCurrentDirectory())
-            .UseStartup<Startup>()
-            .Build();
+            host = new WebHostBuilder()
+                .UseKestrel()
+                .UseUrls(_baseUrl)
+                .UseContentRoot(Directory.GetCurrentDirectory())
+                .UseStartup<Startup>()
+                .Build();
 
-            lifetime = host.Services.GetRequiredService<IApplicationLifetime>();
-            cts = new CancellationTokenSource();
-
-            Task.Run(() => host.Run(cts.Token));
+            Task.Run(() => host.Start());
             Console.WriteLine("Deploying test server...");
         }
 
         public void Dispose()
         {
-            cts.Cancel();
-            lifetime.ApplicationStopping.WaitHandle.WaitOne();
-
+            host.Dispose();
         }
     }
 
