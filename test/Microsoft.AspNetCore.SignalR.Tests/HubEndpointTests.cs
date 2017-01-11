@@ -410,13 +410,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 await SendRequest_IgnoreReceive(firstConnection.Connection.Transport, adapter, "GroupSendMethod", "testGroup", "test");
                 // check that 'secondConnection' hasn't received the group send
-                Assert.False(((PipelineReaderWriter)secondConnection.Connection.Transport.Output).ReadAsync().IsCompleted);
+                Assert.False(((Pipe)secondConnection.Connection.Transport.Output).ReadAsync().IsCompleted);
 
                 await SendRequest_IgnoreReceive(secondConnection.Connection.Transport, adapter, "GroupAddMethod", "testGroup");
 
                 await SendRequest(firstConnection.Connection.Transport, adapter, "GroupSendMethod", "testGroup", "test");
                 // check that 'firstConnection' hasn't received the group send
-                Assert.False(((PipelineReaderWriter)firstConnection.Connection.Transport.Output).ReadAsync().IsCompleted);
+                Assert.False(((Pipe)firstConnection.Connection.Transport.Output).ReadAsync().IsCompleted);
 
                 // check that 'secondConnection' has received the group send
                 var res = await ReadConnectionOutputAsync<InvocationDescriptor>(secondConnection.Connection.Transport);
@@ -624,7 +624,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 Method = method
             }, stream);
 
-            var buffer = ((PipelineReaderWriter)connection.Input).Alloc();
+            var buffer = ((Pipe)connection.Input).Alloc();
             buffer.Write(stream.ToArray());
             await buffer.FlushAsync();
         }
@@ -633,17 +633,17 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             await SendRequest(connection, writer, method, args);
 
-            var methodResult = await ((PipelineReaderWriter)connection.Output).ReadAsync();
-            ((PipelineReaderWriter)connection.Output).AdvanceReader(methodResult.Buffer.End, methodResult.Buffer.End);
+            var methodResult = await ((Pipe)connection.Output).ReadAsync();
+            ((Pipe)connection.Output).AdvanceReader(methodResult.Buffer.End, methodResult.Buffer.End);
         }
 
         private async Task<T> ReadConnectionOutputAsync<T>(IPipelineConnection connection)
         {
             // TODO: other formats?
-            var methodResult = await ((PipelineReaderWriter)connection.Output).ReadAsync();
+            var methodResult = await ((Pipe)connection.Output).ReadAsync();
             var serializer = new JsonSerializer();
             var res = serializer.Deserialize<T>(new JsonTextReader(new StreamReader(new MemoryStream(methodResult.Buffer.ToArray()))));
-            ((PipelineReaderWriter)connection.Output).AdvanceReader(methodResult.Buffer.End, methodResult.Buffer.End);
+            ((Pipe)connection.Output).AdvanceReader(methodResult.Buffer.End, methodResult.Buffer.End);
 
             return res;
         }
@@ -670,7 +670,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             public StreamingConnection Connection => ConnectionState.Connection;
 
             // Still kinda gross...
-            public Task ApplicationStartedReading => ((PipelineReaderWriter)Connection.Transport.Input).ReadingStarted;
+            public Task ApplicationStartedReading => ((Pipe)Connection.Transport.Input).ReadingStarted;
 
             public ConnectionWrapper(string format = "json")
             {

@@ -8,13 +8,13 @@ namespace Microsoft.AspNetCore.Sockets.Internal
 {
     public class PipelineConnection : IPipelineConnection
     {
-        public PipelineReaderWriter Input { get; }
-        public PipelineReaderWriter Output { get; }
+        public Pipe Input { get; }
+        public Pipe Output { get; }
 
         IPipelineReader IPipelineConnection.Input => Input;
         IPipelineWriter IPipelineConnection.Output => Output;
 
-        public PipelineConnection(PipelineReaderWriter input, PipelineReaderWriter output)
+        public PipelineConnection(Pipe input, Pipe output)
         {
             Input = input;
             Output = output;

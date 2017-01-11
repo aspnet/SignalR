@@ -3,6 +3,7 @@
 
 using System;
 using System.IO.Pipelines;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
@@ -137,6 +138,11 @@ namespace Microsoft.AspNetCore.Sockets.Internal
         {
             _tcs.TrySetResult(null);
             _connection.Dispose();
+        }
+
+        public ValueAwaiter<Message> GetAwaiter()
+        {
+            throw new NotImplementedException();
         }
     }
 }

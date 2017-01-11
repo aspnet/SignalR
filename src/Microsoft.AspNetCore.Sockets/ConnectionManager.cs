@@ -97,8 +97,8 @@ namespace Microsoft.AspNetCore.Sockets
         {
             var id = MakeNewConnectionId();
 
-            var transportToApplication = Channel.Create<Message>();
-            var applicationToTransport = Channel.Create<Message>();
+            var transportToApplication = Channel.CreateUnbounded<Message>();
+            var applicationToTransport = Channel.CreateUnbounded<Message>();
 
             var transportSide = new ChannelConnection<Message>(applicationToTransport, transportToApplication);
             var applicationSide = new ChannelConnection<Message>(transportToApplication, applicationToTransport);
