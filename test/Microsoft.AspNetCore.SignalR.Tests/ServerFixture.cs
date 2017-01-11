@@ -15,23 +15,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
     {
         private ILoggerFactory _loggerFactory;
         private IWebHost host;
-        private const string _baseUrl = "http://localhost:3000";
-        private string _webSocketsUrl = _baseUrl.Replace("http", "ws");
+        private IApplicationLifetime lifetime;
 
-        public string BaseUrl
-        {
-            get { return _baseUrl; }
-        }
+        public string BaseUrl => "http://localhost:3000";
 
-        public string WebSocketsUrl
-        {
-            get { return _webSocketsUrl; }
-        }
-
-        public string ServerProjectName
-        {
-            get { return "Microsoft.AspNetCore.SignalR.Test.Server"; }
-        }
+        public string WebSocketsUrl => BaseUrl.Replace("http", "ws");
 
         public ServerFixture()
         {
@@ -57,9 +45,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             public void Configure(IApplicationBuilder app, IHostingEnvironment env)
             {
                 app.UseSockets(options => options.MapEndpoint<EchoEndPoint>("/echo"));
-                app.UseSignalR(routes =>
-                {
-                });
             }
         }
 
@@ -67,13 +52,15 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             host = new WebHostBuilder()
                 .UseKestrel()
-                .UseUrls(_baseUrl)
+                .UseUrls(BaseUrl)
                 .UseContentRoot(Directory.GetCurrentDirectory())
                 .UseStartup<Startup>()
                 .Build();
 
             Task.Run(() => host.Start());
-            Console.WriteLine("Deploying test server...");
+            Console.WriteLine("Starting test server...");
+            lifetime = host.Services.GetRequiredService<IApplicationLifetime>();
+            lifetime.ApplicationStarted.WaitHandle.WaitOne();
         }
 
         public void Dispose()

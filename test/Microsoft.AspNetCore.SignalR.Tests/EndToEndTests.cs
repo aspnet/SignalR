@@ -3,6 +3,7 @@
 
 using System;
 using System.Net.WebSockets;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -32,13 +33,12 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             using (var ws = new ClientWebSocket())
             {
                 await ws.ConnectAsync(new Uri(_serverFixture.WebSocketsUrl + "/echo/ws"), CancellationToken.None);
-                var bytes = System.Text.Encoding.UTF8.GetBytes(message);
+                var bytes = Encoding.UTF8.GetBytes(message);
                 await ws.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Binary, true, CancellationToken.None);
-
                 var buffer = new ArraySegment<byte>(new byte[1024]);
                 var result = await ws.ReceiveAsync(buffer, CancellationToken.None);
 
-                Assert.Equal(message, System.Text.Encoding.UTF8.GetString(buffer.Array, 0, result.Count));
+                Assert.Equal(bytes, buffer.Array.Slice(0, message.Length).ToArray());
 
                 await ws.CloseAsync(WebSocketCloseStatus.Empty, "", CancellationToken.None);
             }
