@@ -246,7 +246,7 @@ namespace Microsoft.Extensions.WebSockets.Internal
                 _options.MaskingKeyGenerator.GetBytes(_maskingKeyBuffer);
             }
 
-            buffer.Set(_maskingKeyBuffer);
+            buffer.CopyTo(_maskingKeyBuffer);
         }
 
         private async Task<WebSocketCloseResult> ReceiveLoop(Func<WebSocketFrame, object, Task> messageHandler, object state, CancellationToken cancellationToken)
@@ -550,7 +550,7 @@ namespace Microsoft.Extensions.WebSockets.Internal
             {
                 // TODO: Could use TryGetPointer, GetBytes does take a byte*, but it seems like just waiting until we have a version that uses Span is best.
                 // Slow path - Allocate a heap buffer for the encoded bytes before writing them out.
-                payload.Span.Set(Encoding.UTF8.GetBytes(str));
+                payload.Span.CopyTo(Encoding.UTF8.GetBytes(str));
             }
 
             if (maskingKey.Length > 0)
