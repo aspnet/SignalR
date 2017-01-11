@@ -3,12 +3,11 @@
 
 using System;
 using System.IO;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-
+using Microsoft.AspNetCore.Builder;
 
 namespace Microsoft.AspNetCore.SignalR.Tests
 {
@@ -17,7 +16,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         private ILoggerFactory _loggerFactory;
         private IWebHost host;
         private const string _baseUrl = "http://localhost:3000";
-        private string _webSocketsUrl = _baseUrl.Replace("http","ws");
+        private string _webSocketsUrl = _baseUrl.Replace("http", "ws");
 
         public string BaseUrl
         {
@@ -44,6 +43,24 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 _loggerFactory.AddConsole();
             }
             StartServer();
+        }
+
+        public class Startup
+        {
+            public void ConfigureServices(IServiceCollection services)
+            {
+                services.AddSockets();
+                services.AddSignalR();
+                services.AddSingleton<EchoEndPoint>();
+            }
+
+            public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+            {
+                app.UseSockets(options => options.MapEndpoint<EchoEndPoint>("/echo"));
+                app.UseSignalR(routes =>
+                {
+                });
+            }
         }
 
         private void StartServer()
