@@ -42,6 +42,57 @@ The HTTP request is made to the URL `[endpoint-base]/send` with the following qu
 
 The content of the frame is the entire Body of the HTTP request. There are no other restrictions on the Headers provided (i.e. `Content-Type`, etc.).
 
+## Server-Sent Events (Server-to-Client only)
+
+Server-Sent Events (SSE) is a protocol specified by WHATWG at [https://html.spec.whatwg.org/multipage/comms.html#server-sent-events](https://html.spec.whatwg.org/multipage/comms.html#server-sent-events). It is capable of sending data from server to client only, so it must be paired with the HTTP Post transport.
+
+The protocol is similar to Long Polling in that the client opens a request to an endpoint and leaves it open. The server transmits frames as "events" using the SSE protocol. The protocol encodes a single event as a sequence of key-value pair lines, separated by `:` and using any of `\r\n`, `\n` or `\r` as line-terminators, followed by a final blank line. Keys can be duplicated and their values are concatenated with `\n`. So the following represents two events:
+
+```
+foo: bar
+baz: boz
+baz: biz
+quz: qoz
+baz: flarg
+
+foo: boz
+
+```
+
+In the first event, the value of `baz` would be `boz\nbiz\nflarg`, due to the concatenation behavior above. Full details can be found in the spec linked above.
+
+In this transport, the client establishes an SSE connection to `[endpoint-base]/sse`, and the server responds with an HTTP response with a `Content-Type` of `text/event-stream`. Each SSE event represents a single frame from client to server. The transport uses unnamed events, which means only the `data` field is available. Thus we use the first line of the `data` field for frame metadata. The frame body starts on the **second** line of the `data` field value. The first line has the following format (Identifiers in square brackets `[]` indicate fields defined below):
+
+```
+[Type],[Fin]
+```
+
+* `[Type]` is a single UTF-8 character representing the type of the frame; `T` indicates Text, and `B` indicates Binary.
+* `[Fin]` is a single UTF-8 character indicating if the frame is the last frame of the message; `T` indicates `true`, `F` indicates `false`
+
+If the `[Type]` field is `T`, the remaining lines of the `data` field contain the value, in UTF-8 text. If the `[Type]` field is `B`, the remaining lines of the `data` field contain Base64-encoded binary data. Any `\n` characters in Binary frames are removed before Base64-decoding. However, servers should avoid line breaks in the Base64-encoded data.
+
+For example, when sending the following frames (`\n` indicates the actual Line Feed character, not an escape sequence):
+
+* Type=`Text`, Fin=`true`, "Hello\nWorld"
+* Type=`Binary`, Fin=`false`, `0x01 0x02`
+* Type=`Binary`, Fin=`true`, `0x03 0x04`
+
+The encoding will be as follows
+
+```
+data: T,T
+data: Hello
+data: World
+
+data: B,F
+data: AQI=
+
+data: B,T
+data: AwQ=
+
+```
+
 ## Long Polling (Server-to-Client only)
 
 Long Polling is a server-to-client half-transport, so it is always paired with HTTP Post. It requires a connection already be established using the `[endpoint-base]/negotiate` endpoint.
@@ -59,16 +110,16 @@ When messages are available, the server responds with a body in one of the two f
 
 ### Text-based encoding (`supportsBinary` = `false` or not present)
 
-The body will be formatted as below. Identifiers in square brackets `[]` indicate fields defined below, and parenthesis `()` indicate grouping.
+The body will be formatted as below and encoded in UTF-8. Identifiers in square brackets `[]` indicate fields defined below, and parenthesis `()` indicate grouping.
 
 ```
 T([Length]:[Type],[Fin]:[Body];)([Length]:[Type],[Fin]:[Body];)... continues until end of the response body ...
 ```
 
-* `[Length]` - Length of the Body in ASCII Characters, specified as ASCII digits (terminated by `:`). If the body is a binary frame, this length indicates the number of Base64-encoded characters, not the number of bytes!
-* `[Type]` - A single ASCII character indicating the type of the frame, `T` indicates Text and `B` indicates Binary (case-sensitive)
-* `[Fin]` - A single ASCII character indicating if this frame is the last frame in a message, `T` indicates `true`, `F` indicates `false` (case-sensitive)
-* `[Body]` - The body of the message. If `[Type]` is `T`, this is just the sequence of ASCII characters for the text frame. If `[Type]` is `B`, the frame is Base64-encoded, so `[Body]` must be Base64-decoded to get the actual frame content.
+* `[Length]` - Length of the `[Body]` field in bytes, specified as UTF-8 digits (0-9, terminated by `:`). If the body is a binary frame, this length indicates the number of Base64-encoded characters, not the number of bytes in the final decoded message!
+* `[Type]` - A single-byte UTF-8 character indicating the type of the frame, `T` indicates Text and `B` indicates Binary (case-sensitive)
+* `[Fin]` - A single-byte UTF-8 character indicating if this frame is the last frame in a message, `T` indicates `true`, `F` indicates `false` (case-sensitive)
+* `[Body]` - The body of the message. If `[Type]` is `T`, this is just the sequence of UTF-8 characters for the text frame. If `[Type]` is `B`, the frame is Base64-encoded, so `[Body]` must be Base64-decoded to get the actual frame content.
 
 For example, when sending the following frames (`\n` indicates the actual Line Feed character, not an escape sequence):
 
@@ -101,4 +152,24 @@ B([Length][TypeAndFin][Body])([Length][Type][Fin][Body])... continues until end 
     * `0x80` - Fin=`true`, Type=`Text`
     * `0x81` - Fin=`true`, Type=`Binary`
     * All other bits are reserved and MUST be `0` or the entire response should be rejected.
-* `[Body]` - The body of the message, exactly `[Length]` bytes in length.
+* `[Body]` - The body of the message, exactly `[Length]` bytes in length. Text frames are always encoded in UTF-8.
+
+For example, when sending the following frames (`\n` indicates the actual Line Feed character, not an escape sequence):
+
+* Type=`Text`, Fin=`true`, "Hello\nWorld"
+* Type=`Binary`, Fin=`false`, `0x01 0x02`
+* Type=`Binary`, Fin=`true`, `0x03 0x04`
+
+The encoding will be as follows, as a list of binary digits in hex (text in parentheses `()` are comments). Whitespace and newlines are irrelevant and for illustration only.
+```
+0x66                                                   (ASCII 'B')
+0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x0B                (start of frame; 64-bit integer value: 11)
+0x80                                                   (Type = Text, Fin = True)
+0x68 0x65 0x6C 0x6C 0x6F 0x0A 0x77 0x6F 0x72 0x6C 0x64 (UTF-8 encoding of 'Hello\nWorld')
+0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x02                (start of frame; 64-bit integer value: 2)
+0x01                                                   (Type = Binary, Fin = False)
+0x01 0x02                                              (body)
+0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x02                (start of frame; 64-bit integer value: 2)
+0x81                                                   (Type = Binary, Fin = True)
+0x03 0x04                                              (body)
+```
