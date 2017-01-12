@@ -15,6 +15,8 @@ namespace Microsoft.AspNetCore.Sockets.Transports
 {
     public class WebSocketsTransport : IHttpTransport
     {
+        public static readonly string Name = "webSockets";
+
         private static readonly TimeSpan _closeTimeout = TimeSpan.FromSeconds(5);
         private static readonly WebSocketAcceptContext EmptyContext = new WebSocketAcceptContext();
 
