@@ -244,7 +244,6 @@ namespace Microsoft.AspNetCore.Sockets
                     break;
                 }
             }
-            await state.Application.Output.WriteAsync(message);
         }
 
         private void EnsureConnectionState(ConnectionState connectionState, HttpContext context, string transportName)
