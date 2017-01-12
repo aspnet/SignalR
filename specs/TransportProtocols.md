@@ -130,7 +130,8 @@ For example, when sending the following frames (`\n` indicates the actual Line F
 The encoding will be as follows
 
 ```
-T11:T,T:Hello\nWorld;4:B,F:AQI=;4:B,T:AwQ=;
+T11:T,T:Hello
+World;4:B,F:AQI=;4:B,T:AwQ=;
 ```
 
 Note that the final frame still ends with the `;` terminator, and that since the body may contain `;`, newlines, etc., the length is specified in order to know exactly where the body ends.
