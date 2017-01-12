@@ -30,7 +30,7 @@
           "version": "1.2.0-*",
           "type": "platform"
         },
-        "System.Net.WebSockets.Client": "4.0.0"
+        "System.Net.WebSockets.Client": "4.4.0-*"
       }
     },
     "net46": {}
