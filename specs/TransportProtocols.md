@@ -34,9 +34,9 @@ This transport uses HTTP Post requests to a specific end point to encode message
 
 This transport requires that a connection be established using the `[endpoint-base]/negotiate` end point.
 
-The HTTP request is made to the URL `[endpoint-base]/send` with the following query string parameters
+The HTTP POST request is made to the URL `[endpoint-base]/send`. The request has a `Content-Type` of `application/x-www-form-urlencoded` and contains the following Form URL-encoded parameters.
 
-* `id` (Required) - The Connection ID of the destination connection.
+* `id` (Required) - The Connection ID of the destination connection. (Open Q: Move this to the path?)
 * `format` (Optional: default `text`) - Either `text` or `binary` (**case-insensitive**), indicating the type of the frame
 * `endOfMessage` (Optional: default `true`) - Indicates if this frame completes a message or if futher frames will be sent.
 
@@ -44,7 +44,8 @@ The content of the frame is the entire Body of the HTTP request. There are no ot
 
 ## Server-Sent Events (Server-to-Client only)
 
-Server-Sent Events (SSE) is a protocol specified by WHATWG at [https://html.spec.whatwg.org/multipage/comms.html#server-sent-events](https://html.spec.whatwg.org/multipage/comms.html#server-sent-events). It is capable of sending data from server to client only, so it must be paired with the HTTP Post transport.
+Server-Sent Events (SSE) is a protocol specified by WHATWG at [https://html.spec.whatwg.org/multipage/comms.html#server-sent-events](https://html.spec.whatwg.org/multipage/comms.html#server-sent-events). It is capable of sending data from server to client only, so it must be paired with the HTTP Post transport. It also requires a connection already be established using the `[endpoint-base]/negotiate` endpoint.
+
 
 The protocol is similar to Long Polling in that the client opens a request to an endpoint and leaves it open. The server transmits frames as "events" using the SSE protocol. The protocol encodes a single event as a sequence of key-value pair lines, separated by `:` and using any of `\r\n`, `\n` or `\r` as line-terminators, followed by a final blank line. Keys can be duplicated and their values are concatenated with `\n`. So the following represents two events:
 
