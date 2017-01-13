@@ -16,7 +16,7 @@ A transport is required to have the following attributes:
 
 The only transport which fully implements the duplex requirement is WebSockets, the others are "half-transports" which implement one end of the duplex connection. They are used in combination to achieve a duplex connection.
 
-Throughout this document, the term `[endpoint-base]` is used to refer to the route assigned to a particular end point
+Throughout this document, the term `[endpoint-base]` is used to refer to the route assigned to a particular end point. The term `[connection-id]` is used to refer to the connection ID provided by the `[endpoint-base]/negotiate` end point.
 
 ## WebSockets (Full Duplex)
 
@@ -34,13 +34,7 @@ This transport uses HTTP Post requests to a specific end point to encode message
 
 This transport requires that a connection be established using the `[endpoint-base]/negotiate` end point.
 
-The HTTP POST request is made to the URL `[endpoint-base]/send`. The request has a `Content-Type` of `application/x-www-form-urlencoded` and contains the following Form URL-encoded parameters.
-
-* `id` (Required) - The Connection ID of the destination connection. (Open Q: Move this to the path?)
-* `format` (Optional: default `text`) - Either `text` or `binary` (**case-insensitive**), indicating the type of the frame
-* `endOfMessage` (Optional: default `true`) - Indicates if this frame completes a message or if futher frames will be sent.
-
-The content of the frame is the entire Body of the HTTP request. There are no other restrictions on the Headers provided (i.e. `Content-Type`, etc.).
+The HTTP POST request is made to the URL `[endpoint-base]/[connection-id]/send`. The content consists of frames in the same format as the Long Polling transport. It is up to the client which of the Text or Binary protocol they use, and the server is able to detect which they use either via the `Content-Type` (see the Long Polling transport section) or via the first byte (`T` for the Text-based protocol, `B` for the binary protocol). Upon receipt of the **entire** request, the server will process and deliver all the messages, responding with `202 Accepted` if all the messages are successfully processed. If a client makes another request to `/send` while an existing one is outstanding, the existing request is terminated by the server with the `409 Conflict` status code.
 
 ## Server-Sent Events (Server-to-Client only)
 
@@ -111,7 +105,7 @@ When messages are available, the server responds with a body in one of the two f
 
 ### Text-based encoding (`supportsBinary` = `false` or not present)
 
-The body will be formatted as below and encoded in UTF-8. Identifiers in square brackets `[]` indicate fields defined below, and parenthesis `()` indicate grouping.
+The body will be formatted as below and encoded in UTF-8. The `Content-Type` response header is set to `application/vnd.microsoft.aspnet.endpoint-messages.v1+text`. Identifiers in square brackets `[]` indicate fields defined below, and parenthesis `()` indicate grouping.
 
 ```
 T([Length]:[Type],[Fin]:[Body];)([Length]:[Type],[Fin]:[Body];)... continues until end of the response body ...
@@ -141,7 +135,7 @@ Note that the final frame still ends with the `;` terminator, and that since the
 
 In JavaScript/Browser clients, this encoding requires XHR2 (or similar HTTP request functionality which allows binary data) and TypedArray support.
 
-The body is encoded as follows. Identifiers in square brackets `[]` indicate fields defined below, and parenthesis `()` indicate grouping. Other symbols indicate ASCII-encoded text in the stream
+The body is encoded as follows. The `Content-Type` response header is set to `application/vnd.microsoft.aspnet.endpoint-messages.v1+binary`. Identifiers in square brackets `[]` indicate fields defined below, and parenthesis `()` indicate grouping. Other symbols indicate ASCII-encoded text in the stream
 
 ```
 B([Length][TypeAndFin][Body])([Length][Type][Fin][Body])... continues until end of the response body ...
