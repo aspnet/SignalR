@@ -53,7 +53,7 @@ namespace Microsoft.AspNetCore.Sockets
             if (context.Request.Path.StartsWithSegments(path + "/sse"))
             {
                 // Connection must already exist
-                var state = GetConnection(context);
+                var state = await GetConnectionAsync(context);
                 if (state == null)
                 {
                     // No such connection, GetConnection already set the response status code
@@ -71,7 +71,7 @@ namespace Microsoft.AspNetCore.Sockets
             else if (context.Request.Path.StartsWithSegments(path + "/ws"))
             {
                 // Connection can be established lazily
-                var state = GetOrCreateConnection(context);
+                var state = await GetOrCreateConnectionAsync(context);
                 if (state == null)
                 {
                     // No such connection, GetOrCreateConnection already set the response status code
@@ -88,7 +88,7 @@ namespace Microsoft.AspNetCore.Sockets
             else if (context.Request.Path.StartsWithSegments(path + "/poll"))
             {
                 // Connection must already exist
-                var state = GetConnection(context);
+                var state = await GetConnectionAsync(context);
                 if (state == null)
                 {
                     // No such connection, GetConnection already set the response status code
@@ -211,7 +211,7 @@ namespace Microsoft.AspNetCore.Sockets
 
         private async Task ProcessSend(HttpContext context)
         {
-            var state = GetConnection(context);
+            var state = await GetConnectionAsync(context);
             if (state == null)
             {
                 // No such connection, GetConnection already set the response status code
@@ -256,13 +256,13 @@ namespace Microsoft.AspNetCore.Sockets
             {
                 connectionState.Connection.Metadata["transport"] = transportName;
             }
-            else if (!string.Equals(transport, transportName))
+            else if (!string.Equals(transport, transportName, StringComparison.Ordinal))
             {
                 throw new InvalidOperationException("Cannot change transports mid-connection");
             }
         }
 
-        private ConnectionState GetConnection(HttpContext context)
+        private async Task<ConnectionState> GetConnectionAsync(HttpContext context)
         {
             var connectionId = context.Request.Query["id"];
             ConnectionState connectionState;
@@ -271,7 +271,7 @@ namespace Microsoft.AspNetCore.Sockets
             {
                 // There's no connection ID: bad request
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                context.Response.WriteAsync("Connection ID required");
+                await context.Response.WriteAsync("Connection ID required");
                 return null;
             }
 
@@ -279,14 +279,14 @@ namespace Microsoft.AspNetCore.Sockets
             {
                 // No connection with that ID: Not Found
                 context.Response.StatusCode = StatusCodes.Status404NotFound;
-                context.Response.WriteAsync("No Connection with that ID");
+                await context.Response.WriteAsync("No Connection with that ID");
                 return null;
             }
 
             return connectionState;
         }
 
-        private ConnectionState GetOrCreateConnection(HttpContext context)
+        private async Task<ConnectionState> GetOrCreateConnectionAsync(HttpContext context)
         {
             var connectionId = context.Request.Query["id"];
             ConnectionState connectionState;
@@ -300,7 +300,7 @@ namespace Microsoft.AspNetCore.Sockets
             {
                 // No connection with that ID: Not Found
                 context.Response.StatusCode = StatusCodes.Status404NotFound;
-                context.Response.WriteAsync("No Connection with that ID");
+                await context.Response.WriteAsync("No Connection with that ID");
                 return null;
             }
 
