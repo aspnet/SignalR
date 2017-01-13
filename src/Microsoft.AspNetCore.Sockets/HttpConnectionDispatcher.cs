@@ -214,6 +214,7 @@ namespace Microsoft.AspNetCore.Sockets
             var state = GetConnection(context);
             if (state == null)
             {
+                // No such connection, GetConnection already set the response status code
                 return;
             }
 
@@ -269,14 +270,15 @@ namespace Microsoft.AspNetCore.Sockets
             if (StringValues.IsNullOrEmpty(connectionId))
             {
                 // There's no connection ID: bad request
-                context.Response.StatusCode = 400;
+                context.Response.StatusCode = StatusCodes.Status400BadRequest;
                 context.Response.WriteAsync("Connection ID required");
                 return null;
             }
-            else if (!_manager.TryGetConnection(connectionId, out connectionState))
+
+            if (!_manager.TryGetConnection(connectionId, out connectionState))
             {
                 // No connection with that ID: Not Found
-                context.Response.StatusCode = 404;
+                context.Response.StatusCode = StatusCodes.Status404NotFound;
                 context.Response.WriteAsync("No Connection with that ID");
                 return null;
             }
@@ -297,7 +299,7 @@ namespace Microsoft.AspNetCore.Sockets
             else if (!_manager.TryGetConnection(connectionId, out connectionState))
             {
                 // No connection with that ID: Not Found
-                context.Response.StatusCode = 404;
+                context.Response.StatusCode = StatusCodes.Status404NotFound;
                 context.Response.WriteAsync("No Connection with that ID");
                 return null;
             }

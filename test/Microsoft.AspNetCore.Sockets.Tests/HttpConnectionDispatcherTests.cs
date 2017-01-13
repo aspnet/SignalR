@@ -65,7 +65,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
                 await dispatcher.ExecuteAsync<TestEndPoint>("", context);
 
-                Assert.Equal(404, context.Response.StatusCode);
+                Assert.Equal(StatusCodes.Status404NotFound, context.Response.StatusCode);
                 await strm.FlushAsync();
                 Assert.Equal("No Connection with that ID", Encoding.UTF8.GetString(strm.ToArray()));
             }
@@ -90,7 +90,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
                 await dispatcher.ExecuteAsync<TestEndPoint>("", context);
 
-                Assert.Equal(400, context.Response.StatusCode);
+                Assert.Equal(StatusCodes.Status400BadRequest, context.Response.StatusCode);
                 await strm.FlushAsync();
                 Assert.Equal("Connection ID required", Encoding.UTF8.GetString(strm.ToArray()));
             }
