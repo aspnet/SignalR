@@ -8,11 +8,13 @@ A transport is required to have the following attributes:
 
 1. Duplex - Able to send messages from Server to Client and from Client to Server
 1. Frame-based - Messages have fixed length (as opposed to streaming, where data is just pushed throughout the connection)
-1. Frame Metadata - Able to encode two pieces of Frame Metadata
+1. Frame Metadata - Able to encode one piece of Frame Metadata
     * `Type` - Either `Binary` or `Text`.
-    * `EndOfMessage` - Boolean indicating if this frame represents the final frame of a complete message.
+1. Able to handle partial messages from the Server application (i.e. where `EndOfMessage` is `false`). The transport can opt to implement this by buffering, since only WebSockets natively supports this functionality.
 1. Binary-safe - Able to transmit arbitrary binary data, regardless of content
-1. Text-safe - Able to transmit arbitrary text data, preserving the content. Line-endings must be preserved **but may be converted to a different format**. For example `\r\n` may be converted to `\n`. This is due to quirks in some transports (Server Sent Events)
+1. Text-safe - Able to transmit arbitrary text data, preserving the content. Line-endings must be preserved **but may be converted to a different format**. For example `\r\n` may be converted to `\n`. This is due to quirks in some transports (Server Sent Events). If the exact line-ending needs to be preserved, the data should be sent as a `Binary` message.
+
+Multi-frame messages (where a message is split into multiple frames) may not overlap and all frames **must** have the same `Type` value (`Text` or `Binary`). It is an error to change the `Type` flag mid-message and the endpoint may terminate the connection if that occurs.
 
 The only transport which fully implements the duplex requirement is WebSockets, the others are "half-transports" which implement one end of the duplex connection. They are used in combination to achieve a duplex connection.
 
@@ -35,6 +37,8 @@ This transport uses HTTP Post requests to a specific end point to encode message
 This transport requires that a connection be established using the `[endpoint-base]/negotiate` end point.
 
 The HTTP POST request is made to the URL `[endpoint-base]/[connection-id]/send`. The content consists of frames in the same format as the Long Polling transport. It is up to the client which of the Text or Binary protocol they use, and the server is able to detect which they use either via the `Content-Type` (see the Long Polling transport section) or via the first byte (`T` for the Text-based protocol, `B` for the binary protocol). Upon receipt of the **entire** request, the server will process and deliver all the messages, responding with `202 Accepted` if all the messages are successfully processed. If a client makes another request to `/send` while an existing one is outstanding, the existing request is terminated by the server with the `409 Conflict` status code.
+
+This transport will always produce single-frame messages, since the Long-Polling protocol below does not support encoding an end-of-message flag.
 
 ## Server-Sent Events (Server-to-Client only)
 
@@ -59,34 +63,31 @@ In the first event, the value of `baz` would be `boz\nbiz\nflarg`, due to the co
 In this transport, the client establishes an SSE connection to `[endpoint-base]/sse`, and the server responds with an HTTP response with a `Content-Type` of `text/event-stream`. Each SSE event represents a single frame from client to server. The transport uses unnamed events, which means only the `data` field is available. Thus we use the first line of the `data` field for frame metadata. The frame body starts on the **second** line of the `data` field value. The first line has the following format (Identifiers in square brackets `[]` indicate fields defined below):
 
 ```
-[Type],[Fin]
+[Type]
 ```
 
 * `[Type]` is a single UTF-8 character representing the type of the frame; `T` indicates Text, and `B` indicates Binary.
-* `[Fin]` is a single UTF-8 character indicating if the frame is the last frame of the message; `T` indicates `true`, `F` indicates `false`
 
 If the `[Type]` field is `T`, the remaining lines of the `data` field contain the value, in UTF-8 text. If the `[Type]` field is `B`, the remaining lines of the `data` field contain Base64-encoded binary data. Any `\n` characters in Binary frames are removed before Base64-decoding. However, servers should avoid line breaks in the Base64-encoded data.
 
 For example, when sending the following frames (`\n` indicates the actual Line Feed character, not an escape sequence):
 
-* Type=`Text`, Fin=`true`, "Hello\nWorld"
-* Type=`Binary`, Fin=`false`, `0x01 0x02`
-* Type=`Binary`, Fin=`true`, `0x03 0x04`
+* Type=`Text`, "Hello\nWorld"
+* Type=`Binary`, `0x01 0x02`
 
 The encoding will be as follows
 
 ```
-data: T,T
+data: T
 data: Hello
 data: World
 
-data: B,F
+data: B
 data: AQI=
 
-data: B,T
-data: AwQ=
-
 ```
+
+This transport will buffer incomplete frames sent by the server until the full message is available and then send the message in a single frame.
 
 ## Long Polling (Server-to-Client only)
 
@@ -108,28 +109,28 @@ When messages are available, the server responds with a body in one of the two f
 The body will be formatted as below and encoded in UTF-8. The `Content-Type` response header is set to `application/vnd.microsoft.aspnet.endpoint-messages.v1+text`. Identifiers in square brackets `[]` indicate fields defined below, and parenthesis `()` indicate grouping.
 
 ```
-T([Length]:[Type],[Fin]:[Body];)([Length]:[Type],[Fin]:[Body];)... continues until end of the response body ...
+T([Length]:[Type]:[Body];)([Length]:[Type]:[Body];)... continues until end of the response body ...
 ```
 
-* `[Length]` - Length of the `[Body]` field in bytes, specified as UTF-8 digits (0-9, terminated by `:`). If the body is a binary frame, this length indicates the number of Base64-encoded characters, not the number of bytes in the final decoded message!
+* `[Length]` - Length of the `[Body]` field in bytes, specified as UTF-8 digits (`0`-`9`, terminated by `:`). If the body is a binary frame, this length indicates the number of Base64-encoded characters, not the number of bytes in the final decoded message!
 * `[Type]` - A single-byte UTF-8 character indicating the type of the frame, `T` indicates Text and `B` indicates Binary (case-sensitive)
-* `[Fin]` - A single-byte UTF-8 character indicating if this frame is the last frame in a message, `T` indicates `true`, `F` indicates `false` (case-sensitive)
 * `[Body]` - The body of the message. If `[Type]` is `T`, this is just the sequence of UTF-8 characters for the text frame. If `[Type]` is `B`, the frame is Base64-encoded, so `[Body]` must be Base64-decoded to get the actual frame content.
 
 For example, when sending the following frames (`\n` indicates the actual Line Feed character, not an escape sequence):
 
-* Type=`Text`, Fin=`true`, "Hello\nWorld"
-* Type=`Binary`, Fin=`false`, `0x01 0x02`
-* Type=`Binary`, Fin=`true`, `0x03 0x04`
+* Type=`Text`, "Hello\nWorld"
+* Type=`Binary`, `0x01 0x02`
 
 The encoding will be as follows
 
 ```
-T11:T,T:Hello
-World;4:B,F:AQI=;4:B,T:AwQ=;
+T11:T:Hello
+World;4:B:AQI=;
 ```
 
 Note that the final frame still ends with the `;` terminator, and that since the body may contain `;`, newlines, etc., the length is specified in order to know exactly where the body ends.
+
+This transport will buffer incomplete frames sent by the server until the full message is available and then send the message in a single frame.
 
 ### Binary encoding (`supportsBinary` = `true`)
 
@@ -138,23 +139,20 @@ In JavaScript/Browser clients, this encoding requires XHR2 (or similar HTTP requ
 The body is encoded as follows. The `Content-Type` response header is set to `application/vnd.microsoft.aspnet.endpoint-messages.v1+binary`. Identifiers in square brackets `[]` indicate fields defined below, and parenthesis `()` indicate grouping. Other symbols indicate ASCII-encoded text in the stream
 
 ```
-B([Length][TypeAndFin][Body])([Length][Type][Fin][Body])... continues until end of the response body ...
+B([Length][Type][Body])([Length][Type][Fin][Body])... continues until end of the response body ...
 ```
 
 * `[Length]` - A 64-bit integer in Network Byte Order (Big-endian) representing the length of the body in bytes
-* `[TypeAndFin]` - An 8-bit integer where the most significant bit indicates if the frame is the last frame in a message (`1` indicates `true`, `0` indicates `false`) and the least significant bit indicates if the frame is text or binary (`0` indicates Text and `1` indicates Binary). Thus, the following four values are the only valid values:
-    * `0x00` - Fin=`false`, Type=`Text`
-    * `0x01` - Fin=`false`, Type=`Binary`
-    * `0x80` - Fin=`true`, Type=`Text`
-    * `0x81` - Fin=`true`, Type=`Binary`
-    * All other bits are reserved and MUST be `0` or the entire response should be rejected.
+* `[TypeAndFin]` - An 8-bit integer indicating the type of the message.
+    * `0x00` => `Text`
+    * `0x01` => `Binary`
+    * All other values are reserved and must **not** be used. An endpoint may reject a frame using any other value and terminate the connection.
 * `[Body]` - The body of the message, exactly `[Length]` bytes in length. Text frames are always encoded in UTF-8.
 
 For example, when sending the following frames (`\n` indicates the actual Line Feed character, not an escape sequence):
 
-* Type=`Text`, Fin=`true`, "Hello\nWorld"
-* Type=`Binary`, Fin=`false`, `0x01 0x02`
-* Type=`Binary`, Fin=`true`, `0x03 0x04`
+* Type=`Text`, "Hello\nWorld"
+* Type=`Binary`, `0x01 0x02`
 
 The encoding will be as follows, as a list of binary digits in hex (text in parentheses `()` are comments). Whitespace and newlines are irrelevant and for illustration only.
 ```
@@ -165,7 +163,6 @@ The encoding will be as follows, as a list of binary digits in hex (text in pare
 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x02                (start of frame; 64-bit integer value: 2)
 0x01                                                   (Type = Binary, Fin = False)
 0x01 0x02                                              (body)
-0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x02                (start of frame; 64-bit integer value: 2)
-0x81                                                   (Type = Binary, Fin = True)
-0x03 0x04                                              (body)
 ```
+
+This transport will buffer incomplete frames sent by the server until the full message is available and then send the message in a single frame.
