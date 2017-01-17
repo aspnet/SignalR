@@ -59,7 +59,11 @@ namespace Microsoft.AspNetCore.Sockets
                     // No such connection, GetConnection already set the response status code
                     return;
                 }
-                EnsureConnectionState(state, context, ServerSentEventsTransport.Name);
+                if(!await EnsureConnectionStateAsync(state, context, ServerSentEventsTransport.Name))
+                {
+                    // Bad connection state. It's already set the response status code.
+                    return;
+                }
 
                 // We only need to provide the Input channel since writing to the application is handled through /send.
                 var sse = new ServerSentEventsTransport(state.Application.Input, _loggerFactory);
@@ -77,7 +81,11 @@ namespace Microsoft.AspNetCore.Sockets
                     // No such connection, GetOrCreateConnection already set the response status code
                     return;
                 }
-                EnsureConnectionState(state, context, WebSocketsTransport.Name);
+                if(!await EnsureConnectionStateAsync(state, context, WebSocketsTransport.Name))
+                {
+                    // Bad connection state. It's already set the response status code.
+                    return;
+                }
 
                 var ws = new WebSocketsTransport(state.Application, _loggerFactory);
 
@@ -94,7 +102,11 @@ namespace Microsoft.AspNetCore.Sockets
                     // No such connection, GetConnection already set the response status code
                     return;
                 }
-                EnsureConnectionState(state, context, LongPollingTransport.Name);
+                if(!await EnsureConnectionStateAsync(state, context, LongPollingTransport.Name))
+                {
+                    // Bad connection state. It's already set the response status code.
+                    return;
+                }
 
                 // Mark the connection as active
                 state.Active = true;
@@ -247,7 +259,7 @@ namespace Microsoft.AspNetCore.Sockets
             }
         }
 
-        private void EnsureConnectionState(ConnectionState connectionState, HttpContext context, string transportName)
+        private async Task<bool> EnsureConnectionStateAsync(ConnectionState connectionState, HttpContext context, string transportName)
         {
             connectionState.Connection.User = context.User;
 
@@ -258,8 +270,11 @@ namespace Microsoft.AspNetCore.Sockets
             }
             else if (!string.Equals(transport, transportName, StringComparison.Ordinal))
             {
-                throw new InvalidOperationException("Cannot change transports mid-connection");
+                context.Response.StatusCode = 400;
+                await context.Response.WriteAsync("Cannot change transports mid-connection");
+                return false;
             }
+            return true;
         }
 
         private async Task<ConnectionState> GetConnectionAsync(HttpContext context)
