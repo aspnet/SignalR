@@ -59,7 +59,8 @@ namespace Microsoft.AspNetCore.Sockets
                     // No such connection, GetConnection already set the response status code
                     return;
                 }
-                if(!await EnsureConnectionStateAsync(state, context, ServerSentEventsTransport.Name))
+
+                if (!await EnsureConnectionStateAsync(state, context, ServerSentEventsTransport.Name))
                 {
                     // Bad connection state. It's already set the response status code.
                     return;
@@ -81,7 +82,8 @@ namespace Microsoft.AspNetCore.Sockets
                     // No such connection, GetOrCreateConnection already set the response status code
                     return;
                 }
-                if(!await EnsureConnectionStateAsync(state, context, WebSocketsTransport.Name))
+
+                if (!await EnsureConnectionStateAsync(state, context, WebSocketsTransport.Name))
                 {
                     // Bad connection state. It's already set the response status code.
                     return;
@@ -102,7 +104,8 @@ namespace Microsoft.AspNetCore.Sockets
                     // No such connection, GetConnection already set the response status code
                     return;
                 }
-                if(!await EnsureConnectionStateAsync(state, context, LongPollingTransport.Name))
+
+                if (!await EnsureConnectionStateAsync(state, context, LongPollingTransport.Name))
                 {
                     // Bad connection state. It's already set the response status code.
                     return;
