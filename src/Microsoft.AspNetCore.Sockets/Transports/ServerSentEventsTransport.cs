@@ -11,9 +11,10 @@ namespace Microsoft.AspNetCore.Sockets.Transports
 {
     public class ServerSentEventsTransport : IHttpTransport
     {
-        public static readonly string Name = "serverSentEvents";
         private readonly ReadableChannel<Message> _application;
         private readonly ILogger _logger;
+
+        public string Name { get; } = "serverSentEvents";
 
         public ServerSentEventsTransport(ReadableChannel<Message> application, ILoggerFactory loggerFactory)
         {
@@ -24,8 +25,11 @@ namespace Microsoft.AspNetCore.Sockets.Transports
         public async Task ProcessRequestAsync(HttpContext context)
         {
             context.Response.ContentType = "text/event-stream";
+
+            // Working around dynamic compression behavior in ANCM: https://github.com/aspnet/AspNetCoreModule/issues/16
             context.Response.Headers["Cache-Control"] = "no-cache";
             context.Response.Headers["Content-Encoding"] = "identity";
+
             await context.Response.Body.FlushAsync();
 
             try
@@ -33,18 +37,31 @@ namespace Microsoft.AspNetCore.Sockets.Transports
                 while (await _application.WaitToReadAsync(context.RequestAborted))
                 {
                     Message message;
+                    var counter = 0;
                     while (_application.TryRead(out message))
                     {
+                        counter++;
                         using (message)
                         {
                             await Send(context, message);
                         }
                     }
+
+                    _logger.LogTrace("Sent batch of {0} frames", counter);
                 }
+
+                // If the completion is faulted or cancelled, we want to manifest that error
+                _application.Completion.GetAwaiter().GetResult();
             }
             catch (OperationCanceledException)
             {
-                // Closed connection
+                // Suppress the exception
+                _logger.LogDebug("Client disconnected from Server-Sent Events endpoint.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error reading next message from Application: {0}", ex);
+                throw;
             }
         }
 

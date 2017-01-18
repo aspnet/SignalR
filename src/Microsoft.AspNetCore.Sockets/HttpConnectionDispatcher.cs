@@ -37,10 +37,6 @@ namespace Microsoft.AspNetCore.Sockets
             {
                 await ProcessNegotiate(context);
             }
-            else if (context.Request.Path.StartsWithSegments(path + "/send"))
-            {
-                await ProcessSend(context);
-            }
             else
             {
                 await ExecuteEndpointAsync(path, context, endpoint);
@@ -49,128 +45,141 @@ namespace Microsoft.AspNetCore.Sockets
 
         private async Task ExecuteEndpointAsync(string path, HttpContext context, EndPoint endpoint)
         {
-            // Server sent events transport
-            if (context.Request.Path.StartsWithSegments(path + "/sse"))
+            var isWebSockets = context.Request.Path.StartsWithSegments(path + "/ws");
+
+            // Check if there's a connection ID
+            var connectionId = context.Request.Query["id"];
+            ConnectionState connectionState;
+
+            if (StringValues.IsNullOrEmpty(connectionId))
             {
-                // Connection must already exist
-                var state = await GetConnectionAsync(context);
-                if (state == null)
+                // If there isn't, WebSockets can create an "unnamed" connection (because it is full duplex).
+                if (isWebSockets)
                 {
-                    // No such connection, GetConnection already set the response status code
-                    return;
-                }
-
-                if (!await EnsureConnectionStateAsync(state, context, ServerSentEventsTransport.Name))
-                {
-                    // Bad connection state. It's already set the response status code.
-                    return;
-                }
-
-                // We only need to provide the Input channel since writing to the application is handled through /send.
-                var sse = new ServerSentEventsTransport(state.Application.Input, _loggerFactory);
-
-                await DoPersistentConnection(endpoint, sse, context, state);
-
-                _manager.RemoveConnection(state.Connection.ConnectionId);
-            }
-            else if (context.Request.Path.StartsWithSegments(path + "/ws"))
-            {
-                // Connection can be established lazily
-                var state = await GetOrCreateConnectionAsync(context);
-                if (state == null)
-                {
-                    // No such connection, GetOrCreateConnection already set the response status code
-                    return;
-                }
-
-                if (!await EnsureConnectionStateAsync(state, context, WebSocketsTransport.Name))
-                {
-                    // Bad connection state. It's already set the response status code.
-                    return;
-                }
-
-                var ws = new WebSocketsTransport(state.Application, _loggerFactory);
-
-                await DoPersistentConnection(endpoint, ws, context, state);
-
-                _manager.RemoveConnection(state.Connection.ConnectionId);
-            }
-            else if (context.Request.Path.StartsWithSegments(path + "/poll"))
-            {
-                // Connection must already exist
-                var state = await GetConnectionAsync(context);
-                if (state == null)
-                {
-                    // No such connection, GetConnection already set the response status code
-                    return;
-                }
-
-                if (!await EnsureConnectionStateAsync(state, context, LongPollingTransport.Name))
-                {
-                    // Bad connection state. It's already set the response status code.
-                    return;
-                }
-
-                // Mark the connection as active
-                state.Active = true;
-
-                var longPolling = new LongPollingTransport(state.Application.Input, _loggerFactory);
-
-                // Start the transport
-                var transportTask = longPolling.ProcessRequestAsync(context);
-
-                // Raise OnConnected for new connections only since polls happen all the time
-                var endpointTask = state.Connection.Metadata.Get<Task>("endpoint");
-                if (endpointTask == null)
-                {
-                    _logger.LogDebug("Establishing new Long Polling connection: {0}", state.Connection.ConnectionId);
-
-                    // This will re-initialize formatType metadata, but meh...
-                    state.Connection.Metadata["transport"] = LongPollingTransport.Name;
-
-                    // REVIEW: This is super gross, this all needs to be cleaned up...
-                    state.Close = async () =>
-                    {
-                        // Close the end point's connection
-                        state.Connection.Dispose();
-
-                        try
-                        {
-                            await endpointTask;
-                        }
-                        catch
-                        {
-                            // possibly invoked on a ThreadPool thread
-                        }
-                    };
-
-                    endpointTask = endpoint.OnConnectedAsync(state.Connection);
-                    state.Connection.Metadata["endpoint"] = endpointTask;
+                    // Create the connection and return it
+                    connectionState = CreateConnection(context);
                 }
                 else
                 {
-                    _logger.LogDebug("Resuming existing Long Polling connection: {0}", state.Connection.ConnectionId);
+                    // No existing connection, which is required for the current transport.
+                    context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                    await context.Response.WriteAsync("Connection ID required");
+                    return;
                 }
-
-                var resultTask = await Task.WhenAny(endpointTask, transportTask);
-
-                if (resultTask == endpointTask)
-                {
-                    // Notify the long polling transport to end
-                    if (endpointTask.IsFaulted)
-                    {
-                        state.Connection.Transport.Output.TryComplete(endpointTask.Exception.InnerException);
-                    }
-
-                    state.Connection.Dispose();
-
-                    await transportTask;
-                }
-
-                // Mark the connection as inactive
-                state.LastSeenUtc = DateTime.UtcNow;
-                state.Active = false;
             }
+            // There's a connection ID! So look it up
+            else if (!_manager.TryGetConnection(connectionId, out connectionState))
+            {
+                // It wasn't found. Boo! Bad client.
+                context.Response.StatusCode = StatusCodes.Status404NotFound;
+                await context.Response.WriteAsync("No Connection with that ID");
+                return;
+            }
+
+            if (isWebSockets)
+            {
+                var transport = new WebSocketsTransport(connectionState.Application, _loggerFactory);
+                await ExecuteTransportAsync(context, endpoint, connectionState, transport);
+            }
+            else if (context.Request.Path.StartsWithSegments(path + "/sse"))
+            {
+                // We only need to provide the Input channel since writing to the application is handled through /send.
+                var sse = new ServerSentEventsTransport(connectionState.Application.Input, _loggerFactory);
+                await DoPersistentConnection(endpoint, sse, context, connectionState);
+                _manager.RemoveConnection(connectionState.Connection.ConnectionId);
+            }
+            else if (context.Request.Path.StartsWithSegments(path + "/poll"))
+            {
+                await ExecuteLongPollingAsync(context, endpoint, connectionState);
+            }
+            else if (context.Request.Path.StartsWithSegments(path + "/send"))
+            {
+                await ExecuteSendAsync(context, connectionState);
+            }
+        }
+
+        private async Task ExecuteTransportAsync(HttpContext context, EndPoint endpoint, ConnectionState connectionState, IHttpTransport transport)
+        {
+            // Set up connection state
+            if (!EnsureConnectionState(connectionState, context, transport.Name))
+            {
+                // Changed transports mid-connection. Bad client!
+                context.Response.StatusCode = 400;
+                await context.Response.WriteAsync("Cannot change transports mid-connection");
+                return;
+            }
+
+            await DoPersistentConnection(endpoint, transport, context, connectionState);
+            _manager.RemoveConnection(connectionState.Connection.ConnectionId);
+        }
+
+        private async Task ExecuteLongPollingAsync(HttpContext context, EndPoint endpoint, ConnectionState connectionState)
+        {
+            // Mark the connection as active
+            connectionState.Active = true;
+
+            var longPolling = new LongPollingTransport(connectionState.Application.Input, _loggerFactory);
+
+            // Set up connection state
+            if (!EnsureConnectionState(connectionState, context, longPolling.Name))
+            {
+                // Changed transports mid-connection. Bad client!
+                context.Response.StatusCode = 400;
+                await context.Response.WriteAsync("Cannot change transports mid-connection");
+                return;
+            }
+
+            // Start the transport
+            var transportTask = longPolling.ProcessRequestAsync(context);
+
+            // Raise OnConnected for new connections only since polls happen all the time
+            var endpointTask = connectionState.Connection.Metadata.Get<Task>("endpoint");
+            if (endpointTask == null)
+            {
+                _logger.LogDebug("Establishing new Long Polling connection: {0}", connectionState.Connection.ConnectionId);
+
+                // REVIEW: This is super gross, this all needs to be cleaned up...
+                connectionState.Close = async () =>
+                {
+                    // Close the end point's connection
+                    connectionState.Connection.Dispose();
+
+                    try
+                    {
+                        await endpointTask;
+                    }
+                    catch
+                    {
+                        // possibly invoked on a ThreadPool thread
+                    }
+                };
+
+                endpointTask = endpoint.OnConnectedAsync(connectionState.Connection);
+                connectionState.Connection.Metadata["endpoint"] = endpointTask;
+            }
+            else
+            {
+                _logger.LogDebug("Resuming existing Long Polling connection: {0}", connectionState.Connection.ConnectionId);
+            }
+
+            var resultTask = await Task.WhenAny(endpointTask, transportTask);
+
+            if (resultTask == endpointTask)
+            {
+                // Notify the long polling transport to end
+                if (endpointTask.IsFaulted)
+                {
+                    connectionState.Connection.Transport.Output.TryComplete(endpointTask.Exception.InnerException);
+                }
+
+                connectionState.Connection.Dispose();
+
+                await transportTask;
+            }
+
+            // Mark the connection as inactive
+            connectionState.LastSeenUtc = DateTime.UtcNow;
+            connectionState.Active = false;
         }
 
         private ConnectionState CreateConnection(HttpContext context)
@@ -223,12 +232,13 @@ namespace Microsoft.AspNetCore.Sockets
             return context.Response.Body.WriteAsync(connectionIdBuffer, 0, connectionIdBuffer.Length);
         }
 
-        private async Task ProcessSend(HttpContext context)
+        private async Task ExecuteSendAsync(HttpContext context, ConnectionState connectionState)
         {
-            var state = await GetConnectionAsync(context);
-            if (state == null)
+            // Verify that we have a transport that supports '/send'
+            if (string.Equals(connectionState.Connection.Metadata.Get<string>("transport"), WebSocketsTransport.TransportName))
             {
-                // No such connection, GetConnection already set the response status code
+                context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                await context.Response.WriteAsync("Cannot send to a WebSockets connection");
                 return;
             }
 
@@ -252,16 +262,16 @@ namespace Microsoft.AspNetCore.Sockets
                 endOfMessage: true);
 
             // REVIEW: Do we want to return a specific status code here if the connection has ended?
-            while (await state.Application.Output.WaitToWriteAsync())
+            while (await connectionState.Application.Output.WaitToWriteAsync())
             {
-                if (state.Application.Output.TryWrite(message))
+                if (connectionState.Application.Output.TryWrite(message))
                 {
                     break;
                 }
             }
         }
 
-        private async Task<bool> EnsureConnectionStateAsync(ConnectionState connectionState, HttpContext context, string transportName)
+        private bool EnsureConnectionState(ConnectionState connectionState, HttpContext context, string transportName)
         {
             connectionState.Connection.User = context.User;
 
@@ -272,56 +282,9 @@ namespace Microsoft.AspNetCore.Sockets
             }
             else if (!string.Equals(transport, transportName, StringComparison.Ordinal))
             {
-                context.Response.StatusCode = 400;
-                await context.Response.WriteAsync("Cannot change transports mid-connection");
                 return false;
             }
             return true;
-        }
-
-        private async Task<ConnectionState> GetConnectionAsync(HttpContext context)
-        {
-            var connectionId = context.Request.Query["id"];
-            ConnectionState connectionState;
-
-            if (StringValues.IsNullOrEmpty(connectionId))
-            {
-                // There's no connection ID: bad request
-                context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                await context.Response.WriteAsync("Connection ID required");
-                return null;
-            }
-
-            if (!_manager.TryGetConnection(connectionId, out connectionState))
-            {
-                // No connection with that ID: Not Found
-                context.Response.StatusCode = StatusCodes.Status404NotFound;
-                await context.Response.WriteAsync("No Connection with that ID");
-                return null;
-            }
-
-            return connectionState;
-        }
-
-        private async Task<ConnectionState> GetOrCreateConnectionAsync(HttpContext context)
-        {
-            var connectionId = context.Request.Query["id"];
-            ConnectionState connectionState;
-
-            // There's no connection id so this is a brand new connection
-            if (StringValues.IsNullOrEmpty(connectionId))
-            {
-                connectionState = CreateConnection(context);
-            }
-            else if (!_manager.TryGetConnection(connectionId, out connectionState))
-            {
-                // No connection with that ID: Not Found
-                context.Response.StatusCode = StatusCodes.Status404NotFound;
-                await context.Response.WriteAsync("No Connection with that ID");
-                return null;
-            }
-
-            return connectionState;
         }
     }
 }

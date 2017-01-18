@@ -1,9 +1,11 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using System;
 using System.IO;
 using System.IO.Pipelines;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.Http;
@@ -50,6 +52,38 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             var expected = "data: Hello World\n\n";
             Assert.Equal(expected, Encoding.UTF8.GetString(ms.ToArray()));
+        }
+
+        [Fact]
+        public async Task TransportEndsWhenRequestAborted()
+        {
+            var cts = new CancellationTokenSource();
+            var channel = Channel.CreateUnbounded<Message>();
+            var context = new DefaultHttpContext();
+            context.RequestAborted = cts.Token;
+            var poll = new ServerSentEventsTransport(channel, new LoggerFactory());
+
+            var transportTask = poll.ProcessRequestAsync(context);
+
+            cts.Cancel();
+
+            await transportTask.WithTimeout();
+        }
+
+        [Fact]
+        public async Task TransportEndsWhenChannelCompletedWithError()
+        {
+            var channel = Channel.CreateUnbounded<Message>();
+            var context = new DefaultHttpContext();
+            var poll = new ServerSentEventsTransport(channel, new LoggerFactory());
+
+            var transportTask = poll.ProcessRequestAsync(context);
+
+            var expected = new InvalidOperationException("Failed!");
+            channel.Complete(expected);
+
+            var actual = await Assert.ThrowsAsync<InvalidOperationException>(async () => await transportTask.WithTimeout());
+            Assert.Equal(expected.Message, actual.Message);
         }
     }
 }

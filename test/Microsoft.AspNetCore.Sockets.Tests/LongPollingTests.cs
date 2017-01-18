@@ -7,6 +7,7 @@ using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.Http;
@@ -52,6 +53,38 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             Assert.Equal(200, context.Response.StatusCode);
             Assert.Equal("Hello World", Encoding.UTF8.GetString(ms.ToArray()));
+        }
+
+        [Fact]
+        public async Task TransportEndsWhenRequestAborted()
+        {
+            var cts = new CancellationTokenSource();
+            var channel = Channel.CreateUnbounded<Message>();
+            var context = new DefaultHttpContext();
+            context.RequestAborted = cts.Token;
+            var poll = new LongPollingTransport(channel, new LoggerFactory());
+
+            var transportTask = poll.ProcessRequestAsync(context);
+
+            cts.Cancel();
+
+            await transportTask.WithTimeout();
+        }
+
+        [Fact]
+        public async Task TransportEndsWhenChannelCompletedWithError()
+        {
+            var channel = Channel.CreateUnbounded<Message>();
+            var context = new DefaultHttpContext();
+            var poll = new LongPollingTransport(channel, new LoggerFactory());
+
+            var transportTask = poll.ProcessRequestAsync(context);
+
+            var expected = new InvalidOperationException("Failed!");
+            channel.Complete(expected);
+
+            var actual = await Assert.ThrowsAsync<InvalidOperationException>(async () => await transportTask.WithTimeout());
+            Assert.Equal(expected.Message, actual.Message);
         }
     }
 }

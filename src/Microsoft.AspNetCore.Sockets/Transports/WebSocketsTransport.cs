@@ -14,7 +14,7 @@ namespace Microsoft.AspNetCore.Sockets.Transports
 {
     public class WebSocketsTransport : IHttpTransport
     {
-        public static readonly string Name = "webSockets";
+        public static readonly string TransportName = "webSockets";
 
         private static readonly TimeSpan _closeTimeout = TimeSpan.FromSeconds(5);
         private static readonly WebSocketAcceptContext _emptyContext = new WebSocketAcceptContext();
@@ -24,6 +24,8 @@ namespace Microsoft.AspNetCore.Sockets.Transports
 
         private readonly ILogger _logger;
         private readonly IChannelConnection<Message> _application;
+
+        public string Name { get; } = TransportName;
 
         public WebSocketsTransport(IChannelConnection<Message> application, ILoggerFactory loggerFactory)
         {
