@@ -81,7 +81,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var transportTask = poll.ProcessRequestAsync(context);
 
             var expected = new InvalidOperationException("Failed!");
-            channel.Complete(expected);
+            channel.Out.Complete(expected);
 
             var actual = await Assert.ThrowsAsync<InvalidOperationException>(async () => await transportTask.WithTimeout());
             Assert.Equal(expected.Message, actual.Message);
