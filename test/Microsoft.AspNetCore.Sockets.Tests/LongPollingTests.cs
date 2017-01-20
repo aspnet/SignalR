@@ -83,8 +83,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var expected = new InvalidOperationException("Failed!");
             channel.Out.Complete(expected);
 
-            var actual = await Assert.ThrowsAsync<InvalidOperationException>(async () => await transportTask.WithTimeout());
-            Assert.Equal(expected.Message, actual.Message);
+            await transportTask.WithTimeout();
         }
     }
 }
