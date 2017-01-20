@@ -114,12 +114,15 @@ namespace Microsoft.AspNetCore.Sockets.Client
                         continue;
                     }
 
-                    var request = new HttpRequestMessage(HttpMethod.Post, sendUrl);
-                    request.Headers.UserAgent.Add(DefaultUserAgentHeader);
-                    request.Content = new ReadableBufferContent(message.Payload.Buffer);
+                    using (message)
+                    {
+                        var request = new HttpRequestMessage(HttpMethod.Post, sendUrl);
+                        request.Headers.UserAgent.Add(DefaultUserAgentHeader);
+                        request.Content = new ReadableBufferContent(message.Payload.Buffer);
 
-                    var response = await _httpClient.SendAsync(request);
-                    response.EnsureSuccessStatusCode();
+                        var response = await _httpClient.SendAsync(request);
+                        response.EnsureSuccessStatusCode();
+                    }
                 }
 
                 _toFromConnection.Output.TryComplete();

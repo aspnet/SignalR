@@ -127,7 +127,10 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
 
                 // The channel needs to be drained for the Completion task to be completed
                 Message message;
-                while (transportToConnection.In.TryRead(out message)) { }
+                while (transportToConnection.In.TryRead(out message))
+                {
+                    message.Dispose();
+                }
 
                 var exception = await Assert.ThrowsAsync<HttpRequestException>(async () => await transportToConnection.In.Completion);
                 Assert.Contains(" 500 ", exception.Message);

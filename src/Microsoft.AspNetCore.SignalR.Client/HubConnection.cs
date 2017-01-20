@@ -150,8 +150,12 @@ namespace Microsoft.AspNetCore.SignalR.Client
                         continue;
                     }
 
-                    var message = await _adapter.ReadMessageAsync(
-                         new MemoryStream(incomingMessage.Payload.Buffer.ToArray()), _binder, cancellationToken);
+                    InvocationMessage message;
+                    using (incomingMessage)
+                    {
+                        message = await _adapter.ReadMessageAsync(
+                             new MemoryStream(incomingMessage.Payload.Buffer.ToArray()), _binder, cancellationToken);
+                    }
 
                     var invocationDescriptor = message as InvocationDescriptor;
                     if (invocationDescriptor != null)

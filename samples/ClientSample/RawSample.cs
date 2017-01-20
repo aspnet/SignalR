@@ -82,7 +82,10 @@ namespace ClientSample
                         continue;
                     }
 
-                    logger.LogInformation("Received: {0}", Encoding.UTF8.GetString(message.Payload.Buffer.ToArray()));
+                    using (message)
+                    {
+                        logger.LogInformation("Received: {0}", Encoding.UTF8.GetString(message.Payload.Buffer.ToArray()));
+                    }
                 }
             }
             catch (OperationCanceledException)

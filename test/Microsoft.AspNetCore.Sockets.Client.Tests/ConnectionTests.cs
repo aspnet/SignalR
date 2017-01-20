@@ -17,7 +17,6 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
 {
     public class ConnectionTests
     {
-
         [Fact]
         public async Task ConnectionReturnsUrlUsedToStartTheConnection()
         {
@@ -125,7 +124,10 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 await connection.Input.WaitToReadAsync();
                 Message message;
                 connection.Input.TryRead(out message);
-                Assert.Equal("42", Encoding.UTF8.GetString(message.Payload.Buffer.ToArray(), 0, message.Payload.Buffer.Length));
+                using (message)
+                {
+                    Assert.Equal("42", Encoding.UTF8.GetString(message.Payload.Buffer.ToArray(), 0, message.Payload.Buffer.Length));
+                }
             }
         }
 
@@ -155,6 +157,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 while (!completionTask.IsCompleted)
                 {
                     connection.Input.TryRead(out message);
+                    message.Dispose();
                 }
 
                 Assert.Equal(connection.Input.Completion, await completionTask);
