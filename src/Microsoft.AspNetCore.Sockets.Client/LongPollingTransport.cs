@@ -21,13 +21,12 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         private readonly HttpClient _httpClient;
         private readonly ILogger _logger;
+        private IChannelConnection<Message> _toFromConnection;
+        private Task _sender;
+        private Task _poller;
         private readonly CancellationTokenSource _senderCts = new CancellationTokenSource();
         private readonly CancellationTokenSource _pollCts = new CancellationTokenSource();
 
-        private IChannelConnection<Message> _toFromConnection;
-
-        private Task _sender;
-        private Task _poller;
 
         public Task Running { get; private set; }
 

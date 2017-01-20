@@ -89,11 +89,12 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
             {
                 Assert.False(connection.Input.Completion.IsCompleted);
 
+                var data = new byte[] { 1, 1, 2, 3, 5, 8 };
                 connection.Output.TryWrite(
-                    new Message(ReadableBuffer.Create(new byte[] { 1, 1, 2, 3, 5, 8 }).Preserve(), Format.Binary));
+                    new Message(ReadableBuffer.Create(data).Preserve(), Format.Binary));
 
-                Assert.Equal(sendTcs.Task, await Task.WhenAny(Task.Delay(10000), sendTcs.Task));
-                Assert.Equal(new byte[] { 1, 1, 2, 3, 5, 8 }, sendTcs.Task.Result);
+                Assert.Equal(sendTcs.Task, await Task.WhenAny(Task.Delay(1000), sendTcs.Task));
+                Assert.Equal(data, sendTcs.Task.Result);
             }
         }
 
@@ -150,17 +151,17 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 Assert.False(connection.Input.Completion.IsCompleted);
                 connection.Output.TryComplete();
 
-                var completionTask = Task.WhenAny(Task.Delay(1000), connection.Input.Completion);
+                var whenAnyTask = Task.WhenAny(Task.Delay(1000), connection.Input.Completion);
 
                 // The channel needs to be drained for the Completion task to be completed
                 Message message;
-                while (!completionTask.IsCompleted)
+                while (!whenAnyTask.IsCompleted)
                 {
                     connection.Input.TryRead(out message);
                     message.Dispose();
                 }
 
-                Assert.Equal(connection.Input.Completion, await completionTask);
+                Assert.Equal(connection.Input.Completion, await whenAnyTask);
             }
         }
     }
