@@ -57,7 +57,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var connectionState = host.CreateConnection(transportName: WebSocketsTransport.TransportName);
             var result = await host.ExecuteRequestAsync("/send", queryString: $"?id={connectionState.Connection.ConnectionId}");
             Assert.Equal(StatusCodes.Status400BadRequest, result.HttpContext.Response.StatusCode);
-            Assert.Equal("Cannot send to a WebSockets connection", Encoding.UTF8.GetString(result.ResponseBody));
+            Assert.Equal("Cannot use '/send' to send messages to a WebSockets connection", Encoding.UTF8.GetString(result.ResponseBody));
         }
     }
 }

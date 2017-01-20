@@ -84,9 +84,8 @@ namespace Microsoft.AspNetCore.Sockets
             else if (context.Request.Path.StartsWithSegments(path + "/sse"))
             {
                 // We only need to provide the Input channel since writing to the application is handled through /send.
-                var sse = new ServerSentEventsTransport(connectionState.Application.Input, _loggerFactory);
-                await DoPersistentConnection(endpoint, sse, context, connectionState);
-                _manager.RemoveConnection(connectionState.Connection.ConnectionId);
+                var transport = new ServerSentEventsTransport(connectionState.Application.Input, _loggerFactory);
+                await ExecuteTransportAsync(context, endpoint, connectionState, transport);
             }
             else if (context.Request.Path.StartsWithSegments(path + "/poll"))
             {
@@ -104,7 +103,7 @@ namespace Microsoft.AspNetCore.Sockets
             if (!EnsureConnectionState(connectionState, context, transport.Name))
             {
                 // Changed transports mid-connection. Bad client!
-                context.Response.StatusCode = 400;
+                context.Response.StatusCode = StatusCodes.Status400BadRequest;
                 await context.Response.WriteAsync("Cannot change transports mid-connection");
                 return;
             }
@@ -124,7 +123,7 @@ namespace Microsoft.AspNetCore.Sockets
             if (!EnsureConnectionState(connectionState, context, longPolling.Name))
             {
                 // Changed transports mid-connection. Bad client!
-                context.Response.StatusCode = 400;
+                context.Response.StatusCode = StatusCodes.Status400BadRequest;
                 await context.Response.WriteAsync("Cannot change transports mid-connection");
                 return;
             }
@@ -238,7 +237,7 @@ namespace Microsoft.AspNetCore.Sockets
             if (string.Equals(connectionState.Connection.Metadata.Get<string>("transport"), WebSocketsTransport.TransportName))
             {
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                await context.Response.WriteAsync("Cannot send to a WebSockets connection");
+                await context.Response.WriteAsync("Cannot use '/send' to send messages to a WebSockets connection");
                 return;
             }
 

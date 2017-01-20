@@ -11,10 +11,11 @@ namespace Microsoft.AspNetCore.Sockets.Transports
 {
     public class ServerSentEventsTransport : IHttpTransport
     {
+        public static readonly string TransportName = "serverSentEvents";
         private readonly ReadableChannel<Message> _application;
         private readonly ILogger _logger;
 
-        public string Name { get; } = "serverSentEvents";
+        public string Name { get; } = TransportName;
 
         public ServerSentEventsTransport(ReadableChannel<Message> application, ILoggerFactory loggerFactory)
         {
@@ -37,21 +38,19 @@ namespace Microsoft.AspNetCore.Sockets.Transports
                 while (await _application.WaitToReadAsync(context.RequestAborted))
                 {
                     Message message;
-                    var counter = 0;
                     while (_application.TryRead(out message))
                     {
-                        counter++;
                         using (message)
                         {
                             await Send(context, message);
                         }
                     }
-
-                    _logger.LogTrace("Sent batch of {0} frames", counter);
                 }
 
-                // If the completion is faulted or cancelled, we want to manifest that error
-                _application.Completion.GetAwaiter().GetResult();
+                if (_application.Completion.IsFaulted)
+                {
+                    _logger.LogError("Application terminated connection with error: {0}", _application.Completion.Exception.InnerException);
+                }
             }
             catch (OperationCanceledException)
             {
@@ -61,7 +60,6 @@ namespace Microsoft.AspNetCore.Sockets.Transports
             catch (Exception ex)
             {
                 _logger.LogError("Error reading next message from Application: {0}", ex);
-                throw;
             }
         }
 
