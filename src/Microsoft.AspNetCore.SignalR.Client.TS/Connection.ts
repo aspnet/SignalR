@@ -2,6 +2,7 @@ import { DataReceived, ConnectionClosed } from "./Common"
 import { ITransport, WebSocketTransport, ServerSentEventsTransport, LongPollingTransport } from "./Transports"
 import { IHttpClient, HttpClient } from "./HttpClient"
 import { ISignalROptions } from "./ISignalROptions"
+import { TransportType } from './TransportType';
 
 enum ConnectionState {
     Disconnected,
@@ -26,7 +27,7 @@ export class Connection {
         this.connectionState = ConnectionState.Disconnected;
     }
 
-    async start(transportName: string = 'webSockets'): Promise<void> {
+    async start(transportName: string = TransportType.webSockets): Promise<void> {
         if (this.connectionState != ConnectionState.Disconnected) {
             throw new Error("Cannot start a connection that is not in the 'Disconnected' state");
         }
@@ -50,13 +51,13 @@ export class Connection {
     }
 
     private createTransport(transportName: string): ITransport {
-        if (transportName === 'webSockets') {
+        if (transportName === TransportType.webSockets) {
             return new WebSocketTransport();
         }
-        if (transportName === 'serverSentEvents') {
+        if (transportName === TransportType.serverSentEvents) {
             return new ServerSentEventsTransport(this.httpClient);
         }
-        if (transportName === 'longPolling') {
+        if (transportName === TransportType.longPolling) {
             return new LongPollingTransport(this.httpClient);
         }
 
