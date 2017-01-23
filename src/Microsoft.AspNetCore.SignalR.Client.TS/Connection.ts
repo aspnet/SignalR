@@ -3,6 +3,7 @@ import { ITransport, WebSocketTransport, ServerSentEventsTransport, LongPollingT
 import { IHttpClient, HttpClient } from "./HttpClient"
 import { ISignalROptions } from "./ISignalROptions"
 import { TransportType } from './TransportType';
+import { TransportFactory } from './TransportFactory';
 
 enum ConnectionState {
     Disconnected,
@@ -32,7 +33,7 @@ export class Connection {
             throw new Error("Cannot start a connection that is not in the 'Disconnected' state");
         }
 
-        this.transport = this.createTransport(transportName);
+        this.transport = new TransportFactory(this.httpClient).create(transportName);        
         this.transport.onDataReceived = this.dataReceivedCallback;
         this.transport.onError = e => this.stopConnection(e);
 
@@ -49,21 +50,7 @@ export class Connection {
             throw e;
         };
     }
-
-    private createTransport(transportName: string): ITransport {
-        if (transportName === TransportType.webSockets) {
-            return new WebSocketTransport();
-        }
-        if (transportName === TransportType.serverSentEvents) {
-            return new ServerSentEventsTransport(this.httpClient);
-        }
-        if (transportName === TransportType.longPolling) {
-            return new LongPollingTransport(this.httpClient);
-        }
-
-        throw new Error("No valid transports requested.");
-    }
-
+    
     send(data: any): Promise<void> {
         if (this.connectionState != ConnectionState.Connected) {
             throw new Error("Cannot send data if the connection is not in the 'Connected' State");
