@@ -18,6 +18,7 @@ export class Connection {
     private connectionId: string;
     private httpClient: IHttpClient;
     private transport: ITransport;
+    private transportFactory: TransportFactory;
     private dataReceivedCallback: DataReceived = (data: any) => { };
     private connectionClosedCallback: ConnectionClosed = (error?: any) => { };
 
@@ -26,6 +27,7 @@ export class Connection {
         this.queryString = queryString;
         this.httpClient = options.httpClient || new HttpClient();
         this.connectionState = ConnectionState.Disconnected;
+        this.transportFactory = new TransportFactory(this.httpClient);
     }
 
     async start(transportName: string = TransportType.webSockets): Promise<void> {
@@ -33,7 +35,7 @@ export class Connection {
             throw new Error("Cannot start a connection that is not in the 'Disconnected' state");
         }
 
-        this.transport = new TransportFactory(this.httpClient).create(transportName);        
+        this.transport = this.transportFactory.create(transportName);        
         this.transport.onDataReceived = this.dataReceivedCallback;
         this.transport.onError = e => this.stopConnection(e);
 
