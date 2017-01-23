@@ -168,38 +168,45 @@ namespace Microsoft.AspNetCore.SignalR
                         _logger.LogDebug("Received hub invocation: {invocation}", invocationDescriptor);
                     }
 
-                    InvocationResultDescriptor result;
-                    Func<Connection, InvocationDescriptor, Task<InvocationResultDescriptor>> callback;
-                    if (_callbacks.TryGetValue(invocationDescriptor.Method, out callback))
-                    {
-                        result = await callback(connection, invocationDescriptor);
-                    }
-                    else
-                    {
-                        // If there's no method then return a failed response for this request
-                        result = new InvocationResultDescriptor
-                        {
-                            Id = invocationDescriptor.Id,
-                            Error = $"Unknown hub method '{invocationDescriptor.Method}'"
-                        };
+                    // Don't wait on the result of execution, continue processing other
+                    // incoming messages on this connection.
+                    var ignore = Execute(connection, invocationAdapter, invocationDescriptor);
+                }
+            }
+        }
 
-                        _logger.LogError("Unknown hub method '{method}'", invocationDescriptor.Method);
-                    }
+        private async Task Execute(Connection connection, IInvocationAdapter invocationAdapter, InvocationDescriptor invocationDescriptor)
+        {
+            InvocationResultDescriptor result;
+            Func<Connection, InvocationDescriptor, Task<InvocationResultDescriptor>> callback;
+            if (_callbacks.TryGetValue(invocationDescriptor.Method, out callback))
+            {
+                result = await callback(connection, invocationDescriptor);
+            }
+            else
+            {
+                // If there's no method then return a failed response for this request
+                result = new InvocationResultDescriptor
+                {
+                    Id = invocationDescriptor.Id,
+                    Error = $"Unknown hub method '{invocationDescriptor.Method}'"
+                };
 
-                    // TODO: Pool memory
-                    var outStream = new MemoryStream();
-                    await invocationAdapter.WriteMessageAsync(result, outStream);
+                _logger.LogError("Unknown hub method '{method}'", invocationDescriptor.Method);
+            }
 
-                    var buffer = ReadableBuffer.Create(outStream.ToArray()).Preserve();
-                    var outMessage = new Message(buffer, Format.Text, endOfMessage: true);
+            // TODO: Pool memory
+            var outStream = new MemoryStream();
+            await invocationAdapter.WriteMessageAsync(result, outStream);
 
-                    while (await connection.Transport.Output.WaitToWriteAsync())
-                    {
-                        if (connection.Transport.Output.TryWrite(outMessage))
-                        {
-                            break;
-                        }
-                    }
+            var buffer = ReadableBuffer.Create(outStream.ToArray()).Preserve();
+            var outMessage = new Message(buffer, Format.Text, endOfMessage: true);
+
+            while (await connection.Transport.Output.WaitToWriteAsync())
+            {
+                if (connection.Transport.Output.TryWrite(outMessage))
+                {
+                    break;
                 }
             }
         }
