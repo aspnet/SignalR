@@ -80,8 +80,6 @@ namespace Microsoft.AspNetCore.Sockets
                             // REVIEW: Should we keep firing and forgetting this?
                             var ignore = s.DisposeAsync();
                         }
-
-                        c.Value.Status = ConnectionState.State.Disposed;
                     }
                     finally
                     {

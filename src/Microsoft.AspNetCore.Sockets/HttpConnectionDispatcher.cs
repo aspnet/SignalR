@@ -186,12 +186,15 @@ namespace Microsoft.AspNetCore.Sockets
                 {
                     await state.Lock.WaitAsync();
 
-                    // Mark the connection as inactive
-                    state.LastSeenUtc = DateTime.UtcNow;
+                    if (state.Status != ConnectionState.State.Disposed)
+                    {
+                        // Mark the connection as inactive
+                        state.LastSeenUtc = DateTime.UtcNow;
 
-                    state.Status = ConnectionState.State.Inactive;
+                        state.Status = ConnectionState.State.Inactive;
 
-                    state.RequestId = null;
+                        state.RequestId = null;
+                    }
                 }
                 finally
                 {

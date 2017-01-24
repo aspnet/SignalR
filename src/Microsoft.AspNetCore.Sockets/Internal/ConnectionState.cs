@@ -33,6 +33,13 @@ namespace Microsoft.AspNetCore.Sockets.Internal
 
         public async Task DisposeAsync()
         {
+            if (Status == State.Disposed)
+            {
+                return;
+            }
+
+            Status = State.Disposed;
+
             // If the application task is faulted, propagate the error to the transport
             if (ApplicationTask.IsFaulted)
             {
@@ -50,6 +57,8 @@ namespace Microsoft.AspNetCore.Sockets.Internal
 
             // REVIEW: Add a timeout so we don't wait forever
             await Task.WhenAll(ApplicationTask, TransportTask);
+
+            RequestId = null;
         }
 
         public enum State
