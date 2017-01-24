@@ -42,6 +42,8 @@ export class HubConnection {
             return;
         }
 
+        this.fullReceivedJSON += data;
+        
         try {
             var descriptor = JSON.parse(this.fullReceivedJSON);
             if (descriptor.Method === undefined) {
