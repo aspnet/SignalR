@@ -18,7 +18,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             Assert.NotNull(state.Connection);
             Assert.NotNull(state.Connection.ConnectionId);
-            Assert.True(state.Active);
+            Assert.True(state.State);
             Assert.Null(state.ApplicationTask);
             Assert.Null(state.TransportTask);
             Assert.NotNull(state.Connection.Transport);

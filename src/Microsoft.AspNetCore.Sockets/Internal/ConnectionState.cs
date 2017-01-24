@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Microsoft.AspNetCore.Sockets.Internal
@@ -11,11 +12,17 @@ namespace Microsoft.AspNetCore.Sockets.Internal
         public Connection Connection { get; set; }
         public IChannelConnection<Message> Application { get; }
 
+        public CancellationTokenSource Cancellation { get; set; }
+
+        public SemaphoreSlim Lock { get; } = new SemaphoreSlim(1, 1);
+
+        public string RequestId { get; set; }
+
         public Task TransportTask { get; set; }
         public Task ApplicationTask { get; set; }
 
         public DateTime LastSeenUtc { get; set; }
-        public bool Active { get; set; } = true;
+        public State Status { get; set; } = State.Inactive;
 
         public ConnectionState(Connection connection, IChannelConnection<Message> application)
         {
@@ -43,6 +50,13 @@ namespace Microsoft.AspNetCore.Sockets.Internal
 
             // REVIEW: Add a timeout so we don't wait forever
             await Task.WhenAll(ApplicationTask, TransportTask);
+        }
+
+        public enum State
+        {
+            Inactive,
+            Active,
+            Disposed
         }
     }
 }

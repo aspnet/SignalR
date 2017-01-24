@@ -68,13 +68,24 @@ namespace Microsoft.AspNetCore.Sockets
             // Scan the registered connections looking for ones that have timed out
             foreach (var c in _connections)
             {
-                if (!c.Value.Active && (DateTimeOffset.UtcNow - c.Value.LastSeenUtc).TotalSeconds > 5)
+                if (c.Value.Status == ConnectionState.State.Inactive && (DateTimeOffset.UtcNow - c.Value.LastSeenUtc).TotalSeconds > 5)
                 {
-                    ConnectionState s;
-                    if (_connections.TryRemove(c.Key, out s))
+                    try
                     {
-                        // REVIEW: Should we keep firing and forgetting this?
-                        var ignore = s.DisposeAsync();
+                        c.Value.Lock.Wait();
+
+                        ConnectionState s;
+                        if (_connections.TryRemove(c.Key, out s))
+                        {
+                            // REVIEW: Should we keep firing and forgetting this?
+                            var ignore = s.DisposeAsync();
+                        }
+
+                        c.Value.Status = ConnectionState.State.Disposed;
+                    }
+                    finally
+                    {
+                        c.Value.Lock.Release();
                     }
                 }
             }
