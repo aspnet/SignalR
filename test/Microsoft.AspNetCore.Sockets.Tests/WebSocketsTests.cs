@@ -175,7 +175,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [Theory]
         [InlineData(Format.Text, WebSocketOpcode.Text)]
         [InlineData(Format.Binary, WebSocketOpcode.Binary)]
-        public async Task DataWrittenToOutputPipelineAreSentAsFrames(Format format, WebSocketOpcode opcode)
+        public async Task DataWrittenToChannelAreSentAsFrames(Format format, WebSocketOpcode opcode)
         {
             var transportToApplication = Channel.CreateUnbounded<Message>();
             var applicationToTransport = Channel.CreateUnbounded<Message>();

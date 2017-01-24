@@ -3,7 +3,6 @@
 
 using System;
 using System.IO.Pipelines;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.Http;
@@ -13,9 +12,12 @@ namespace Microsoft.AspNetCore.Sockets.Transports
 {
     public class LongPollingTransport : IHttpTransport
     {
-        public static readonly string Name = "longPolling";
+        public static readonly string TransportName = "longPolling";
+
         private readonly ReadableChannel<Message> _application;
         private readonly ILogger _logger;
+
+        public string Name { get; } = TransportName;
 
         public LongPollingTransport(ReadableChannel<Message> application, ILoggerFactory loggerFactory)
         {
@@ -32,6 +34,11 @@ namespace Microsoft.AspNetCore.Sockets.Transports
                 // This is for cases when the client reconnects see issue #27
                 if (!await _application.WaitToReadAsync(context.RequestAborted))
                 {
+                    if(_application.Completion.IsFaulted)
+                    {
+                        _logger.LogError("Application terminated connection with error: {0}", _application.Completion.Exception.InnerException);
+                    }
+
                     _logger.LogInformation("Terminating Long Polling connection by sending 204 response.");
                     context.Response.StatusCode = 204;
                     return;
@@ -56,7 +63,6 @@ namespace Microsoft.AspNetCore.Sockets.Transports
             catch (Exception ex)
             {
                 _logger.LogError("Error reading next message from Application: {0}", ex);
-                throw;
             }
         }
     }

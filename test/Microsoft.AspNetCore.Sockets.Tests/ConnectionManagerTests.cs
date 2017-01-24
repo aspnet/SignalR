@@ -13,7 +13,6 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [Fact]
         public void NewConnectionsHaveConnectionId()
         {
-
             var connectionManager = new ConnectionManager();
             var state = connectionManager.CreateConnection();
 

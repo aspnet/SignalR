@@ -8,6 +8,8 @@ namespace Microsoft.AspNetCore.Sockets.Transports
 {
     public interface IHttpTransport
     {
+        string Name { get; }
+
         /// <summary>
         /// Executes the transport
         /// </summary>
