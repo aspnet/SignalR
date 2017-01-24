@@ -83,17 +83,19 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var connectionManager = new ConnectionManager();
             var state = connectionManager.CreateConnection();
 
-            var task = Task.Run(async () =>
+            state.ApplicationTask = Task.Run(async () =>
             {
-                var connection = state.Connection;
+                Assert.False(await state.Connection.Transport.Input.WaitToReadAsync());
+            });
 
-                Assert.False(await connection.Transport.Input.WaitToReadAsync());
-                Assert.True(connection.Transport.Input.Completion.IsCompleted);
+            state.TransportTask = Task.Run(async () =>
+            {
+                Assert.False(await state.Application.Input.WaitToReadAsync());
             });
 
             connectionManager.CloseConnections();
 
-            await task;
+            await state.DisposeAsync();
         }
     }
 }
