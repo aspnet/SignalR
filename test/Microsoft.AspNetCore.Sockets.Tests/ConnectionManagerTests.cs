@@ -13,14 +13,14 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [Fact]
         public void NewConnectionsHaveConnectionId()
         {
-
             var connectionManager = new ConnectionManager();
             var state = connectionManager.CreateConnection();
 
             Assert.NotNull(state.Connection);
             Assert.NotNull(state.Connection.ConnectionId);
             Assert.True(state.Active);
-            Assert.Null(state.Close);
+            Assert.Null(state.ApplicationTask);
+            Assert.Null(state.TransportTask);
             Assert.NotNull(state.Connection.Transport);
         }
 
