@@ -50,6 +50,8 @@ namespace Microsoft.AspNetCore.Sockets.Transports
             }
             catch (OperationCanceledException)
             {
+                // REVIEW: Should this be a 204?
+
                 // Suppress the exception
                 _logger.LogDebug("Client disconnected from Long Polling endpoint.");
             }

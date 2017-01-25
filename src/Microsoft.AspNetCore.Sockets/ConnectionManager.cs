@@ -15,14 +15,21 @@ namespace Microsoft.AspNetCore.Sockets
     public class ConnectionManager
     {
         private readonly ConcurrentDictionary<string, ConnectionState> _connections = new ConcurrentDictionary<string, ConnectionState>();
-        private readonly Timer _timer;
+        private Timer _timer;
         private volatile bool _running;
         private readonly ILogger<ConnectionManager> _logger;
 
         public ConnectionManager(ILogger<ConnectionManager> logger)
         {
-            _timer = new Timer(Scan, this, 0, 1000);
             _logger = logger;
+        }
+
+        public void Start()
+        {
+            if (_timer == null)
+            {
+                _timer = new Timer(Scan, this, 0, 1000);
+            }
         }
 
         public bool TryGetConnection(string id, out ConnectionState state)
@@ -89,7 +96,7 @@ namespace Microsoft.AspNetCore.Sockets
                     try
                     {
                         c.Value.Lock.Wait();
-                        
+
                         // Capture the connection state
                         status = c.Value.Status;
 
@@ -116,7 +123,7 @@ namespace Microsoft.AspNetCore.Sockets
         public void CloseConnections()
         {
             // Stop firing the timer
-            _timer.Dispose();
+            _timer?.Dispose();
 
             var tasks = new List<Task>();
 
@@ -142,7 +149,7 @@ namespace Microsoft.AspNetCore.Sockets
             {
                 // Remove it from the list after disposal so that's it's easy to see
                 // connections that might be in a hung state via the connections list
-                RemoveConnection(state.Connection.ConnectionId);               
+                RemoveConnection(state.Connection.ConnectionId);
             }
         }
     }

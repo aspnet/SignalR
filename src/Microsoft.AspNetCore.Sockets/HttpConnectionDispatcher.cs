@@ -117,7 +117,7 @@ namespace Microsoft.AspNetCore.Sockets
                         _logger.LogDebug("Long polling connection {connectionId} was disposed,", state.Connection.ConnectionId);
 
                         // The connection was disposed
-                        context.Response.StatusCode = 404;
+                        context.Response.StatusCode = StatusCodes.Status404NotFound;
                         return;
                     }
 
@@ -233,7 +233,7 @@ namespace Microsoft.AspNetCore.Sockets
                 if (state.Status == ConnectionState.ConnectionStatus.Disposed)
                 {
                     // Connection was disposed
-                    context.Response.StatusCode = 400;
+                    context.Response.StatusCode = StatusCodes.Status404NotFound;
                     return;
                 }
 
@@ -241,7 +241,7 @@ namespace Microsoft.AspNetCore.Sockets
                 if (state.Status == ConnectionState.ConnectionStatus.Active)
                 {
                     // Reject the request with a 409 conflict
-                    context.Response.StatusCode = 409;
+                    context.Response.StatusCode = StatusCodes.Status409Conflict;
                     return;
                 }
 
@@ -330,7 +330,7 @@ namespace Microsoft.AspNetCore.Sockets
             }
             else if (!string.Equals(transport, transportName, StringComparison.Ordinal))
             {
-                context.Response.StatusCode = 400;
+                context.Response.StatusCode = StatusCodes.Status400BadRequest;
                 await context.Response.WriteAsync("Cannot change transports mid-connection");
                 return false;
             }
