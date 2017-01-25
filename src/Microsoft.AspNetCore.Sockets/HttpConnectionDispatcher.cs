@@ -174,12 +174,7 @@ namespace Microsoft.AspNetCore.Sockets
                     state.Lock.Release();
                 }
 
-                var resultTask = await Task.WhenAny(state.ApplicationTask, state.TransportTask);
-
-                if (resultTask == state.ApplicationTask)
-                {
-                    await state.DisposeAsync();
-                }
+                await Task.WhenAny(state.ApplicationTask, state.TransportTask);
 
                 try
                 {
