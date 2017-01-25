@@ -127,8 +127,10 @@ namespace Microsoft.AspNetCore.Sockets
 
                         using (state.Cancellation)
                         {
+                            // Cancel the previous request
                             state.Cancellation.Cancel();
 
+                            // Wait for the previous request to drain
                             await state.TransportTask;
 
                             _logger.LogDebug("Previous poll cancelled for {connectionId} on {requestId}.", state.Connection.ConnectionId, state.RequestId);
@@ -172,28 +174,33 @@ namespace Microsoft.AspNetCore.Sockets
 
                 var resultTask = await Task.WhenAny(state.ApplicationTask, state.TransportTask);
 
+                // If the application ended before the transport task then we need to end the connection completely
+                // so there is no future polling
                 if (resultTask == state.ApplicationTask)
                 {
                     await _manager.DisposeAndRemoveAsync(state);
                 }
-
-                try
+                else
                 {
-                    await state.Lock.WaitAsync();
-
-                    if (state.Status != ConnectionState.ConnectionStatus.Disposed)
+                    // Otherwise, we update the state to inactive again and wait for the next poll
+                    try
                     {
-                        // Mark the connection as inactive
-                        state.LastSeenUtc = DateTime.UtcNow;
+                        await state.Lock.WaitAsync();
 
-                        state.Status = ConnectionState.ConnectionStatus.Inactive;
+                        if (state.Status != ConnectionState.ConnectionStatus.Disposed)
+                        {
+                            // Mark the connection as inactive
+                            state.LastSeenUtc = DateTime.UtcNow;
 
-                        state.RequestId = null;
+                            state.Status = ConnectionState.ConnectionStatus.Inactive;
+
+                            state.RequestId = null;
+                        }
                     }
-                }
-                finally
-                {
-                    state.Lock.Release();
+                    finally
+                    {
+                        state.Lock.Release();
+                    }
                 }
             }
         }
