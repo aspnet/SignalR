@@ -8,6 +8,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
 {
     public interface ITransport : IDisposable
     {
-        Task StartAsync(Uri url, IChannelConnection<Message> toFromConnection);
+        Task StartAsync(Uri url, IChannelConnection<Message> application);
     }
 }

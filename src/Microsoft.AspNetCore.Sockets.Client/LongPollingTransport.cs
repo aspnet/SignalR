@@ -21,7 +21,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         private readonly HttpClient _httpClient;
         private readonly ILogger _logger;
-        private IChannelConnection<Message> _toFromConnection;
+        private IChannelConnection<Message> _application;
         private Task _sender;
         private Task _poller;
         private readonly CancellationTokenSource _senderCts = new CancellationTokenSource();
@@ -42,9 +42,9 @@ namespace Microsoft.AspNetCore.Sockets.Client
             _pollCts.Cancel();
         }
 
-        public Task StartAsync(Uri url, IChannelConnection<Message> toFromConnection)
+        public Task StartAsync(Uri url, IChannelConnection<Message> application)
         {
-            _toFromConnection = toFromConnection;
+            _application = application;
 
             // Start sending and polling
             _poller = Poll(Utils.AppendPath(url, "poll"), _pollCts.Token).ContinueWith(_ => _senderCts.Cancel());
@@ -77,9 +77,9 @@ namespace Microsoft.AspNetCore.Sockets.Client
                         await response.Content.CopyToAsync(ms);
                         var message = new Message(ReadableBuffer.Create(ms.ToArray()).Preserve(), Format.Text);
 
-                        while (await _toFromConnection.Output.WaitToWriteAsync(pollCancellationToken))
+                        while (await _application.Output.WaitToWriteAsync(pollCancellationToken))
                         {
-                            if (_toFromConnection.Output.TryWrite(message))
+                            if (_application.Output.TryWrite(message))
                             {
                                 break;
                             }
@@ -87,17 +87,17 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     }
                 }
 
-                _toFromConnection.Output.TryComplete();
+                _application.Output.TryComplete();
             }
             catch (OperationCanceledException)
             {
                 // transport is being closed
-                _toFromConnection.Output.TryComplete();
+                _application.Output.TryComplete();
             }
             catch (Exception ex)
             {
                 _logger.LogError("Error while polling '{0}': {1}", pollUrl, ex);
-                _toFromConnection.Output.TryComplete(ex);
+                _application.Output.TryComplete(ex);
             }
         }
 
@@ -105,36 +105,34 @@ namespace Microsoft.AspNetCore.Sockets.Client
         {
             try
             {
-                while (await _toFromConnection.Input.WaitToReadAsync(sendCancellationToken))
+                while (await _application.Input.WaitToReadAsync(sendCancellationToken))
                 {
                     Message message;
-                    if (!_toFromConnection.Input.TryRead(out message))
+                    while (!sendCancellationToken.IsCancellationRequested && _application.Input.TryRead(out message))
                     {
-                        continue;
-                    }
+                        using (message)
+                        {
+                            var request = new HttpRequestMessage(HttpMethod.Post, sendUrl);
+                            request.Headers.UserAgent.Add(DefaultUserAgentHeader);
+                            request.Content = new ReadableBufferContent(message.Payload.Buffer);
 
-                    using (message)
-                    {
-                        var request = new HttpRequestMessage(HttpMethod.Post, sendUrl);
-                        request.Headers.UserAgent.Add(DefaultUserAgentHeader);
-                        request.Content = new ReadableBufferContent(message.Payload.Buffer);
-
-                        var response = await _httpClient.SendAsync(request);
-                        response.EnsureSuccessStatusCode();
+                            var response = await _httpClient.SendAsync(request);
+                            response.EnsureSuccessStatusCode();
+                        }
                     }
                 }
 
-                _toFromConnection.Output.TryComplete();
+                _application.Output.TryComplete();
             }
             catch (OperationCanceledException)
             {
                 // transport is being closed
-                _toFromConnection.Output.TryComplete();
+                _application.Output.TryComplete();
             }
             catch (Exception ex)
             {
                 _logger.LogError("Error while sending to '{0}': {1}", sendUrl, ex);
-                _toFromConnection.Output.TryComplete(ex);
+                _application.Output.TryComplete(ex);
             }
         }
     }

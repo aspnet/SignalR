@@ -145,36 +145,35 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 while (await _connection.Input.WaitToReadAsync(cancellationToken))
                 {
                     Message incomingMessage;
-                    if (!_connection.Input.TryRead(out incomingMessage))
+                    while (_connection.Input.TryRead(out incomingMessage))
                     {
-                        continue;
-                    }
 
-                    InvocationMessage message;
-                    using (incomingMessage)
-                    {
-                        message = await _adapter.ReadMessageAsync(
-                             new MemoryStream(incomingMessage.Payload.Buffer.ToArray()), _binder, cancellationToken);
-                    }
-
-                    var invocationDescriptor = message as InvocationDescriptor;
-                    if (invocationDescriptor != null)
-                    {
-                        DispatchInvocation(invocationDescriptor, cancellationToken);
-                    }
-                    else
-                    {
-                        var invocationResultDescriptor = message as InvocationResultDescriptor;
-                        if (invocationResultDescriptor != null)
+                        InvocationMessage message;
+                        using (incomingMessage)
                         {
-                            InvocationRequest irq;
-                            lock (_pendingCallsLock)
+                            message = await _adapter.ReadMessageAsync(
+                                 new MemoryStream(incomingMessage.Payload.Buffer.ToArray()), _binder, cancellationToken);
+                        }
+
+                        var invocationDescriptor = message as InvocationDescriptor;
+                        if (invocationDescriptor != null)
+                        {
+                            DispatchInvocation(invocationDescriptor, cancellationToken);
+                        }
+                        else
+                        {
+                            var invocationResultDescriptor = message as InvocationResultDescriptor;
+                            if (invocationResultDescriptor != null)
                             {
-                                _connectionActive.Token.ThrowIfCancellationRequested();
-                                irq = _pendingCalls[invocationResultDescriptor.Id];
-                                _pendingCalls.Remove(invocationResultDescriptor.Id);
+                                InvocationRequest irq;
+                                lock (_pendingCallsLock)
+                                {
+                                    _connectionActive.Token.ThrowIfCancellationRequested();
+                                    irq = _pendingCalls[invocationResultDescriptor.Id];
+                                    _pendingCalls.Remove(invocationResultDescriptor.Id);
+                                }
+                                DispatchInvocationResult(invocationResultDescriptor, irq, cancellationToken);
                             }
-                            DispatchInvocationResult(invocationResultDescriptor, irq, cancellationToken);
                         }
                     }
                 }

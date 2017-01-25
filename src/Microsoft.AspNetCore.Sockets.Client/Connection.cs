@@ -12,24 +12,24 @@ namespace Microsoft.AspNetCore.Sockets.Client
 {
     public class Connection : IChannelConnection<Message>
     {
-        private IChannelConnection<Message> _toFromTransport;
+        private IChannelConnection<Message> _transportChannel;
         private ITransport _transport;
         private readonly ILogger _logger;
 
         public Uri Url { get; }
 
         // TODO: Review. This is really only designed to be used from ConnectAsync
-        private Connection(Uri url, ITransport transport, IChannelConnection<Message> toFromTransport, ILogger logger)
+        private Connection(Uri url, ITransport transport, IChannelConnection<Message> transportChannel, ILogger logger)
         {
             Url = url;
 
             _logger = logger;
             _transport = transport;
-            _toFromTransport = toFromTransport;
+            _transportChannel = transportChannel;
         }
 
-        public ReadableChannel<Message> Input => _toFromTransport.Input;
-        public WritableChannel<Message> Output => _toFromTransport.Output;
+        public ReadableChannel<Message> Input => _transportChannel.Input;
+        public WritableChannel<Message> Output => _transportChannel.Output;
 
         public void Dispose()
         {
@@ -81,16 +81,16 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
             var connectedUrl = Utils.AppendQueryString(url, "id=" + connectionId);
 
-            var connectionToTransport = Channel.CreateUnbounded<Message>();
-            var transportToConnection = Channel.CreateUnbounded<Message>();
-            var toFromConnection = new ChannelConnection<Message>(transportToConnection, connectionToTransport);
-            var toFromTransport = new ChannelConnection<Message>(connectionToTransport, transportToConnection);
+            var applicationToTransport = Channel.CreateUnbounded<Message>();
+            var transportToApplication = Channel.CreateUnbounded<Message>();
+            var applicationSide = new ChannelConnection<Message>(transportToApplication, applicationToTransport);
+            var transportSide = new ChannelConnection<Message>(applicationToTransport, transportToApplication);
 
 
             // Start the transport, giving it one end of the pipeline
             try
             {
-                await transport.StartAsync(connectedUrl, toFromConnection);
+                await transport.StartAsync(connectedUrl, applicationSide);
             }
             catch (Exception ex)
             {
@@ -99,7 +99,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             }
 
             // Create the connection, giving it the other end of the pipeline
-            return new Connection(url, transport, toFromTransport, logger);
+            return new Connection(url, transport, transportSide, logger);
         }
     }
 }
