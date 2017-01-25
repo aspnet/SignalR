@@ -21,7 +21,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [Fact]
         public async Task NegotiateReservesConnectionIdAndReturnsIt()
         {
-            var manager = new ConnectionManager();
+            var manager = CreateConnectionManager();
             var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
             var context = new DefaultHttpContext();
             var services = new ServiceCollection();
@@ -46,7 +46,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [InlineData("/ws")]
         public async Task EndpointsThatAcceptConnectionId404WhenUnknownConnectionIdProvided(string path)
         {
-            var manager = new ConnectionManager();
+            var manager = CreateConnectionManager();
             var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
 
             using (var strm = new MemoryStream())
@@ -77,7 +77,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [InlineData("/poll")]
         public async Task EndpointsThatRequireConnectionId400WhenNoConnectionIdProvided(string path)
         {
-            var manager = new ConnectionManager();
+            var manager = CreateConnectionManager();
             var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
             using (var strm = new MemoryStream())
             {
@@ -94,6 +94,11 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 await strm.FlushAsync();
                 Assert.Equal("Connection ID required", Encoding.UTF8.GetString(strm.ToArray()));
             }
+        }
+
+        private static ConnectionManager CreateConnectionManager()
+        {
+            return new ConnectionManager(new Logger<ConnectionManager>(new LoggerFactory()));
         }
     }
 

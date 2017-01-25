@@ -116,16 +116,16 @@ namespace Microsoft.AspNetCore.Sockets
                 {
                     await state.Lock.WaitAsync();
 
-                    if (state.Status == ConnectionState.State.Disposed)
+                    if (state.Status == ConnectionState.ConnectionStatus.Disposed)
                     {
                         _logger.LogDebug("Long polling connection {connectionId} was disposed,", state.Connection.ConnectionId);
 
                         // The connection was disposed
-                        context.Response.StatusCode = 400;
+                        context.Response.StatusCode = 404;
                         return;
                     }
 
-                    if (state.Status == ConnectionState.State.Active)
+                    if (state.Status == ConnectionState.ConnectionStatus.Active)
                     {
                         _logger.LogDebug("Long polling connection {connectionId} already active via {requestId}. Cancelling previous request.", state.Connection.ConnectionId, state.RequestId);
 
@@ -143,14 +143,13 @@ namespace Microsoft.AspNetCore.Sockets
                     state.RequestId = context.TraceIdentifier;
 
                     // Mark the connection as active
-                    state.Status = ConnectionState.State.Active;
+                    state.Status = ConnectionState.ConnectionStatus.Active;
 
                     // Raise OnConnected for new connections only since polls happen all the time
                     if (state.ApplicationTask == null)
                     {
                         _logger.LogDebug("Establishing new Long Polling connection: {connectionId} on {requestId}", state.Connection.ConnectionId, state.RequestId);
 
-                        // This will re-initialize formatType metadata, but meh...
                         state.Connection.Metadata["transport"] = LongPollingTransport.Name;
 
                         state.ApplicationTask = endpoint.OnConnectedAsync(state.Connection);
@@ -186,12 +185,12 @@ namespace Microsoft.AspNetCore.Sockets
                 {
                     await state.Lock.WaitAsync();
 
-                    if (state.Status != ConnectionState.State.Disposed)
+                    if (state.Status != ConnectionState.ConnectionStatus.Disposed)
                     {
                         // Mark the connection as inactive
                         state.LastSeenUtc = DateTime.UtcNow;
 
-                        state.Status = ConnectionState.State.Inactive;
+                        state.Status = ConnectionState.ConnectionStatus.Inactive;
 
                         state.RequestId = null;
                     }
@@ -228,7 +227,7 @@ namespace Microsoft.AspNetCore.Sockets
             {
                 await state.Lock.WaitAsync();
 
-                if (state.Status == ConnectionState.State.Disposed)
+                if (state.Status == ConnectionState.ConnectionStatus.Disposed)
                 {
                     // Connection was disposed
                     context.Response.StatusCode = 400;
@@ -236,7 +235,7 @@ namespace Microsoft.AspNetCore.Sockets
                 }
 
                 // There's already an active request
-                if (state.Status == ConnectionState.State.Active)
+                if (state.Status == ConnectionState.ConnectionStatus.Active)
                 {
                     // Reject the request with a 409 conflict
                     context.Response.StatusCode = 409;
@@ -244,7 +243,7 @@ namespace Microsoft.AspNetCore.Sockets
                 }
 
                 // Mark the connection as active
-                state.Status = ConnectionState.State.Active;
+                state.Status = ConnectionState.ConnectionStatus.Active;
 
                 // Store the request identifier
                 state.RequestId = context.TraceIdentifier;

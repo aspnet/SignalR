@@ -4,6 +4,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Internal;
 
 namespace Microsoft.AspNetCore.Sockets.Internal
 {
@@ -22,7 +23,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal
         public Task ApplicationTask { get; set; }
 
         public DateTime LastSeenUtc { get; set; }
-        public State Status { get; set; } = State.Inactive;
+        public ConnectionStatus Status { get; set; } = ConnectionStatus.Inactive;
 
         public ConnectionState(Connection connection, IChannelConnection<Message> application)
         {
@@ -33,16 +34,19 @@ namespace Microsoft.AspNetCore.Sockets.Internal
 
         public async Task DisposeAsync()
         {
+            Task applicationTask = TaskCache.CompletedTask;
+            Task transportTask = TaskCache.CompletedTask;
+
             try
             {
                 await Lock.WaitAsync();
 
-                if (Status == State.Disposed)
+                if (Status == ConnectionStatus.Disposed)
                 {
                     return;
                 }
 
-                Status = State.Disposed;
+                Status = ConnectionStatus.Disposed;
 
                 RequestId = null;
 
@@ -61,16 +65,19 @@ namespace Microsoft.AspNetCore.Sockets.Internal
                 Connection.Dispose();
                 Application.Dispose();
 
-                // REVIEW: Add a timeout so we don't wait forever
-                await Task.WhenAll(ApplicationTask, TransportTask);
+                ApplicationTask = applicationTask;
+                TransportTask = transportTask;
             }
             finally
             {
                 Lock.Release();
             }
+
+            // REVIEW: Add a timeout so we don't wait forever
+            await Task.WhenAll(applicationTask, transportTask);
         }
 
-        public enum State
+        public enum ConnectionStatus
         {
             Inactive,
             Active,
