@@ -16,7 +16,6 @@ namespace Microsoft.AspNetCore.Sockets
     {
         private readonly ConcurrentDictionary<string, ConnectionState> _connections = new ConcurrentDictionary<string, ConnectionState>();
         private Timer _timer;
-        private volatile bool _running;
         private readonly ILogger<ConnectionManager> _logger;
 
         public ConnectionManager(ILogger<ConnectionManager> logger)
@@ -28,7 +27,7 @@ namespace Microsoft.AspNetCore.Sockets
         {
             if (_timer == null)
             {
-                _timer = new Timer(Scan, this, 0, 1000);
+                _timer = new Timer(Scan, this, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
             }
         }
 
@@ -78,15 +77,11 @@ namespace Microsoft.AspNetCore.Sockets
 
         private void Scan()
         {
-            if (_running)
-            {
-                return;
-            }
+            // Pause the timer while we're running
+            _timer.Change(Timeout.Infinite, Timeout.Infinite);
 
             try
             {
-                _running = true;
-
                 // Scan the registered connections looking for ones that have timed out
                 foreach (var c in _connections)
                 {
@@ -116,7 +111,8 @@ namespace Microsoft.AspNetCore.Sockets
             }
             finally
             {
-                _running = false;
+                // Resume once we finished processing all connections
+                _timer.Change(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
             }
         }
 

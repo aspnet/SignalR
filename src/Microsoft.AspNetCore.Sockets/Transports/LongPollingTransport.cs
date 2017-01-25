@@ -30,7 +30,7 @@ namespace Microsoft.AspNetCore.Sockets.Transports
                 if (!await _application.WaitToReadAsync(token))
                 {
                     _logger.LogInformation("Terminating Long Polling connection by sending 204 response.");
-                    context.Response.StatusCode = 204;
+                    context.Response.StatusCode = StatusCodes.Status204NoContent;
                     return;
                 }
 
@@ -50,7 +50,7 @@ namespace Microsoft.AspNetCore.Sockets.Transports
                 if (!context.RequestAborted.IsCancellationRequested)
                 {
                     _logger.LogInformation("Terminating Long Polling connection by sending 204 response.");
-                    context.Response.StatusCode = 204;
+                    context.Response.StatusCode = StatusCodes.Status204NoContent;
                     throw;
                 }
 
