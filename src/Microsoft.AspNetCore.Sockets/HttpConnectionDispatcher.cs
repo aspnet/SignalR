@@ -71,8 +71,6 @@ namespace Microsoft.AspNetCore.Sockets
                 var sse = new ServerSentEventsTransport(state.Application.Input, _loggerFactory);
 
                 await DoPersistentConnection(endpoint, sse, context, state);
-
-                _manager.RemoveConnection(state.Connection.ConnectionId);
             }
             else if (context.Request.Path.StartsWithSegments(path + "/ws"))
             {
@@ -93,8 +91,6 @@ namespace Microsoft.AspNetCore.Sockets
                 var ws = new WebSocketsTransport(state.Application, _loggerFactory);
 
                 await DoPersistentConnection(endpoint, ws, context, state);
-
-                _manager.RemoveConnection(state.Connection.ConnectionId);
             }
             else if (context.Request.Path.StartsWithSegments(path + "/poll"))
             {
@@ -174,7 +170,19 @@ namespace Microsoft.AspNetCore.Sockets
                     state.Lock.Release();
                 }
 
-                await Task.WhenAny(state.ApplicationTask, state.TransportTask);
+                var resultTask = await Task.WhenAny(state.ApplicationTask, state.TransportTask);
+
+                if (resultTask == state.ApplicationTask)
+                {
+                    try
+                    {
+                        await state.DisposeAsync();
+                    }
+                    finally
+                    {
+                        _manager.RemoveConnection(state.Connection.ConnectionId);
+                    }
+                }
 
                 try
                 {
@@ -213,10 +221,10 @@ namespace Microsoft.AspNetCore.Sockets
             return state;
         }
 
-        private static async Task DoPersistentConnection(EndPoint endpoint,
-                                                         IHttpTransport transport,
-                                                         HttpContext context,
-                                                         ConnectionState state)
+        private async Task DoPersistentConnection(EndPoint endpoint,
+                                                  IHttpTransport transport,
+                                                  HttpContext context,
+                                                  ConnectionState state)
         {
             try
             {
@@ -257,8 +265,15 @@ namespace Microsoft.AspNetCore.Sockets
             // Wait for any of them to end
             await Task.WhenAny(state.ApplicationTask, state.TransportTask);
 
-            // Kill the channel
-            await state.DisposeAsync();
+            try
+            {
+                // Kill the channel
+                await state.DisposeAsync();
+            }
+            finally
+            {
+                _manager.RemoveConnection(state.Connection.ConnectionId);
+            }
         }
 
         private Task ProcessNegotiate(HttpContext context)

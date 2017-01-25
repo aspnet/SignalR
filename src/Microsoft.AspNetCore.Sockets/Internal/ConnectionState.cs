@@ -65,8 +65,8 @@ namespace Microsoft.AspNetCore.Sockets.Internal
                 Connection.Dispose();
                 Application.Dispose();
 
-                ApplicationTask = applicationTask;
-                TransportTask = transportTask;
+                applicationTask = ApplicationTask;
+                transportTask = TransportTask;
             }
             finally
             {
