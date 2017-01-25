@@ -51,9 +51,11 @@ namespace Microsoft.AspNetCore.Sockets
         public void RemoveConnection(string id)
         {
             ConnectionState state;
-            _connections.TryRemove(id, out state);
-
-            // Remove the connection completely
+            if (_connections.TryRemove(id, out state))
+            {
+                // Remove the connection completely
+                _logger.LogDebug("Removing {connectionId} from the list of connections", id);
+            }
         }
 
         private static string MakeNewConnectionId()
@@ -101,7 +103,7 @@ namespace Microsoft.AspNetCore.Sockets
                     // Once the decision has been made to to dispose we don't check the status again
                     if (status == ConnectionState.ConnectionStatus.Inactive && (DateTimeOffset.UtcNow - lastSeenUtc).TotalSeconds > 5)
                     {
-                        var ignore = DisposeAndRemoveAsync(c);
+                        var ignore = DisposeAndRemoveAsync(c.Value);
                     }
                 }
             }
@@ -120,32 +122,27 @@ namespace Microsoft.AspNetCore.Sockets
 
             foreach (var c in _connections)
             {
-                tasks.Add(DisposeAndRemoveAsync(c));
+                tasks.Add(DisposeAndRemoveAsync(c.Value));
             }
 
             Task.WaitAll(tasks.ToArray(), TimeSpan.FromSeconds(5));
         }
 
-        private async Task DisposeAndRemoveAsync(KeyValuePair<string, ConnectionState> pair)
+        public async Task DisposeAndRemoveAsync(ConnectionState state)
         {
-            var state = pair.Value;
-
             try
             {
                 await state.DisposeAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(0, ex, "Failed disposing inactive connection {connectionId}", state.Connection.ConnectionId);
+                _logger.LogError(0, ex, "Failed disposing connection {connectionId}", state.Connection.ConnectionId);
             }
             finally
             {
                 // Remove it from the list after disposal so that's it's easy to see
                 // connections that might be in a hung state via the connections list
-                ConnectionState s;
-                _connections.TryRemove(pair.Key, out s);
-
-                _logger.LogDebug("Removing {connectionId} from the list of connections", state.Connection.ConnectionId);
+                RemoveConnection(state.Connection.ConnectionId);               
             }
         }
     }

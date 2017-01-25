@@ -174,14 +174,7 @@ namespace Microsoft.AspNetCore.Sockets
 
                 if (resultTask == state.ApplicationTask)
                 {
-                    try
-                    {
-                        await state.DisposeAsync();
-                    }
-                    finally
-                    {
-                        _manager.RemoveConnection(state.Connection.ConnectionId);
-                    }
+                    await _manager.DisposeAndRemoveAsync(state);
                 }
 
                 try
@@ -265,15 +258,7 @@ namespace Microsoft.AspNetCore.Sockets
             // Wait for any of them to end
             await Task.WhenAny(state.ApplicationTask, state.TransportTask);
 
-            try
-            {
-                // Kill the channel
-                await state.DisposeAsync();
-            }
-            finally
-            {
-                _manager.RemoveConnection(state.Connection.ConnectionId);
-            }
+            await _manager.DisposeAndRemoveAsync(state);
         }
 
         private Task ProcessNegotiate(HttpContext context)
