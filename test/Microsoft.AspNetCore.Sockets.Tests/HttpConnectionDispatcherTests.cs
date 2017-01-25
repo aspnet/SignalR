@@ -104,14 +104,12 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var state = manager.CreateConnection();
 
             var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
-            using (var strm = new MemoryStream())
-            {
-                var context = MakeRequest<ImmediatelyCompleteEndPoint>("/sse", state);
 
-                await dispatcher.ExecuteAsync<ImmediatelyCompleteEndPoint>("", context);
+            var context = MakeRequest<ImmediatelyCompleteEndPoint>("/sse", state);
 
-                Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
-            }
+            await dispatcher.ExecuteAsync<ImmediatelyCompleteEndPoint>("", context);
+
+            Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
         }
 
         [Fact]
@@ -121,14 +119,12 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var state = manager.CreateConnection();
 
             var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
-            using (var strm = new MemoryStream())
-            {
-                var context = MakeRequest<ImmediatelyCompleteEndPoint>("/poll", state);
 
-                await dispatcher.ExecuteAsync<ImmediatelyCompleteEndPoint>("", context);
+            var context = MakeRequest<ImmediatelyCompleteEndPoint>("/poll", state);
 
-                Assert.Equal(StatusCodes.Status204NoContent, context.Response.StatusCode);
-            }
+            await dispatcher.ExecuteAsync<ImmediatelyCompleteEndPoint>("", context);
+
+            Assert.Equal(StatusCodes.Status204NoContent, context.Response.StatusCode);
         }
 
         [Fact]

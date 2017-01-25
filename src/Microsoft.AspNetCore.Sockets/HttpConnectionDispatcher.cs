@@ -114,7 +114,7 @@ namespace Microsoft.AspNetCore.Sockets
 
                     if (state.Status == ConnectionState.ConnectionStatus.Disposed)
                     {
-                        _logger.LogDebug("Long polling connection {connectionId} was disposed,", state.Connection.ConnectionId);
+                        _logger.LogDebug("Connection {connectionId} was disposed,", state.Connection.ConnectionId);
 
                         // The connection was disposed
                         context.Response.StatusCode = StatusCodes.Status404NotFound;
@@ -123,7 +123,7 @@ namespace Microsoft.AspNetCore.Sockets
 
                     if (state.Status == ConnectionState.ConnectionStatus.Active)
                     {
-                        _logger.LogDebug("Long polling connection {connectionId} already active via {requestId}. Cancelling previous request.", state.Connection.ConnectionId, state.RequestId);
+                        _logger.LogDebug("Connection {connectionId} is already active via {requestId}. Cancelling previous request.", state.Connection.ConnectionId, state.RequestId);
 
                         using (state.Cancellation)
                         {
@@ -146,7 +146,7 @@ namespace Microsoft.AspNetCore.Sockets
                     // Raise OnConnected for new connections only since polls happen all the time
                     if (state.ApplicationTask == null)
                     {
-                        _logger.LogDebug("Establishing new Long Polling connection: {connectionId} on {requestId}", state.Connection.ConnectionId, state.RequestId);
+                        _logger.LogDebug("Establishing new connection: {connectionId} on {requestId}", state.Connection.ConnectionId, state.RequestId);
 
                         state.Connection.Metadata["transport"] = LongPollingTransport.Name;
 
@@ -154,7 +154,7 @@ namespace Microsoft.AspNetCore.Sockets
                     }
                     else
                     {
-                        _logger.LogDebug("Resuming existing Long Polling connection: {connectionId} on {requestId}", state.Connection.ConnectionId, state.RequestId);
+                        _logger.LogDebug("Resuming existing connection: {connectionId} on {requestId}", state.Connection.ConnectionId, state.RequestId);
                     }
 
                     var longPolling = new LongPollingTransport(state.Application.Input, _loggerFactory);
@@ -232,6 +232,8 @@ namespace Microsoft.AspNetCore.Sockets
 
                 if (state.Status == ConnectionState.ConnectionStatus.Disposed)
                 {
+                    _logger.LogDebug("Connection {connectionId} was disposed,", state.Connection.ConnectionId);
+
                     // Connection was disposed
                     context.Response.StatusCode = StatusCodes.Status404NotFound;
                     return;
@@ -240,6 +242,8 @@ namespace Microsoft.AspNetCore.Sockets
                 // There's already an active request
                 if (state.Status == ConnectionState.ConnectionStatus.Active)
                 {
+                    _logger.LogDebug("Connection {connectionId} is already active via {requestId}.", state.Connection.ConnectionId, state.RequestId);
+
                     // Reject the request with a 409 conflict
                     context.Response.StatusCode = StatusCodes.Status409Conflict;
                     return;
