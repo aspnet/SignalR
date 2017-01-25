@@ -290,7 +290,7 @@ namespace Microsoft.AspNetCore.Sockets
             // connection and transport
             await AwaitableThreadPool.Yield();
 
-            // Running this in ann async method turns sync exceptions into async ones
+            // Running this in an async method turns sync exceptions into async ones
             await endpoint.OnConnectedAsync(connection);
         }
 
