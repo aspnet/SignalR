@@ -82,13 +82,16 @@ namespace Microsoft.AspNetCore.Sockets
                 foreach (var c in _connections)
                 {
                     var status = ConnectionState.ConnectionStatus.Inactive;
+                    var lastSeenUtc = DateTimeOffset.UtcNow;
 
                     try
                     {
                         c.Value.Lock.Wait();
                         
-                        // Capture the connection status
+                        // Capture the connection state
                         status = c.Value.Status;
+
+                        lastSeenUtc = c.Value.LastSeenUtc;
                     }
                     finally
                     {
@@ -96,7 +99,7 @@ namespace Microsoft.AspNetCore.Sockets
                     }
 
                     // Once the decision has been made to to dispose we don't check the status again
-                    if (status == ConnectionState.ConnectionStatus.Inactive && (DateTimeOffset.UtcNow - c.Value.LastSeenUtc).TotalSeconds > 5)
+                    if (status == ConnectionState.ConnectionStatus.Inactive && (DateTimeOffset.UtcNow - lastSeenUtc).TotalSeconds > 5)
                     {
                         var ignore = DisposeAndRemoveAsync(c);
                     }
