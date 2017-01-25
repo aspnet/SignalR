@@ -110,6 +110,10 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             await dispatcher.ExecuteAsync<ImmediatelyCompleteEndPoint>("", context);
 
             Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
+
+            ConnectionState removed;
+            bool exists = manager.TryGetConnection(state.Connection.ConnectionId, out removed);
+            Assert.False(exists);
         }
 
         [Fact]
@@ -125,6 +129,10 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             await dispatcher.ExecuteAsync<ImmediatelyCompleteEndPoint>("", context);
 
             Assert.Equal(StatusCodes.Status204NoContent, context.Response.StatusCode);
+
+            ConnectionState removed;
+            bool exists = manager.TryGetConnection(state.Connection.ConnectionId, out removed);
+            Assert.False(exists);
         }
 
         [Fact]
