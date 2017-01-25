@@ -130,8 +130,15 @@ namespace Microsoft.AspNetCore.Sockets
                             // Cancel the previous request
                             state.Cancellation.Cancel();
 
-                            // Wait for the previous request to drain
-                            await state.TransportTask;
+                            try
+                            {
+                                // Wait for the previous request to drain
+                                await state.TransportTask;
+                            }
+                            catch (OperationCanceledException)
+                            {
+                                // Should be a cancelled task
+                            }
 
                             _logger.LogDebug("Previous poll cancelled for {connectionId} on {requestId}.", state.Connection.ConnectionId, state.RequestId);
                         }
@@ -180,14 +187,14 @@ namespace Microsoft.AspNetCore.Sockets
                 {
                     await _manager.DisposeAndRemoveAsync(state);
                 }
-                else
+                else if (!resultTask.IsCanceled)
                 {
                     // Otherwise, we update the state to inactive again and wait for the next poll
                     try
                     {
                         await state.Lock.WaitAsync();
 
-                        if (state.Status != ConnectionState.ConnectionStatus.Disposed)
+                        if (state.Status == ConnectionState.ConnectionStatus.Active)
                         {
                             // Mark the connection as inactive
                             state.LastSeenUtc = DateTime.UtcNow;
@@ -195,6 +202,11 @@ namespace Microsoft.AspNetCore.Sockets
                             state.Status = ConnectionState.ConnectionStatus.Inactive;
 
                             state.RequestId = null;
+
+                            // Dispose the cancellation token
+                            state.Cancellation.Dispose();
+
+                            state.Cancellation = null;
                         }
                     }
                     finally

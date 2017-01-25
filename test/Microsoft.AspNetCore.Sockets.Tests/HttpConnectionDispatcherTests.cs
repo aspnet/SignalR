@@ -173,7 +173,8 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             await request1;
 
-            Assert.Equal(StatusCodes.Status200OK, context1.Response.StatusCode);
+            Assert.Equal(StatusCodes.Status204NoContent, context1.Response.StatusCode);
+            Assert.Equal(ConnectionState.ConnectionStatus.Active, state.Status);
 
             Assert.False(request2.IsCompleted);
 
