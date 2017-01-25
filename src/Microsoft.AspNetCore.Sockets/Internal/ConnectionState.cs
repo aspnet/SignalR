@@ -33,32 +33,41 @@ namespace Microsoft.AspNetCore.Sockets.Internal
 
         public async Task DisposeAsync()
         {
-            if (Status == State.Disposed)
+            try
             {
-                return;
+                await Lock.WaitAsync();
+
+                if (Status == State.Disposed)
+                {
+                    return;
+                }
+
+                Status = State.Disposed;
+
+                RequestId = null;
+
+                // If the application task is faulted, propagate the error to the transport
+                if (ApplicationTask.IsFaulted)
+                {
+                    Connection.Transport.Output.TryComplete(ApplicationTask.Exception.InnerException);
+                }
+
+                // If the transport task is faulted, propagate the error to the application
+                if (TransportTask.IsFaulted)
+                {
+                    Application.Output.TryComplete(TransportTask.Exception.InnerException);
+                }
+
+                Connection.Dispose();
+                Application.Dispose();
+
+                // REVIEW: Add a timeout so we don't wait forever
+                await Task.WhenAll(ApplicationTask, TransportTask);
             }
-
-            Status = State.Disposed;
-
-            // If the application task is faulted, propagate the error to the transport
-            if (ApplicationTask.IsFaulted)
+            finally
             {
-                Connection.Transport.Output.TryComplete(ApplicationTask.Exception.InnerException);
+                Lock.Release();
             }
-
-            // If the transport task is faulted, propagate the error to the application
-            if (TransportTask.IsFaulted)
-            {
-                Application.Output.TryComplete(TransportTask.Exception.InnerException);
-            }
-
-            Connection.Dispose();
-            Application.Dispose();
-
-            // REVIEW: Add a timeout so we don't wait forever
-            await Task.WhenAll(ApplicationTask, TransportTask);
-
-            RequestId = null;
         }
 
         public enum State
