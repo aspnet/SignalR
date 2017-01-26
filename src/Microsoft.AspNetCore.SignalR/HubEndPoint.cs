@@ -246,7 +246,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         private async Task<InvocationResultDescriptor> Invoke(HubMethodDescriptor descriptor, Connection connection, InvocationDescriptor invocationDescriptor)
         {
-            var invocationResult = new InvocationResultDescriptor()
+            var invocationResult = new InvocationResultDescriptor
             {
                 Id = invocationDescriptor.Id
             };
