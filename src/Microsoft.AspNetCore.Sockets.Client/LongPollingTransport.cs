@@ -44,9 +44,13 @@ namespace Microsoft.AspNetCore.Sockets.Client
             _application = application;
 
             // Start sending and polling
-            _poller = Poll(Utils.AppendPath(url, "poll"), _transportCts.Token).ContinueWith(_ => _transportCts.Cancel());
-            _sender = SendMessages(Utils.AppendPath(url, "send"), _transportCts.Token).ContinueWith(_ => _transportCts.Cancel());
-            Running = Task.WhenAll(_sender, _poller);
+            _poller = Poll(Utils.AppendPath(url, "poll"), _transportCts.Token);
+            _sender = SendMessages(Utils.AppendPath(url, "send"), _transportCts.Token);
+
+            Running = Task.WhenAll(_sender, _poller).ContinueWith(t => {
+                _application.Output.TryComplete(t.IsFaulted ? t.Exception.InnerException : null);
+                return t;
+            }).Unwrap();
 
             return TaskCache.CompletedTask;
         }
@@ -83,21 +87,21 @@ namespace Microsoft.AspNetCore.Sockets.Client
                         }
                     }
                 }
-
-                _application.Output.TryComplete();
             }
             catch (OperationCanceledException)
             {
                 // transport is being closed
-                _application.Output.TryComplete();
             }
             catch (Exception ex)
             {
                 _logger.LogError("Error while polling '{0}': {1}", pollUrl, ex);
-                _application.Output.TryComplete(ex);
+                throw;
             }
-
-            _transportCts.Cancel();
+            finally
+            {
+                // Make sure the send loop is terminated
+                _transportCts.Cancel();
+            }
         }
 
         private async Task SendMessages(Uri sendUrl, CancellationToken cancellationToken)
@@ -120,18 +124,20 @@ namespace Microsoft.AspNetCore.Sockets.Client
                         }
                     }
                 }
-
-                _application.Output.TryComplete();
             }
             catch (OperationCanceledException)
             {
                 // transport is being closed
-                _application.Output.TryComplete();
             }
             catch (Exception ex)
             {
                 _logger.LogError("Error while sending to '{0}': {1}", sendUrl, ex);
-                _application.Output.TryComplete(ex);
+                throw;
+            }
+            finally
+            {
+                // Make sure the poll loop is terminated
+                _transportCts.Cancel();
             }
         }
     }

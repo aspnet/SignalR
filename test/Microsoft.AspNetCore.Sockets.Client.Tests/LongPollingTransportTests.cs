@@ -125,6 +125,8 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
 
                 Assert.Equal(longPollingTransport.Running, await Task.WhenAny(Task.Delay(1000), longPollingTransport.Running));
 
+                await Assert.ThrowsAsync<HttpRequestException>(async () => await longPollingTransport.Running);
+
                 // The channel needs to be drained for the Completion task to be completed
                 Message message;
                 while (transportToConnection.In.TryRead(out message))
