@@ -24,9 +24,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
         private IChannelConnection<Message> _application;
         private Task _sender;
         private Task _poller;
-        private readonly CancellationTokenSource _senderCts = new CancellationTokenSource();
-        private readonly CancellationTokenSource _pollCts = new CancellationTokenSource();
-
+        private readonly CancellationTokenSource _transportCts = new CancellationTokenSource();
 
         public Task Running { get; private set; }
 
@@ -38,8 +36,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         public void Dispose()
         {
-            _senderCts.Cancel();
-            _pollCts.Cancel();
+            _transportCts.Cancel();
         }
 
         public Task StartAsync(Uri url, IChannelConnection<Message> application)
@@ -47,26 +44,26 @@ namespace Microsoft.AspNetCore.Sockets.Client
             _application = application;
 
             // Start sending and polling
-            _poller = Poll(Utils.AppendPath(url, "poll"), _pollCts.Token).ContinueWith(_ => _senderCts.Cancel());
-            _sender = SendMessages(Utils.AppendPath(url, "send"), _senderCts.Token).ContinueWith(_ => _pollCts.Cancel());
+            _poller = Poll(Utils.AppendPath(url, "poll"), _transportCts.Token).ContinueWith(_ => _transportCts.Cancel());
+            _sender = SendMessages(Utils.AppendPath(url, "send"), _transportCts.Token).ContinueWith(_ => _transportCts.Cancel());
             Running = Task.WhenAll(_sender, _poller);
 
             return TaskCache.CompletedTask;
         }
 
-        private async Task Poll(Uri pollUrl, CancellationToken pollCancellationToken)
+        private async Task Poll(Uri pollUrl, CancellationToken cancellationToken)
         {
             try
             {
-                while (!pollCancellationToken.IsCancellationRequested)
+                while (!cancellationToken.IsCancellationRequested)
                 {
                     var request = new HttpRequestMessage(HttpMethod.Get, pollUrl);
                     request.Headers.UserAgent.Add(DefaultUserAgentHeader);
 
-                    var response = await _httpClient.SendAsync(request, pollCancellationToken);
+                    var response = await _httpClient.SendAsync(request, cancellationToken);
                     response.EnsureSuccessStatusCode();
 
-                    if (response.StatusCode == HttpStatusCode.NoContent || pollCancellationToken.IsCancellationRequested)
+                    if (response.StatusCode == HttpStatusCode.NoContent || cancellationToken.IsCancellationRequested)
                     {
                         // Transport closed or polling stopped, we're done
                         break;
@@ -77,7 +74,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                         await response.Content.CopyToAsync(ms);
                         var message = new Message(ReadableBuffer.Create(ms.ToArray()).Preserve(), Format.Text);
 
-                        while (await _application.Output.WaitToWriteAsync(pollCancellationToken))
+                        while (await _application.Output.WaitToWriteAsync(cancellationToken))
                         {
                             if (_application.Output.TryWrite(message))
                             {
@@ -99,16 +96,18 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 _logger.LogError("Error while polling '{0}': {1}", pollUrl, ex);
                 _application.Output.TryComplete(ex);
             }
+
+            _transportCts.Cancel();
         }
 
-        private async Task SendMessages(Uri sendUrl, CancellationToken sendCancellationToken)
+        private async Task SendMessages(Uri sendUrl, CancellationToken cancellationToken)
         {
             try
             {
-                while (await _application.Input.WaitToReadAsync(sendCancellationToken))
+                while (await _application.Input.WaitToReadAsync(cancellationToken))
                 {
                     Message message;
-                    while (!sendCancellationToken.IsCancellationRequested && _application.Input.TryRead(out message))
+                    while (!cancellationToken.IsCancellationRequested && _application.Input.TryRead(out message))
                     {
                         using (message)
                         {
