@@ -67,16 +67,17 @@ export class HubConnection {
     }
 
     invoke(methodName: string, ...args: any[]): Promise<any> {
+        let id = this.id;
         this.id++;
 
         let invocationDescriptor: InvocationDescriptor = {
-            "Id": this.id.toString(),
+            "Id": id.toString(),
             "Method": methodName,
             "Arguments": args
         };
 
         let p = new Promise<any>((resolve, reject) => {
-            this.callbacks[this.id] = (invocationResult: InvocationResultDescriptor) => {
+            this.callbacks[id] = (invocationResult: InvocationResultDescriptor) => {
                 if (invocationResult.Error != null) {
                     reject(new Error(invocationResult.Error));
                 }
