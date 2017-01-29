@@ -24,9 +24,8 @@ export class HubConnection {
     constructor(url: string, queryString?: string) {
         this.connection = new Connection(url, queryString);
 
-        let thisHubConnection = this;
         this.connection.dataReceived = data => {
-            thisHubConnection.dataReceived(data);
+            this.dataReceived(data);
         };
 
         this.callbacks = new Map<string, (invocationDescriptor: InvocationResultDescriptor) => void>();
@@ -68,18 +67,16 @@ export class HubConnection {
     }
 
     invoke(methodName: string, ...args: any[]): Promise<any> {
-
-        let id = this.id;
         this.id++;
 
         let invocationDescriptor: InvocationDescriptor = {
-            "Id": id.toString(),
+            "Id": this.id.toString(),
             "Method": methodName,
             "Arguments": args
         };
 
         let p = new Promise<any>((resolve, reject) => {
-            this.callbacks[id] = (invocationResult: InvocationResultDescriptor) => {
+            this.callbacks[this.id] = (invocationResult: InvocationResultDescriptor) => {
                 if (invocationResult.Error != null) {
                     reject(new Error(invocationResult.Error));
                 }
