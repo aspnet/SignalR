@@ -9,3 +9,4 @@ using System.Resources;
 [assembly: AssemblyCompany("Microsoft Corporation.")]
 [assembly: AssemblyCopyright("© Microsoft Corporation. All rights reserved.")]
 [assembly: AssemblyProduct("Microsoft ASP.NET Core")]
+

@@ -1,5 +1,6 @@
 ﻿{
   "version": "1.0.0-*",
+  "description": "Common primitives for Sockets clients and servers",
   "buildOptions": {
     "warningsAsErrors": true,
     "keyFile": "../../tools/Key.snk",
