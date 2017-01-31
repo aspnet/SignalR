@@ -5,9 +5,8 @@ using System;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
-using Microsoft.AspNetCore.Sockets.Client.Internal;
 using Microsoft.Extensions.Logging;
-
+using Microsoft.AspNetCore.Sockets.Internal;
 
 namespace Microsoft.AspNetCore.Sockets.Client
 {

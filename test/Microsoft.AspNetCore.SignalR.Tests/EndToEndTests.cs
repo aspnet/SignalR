@@ -8,10 +8,13 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Sockets;
 using Microsoft.AspNetCore.Sockets.Client;
 using Microsoft.AspNetCore.Testing.xunit;
 using Microsoft.Extensions.Logging;
 using Xunit;
+
+using ClientConnection = Microsoft.AspNetCore.Sockets.Client.Connection;
 
 namespace Microsoft.AspNetCore.SignalR.Tests
 {
@@ -51,7 +54,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Fact]
-        public async Task CheckConnection()
+        public async Task ConnectionCanSendAndReceiveMessages()
         {
             const string message = "Major Key";
             var baseUrl = _serverFixture.BaseUrl;
@@ -60,7 +63,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             using (var httpClient = new HttpClient())
             {
                 var transport = new LongPollingTransport(httpClient, loggerFactory);
-                using (var connection = await Connection.ConnectAsync(new Uri(baseUrl + "/echo"), transport, httpClient, loggerFactory))
+                using (var connection = await ClientConnection.ConnectAsync(new Uri(baseUrl + "/echo"), transport, httpClient, loggerFactory))
                 {
                     await connection.Output.WriteAsync(new Message(
                         ReadableBuffer.Create(Encoding.UTF8.GetBytes(message)).Preserve(),
@@ -72,15 +75,17 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
-
-        private static async Task<string> ReceiveMessage(Connection connection)
+        private static async Task<string> ReceiveMessage(ClientConnection connection)
         {
             Message message;
             while (await connection.Input.WaitToReadAsync())
             {
                 if (connection.Input.TryRead(out message))
                 {
-                    return Encoding.UTF8.GetString(message.Payload.Buffer.ToArray());
+                    using (message)
+                    {
+                        return Encoding.UTF8.GetString(message.Payload.Buffer.ToArray());
+                    }
                 }
             }
 
