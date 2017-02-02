@@ -7,6 +7,7 @@
     <!-- TODO remove when https://github.com/Microsoft/vstest/issues/428 is resolved -->
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+    <RuntimeIdentifier Condition=" '$(TargetFramework)' != 'netcoreapp1.1' ">win7-x64</RuntimeIdentifier>
   </PropertyGroup>
 
   <ItemGroup>
