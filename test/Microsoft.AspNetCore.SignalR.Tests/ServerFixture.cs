@@ -10,7 +10,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Builder;
 using Xunit;
 using System.Diagnostics;
-using Xunit.Abstractions;
 
 namespace Microsoft.AspNetCore.SignalR.Tests
 {
@@ -24,7 +23,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
         public string WebSocketsUrl => BaseUrl.Replace("http", "ws");
 
-        public ServerFixture(ITestOutputHelper output)
+        public ServerFixture()
         {
             _loggerFactory = new LoggerFactory();
 
@@ -32,7 +31,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             if (_verbose)
             {
                 _loggerFactory.AddConsole();
-                _loggerFactory.AddXUnit(output);
             }
             if(Debugger.IsAttached)
             {
