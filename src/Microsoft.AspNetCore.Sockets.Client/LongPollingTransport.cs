@@ -28,14 +28,23 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         public Task Running { get; private set; }
 
+        public LongPollingTransport()
+            : this(null)
+        { }
+
+        public LongPollingTransport(ILoggerFactory loggerFactory)
+            : this(null, loggerFactory)
+        { }
+
         public LongPollingTransport(HttpClient httpClient, ILoggerFactory loggerFactory)
         {
-            _httpClient = httpClient;
-            _logger = loggerFactory.CreateLogger<LongPollingTransport>();
+            _httpClient = httpClient ?? new HttpClient();
+            _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<LongPollingTransport>();
         }
 
         public void Dispose()
         {
+            // dispose client?
             _transportCts.Cancel();
         }
 

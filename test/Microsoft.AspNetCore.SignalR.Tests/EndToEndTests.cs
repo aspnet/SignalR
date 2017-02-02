@@ -54,24 +54,23 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Fact]
+        // TODO: run for all transports
         public async Task ConnectionCanSendAndReceiveMessages()
         {
             const string message = "Major Key";
             var baseUrl = _serverFixture.BaseUrl;
             var loggerFactory = new LoggerFactory();
 
-            using (var httpClient = new HttpClient())
+            using (var connection = new ClientConnection(new Uri(baseUrl + "/echo"), loggerFactory))
             {
-                var transport = new LongPollingTransport(httpClient, loggerFactory);
-                using (var connection = await ClientConnection.ConnectAsync(new Uri(baseUrl + "/echo"), transport, httpClient, loggerFactory))
-                {
-                    await connection.Output.WriteAsync(new Message(
-                        ReadableBuffer.Create(Encoding.UTF8.GetBytes(message)).Preserve(),
-                        Format.Text));
+                await connection.StartAsync();
 
-                    var received = await ReceiveMessage(connection).OrTimeout();
-                    Assert.Equal(message, received);
-                }
+                await connection.Output.WriteAsync(new Message(
+                    ReadableBuffer.Create(Encoding.UTF8.GetBytes(message)).Preserve(),
+                    Format.Text));
+
+                var received = await ReceiveMessage(connection).OrTimeout();
+                Assert.Equal(message, received);
             }
         }
 

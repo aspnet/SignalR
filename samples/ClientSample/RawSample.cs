@@ -27,30 +27,27 @@ namespace ClientSample
             loggerFactory.AddConsole(LogLevel.Debug);
             var logger = loggerFactory.CreateLogger<Program>();
 
-            using (var httpClient = new HttpClient(new LoggingMessageHandler(loggerFactory, new HttpClientHandler())))
+            logger.LogInformation("Connecting to {0}", baseUrl);
+            using (var connection = new Connection(new Uri(baseUrl), loggerFactory))
             {
-                logger.LogInformation("Connecting to {0}", baseUrl);
-                var transport = new LongPollingTransport(httpClient, loggerFactory);
-                using (var connection = await Connection.ConnectAsync(new Uri(baseUrl), transport, httpClient, loggerFactory))
+                await connection.StartAsync();
+                logger.LogInformation("Connected to {0}", baseUrl);
+
+                var cts = new CancellationTokenSource();
+                Console.CancelKeyPress += (sender, a) =>
                 {
-                    logger.LogInformation("Connected to {0}", baseUrl);
+                    a.Cancel = true;
+                    logger.LogInformation("Stopping loops...");
+                    cts.Cancel();
+                };
 
-                    var cts = new CancellationTokenSource();
-                    Console.CancelKeyPress += (sender, a) =>
-                    {
-                        a.Cancel = true;
-                        logger.LogInformation("Stopping loops...");
-                        cts.Cancel();
-                    };
+                // Ready to start the loops
+                var receive =
+                    StartReceiving(loggerFactory.CreateLogger("ReceiveLoop"), connection, cts.Token).ContinueWith(_ => cts.Cancel());
+                var send =
+                    StartSending(loggerFactory.CreateLogger("SendLoop"), connection, cts.Token).ContinueWith(_ => cts.Cancel());
 
-                    // Ready to start the loops
-                    var receive =
-                        StartReceiving(loggerFactory.CreateLogger("ReceiveLoop"), connection, cts.Token).ContinueWith(_ => cts.Cancel());
-                    var send =
-                        StartSending(loggerFactory.CreateLogger("SendLoop"), connection, cts.Token).ContinueWith(_ => cts.Cancel());
-
-                    await Task.WhenAll(receive, send);
-                }
+                await Task.WhenAll(receive, send);
             }
         }
 
