@@ -3,7 +3,8 @@
   <Import Project="..\..\build\common.props" />
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp1.1</TargetFramework>  </PropertyGroup>
+    <TargetFramework>netcoreapp1.1</TargetFramework>
+  </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.0.0-*" />
@@ -17,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp1.1' ">
-    <PackageReference Include="System.Diagnostics.FileVersionInfo" Version="4.4.0-*" />  </ItemGroup>
+    <PackageReference Include="System.Diagnostics.FileVersionInfo" Version="4.4.0-*" />
+  </ItemGroup>
 
 </Project>
