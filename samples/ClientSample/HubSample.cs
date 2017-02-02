@@ -30,7 +30,7 @@ namespace ClientSample
             using (var httpClient = new HttpClient(new LoggingMessageHandler(loggerFactory, new HttpClientHandler())))
             {
                 logger.LogInformation("Connecting to {0}", baseUrl);
-                var transport = new LongPollingTransport(httpClient, loggerFactory);
+                var transport = new LongPollingTransport(loggerFactory, httpClient);
                 using (var connection = await HubConnection.ConnectAsync(new Uri(baseUrl),
                     new JsonNetInvocationAdapter(), transport, httpClient, loggerFactory))
                 {

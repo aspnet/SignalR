@@ -32,7 +32,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
             Task transportActiveTask;
 
             using (var httpClient = new HttpClient(mockHttpHandler.Object))
-            using (var longPollingTransport = new LongPollingTransport(httpClient, new LoggerFactory()))
+            using (var longPollingTransport = new LongPollingTransport(new LoggerFactory(), httpClient))
             {
                 var connectionToTransport = Channel.CreateUnbounded<Message>();
                 var transportToConnection = Channel.CreateUnbounded<Message>();
@@ -60,7 +60,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 });
 
             using (var httpClient = new HttpClient(mockHttpHandler.Object))
-            using (var longPollingTransport = new LongPollingTransport(httpClient, new LoggerFactory()))
+            using (var longPollingTransport = new LongPollingTransport(new LoggerFactory(), httpClient))
             {
                 var connectionToTransport = Channel.CreateUnbounded<Message>();
                 var transportToConnection = Channel.CreateUnbounded<Message>();
@@ -85,7 +85,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 });
 
             using (var httpClient = new HttpClient(mockHttpHandler.Object))
-            using (var longPollingTransport = new LongPollingTransport(httpClient, new LoggerFactory()))
+            using (var longPollingTransport = new LongPollingTransport(new LoggerFactory(), httpClient))
             {
                 var connectionToTransport = Channel.CreateUnbounded<Message>();
                 var transportToConnection = Channel.CreateUnbounded<Message>();
@@ -114,7 +114,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 });
 
             using (var httpClient = new HttpClient(mockHttpHandler.Object))
-            using (var longPollingTransport = new LongPollingTransport(httpClient, new LoggerFactory()))
+            using (var longPollingTransport = new LongPollingTransport(new LoggerFactory(), httpClient))
             {
                 var connectionToTransport = Channel.CreateUnbounded<Message>();
                 var transportToConnection = Channel.CreateUnbounded<Message>();
@@ -152,7 +152,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 });
 
             using (var httpClient = new HttpClient(mockHttpHandler.Object))
-            using (var longPollingTransport = new LongPollingTransport(httpClient, new LoggerFactory()))
+            using (var longPollingTransport = new LongPollingTransport(new LoggerFactory(), httpClient))
             {
                 var connectionToTransport = Channel.CreateUnbounded<Message>();
                 var transportToConnection = Channel.CreateUnbounded<Message>();
@@ -163,6 +163,29 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
 
                 Assert.Equal(longPollingTransport.Running, await Task.WhenAny(Task.Delay(1000), longPollingTransport.Running));
                 Assert.Equal(connectionToTransport.In.Completion, await Task.WhenAny(Task.Delay(1000), connectionToTransport.In.Completion));
+            }
+        }
+
+        [Fact]
+        public async Task CanStopNotStartedConnection()
+        {
+            await new LongPollingTransport().StopAsync();
+        }
+
+        [Fact]
+        public void CanDisposeNotStartedConnection()
+        {
+            new LongPollingTransport().Dispose();
+        }
+
+        [Fact]
+        public void LongPollingTransportDoesNotDisposeHttpClientItDoesntOwn()
+        {
+            using (var httpClient = new HttpClient())
+            {
+                new LongPollingTransport(/*loggerFactory*/ null, httpClient).Dispose();
+                // this fails with ObjectDisposedException if the client is disposed
+                httpClient.CancelPendingRequests();
             }
         }
     }

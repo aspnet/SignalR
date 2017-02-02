@@ -21,6 +21,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
         private static readonly ProductInfoHeaderValue DefaultUserAgentHeader = ProductInfoHeaderValue.Parse(DefaultUserAgent);
 
         private readonly HttpClient _httpClient;
+        private readonly bool _ownsHttpClient;
         private readonly ILogger _logger;
         private IChannelConnection<Message> _application;
         private Task _sender;
@@ -34,13 +35,15 @@ namespace Microsoft.AspNetCore.Sockets.Client
         { }
 
         public LongPollingTransport(ILoggerFactory loggerFactory)
-            : this(null, loggerFactory)
+            : this(loggerFactory, null)
         { }
 
-        public LongPollingTransport(HttpClient httpClient, ILoggerFactory loggerFactory)
+        public LongPollingTransport(ILoggerFactory loggerFactory, HttpClient httpClient)
         {
             _httpClient = httpClient ?? new HttpClient();
+            _ownsHttpClient = httpClient == null;
             _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<LongPollingTransport>();
+            Running = Task.FromResult<object>(null);
         }
 
         public Task StartAsync(Uri url, IChannelConnection<Message> application)
@@ -64,14 +67,25 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         public async Task StopAsync()
         {
-            _transportCts.Cancel();
+            if (_transportCts != null)
+            {
+                _transportCts.Cancel();
+            }
+
             await Running;
         }
 
         public void Dispose()
         {
-            // dispose client?
-            _transportCts.Cancel();
+            if (_transportCts != null)
+            {
+                _transportCts.Cancel();
+            }
+
+            if (_ownsHttpClient)
+            {
+                _httpClient.Dispose();
+            }
         }
 
         private async Task Poll(Uri pollUrl, CancellationToken cancellationToken)

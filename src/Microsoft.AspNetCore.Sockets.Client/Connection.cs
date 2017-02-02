@@ -23,6 +23,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
         private int _connectionState;
         private IChannelConnection<Message> _transportChannel;
         private ITransport _transport;
+        private bool _ownsTransport;
         private readonly ILogger _logger;
         private readonly ILoggerFactory _loggerFactory;
 
@@ -82,7 +83,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
             try
             {
                 // Start the transport, giving it one end of the pipeline
-                _transport = transport ?? new LongPollingTransport(httpClient, _loggerFactory);
+                _transport = transport ?? new LongPollingTransport(_loggerFactory, httpClient);
+                _ownsTransport = transport == null;
                 await _transport.StartAsync(connectedUrl, applicationSide);
             }
             catch (Exception ex)
@@ -129,7 +131,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         public void Dispose()
         {
-            if (_transport != null)
+            if (_ownsTransport && _transport != null)
             {
                 _transport.Dispose();
             }
