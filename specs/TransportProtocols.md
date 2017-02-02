@@ -112,7 +112,7 @@ The body will be formatted as below and encoded in UTF-8. The `Content-Type` res
 T([Length]:[Type]:[Body];)([Length]:[Type]:[Body];)... continues until end of the response body ...
 ```
 
-* `[Length]` - Length of the `[Body]` field in bytes, specified as UTF-8 digits (`0`-`9`, terminated by `:`). If the body is a binary frame, this length indicates the number of Base64-encoded characters, not the number of bytes in the final decoded message!
+* `[Length]` - Length of the `[Body]` field in bytes, specified as UTF-8 digits (`0`-`9`, terminated by `:`). If the body is a binary frame, this length indicates the number of Base64-encoded characters, not the number of bytes in the final decoded message! The final **decoded** size of the message must be no larger than the maximum possible unsigned 32-bit integer.
 * `[Type]` - A single-byte UTF-8 character indicating the type of the frame, `T` indicates Text and `B` indicates Binary (case-sensitive)
 * `[Body]` - The body of the message. If `[Type]` is `T`, this is just the sequence of UTF-8 characters for the text frame. If `[Type]` is `B`, the frame is Base64-encoded, so `[Body]` must be Base64-decoded to get the actual frame content.
 
@@ -142,7 +142,7 @@ The body is encoded as follows. The `Content-Type` response header is set to `ap
 B([Length][Type][Body])([Length][Type][Fin][Body])... continues until end of the response body ...
 ```
 
-* `[Length]` - A 64-bit integer in Network Byte Order (Big-endian) representing the length of the body in bytes
+* `[Length]` - A 32-bit integer in Network Byte Order (Big-endian) representing the length of the body in bytes
 * `[TypeAndFin]` - An 8-bit integer indicating the type of the message.
     * `0x00` => `Text`
     * `0x01` => `Binary`
@@ -157,10 +157,10 @@ For example, when sending the following frames (`\n` indicates the actual Line F
 The encoding will be as follows, as a list of binary digits in hex (text in parentheses `()` are comments). Whitespace and newlines are irrelevant and for illustration only.
 ```
 0x66                                                   (ASCII 'B')
-0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x0B                (start of frame; 64-bit integer value: 11)
+0x00 0x00 0x00 0x0B                                    (start of frame; 32-bit integer value: 11)
 0x80                                                   (Type = Text, Fin = True)
 0x68 0x65 0x6C 0x6C 0x6F 0x0A 0x77 0x6F 0x72 0x6C 0x64 (UTF-8 encoding of 'Hello\nWorld')
-0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x02                (start of frame; 64-bit integer value: 2)
+0x00 0x00 0x00 0x02                                    (start of frame; 32-bit integer value: 2)
 0x01                                                   (Type = Binary, Fin = False)
 0x01 0x02                                              (body)
 ```
