@@ -7,11 +7,20 @@ using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Sockets.Internal;
+using System.Threading;
 
 namespace Microsoft.AspNetCore.Sockets.Client
 {
     public class Connection : IChannelConnection<Message>
     {
+        private class ConnectionState
+        {
+            public const int Disconnected = 0;
+            public const int Connecting = 1;
+            public const int Connected = 2;
+        }
+
+        private int _connectionState;
         private IChannelConnection<Message> _transportChannel;
         private ITransport _transport;
         private readonly ILogger _logger;
@@ -50,7 +59,12 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         public async Task StartAsync(ITransport transport, HttpClient httpClient)
         {
-            // TODO: prevent from starting the connection if it has finished or is already running
+            if (Interlocked.CompareExchange(ref _connectionState, ConnectionState.Connecting, ConnectionState.Disconnected)
+                != ConnectionState.Disconnected)
+            {
+                throw new InvalidOperationException("Cannot start an already running connection.");
+            }
+
             if (httpClient == null)
             {
                 httpClient = new HttpClient();
@@ -70,6 +84,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             }
             catch (Exception ex)
             {
+                Interlocked.Exchange(ref _connectionState, ConnectionState.Disconnected);
                 _logger.LogError("Failed to start connection. Error getting connection id from '{0}': {1}", negotiateUrl, ex);
                 throw;
             }
@@ -89,8 +104,11 @@ namespace Microsoft.AspNetCore.Sockets.Client
             catch (Exception ex)
             {
                 _logger.LogError("Failed to start connection. Error starting transport '{0}': {1}", _transport.GetType().Name, ex);
+                Interlocked.Exchange(ref _connectionState, ConnectionState.Disconnected);
                 throw;
             }
+
+            Interlocked.Exchange(ref _connectionState, ConnectionState.Connected);
         }
 
         public void Stop()
@@ -100,11 +118,12 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 // TODO: should we just stop the transport?
                 _transport.Dispose();
             }
+            Interlocked.Exchange(ref _connectionState, ConnectionState.Disconnected);
         }
 
         public void Dispose()
         {
-            // TODO: dispose httpclient?
+            // dispose transport
             Stop();
         }
     }
