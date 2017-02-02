@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Pipelines;
 using System.Net;
@@ -24,7 +25,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
         private IChannelConnection<Message> _application;
         private Task _sender;
         private Task _poller;
-        private readonly CancellationTokenSource _transportCts = new CancellationTokenSource();
+        private CancellationTokenSource _transportCts;
 
         public Task Running { get; private set; }
 
@@ -42,14 +43,11 @@ namespace Microsoft.AspNetCore.Sockets.Client
             _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<LongPollingTransport>();
         }
 
-        public void Dispose()
-        {
-            // dispose client?
-            _transportCts.Cancel();
-        }
-
         public Task StartAsync(Uri url, IChannelConnection<Message> application)
         {
+            Debug.Assert(_transportCts == null || _transportCts.Token.IsCancellationRequested, "transport is still running");
+
+            _transportCts = new CancellationTokenSource();
             _application = application;
 
             // Start sending and polling
@@ -62,6 +60,18 @@ namespace Microsoft.AspNetCore.Sockets.Client
             }).Unwrap();
 
             return TaskCache.CompletedTask;
+        }
+
+        public async Task StopAsync()
+        {
+            _transportCts.Cancel();
+            await Running;
+        }
+
+        public void Dispose()
+        {
+            // dispose client?
+            _transportCts.Cancel();
         }
 
         private async Task Poll(Uri pollUrl, CancellationToken cancellationToken)

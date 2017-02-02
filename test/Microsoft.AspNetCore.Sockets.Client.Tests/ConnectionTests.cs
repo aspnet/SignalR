@@ -188,16 +188,14 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
 
             using (var httpClient = new HttpClient(mockHttpHandler.Object))
             using (var longPollingTransport = new LongPollingTransport(httpClient, new LoggerFactory()))
+            using (var connection = new Connection(new Uri("http://fakeuri.org/")))
             {
-                using (var connection = new Connection(new Uri("http://fakeuri.org/")))
-                {
-                    var _ = connection.StartAsync(longPollingTransport, httpClient);
+                var _ = connection.StartAsync(longPollingTransport, httpClient);
 
-                    var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-                        async () => await connection.StartAsync(longPollingTransport, httpClient));
+                var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+                    async () => await connection.StartAsync(longPollingTransport, httpClient));
 
-                    Assert.Equal("Cannot start an already running connection.", exception.Message);
-                }
+                Assert.Equal("Cannot start an already running connection.", exception.Message);
             }
         }
 
@@ -214,17 +212,14 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 });
 
             using (var httpClient = new HttpClient(mockHttpHandler.Object))
-            using (var longPollingTransport = new LongPollingTransport(httpClient, new LoggerFactory()))
+            using (var connection = new Connection(new Uri("http://fakeuri.org/")))
             {
-                using (var connection = new Connection(new Uri("http://fakeuri.org/")))
-                {
-                    await Assert.ThrowsAsync<HttpRequestException>(
-                        async () => await connection.StartAsync(longPollingTransport, httpClient));
+                await Assert.ThrowsAsync<HttpRequestException>(
+                    async () => await connection.StartAsync(Mock.Of<ITransport>(), httpClient));
 
-                    // if the connection is not in the Disconnected state it won't reach /negotiate
-                    await Assert.ThrowsAsync<HttpRequestException>(
-                        async () => await connection.StartAsync(longPollingTransport, httpClient));
-                }
+                // if the connection is not in the Disconnected state it won't reach /negotiate
+                await Assert.ThrowsAsync<HttpRequestException>(
+                    async () => await connection.StartAsync(Mock.Of<ITransport>(), httpClient));
             }
         }
 
@@ -245,21 +240,66 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 .Returns(Task.FromException(new InvalidOperationException("Can't start transport")));
 
             using (var httpClient = new HttpClient(mockHttpHandler.Object))
+            using (var connection = new Connection(new Uri("http://fakeuri.org/")))
             {
-                using (var connection = new Connection(new Uri("http://fakeuri.org/")))
-                {
-                    var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-                        async () => await connection.StartAsync(mockTransport.Object, httpClient));
+                var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+                    async () => await connection.StartAsync(mockTransport.Object, httpClient));
 
-                    Assert.Equal("Can't start transport", exception.Message);
+                Assert.Equal("Can't start transport", exception.Message);
 
-                    // if the connection is not in the Disconnected there will be no attempt to start the transport
-                    await Assert.ThrowsAsync<InvalidOperationException>(
-                        async () => await connection.StartAsync(mockTransport.Object, httpClient));
+                // if the connection is not in the Disconnected there will be no attempt to start the transport
+                await Assert.ThrowsAsync<InvalidOperationException>(
+                    async () => await connection.StartAsync(mockTransport.Object, httpClient));
 
-                    Assert.Equal("Can't start transport", exception.Message);
-                }
+                Assert.Equal("Can't start transport", exception.Message);
             }
+        }
+
+        [Fact]
+        public async Task StoppingConnectionStopsTheTransport()
+        {
+            var mockHttpHandler = new Mock<HttpMessageHandler>();
+            mockHttpHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+                .Returns<HttpRequestMessage, CancellationToken>(async (request, cancellationToken) =>
+                {
+                    await Task.Yield();
+                    return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(string.Empty) };
+                });
+
+            var mockTransport = new Mock<ITransport>();
+            mockTransport.Setup(t => t.StartAsync(It.IsAny<Uri>(), It.IsAny<IChannelConnection<Message>>()))
+                .Returns(Task.FromResult(true));
+            mockTransport.Setup(t => t.StopAsync())
+                .Returns(Task.FromResult(true));
+
+            using (var httpClient = new HttpClient(mockHttpHandler.Object))
+            using (var connection = new Connection(new Uri("http://fakeuri.org/")))
+            {
+                await connection.StartAsync(mockTransport.Object, httpClient);
+                await connection.StopAsync();
+
+                mockTransport.Verify(t => t.StartAsync(It.IsAny<Uri>(), It.IsAny<IChannelConnection<Message>>()), Times.Once());
+                mockTransport.Verify(t => t.StopAsync(), Times.Once());
+            }
+        }
+
+        [Fact]
+        public void CannotCreateConnectionWithNullUrl()
+        {
+            Assert.Equal("url", Assert.Throws<ArgumentNullException>(() => new Connection(null)).ParamName);
+        }
+
+        [Fact]
+        public async Task CanStopNotStartedConnection()
+        {
+            await new Connection(new Uri("http://fakeuri.org/")).StopAsync();
+        }
+
+        [Fact]
+        public void CanDisposeNotStartedConnection()
+        {
+            new Connection(new Uri("http://fakeuri.org/")).Dispose();
         }
     }
 }

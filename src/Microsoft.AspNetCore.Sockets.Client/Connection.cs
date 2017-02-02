@@ -67,11 +67,36 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
             if (httpClient == null)
             {
+                // TODO: httpClient needs to be disposed properly (after long polling is not the default transport)
                 httpClient = new HttpClient();
             }
 
-            _transport = transport ?? new LongPollingTransport(httpClient, _loggerFactory);
+            var connectionId = await Negotiate(httpClient);
 
+            var connectedUrl = Utils.AppendQueryString(Url, "id=" + connectionId);
+            var applicationToTransport = Channel.CreateUnbounded<Message>();
+            var transportToApplication = Channel.CreateUnbounded<Message>();
+            var applicationSide = new ChannelConnection<Message>(transportToApplication, applicationToTransport);
+            _transportChannel = new ChannelConnection<Message>(applicationToTransport, transportToApplication);
+
+            try
+            {
+                // Start the transport, giving it one end of the pipeline
+                _transport = transport ?? new LongPollingTransport(httpClient, _loggerFactory);
+                await _transport.StartAsync(connectedUrl, applicationSide);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Failed to start connection. Error starting transport '{0}': {1}", _transport.GetType().Name, ex);
+                Interlocked.Exchange(ref _connectionState, ConnectionState.Disconnected);
+                throw;
+            }
+
+            Interlocked.Exchange(ref _connectionState, ConnectionState.Connected);
+        }
+
+        private async Task<string> Negotiate(HttpClient httpClient)
+        {
             var negotiateUrl = Utils.AppendPath(Url, "negotiate");
 
             string connectionId;
@@ -89,42 +114,27 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 throw;
             }
 
-            var connectedUrl = Utils.AppendQueryString(Url, "id=" + connectionId);
-
-            var applicationToTransport = Channel.CreateUnbounded<Message>();
-            var transportToApplication = Channel.CreateUnbounded<Message>();
-            var applicationSide = new ChannelConnection<Message>(transportToApplication, applicationToTransport);
-            _transportChannel = new ChannelConnection<Message>(applicationToTransport, transportToApplication);
-
-            // Start the transport, giving it one end of the pipeline
-            try
-            {
-                await _transport.StartAsync(connectedUrl, applicationSide);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("Failed to start connection. Error starting transport '{0}': {1}", _transport.GetType().Name, ex);
-                Interlocked.Exchange(ref _connectionState, ConnectionState.Disconnected);
-                throw;
-            }
-
-            Interlocked.Exchange(ref _connectionState, ConnectionState.Connected);
+            return connectionId;
         }
 
-        public void Stop()
+        public async Task StopAsync()
         {
             if (_transport != null)
             {
-                // TODO: should we just stop the transport?
-                _transport.Dispose();
+                await _transport.StopAsync();
             }
+
             Interlocked.Exchange(ref _connectionState, ConnectionState.Disconnected);
         }
 
         public void Dispose()
         {
-            // dispose transport
-            Stop();
+            if (_transport != null)
+            {
+                _transport.Dispose();
+            }
+
+            Interlocked.Exchange(ref _connectionState, ConnectionState.Disconnected);
         }
     }
 }
