@@ -127,7 +127,7 @@ namespace Microsoft.AspNetCore.WebSockets.Internal.ConformanceTest.Autobahn
             var resp = await RetryHelper.RetryRequest(() =>
             {
                 return client.GetAsync(result.ApplicationBaseUri);
-            }, logger, result.HostShutdownToken, retryCount: 5);
+            }, logger, result.HostShutdownToken, retryCount: 10);
             resp.EnsureSuccessStatusCode();
 
             // Add to the current spec
