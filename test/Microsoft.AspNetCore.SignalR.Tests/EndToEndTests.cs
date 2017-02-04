@@ -75,5 +75,26 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 }
             }
         }
+
+        [Fact]
+        public async Task ConnectionCanSendAndReceiveMessagesWebSocketsTransport()
+        {
+            const string message = "Major Key";
+            var baseUrl = _serverFixture.BaseUrl;
+            var loggerFactory = new LoggerFactory();
+
+            var transport = new WebSocketsTransport();
+            using (var connection = await ClientConnection.ConnectAsync(new Uri(baseUrl + "/echo/ws"), transport, loggerFactory))
+            {
+                await connection.Output.WriteAsync(new Message(
+                    ReadableBuffer.Create(Encoding.UTF8.GetBytes(message)).Preserve(),
+                    Format.Text));
+
+                var received = await ReceiveMessage(connection);
+                
+                Assert.Equal(message, received.Substring(0,message.Length));
+            }
+        }
+
     }
 }
