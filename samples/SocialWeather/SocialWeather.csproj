@@ -11,10 +11,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="wwwroot\index.html" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\..\src\Microsoft.AspNetCore.Sockets\Microsoft.AspNetCore.Sockets.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics" Version="1.2.0-*" />
     <PackageReference Include="Microsoft.AspNetCore.Server.IISIntegration" Version="1.2.0-*" />
