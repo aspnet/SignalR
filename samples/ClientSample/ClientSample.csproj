@@ -6,6 +6,8 @@
     <TargetFramework>netcoreapp1.1</TargetFramework>
     <OutputType>Exe</OutputType>
     <RuntimeFrameworkVersion>1.2.0-*</RuntimeFrameworkVersion>
+
+    <!-- We don't want dotnet pack to try packing a sample -->
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
