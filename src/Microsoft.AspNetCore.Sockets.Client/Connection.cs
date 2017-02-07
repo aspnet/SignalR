@@ -7,99 +7,136 @@ using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Sockets.Internal;
+using System.Threading;
 
 namespace Microsoft.AspNetCore.Sockets.Client
 {
     public class Connection : IChannelConnection<Message>
     {
+        private class ConnectionState
+        {
+            public const int Disconnected = 0;
+            public const int Connecting = 1;
+            public const int Connected = 2;
+        }
+
+        private int _connectionState;
         private IChannelConnection<Message> _transportChannel;
         private ITransport _transport;
+        private bool _ownsTransport;
         private readonly ILogger _logger;
+        private readonly ILoggerFactory _loggerFactory;
 
         public Uri Url { get; }
 
-        // TODO: Review. This is really only designed to be used from ConnectAsync
-        private Connection(Uri url, ITransport transport, IChannelConnection<Message> transportChannel, ILogger logger)
-        {
-            Url = url;
+        public Connection(Uri url)
+            : this(url, null)
+        { }
 
-            _logger = logger;
-            _transport = transport;
-            _transportChannel = transportChannel;
-        }
-
-        public ReadableChannel<Message> Input => _transportChannel.Input;
-        public WritableChannel<Message> Output => _transportChannel.Output;
-
-        public void Dispose()
-        {
-            _transport.Dispose();
-        }
-
-        public static Task<Connection> ConnectAsync(Uri url, ITransport transport) => ConnectAsync(url, transport, new HttpClient(), NullLoggerFactory.Instance);
-        public static Task<Connection> ConnectAsync(Uri url, ITransport transport, ILoggerFactory loggerFactory) => ConnectAsync(url, transport, new HttpClient(), loggerFactory);
-        public static Task<Connection> ConnectAsync(Uri url, ITransport transport, HttpClient httpClient) => ConnectAsync(url, transport, httpClient, NullLoggerFactory.Instance);
-
-        public static async Task<Connection> ConnectAsync(Uri url, ITransport transport, HttpClient httpClient, ILoggerFactory loggerFactory)
+        public Connection(Uri url, ILoggerFactory loggerFactory)
         {
             if (url == null)
             {
                 throw new ArgumentNullException(nameof(url));
             }
 
-            if (transport == null)
+            Url = url;
+            _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
+            _logger = _loggerFactory.CreateLogger<Connection>();
+        }
+
+        public ReadableChannel<Message> Input => _transportChannel.Input;
+        public WritableChannel<Message> Output => _transportChannel.Output;
+
+        public Task StartAsync()
+        {
+            return StartAsync(null, null);
+        }
+
+        public Task StartAsync(ITransport transport)
+        {
+            return StartAsync(transport, null);
+        }
+
+        public async Task StartAsync(ITransport transport, HttpClient httpClient)
+        {
+            if (Interlocked.CompareExchange(ref _connectionState, ConnectionState.Connecting, ConnectionState.Disconnected)
+                != ConnectionState.Disconnected)
             {
-                throw new ArgumentNullException(nameof(transport));
+                throw new InvalidOperationException("Cannot start an already running connection.");
             }
 
             if (httpClient == null)
             {
-                throw new ArgumentNullException(nameof(httpClient));
+                // TODO: httpClient needs to be disposed properly (after long polling is not the default transport)
+                httpClient = new HttpClient();
             }
 
-            if (loggerFactory == null)
+            var connectionId = await Negotiate(httpClient);
+
+            var connectedUrl = Utils.AppendQueryString(Url, "id=" + connectionId);
+            var applicationToTransport = Channel.CreateUnbounded<Message>();
+            var transportToApplication = Channel.CreateUnbounded<Message>();
+            var applicationSide = new ChannelConnection<Message>(transportToApplication, applicationToTransport);
+            _transportChannel = new ChannelConnection<Message>(applicationToTransport, transportToApplication);
+
+            try
             {
-                throw new ArgumentNullException(nameof(loggerFactory));
+                // Start the transport, giving it one end of the pipeline
+                _transport = transport ?? new LongPollingTransport(_loggerFactory, httpClient);
+                _ownsTransport = transport == null;
+                await _transport.StartAsync(connectedUrl, applicationSide);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Failed to start connection. Error starting transport '{0}': {1}", _transport.GetType().Name, ex);
+                Interlocked.Exchange(ref _connectionState, ConnectionState.Disconnected);
+                throw;
             }
 
-            var logger = loggerFactory.CreateLogger<Connection>();
-            var negotiateUrl = Utils.AppendPath(url, "negotiate");
+            Interlocked.Exchange(ref _connectionState, ConnectionState.Connected);
+        }
+
+        private async Task<string> Negotiate(HttpClient httpClient)
+        {
+            var negotiateUrl = Utils.AppendPath(Url, "negotiate");
 
             string connectionId;
             try
             {
                 // Get a connection ID from the server
-                logger.LogDebug("Establishing Connection at: {0}", negotiateUrl);
+                _logger.LogDebug("Establishing Connection at: {0}", negotiateUrl);
                 connectionId = await httpClient.GetStringAsync(negotiateUrl);
-                logger.LogDebug("Connection Id: {0}", connectionId);
+                _logger.LogDebug("Connection Id: {0}", connectionId);
             }
             catch (Exception ex)
             {
-                logger.LogError("Failed to start connection. Error getting connection id from '{0}': {1}", negotiateUrl, ex);
+                Interlocked.Exchange(ref _connectionState, ConnectionState.Disconnected);
+                _logger.LogError("Failed to start connection. Error getting connection id from '{0}': {1}", negotiateUrl, ex);
                 throw;
             }
 
-            var connectedUrl = Utils.AppendQueryString(url, "id=" + connectionId);
+            return connectionId;
+        }
 
-            var applicationToTransport = Channel.CreateUnbounded<Message>();
-            var transportToApplication = Channel.CreateUnbounded<Message>();
-            var applicationSide = new ChannelConnection<Message>(transportToApplication, applicationToTransport);
-            var transportSide = new ChannelConnection<Message>(applicationToTransport, transportToApplication);
-
-
-            // Start the transport, giving it one end of the pipeline
-            try
+        public async Task StopAsync()
+        {
+            if (_transport != null)
             {
-                await transport.StartAsync(connectedUrl, applicationSide);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError("Failed to start connection. Error starting transport '{0}': {1}", transport.GetType().Name, ex);
-                throw;
+                await _transport.StopAsync();
             }
 
-            // Create the connection, giving it the other end of the pipeline
-            return new Connection(url, transport, transportSide, logger);
+            Interlocked.Exchange(ref _connectionState, ConnectionState.Disconnected);
+        }
+
+        public void Dispose()
+        {
+            if (_ownsTransport && _transport != null)
+            {
+                _transport.Dispose();
+            }
+
+            Interlocked.Exchange(ref _connectionState, ConnectionState.Disconnected);
         }
     }
 }

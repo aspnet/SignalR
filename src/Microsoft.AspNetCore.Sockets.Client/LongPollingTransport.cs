@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Pipelines;
 using System.Net;
@@ -20,27 +21,36 @@ namespace Microsoft.AspNetCore.Sockets.Client
         private static readonly ProductInfoHeaderValue DefaultUserAgentHeader = ProductInfoHeaderValue.Parse(DefaultUserAgent);
 
         private readonly HttpClient _httpClient;
+        private readonly bool _ownsHttpClient;
         private readonly ILogger _logger;
         private IChannelConnection<Message> _application;
         private Task _sender;
         private Task _poller;
-        private readonly CancellationTokenSource _transportCts = new CancellationTokenSource();
+        private CancellationTokenSource _transportCts;
 
         public Task Running { get; private set; }
 
-        public LongPollingTransport(HttpClient httpClient, ILoggerFactory loggerFactory)
-        {
-            _httpClient = httpClient;
-            _logger = loggerFactory.CreateLogger<LongPollingTransport>();
-        }
+        public LongPollingTransport()
+            : this(null)
+        { }
 
-        public void Dispose()
+        public LongPollingTransport(ILoggerFactory loggerFactory)
+            : this(loggerFactory, null)
+        { }
+
+        public LongPollingTransport(ILoggerFactory loggerFactory, HttpClient httpClient)
         {
-            _transportCts.Cancel();
+            _httpClient = httpClient ?? new HttpClient();
+            _ownsHttpClient = httpClient == null;
+            _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<LongPollingTransport>();
+            Running = Task.FromResult<object>(null);
         }
 
         public Task StartAsync(Uri url, IChannelConnection<Message> application)
         {
+            Debug.Assert(_transportCts == null || _transportCts.Token.IsCancellationRequested, "transport is still running");
+
+            _transportCts = new CancellationTokenSource();
             _application = application;
 
             // Start sending and polling
@@ -53,6 +63,29 @@ namespace Microsoft.AspNetCore.Sockets.Client
             }).Unwrap();
 
             return TaskCache.CompletedTask;
+        }
+
+        public async Task StopAsync()
+        {
+            if (_transportCts != null)
+            {
+                _transportCts.Cancel();
+            }
+
+            await Running;
+        }
+
+        public void Dispose()
+        {
+            if (_transportCts != null)
+            {
+                _transportCts.Cancel();
+            }
+
+            if (_ownsHttpClient)
+            {
+                _httpClient.Dispose();
+            }
         }
 
         private async Task Poll(Uri pollUrl, CancellationToken cancellationToken)
