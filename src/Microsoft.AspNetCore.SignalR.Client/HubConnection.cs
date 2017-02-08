@@ -134,17 +134,15 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 ReceiveData receiveData = new ReceiveData();
                 while (await _connection.ReceiveAsync(receiveData, cancellationToken))
                 {
-                    InvocationMessage message 
+                    var message 
                         = await _adapter.ReadMessageAsync(new MemoryStream(receiveData.Data), _binder, cancellationToken);
 
-                    if (message is InvocationDescriptor invocationDescriptor)
+                    switch (message)
                     {
-                        DispatchInvocation(invocationDescriptor, cancellationToken);
-                    }
-                    else
-                    {
-                        if (message is InvocationResultDescriptor invocationResultDescriptor)
-                        {
+                        case InvocationDescriptor invocationDescriptor:
+                            DispatchInvocation(invocationDescriptor, cancellationToken);
+                            break;
+                        case InvocationResultDescriptor invocationResultDescriptor:
                             InvocationRequest irq;
                             lock (_pendingCallsLock)
                             {
@@ -153,7 +151,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                                 _pendingCalls.Remove(invocationResultDescriptor.Id);
                             }
                             DispatchInvocationResult(invocationResultDescriptor, irq, cancellationToken);
-                        }
+                            break;
                     }
                 }
                 Shutdown();

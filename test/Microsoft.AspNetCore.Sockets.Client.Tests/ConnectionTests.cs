@@ -163,10 +163,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
             using (var connection = await Connection.ConnectAsync(new Uri("http://fakeuri.org/"), longPollingTransport, httpClient))
             {
                 await connection.StopAsync();
-                var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-                    async () => await connection.SendAsync(new byte[] { 1, 1, 2, 3, 5, 8 }, Format.Binary));
-
-                Assert.Equal("Cannot send messages when the connection is stopped.", exception.Message);
+                Assert.False(await connection.SendAsync(new byte[] { 1, 1, 3, 5, 8 }, Format.Binary));
             }
         }
 
@@ -220,10 +217,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 allowPollTcs.TrySetResult(null);
                 await Assert.ThrowsAsync<HttpRequestException>(async () => await receiveTask);
 
-                var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-                    async () => await connection.SendAsync(new byte[] { 1, 1, 3, 5, 8 }, Format.Binary));
-
-                Assert.Equal("Cannot send messages when the connection is stopped.", exception.Message);
+                Assert.False(await connection.SendAsync(new byte[] { 1, 1, 3, 5, 8 }, Format.Binary));
             }
         }
 

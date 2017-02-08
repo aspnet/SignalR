@@ -80,12 +80,12 @@ namespace Microsoft.AspNetCore.Sockets.Client
             return false;
         }
 
-        public Task SendAsync(byte[] data, Format format)
+        public Task<bool> SendAsync(byte[] data, Format format)
         {
             return SendAsync(data, format, CancellationToken.None);
         }
 
-        public async Task SendAsync(byte[] data, Format format, CancellationToken cancellationToken)
+        public async Task<bool> SendAsync(byte[] data, Format format, CancellationToken cancellationToken)
         {
             var message = new Message(ReadableBuffer.Create(data).Preserve(), format);
 
@@ -93,11 +93,11 @@ namespace Microsoft.AspNetCore.Sockets.Client
             {
                 if (Output.TryWrite(message))
                 {
-                    return;
+                    return true;
                 }
             }
 
-            throw new InvalidOperationException("Cannot send messages when the connection is stopped.");
+            return false;
         }
 
         public async Task StopAsync()
