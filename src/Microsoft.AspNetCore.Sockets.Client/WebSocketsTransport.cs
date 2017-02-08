@@ -6,7 +6,6 @@ using System.IO.Pipelines;
 using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 
 namespace Microsoft.AspNetCore.Sockets.Client
