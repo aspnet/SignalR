@@ -2,14 +2,12 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
-using System.IO;
 using System.IO.Pipelines;
 using System.Net.WebSockets;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-
+using System.Collections.Generic;
 
 namespace Microsoft.AspNetCore.Sockets.Client
 {
@@ -17,7 +15,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
     {
         private ClientWebSocket _webSocket = new ClientWebSocket();
         private IChannelConnection<Message> _application;
-        private ILogger _logger;
         private CancellationToken token = new CancellationToken();
 
         public Task Running { get; private set; }
@@ -25,8 +22,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
         public WebSocketsTransport()
         {
         }
-
-        public async Task StartAsync(Uri url, IChannelConnection<Message> application)
+                                                
+        public async Task StartAsync(Uri url, IChannelConnection<Message> application)  
         {
             _application = application;
             var webSocketUrl = url.ToString();
@@ -42,13 +39,39 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         public async Task ReceiveMessages(Uri pollUrl, CancellationToken cancellationToken)
         {
-
-            while (!cancellationToken.IsCancellationRequested )
+            var incomingMessage = new List<byte[]>();
+            while (!cancellationToken.IsCancellationRequested)
             {
-                var buffer = new ArraySegment<byte>(new byte[1]);
+                var buffer = new ArraySegment<byte>(new byte[1024]);
                 var receiveResult = await _webSocket.ReceiveAsync(buffer, cancellationToken);
-                var ms = new MemoryStream();
-                var message = new Message(ReadableBuffer.Create(buffer.Array).Preserve(), Format.Text, receiveResult.EndOfMessage);
+                var totalBytes = 0;
+                var completeMessage = receiveResult.EndOfMessage;
+                while (!completeMessage)
+                {
+                    completeMessage = receiveResult.EndOfMessage;
+                    incomingMessage.Add(buffer.Array);
+                    totalBytes += buffer.Count;
+                    buffer = new ArraySegment<byte>(new byte[2]);
+                    receiveResult = await _webSocket.ReceiveAsync(buffer, cancellationToken);
+                }
+
+                Message message;
+                if (incomingMessage.Count > 1)
+                {
+                    var totalBuffer = new byte[totalBytes];
+                    var offset = 0;
+                    for (int i = 0 ; i < incomingMessage.Count; i++)
+                    {
+                        System.Buffer.BlockCopy(incomingMessage[i], 0, totalBuffer, offset, incomingMessage[i].Length);
+                        offset += incomingMessage[i].Length;
+                    }
+
+                    message = new Message(ReadableBuffer.Create(totalBuffer).Preserve(), Format.Text, receiveResult.EndOfMessage);
+                }
+                else
+                {
+                    message = new Message(ReadableBuffer.Create(buffer.Array).Preserve(), Format.Text, receiveResult.EndOfMessage);
+                }
 
                 while (await _application.Output.WaitToWriteAsync(cancellationToken))
                 {
@@ -57,7 +80,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                         break;
                     }
                 }
-                    
+
             }
         }
 
