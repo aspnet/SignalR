@@ -80,7 +80,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
                         break;
                     }
                 }
-
             }
         }
 
