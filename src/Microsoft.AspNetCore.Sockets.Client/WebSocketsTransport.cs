@@ -15,21 +15,25 @@ namespace Microsoft.AspNetCore.Sockets.Client
     {
         private ClientWebSocket _webSocket = new ClientWebSocket();
         private IChannelConnection<Message> _application;
-        private CancellationToken token = new CancellationToken();
+        private CancellationToken _cancellationToken = new CancellationToken();
 
         public Task Running { get; private set; }
-
-        public WebSocketsTransport()
-        {
-        }
                                                 
         public async Task StartAsync(Uri url, IChannelConnection<Message> application)  
         {
+            if (url == null)
+            {
+                throw new ArgumentNullException(nameof(url));
+            }
+            if (application == null)
+            {
+                throw new ArgumentNullException(nameof(application));
+            }
             _application = application;
             var webSocketUrl = url.ToString();
             await Connect(webSocketUrl);
-            var sendTask = SendMessages(url, token);
-            var receiveTask = ReceiveMessages(url, token);
+            var sendTask = SendMessages(url, _cancellationToken);
+            var receiveTask = ReceiveMessages(url, _cancellationToken);
 
             Running = Task.WhenAll(sendTask, receiveTask).ContinueWith(t => {
                 _application.Output.TryComplete(t.IsFaulted ? t.Exception.InnerException : null);
@@ -39,21 +43,21 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         public async Task ReceiveMessages(Uri pollUrl, CancellationToken cancellationToken)
         {
+            var totalBytes = 0;
             var incomingMessage = new List<byte[]>();
             while (!cancellationToken.IsCancellationRequested)
             {
-                var buffer = new ArraySegment<byte>(new byte[1024]);
-                var receiveResult = await _webSocket.ReceiveAsync(buffer, cancellationToken);
-                var totalBytes = 0;
-                var completeMessage = receiveResult.EndOfMessage;
-                while (!completeMessage)
+                bool completedMessage;
+                WebSocketReceiveResult receiveResult;
+                ArraySegment<byte> buffer;
+                do
                 {
-                    completeMessage = receiveResult.EndOfMessage;
+                    buffer = new ArraySegment<byte>(new byte[1024]);
+                    receiveResult = await _webSocket.ReceiveAsync(buffer, cancellationToken);
+                    completedMessage = receiveResult.EndOfMessage;
                     incomingMessage.Add(buffer.Array);
                     totalBytes += buffer.Count;
-                    buffer = new ArraySegment<byte>(new byte[2]);
-                    receiveResult = await _webSocket.ReceiveAsync(buffer, cancellationToken);
-                }
+                } while (!completedMessage);
 
                 Message message;
                 if (incomingMessage.Count > 1)
@@ -108,12 +112,12 @@ namespace Microsoft.AspNetCore.Sockets.Client
         public async Task Connect(string url, string queryString)
         {
             var wsUrl = url.Replace("http", "ws").Replace("https", "ws");
-            await _webSocket.ConnectAsync(new Uri(wsUrl + queryString), token);
+            await _webSocket.ConnectAsync(new Uri(wsUrl + queryString), _cancellationToken);
         }
 
         public void Dispose()
         {
-            _webSocket.CloseAsync(WebSocketCloseStatus.Empty, null, token);
+            _webSocket.CloseAsync(WebSocketCloseStatus.Empty, null, _cancellationToken);
         }
     }
 }
