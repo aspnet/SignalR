@@ -7,6 +7,7 @@ using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.Sockets.Client
 {
@@ -15,7 +16,15 @@ namespace Microsoft.AspNetCore.Sockets.Client
         private ClientWebSocket _webSocket = new ClientWebSocket();
         private IChannelConnection<Message> _application;
         private CancellationToken _cancellationToken = new CancellationToken();
+        private readonly ILogger _logger;
 
+        public WebSocketsTransport()
+        {
+        }
+        public WebSocketsTransport(ILoggerFactory loggerFactory)
+        {
+            _logger = loggerFactory.CreateLogger<WebSocketsTransport>();
+        }
         public Task Running { get; private set; }
                                                 
         public async Task StartAsync(Uri url, IChannelConnection<Message> application)  
@@ -29,8 +38,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 throw new ArgumentNullException(nameof(application));
             }
             _application = application;
-            var webSocketUrl = url.ToString();
-            await Connect(webSocketUrl);
+            await Connect(url);
             var sendTask = SendMessages(url, _cancellationToken);
             var receiveTask = ReceiveMessages(url, _cancellationToken);
 
@@ -40,46 +48,45 @@ namespace Microsoft.AspNetCore.Sockets.Client
             }).Unwrap();
         }
 
-        public async Task ReceiveMessages(Uri pollUrl, CancellationToken cancellationToken)
+        private async Task ReceiveMessages(Uri pollUrl, CancellationToken cancellationToken)
         {
-            var totalBytes = 0;
-            var incomingMessage = new List<byte[]>();
             while (!cancellationToken.IsCancellationRequested)
             {
-                bool completedMessage;
+                const int bufferSize = 1024;
+                var totalBytes = 0;
+                var incomingMessage = new List<byte[]>();
                 WebSocketReceiveResult receiveResult;
-                ArraySegment<byte> buffer;
                 do
                 {
-                    buffer = new ArraySegment<byte>(new byte[1024]);
+                    var buffer = new ArraySegment<byte>(new byte[bufferSize]);
                     receiveResult = await _webSocket.ReceiveAsync(buffer, cancellationToken);
-                    completedMessage = receiveResult.EndOfMessage;
                     incomingMessage.Add(buffer.Array);
-                    totalBytes += buffer.Count;
-                } while (!completedMessage);
+                    totalBytes += receiveResult.Count;
+                } while (!receiveResult.EndOfMessage);
 
                 Message message;
                 if (incomingMessage.Count > 1)
                 {
                     var totalBuffer = new byte[totalBytes];
                     var offset = 0;
-                    for (int i = 0 ; i < incomingMessage.Count; i++)
+                    for (var i = 0 ; i < incomingMessage.Count; i++)
                     {
-                        System.Buffer.BlockCopy(incomingMessage[i], 0, totalBuffer, offset, incomingMessage[i].Length);
+                        Buffer.BlockCopy(incomingMessage[i], 0, totalBuffer, offset, incomingMessage[i].Length);
                         offset += incomingMessage[i].Length;
                     }
-
-                    message = new Message(ReadableBuffer.Create(totalBuffer).Preserve(), Format.Text, receiveResult.EndOfMessage);
+                    
+                    message = new Message(ReadableBuffer.Create(totalBuffer).Preserve(), receiveResult.MessageType == 0 ? Format.Text : Format.Binary, receiveResult.EndOfMessage);
                 }
                 else
                 {
-                    message = new Message(ReadableBuffer.Create(buffer.Array).Preserve(), Format.Text, receiveResult.EndOfMessage);
+                    message = new Message(ReadableBuffer.Create(incomingMessage[0]).Preserve(), receiveResult.MessageType == 0 ? Format.Text : Format.Binary, receiveResult.EndOfMessage);
                 }
 
                 while (await _application.Output.WaitToWriteAsync(cancellationToken))
                 {
                     if (_application.Output.TryWrite(message))
                     {
+                        incomingMessage.Clear();
                         break;
                     }
                 }
@@ -95,23 +102,33 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 {
                     using (message)
                     {
-                        await _webSocket.SendAsync(new ArraySegment<byte>(message.Payload.Buffer.ToArray()),
+                        try
+                        {
+                            await _webSocket.SendAsync(new ArraySegment<byte>(message.Payload.Buffer.ToArray()),
                             message.MessageFormat == Format.Text ? WebSocketMessageType.Text : WebSocketMessageType.Binary, true,
                             cancellationToken);
+                        } catch(OperationCanceledException ex)
+                        {
+                            _logger?.LogError("The WebSocket operation was cancelled");
+                        }
                     }
                 }
             }
         }
 
-        public async Task Connect(string url)
+        private async Task Connect(Uri url)
         {
-            await Connect(url, "");
-        }
+            var uriBuilder = new UriBuilder(url);
+            if (url.Scheme == "http")
+            {
+                uriBuilder.Scheme = "ws";
+            }
+            else if (url.Scheme == "https")
+            {
+                uriBuilder.Scheme = "wss";
+            }
 
-        public async Task Connect(string url, string queryString)
-        {
-            var wsUrl = url.Replace("http", "ws").Replace("https", "ws");
-            await _webSocket.ConnectAsync(new Uri(wsUrl + queryString), _cancellationToken);
+            await _webSocket.ConnectAsync(uriBuilder.Uri, _cancellationToken);
         }
 
         public void Dispose()
