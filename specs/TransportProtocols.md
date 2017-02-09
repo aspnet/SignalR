@@ -127,12 +127,14 @@ If the `connectionId` parameter is missing, a `400 Bad Request` response is retu
 The body will be formatted as below and encoded in UTF-8. The `Content-Type` response header is set to `application/vnd.microsoft.aspnet.endpoint-messages.v1+text`. Identifiers in square brackets `[]` indicate fields defined below, and parenthesis `()` indicate grouping.
 
 ```
-T([Length]:[Type]:[Body];)([Length]:[Type]:[Body];)... continues until end of the response body ...
+T([Length]:[Type]:[Body];)([Length]:[Type]:[Body];)... more messages ...([Length]:[Type]:[Body];);
 ```
 
 * `[Length]` - Length of the `[Body]` field in bytes, specified as UTF-8 digits (`0`-`9`, terminated by `:`). If the body is a binary frame, this length indicates the number of Base64-encoded characters, not the number of bytes in the final decoded message!
 * `[Type]` - A single-byte UTF-8 character indicating the type of the frame, see the list of frame Types below
 * `[Body]` - The body of the message, the content of which depends upon the value of `[Type]`
+
+Note that after the terminating `;` of the last message there is a **second** terminator `;` to indicate the end of the batch.
 
 The following values are valid for `[Type]`:
 
@@ -164,10 +166,10 @@ This transport will buffer incomplete frames sent by the server until the full m
 
 In JavaScript/Browser clients, this encoding requires XHR2 (or similar HTTP request functionality which allows binary data) and TypedArray support.
 
-The body is encoded as follows. The `Content-Type` response header is set to `application/vnd.microsoft.aspnet.endpoint-messages.v1+binary`. Identifiers in square brackets `[]` indicate fields defined below, and parenthesis `()` indicate grouping. Other symbols indicate ASCII-encoded text in the stream
+The body is encoded as follows. The `Content-Type` response header is set to `application/vnd.microsoft.aspnet.endpoint-messages.v1+binary`. Identifiers in square brackets `[]` indicate fields defined below, and parenthesis `()` indicate grouping. Other symbols indicate UTF-8-encoded text in the stream
 
 ```
-B([Length][Type][Body])([Length][Type][Fin][Body])... continues until end of the response body ...
+B([Length][Type][Body])([Length][Type][Fin][Body])... more messages ...([Length][Type][Fin][Body]);
 ```
 
 * `[Length]` - A 64-bit integer in Network Byte Order (Big-endian) representing the length of the body in bytes
@@ -178,6 +180,8 @@ B([Length][Type][Body])([Length][Type][Fin][Body])... continues until end of the
     * `0x03` => `Close` - `[Body]` is empty
     * All other values are reserved and must **not** be used. An endpoint may reject a frame using any other value and terminate the connection.
 * `[Body]` - The body of the message, exactly `[Length]` bytes in length. `Text` and `Error` frames are always encoded in UTF-8.
+
+Note that after the final byte of the last message there is a terminating UTF-8 `;` character to indicate the end of the batch.
 
 For example, when sending the following frames (`\n` indicates the actual Line Feed character, not an escape sequence):
 
@@ -196,6 +200,7 @@ The encoding will be as follows, as a list of binary digits in hex (text in pare
 0x01 0x02                                              (body)
 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00                (start of frame; 64-bit integer value: 0)
 0x03                                                   (Type = Close)
+0x3B                                                   (Terminator, UTF-8 ';' == 0x3B)
 ```
 
 This transport will buffer incomplete frames sent by the server until the full message is available and then send the message in a single frame.
