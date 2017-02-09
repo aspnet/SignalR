@@ -67,15 +67,15 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 Message message;
                 if (incomingMessage.Count > 1)
                 {
-                    var totalBuffer = new byte[totalBytes];
+                    var messageBuffer = new byte[totalBytes];
                     var offset = 0;
                     for (var i = 0 ; i < incomingMessage.Count; i++)
                     {
-                        Buffer.BlockCopy(incomingMessage[i], 0, totalBuffer, offset, incomingMessage[i].Length);
+                        Buffer.BlockCopy(incomingMessage[i], 0, messageBuffer, offset, incomingMessage[i].Length);
                         offset += incomingMessage[i].Length;
                     }
                     
-                    message = new Message(ReadableBuffer.Create(totalBuffer).Preserve(), receiveResult.MessageType == 0 ? Format.Text : Format.Binary, receiveResult.EndOfMessage);
+                    message = new Message(ReadableBuffer.Create(messageBuffer).Preserve(), receiveResult.MessageType == 0 ? Format.Text : Format.Binary, receiveResult.EndOfMessage);
                 }
                 else
                 {
