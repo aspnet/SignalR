@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Microsoft.AspNetCore.Sockets
 {
-    public static class TextMessageFormatter
+    internal static class TextMessageFormatter
     {
         private const byte FieldDelimiter = (byte)':';
         private const byte MessageDelimiter = (byte)';';
