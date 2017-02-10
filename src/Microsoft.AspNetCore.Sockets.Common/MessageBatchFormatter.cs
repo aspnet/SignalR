@@ -12,12 +12,12 @@ namespace Microsoft.AspNetCore.Sockets
         public static bool TryFormatMessages(IEnumerable<Message> messages, Span<byte> buffer, MessageFormat format, out int bytesWritten)
         {
             // Write the format discriminator
-            if (!TryFormatMessageFormat(format, buffer, out var consumedByFormat))
+            if (!TryFormatMessageFormat(format, buffer))
             {
                 bytesWritten = 0;
                 return false;
             }
-            buffer = buffer.Slice(consumedByFormat);
+            buffer = buffer.Slice(1);
 
             // Write messages
             var writtenSoFar = 1;
@@ -32,7 +32,7 @@ namespace Microsoft.AspNetCore.Sockets
                 buffer = buffer.Slice(writtenForMessage);
             }
 
-            if(buffer.Length < 1)
+            if (buffer.Length < 1)
             {
                 bytesWritten = 0;
                 return false;
@@ -44,15 +44,15 @@ namespace Microsoft.AspNetCore.Sockets
 
         public static bool TryParseMessages(ReadOnlySpan<byte> buffer, out IList<Message> messages, out int bytesConsumed)
         {
-            if(!TryParseMessageFormat(buffer, out var messageFormat, out var consumedForFormat))
+            if (!TryParseMessageFormat(buffer, out var messageFormat))
             {
                 // Batch is missing the prefix
                 bytesConsumed = 0;
                 messages = new List<Message>();
                 return false;
             }
-            var consumedSoFar = consumedForFormat;
-            buffer = buffer.Slice(consumedForFormat);
+            var consumedSoFar = 1;
+            buffer = buffer.Slice(1);
 
             var readMessages = new List<Message>();
             while (TryParseMessage(buffer, messageFormat, out Message message, out int consumedForMessage))
@@ -75,46 +75,39 @@ namespace Microsoft.AspNetCore.Sockets
             return true;
         }
 
-        private static bool TryParseMessageFormat(ReadOnlySpan<byte> buffer, out MessageFormat format, out int bytesConsumed)
+        private static bool TryParseMessageFormat(ReadOnlySpan<byte> buffer, out MessageFormat format)
         {
             if (buffer.Length >= 1)
             {
                 if (buffer[0] == TextFormatIndicator)
                 {
-                    bytesConsumed = 1;
                     format = MessageFormat.Text;
                     return true;
                 }
                 else if (buffer[0] == BinaryFormatIndicator)
                 {
-                    bytesConsumed = 1;
                     format = MessageFormat.Binary;
                     return true;
                 }
             }
 
-            bytesConsumed = 0;
             format = MessageFormat.Binary;
             return false;
         }
 
-        private static bool TryFormatMessageFormat(MessageFormat format, Span<byte> buffer, out int bytesWritten)
+        private static bool TryFormatMessageFormat(MessageFormat format, Span<byte> buffer)
         {
             switch (format)
             {
                 case MessageFormat.Text:
                     buffer[0] = TextFormatIndicator;
-                    break;
+                    return true;
                 case MessageFormat.Binary:
                     buffer[0] = BinaryFormatIndicator;
-                    break;
+                    return true;
                 default:
-                    bytesWritten = 0;
                     return false;
             }
-
-            bytesWritten = 1;
-            return true;
         }
 
         private static bool TryFormatMessage(Message message, Span<byte> buffer, MessageFormat format, out int bytesWritten)

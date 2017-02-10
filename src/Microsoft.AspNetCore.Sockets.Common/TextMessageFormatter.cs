@@ -35,7 +35,7 @@ namespace Microsoft.AspNetCore.Sockets
                 return false;
             }
             buffer[0] = FieldDelimiter;
-            if (!TryFormatType(message.Type, buffer.Slice(1, 1), out _))
+            if (!TryFormatType(message.Type, buffer.Slice(1, 1)))
             {
                 bytesWritten = 0;
                 return false;
@@ -115,7 +115,7 @@ namespace Microsoft.AspNetCore.Sockets
             }
 
             // We already know that index 0 is the ':', so next is the type flag at index '1'.
-            if (!TryParseType(buffer[1], out var messageType))
+            if (!TryParseType(buffer, out var messageType))
             {
                 message = default(Message);
                 bytesConsumed = 0;
@@ -186,9 +186,15 @@ namespace Microsoft.AspNetCore.Sockets
             return true;
         }
 
-        private static bool TryParseType(byte type, out MessageType messageType)
+        private static bool TryParseType(ReadOnlySpan<byte> type, out MessageType messageType)
         {
-            switch (type)
+            if(type.Length < 1)
+            {
+                messageType = MessageType.Binary;
+                return false;
+            }
+
+            switch (type[0])
             {
                 case TextTypeFlag:
                     messageType = MessageType.Text;
@@ -208,28 +214,25 @@ namespace Microsoft.AspNetCore.Sockets
             }
         }
 
-        private static bool TryFormatType(MessageType type, Span<byte> buffer, out int bytesWritten)
+        private static bool TryFormatType(MessageType type, Span<byte> buffer)
         {
             switch (type)
             {
                 case MessageType.Text:
                     buffer[0] = TextTypeFlag;
-                    break;
+                    return true;
                 case MessageType.Binary:
                     buffer[0] = BinaryTypeFlag;
-                    break;
+                    return true;
                 case MessageType.Close:
                     buffer[0] = CloseTypeFlag;
-                    break;
+                    return true;
                 case MessageType.Error:
                     buffer[0] = ErrorTypeFlag;
-                    break;
+                    return true;
                 default:
-                    bytesWritten = 0;
                     return false;
             }
-            bytesWritten = 1;
-            return true;
         }
     }
 }
