@@ -3,6 +3,8 @@
 
 using System;
 using System.IO.Pipelines;
+using System.Text;
+using System.Text.Formatting;
 
 namespace Microsoft.AspNetCore.Sockets
 {
@@ -12,7 +14,7 @@ namespace Microsoft.AspNetCore.Sockets
         public MessageType Type { get; }
         public PreservedBuffer Payload { get; }
 
-        public Message(PreservedBuffer payload, MessageType type) 
+        public Message(PreservedBuffer payload, MessageType type)
             : this(payload, type, endOfMessage: true)
         {
 

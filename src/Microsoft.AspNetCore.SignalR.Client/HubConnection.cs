@@ -134,7 +134,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 ReceiveData receiveData = new ReceiveData();
                 while (await _connection.ReceiveAsync(receiveData, cancellationToken))
                 {
-                    var message 
+                    var message
                         = await _adapter.ReadMessageAsync(new MemoryStream(receiveData.Data), _binder, cancellationToken);
 
                     switch (message)
