@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
-using System.IO.Pipelines;
 using System.Net.Http;
 using System.Net.WebSockets;
 using System.Text;
@@ -86,13 +85,12 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             var transport = new WebSocketsTransport();
             using (var connection = await ClientConnection.ConnectAsync(new Uri(baseUrl + "/echo/ws"), transport, loggerFactory))
             {
-                await connection.Output.WriteAsync(new Message(
-                    ReadableBuffer.Create(Encoding.UTF8.GetBytes(message)).Preserve(),
-                    Format.Text));
+                await connection.SendAsync(Encoding.UTF8.GetBytes(message), Format.Text);
 
-                var received = await ReceiveMessage(connection);
-                
-                Assert.Equal(message, received.Substring(0, message.Length));
+                var receiveData = new ReceiveData();
+
+                Assert.True(await connection.ReceiveAsync(receiveData).OrTimeout());
+                Assert.Equal(message, Encoding.UTF8.GetString(receiveData.Data).Substring(0, message.Length));
             }
         }
     }

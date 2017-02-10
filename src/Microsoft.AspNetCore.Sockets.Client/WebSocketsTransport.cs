@@ -141,5 +141,10 @@ namespace Microsoft.AspNetCore.Sockets.Client
         {
             _webSocket.Dispose();
         }
+
+        public async Task StopAsync()
+        {
+            await _webSocket.CloseAsync(WebSocketCloseStatus.Empty, null, _cancellationToken);
+        }
     }
 }
