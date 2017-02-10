@@ -20,7 +20,9 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         public WebSocketsTransport()
         {
+            _logger = NullLoggerFactory.Instance.CreateLogger("WebSocketsTransport");
         }
+
         public WebSocketsTransport(ILoggerFactory loggerFactory)
         {
             _logger = loggerFactory.CreateLogger<WebSocketsTransport>();
@@ -33,10 +35,12 @@ namespace Microsoft.AspNetCore.Sockets.Client
             {
                 throw new ArgumentNullException(nameof(url));
             }
+
             if (application == null)
             {
                 throw new ArgumentNullException(nameof(application));
             }
+
             _application = application;
             await Connect(url);
             var sendTask = SendMessages(url, _cancellationToken);
@@ -54,13 +58,13 @@ namespace Microsoft.AspNetCore.Sockets.Client
             {
                 const int bufferSize = 1024;
                 var totalBytes = 0;
-                var incomingMessage = new List<byte[]>();
+                var incomingMessage = new List<ArraySegment<byte>>();
                 WebSocketReceiveResult receiveResult;
                 do
                 {
                     var buffer = new ArraySegment<byte>(new byte[bufferSize]);
                     receiveResult = await _webSocket.ReceiveAsync(buffer, cancellationToken);
-                    incomingMessage.Add(buffer.Array);
+                    incomingMessage.Add(buffer);
                     totalBytes += receiveResult.Count;
                 } while (!receiveResult.EndOfMessage);
 
@@ -71,15 +75,15 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     var offset = 0;
                     for (var i = 0 ; i < incomingMessage.Count; i++)
                     {
-                        Buffer.BlockCopy(incomingMessage[i], 0, messageBuffer, offset, incomingMessage[i].Length);
-                        offset += incomingMessage[i].Length;
+                        Buffer.BlockCopy(incomingMessage[i].Array, 0, messageBuffer, offset, incomingMessage[i].Count);
+                        offset += incomingMessage[i].Count;
                     }
                     
                     message = new Message(ReadableBuffer.Create(messageBuffer).Preserve(), receiveResult.MessageType == 0 ? Format.Text : Format.Binary, receiveResult.EndOfMessage);
                 }
                 else
                 {
-                    message = new Message(ReadableBuffer.Create(incomingMessage[0]).Preserve(), receiveResult.MessageType == 0 ? Format.Text : Format.Binary, receiveResult.EndOfMessage);
+                    message = new Message(ReadableBuffer.Create(incomingMessage[0].Array).Preserve(), receiveResult.MessageType == 0 ? Format.Text : Format.Binary, receiveResult.EndOfMessage);
                 }
 
                 while (await _application.Output.WaitToWriteAsync(cancellationToken))
@@ -98,7 +102,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             while (await _application.Input.WaitToReadAsync(cancellationToken))
             {
                 Message message;
-                while (!cancellationToken.IsCancellationRequested && _application.Input.TryRead(out message))
+                while (_application.Input.TryRead(out message))
                 {
                     using (message)
                     {
@@ -109,7 +113,9 @@ namespace Microsoft.AspNetCore.Sockets.Client
                             cancellationToken);
                         } catch(OperationCanceledException ex)
                         {
-                            _logger?.LogError("The WebSocket operation was cancelled");
+                            _logger?.LogError(ex.Message);
+                            await _webSocket.CloseAsync(WebSocketCloseStatus.Empty, null, _cancellationToken);
+                            break;
                         }
                     }
                 }
@@ -133,7 +139,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         public void Dispose()
         {
-            _webSocket.CloseAsync(WebSocketCloseStatus.Empty, null, _cancellationToken);
+            _webSocket.Dispose();
         }
     }
 }
