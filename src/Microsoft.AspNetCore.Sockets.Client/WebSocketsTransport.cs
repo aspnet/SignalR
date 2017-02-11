@@ -64,7 +64,10 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 {
                     var buffer = new ArraySegment<byte>(new byte[bufferSize]);
                     receiveResult = await _webSocket.ReceiveAsync(buffer, cancellationToken);
-                    incomingMessage.Add(buffer);
+                    var truncBuffer = new ArraySegment<byte>(new byte[receiveResult.Count]);
+                    Buffer.BlockCopy(buffer.Array, 0, truncBuffer.Array, 0, receiveResult.Count);
+
+                    incomingMessage.Add(truncBuffer);
                     totalBytes += receiveResult.Count;
                 } while (!receiveResult.EndOfMessage);
 
