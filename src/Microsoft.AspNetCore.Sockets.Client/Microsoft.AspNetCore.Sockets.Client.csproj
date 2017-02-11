@@ -13,8 +13,6 @@
     <PackageReference Include="System.Threading.Tasks.Channels" Version="0.1.0-*" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="1.2.0-*" />
     <PackageReference Include="Microsoft.Extensions.TaskCache.Sources" Version="1.2.0-*" PrivateAssets="All" />
-  </ItemGroup>
-  <ItemGroup>
     <PackageReference Include="System.Net.WebSockets.Client" Version="4.4.0-*" />
   </ItemGroup>
 </Project>
