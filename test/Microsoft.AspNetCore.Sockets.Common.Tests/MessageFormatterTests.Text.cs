@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO.Pipelines;
 using System.Text;
 using Xunit;
@@ -7,6 +8,31 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 {
     public class MessageFormatterTests
     {
+        [Fact]
+        public void WriteMultipleMessages()
+        {
+            const string expectedEncoding = "T0:B:;14:T:Hello,\r\nWorld!;1:C:A;12:E:Server Error;;";
+            var messages = new[]
+            {
+                CreateMessage(new byte[0]),
+                CreateMessage("Hello,\r\nWorld!",MessageType.Text),
+                CreateMessage("A", MessageType.Close),
+                CreateMessage("Server Error", MessageType.Error)
+            };
+
+            var array = new byte[256];
+            var buffer = array.Slice();
+            var totalConsumed = 0;
+            foreach (var message in messages)
+            {
+                Assert.True(MessageFormatter.TryFormatMessage(message, buffer, MessageFormat.Text, out var consumed));
+                buffer = buffer.Slice(consumed);
+                totalConsumed += consumed;
+            }
+
+            Assert.Equal(expectedEncoding, Encoding.UTF8.GetString(array, 0, totalConsumed));
+        }
+
         [Theory]
         [InlineData("0:B:;", new byte[0])]
         [InlineData("8:B:q83vEg==;", new byte[] { 0xAB, 0xCD, 0xEF, 0x12 })]
@@ -38,6 +64,15 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             var encodedSpan = buffer.Slice(0, bytesWritten);
             Assert.Equal(encoded, Encoding.UTF8.GetString(encodedSpan.ToArray()));
+        }
+
+        [Fact]
+        public void WriteInvalidMessages()
+        {
+            var message = new Message(ReadableBuffer.Create(new byte[0]).Preserve(), MessageType.Binary, endOfMessage: false);
+            var ex = Assert.Throws<InvalidOperationException>(() =>
+                MessageFormatter.TryFormatMessage(message, Span<byte>.Empty, MessageFormat.Text, out var written));
+            Assert.Equal("Cannot format message where endOfMessage is false using this format", ex.Message);
         }
 
         [Theory]
@@ -72,12 +107,27 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         }
 
         [Fact]
-        public void WriteInvalidMessages()
+        public void ReadMultipleMessages()
         {
-            var message = new Message(ReadableBuffer.Create(new byte[0]).Preserve(), MessageType.Binary, endOfMessage: false);
-            var ex = Assert.Throws<InvalidOperationException>(() =>
-                MessageFormatter.TryFormatMessage(message, Span<byte>.Empty, MessageFormat.Text, out var written));
-            Assert.Equal("Cannot format message where endOfMessage is false using this format", ex.Message);
+            const string encoded = "T0:B:;14:T:Hello,\r\nWorld!;1:C:A;12:E:Server Error;;";
+            var buffer = (Span<byte>)Encoding.UTF8.GetBytes(encoded);
+
+            var messages = new List<Message>();
+            var consumedTotal = 0;
+            while (MessageFormatter.TryParseMessage(buffer, MessageFormat.Text, out var message, out var consumed))
+            {
+                messages.Add(message);
+                consumedTotal += consumed;
+                buffer = buffer.Slice(consumed);
+            }
+
+            Assert.Equal(consumedTotal, buffer.Length);
+
+            Assert.Equal(4, messages.Count);
+            AssertMessage(messages[0], MessageType.Binary, new byte[0]);
+            AssertMessage(messages[1], MessageType.Text, "Hello,\r\nWorld!");
+            AssertMessage(messages[2], MessageType.Close, "A");
+            AssertMessage(messages[3], MessageType.Error, "Server Error");
         }
 
         [Theory]
@@ -122,7 +172,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 endOfMessage: true);
         }
 
-        private static Message CreateMessage(string payload, MessageType type = MessageType.Text)
+        private static Message CreateMessage(string payload, MessageType type)
         {
             return new Message(
                 ReadableBuffer.Create(Encoding.UTF8.GetBytes(payload)).Preserve(),
