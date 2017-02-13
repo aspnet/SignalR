@@ -15,9 +15,16 @@ namespace Microsoft.AspNetCore.Sockets
 
         public static bool TryFormatMessage(Message message, Span<byte> buffer, out int bytesWritten)
         {
+            // Calculate the length, it's the number of characters for text messages, but number of base64 characters for binary
+            var length = message.Payload.Buffer.Length;
+            if(message.Type == MessageType.Binary)
+            {
+                length = (int)(4 * Math.Ceiling(((double)message.Payload.Buffer.Length / 3)));
+            }
+
             // Write the length as a string
             int written = 0;
-            if (!message.Payload.Buffer.Length.TryFormat(buffer, out int lengthLen, default(TextFormat), EncodingData.InvariantUtf8))
+            if (!length.TryFormat(buffer, out int lengthLen, default(TextFormat), EncodingData.InvariantUtf8))
             {
                 bytesWritten = 0;
                 return false;
@@ -30,7 +37,6 @@ namespace Microsoft.AspNetCore.Sockets
             // but this way we can exit early if the buffer is way too small.
             if (buffer.Length < 4)
             {
-                // Discard everything we've written. We don't need to clear it though, we just return 0 bytes written.
                 bytesWritten = 0;
                 return false;
             }
@@ -108,14 +114,21 @@ namespace Microsoft.AspNetCore.Sockets
             // There are at least 4 characters we still expect to see: ':', type flag, ':', ';'.
             if (buffer.Length < 4)
             {
-                // The buffer is definitely too small
+                message = default(Message);
+                bytesConsumed = 0;
+                return false;
+            }
+
+            // Verify that we have the ':' after the type flag.
+            if (buffer[0] != FieldDelimiter)
+            {
                 message = default(Message);
                 bytesConsumed = 0;
                 return false;
             }
 
             // We already know that index 0 is the ':', so next is the type flag at index '1'.
-            if (!TryParseType(buffer, out var messageType))
+            if (!TryParseType(buffer[1], out var messageType))
             {
                 message = default(Message);
                 bytesConsumed = 0;
@@ -186,15 +199,9 @@ namespace Microsoft.AspNetCore.Sockets
             return true;
         }
 
-        private static bool TryParseType(ReadOnlySpan<byte> type, out MessageType messageType)
+        private static bool TryParseType(byte type, out MessageType messageType)
         {
-            if(type.Length < 1)
-            {
-                messageType = MessageType.Binary;
-                return false;
-            }
-
-            switch (type[0])
+            switch (type)
             {
                 case TextTypeFlag:
                     messageType = MessageType.Text;
