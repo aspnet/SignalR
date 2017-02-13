@@ -57,7 +57,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                const int bufferSize = 1;
+                const int bufferSize = 1024;
                 var totalBytes = 0;
                 var incomingMessage = new List<ArraySegment<byte>>();
                 WebSocketReceiveResult receiveResult;
@@ -68,6 +68,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     if(receiveResult.MessageType == WebSocketMessageType.Close)
                     {
                         _application.Output.Complete();
+                        return;
                     }
                     var truncBuffer = new ArraySegment<byte>(buffer.Array, 0, receiveResult.Count);
                     incomingMessage.Add(truncBuffer);
@@ -78,6 +79,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 Debug.Assert((receiveResult.MessageType == WebSocketMessageType.Binary || receiveResult.MessageType == WebSocketMessageType.Text ), "Unexpected message type");
 
                 Message message;
+                var messageType = receiveResult.MessageType == WebSocketMessageType.Binary ? Format.Binary : Format.Text;
                 if (incomingMessage.Count > 1)
                 {
                     var messageBuffer = new byte[totalBytes];
@@ -88,11 +90,11 @@ namespace Microsoft.AspNetCore.Sockets.Client
                         offset += incomingMessage[i].Count;
                     }
                     
-                    message = new Message(ReadableBuffer.Create(messageBuffer).Preserve(), receiveResult.MessageType == WebSocketMessageType.Binary ? Format.Binary : Format.Text, receiveResult.EndOfMessage);
+                    message = new Message(ReadableBuffer.Create(messageBuffer).Preserve(), messageType, receiveResult.EndOfMessage);
                 }
                 else
                 {
-                    message = new Message(ReadableBuffer.Create(incomingMessage[0].Array, incomingMessage[0].Offset, incomingMessage[0].Count).Preserve(), receiveResult.MessageType == WebSocketMessageType.Binary ? Format.Binary : Format.Text, receiveResult.EndOfMessage);
+                    message = new Message(ReadableBuffer.Create(incomingMessage[0].Array, incomingMessage[0].Offset, incomingMessage[0].Count).Preserve(), messageType, receiveResult.EndOfMessage);
                 }
 
                 while (await _application.Output.WaitToWriteAsync(cancellationToken))
