@@ -9,10 +9,10 @@ using Xunit;
 
 namespace Microsoft.AspNetCore.Sockets.Tests
 {
-    public class MessageFormatterTests
+    public partial class MessageFormatterTests
     {
         [Fact]
-        public void WriteMultipleMessages()
+        public void TextFormat_WriteMultipleMessages()
         {
             const string expectedEncoding = "0:B:;14:T:Hello,\r\nWorld!;1:C:A;12:E:Server Error;";
             var messages = new[]
@@ -39,7 +39,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [Theory]
         [InlineData("0:B:;", new byte[0])]
         [InlineData("8:B:q83vEg==;", new byte[] { 0xAB, 0xCD, 0xEF, 0x12 })]
-        public void WriteBinaryMessage(string encoded, byte[] payload)
+        public void TextFormat_WriteBinaryMessage(string encoded, byte[] payload)
         {
             var message = CreateMessage(payload);
             var buffer = new byte[256];
@@ -58,7 +58,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [InlineData("17:C:Connection Closed;", MessageType.Close, "Connection Closed")]
         [InlineData("0:E:;", MessageType.Error, "")]
         [InlineData("12:E:Server Error;", MessageType.Error, "Server Error")]
-        public void WriteTextMessage(string encoded, MessageType messageType, string payload)
+        public void TextFormat_WriteTextMessage(string encoded, MessageType messageType, string payload)
         {
             var message = CreateMessage(payload, messageType);
             var buffer = new byte[256];
@@ -70,7 +70,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         }
 
         [Fact]
-        public void WriteInvalidMessages()
+        public void TextFormat_WriteInvalidMessages()
         {
             var message = new Message(ReadableBuffer.Create(new byte[0]).Preserve(), MessageType.Binary, endOfMessage: false);
             var ex = Assert.Throws<InvalidOperationException>(() =>
@@ -86,7 +86,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [InlineData("17:C:Connection Closed;", MessageType.Close, "Connection Closed")]
         [InlineData("0:E:;", MessageType.Error, "")]
         [InlineData("12:E:Server Error;", MessageType.Error, "Server Error")]
-        public void ReadTextMessage(string encoded, MessageType messageType, string payload)
+        public void TextFormat_ReadTextMessage(string encoded, MessageType messageType, string payload)
         {
             var buffer = Encoding.UTF8.GetBytes(encoded);
 
@@ -99,7 +99,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [Theory]
         [InlineData("0:B:;", new byte[0])]
         [InlineData("8:B:q83vEg==;", new byte[] { 0xAB, 0xCD, 0xEF, 0x12 })]
-        public void ReadBinaryMessage(string encoded, byte[] payload)
+        public void TextFormat_ReadBinaryMessage(string encoded, byte[] payload)
         {
             var buffer = Encoding.UTF8.GetBytes(encoded);
 
@@ -110,7 +110,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         }
 
         [Fact]
-        public void ReadMultipleMessages()
+        public void TextFormat_ReadMultipleMessages()
         {
             const string encoded = "0:B:;14:T:Hello,\r\nWorld!;1:C:A;12:E:Server Error;";
             var buffer = (Span<byte>)Encoding.UTF8.GetBytes(encoded);
@@ -146,7 +146,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [InlineData("5:T:ABCDEF")]
         [InlineData("5:X:ABCDEF")]
         [InlineData("1029348109238412903849023841290834901283409128349018239048102394:X:ABCDEF")]
-        public void ReadInvalidMessages(string encoded)
+        public void TextFormat_ReadInvalidMessages(string encoded)
         {
             var buffer = Encoding.UTF8.GetBytes(encoded);
             Assert.False(MessageFormatter.TryParseMessage(buffer, MessageFormat.Text, out var message, out var consumed));
