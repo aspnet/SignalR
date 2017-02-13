@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 
 namespace Microsoft.AspNetCore.Sockets.Client
 {
@@ -56,7 +57,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                const int bufferSize = 1024;
+                const int bufferSize = 1;
                 var totalBytes = 0;
                 var incomingMessage = new List<ArraySegment<byte>>();
                 WebSocketReceiveResult receiveResult;
@@ -64,12 +65,17 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 {
                     var buffer = new ArraySegment<byte>(new byte[bufferSize]);
                     receiveResult = await _webSocket.ReceiveAsync(buffer, cancellationToken);
-                    var truncBuffer = new ArraySegment<byte>(new byte[receiveResult.Count]);
-                    Buffer.BlockCopy(buffer.Array, 0, truncBuffer.Array, 0, receiveResult.Count);
-
+                    if(receiveResult.MessageType == WebSocketMessageType.Close)
+                    {
+                        _application.Output.Complete();
+                    }
+                    var truncBuffer = new ArraySegment<byte>(buffer.Array, 0, receiveResult.Count);
                     incomingMessage.Add(truncBuffer);
                     totalBytes += receiveResult.Count;
                 } while (!receiveResult.EndOfMessage);
+
+                //Making sure the message type is either text or binary
+                Debug.Assert((receiveResult.MessageType == WebSocketMessageType.Binary || receiveResult.MessageType == WebSocketMessageType.Text ), "Unexpected message type");
 
                 Message message;
                 if (incomingMessage.Count > 1)
@@ -82,11 +88,11 @@ namespace Microsoft.AspNetCore.Sockets.Client
                         offset += incomingMessage[i].Count;
                     }
                     
-                    message = new Message(ReadableBuffer.Create(messageBuffer).Preserve(), receiveResult.MessageType == 0 ? Format.Text : Format.Binary, receiveResult.EndOfMessage);
+                    message = new Message(ReadableBuffer.Create(messageBuffer).Preserve(), receiveResult.MessageType == WebSocketMessageType.Binary ? Format.Binary : Format.Text, receiveResult.EndOfMessage);
                 }
                 else
                 {
-                    message = new Message(ReadableBuffer.Create(incomingMessage[0].Array).Preserve(), receiveResult.MessageType == 0 ? Format.Text : Format.Binary, receiveResult.EndOfMessage);
+                    message = new Message(ReadableBuffer.Create(incomingMessage[0].Array, incomingMessage[0].Offset, incomingMessage[0].Count).Preserve(), receiveResult.MessageType == WebSocketMessageType.Binary ? Format.Binary : Format.Text, receiveResult.EndOfMessage);
                 }
 
                 while (await _application.Output.WaitToWriteAsync(cancellationToken))
@@ -114,7 +120,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
                             await _webSocket.SendAsync(new ArraySegment<byte>(message.Payload.Buffer.ToArray()),
                             message.MessageFormat == Format.Text ? WebSocketMessageType.Text : WebSocketMessageType.Binary, true,
                             cancellationToken);
-                        } catch(OperationCanceledException ex)
+                        }
+                        catch (OperationCanceledException ex)
                         {
                             _logger?.LogError(ex.Message);
                             await _webSocket.CloseAsync(WebSocketCloseStatus.Empty, null, _cancellationToken);
