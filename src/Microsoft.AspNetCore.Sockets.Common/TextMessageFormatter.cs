@@ -1,4 +1,4 @@
-// Copyright (c) .NET Foundation. All rights reserved.
+﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
@@ -219,7 +219,7 @@ namespace Microsoft.AspNetCore.Sockets
                     messageType = MessageType.Error;
                     return true;
                 default:
-                    messageType = MessageType.Text;
+                    messageType = default(MessageType);
                     return false;
             }
         }
