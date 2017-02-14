@@ -47,6 +47,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
             var sendTask = SendMessages(url, _cancellationToken);
             var receiveTask = ReceiveMessages(url, _cancellationToken);
 
+            // TODO: Handle TCP connection errors
+            // https://github.com/SignalR/SignalR/blob/1fba14fa3437e24c204dfaf8a18db3fce8acad3c/src/Microsoft.AspNet.SignalR.Core/Owin/WebSockets/WebSocketHandler.cs#L248-L251
             Running = Task.WhenAll(sendTask, receiveTask).ContinueWith(t => {
                 _application.Output.TryComplete(t.IsFaulted ? t.Exception.InnerException : null);
                 return t;
@@ -64,6 +66,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 do
                 {
                     var buffer = new ArraySegment<byte>(new byte[bufferSize]);
+
+                    //Exceptions are handled above where the send and receive tasks are being run.
                     receiveResult = await _webSocket.ReceiveAsync(buffer, cancellationToken);
                     if(receiveResult.MessageType == WebSocketMessageType.Close)
                     {
