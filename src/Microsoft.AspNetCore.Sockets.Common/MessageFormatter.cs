@@ -6,7 +6,7 @@ namespace Microsoft.AspNetCore.Sockets
     {
         public static bool TryFormatMessage(Message message, Span<byte> buffer, MessageFormat format, out int bytesWritten)
         {
-            if(!message.EndOfMessage)
+            if (!message.EndOfMessage)
             {
                 // This is a truely exceptional condition since we EXPECT callers to have already
                 // buffered incomplete messages and synthesized the correct, complete message before
