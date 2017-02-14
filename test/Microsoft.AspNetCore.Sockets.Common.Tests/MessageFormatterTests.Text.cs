@@ -11,7 +11,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [Fact]
         public void WriteMultipleMessages()
         {
-            const string expectedEncoding = "T0:B:;14:T:Hello,\r\nWorld!;1:C:A;12:E:Server Error;;";
+            const string expectedEncoding = "0:B:;14:T:Hello,\r\nWorld!;1:C:A;12:E:Server Error;";
             var messages = new[]
             {
                 CreateMessage(new byte[0]),
@@ -109,7 +109,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [Fact]
         public void ReadMultipleMessages()
         {
-            const string encoded = "T0:B:;14:T:Hello,\r\nWorld!;1:C:A;12:E:Server Error;;";
+            const string encoded = "0:B:;14:T:Hello,\r\nWorld!;1:C:A;12:E:Server Error;";
             var buffer = (Span<byte>)Encoding.UTF8.GetBytes(encoded);
 
             var messages = new List<Message>();
@@ -121,7 +121,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 buffer = buffer.Slice(consumed);
             }
 
-            Assert.Equal(consumedTotal, buffer.Length);
+            Assert.Equal(consumedTotal, Encoding.UTF8.GetByteCount(encoded));
 
             Assert.Equal(4, messages.Count);
             AssertMessage(messages[0], MessageType.Binary, new byte[0]);
