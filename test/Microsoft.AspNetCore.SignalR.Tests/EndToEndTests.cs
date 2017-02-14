@@ -99,7 +99,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             get
             {
-                yield return new object[] { new String('A', 5)};
+                yield return new object[] { new string('A', 5)};
                 yield return new object[] { new string('A', 5 * 1024)};
                 yield return new object[] { new string('A', 5 * 1024 * 1024)};
             }
