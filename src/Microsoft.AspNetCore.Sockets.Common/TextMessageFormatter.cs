@@ -17,7 +17,7 @@ namespace Microsoft.AspNetCore.Sockets
         {
             // Calculate the length, it's the number of characters for text messages, but number of base64 characters for binary
             var length = message.Payload.Buffer.Length;
-            if(message.Type == MessageType.Binary)
+            if (message.Type == MessageType.Binary)
             {
                 length = (int)(4 * Math.Ceiling(((double)message.Payload.Buffer.Length / 3)));
             }
