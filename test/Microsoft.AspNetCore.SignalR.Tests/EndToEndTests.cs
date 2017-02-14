@@ -76,7 +76,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
-        [Fact]
+        [ConditionalFact]
+        [OSSkipCondition(OperatingSystems.Windows, WindowsVersions.Win7, WindowsVersions.Win2008R2, SkipReason = "No WebSockets Client for this platform")]
         public async Task ConnectionCanSendAndReceiveSmallMessagesWebSocketsTransport()
         {
             const string message = "Major Key";
@@ -105,7 +106,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
-        [Theory]
+        [ConditionalTheory]
+        [OSSkipCondition(OperatingSystems.Windows, WindowsVersions.Win7, WindowsVersions.Win2008R2, SkipReason = "No WebSockets Client for this platform")]
         [MemberData(nameof(MessageSizesData))]
         public async Task ConnectionCanSendAndReceiveDifferentMessageSizesWebSocketsTransport(string message)
         {
