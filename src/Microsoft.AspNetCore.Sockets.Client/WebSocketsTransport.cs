@@ -20,14 +20,15 @@ namespace Microsoft.AspNetCore.Sockets.Client
         private readonly ILogger _logger;
 
         public WebSocketsTransport()
+            : this(null)
         {
-            _logger = NullLoggerFactory.Instance.CreateLogger("WebSocketsTransport");
         }
 
         public WebSocketsTransport(ILoggerFactory loggerFactory)
         {
-            _logger = loggerFactory.CreateLogger<WebSocketsTransport>();
+            _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger("WebSocketsTransport");
         }
+
         public Task Running { get; private set; }
                                                 
         public async Task StartAsync(Uri url, IChannelConnection<Message> application)  

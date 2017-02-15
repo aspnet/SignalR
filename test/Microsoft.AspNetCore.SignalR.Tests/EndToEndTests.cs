@@ -100,7 +100,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             get
             {
-                yield return new object[] { new string('A', 5)};
                 yield return new object[] { new string('A', 5 * 1024)};
                 yield return new object[] { new string('A', 5 * 1024 * 1024 + 32)};
             }
@@ -122,7 +121,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var receiveData = new ReceiveData();
 
                 Assert.True(await connection.ReceiveAsync(receiveData).OrTimeout());
-                Assert.Equal(message.Length, Encoding.UTF8.GetString(receiveData.Data).Length);
+                Assert.Equal(message, Encoding.UTF8.GetString(receiveData.Data));
             }
         }
     }
