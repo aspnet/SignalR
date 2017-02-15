@@ -1,4 +1,4 @@
-// Copyright (c) .NET Foundation. All rights reserved.
+﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
@@ -9,18 +9,18 @@ using Xunit;
 
 namespace Microsoft.AspNetCore.Sockets.Tests
 {
-    public partial class MessageFormatterTests
+    public class TextMessageFormatterTests
     {
         [Fact]
-        public void TextFormat_WriteMultipleMessages()
+        public void WriteMultipleMessages()
         {
             const string expectedEncoding = "0:B:;14:T:Hello,\r\nWorld!;1:C:A;12:E:Server Error;";
             var messages = new[]
             {
-                CreateMessage(new byte[0]),
-                CreateMessage("Hello,\r\nWorld!",MessageType.Text),
-                CreateMessage("A", MessageType.Close),
-                CreateMessage("Server Error", MessageType.Error)
+                MessageTestUtils.CreateMessage(new byte[0]),
+                MessageTestUtils.CreateMessage("Hello,\r\nWorld!",MessageType.Text),
+                MessageTestUtils.CreateMessage("A", MessageType.Close),
+                MessageTestUtils.CreateMessage("Server Error", MessageType.Error)
             };
 
             var array = new byte[256];
@@ -39,9 +39,9 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [Theory]
         [InlineData("0:B:;", new byte[0])]
         [InlineData("8:B:q83vEg==;", new byte[] { 0xAB, 0xCD, 0xEF, 0x12 })]
-        public void TextFormat_WriteBinaryMessage(string encoded, byte[] payload)
+        public void WriteBinaryMessage(string encoded, byte[] payload)
         {
-            var message = CreateMessage(payload);
+            var message = MessageTestUtils.CreateMessage(payload);
             var buffer = new byte[256];
 
             Assert.True(MessageFormatter.TryFormatMessage(message, buffer, MessageFormat.Text, out var bytesWritten));
@@ -58,9 +58,9 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [InlineData("17:C:Connection Closed;", MessageType.Close, "Connection Closed")]
         [InlineData("0:E:;", MessageType.Error, "")]
         [InlineData("12:E:Server Error;", MessageType.Error, "Server Error")]
-        public void TextFormat_WriteTextMessage(string encoded, MessageType messageType, string payload)
+        public void WriteTextMessage(string encoded, MessageType messageType, string payload)
         {
-            var message = CreateMessage(payload, messageType);
+            var message = MessageTestUtils.CreateMessage(payload, messageType);
             var buffer = new byte[256];
 
             Assert.True(MessageFormatter.TryFormatMessage(message, buffer, MessageFormat.Text, out var bytesWritten));
@@ -70,7 +70,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         }
 
         [Fact]
-        public void TextFormat_WriteInvalidMessages()
+        public void WriteInvalidMessages()
         {
             var message = new Message(ReadableBuffer.Create(new byte[0]).Preserve(), MessageType.Binary, endOfMessage: false);
             var ex = Assert.Throws<InvalidOperationException>(() =>
@@ -86,31 +86,31 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [InlineData("17:C:Connection Closed;", MessageType.Close, "Connection Closed")]
         [InlineData("0:E:;", MessageType.Error, "")]
         [InlineData("12:E:Server Error;", MessageType.Error, "Server Error")]
-        public void TextFormat_ReadTextMessage(string encoded, MessageType messageType, string payload)
+        public void ReadTextMessage(string encoded, MessageType messageType, string payload)
         {
             var buffer = Encoding.UTF8.GetBytes(encoded);
 
             Assert.True(MessageFormatter.TryParseMessage(buffer, MessageFormat.Text, out var message, out var consumed));
             Assert.Equal(consumed, buffer.Length);
 
-            AssertMessage(message, messageType, payload);
+            MessageTestUtils.AssertMessage(message, messageType, payload);
         }
 
         [Theory]
         [InlineData("0:B:;", new byte[0])]
         [InlineData("8:B:q83vEg==;", new byte[] { 0xAB, 0xCD, 0xEF, 0x12 })]
-        public void TextFormat_ReadBinaryMessage(string encoded, byte[] payload)
+        public void ReadBinaryMessage(string encoded, byte[] payload)
         {
             var buffer = Encoding.UTF8.GetBytes(encoded);
 
             Assert.True(MessageFormatter.TryParseMessage(buffer, MessageFormat.Text, out var message, out var consumed));
             Assert.Equal(consumed, buffer.Length);
 
-            AssertMessage(message, MessageType.Binary, payload);
+            MessageTestUtils.AssertMessage(message, MessageType.Binary, payload);
         }
 
         [Fact]
-        public void TextFormat_ReadMultipleMessages()
+        public void ReadMultipleMessages()
         {
             const string encoded = "0:B:;14:T:Hello,\r\nWorld!;1:C:A;12:E:Server Error;";
             var buffer = (Span<byte>)Encoding.UTF8.GetBytes(encoded);
@@ -127,10 +127,10 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             Assert.Equal(consumedTotal, Encoding.UTF8.GetByteCount(encoded));
 
             Assert.Equal(4, messages.Count);
-            AssertMessage(messages[0], MessageType.Binary, new byte[0]);
-            AssertMessage(messages[1], MessageType.Text, "Hello,\r\nWorld!");
-            AssertMessage(messages[2], MessageType.Close, "A");
-            AssertMessage(messages[3], MessageType.Error, "Server Error");
+            MessageTestUtils.AssertMessage(messages[0], MessageType.Binary, new byte[0]);
+            MessageTestUtils.AssertMessage(messages[1], MessageType.Text, "Hello,\r\nWorld!");
+            MessageTestUtils.AssertMessage(messages[2], MessageType.Close, "A");
+            MessageTestUtils.AssertMessage(messages[3], MessageType.Error, "Server Error");
         }
 
         [Theory]
@@ -146,41 +146,11 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [InlineData("5:T:ABCDEF")]
         [InlineData("5:X:ABCDEF")]
         [InlineData("1029348109238412903849023841290834901283409128349018239048102394:X:ABCDEF")]
-        public void TextFormat_ReadInvalidMessages(string encoded)
+        public void ReadInvalidMessages(string encoded)
         {
             var buffer = Encoding.UTF8.GetBytes(encoded);
             Assert.False(MessageFormatter.TryParseMessage(buffer, MessageFormat.Text, out var message, out var consumed));
             Assert.Equal(0, consumed);
-        }
-
-        private static void AssertMessage(Message message, MessageType messageType, byte[] payload)
-        {
-            Assert.True(message.EndOfMessage);
-            Assert.Equal(messageType, message.Type);
-            Assert.Equal(payload, message.Payload.Buffer.ToArray());
-        }
-
-        private static void AssertMessage(Message message, MessageType messageType, string payload)
-        {
-            Assert.True(message.EndOfMessage);
-            Assert.Equal(messageType, message.Type);
-            Assert.Equal(payload, Encoding.UTF8.GetString(message.Payload.Buffer.ToArray()));
-        }
-
-        private static Message CreateMessage(byte[] payload, MessageType type = MessageType.Binary)
-        {
-            return new Message(
-                ReadableBuffer.Create(payload).Preserve(),
-                type,
-                endOfMessage: true);
-        }
-
-        private static Message CreateMessage(string payload, MessageType type)
-        {
-            return new Message(
-                ReadableBuffer.Create(Encoding.UTF8.GetBytes(payload)).Preserve(),
-                type,
-                endOfMessage: true);
         }
     }
 }
