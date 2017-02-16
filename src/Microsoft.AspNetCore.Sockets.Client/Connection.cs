@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.Sockets.Client
 {
-    public class Connection : IDisposable
+    public class Connection
     {
         private readonly ILoggerFactory _loggerFactory;
         private readonly ILogger _logger;
@@ -213,7 +213,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             return false;
         }
 
-        public async Task StopAsync()
+        public async Task DisposeAsync()
         {
             Interlocked.Exchange(ref _connectionState, ConnectionState.Disconnected);
 
@@ -230,21 +230,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
             if (_receiveLoopTask != null)
             {
                 await _receiveLoopTask;
-            }
-        }
-
-        public void Dispose()
-        {
-            Interlocked.Exchange(ref _connectionState, ConnectionState.Disconnected);
-
-            if (_transportChannel != null)
-            {
-                Output.TryComplete();
-            }
-
-            if (_transport != null)
-            {
-                _transport.Dispose();
             }
         }
 
