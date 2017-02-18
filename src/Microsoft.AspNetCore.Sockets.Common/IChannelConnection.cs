@@ -13,4 +13,10 @@ namespace Microsoft.AspNetCore.Sockets
         ReadableChannel<T> Input { get; }
         WritableChannel<T> Output { get; }
     }
+
+    public interface IChannelConnection<T, U> : IDisposable
+    {
+        ReadableChannel<T> Input { get; }
+        WritableChannel<U> Output { get; }
+    }
 }

@@ -21,7 +21,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         private readonly HttpClient _httpClient;
         private readonly ILogger _logger;
-        private IChannelConnection<Message> _application;
+        private IChannelConnection<SendMessage, Message> _application;
         private Task _sender;
         private Task _poller;
         private readonly CancellationTokenSource _transportCts = new CancellationTokenSource();
@@ -34,7 +34,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             _logger = loggerFactory.CreateLogger<LongPollingTransport>();
         }
 
-        public Task StartAsync(Uri url, IChannelConnection<Message> application)
+        public Task StartAsync(Uri url, IChannelConnection<SendMessage, Message> application)
         {
             _application = application;
 
@@ -115,37 +115,44 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         private async Task SendMessages(Uri sendUrl, CancellationToken cancellationToken)
         {
+            TaskCompletionSource<Exception> sendTask = null;
             try
             {
                 while (await _application.Input.WaitToReadAsync(cancellationToken))
                 {
-                    while (!cancellationToken.IsCancellationRequested && _application.Input.TryRead(out Message message))
+                    while (!cancellationToken.IsCancellationRequested && _application.Input.TryRead(out SendMessage message))
                     {
                         using (message)
                         {
+                            sendTask = message.Result;
+
                             var request = new HttpRequestMessage(HttpMethod.Post, sendUrl);
                             request.Headers.UserAgent.Add(DefaultUserAgentHeader);
                             request.Content = new ReadableBufferContent(message.Payload.Buffer);
 
                             var response = await _httpClient.SendAsync(request);
                             response.EnsureSuccessStatusCode();
+                            sendTask.SetResult(null);
                         }
                     }
                 }
             }
             catch (OperationCanceledException)
             {
+                sendTask?.SetResult(new OperationCanceledException());
                 // transport is being closed
             }
             catch (Exception ex)
             {
                 _logger.LogError("Error while sending to '{0}': {1}", sendUrl, ex);
+                sendTask?.SetResult(ex);
                 throw;
             }
             finally
             {
                 // Make sure the poll loop is terminated
                 _transportCts.Cancel();
+                sendTask?.TrySetResult(new OperationCanceledException());
             }
         }
     }

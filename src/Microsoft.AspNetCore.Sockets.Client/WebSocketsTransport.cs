@@ -15,7 +15,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
     public class WebSocketsTransport : ITransport
     {
         private ClientWebSocket _webSocket = new ClientWebSocket();
-        private IChannelConnection<Message> _application;
+        private IChannelConnection<SendMessage, Message> _application;
         private CancellationToken _cancellationToken = new CancellationToken();
         private readonly ILogger _logger;
 
@@ -31,7 +31,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         public Task Running { get; private set; }
 
-        public async Task StartAsync(Uri url, IChannelConnection<Message> application)
+        public async Task StartAsync(Uri url, IChannelConnection<SendMessage, Message> application)
         {
             if (url == null)
             {
@@ -113,8 +113,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
         {
             while (await _application.Input.WaitToReadAsync(cancellationToken))
             {
-                Message message;
-                while (_application.Input.TryRead(out message))
+                while (_application.Input.TryRead(out SendMessage message))
                 {
                     using (message)
                     {
@@ -123,12 +122,19 @@ namespace Microsoft.AspNetCore.Sockets.Client
                             await _webSocket.SendAsync(new ArraySegment<byte>(message.Payload.Buffer.ToArray()),
                             message.Type == MessageType.Text ? WebSocketMessageType.Text : WebSocketMessageType.Binary, true,
                             cancellationToken);
+                            message.Result.SetResult(null);
                         }
                         catch (OperationCanceledException ex)
                         {
                             _logger?.LogError(ex.Message);
                             await _webSocket.CloseAsync(WebSocketCloseStatus.Empty, null, _cancellationToken);
+                            message.Result.SetResult(new OperationCanceledException());
                             break;
+                        }
+                        catch (Exception ex)
+                        {
+                            message.Result.SetResult(ex);
+                            throw;
                         }
                     }
                 }
