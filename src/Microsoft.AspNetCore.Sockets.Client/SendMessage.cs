@@ -8,9 +8,9 @@ namespace Microsoft.AspNetCore.Sockets.Client
     {
         public MessageType Type { get; }
         public PreservedBuffer Payload { get; }
-        public TaskCompletionSource<Exception> Result { get; }
+        public TaskCompletionSource<bool> Result { get; }
 
-        public SendMessage(PreservedBuffer payload, MessageType type, TaskCompletionSource<Exception> result)
+        public SendMessage(PreservedBuffer payload, MessageType type, TaskCompletionSource<bool> result)
         {
             Type = type;
             Payload = payload;

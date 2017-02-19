@@ -185,25 +185,24 @@ namespace Microsoft.AspNetCore.Sockets.Client
             _logger.LogTrace("Ending receive loop");
         }
 
-        public Task<Exception> SendAsync(byte[] data, MessageType type)
+        public Task<bool> SendAsync(byte[] data, MessageType type)
         {
             return SendAsync(data, type, CancellationToken.None);
         }
 
-        public async  Task<Exception> SendAsync(byte[] data, MessageType type, CancellationToken cancellationToken)
+        public async  Task<bool> SendAsync(byte[] data, MessageType type, CancellationToken cancellationToken)
         {
             if (data == null)
             {
                 throw new ArgumentNullException(nameof(data));
             }
 
-
             if (_connectionState != ConnectionState.Connected)
             {
-                return new InvalidOperationException("Cannot send messages when the connection is not in the Connected state");
+                return false;
             }
 
-            var sendTcs = new TaskCompletionSource<Exception>();
+            var sendTcs = new TaskCompletionSource<bool>();
             var message = new SendMessage(ReadableBuffer.Create(data).Preserve(), type, sendTcs);
 
             while (await Output.WaitToWriteAsync(cancellationToken))
@@ -214,8 +213,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 }
             }
 
-            sendTcs.SetResult(new OperationCanceledException());
-            return await sendTcs.Task;
+            return false;
         }
 
         public async Task DisposeAsync()

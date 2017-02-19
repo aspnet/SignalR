@@ -109,7 +109,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
         public async Task SendReturnsFalseIfConnectionIsNotStarted()
         {
             var connection = new Connection(new Uri("http://fakeuri.org/"));
-            Assert.IsType<InvalidOperationException>(await connection.SendAsync(new byte[0], MessageType.Binary));
+            Assert.False(await connection.SendAsync(new byte[0], MessageType.Binary));
         }
 
         [Fact]
@@ -132,7 +132,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 await connection.StartAsync(longPollingTransport, httpClient);
                 await connection.DisposeAsync();
 
-                Assert.IsType<InvalidOperationException>(await connection.SendAsync(new byte[0], MessageType.Binary));
+                Assert.False(await connection.SendAsync(new byte[0], MessageType.Binary));
             }
         }
 
@@ -419,12 +419,11 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
 
                 await connection.StartAsync(longPollingTransport, httpClient);
                 await connection.DisposeAsync();
-                Assert.IsType<InvalidOperationException>(
-                    await connection.SendAsync(new byte[] { 1, 1, 3, 5, 8 }, MessageType.Binary));
+                Assert.False(await connection.SendAsync(new byte[] { 1, 1, 3, 5, 8 }, MessageType.Binary));
             }
         }
 
-        [Fact(Skip = "TODO")]
+        [Fact]
         public async Task CannotSendAfterReceiveThrewException()
         {
             var mockHttpHandler = new Mock<HttpMessageHandler>();
@@ -454,10 +453,9 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                     // Exception in send should shutdown the connection
                     await closeTcs.Task.OrTimeout();
 
-                    Assert.IsType<InvalidOperationException>(
-                        await connection.SendAsync(new byte[] { 1, 1, 3, 5, 8 }, MessageType.Binary));
+                    Assert.False(await connection.SendAsync(new byte[] { 1, 1, 3, 5, 8 }, MessageType.Binary));
                 }
-                finally
+  finally
                 {
                     await connection.DisposeAsync();
                 }
@@ -494,8 +492,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                     // Exception in send should shutdown the connection
                     await closeTcs.Task.OrTimeout();
 
-                    Assert.IsType<InvalidOperationException>(
-                        await connection.SendAsync(new byte[] { 1, 1, 3, 5, 8 }, MessageType.Binary));
+                    Assert.False(await connection.SendAsync(new byte[] { 1, 1, 3, 5, 8 }, MessageType.Binary));
                 }
                 finally
                 {

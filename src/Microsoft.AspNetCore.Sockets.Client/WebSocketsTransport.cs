@@ -122,19 +122,17 @@ namespace Microsoft.AspNetCore.Sockets.Client
                             await _webSocket.SendAsync(new ArraySegment<byte>(message.Payload.Buffer.ToArray()),
                             message.Type == MessageType.Text ? WebSocketMessageType.Text : WebSocketMessageType.Binary, true,
                             cancellationToken);
-                            message.Result.SetResult(null);
+                            message.Result.SetResult(true);
                         }
                         catch (OperationCanceledException ex)
                         {
                             _logger?.LogError(ex.Message);
                             await _webSocket.CloseAsync(WebSocketCloseStatus.Empty, null, _cancellationToken);
-                            message.Result.SetResult(new OperationCanceledException());
                             break;
                         }
-                        catch (Exception ex)
+                        finally
                         {
-                            message.Result.SetResult(ex);
-                            throw;
+                            message.Result.TrySetResult(false);
                         }
                     }
                 }

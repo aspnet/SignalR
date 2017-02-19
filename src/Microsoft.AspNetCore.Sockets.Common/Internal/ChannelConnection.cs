@@ -18,25 +18,11 @@ namespace Microsoft.AspNetCore.Sockets.Internal
         }
     }
 
-    public class ChannelConnection<T> : IChannelConnection<T>
+    public class ChannelConnection<T> : ChannelConnection<T, T>, IChannelConnection<T>
     {
-        public Channel<T> Input { get; }
-        public Channel<T> Output { get; }
-
-        ReadableChannel<T> IChannelConnection<T>.Input => Input;
-        WritableChannel<T> IChannelConnection<T>.Output => Output;
-
         public ChannelConnection(Channel<T> input, Channel<T> output)
-        {
-            Input = input;
-            Output = output;
-        }
-
-        public void Dispose()
-        {
-            Output.Out.TryComplete();
-            Input.Out.TryComplete();
-        }
+            : base(input, output)
+        { }
     }
 
     public class ChannelConnection<T, U> : IChannelConnection<T, U>
@@ -59,5 +45,4 @@ namespace Microsoft.AspNetCore.Sockets.Internal
             Input.Out.TryComplete();
         }
     }
-
 }

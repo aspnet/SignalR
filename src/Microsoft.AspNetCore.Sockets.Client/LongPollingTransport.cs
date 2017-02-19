@@ -115,7 +115,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         private async Task SendMessages(Uri sendUrl, CancellationToken cancellationToken)
         {
-            TaskCompletionSource<Exception> sendTask = null;
+            TaskCompletionSource<bool> sendTask = null;
             try
             {
                 while (await _application.Input.WaitToReadAsync(cancellationToken))
@@ -132,27 +132,25 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
                             var response = await _httpClient.SendAsync(request);
                             response.EnsureSuccessStatusCode();
-                            sendTask.SetResult(null);
+                            sendTask.SetResult(true);
                         }
                     }
                 }
             }
             catch (OperationCanceledException)
             {
-                sendTask?.SetResult(new OperationCanceledException());
                 // transport is being closed
             }
             catch (Exception ex)
             {
                 _logger.LogError("Error while sending to '{0}': {1}", sendUrl, ex);
-                sendTask?.SetResult(ex);
                 throw;
             }
             finally
             {
                 // Make sure the poll loop is terminated
                 _transportCts.Cancel();
-                sendTask?.TrySetResult(new OperationCanceledException());
+                sendTask?.TrySetResult(false);
             }
         }
     }
