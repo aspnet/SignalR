@@ -22,11 +22,11 @@ namespace Microsoft.Extensions.WebSockets.Internal.Tests
                 var startTime = DateTime.UtcNow;
                 // Arrange
                 using (var pair = WebSocketPair.Create(
-                    serverOptions: new WebSocketOptions().WithAllFramesPassedThrough().WithPingInterval(TimeSpan.FromMilliseconds(50)),
+                    serverOptions: new WebSocketOptions().WithAllFramesPassedThrough().WithPingInterval(TimeSpan.FromMilliseconds(10)),
                     clientOptions: new WebSocketOptions().WithAllFramesPassedThrough()))
                 {
-                    var client = Task.Run(() => pair.ClientSocket.ExecuteAndCaptureFramesAsync());
-                    var server = Task.Run(() => pair.ServerSocket.ExecuteAndCaptureFramesAsync());
+                    var client = pair.ClientSocket.ExecuteAndCaptureFramesAsync();
+                    var server = pair.ServerSocket.ExecuteAndCaptureFramesAsync();
 
                     // Act
                     // Wait for pings to be sent
