@@ -22,11 +22,11 @@ namespace Microsoft.Extensions.WebSockets.Internal.Tests
                 var startTime = DateTime.UtcNow;
                 // Arrange
                 using (var pair = WebSocketPair.Create(
-                    serverOptions: new WebSocketOptions().WithAllFramesPassedThrough().WithPingInterval(TimeSpan.FromMilliseconds(100)),
+                    serverOptions: new WebSocketOptions().WithAllFramesPassedThrough().WithPingInterval(TimeSpan.FromMilliseconds(50)),
                     clientOptions: new WebSocketOptions().WithAllFramesPassedThrough()))
                 {
-                    var client = pair.ClientSocket.ExecuteAndCaptureFramesAsync();
-                    var server = pair.ServerSocket.ExecuteAndCaptureFramesAsync();
+                    var client = Task.Run(() => pair.ClientSocket.ExecuteAndCaptureFramesAsync());
+                    var server = Task.Run(() => pair.ServerSocket.ExecuteAndCaptureFramesAsync());
 
                     // Act
                     // Wait for pings to be sent
@@ -47,8 +47,7 @@ namespace Microsoft.Extensions.WebSockets.Internal.Tests
                         var str = Encoding.UTF8.GetString(f.Payload.ToArray());
 
                         // We can't verify the exact timestamp, but we can verify that it is a timestamp created after we started.
-                        DateTime dt;
-                        if (DateTime.TryParseExact(str, "O", CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal, out dt))
+                        if (DateTime.TryParseExact(str, "O", CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal, out var dt))
                         {
                             return dt >= startTime;
                         }
