@@ -326,8 +326,8 @@ namespace Microsoft.Extensions.WebSockets.Internal
                 if (masked)
                 {
                     var maskingKeyStart = buffer.Start;
-                    maskingKey = buffer.Slice(0, 4).ReadBigEndian<uint>();
-                    buffer = buffer.Slice(4);
+                    maskingKey = buffer.Slice(0, sizeof(uint)).ReadBigEndian<uint>();
+                    buffer = buffer.Slice(sizeof(uint));
                 }
 
                 // Mark the length and masking key consumed
