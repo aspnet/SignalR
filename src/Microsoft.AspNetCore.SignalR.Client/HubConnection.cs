@@ -57,7 +57,12 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 throw new ArgumentNullException(nameof(loggerFactory));
             }
 
-            _connection = connection ?? throw new ArgumentNullException(nameof(connection));
+            if (connection == null)
+            {
+                throw new ArgumentNullException(nameof(connection));
+            }
+
+            _connection = connection;
 
             _binder = new HubBinder(this);
             _adapter = adapter;
