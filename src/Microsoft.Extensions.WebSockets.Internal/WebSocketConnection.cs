@@ -263,7 +263,7 @@ namespace Microsoft.Extensions.WebSockets.Internal
             if (readResult.IsCancelled || (readResult.IsCompleted && readResult.Buffer.Length < 2))
             {
                 _inbound.Advance(readResult.Buffer.End);
-                return (false, 0, false, false, 0, 0);
+                return (Success: false, OpcodeByte: 0, Masked: false, Fin: false, Length: 0, MaskingKey: 0);
             }
             var buffer = readResult.Buffer;
 
@@ -301,7 +301,7 @@ namespace Microsoft.Extensions.WebSockets.Internal
                 if (readResult.IsCancelled || (readResult.IsCompleted && readResult.Buffer.Length < headerLength))
                 {
                     _inbound.Advance(readResult.Buffer.End);
-                    return (false, 0, false, false, 0, 0);
+                    return (Success: false, OpcodeByte: 0, Masked: false, Fin: false, Length: 0, MaskingKey: 0);
                 }
                 buffer = readResult.Buffer;
 
@@ -334,7 +334,7 @@ namespace Microsoft.Extensions.WebSockets.Internal
                 _inbound.Advance(buffer.Start);
             }
 
-            return (true, opcodeByte, masked, fin, length, maskingKey);
+            return (Success: true, opcodeByte, masked, fin, length, maskingKey);
         }
 
         private async ValueTask<(bool Success, ReadableBuffer Buffer)> ReadPayloadAsync(int length, bool masked, uint maskingKey)
@@ -345,7 +345,7 @@ namespace Microsoft.Extensions.WebSockets.Internal
                 var readResult = await _inbound.ReadAtLeastAsync(length);
                 if (readResult.IsCancelled || (readResult.IsCompleted && readResult.Buffer.Length < length))
                 {
-                    return (false, readResult.Buffer);
+                    return (Success: false, Buffer: readResult.Buffer);
                 }
                 var buffer = readResult.Buffer;
 
@@ -357,7 +357,7 @@ namespace Microsoft.Extensions.WebSockets.Internal
                     MaskingUtilities.ApplyMask(ref payload, maskingKey);
                 }
             }
-            return (true, payload);
+            return (Success: true, Buffer: payload);
         }
 
         private async Task<WebSocketCloseResult> ReceiveLoop(Func<WebSocketFrame, object, Task> messageHandler, object state)
