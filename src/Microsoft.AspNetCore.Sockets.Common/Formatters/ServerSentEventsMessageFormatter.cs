@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
-using System.IO.Pipelines;
 using System.Text;
 
 namespace Microsoft.AspNetCore.Sockets.Formatters
@@ -115,7 +114,7 @@ namespace Microsoft.AspNetCore.Sockets.Formatters
                     // Seek to the end of buffer or newline
                     var sliceEnd = payload.IndexOf(LineFeed);
                     var nextSliceStart = sliceEnd + 1;
-                    if(sliceEnd < 0)
+                    if (sliceEnd < 0)
                     {
                         sliceEnd = payload.Length;
                         nextSliceStart = sliceEnd + 1;
@@ -123,7 +122,7 @@ namespace Microsoft.AspNetCore.Sockets.Formatters
                         // This is the last span
                         keepWriting = false;
                     }
-                    if(sliceEnd > 0 && payload[sliceEnd - 1] == '\r')
+                    if (sliceEnd > 0 && payload[sliceEnd - 1] == '\r')
                     {
                         sliceEnd--;
                     }

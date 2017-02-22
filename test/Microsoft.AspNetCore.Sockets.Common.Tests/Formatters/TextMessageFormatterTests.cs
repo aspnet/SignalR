@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO.Pipelines;
 using System.Text;
 using Microsoft.AspNetCore.Sockets.Tests;
 using Xunit;
