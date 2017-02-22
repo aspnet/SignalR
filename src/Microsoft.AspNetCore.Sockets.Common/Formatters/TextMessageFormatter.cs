@@ -39,7 +39,7 @@ namespace Microsoft.AspNetCore.Sockets.Formatters
             // We need at least 4 more characters of space (':', type flag, ':', and eventually the terminating ';')
             // We'll still need to double-check that we have space for the terminator after we write the payload,
             // but this way we can exit early if the buffer is way too small.
-            if (buffer.Length < 4)
+            if (buffer.Length < 4 + length)
             {
                 bytesWritten = 0;
                 return false;
@@ -55,12 +55,6 @@ namespace Microsoft.AspNetCore.Sockets.Formatters
             written += 3;
 
             // Payload
-            if (buffer.Length < length)
-            {
-                bytesWritten = 0;
-                return false;
-            }
-
             if (message.Type == MessageType.Binary)
             {
                 // Encode the payload directly into the buffer
@@ -119,8 +113,8 @@ namespace Microsoft.AspNetCore.Sockets.Formatters
             }
 
             // Check if there's enough space in the buffer to even bother continuing
-            // There are at least 4 characters we still expect to see: ':', type flag, ':', ';'.
-            if (buffer.Length < 4)
+            // There are at least 4 characters we still expect to see: ':', type flag, ':', ';', plus the (encoded) payload length.
+            if (buffer.Length < 4 + length)
             {
                 message = default(Message);
                 bytesConsumed = 0;
@@ -153,15 +147,6 @@ namespace Microsoft.AspNetCore.Sockets.Formatters
             // Slice off ':[Type]:' and check the remaining length
             buffer = buffer.Slice(3);
             consumedSoFar += 3;
-
-            // We expect to see <length>+1 more characters. Since <length> is the exact number of bytes in the text (even if base64-encoded)
-            // and we expect to see the ';'
-            if (buffer.Length < length + 1)
-            {
-                message = default(Message);
-                bytesConsumed = 0;
-                return false;
-            }
 
             // Grab the payload buffer
             var payload = buffer.Slice(0, length);

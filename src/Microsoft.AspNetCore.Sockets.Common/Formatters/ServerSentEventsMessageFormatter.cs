@@ -76,7 +76,6 @@ namespace Microsoft.AspNetCore.Sockets.Formatters
             var writtenSoFar = 0;
             if (type == MessageType.Binary)
             {
-                // TODO: We're going to need to fix this as part of https://github.com/aspnet/SignalR/issues/192
                 var encodedSize = DataPrefix.Length + Base64.ComputeEncodedLength(payload.Length) + Newline.Length;
                 if (buffer.Length < encodedSize)
                 {
