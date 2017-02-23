@@ -9,7 +9,7 @@ namespace Microsoft.Extensions.WebSockets.Internal.Tests
         private readonly string _environmentVariable;
         private readonly string _skipReason;
 
-        public bool IsMet => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(_environmentVariable));
+        public bool IsMet => string.IsNullOrEmpty(Environment.GetEnvironmentVariable(_environmentVariable));
 
         public string SkipReason => _skipReason;
 
