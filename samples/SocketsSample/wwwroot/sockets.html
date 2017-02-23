@@ -21,11 +21,11 @@
 
             document.getElementById('transportName').innerHTML = transport;
 
-            var url = `http://${document.location.host}/chat`
-            var connection = new signalR.Connection(url);
+            let url = `http://${document.location.host}/chat`
+            let connection = new signalR.Connection(url);
 
             connection.dataReceived = data => {
-                var child = document.createElement('li');
+                let child = document.createElement('li');
                 child.innerText = data;
                 document.getElementById('messages').appendChild(child);
             };
