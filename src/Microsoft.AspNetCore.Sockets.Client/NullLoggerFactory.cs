@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Microsoft.AspNetCore.Sockets.Client
 {
-    internal class NullLoggerFactory : ILoggerFactory
+    public class NullLoggerFactory : ILoggerFactory
     {
         public static readonly ILoggerFactory Instance = new NullLoggerFactory();
 

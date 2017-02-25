@@ -44,30 +44,29 @@ namespace Microsoft.AspNetCore.SignalR.Client
             add { _connection.Closed += value; }
             remove { _connection.Closed -= value; }
         }
+        public HubConnection(Uri url, IInvocationAdapter adapter)
+            : this(new Connection(url), adapter, null)
+        { }
 
         public HubConnection(Uri url, IInvocationAdapter adapter, ILoggerFactory loggerFactory)
             : this(new Connection(url, loggerFactory), adapter, loggerFactory)
         { }
 
+        public HubConnection(IConnection connection, IInvocationAdapter adapter)
+            : this(connection, adapter, null)
+        { }
+
         public HubConnection(IConnection connection, IInvocationAdapter adapter, ILoggerFactory loggerFactory)
         {
-            // TODO: loggerFactory shouldn't be required
-            if (loggerFactory == null)
-            {
-                throw new ArgumentNullException(nameof(loggerFactory));
-            }
-
             if (connection == null)
             {
                 throw new ArgumentNullException(nameof(connection));
             }
 
             _connection = connection;
-
             _binder = new HubBinder(this);
             _adapter = adapter;
-            _logger = loggerFactory.CreateLogger<HubConnection>();
-
+            _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<HubConnection>();
             _connection.Received += OnDataReceived;
             _connection.Closed += Shutdown;
         }

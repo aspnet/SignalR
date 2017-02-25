@@ -46,12 +46,10 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         [Fact]
         public async Task CheckFixedMessage()
         {
-            var loggerFactory = CreateLogger();
-
             using (var httpClient = _testServer.CreateClient())
             {
-                var transport = new LongPollingTransport(httpClient, loggerFactory);
-                var connection = new HubConnection(new Uri("http://test/hubs"), new JsonNetInvocationAdapter(), loggerFactory);
+                var transport = new LongPollingTransport(httpClient);
+                var connection = new HubConnection(new Uri("http://test/hubs"), new JsonNetInvocationAdapter());
                 try
                 {
                     await connection.StartAsync(transport, httpClient);
@@ -70,13 +68,12 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         [Fact]
         public async Task CanSendAndReceiveMessage()
         {
-            var loggerFactory = CreateLogger();
             const string originalMessage = "SignalR";
 
             using (var httpClient = _testServer.CreateClient())
             {
-                var transport = new LongPollingTransport(httpClient, loggerFactory);
-                var connection = new HubConnection(new Uri("http://test/hubs"), new JsonNetInvocationAdapter(), loggerFactory);
+                var transport = new LongPollingTransport(httpClient);
+                var connection = new HubConnection(new Uri("http://test/hubs"), new JsonNetInvocationAdapter());
                 try
                 {
                     await connection.StartAsync(transport, httpClient);
@@ -120,13 +117,12 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         [Fact]
         public async Task CanInvokeClientMethodFromServer()
         {
-            var loggerFactory = CreateLogger();
             const string originalMessage = "SignalR";
 
             using (var httpClient = _testServer.CreateClient())
             {
-                var transport = new LongPollingTransport(httpClient, loggerFactory);
-                var connection = new HubConnection(new Uri("http://test/hubs"), new JsonNetInvocationAdapter(), loggerFactory);
+                var transport = new LongPollingTransport(httpClient);
+                var connection = new HubConnection(new Uri("http://test/hubs"), new JsonNetInvocationAdapter());
                 try
                 {
                     await connection.StartAsync(transport, httpClient);
@@ -151,12 +147,10 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         [Fact]
         public async Task ServerClosesConnectionIfHubMethodCannotBeResolved()
         {
-            var loggerFactory = CreateLogger();
-
             using (var httpClient = _testServer.CreateClient())
             {
-                var transport = new LongPollingTransport(httpClient, loggerFactory);
-                var connection = new HubConnection(new Uri("http://test/hubs"), new JsonNetInvocationAdapter(), loggerFactory);
+                var transport = new LongPollingTransport(httpClient);
+                var connection = new HubConnection(new Uri("http://test/hubs"), new JsonNetInvocationAdapter());
                 try
                 {
                     await connection.StartAsync(transport, httpClient);
