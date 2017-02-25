@@ -29,7 +29,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
         public Task Running { get; private set; }
 
         public LongPollingTransport(HttpClient httpClient)
-            :this(httpClient, null)
+            : this(httpClient, null)
         { }
 
         public LongPollingTransport(HttpClient httpClient, ILoggerFactory loggerFactory)

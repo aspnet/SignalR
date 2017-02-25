@@ -44,6 +44,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             add { _connection.Closed += value; }
             remove { _connection.Closed -= value; }
         }
+
         public HubConnection(Uri url, IInvocationAdapter adapter)
             : this(new Connection(url), adapter, null)
         { }
