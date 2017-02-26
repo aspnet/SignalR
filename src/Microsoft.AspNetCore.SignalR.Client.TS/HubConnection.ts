@@ -20,7 +20,8 @@ export class HubConnection {
     private callbacks: Map<string, (invocationDescriptor: InvocationResultDescriptor) => void>;
     private methods: Map<string, (...args: any[]) => void>;
     private id: number;
-
+    private fullReceivedJSON: string;
+    
     constructor(url: string, queryString?: string) {
         this.connection = new Connection(url, queryString);
 
@@ -39,22 +40,30 @@ export class HubConnection {
         if (!data) {
             return;
         }
-        var descriptor = JSON.parse(data);
-        if (descriptor.Method === undefined) {
-            let invocationResult: InvocationResultDescriptor = descriptor;
-            let callback = this.callbacks[invocationResult.Id];
-            if (callback != null) {
-                callback(invocationResult);
-                this.callbacks.delete(invocationResult.Id);
+
+        this.fullReceivedJSON += data;
+        
+        try {
+            var descriptor = JSON.parse(this.fullReceivedJSON);
+            if (descriptor.Method === undefined) {
+                let invocationResult: InvocationResultDescriptor = descriptor;
+                let callback = this.callbacks[invocationResult.Id];
+                if (callback != null) {
+                    callback(invocationResult);
+                    this.callbacks.delete(invocationResult.Id);
+                }
             }
-        }
-        else {
-            let invocation: InvocationDescriptor = descriptor;
-            let method = this.methods[invocation.Method];
-            if (method != null) {
-                // TODO: bind? args?
-                method.apply(this, invocation.Arguments);
-            }
+            else {
+                let invocation: InvocationDescriptor = descriptor;
+                let method = this.methods[invocation.Method];
+                if (method != null) {
+                    // TODO: bind? args?
+                    method.apply(this, invocation.Arguments);
+                }
+            }   
+
+            this.fullReceivedJSON = "";
+        } catch (error) {
         }
     }
 
