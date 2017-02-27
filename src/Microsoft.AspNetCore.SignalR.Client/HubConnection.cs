@@ -50,12 +50,12 @@ namespace Microsoft.AspNetCore.SignalR.Client
             : this(new Connection(url), adapter, null)
         { }
 
-        public HubConnection(Uri url, IInvocationAdapter adapter, ILoggerFactory loggerFactory)
-            : this(new Connection(url, loggerFactory), adapter, loggerFactory)
+        public HubConnection(Uri url)
+            : this(new Connection(url), new JsonNetInvocationAdapter(), null)
         { }
 
-        public HubConnection(IConnection connection, IInvocationAdapter adapter)
-            : this(connection, adapter, null)
+        public HubConnection(Uri url, IInvocationAdapter adapter, ILoggerFactory loggerFactory)
+            : this(new Connection(url, loggerFactory), adapter, loggerFactory)
         { }
 
         public HubConnection(IConnection connection, IInvocationAdapter adapter, ILoggerFactory loggerFactory)
