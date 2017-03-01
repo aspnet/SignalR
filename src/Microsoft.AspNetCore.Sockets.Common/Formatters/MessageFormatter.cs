@@ -10,14 +10,14 @@ namespace Microsoft.AspNetCore.Sockets.Formatters
         public static readonly byte TextFormatIndicator = (byte)'T';
         public static readonly byte BinaryFormatIndicator = (byte)'B';
 
-        public static readonly string TextContentType = "application/vnd.microsoft.aspnet.endpoint-messages.v1+text";
-        public static readonly string BinaryContentType = "application/vnd.microsoft.aspnet.endpoint-messages.v1+binary";
+        public static readonly string TextContentType = "application/vnd.microsoft.aspnetcore.endpoint-messages.v1+text";
+        public static readonly string BinaryContentType = "application/vnd.microsoft.aspnetcore.endpoint-messages.v1+binary";
 
         public static bool TryFormatMessage(Message message, Span<byte> buffer, MessageFormat format, out int bytesWritten)
         {
             if (!message.EndOfMessage)
             {
-                // This is a truely exceptional condition since we EXPECT callers to have already
+                // This is truly an exceptional condition since we EXPECT callers to have already
                 // buffered incomplete messages and synthesized the correct, complete message before
                 // giving it to us. Hence we throw, instead of returning false.
                 throw new ArgumentException("Cannot format message where endOfMessage is false using this format", nameof(message));
@@ -57,7 +57,7 @@ namespace Microsoft.AspNetCore.Sockets.Formatters
 
         public static MessageFormat GetFormat(byte formatIndicator)
         {
-            // Can't use switch because our "constants" are not consts, they're "static readonly"
+            // Can't use switch because our "constants" are not consts, they're "static readonly" (which is good, because they are public)
             if (formatIndicator == TextFormatIndicator)
             {
                 return MessageFormat.Text;

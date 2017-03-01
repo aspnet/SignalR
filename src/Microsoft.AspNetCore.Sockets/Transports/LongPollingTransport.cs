@@ -53,7 +53,7 @@ namespace Microsoft.AspNetCore.Sockets.Transports
                     _logger.LogDebug("Writing {0} byte message to response", message.Payload.Length);
 
                     // Try to format the message
-                    if(!MessageFormatter.TryFormatMessage(message, buffer, messageFormat, out var written))
+                    if (!MessageFormatter.TryFormatMessage(message, buffer, messageFormat, out var written))
                     {
                         // We need to expand the buffer
                         // REVIEW: I'm not sure I fully understand the "right" pattern here...
@@ -61,7 +61,7 @@ namespace Microsoft.AspNetCore.Sockets.Transports
                         buffer = alloc.Memory.Span;
 
                         // Try one more time
-                        if(!MessageFormatter.TryFormatMessage(message, buffer, messageFormat, out written))
+                        if (!MessageFormatter.TryFormatMessage(message, buffer, messageFormat, out written))
                         {
                             // Message too large
                             throw new InvalidOperationException($"Message is too large to write. Maximum allowed message size is: {MaxBufferSize}");

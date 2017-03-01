@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.Pipelines;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -134,6 +133,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 {
                     throw new InvalidDataException("Invalid message payload from server");
                 }
+
                 payload = payload.Slice(consumed);
                 yield return message;
             }

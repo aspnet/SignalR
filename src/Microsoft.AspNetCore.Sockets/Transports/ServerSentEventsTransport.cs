@@ -30,9 +30,9 @@ namespace Microsoft.AspNetCore.Sockets.Transports
             context.Response.Headers["Cache-Control"] = "no-cache";
             context.Response.Headers["Content-Encoding"] = "identity";
 
-            var pipe = context.Response.Body.AsPipelineWriter();
+            await context.Response.Body.FlushAsync();
 
-            await pipe.Alloc().FlushAsync();
+            var pipe = context.Response.Body.AsPipelineWriter();
 
             try
             {
