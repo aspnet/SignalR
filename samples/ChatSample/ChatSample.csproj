@@ -16,6 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="BuildBundlerMinifier" Version="2.4.337" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Cookies" Version="$(AspNetCoreVersion)" />
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="$(AspNetCoreVersion)" />
     <PackageReference Include="Microsoft.AspNetCore" Version="$(AspNetCoreVersion)" />
@@ -37,10 +38,6 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="$(AspNetCoreVersion)" />
   </ItemGroup>
 
-  <Target Name="DotnetBundle" BeforeTargets="BeforeBuild">
-    <Exec Command="dotnet bundle" />
-  </Target>
-
   <Target Name="CopyTSClient" BeforeTargets="AfterBuild">
     <Copy SourceFiles="$(MSBuildThisFileDirectory)..\..\dist\browser\signalr-client.js"
           DestinationFolder="$(MSBuildThisFileDirectory)wwwroot\lib\signalr-client" />
@@ -51,7 +48,6 @@
   </Target>
 
   <ItemGroup>
-    <DotNetCliToolReference Include="BundlerMinifier.Core" Version="2.2.301" />
     <DotNetCliToolReference Include="Microsoft.EntityFrameworkCore.Tools.DotNet" Version="$(AspNetCoreVersion)" />
     <DotNetCliToolReference Include="Microsoft.Extensions.SecretManager.Tools" Version="1.0.1-*" />
   </ItemGroup>
