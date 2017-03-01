@@ -93,14 +93,9 @@ namespace Microsoft.AspNetCore.Sockets.Client
                         {
                             while (!_application.Output.TryWrite(message))
                             {
-                                if(cancellationToken.IsCancellationRequested)
+                                if (cancellationToken.IsCancellationRequested || !await _application.Output.WaitToWriteAsync(cancellationToken))
                                 {
-                                    // Cancellation token fired
                                     return;
-                                }
-                                if (!await _application.Output.WaitToWriteAsync(cancellationToken))
-                                {
-                                    break;
                                 }
                             }
                         }
@@ -125,7 +120,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         private IEnumerable<Message> ReadMessages(ReadOnlySpan<byte> payload)
         {
-            if(payload.Length == 0)
+            if (payload.Length == 0)
             {
                 yield break;
             }
@@ -133,9 +128,9 @@ namespace Microsoft.AspNetCore.Sockets.Client
             var messageFormat = MessageFormatter.GetFormat(payload[0]);
             payload = payload.Slice(1);
 
-            while(payload.Length > 0)
+            while (payload.Length > 0)
             {
-                if(!MessageFormatter.TryParseMessage(payload, messageFormat, out var message, out var consumed))
+                if (!MessageFormatter.TryParseMessage(payload, messageFormat, out var message, out var consumed))
                 {
                     throw new InvalidDataException("Invalid message payload from server");
                 }
