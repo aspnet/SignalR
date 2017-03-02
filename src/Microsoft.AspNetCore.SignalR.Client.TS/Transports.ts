@@ -93,7 +93,19 @@ export class ServerSentEventsTransport implements ITransport {
             try {
                 eventSource.onmessage = (e: MessageEvent) => {
                     if (this.onDataReceived) {
-                        this.onDataReceived(e.data);
+                        // Parse the message
+                        let [error, message] = Formatters.SSE.parseMessage(e.data);
+                        if (error) {
+                            if (this.onError) {
+                                // TODO: Is this how we should emit this?
+                                this.onError(error);
+                                // TODO: Logging!
+                            }
+                            return;
+                        }
+
+                        // TODO: pass the whole message object along
+                        this.onDataReceived(message.content);
                     }
                 };
 

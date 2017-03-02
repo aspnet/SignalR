@@ -1,4 +1,4 @@
-import { parseMessages, Text } from "../../src/Microsoft.AspNetCore.SignalR.Client.TS/Formatters"
+import { parseMessages, Text, SSE } from "../../src/Microsoft.AspNetCore.SignalR.Client.TS/Formatters"
 import { Message, MessageType } from "../../src/Microsoft.AspNetCore.SignalR.Client.TS/Message";
 
 describe("Message Formatter", () => {
@@ -57,6 +57,35 @@ describe("Text Message Formatter", () => {
             let [error, messages] = Text.parseMessages(payload);
             expect(error).toEqual(expected_error);
             expect(messages).toEqual(expected_messages);
+        });
+    });
+});
+
+describe("Server-Sent Events Formatter", () => {
+    ([
+        ["", "Message is missing header"],
+        ["A", "Unknown type value: 'A'"],
+        ["BOO\r\nBlarg", "Unknown type value: 'BOO'"]
+    ] as [string, string][]).forEach(([payload, expected_error]) => {
+        it(`should fail to parse '${payload}`, () => {
+            let [error, message] = SSE.parseMessage(payload);
+            expect(error).toEqual(expected_error);
+            expect(message).toBeNull();
+        });
+    });
+
+    ([
+        ["T\r\nTest", new Message(MessageType.Text, "Test")],
+        ["C\r\nTest", new Message(MessageType.Close, "Test")],
+        ["E\r\nTest", new Message(MessageType.Error, "Test")],
+        ["T", new Message(MessageType.Text, "")],
+        ["T\r\n", new Message(MessageType.Text, "")],
+        ["T\r\nFoo\r\nBar", new Message(MessageType.Text, "Foo\r\nBar")]
+    ] as [string, Message][]).forEach(([payload, expected_message]) => {
+        it(`should parse '${payload}' correctly`, () => {
+            let [error, message] = SSE.parseMessage(payload);
+            expect(error).toBeNull();
+            expect(message).toEqual(expected_message);
         });
     });
 });

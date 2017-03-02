@@ -1,24 +1,60 @@
-import { Message, MessageType } from './Message';
+﻿import { Message, MessageType } from './Message';
+
+let knownTypes = {
+    "T": MessageType.Text,
+    "B": MessageType.Binary,
+    "C": MessageType.Close,
+    "E": MessageType.Error
+};
+
+function splitAt(input: string, searchString: string, position: number): [string, number] {
+    let index = input.indexOf(searchString, position);
+    if (index < 0) {
+        return [input.substr(position), input.length];
+    }
+    let left = input.substring(position, index);
+    return [left, index + searchString.length];
+}
+
+export namespace SSE {
+    export function parseMessage(input: string): [string, Message] {
+        // The SSE protocol is pretty simple. We just look at the first line for the type, and then process the remainder.
+        // Binary messages require Base64-decoding and ArrayBuffer support, just like in the other formats below
+
+        if (input.length == 0) {
+            return ["Message is missing header", null];
+        }
+
+        let [header, offset] = splitAt(input, "\n", 0);
+        let payload = input.substring(offset);
+
+        // Just in case the header used CRLF as the line separator, carve it off
+        if (header.endsWith('\r')) {
+            header = header.substr(0, header.length - 1);
+        }
+
+        // Parse the header
+        var type = knownTypes[header];
+        if (type === undefined) {
+            return ["Unknown type value: '" + header + "'", null];
+        }
+
+        if (type == MessageType.Binary) {
+            // We need to decode and put in an ArrayBuffer. Throw for now
+            // This will require our own Base64-decoder because the browser
+            // built-in one only decodes to strings and throws if invalid UTF-8
+            // characters are found.
+            throw "TODO: Support for binary messages";
+        }
+
+        // Create the message
+        return [null, new Message(type, payload)];
+    }
+}
 
 export namespace Text {
-    let knownTypes = {
-        "T": MessageType.Text,
-        "B": MessageType.Binary,
-        "C": MessageType.Close,
-        "E": MessageType.Error
-    };
-
     const InvalidPayloadError = new Error("Invalid text message payload");
     const LengthRegex = /^[0-9]+$/;
-
-    function splitAt(input: string, searchString: string, position: number): [string, number] {
-        let index = input.indexOf(searchString, position);
-        if (index < 0) {
-            return [input.substr(position), input.length];
-        }
-        let left = input.substring(position, index);
-        return [left, index + 1];
-    }
 
     function hasSpace(input: string, offset: number, length: number): boolean {
         let requiredLength = offset + length;
@@ -31,7 +67,7 @@ export namespace Text {
         // Read the length
         var [lenStr, offset] = splitAt(input, ":", offset);
 
-        // parseInt is too leniant, we need a strict check to see if the string is an int        
+        // parseInt is too leniant, we need a strict check to see if the string is an int
 
         if (!LengthRegex.test(lenStr)) {
             return [`Invalid length: '${lenStr}'`, position, null];
