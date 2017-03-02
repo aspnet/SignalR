@@ -1,4 +1,4 @@
-import { ConnectionClosed } from "./Common"
+import { ConnectionClosed, Transports } from "./Common"
 import { Connection } from "./Connection"
 
 interface InvocationDescriptor {
@@ -58,7 +58,7 @@ export class HubConnection {
         }
     }
 
-    start(transportName? :string): Promise<void> {
+    start(transportName?: Transports): Promise<void> {
         return this.connection.start(transportName);
     }
 

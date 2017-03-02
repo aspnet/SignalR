@@ -1,4 +1,4 @@
-import { DataReceived, ConnectionClosed } from "./Common"
+import { DataReceived, ConnectionClosed, Transports } from "./Common"
 import { ITransport, WebSocketTransport, ServerSentEventsTransport, LongPollingTransport } from "./Transports"
 import { IHttpClient, HttpClient } from "./HttpClient"
 import { ISignalROptions } from "./ISignalROptions"
@@ -26,7 +26,7 @@ export class Connection {
         this.connectionState = ConnectionState.Disconnected;
     }
 
-    async start(transportName: string = "webSockets"): Promise<void> {
+    async start(transportName: Transports = "webSockets"): Promise<void> {
         if (this.connectionState != ConnectionState.Disconnected) {
             throw new Error("Cannot start a connection that is not in the 'Disconnected' state");
         }
@@ -49,7 +49,7 @@ export class Connection {
         };
     }
 
-    private createTransport(transportName: string): ITransport {
+    private createTransport(transportName: Transports): ITransport {
         if (transportName === "webSockets") {
             return new WebSocketTransport();
         }
