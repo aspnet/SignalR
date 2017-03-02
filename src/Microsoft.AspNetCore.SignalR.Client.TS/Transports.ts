@@ -1,5 +1,6 @@
 import { DataReceived, ErrorHandler } from "./Common"
 import { IHttpClient } from "./HttpClient"
+import * as Formatters from "./Formatters";
 
 export interface ITransport {
     connect(url: string, queryString: string): Promise<void>;
@@ -160,7 +161,21 @@ export class LongPollingTransport implements ITransport {
         pollXhr.onload = () => {
             if (pollXhr.status == 200) {
                 if (this.onDataReceived) {
-                    this.onDataReceived(pollXhr.response);
+                    // Parse the messages
+                    let [error, messages] = Formatters.parseMessages(pollXhr.response);
+                    if (error) {
+                        if (this.onError) {
+                            // TODO: Is this how we should emit this?
+                            this.onError(error);
+                            // TODO: Logging!
+                        }
+                        return;
+                    }
+
+                    messages.forEach((message) => {
+                        // TODO: pass the whole message object along
+                        this.onDataReceived(message.content)
+                    });
                 }
                 this.poll(url);
             }

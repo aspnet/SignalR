@@ -62,10 +62,12 @@ namespace Microsoft.AspNetCore.Sockets.Formatters
             {
                 return MessageFormat.Text;
             }
-            else if (formatIndicator == BinaryFormatIndicator)
+
+            if (formatIndicator == BinaryFormatIndicator)
             {
                 return MessageFormat.Binary;
             }
+
             throw new ArgumentException($"Invalid message format: 0x{formatIndicator:X}", nameof(formatIndicator));
         }
 

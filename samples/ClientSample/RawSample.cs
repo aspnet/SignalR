@@ -18,12 +18,12 @@ namespace ClientSample
     {
         public static async Task MainAsync(string[] args)
         {
-            if(args.Any(a => a == "--debug"))
+            if(args.Contains("--debug"))
             {
                 Console.WriteLine($"Ready for debugger to attach. Process ID: {Process.GetCurrentProcess().Id}");
                 Console.Write("Press ENTER to Continue");
                 Console.ReadLine();
-                args = args.Where(a => a != "--debug").ToArray();
+                args = args.Except(new[] { "--debug" }).ToArray();
             }
 
             var baseUrl = "http://localhost:5000/chat";
