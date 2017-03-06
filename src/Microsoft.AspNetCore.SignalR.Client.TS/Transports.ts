@@ -74,7 +74,7 @@ export class ServerSentEventsTransport implements ITransport {
     private queryString: string;
     private httpClient: IHttpClient;
 
-    constructor(httpClient :IHttpClient) {
+    constructor(httpClient: IHttpClient) {
         this.httpClient = httpClient;
     }
 
@@ -94,12 +94,12 @@ export class ServerSentEventsTransport implements ITransport {
                 eventSource.onmessage = (e: MessageEvent) => {
                     if (this.onDataReceived) {
                         // Parse the message
-                        let [error, message] = Formatters.SSE.parseMessage(e.data);
-                        if (error) {
+                        let message;
+                        try {
+                            message = Formatters.ServerSentEventsFormat.parse(e.data);
+                        } catch (error) {
                             if (this.onError) {
-                                // TODO: Is this how we should emit this?
                                 this.onError(error);
-                                // TODO: Logging!
                             }
                             return;
                         }
@@ -151,7 +151,7 @@ export class LongPollingTransport implements ITransport {
     private pollXhr: XMLHttpRequest;
     private shouldPoll: boolean;
 
-    constructor(httpClient :IHttpClient) {
+    constructor(httpClient: IHttpClient) {
         this.httpClient = httpClient;
     }
 
@@ -174,12 +174,12 @@ export class LongPollingTransport implements ITransport {
             if (pollXhr.status == 200) {
                 if (this.onDataReceived) {
                     // Parse the messages
-                    let [error, messages] = Formatters.parseMessages(pollXhr.response);
-                    if (error) {
+                    let messages;
+                    try {
+                        messages = Formatters.TextMessageFormat.parse(pollXhr.response);
+                    } catch (error) {
                         if (this.onError) {
-                            // TODO: Is this how we should emit this?
                             this.onError(error);
-                            // TODO: Logging!
                         }
                         return;
                     }
