@@ -110,17 +110,15 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             get
             {
-                yield return new object[] { new string('A', 5 * 1024), new WebSocketsTransport()};
-                yield return new object[] { new string('A', 5 * 1024 * 1024 + 32), new WebSocketsTransport() };
-                yield return new object[] { new string('A', 5 * 1024), new LongPollingTransport(new HttpClient())};
-                yield return new object[] { new string('A', 5 * 1024 * 1024 + 32), new LongPollingTransport(new HttpClient())};
+                yield return new object[] { new string('A', 5 * 1024)};
+                yield return new object[] { new string('A', 5 * 1024 * 1024 + 32)};
             }
         }
 
         [ConditionalTheory]
         [OSSkipCondition(OperatingSystems.Windows, WindowsVersions.Win7, WindowsVersions.Win2008R2, SkipReason = "No WebSockets Client for this platform")]
         [MemberData(nameof(MessageSizesData))]
-        public async Task ConnectionCanSendAndReceiveDifferentMessageSizesWebSocketsTransport(string message, ITransport transport)
+        public async Task ConnectionCanSendAndReceiveDifferentMessageSizesWebSocketsTransport(string message)
         {
             var baseUrl = _serverFixture.BaseUrl;
             var loggerFactory = new LoggerFactory();
@@ -128,6 +126,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             var connection = new ClientConnection(new Uri(baseUrl + "/echo"), loggerFactory);
             try
             {
+                var transport = new WebSocketsTransport();
                 var receiveTcs = new TaskCompletionSource<byte[]>();
                 connection.Received += (data, messageType) => receiveTcs.SetResult(data);
 
