@@ -71,11 +71,8 @@ export class ServerSentEventsTransport implements ITransport {
     private eventSource: EventSource;
     private url: string;
     private queryString: string;
-    private httpClient: IHttpClient;
 
-    constructor(httpClient :IHttpClient) {
-        this.httpClient = httpClient;
-    }
+    constructor(private httpClient: IHttpClient) { }
 
     connect(url: string, queryString: string): Promise<void> {
         if (typeof (EventSource) === "undefined") {
@@ -134,13 +131,10 @@ export class ServerSentEventsTransport implements ITransport {
 export class LongPollingTransport implements ITransport {
     private url: string;
     private queryString: string;
-    private httpClient: IHttpClient;
     private pollXhr: XMLHttpRequest;
     private shouldPoll: boolean;
 
-    constructor(httpClient :IHttpClient) {
-        this.httpClient = httpClient;
-    }
+    constructor(private httpClient: IHttpClient) { }
 
     connect(url: string, queryString: string): Promise<void> {
         this.url = url;

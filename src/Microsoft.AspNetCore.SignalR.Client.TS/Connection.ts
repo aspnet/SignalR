@@ -11,17 +11,13 @@ enum ConnectionState {
 
 export class Connection {
     private connectionState: ConnectionState;
-    private url: string;
-    private queryString: string;
     private connectionId: string;
     private httpClient: IHttpClient;
     private transport: ITransport;
     private dataReceivedCallback: DataReceived = (data: any) => { };
     private connectionClosedCallback: ConnectionClosed = (error?: any) => { };
 
-    constructor(url: string, queryString: string = "", options: ISignalROptions = {}) {
-        this.url = url;
-        this.queryString = queryString;
+    constructor(private url: string, private queryString: string = "", options: ISignalROptions = {}) {
         this.httpClient = options.httpClient || new HttpClient();
         this.connectionState = ConnectionState.Disconnected;
     }
