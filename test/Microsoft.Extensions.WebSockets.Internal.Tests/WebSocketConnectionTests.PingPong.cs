@@ -8,7 +8,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Tests.Common;
-using Microsoft.AspNetCore.Testing.xunit;
 using Xunit;
 
 namespace Microsoft.Extensions.WebSockets.Internal.Tests
@@ -16,7 +15,6 @@ namespace Microsoft.Extensions.WebSockets.Internal.Tests
     public partial class WebSocketConnectionTests
     {
         [Fact]
-        //[SkipIfEnvVarPresent("TRAVIS", "This test times out a lot on Travis because of slow performance/threading issues")]
         public async Task AutomaticPingTransmission()
         {
             var startTime = DateTime.UtcNow;
