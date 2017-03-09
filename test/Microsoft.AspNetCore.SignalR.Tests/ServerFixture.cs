@@ -29,7 +29,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             var _verbose = string.Equals(Environment.GetEnvironmentVariable("SIGNALR_TESTS_VERBOSE"), "1");
             if (_verbose)
             {
-                _loggerFactory.AddConsole();
+                _loggerFactory.AddConsole(LogLevel.Debug);
             }
             if (Debugger.IsAttached)
             {
