@@ -66,7 +66,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             var t = Task.Run(() => host.Start());
             Console.WriteLine("Starting test server...");
             lifetime = host.Services.GetRequiredService<IApplicationLifetime>();
-            if (!lifetime.ApplicationStarted.WaitHandle.WaitOne(TimeSpan.FromSeconds(1)))
+            if (!lifetime.ApplicationStarted.WaitHandle.WaitOne(TimeSpan.FromSeconds(5)))
             {
                 // t probably faulted
                 if (t.IsFaulted)
