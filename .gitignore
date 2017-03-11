@@ -13,7 +13,7 @@ PublishProfiles/
 *.cache
 *.docstates
 _ReSharper.*
-nuget.exe
+*.exe
 *net45.csproj
 *net451.csproj
 *k10.csproj
@@ -25,7 +25,6 @@ nuget.exe
 *.ncrunchsolution
 *.*sdf
 *.ipch
-project.lock.json
 runtimes/
 .build/
 .testPublish/
@@ -33,11 +32,11 @@ launchSettings.json
 node_modules/
 npm-debug.log
 *.tmp
-*.nuget.props
-*.nuget.targets
 autobahnreports/
-site.min.css
 .idea/
 .vscode/
 signalr-client/
 dist/
+yarn.lock
+*.min.css
+*.min.js

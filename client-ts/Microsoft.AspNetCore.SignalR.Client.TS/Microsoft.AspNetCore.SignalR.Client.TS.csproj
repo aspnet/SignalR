@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
+    <YarnDir>$(MSBuildThisFileDirectory)..\</YarnDir>
     <SignalRClientDistFolder>$(MSBuildThisFileDirectory)..\dist\</SignalRClientDistFolder>
   </PropertyGroup>
 
@@ -17,13 +18,15 @@
     <Outputs Include="@(Inputs -> '$(SignalRClientDistFolder)src\%(FileName).js')" />
     <Outputs Include="$(SignalRClientDistFolder)browser\signalr-client.js" />
   </ItemGroup>
+
   <ItemGroup>
     <None Include="tsconfig.json" />
+    <PackageReference Include="Yarn.MSBuild" Version="0.21.3-*" />
   </ItemGroup>
 
-  <!-- this target relies on npm packages being restored manually or when running full build -->
   <Target Name="BuildTSClient" Inputs="@(Inputs)" Outputs="@(Outputs)" BeforeTargets="Build">
-    <Exec Command="npm run gulp -- --gulpfile $(MSBuildThisFileDirectory)gulpfile.js build-ts-client" />
+    <Yarn Command="run gulp -- --gulpfile $(MSBuildThisFileDirectory)gulpfile.js build-ts-client"
+      WorkingDirectory="$(YarnDir)" />
   </Target>
 
   <Target Name="CleanTSClient" AfterTargets="Clean">
