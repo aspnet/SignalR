@@ -1,11 +1,20 @@
 <Project>
-  <Target Name="RestoreNpm" AfterTargets="Restore" Condition="'$(PreflightRestore)' != 'True'">
-    <Message Text="Restoring NPM modules" Importance="high" />
-    <Exec Command="npm install" WorkingDirectory="$(RepositoryRoot)/client-ts" />
+  <ItemGroup>
+    <PackageReference Include="Yarn.MSBuild" Version="0.21.3-*" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <!-- Prevent yarn from running on 'Build' and 'Clean'. -->
+    <SuppressAutoYarn>true</SuppressAutoYarn>
+  </PropertyGroup>
+
+  <Target Name="RestoreYarn" AfterTargets="Restore" Condition="'$(PreflightRestore)' != 'True'">
+    <Message Text="Restoring Node modules" Importance="high" />
+    <Yarn Command="install" WorkingDirectory="$(RepositoryRoot)/client-ts" />
   </Target>
 
   <Target Name="RunTSClientNodeTests" AfterTargets="Test">
     <Message Text="Running TypeScript client Node tests" Importance="high" />
-    <Exec Command="npm test" WorkingDirectory="$(RepositoryRoot)/client-ts" />
+    <Exec Command="yarn run test" WorkingDirectory="$(RepositoryRoot)/client-ts" />
   </Target>
 </Project>
