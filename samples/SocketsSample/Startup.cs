@@ -3,6 +3,7 @@
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Sockets;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using SocketsSample.EndPoints;
@@ -29,7 +30,11 @@ namespace SocketsSample
                     });
             // .AddRedis();
 
-            services.AddEndPoint<MessagesEndPoint>();
+            services.AddEndPoint<MessagesEndPoint>(options =>
+            {
+                options.Transports = TransportType.Streaming;
+            });
+
             services.AddSingleton<ProtobufSerializer>();
         }
 
