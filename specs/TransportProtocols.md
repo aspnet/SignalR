@@ -193,7 +193,7 @@ The encoding will be as follows, as a list of binary digits in hex (text in pare
 ```
 0x66                                                   (ASCII 'B')
 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x0B                (start of frame; 64-bit integer value: 11)
-0x80                                                   (Type = Text)
+0x00                                                   (Type = Text)
 0x68 0x65 0x6C 0x6C 0x6F 0x0A 0x77 0x6F 0x72 0x6C 0x64 (UTF-8 encoding of 'Hello\nWorld')
 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x02                (start of frame; 64-bit integer value: 2)
 0x01                                                   (Type = Binary)
