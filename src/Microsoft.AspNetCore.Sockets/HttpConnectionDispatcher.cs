@@ -356,6 +356,7 @@ namespace Microsoft.AspNetCore.Sockets
 
 
             // REVIEW: Do we want to return a specific status code here if the connection has ended?
+            _logger.LogDebug("Received batch of {0} message(s) in '/send'", messages.Count);
             foreach (var message in messages)
             {
                 while (!state.Application.Output.TryWrite(message))

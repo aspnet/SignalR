@@ -221,6 +221,10 @@ namespace Microsoft.AspNetCore.Sockets.Client
                             message.SendResult?.TrySetResult(null);
                         }
                     }
+                    else
+                    {
+                        _logger.LogDebug("No messages in batch to send");
+                    }
                 }
             }
             catch (OperationCanceledException)
