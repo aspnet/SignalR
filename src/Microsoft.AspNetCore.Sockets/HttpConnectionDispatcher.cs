@@ -64,7 +64,7 @@ namespace Microsoft.AspNetCore.Sockets
                     return;
                 }
 
-                if (!await EnsureConnectionStateAsync(state, context, ServerSentEventsTransport.Name))
+                if (!await EnsureConnectionStateAsync(state, context, ServerSentEventsTransport.Name, allowReconnect: false))
                 {
                     // Bad connection state. It's already set the response status code.
                     return;
@@ -85,7 +85,7 @@ namespace Microsoft.AspNetCore.Sockets
                     return;
                 }
 
-                if (!await EnsureConnectionStateAsync(state, context, WebSocketsTransport.Name))
+                if (!await EnsureConnectionStateAsync(state, context, WebSocketsTransport.Name, allowReconnect: false))
                 {
                     // Bad connection state. It's already set the response status code.
                     return;
@@ -105,7 +105,7 @@ namespace Microsoft.AspNetCore.Sockets
                     return;
                 }
 
-                if (!await EnsureConnectionStateAsync(state, context, LongPollingTransport.Name))
+                if (!await EnsureConnectionStateAsync(state, context, LongPollingTransport.Name, allowReconnect: true))
                 {
                     // Bad connection state. It's already set the response status code.
                     return;
@@ -369,7 +369,7 @@ namespace Microsoft.AspNetCore.Sockets
             }
         }
 
-        private async Task<bool> EnsureConnectionStateAsync(ConnectionState connectionState, HttpContext context, string transportName)
+        private async Task<bool> EnsureConnectionStateAsync(ConnectionState connectionState, HttpContext context, string transportName, bool allowReconnect)
         {
             connectionState.Connection.User = context.User;
 
@@ -382,6 +382,13 @@ namespace Microsoft.AspNetCore.Sockets
             {
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
                 await context.Response.WriteAsync("Cannot change transports mid-connection");
+                return false;
+            }
+            else if (!allowReconnect)
+            {
+                // There's already a transport assigned!
+                context.Response.StatusCode = StatusCodes.Status409Conflict;
+                await context.Response.WriteAsync("Cannot establish a second connection while already connected");
                 return false;
             }
             return true;
