@@ -64,7 +64,7 @@ namespace Microsoft.AspNetCore.Sockets
                     return;
                 }
 
-                if (!await EnsureConnectionStateAsync(state, context, ServerSentEventsTransport.Name, allowReconnect: false))
+                if (!await EnsureConnectionStateAsync(state, context, ServerSentEventsTransport.Name))
                 {
                     // Bad connection state. It's already set the response status code.
                     return;
@@ -85,7 +85,7 @@ namespace Microsoft.AspNetCore.Sockets
                     return;
                 }
 
-                if (!await EnsureConnectionStateAsync(state, context, WebSocketsTransport.Name, allowReconnect: false))
+                if (!await EnsureConnectionStateAsync(state, context, WebSocketsTransport.Name))
                 {
                     // Bad connection state. It's already set the response status code.
                     return;
@@ -105,7 +105,7 @@ namespace Microsoft.AspNetCore.Sockets
                     return;
                 }
 
-                if (!await EnsureConnectionStateAsync(state, context, LongPollingTransport.Name, allowReconnect: true))
+                if (!await EnsureConnectionStateAsync(state, context, LongPollingTransport.Name))
                 {
                     // Bad connection state. It's already set the response status code.
                     return;
