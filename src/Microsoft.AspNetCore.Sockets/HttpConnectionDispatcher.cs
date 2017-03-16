@@ -369,7 +369,7 @@ namespace Microsoft.AspNetCore.Sockets
             }
         }
 
-        private async Task<bool> EnsureConnectionStateAsync(ConnectionState connectionState, HttpContext context, string transportName, bool allowReconnect)
+        private async Task<bool> EnsureConnectionStateAsync(ConnectionState connectionState, HttpContext context, string transportName)
         {
             connectionState.Connection.User = context.User;
 
@@ -382,13 +382,6 @@ namespace Microsoft.AspNetCore.Sockets
             {
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
                 await context.Response.WriteAsync("Cannot change transports mid-connection");
-                return false;
-            }
-            else if (!allowReconnect)
-            {
-                // There's already a transport assigned!
-                context.Response.StatusCode = StatusCodes.Status409Conflict;
-                await context.Response.WriteAsync("Cannot establish a second connection while already connected");
                 return false;
             }
             return true;

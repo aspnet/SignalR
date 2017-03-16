@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.Pipelines;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
@@ -15,7 +14,6 @@ using Microsoft.AspNetCore.WebSockets.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
-using Microsoft.Extensions.WebSockets.Internal;
 using Xunit;
 
 namespace Microsoft.AspNetCore.Sockets.Tests
@@ -180,16 +178,18 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             Assert.False(exists);
         }
 
-        [Fact]
-        public async Task RequestToActiveConnectionId409ForStreamingTransports()
+        [Theory]
+        [InlineData("/ws", true)]
+        [InlineData("/sse", false)]
+        public async Task RequestToActiveConnectionId409ForStreamingTransports(string path, bool isWebSocketRequest)
         {
             var manager = CreateConnectionManager();
             var state = manager.CreateConnection();
 
             var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
 
-            var context1 = MakeRequest<TestEndPoint>("/sse", state);
-            var context2 = MakeRequest<TestEndPoint>("/sse", state);
+            var context1 = MakeRequest<TestEndPoint>(path, state, isWebSocketRequest: isWebSocketRequest);
+            var context2 = MakeRequest<TestEndPoint>(path, state, isWebSocketRequest: isWebSocketRequest);
 
             var request1 = dispatcher.ExecuteAsync<TestEndPoint>("", context1);
 
@@ -344,46 +344,9 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             // Verify the results
             Assert.Equal(StatusCodes.Status204NoContent, context1.Response.StatusCode);
-            Assert.Equal("", GetContentAsString(context1.Response.Body));
+            Assert.Equal(string.Empty, GetContentAsString(context1.Response.Body));
             Assert.Equal(StatusCodes.Status200OK, context2.Response.StatusCode);
             Assert.Equal("T12:T:Hello, World;", GetContentAsString(context2.Response.Body));
-        }
-
-        [Theory]
-        [InlineData("/ws", true)]
-        [InlineData("/sse", false)]
-        public async Task AttemptingToConnectWhileAlreadyConnectedYieldsConflictError(string path, bool isWebSocketRequest)
-        {
-            var manager = CreateConnectionManager();
-            var state = manager.CreateConnection();
-
-            var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
-
-            var context1 = MakeRequest<BlockingEndPoint>(path, state, isWebSocketRequest: isWebSocketRequest);
-            var task1 = dispatcher.ExecuteAsync<BlockingEndPoint>("", context1);
-            var context2 = MakeRequest<BlockingEndPoint>(path, state, isWebSocketRequest: isWebSocketRequest);
-            var task2 = dispatcher.ExecuteAsync<BlockingEndPoint>("", context2);
-
-            // Task 2 should finish quickly because it is a conflict
-            await task2.OrTimeout();
-
-            // Release task1 by writing to the app
-            if (isWebSocketRequest)
-            {
-                var socket = ((TestWebSocketConnectionFeature)context1.Features.Get<IHttpWebSocketConnectionFeature>()).Client;
-                var clientExecute = socket.ExecuteAsync(_ => { });
-                await socket.SendAsync(new WebSocketFrame(endOfMessage: true, opcode: WebSocketOpcode.Text, payload: ReadableBuffer.Create(Array.Empty<byte>())));
-                await clientExecute.OrTimeout();
-                await socket.CloseAsync(WebSocketCloseStatus.NormalClosure);
-            }
-            else
-            {
-                await state.Application.Output.WriteAsync(new Message(new byte[0], MessageType.Text, endOfMessage: true));
-            }
-
-            await task1.OrTimeout();
-
-            Assert.Equal(StatusCodes.Status409Conflict, context2.Response.StatusCode);
         }
 
         [Theory]
