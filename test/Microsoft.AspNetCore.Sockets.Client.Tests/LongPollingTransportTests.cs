@@ -345,7 +345,7 @@ namespace Microsoft.AspNetCore.Client.Tests
                         // Build a new request object, but convert the entire payload to string
                         sentRequests.Add(await request.Content.ReadAsByteArrayAsync());
                     }
-                    return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(string.Empty) };
+                    return ResponseUtils.CreateResponse(HttpStatusCode.OK);
                 });
 
             using (var httpClient = new HttpClient(mockHttpHandler.Object))
