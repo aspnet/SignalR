@@ -17,6 +17,7 @@ using Xunit;
 using ClientConnection = Microsoft.AspNetCore.Sockets.Client.Connection;
 using Microsoft.AspNetCore.SignalR.Tests.Common;
 using Xunit.Abstractions;
+using System.Linq;
 
 namespace Microsoft.AspNetCore.SignalR.Tests
 {
@@ -56,8 +57,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 await ws.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Binary, true, CancellationToken.None);
                 var buffer = new ArraySegment<byte>(new byte[1024]);
                 var result = await ws.ReceiveAsync(buffer, CancellationToken.None);
-
-                Assert.Equal(bytes, buffer.Array.Slice(0, message.Length).ToArray());
+                
+                Assert.Equal(bytes, new ArraySegment<byte>(buffer.Array, 0, message.Length).ToArray());
 
                 await ws.CloseAsync(WebSocketCloseStatus.Empty, "", CancellationToken.None);
             }
