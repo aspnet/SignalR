@@ -105,34 +105,37 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         }
 
         [Theory]
-        [InlineData(TransportType.WebSockets, "/ws", 404)]
-        [InlineData(TransportType.ServerSentEvents, "/sse", 404)]
-        public async Task EndPointThatOnlySupportsLongPollingRejectsOtherTransports(TransportType transportType, string path, int status)
+        [InlineData(TransportType.LongPolling, 204)]
+        [InlineData(TransportType.WebSockets, 404)]
+        [InlineData(TransportType.ServerSentEvents, 404)]
+        public async Task EndPointThatOnlySupportsLongPollingRejectsOtherTransports(TransportType transportType, int status)
         {
-            await CheckTransportSupported(TransportType.LongPolling, transportType, path, status);
+            await CheckTransportSupported(TransportType.LongPolling, transportType, status);
         }
 
         [Theory]
-        [InlineData(TransportType.WebSockets, "/ws", 404)]
-        [InlineData(TransportType.LongPolling, "/poll", 404)]
-        public async Task EndPointThatOnlySupportsSSERejectsOtherTransports(TransportType transportType, string path, int status)
+        [InlineData(TransportType.ServerSentEvents, 200)]
+        [InlineData(TransportType.WebSockets, 404)]
+        [InlineData(TransportType.LongPolling, 404)]
+        public async Task EndPointThatOnlySupportsSSERejectsOtherTransports(TransportType transportType, int status)
         {
-            await CheckTransportSupported(TransportType.ServerSentEvents, transportType, path, status);
+            await CheckTransportSupported(TransportType.ServerSentEvents, transportType, status);
         }
 
         [Theory]
-        [InlineData(TransportType.ServerSentEvents, "/sse", 404)]
-        [InlineData(TransportType.LongPolling, "/poll", 404)]
-        public async Task EndPointThatOnlySupportsWebSockesRejectsOtherTransports(TransportType transportType, string path, int status)
+        [InlineData(TransportType.WebSockets, 200)]
+        [InlineData(TransportType.ServerSentEvents, 404)]
+        [InlineData(TransportType.LongPolling, 404)]
+        public async Task EndPointThatOnlySupportsWebSockesRejectsOtherTransports(TransportType transportType, int status)
         {
-            await CheckTransportSupported(TransportType.WebSockets, transportType, path, status);
+            await CheckTransportSupported(TransportType.WebSockets, transportType, status);
         }
 
         [Theory]
-        [InlineData(TransportType.LongPolling, "/poll", 404)]
-        public async Task EndPointThatOnlySupportsWebSocketsAndSSERejectsLongPolling(TransportType transportType, string path, int status)
+        [InlineData(TransportType.LongPolling, 404)]
+        public async Task EndPointThatOnlySupportsWebSocketsAndSSERejectsLongPolling(TransportType transportType, int status)
         {
-            await CheckTransportSupported(TransportType.WebSockets | TransportType.ServerSentEvents, transportType, path, status);
+            await CheckTransportSupported(TransportType.WebSockets | TransportType.ServerSentEvents, transportType, status);
         }
 
         [Fact]
@@ -390,8 +393,24 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             Assert.Equal(MessageType.Close, messages[3].Type);
         }
 
-        private static async Task CheckTransportSupported(TransportType supportedTransports, TransportType transportType, string path, int status)
+        private static async Task CheckTransportSupported(TransportType supportedTransports, TransportType transportType, int status)
         {
+            var path = "";
+            switch (transportType)
+            {
+                case TransportType.WebSockets:
+                    path = "/ws";
+                    break;
+                case TransportType.ServerSentEvents:
+                    path = "/sse";
+                    break;
+                case TransportType.LongPolling:
+                    path = "/poll";
+                    break;
+                default:
+                    break;
+            }
+
             var manager = CreateConnectionManager();
             var state = manager.CreateConnection();
             var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
@@ -401,7 +420,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 context.Response.Body = strm;
                 var services = new ServiceCollection();
                 services.AddOptions();
-                services.AddEndPoint<TestEndPoint>(options =>
+                services.AddEndPoint<ImmediatelyCompleteEndPoint>(options =>
                 {
                     options.Transports = supportedTransports;
                 });
@@ -412,11 +431,15 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 values["id"] = state.Connection.ConnectionId;
                 var qs = new QueryCollection(values);
                 context.Request.Query = qs;
-                await dispatcher.ExecuteAsync<TestEndPoint>("", context);
-
+                await dispatcher.ExecuteAsync<ImmediatelyCompleteEndPoint>("", context);
                 Assert.Equal(status, context.Response.StatusCode);
                 await strm.FlushAsync();
-                Assert.Equal($"{transportType} transport not supported by this end point type", Encoding.UTF8.GetString(strm.ToArray()));
+
+                // Check the message for 404
+                if (status == 404)
+                {
+                    Assert.Equal($"{transportType} transport not supported by this end point type", Encoding.UTF8.GetString(strm.ToArray()));
+                }
             }
         }
 
