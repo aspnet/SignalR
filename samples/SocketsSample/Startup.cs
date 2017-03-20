@@ -30,10 +30,7 @@ namespace SocketsSample
                     });
             // .AddRedis();
 
-            services.AddEndPoint<MessagesEndPoint>(options =>
-            {
-                options.Transports = TransportType.Streaming;
-            });
+            services.AddEndPoint<MessagesEndPoint>();
 
             services.AddSingleton<ProtobufSerializer>();
         }

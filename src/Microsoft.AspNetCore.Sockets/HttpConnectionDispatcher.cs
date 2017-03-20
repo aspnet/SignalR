@@ -162,7 +162,7 @@ namespace Microsoft.AspNetCore.Sockets
                     {
                         _logger.LogDebug("Establishing new connection: {connectionId} on {requestId}", state.Connection.ConnectionId, state.RequestId);
 
-                        state.Connection.Metadata["transport"] = "longpolling";
+                        state.Connection.Metadata["transport"] = TransportType.LongPolling;
 
                         state.ApplicationTask = ExecuteApplication(endpoint, state.Connection);
                     }
@@ -375,25 +375,22 @@ namespace Microsoft.AspNetCore.Sockets
 
         private async Task<bool> EnsureConnectionStateAsync(ConnectionState connectionState, HttpContext context, TransportType transportType, TransportType supportedTransports)
         {
-            var transportName = transportType.ToString().ToLower();
-
             if ((supportedTransports & transportType) == 0)
             {
                 context.Response.StatusCode = StatusCodes.Status404NotFound;
-                // REVIEW: Is this information leakage? Should we only show this in "development"?
-                await context.Response.WriteAsync($"{transportName} transport not supported by this end point type");
+                await context.Response.WriteAsync($"{transportType} transport not supported by this end point type");
                 return false;
             }
 
             connectionState.Connection.User = context.User;
 
-            var transport = connectionState.Connection.Metadata.Get<string>("transport");
+            var transport = connectionState.Connection.Metadata.Get<TransportType?>("transport");
 
-            if (string.IsNullOrEmpty(transport))
+            if (transport == null)
             {
-                connectionState.Connection.Metadata["transport"] = transportName;
+                connectionState.Connection.Metadata["transport"] = transportType;
             }
-            else if (!string.Equals(transport, transportName, StringComparison.Ordinal))
+            else if (transport != transportType)
             {
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
                 await context.Response.WriteAsync("Cannot change transports mid-connection");

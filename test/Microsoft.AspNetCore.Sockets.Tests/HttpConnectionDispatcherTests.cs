@@ -31,6 +31,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var context = new DefaultHttpContext();
             var services = new ServiceCollection();
             services.AddEndPoint<TestEndPoint>();
+            services.AddOptions();
             context.RequestServices = services.BuildServiceProvider();
             var ms = new MemoryStream();
             context.Request.Path = "/negotiate";
@@ -61,6 +62,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
                 var services = new ServiceCollection();
                 services.AddEndPoint<TestEndPoint>();
+                services.AddOptions();
                 context.RequestServices = services.BuildServiceProvider();
                 context.Request.Path = path;
                 var values = new Dictionary<string, StringValues>();
@@ -89,6 +91,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 var context = new DefaultHttpContext();
                 context.Response.Body = strm;
                 var services = new ServiceCollection();
+                services.AddOptions();
                 services.AddEndPoint<TestEndPoint>();
                 context.RequestServices = services.BuildServiceProvider();
                 context.Request.Path = path;
@@ -99,6 +102,37 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 await strm.FlushAsync();
                 Assert.Equal("Connection ID required", Encoding.UTF8.GetString(strm.ToArray()));
             }
+        }
+
+        [Theory]
+        [InlineData(TransportType.WebSockets, "/ws", 404)]
+        [InlineData(TransportType.ServerSentEvents, "/sse", 404)]
+        public async Task EndPointThatOnlySupportsLongPollingRejectsOtherTransports(TransportType transportType, string path, int status)
+        {
+            await CheckTransportSupported(TransportType.LongPolling, transportType, path, status);
+        }
+
+        [Theory]
+        [InlineData(TransportType.WebSockets, "/ws", 404)]
+        [InlineData(TransportType.LongPolling, "/poll", 404)]
+        public async Task EndPointThatOnlySupportsSSERejectsOtherTransports(TransportType transportType, string path, int status)
+        {
+            await CheckTransportSupported(TransportType.ServerSentEvents, transportType, path, status);
+        }
+
+        [Theory]
+        [InlineData(TransportType.ServerSentEvents, "/sse", 404)]
+        [InlineData(TransportType.LongPolling, "/poll", 404)]
+        public async Task EndPointThatOnlySupportsWebSockesRejectsOtherTransports(TransportType transportType, string path, int status)
+        {
+            await CheckTransportSupported(TransportType.WebSockets, transportType, path, status);
+        }
+
+        [Theory]
+        [InlineData(TransportType.LongPolling, "/poll", 404)]
+        public async Task EndPointThatOnlySupportsWebSocketsAndSSERejectsLongPolling(TransportType transportType, string path, int status)
+        {
+            await CheckTransportSupported(TransportType.WebSockets | TransportType.ServerSentEvents, transportType, path, status);
         }
 
         [Fact]
@@ -356,6 +390,36 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             Assert.Equal(MessageType.Close, messages[3].Type);
         }
 
+        private static async Task CheckTransportSupported(TransportType supportedTransports, TransportType transportType, string path, int status)
+        {
+            var manager = CreateConnectionManager();
+            var state = manager.CreateConnection();
+            var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
+            using (var strm = new MemoryStream())
+            {
+                var context = new DefaultHttpContext();
+                context.Response.Body = strm;
+                var services = new ServiceCollection();
+                services.AddOptions();
+                services.AddEndPoint<TestEndPoint>(options =>
+                {
+                    options.Transports = supportedTransports;
+                });
+
+                context.RequestServices = services.BuildServiceProvider();
+                context.Request.Path = path;
+                var values = new Dictionary<string, StringValues>();
+                values["id"] = state.Connection.ConnectionId;
+                var qs = new QueryCollection(values);
+                context.Request.Query = qs;
+                await dispatcher.ExecuteAsync<TestEndPoint>("", context);
+
+                Assert.Equal(status, context.Response.StatusCode);
+                await strm.FlushAsync();
+                Assert.Equal($"{transportType} transport not supported by this end point type", Encoding.UTF8.GetString(strm.ToArray()));
+            }
+        }
+
         private static async Task<List<Message>> RunSendTest(string contentType, string encoded, string format)
         {
             var manager = CreateConnectionManager();
@@ -389,6 +453,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var context = new DefaultHttpContext();
             var services = new ServiceCollection();
             services.AddEndPoint<TEndPoint>();
+            services.AddOptions();
             context.RequestServices = services.BuildServiceProvider();
             context.Request.Path = path;
             var values = new Dictionary<string, StringValues>();
