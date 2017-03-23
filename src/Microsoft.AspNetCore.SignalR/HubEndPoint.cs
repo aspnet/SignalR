@@ -307,7 +307,8 @@ namespace Microsoft.AspNetCore.SignalR
 
         private void DiscoverHubMethods()
         {
-            foreach (var methodInfo in typeof(THub).GetMethods().Where(m => IsHubMethod(m)))
+            var hubType = typeof(THub);
+            foreach (var methodInfo in hubType.GetMethods().Where(m => IsHubMethod(m)))
             {
                 var methodName = methodInfo.Name;
 
@@ -316,7 +317,7 @@ namespace Microsoft.AspNetCore.SignalR
                     throw new NotSupportedException($"Duplicate definitions of '{methodName}'. Overloading is not supported.");
                 }
 
-                var executor = ObjectMethodExecutor.Create(methodInfo, typeof(THub).GetTypeInfo());
+                var executor = ObjectMethodExecutor.Create(methodInfo, hubType.GetTypeInfo());
                 _methods[methodName] = new HubMethodDescriptor(executor);
 
                 if (_logger.IsEnabled(LogLevel.Debug))
