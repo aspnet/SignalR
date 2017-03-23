@@ -324,66 +324,6 @@ namespace Microsoft.AspNetCore.SignalR
                     _logger.LogDebug("Hub method '{methodName}' is bound", methodName);
                 }
             }
-
-            // used for checking against methods in base classes
-            //var methods = new Dictionary<string, MethodInfo>();
-            //do
-            //{
-            //    foreach (var methodInfo in typeInfo.DeclaredMethods.Where(m => IsHubMethod(m)))
-            //    {
-            //        var methodName = methodInfo.Name;
-            //        if (methods.TryGetValue(methodName, out var storedMethodInfo))
-            //        {
-            //            if (!AreMethodsEqual(methodInfo, storedMethodInfo))
-            //            {
-            //                throw new NotSupportedException($"Duplicate definitions of '{methodName}'. Overloading is not supported.");
-            //            }
-            //            else
-            //            {
-            //                // methods were equal meaning the current hub class was inherited from and had this method either
-            //                // 1. Overloaded via virtual
-            //                // 2. Hidden via new
-            //                // this means we don't want to create a method executor for this method instance
-            //                continue;
-            //            }
-            //        }
-            //        else
-            //        {
-            //            // this stores the top level functions in the inheritence tree
-            //            methods.Add(methodName, methodInfo);
-            //        }
-
-            //        var executor = ObjectMethodExecutor.Create(methodInfo, typeInfo);
-            //        _methods[methodName] = new HubMethodDescriptor(executor);
-
-            //        if (_logger.IsEnabled(LogLevel.Debug))
-            //        {
-            //            _logger.LogDebug("Hub method '{methodName}' is bound", methodName);
-            //        }
-            //    }
-
-            //    typeInfo = typeInfo.BaseType.GetTypeInfo();
-            //} while (typeInfo.AsType() != typeof(Hub<TClient>));
-        }
-
-        private static bool AreMethodsEqual(MethodInfo left, MethodInfo right)
-        {
-            var leftParams = left.GetParameters();
-            var rightParams = right.GetParameters();
-            if (leftParams.Length == rightParams.Length)
-            {
-                for (var index = 0; index < leftParams.Length; ++index)
-                {
-                    if (leftParams[index].ParameterType != rightParams[index].ParameterType)
-                    {
-                        return false;
-                    }
-                }
-
-                return true;
-            }
-
-            return false;
         }
 
         private static bool IsHubMethod(MethodInfo methodInfo)
