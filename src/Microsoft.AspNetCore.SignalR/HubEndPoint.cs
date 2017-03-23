@@ -307,47 +307,63 @@ namespace Microsoft.AspNetCore.SignalR
 
         private void DiscoverHubMethods()
         {
-            var typeInfo = typeof(THub).GetTypeInfo();
-
-            // used for checking against methods in base classes
-            var methods = new Dictionary<string, MethodInfo>();
-            do
+            foreach (var methodInfo in typeof(THub).GetMethods().Where(m => IsHubMethod(m)))
             {
-                foreach (var methodInfo in typeInfo.DeclaredMethods.Where(m => IsHubMethod(m)))
+                var methodName = methodInfo.Name;
+
+                if (_methods.ContainsKey(methodName))
                 {
-                    var methodName = methodInfo.Name;
-                    if (methods.TryGetValue(methodName, out var storedMethodInfo))
-                    {
-                        if (!AreMethodsEqual(methodInfo, storedMethodInfo))
-                        {
-                            throw new NotSupportedException($"Duplicate definitions of '{methodName}'. Overloading is not supported.");
-                        }
-                        else
-                        {
-                            // methods were equal meaning the current hub class was inherited from and had this method either
-                            // 1. Overloaded via virtual
-                            // 2. Hidden via new
-                            // this means we don't want to create a method executor for this method instance
-                            continue;
-                        }
-                    }
-                    else
-                    {
-                        // this stores the top level functions in the inheritence tree
-                        methods.Add(methodName, methodInfo);
-                    }
-
-                    var executor = ObjectMethodExecutor.Create(methodInfo, typeInfo);
-                    _methods[methodName] = new HubMethodDescriptor(executor);
-
-                    if (_logger.IsEnabled(LogLevel.Debug))
-                    {
-                        _logger.LogDebug("Hub method '{methodName}' is bound", methodName);
-                    }
+                    throw new NotSupportedException($"Duplicate definitions of '{methodName}'. Overloading is not supported.");
                 }
 
-                typeInfo = typeInfo.BaseType.GetTypeInfo();
-            } while (typeInfo.AsType() != typeof(Hub<TClient>));
+                var executor = ObjectMethodExecutor.Create(methodInfo, typeof(THub).GetTypeInfo());
+                _methods[methodName] = new HubMethodDescriptor(executor);
+
+                if (_logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.LogDebug("Hub method '{methodName}' is bound", methodName);
+                }
+            }
+
+            // used for checking against methods in base classes
+            //var methods = new Dictionary<string, MethodInfo>();
+            //do
+            //{
+            //    foreach (var methodInfo in typeInfo.DeclaredMethods.Where(m => IsHubMethod(m)))
+            //    {
+            //        var methodName = methodInfo.Name;
+            //        if (methods.TryGetValue(methodName, out var storedMethodInfo))
+            //        {
+            //            if (!AreMethodsEqual(methodInfo, storedMethodInfo))
+            //            {
+            //                throw new NotSupportedException($"Duplicate definitions of '{methodName}'. Overloading is not supported.");
+            //            }
+            //            else
+            //            {
+            //                // methods were equal meaning the current hub class was inherited from and had this method either
+            //                // 1. Overloaded via virtual
+            //                // 2. Hidden via new
+            //                // this means we don't want to create a method executor for this method instance
+            //                continue;
+            //            }
+            //        }
+            //        else
+            //        {
+            //            // this stores the top level functions in the inheritence tree
+            //            methods.Add(methodName, methodInfo);
+            //        }
+
+            //        var executor = ObjectMethodExecutor.Create(methodInfo, typeInfo);
+            //        _methods[methodName] = new HubMethodDescriptor(executor);
+
+            //        if (_logger.IsEnabled(LogLevel.Debug))
+            //        {
+            //            _logger.LogDebug("Hub method '{methodName}' is bound", methodName);
+            //        }
+            //    }
+
+            //    typeInfo = typeInfo.BaseType.GetTypeInfo();
+            //} while (typeInfo.AsType() != typeof(Hub<TClient>));
         }
 
         private static bool AreMethodsEqual(MethodInfo left, MethodInfo right)

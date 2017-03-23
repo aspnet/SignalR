@@ -296,28 +296,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Fact]
-        public async Task CanCallNewMethodHidingBaseMethodOnInheritedHub()
-        {
-            var serviceProvider = CreateServiceProvider();
-
-            var endPoint = serviceProvider.GetService<HubEndPoint<InheritedHub>>();
-
-            using (var client = new TestClient(serviceProvider))
-            {
-                var endPointTask = endPoint.OnConnectedAsync(client.Connection);
-
-                var result = await client.Invoke<InvocationResultDescriptor>(nameof(InheritedHub.NewMethod)).OrTimeout();
-
-                Assert.Equal(4L, result.Result);
-
-                // kill the connection
-                client.Dispose();
-
-                await endPointTask.OrTimeout();
-            }
-        }
-
-        [Fact]
         public async Task CannotCallOverriddenBaseHubMethod()
         {
             var serviceProvider = CreateServiceProvider();
@@ -634,11 +612,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 return num - 10;
             }
-
-            public new int NewMethod()
-            {
-                return 4;
-            }
         }
 
         private class BaseHub : Hub
@@ -651,11 +624,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             public virtual int VirtualMethod(int num)
             {
                 return num;
-            }
-
-            public int NewMethod()
-            {
-                return 3;
             }
         }
 
