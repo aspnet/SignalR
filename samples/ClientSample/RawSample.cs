@@ -26,7 +26,7 @@ namespace ClientSample
                 args = args.Except(new[] { "--debug" }).ToArray();
             }
 
-            var baseUrl = "http://localhost:5000/chat";
+            var baseUrl = "http://localhost:1850/chat";
             if (args.Length > 0)
             {
                 baseUrl = args[0];
@@ -39,7 +39,7 @@ namespace ClientSample
             using (var httpClient = new HttpClient(new LoggingMessageHandler(loggerFactory, new HttpClientHandler())))
             {
                 logger.LogInformation("Connecting to {0}", baseUrl);
-                var transport = new LongPollingTransport(httpClient, loggerFactory);
+                var transport = new ServerSentEventsTransport(httpClient, loggerFactory);
                 var connection = new Connection(new Uri(baseUrl), loggerFactory);
                 try
                 {

@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.Sockets.Internal;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 
 namespace Microsoft.AspNetCore.Sockets
 {
@@ -82,7 +83,10 @@ namespace Microsoft.AspNetCore.Sockets
 
         private static void Scan(object state)
         {
-            ((ConnectionManager)state).Scan();
+            if (!Debugger.IsAttached)
+            {
+                ((ConnectionManager)state).Scan();
+            }
         }
 
         private void Scan()
