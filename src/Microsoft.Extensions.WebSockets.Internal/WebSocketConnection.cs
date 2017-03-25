@@ -700,12 +700,14 @@ namespace Microsoft.Extensions.WebSockets.Internal
         private void WritePayload<T>(ref WritableBuffer buffer, int payloadLength, Action<WritableBuffer, uint, int, T> payloadWriter, T payload)
         {
             var maskingKey = Span<byte>.Empty;
+            var keySize = sizeof(uint);
+
             if (_maskingKeyBuffer != null)
             {
                 // Get a span of the output buffer for the masking key, write it there, then advance the write head.
-                maskingKey = buffer.Buffer.Slice(0, 4).Span;
+                maskingKey = buffer.Buffer.Slice(0, keySize).Span;
                 WriteMaskingKey(maskingKey);
-                buffer.Advance(4);
+                buffer.Advance(keySize);
 
                 // Write the payload
                 payloadWriter(buffer, maskingKey.Read<uint>(), payloadLength, payload);

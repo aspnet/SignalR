@@ -85,14 +85,15 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
 
         private bool TryReadLength(ref BytesReader buffer)
         {
+            // Read until the first ':' to find the length
             var lengthBuffer = buffer.ReadBytesUntil((byte)TextMessageFormatter.FieldDelimiter);
 
             if (lengthBuffer == null)
             {
+                // Insufficient data
                 return false;
             }
 
-            // Read until the first ':' to find the length
             var lengthSpan = lengthBuffer.Value.ToSingleSpan();
 
             // Parse the length
