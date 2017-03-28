@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26228.9
+VisualStudioVersion = 15.0.26228.4
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{DA69F624-5398-4884-87E4-B816698CDE65}"
 EndProject
@@ -73,6 +73,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "client-ts", "client-ts", "{
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AspNetCore.SignalR.Microbenchmarks", "test\Microsoft.AspNetCore.SignalR.Microbenchmarks\Microsoft.AspNetCore.SignalR.Microbenchmarks.csproj", "{96771B3F-4D18-41A7-A75B-FF38E76AAC89}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WpfSample", "WpfSample\WpfSample.csproj", "{B69BAFE0-B87A-42AC-A4A9-2B72185C21F6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -180,6 +182,10 @@ Global
 		{96771B3F-4D18-41A7-A75B-FF38E76AAC89}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{96771B3F-4D18-41A7-A75B-FF38E76AAC89}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{96771B3F-4D18-41A7-A75B-FF38E76AAC89}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B69BAFE0-B87A-42AC-A4A9-2B72185C21F6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B69BAFE0-B87A-42AC-A4A9-2B72185C21F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B69BAFE0-B87A-42AC-A4A9-2B72185C21F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B69BAFE0-B87A-42AC-A4A9-2B72185C21F6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -211,5 +217,6 @@ Global
 		{333526A4-633B-491A-AC45-CC62A0012D1C} = {3A76C5A2-79ED-49BC-8BDC-6A3A766FFA1B}
 		{6CEC3DC2-5B01-45A8-8F0D-8531315DA90B} = {6A35B453-52EC-48AF-89CA-D4A69800F131}
 		{96771B3F-4D18-41A7-A75B-FF38E76AAC89} = {6A35B453-52EC-48AF-89CA-D4A69800F131}
+		{B69BAFE0-B87A-42AC-A4A9-2B72185C21F6} = {C4BC9889-B49F-41B6-806B-F84941B2549B}
 	EndGlobalSection
 EndGlobal

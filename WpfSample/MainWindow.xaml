@@ -1,0 +1,34 @@
+﻿<Window x:Class="WpfSample.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WpfSample"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="350" Width="525">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="0*"/>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+        <Button x:Name="bConnect" Grid.ColumnSpan="2" Content="Connect" HorizontalAlignment="Left" Margin="108,206,0,0" VerticalAlignment="Top" Width="75" Click="bConnect_Click"/>
+        <Button x:Name="bSend" Grid.ColumnSpan="2" Content="Send" HorizontalAlignment="Left" Margin="108,157,0,0" VerticalAlignment="Top" Width="75" Click="bSend_Click"/>
+        <TextBox x:Name="tbMessage" Grid.ColumnSpan="2" HorizontalAlignment="Left" Height="23" Margin="214,158,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="217"/>
+        <ListView Grid.ColumnSpan="2" HorizontalAlignment="Left" Height="141" Margin="136,9,0,0" VerticalAlignment="Top" Width="280" RenderTransformOrigin="0.5,0.5">
+            <ListView.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform/>
+                    <SkewTransform/>
+                    <RotateTransform Angle="0.055"/>
+                    <TranslateTransform/>
+                </TransformGroup>
+            </ListView.RenderTransform>
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn/>
+                </GridView>
+            </ListView.View>
+        </ListView>
+
+    </Grid>
+</Window>
