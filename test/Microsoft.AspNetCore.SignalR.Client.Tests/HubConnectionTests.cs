@@ -269,6 +269,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             await hubConnection.StartAsync(Mock.Of<ITransport>());
 
             mockConnection.Raise(c => c.Received += null, new object[] { new byte[] { }, MessageType.Text });
+            mockInvocationAdapter.Verify(a => a.ReadMessageAsync(It.IsAny<Stream>(), It.IsAny<IInvocationBinder>(), It.IsAny<CancellationToken>()), Times.Once());
         }
     }
 }
