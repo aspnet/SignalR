@@ -10,6 +10,10 @@ namespace Microsoft.AspNetCore.Sockets.Internal
 {
     public class ConnectionState
     {
+        // This tcs exists so that multiple calls to DisposeAsync all wait asynchronously
+        // on the same task
+        private TaskCompletionSource<object> _disposeTcs = new TaskCompletionSource<object>();
+
         public Connection Connection { get; set; }
         public IChannelConnection<Message> Application { get; }
 
@@ -43,6 +47,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal
 
                 if (Status == ConnectionStatus.Disposed)
                 {
+                    await _disposeTcs.Task;
                     return;
                 }
 
@@ -75,6 +80,9 @@ namespace Microsoft.AspNetCore.Sockets.Internal
 
             // REVIEW: Add a timeout so we don't wait forever
             await Task.WhenAll(applicationTask, transportTask);
+
+            // Notify all waiters that we're done disposing
+            _disposeTcs.TrySetResult(null);
         }
 
         public enum ConnectionStatus
