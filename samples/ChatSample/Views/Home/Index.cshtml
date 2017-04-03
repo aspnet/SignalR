@@ -19,25 +19,23 @@
 let connection = new signalR.HubConnection(`http://${document.location.host}/chat`, 'formatType=json&format=text');
 
 connection.on('SetUsersOnline', function (usersOnline) {
-    for (var user in usersOnline) {
-        addUserOnline(user, usersOnline[user]);
-    }
+    usersOnline.forEach(user => addUserOnline(user));
 });
 
-connection.on('OnConnected', function (id, userName) {
+connection.on('UserJoined', function (user) {
     var child = document.createElement('li');
-    child.innerText = 'User ' + userName + ' joined the chat';
+    child.innerText = 'User ' + user.Name + ' joined the chat';
     document.getElementById('messages').appendChild(child);
 
-    addUserOnline(id, userName);
+    addUserOnline(user);
 });
 
-connection.on('OnDisconnected', function (id, userName) {
+connection.on('UserLeft', function (user) {
     var child = document.createElement('li');
-    child.innerText = 'User ' + userName + ' left the chat';
+    child.innerText = 'User ' + user.Name + ' left the chat';
     document.getElementById('messages').appendChild(child);
 
-    document.getElementById(id).outerHTML = '';
+    document.getElementById(user.ConnectionId).outerHTML = '';
 });
 
 connection.on('Send', function (userName, message) {
@@ -70,10 +68,10 @@ document.getElementById('sendmessage').addEventListener('submit', event => {
     event.preventDefault();
 });
 
-let addUserOnline = function (id, userName) {
-    var user = document.createElement('li');
-    user.innerText = userName;
-    user.id = id;
-    document.getElementById('users').appendChild(user);
+let addUserOnline = function (user) {
+    var userLi = document.createElement('li');
+    userLi.innerText = user.Name;
+    userLi.id = user.ConnectionId;
+    document.getElementById('users').appendChild(userLi);
 }
 </script>
