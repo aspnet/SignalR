@@ -338,6 +338,12 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
                 await transport.OrTimeout();
 
+                // We're still in the closed sent state since the client never sent the close frame
+                Assert.Equal(WebSocketConnectionState.CloseSent, pair.ServerSocket.State);
+
+                pair.ServerSocket.Dispose();
+
+                // Now we're closed
                 Assert.Equal(WebSocketConnectionState.Closed, pair.ServerSocket.State);
             }
         }
