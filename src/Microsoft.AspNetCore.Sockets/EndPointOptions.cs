@@ -14,9 +14,4 @@ namespace Microsoft.AspNetCore.Sockets
 
         public WebSocketOptions WebSockets { get; } = new WebSocketOptions();
     }
-
-    public class WebSocketOptions
-    {
-        public TimeSpan CloseTimeout { get; set; } = TimeSpan.FromSeconds(5);
-    }
 }

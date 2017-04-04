@@ -120,6 +120,7 @@ namespace Microsoft.AspNetCore.Sockets.Transports
                 // We timed out waiting for the transport to close so abort the connection so we don't attempt to write anything else
                 if (resultTask != receiving)
                 {
+                    _logger.LogDebug("Timed out waiting for client to send the close frame, aborting the connection.");
                     socket.Abort();
                 }
 
