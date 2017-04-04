@@ -228,7 +228,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
 
-            var context = MakeRequest<NerverEndingEndPoint>(path, state);
+            var context = MakeRequest<NerverEndingEndPoint>(path, state, isWebSocketRequest: isWebSocketRequest);
 
             var task = dispatcher.ExecuteAsync<NerverEndingEndPoint>("", context);
             var webSocketTask = Task.CompletedTask;
@@ -254,7 +254,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             await Assert.ThrowsAsync<TaskCanceledException>(async () => await task.OrTimeout());
         }
 
-        [Theory(Skip = "Timeouts have not been implemented as yet")]
+        [Fact]
         public async Task WebSocketTransportTimesOutWhenCloseFrameNotReceived()
         {
             var manager = CreateConnectionManager();
@@ -262,12 +262,11 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
 
-            var context = MakeRequest<ImmediatelyCompleteEndPoint>("/ws", state);
+            var context = MakeRequest<ImmediatelyCompleteEndPoint>("/ws", state, isWebSocketRequest: true);
 
             var task = dispatcher.ExecuteAsync<ImmediatelyCompleteEndPoint>("", context);
 
-            // The task should be cancelled because of the timeout
-            await Assert.ThrowsAsync<TaskCanceledException>(async () => await task.OrTimeout());
+            await task.OrTimeout();
         }
 
         [Theory]
@@ -572,7 +571,12 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         {
             var context = new DefaultHttpContext();
             var services = new ServiceCollection();
-            services.AddEndPoint<TEndPoint>();
+            services.AddEndPoint<TEndPoint>(o =>
+            {
+                // Make the close timeout less than the default for OrTimeout() test helper
+                o.WebSockets.CloseTimeout = TimeSpan.FromSeconds(1);
+            });
+
             services.AddOptions();
             context.RequestServices = services.BuildServiceProvider();
             context.Request.Path = path;
