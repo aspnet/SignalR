@@ -121,11 +121,6 @@ namespace Microsoft.AspNetCore.Sockets.Transports
                 if (resultTask != receiving)
                 {
                     socket.Abort();
-
-                    // Now we await the receiving task again since we've aborted the connection.
-                    // We *shouldn't* have to time out here since we just aborted the connection. That forces
-                    // the ExecuteAsync method to yield on the next call to ReadAsync
-                    await receiving;
                 }
 
                 // We're done writing
