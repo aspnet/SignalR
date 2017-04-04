@@ -10,6 +10,10 @@ namespace Microsoft.AspNetCore.Sockets.Internal
 {
     public class ConnectionState
     {
+        // This tcs exists so that multiple calls to DisposeAsync all wait asynchronously
+        // on the same task
+        private TaskCompletionSource<object> _disposeTcs = new TaskCompletionSource<object>();
+
         public Connection Connection { get; set; }
         public IChannelConnection<Message> Application { get; }
 
@@ -34,8 +38,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal
 
         public async Task DisposeAsync()
         {
-            Task applicationTask = TaskCache.CompletedTask;
-            Task transportTask = TaskCache.CompletedTask;
+            Task disposeTask = TaskCache.CompletedTask;
 
             try
             {
@@ -43,38 +46,64 @@ namespace Microsoft.AspNetCore.Sockets.Internal
 
                 if (Status == ConnectionStatus.Disposed)
                 {
-                    return;
+                    disposeTask = _disposeTcs.Task;
                 }
-
-                Status = ConnectionStatus.Disposed;
-
-                RequestId = null;
-
-                // If the application task is faulted, propagate the error to the transport
-                if (ApplicationTask?.IsFaulted == true)
+                else
                 {
-                    Connection.Transport.Output.TryComplete(ApplicationTask.Exception.InnerException);
+                    Status = ConnectionStatus.Disposed;
+
+                    RequestId = null;
+
+                    // If the application task is faulted, propagate the error to the transport
+                    if (ApplicationTask?.IsFaulted == true)
+                    {
+                        Connection.Transport.Output.TryComplete(ApplicationTask.Exception.InnerException);
+                    }
+
+                    // If the transport task is faulted, propagate the error to the application
+                    if (TransportTask?.IsFaulted == true)
+                    {
+                        Application.Output.TryComplete(TransportTask.Exception.InnerException);
+                    }
+
+                    Connection.Dispose();
+                    Application.Dispose();
+
+                    var applicationTask = ApplicationTask ?? TaskCache.CompletedTask;
+                    var transportTask = TransportTask ?? TaskCache.CompletedTask;
+
+                    disposeTask = WaitOnTasks(applicationTask, transportTask);
                 }
-
-                // If the transport task is faulted, propagate the error to the application
-                if (TransportTask?.IsFaulted == true)
-                {
-                    Application.Output.TryComplete(TransportTask.Exception.InnerException);
-                }
-
-                Connection.Dispose();
-                Application.Dispose();
-
-                applicationTask = ApplicationTask ?? applicationTask;
-                transportTask = TransportTask ?? transportTask;
             }
             finally
             {
                 Lock.Release();
             }
 
-            // REVIEW: Add a timeout so we don't wait forever
-            await Task.WhenAll(applicationTask, transportTask);
+            await disposeTask;
+        }
+
+        private async Task WaitOnTasks(Task applicationTask, Task transportTask)
+        {
+            try
+            {
+                await Task.WhenAll(applicationTask, transportTask);
+
+                // Notify all waiters that we're done disposing
+                _disposeTcs.TrySetResult(null);
+            }
+            catch (OperationCanceledException)
+            {
+                _disposeTcs.TrySetCanceled();
+
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _disposeTcs.TrySetException(ex);
+
+                throw;
+            }
         }
 
         public enum ConnectionStatus

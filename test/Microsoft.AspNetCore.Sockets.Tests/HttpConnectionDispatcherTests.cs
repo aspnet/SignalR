@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Internal;
@@ -14,6 +15,7 @@ using Microsoft.AspNetCore.WebSockets.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
+using Microsoft.Extensions.WebSockets.Internal;
 using Xunit;
 
 namespace Microsoft.AspNetCore.Sockets.Tests
@@ -215,6 +217,58 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             Assert.False(exists);
         }
 
+        [Theory(Skip = "Timeouts have not been implemented as yet")]
+        [InlineData("/ws", true)]
+        [InlineData("/sse", false)]
+        [InlineData("/poll", false)]
+        public async Task NeverEndingEndPointCompletesWithTimeoutWhenTransportCloses(string path, bool isWebSocketRequest)
+        {
+            var manager = CreateConnectionManager();
+            var state = manager.CreateConnection();
+
+            var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
+
+            var context = MakeRequest<NerverEndingEndPoint>(path, state, isWebSocketRequest: isWebSocketRequest);
+
+            var task = dispatcher.ExecuteAsync<NerverEndingEndPoint>("", context);
+            var webSocketTask = Task.CompletedTask;
+
+            Assert.False(task.IsCompleted);
+
+            if (isWebSocketRequest)
+            {
+                var ws = (TestWebSocketConnectionFeature)context.Features.Get<IHttpWebSocketConnectionFeature>();
+                webSocketTask = ws.Client.ExecuteAsync(frame => Task.CompletedTask);
+                await ws.Client.CloseAsync(new WebSocketCloseResult(WebSocketCloseStatus.NormalClosure), CancellationToken.None);
+            }
+
+            // Shut the application down so the transport begins to unwind
+            state.Application.Dispose();
+
+            // Make sure the transport unwinds
+            await state.TransportTask.OrTimeout();
+
+            await webSocketTask.OrTimeout();
+
+            // The task should be cancelled because of the timeout
+            await Assert.ThrowsAsync<TaskCanceledException>(async () => await task.OrTimeout());
+        }
+
+        [Fact]
+        public async Task WebSocketTransportTimesOutWhenCloseFrameNotReceived()
+        {
+            var manager = CreateConnectionManager();
+            var state = manager.CreateConnection();
+
+            var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
+
+            var context = MakeRequest<ImmediatelyCompleteEndPoint>("/ws", state, isWebSocketRequest: true);
+
+            var task = dispatcher.ExecuteAsync<ImmediatelyCompleteEndPoint>("", context);
+
+            await task.OrTimeout();
+        }
+
         [Theory]
         [InlineData("/ws", true)]
         [InlineData("/sse", false)]
@@ -234,9 +288,20 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             Assert.Equal(StatusCodes.Status409Conflict, context2.Response.StatusCode);
 
+            var webSocketTask = Task.CompletedTask;
+
+            if (isWebSocketRequest)
+            {
+                var ws = (TestWebSocketConnectionFeature)context1.Features.Get<IHttpWebSocketConnectionFeature>();
+                webSocketTask = ws.Client.ExecuteAsync(frame => Task.CompletedTask);
+                await ws.Client.CloseAsync(new WebSocketCloseResult(WebSocketCloseStatus.NormalClosure), CancellationToken.None);
+            }
+
             manager.CloseConnections();
 
-            await request1;
+            await webSocketTask.OrTimeout();
+
+            await request1.OrTimeout();
         }
 
         [Fact]
@@ -506,7 +571,12 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         {
             var context = new DefaultHttpContext();
             var services = new ServiceCollection();
-            services.AddEndPoint<TEndPoint>();
+            services.AddEndPoint<TEndPoint>(o =>
+            {
+                // Make the close timeout less than the default for OrTimeout() test helper
+                o.WebSockets.CloseTimeout = TimeSpan.FromSeconds(1);
+            });
+
             services.AddOptions();
             context.RequestServices = services.BuildServiceProvider();
             context.Request.Path = path;
@@ -542,6 +612,15 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             {
                 return reader.ReadToEnd();
             }
+        }
+    }
+
+    public class NerverEndingEndPoint : EndPoint
+    {
+        public override Task OnConnectedAsync(Connection connection)
+        {
+            var tcs = new TaskCompletionSource<object>();
+            return tcs.Task;
         }
     }
 
