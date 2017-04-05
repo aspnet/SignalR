@@ -16,8 +16,6 @@ namespace Microsoft.Extensions.DependencyInjection
             services.AddSingleton(typeof(IHubContext<>), typeof(HubContext<>));
             services.AddSingleton(typeof(HubEndPoint<>), typeof(HubEndPoint<>));
             services.AddSingleton<IConfigureOptions<SignalROptions>, SignalROptionsSetup>();
-            services.AddSingleton<JsonNetInvocationAdapter>();
-            services.AddSingleton<InvocationAdapterRegistry>();
             services.AddScoped(typeof(IHubActivator<,>), typeof(DefaultHubActivator<,>));
             services.AddRouting();
 

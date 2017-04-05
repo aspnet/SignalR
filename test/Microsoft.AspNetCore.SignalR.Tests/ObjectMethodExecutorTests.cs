@@ -97,8 +97,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             var result = executor.Execute(
                 _targetObject,
                 new object[] { 10, 20 });
-            var taskResult = Assert.IsType<Task<object>>(result);
-            var finalResult = (int)await taskResult;
+            var taskResult = Assert.IsType<Task<int>>(result);
+            var finalResult = await taskResult;
             Assert.Equal(30, finalResult);
         }
 

@@ -3,7 +3,7 @@
 
 using System;
 
-namespace Microsoft.AspNetCore.SignalR
+namespace Microsoft.AspNetCore.SignalR.Internal
 {
     public interface IInvocationBinder
     {

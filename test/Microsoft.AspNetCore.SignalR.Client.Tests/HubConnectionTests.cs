@@ -15,6 +15,8 @@ using Moq;
 using Moq.Protected;
 using Xunit;
 using System.IO;
+using Microsoft.AspNetCore.SignalR.Internal.Protocol;
+using Microsoft.AspNetCore.SignalR.Internal;
 
 namespace Microsoft.AspNetCore.SignalR.Client.Tests
 {
@@ -24,14 +26,14 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public void CannotCreateHubConnectionWithNullUrl()
         {
             var exception = Assert.Throws<ArgumentNullException>(
-                () => new HubConnection((Uri)null, Mock.Of<IInvocationAdapter>(), Mock.Of<ILoggerFactory>()));
+                () => new HubConnection((Uri)null, Mock.Of<ILoggerFactory>()));
             Assert.Equal("url", exception.ParamName);
         }
 
         [Fact]
         public async Task CanDisposeNotStartedHubConnection()
         {
-            await new HubConnection(new Uri("http://fakeuri.org"), Mock.Of<IInvocationAdapter>(), new LoggerFactory())
+            await new HubConnection(new Uri("http://fakeuri.org"), new LoggerFactory())
                 .DisposeAsync();
         }
 
@@ -50,7 +52,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             using (var httpClient = new HttpClient(mockHttpHandler.Object))
             {
                 var longPollingTransport = new LongPollingTransport(httpClient, new LoggerFactory());
-                var hubConnection = new HubConnection(new Uri("http://fakeuri.org/"), Mock.Of<IInvocationAdapter>(), new LoggerFactory());
+                var hubConnection = new HubConnection(new Uri("http://fakeuri.org/"), new LoggerFactory());
 
                 try
                 {
@@ -82,7 +84,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             using (var httpClient = new HttpClient(mockHttpHandler.Object))
             {
                 var longPollingTransport = new LongPollingTransport(httpClient, new LoggerFactory());
-                var hubConnection = new HubConnection(new Uri("http://fakeuri.org/"), Mock.Of<IInvocationAdapter>(), new LoggerFactory());
+                var hubConnection = new HubConnection(new Uri("http://fakeuri.org/"), new LoggerFactory());
 
                 await hubConnection.StartAsync(longPollingTransport, httpClient);
                 await hubConnection.DisposeAsync();
@@ -111,7 +113,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
             var exception =
                 await Assert.ThrowsAsync<InvalidOperationException>(async () => await hubConnection.Invoke<int>("test"));
-                Assert.Equal("Cannot send messages when the connection is not in the Connected state.", exception.Message);
+            Assert.Equal("Cannot send messages when the connection is not in the Connected state.", exception.Message);
         }
 
         [Fact]
@@ -120,12 +122,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             var mockConnection = new Mock<IConnection>();
 
             var exception = new InvalidOperationException();
-            var mockInvocationAdapter = new Mock<IInvocationAdapter>();
-            mockInvocationAdapter
-                .Setup(a => a.WriteMessageAsync(It.IsAny<InvocationMessage>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
-                .Returns(Task.FromException(exception));
-
-            var hubConnection = new HubConnection(mockConnection.Object, mockInvocationAdapter.Object, null);
+            var mockProtocol = MockHubProtocol.Throw(exception);
+            var hubConnection = new HubConnection(mockConnection.Object, mockProtocol, null);
             await hubConnection.StartAsync(Mock.Of<ITransport>());
 
             var actualException =
@@ -148,7 +146,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             using (var httpClient = new HttpClient(mockHttpHandler.Object))
             {
                 var longPollingTransport = new LongPollingTransport(httpClient, new LoggerFactory());
-                var hubConnection = new HubConnection(new Uri("http://fakeuri.org"), Mock.Of<IInvocationAdapter>(), new LoggerFactory());
+                var hubConnection = new HubConnection(new Uri("http://fakeuri.org"), new LoggerFactory());
                 try
                 {
                     var connectedEventRaisedTcs = new TaskCompletionSource<object>();
@@ -180,7 +178,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             using (var httpClient = new HttpClient(mockHttpHandler.Object))
             {
                 var longPollingTransport = new LongPollingTransport(httpClient, new LoggerFactory());
-                var hubConnection = new HubConnection(new Uri("http://fakeuri.org"), Mock.Of<IInvocationAdapter>(), new LoggerFactory());
+                var hubConnection = new HubConnection(new Uri("http://fakeuri.org"), new LoggerFactory());
                 var closedEventTcs = new TaskCompletionSource<Exception>();
                 hubConnection.Closed += e => closedEventTcs.SetResult(e);
 
@@ -200,7 +198,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 .Callback(() => mockConnection.Raise(c => c.Closed += null, (Exception)null))
                 .Returns(Task.FromResult<object>(null));
 
-            var hubConnection = new HubConnection(mockConnection.Object, Mock.Of<IInvocationAdapter>(), new LoggerFactory());
+            var hubConnection = new HubConnection(mockConnection.Object, new LoggerFactory());
 
             await hubConnection.StartAsync(Mock.Of<ITransport>());
             await hubConnection.DisposeAsync();
@@ -219,7 +217,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 .Callback(() => mockConnection.Raise(c => c.Closed += null, (Exception)null))
                 .Returns(Task.FromResult<object>(null));
 
-            var hubConnection = new HubConnection(mockConnection.Object, Mock.Of<IInvocationAdapter>(), new LoggerFactory());
+            var hubConnection = new HubConnection(mockConnection.Object, new LoggerFactory());
 
             await hubConnection.StartAsync(Mock.Of<ITransport>());
             var invokeTask = hubConnection.Invoke("testMethod", typeof(int));
@@ -238,7 +236,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 .Callback(() => mockConnection.Raise(c => c.Closed += null, exception))
                 .Returns(Task.FromResult<object>(null));
 
-            var hubConnection = new HubConnection(mockConnection.Object, Mock.Of<IInvocationAdapter>(), new LoggerFactory());
+            var hubConnection = new HubConnection(mockConnection.Object, new LoggerFactory());
 
             await hubConnection.StartAsync(Mock.Of<ITransport>());
             var invokeTask = hubConnection.Invoke("testMethod", typeof(int));
@@ -253,23 +251,71 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         {
             var mockConnection = new Mock<IConnection>();
 
-            var invocationDescriptor = new InvocationDescriptor
-            {
-                Method = "NonExistingMethod123",
-                Arguments = new object[] { true, "arg2", 123 },
-                Id = Guid.NewGuid().ToString()
-            };
+            var invocation = new InvocationMessage(Guid.NewGuid().ToString(), "NonExistingMethod123", new object[] { true, "arg2", 123 });
 
-            var mockInvocationAdapter = new Mock<IInvocationAdapter>();
-            mockInvocationAdapter
-                .Setup(a => a.ReadMessageAsync(It.IsAny<Stream>(), It.IsAny<IInvocationBinder>(), It.IsAny<CancellationToken>()))
-                .Returns(Task.FromResult((InvocationMessage)invocationDescriptor));
+            var mockProtocol = MockHubProtocol.ReturnOnParse(invocation);
 
-            var hubConnection = new HubConnection(mockConnection.Object, mockInvocationAdapter.Object, null);
+            var hubConnection = new HubConnection(mockConnection.Object, mockProtocol, null);
             await hubConnection.StartAsync(Mock.Of<ITransport>());
 
             mockConnection.Raise(c => c.Received += null, new object[] { new byte[] { }, MessageType.Text });
-            mockInvocationAdapter.Verify(a => a.ReadMessageAsync(It.IsAny<Stream>(), It.IsAny<IInvocationBinder>(), It.IsAny<CancellationToken>()), Times.Once());
+            Assert.Equal(1, mockProtocol.ParseCalls);
+        }
+
+        // Moq really doesn't handle out parameters well, so to make these tests work I added a manual mock -anurse
+        private class MockHubProtocol : IHubProtocol
+        {
+            private HubMessage _parsed;
+            private Exception _error;
+
+            public int ParseCalls { get; private set; } = 0;
+            public int WriteCalls { get; private set; } = 0;
+
+            public MessageType MessageType => MessageType.Text;
+
+            public static MockHubProtocol ReturnOnParse(HubMessage parsed)
+            {
+                return new MockHubProtocol
+                {
+                    _parsed = parsed
+                };
+            }
+
+            public static MockHubProtocol Throw(Exception error)
+            {
+                return new MockHubProtocol
+                {
+                    _error = error
+                };
+            }
+
+            public bool TryParseMessage(ReadOnlySpan<byte> input, IInvocationBinder binder, out HubMessage message)
+            {
+                ParseCalls += 1;
+                if (_error != null)
+                {
+                    throw _error;
+                }
+                if (_parsed != null)
+                {
+                    message = _parsed;
+                    return true;
+                }
+
+                message = null;
+                return false;
+            }
+
+            public byte[] WriteMessage(HubMessage message)
+            {
+                WriteCalls += 1;
+
+                if (_error != null)
+                {
+                    throw _error;
+                }
+                return new byte[0];
+            }
         }
     }
 }
