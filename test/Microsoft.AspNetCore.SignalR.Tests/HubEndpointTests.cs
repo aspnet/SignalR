@@ -9,6 +9,8 @@ using Microsoft.Extensions.Internal;
 using Moq;
 using Xunit;
 using Microsoft.AspNetCore.SignalR.Tests.Common;
+using System.Linq;
+using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 
 namespace Microsoft.AspNetCore.SignalR.Tests
 {
@@ -127,10 +129,10 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 var endPointTask = endPoint.OnConnectedAsync(client.Connection);
 
-                var result = await client.Invoke<InvocationResultDescriptor>(nameof(MethodHub.TaskValueMethod)).OrTimeout();
+                var result = (await client.InvokeAsync(nameof(MethodHub.TaskValueMethod)).OrTimeout()).Single();
 
                 // json serializer makes this a long
-                Assert.Equal(42L, result.Result);
+                Assert.Equal(42L, result);
 
                 // kill the connection
                 client.Dispose();
@@ -150,10 +152,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 var endPointTask = endPoint.OnConnectedAsync(client.Connection);
 
-                var result = await client.Invoke<InvocationResultDescriptor>("echo", "hello").OrTimeout();
+                var result = (await client.InvokeAsync("echo", "hello").OrTimeout()).Single();
 
-                Assert.Null(result.Error);
-                Assert.Equal("hello", result.Result);
+                Assert.Equal("hello", result);
 
                 // kill the connection
                 client.Dispose();
@@ -173,10 +174,10 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 var endPointTask = endPoint.OnConnectedAsync(client.Connection);
 
-                var result = await client.Invoke<InvocationResultDescriptor>(nameof(MethodHub.ValueMethod)).OrTimeout();
+                var result = (await client.InvokeAsync(nameof(MethodHub.ValueMethod)).OrTimeout()).Single();
 
                 // json serializer makes this a long
-                Assert.Equal(43L, result.Result);
+                Assert.Equal(43L, result);
 
                 // kill the connection
                 client.Dispose();
@@ -196,9 +197,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 var endPointTask = endPoint.OnConnectedAsync(client.Connection);
 
-                var result = await client.Invoke<InvocationResultDescriptor>(nameof(MethodHub.StaticMethod)).OrTimeout();
+                var result = (await client.InvokeAsync(nameof(MethodHub.StaticMethod)).OrTimeout()).Single();
 
-                Assert.Equal("fromStatic", result.Result);
+                Assert.Equal("fromStatic", result);
 
                 // kill the connection
                 client.Dispose();
@@ -218,9 +219,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 var endPointTask = endPoint.OnConnectedAsync(client.Connection);
 
-                var result = await client.Invoke<InvocationResultDescriptor>(nameof(MethodHub.VoidMethod)).OrTimeout();
+                var result = (await client.InvokeAsync(nameof(MethodHub.VoidMethod)).OrTimeout()).Single();
 
-                Assert.Null(result.Result);
+                Assert.Null(result);
 
                 // kill the connection
                 client.Dispose();
@@ -240,9 +241,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 var endPointTask = endPoint.OnConnectedAsync(client.Connection);
 
-                var result = await client.Invoke<InvocationResultDescriptor>(nameof(MethodHub.ConcatString), (byte)32, 42, 'm', "string").OrTimeout();
+                var result = (await client.InvokeAsync(nameof(MethodHub.ConcatString), (byte)32, 42, 'm', "string").OrTimeout()).Single();
 
-                Assert.Equal("32, 42, m, string", result.Result);
+                Assert.Equal("32, 42, m, string", result);
 
                 // kill the connection
                 client.Dispose();
@@ -262,9 +263,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 var endPointTask = endPoint.OnConnectedAsync(client.Connection);
 
-                var result = await client.Invoke<InvocationResultDescriptor>(nameof(InheritedHub.BaseMethod), "string").OrTimeout();
+                var result = (await client.InvokeAsync(nameof(InheritedHub.BaseMethod), "string").OrTimeout()).Single();
 
-                Assert.Equal("string", result.Result);
+                Assert.Equal("string", result);
 
                 // kill the connection
                 client.Dispose();
@@ -284,9 +285,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 var endPointTask = endPoint.OnConnectedAsync(client.Connection);
 
-                var result = await client.Invoke<InvocationResultDescriptor>(nameof(InheritedHub.VirtualMethod), 10).OrTimeout();
+                var result = (await client.InvokeAsync(nameof(InheritedHub.VirtualMethod), 10).OrTimeout()).Single();
 
-                Assert.Equal(0L, result.Result);
+                Assert.Equal(0L, result);
 
                 // kill the connection
                 client.Dispose();
@@ -306,9 +307,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 var endPointTask = endPoint.OnConnectedAsync(client.Connection);
 
-                var result = await client.Invoke<InvocationResultDescriptor>(nameof(MethodHub.OnDisconnectedAsync)).OrTimeout();
+                var ex = await Assert.ThrowsAsync<Exception>(() => client.InvokeAsync(nameof(MethodHub.OnDisconnectedAsync)).OrTimeout());
 
-                Assert.Equal("Unknown hub method 'OnDisconnectedAsync'", result.Error);
+                Assert.Equal("Unknown hub method 'OnDisconnectedAsync'", ex.Message);
 
                 // kill the connection
                 client.Dispose();
@@ -348,15 +349,16 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 await Task.WhenAll(firstClient.Connected, secondClient.Connected).OrTimeout();
 
-                await firstClient.Invoke(nameof(MethodHub.BroadcastMethod), "test").OrTimeout();
+                await firstClient.SendInvocationAsync(nameof(MethodHub.BroadcastMethod), "test").OrTimeout();
 
                 foreach (var result in await Task.WhenAll(
-                    firstClient.Read<InvocationDescriptor>(),
-                    secondClient.Read<InvocationDescriptor>()).OrTimeout())
+                    firstClient.Read(),
+                    secondClient.Read()).OrTimeout())
                 {
-                    Assert.Equal("Broadcast", result.Method);
-                    Assert.Equal(1, result.Arguments.Length);
-                    Assert.Equal("test", result.Arguments[0]);
+                    var invocation = Assert.IsType<InvocationMessage>(result);
+                    Assert.Equal("Broadcast", invocation.Target);
+                    Assert.Equal(1, invocation.Arguments.Length);
+                    Assert.Equal("test", invocation.Arguments[0]);
                 }
 
                 // kill the connections
@@ -382,23 +384,24 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 await Task.WhenAll(firstClient.Connected, secondClient.Connected).OrTimeout();
 
-                var result = await firstClient.Invoke<InvocationResultDescriptor>(nameof(MethodHub.GroupSendMethod), "testGroup", "test").OrTimeout();
+                var result = (await firstClient.InvokeAsync(nameof(MethodHub.GroupSendMethod), "testGroup", "test").OrTimeout()).Single();
+
                 // check that 'firstConnection' hasn't received the group send
-                Assert.Null(result.Id);
+                Assert.Null(firstClient.TryRead());
 
                 // check that 'secondConnection' hasn't received the group send
-                Assert.Null(await secondClient.TryRead<InvocationDescriptor>().OrTimeout());
+                Assert.Null(secondClient.TryRead());
 
-                result = await secondClient.Invoke<InvocationResultDescriptor>(nameof(MethodHub.GroupAddMethod), "testGroup").OrTimeout();
-                Assert.Null(result.Id);
+                result = (await secondClient.InvokeAsync(nameof(MethodHub.GroupAddMethod), "testGroup").OrTimeout()).Single();
 
-                await firstClient.Invoke(nameof(MethodHub.GroupSendMethod), "testGroup", "test").OrTimeout();
+                await firstClient.SendInvocationAsync(nameof(MethodHub.GroupSendMethod), "testGroup", "test").OrTimeout();
 
                 // check that 'secondConnection' has received the group send
-                var descriptor = await secondClient.Read<InvocationDescriptor>().OrTimeout();
-                Assert.Equal("Send", descriptor.Method);
-                Assert.Equal(1, descriptor.Arguments.Length);
-                Assert.Equal("test", descriptor.Arguments[0]);
+                var hubMessage = await secondClient.Read().OrTimeout();
+                var invocation = Assert.IsType<InvocationMessage>(hubMessage);
+                Assert.Equal("Send", invocation.Target);
+                Assert.Equal(1, invocation.Arguments.Length);
+                Assert.Equal("test", invocation.Arguments[0]);
 
                 // kill the connections
                 firstClient.Dispose();
@@ -419,7 +422,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 var endPointTask = endPoint.OnConnectedAsync(client.Connection);
 
-                await client.Invoke(nameof(MethodHub.GroupRemoveMethod), "testGroup").OrTimeout();
+                await client.SendInvocationAsync(nameof(MethodHub.GroupRemoveMethod), "testGroup").OrTimeout();
 
                 // kill the connection
                 client.Dispose();
@@ -443,13 +446,14 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 await Task.WhenAll(firstClient.Connected, secondClient.Connected).OrTimeout();
 
-                await firstClient.Invoke(nameof(MethodHub.ClientSendMethod), secondClient.Connection.User.Identity.Name, "test").OrTimeout();
+                await firstClient.SendInvocationAsync(nameof(MethodHub.ClientSendMethod), secondClient.Connection.User.Identity.Name, "test").OrTimeout();
 
                 // check that 'secondConnection' has received the group send
-                var result = await secondClient.Read<InvocationDescriptor>().OrTimeout();
-                Assert.Equal("Send", result.Method);
-                Assert.Equal(1, result.Arguments.Length);
-                Assert.Equal("test", result.Arguments[0]);
+                var hubMessage = await secondClient.Read().OrTimeout();
+                var invocation = Assert.IsType<InvocationMessage>(hubMessage);
+                Assert.Equal("Send", invocation.Target);
+                Assert.Equal(1, invocation.Arguments.Length);
+                Assert.Equal("test", invocation.Arguments[0]);
 
                 // kill the connections
                 firstClient.Dispose();
@@ -474,13 +478,14 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 await Task.WhenAll(firstClient.Connected, secondClient.Connected).OrTimeout();
 
-                await firstClient.Invoke(nameof(MethodHub.ConnectionSendMethod), secondClient.Connection.ConnectionId, "test").OrTimeout();
+                await firstClient.SendInvocationAsync(nameof(MethodHub.ConnectionSendMethod), secondClient.Connection.ConnectionId, "test").OrTimeout();
 
                 // check that 'secondConnection' has received the group send
-                var result = await secondClient.Read<InvocationDescriptor>().OrTimeout();
-                Assert.Equal("Send", result.Method);
-                Assert.Equal(1, result.Arguments.Length);
-                Assert.Equal("test", result.Arguments[0]);
+                var hubMessage = await secondClient.Read().OrTimeout();
+                var invocation = Assert.IsType<InvocationMessage>(hubMessage);
+                Assert.Equal("Send", invocation.Target);
+                Assert.Equal(1, invocation.Arguments.Length);
+                Assert.Equal("test", invocation.Arguments[0]);
 
                 // kill the connections
                 firstClient.Dispose();
@@ -602,7 +607,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
             public override Task OnDisconnectedAsync(Exception e)
             {
-                return TaskCache.CompletedTask;
+                return Task.CompletedTask;
             }
         }
 

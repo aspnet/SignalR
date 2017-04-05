@@ -23,6 +23,7 @@ namespace SocialWeather
 
         public void OnConnectedAsync(Connection connection)
         {
+            connection.Metadata[ConnectionMetadataNames.Format] = "json";
             _connectionList.Add(connection);
         }
 
@@ -35,7 +36,7 @@ namespace SocialWeather
         {
             foreach (var connection in _connectionList)
             {
-                var formatter = _formatterResolver.GetFormatter<T>(connection.Metadata.Get<string>("formatType"));
+                var formatter = _formatterResolver.GetFormatter<T>(connection.Metadata.Get<string>(ConnectionMetadataNames.Format));
                 var ms = new MemoryStream();
                 await formatter.WriteAsync(data, ms);
                 await connection.Transport.Output.WriteAsync(new Message(ms.ToArray(), MessageType.Binary, endOfMessage: true));

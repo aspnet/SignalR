@@ -11,7 +11,6 @@ namespace Microsoft.Extensions.DependencyInjection
     {
         public void Configure(SignalROptions options)
         {
-            options.RegisterInvocationAdapter<JsonNetInvocationAdapter>("json");
         }
     }
 }

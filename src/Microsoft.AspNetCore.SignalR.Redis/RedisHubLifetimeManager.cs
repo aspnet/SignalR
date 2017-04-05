@@ -5,53 +5,66 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.Pipelines;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.Sockets;
-using Microsoft.Extensions.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using StackExchange.Redis;
 
 namespace Microsoft.AspNetCore.SignalR.Redis
 {
     public class RedisHubLifetimeManager<THub> : HubLifetimeManager<THub>, IDisposable
     {
+        private const string RedisSubscriptionsMetadataName = "redis_subscriptions";
+
         private readonly ConnectionList _connections = new ConnectionList();
         // TODO: Investigate "memory leak" entries never get removed
         private readonly ConcurrentDictionary<string, GroupData> _groups = new ConcurrentDictionary<string, GroupData>();
-        private readonly InvocationAdapterRegistry _registry;
         private readonly ConnectionMultiplexer _redisServerConnection;
         private readonly ISubscriber _bus;
         private readonly ILoggerFactory _loggerFactory;
         private readonly RedisOptions _options;
 
-        public RedisHubLifetimeManager(InvocationAdapterRegistry registry,
-                                       ILoggerFactory loggerFactory,
+        // This serializer is ONLY use to transmit the data through redis, it has no connection to the serializer used on each connection.
+        private readonly JsonSerializer _serializer = new JsonSerializer()
+        {
+            // We need to serialize objects "full-fidelity", even if it is noisy, so we preserve the original types
+            TypeNameAssemblyFormatHandling = TypeNameAssemblyFormatHandling.Simple,
+            TypeNameHandling = TypeNameHandling.All,
+            Formatting = Formatting.None
+        };
+
+        private long _nextInvocationId = 0;
+
+        public RedisHubLifetimeManager(ILoggerFactory loggerFactory,
                                        IOptions<RedisOptions> options)
         {
             _loggerFactory = loggerFactory;
-            _registry = registry;
             _options = options.Value;
 
             var writer = new LoggerTextWriter(loggerFactory.CreateLogger<RedisHubLifetimeManager<THub>>());
             _redisServerConnection = _options.Connect(writer);
             _bus = _redisServerConnection.GetSubscriber();
 
-            var previousBroadcastTask = TaskCache.CompletedTask;
+            var previousBroadcastTask = Task.CompletedTask;
 
             _bus.Subscribe(typeof(THub).FullName, async (c, data) =>
             {
                 await previousBroadcastTask;
 
+                var message = DeserializeMessage(data);
+
+                // TODO: This isn't going to work when we allow JsonSerializer customization or add Protobuf
                 var tasks = new List<Task>(_connections.Count);
 
                 foreach (var connection in _connections)
                 {
-                    tasks.Add(WriteAsync(connection, data));
+                    tasks.Add(WriteAsync(connection, message));
                 }
 
                 previousBroadcastTask = Task.WhenAll(tasks);
@@ -60,80 +73,67 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
         public override Task InvokeAllAsync(string methodName, object[] args)
         {
-            var message = new InvocationDescriptor
-            {
-                Method = methodName,
-                Arguments = args
-            };
+            var message = new InvocationMessage(GetInvocationId(), methodName, args, nonBlocking: true);
 
+            Console.WriteLine("NtlmAuthenticationTest");
             return PublishAsync(typeof(THub).FullName, message);
         }
 
         public override Task InvokeConnectionAsync(string connectionId, string methodName, object[] args)
         {
-            var message = new InvocationDescriptor
-            {
-                Method = methodName,
-                Arguments = args
-            };
+            var message = new InvocationMessage(GetInvocationId(), methodName, args, nonBlocking: true);
 
             return PublishAsync(typeof(THub).FullName + "." + connectionId, message);
         }
 
         public override Task InvokeGroupAsync(string groupName, string methodName, object[] args)
         {
-            var message = new InvocationDescriptor
-            {
-                Method = methodName,
-                Arguments = args
-            };
+            var message = new InvocationMessage(GetInvocationId(), methodName, args, nonBlocking: true);
 
             return PublishAsync(typeof(THub).FullName + ".group." + groupName, message);
         }
 
         public override Task InvokeUserAsync(string userId, string methodName, object[] args)
         {
-            var message = new InvocationDescriptor
-            {
-                Method = methodName,
-                Arguments = args
-            };
+            var message = new InvocationMessage(GetInvocationId(), methodName, args, nonBlocking: true);
 
             return PublishAsync(typeof(THub).FullName + ".user." + userId, message);
         }
 
-        private async Task PublishAsync(string channel, InvocationDescriptor message)
+        private async Task PublishAsync(string channel, HubMessage hubMessage)
         {
-            // TODO: What format??
-            var invocationAdapter = _registry.GetInvocationAdapter("json");
-
-            // BAD
-            using (var ms = new MemoryStream())
+            byte[] payload;
+            using (var stream = new MemoryStream())
+            using (var writer = new JsonTextWriter(new StreamWriter(stream)))
             {
-                await invocationAdapter.WriteMessageAsync(message, ms);
-
-                await _bus.PublishAsync(channel, ms.ToArray());
+                _serializer.Serialize(writer, hubMessage);
+                await writer.FlushAsync();
+                payload = stream.ToArray();
             }
+
+            await _bus.PublishAsync(channel, payload);
         }
 
         public override Task OnConnectedAsync(Connection connection)
         {
-            var redisSubscriptions = connection.Metadata.GetOrAdd("redis_subscriptions", _ => new HashSet<string>());
-            var connectionTask = TaskCache.CompletedTask;
-            var userTask = TaskCache.CompletedTask;
+            var redisSubscriptions = connection.Metadata.GetOrAdd(RedisSubscriptionsMetadataName, _ => new HashSet<string>());
+            var connectionTask = Task.CompletedTask;
+            var userTask = Task.CompletedTask;
 
             _connections.Add(connection);
 
             var connectionChannel = typeof(THub).FullName + "." + connection.ConnectionId;
             redisSubscriptions.Add(connectionChannel);
 
-            var previousConnectionTask = TaskCache.CompletedTask;
+            var previousConnectionTask = Task.CompletedTask;
 
             connectionTask = _bus.SubscribeAsync(connectionChannel, async (c, data) =>
             {
                 await previousConnectionTask;
 
-                previousConnectionTask = WriteAsync(connection, data);
+                var message = DeserializeMessage(data);
+
+                previousConnectionTask = WriteAsync(connection, message);
             });
 
 
@@ -142,14 +142,16 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                 var userChannel = typeof(THub).FullName + ".user." + connection.User.Identity.Name;
                 redisSubscriptions.Add(userChannel);
 
-                var previousUserTask = TaskCache.CompletedTask;
+                var previousUserTask = Task.CompletedTask;
 
                 // TODO: Look at optimizing (looping over connections checking for Name)
                 userTask = _bus.SubscribeAsync(userChannel, async (c, data) =>
                 {
                     await previousUserTask;
 
-                    previousUserTask = WriteAsync(connection, data);
+                    var message = DeserializeMessage(data);
+
+                    previousUserTask = WriteAsync(connection, message);
                 });
             }
 
@@ -162,7 +164,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
             var tasks = new List<Task>();
 
-            var redisSubscriptions = connection.Metadata.Get<HashSet<string>>("redis_subscriptions");
+            var redisSubscriptions = connection.Metadata.Get<HashSet<string>>(RedisSubscriptionsMetadataName);
             if (redisSubscriptions != null)
             {
                 foreach (var subscription in redisSubscriptions)
@@ -171,7 +173,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                 }
             }
 
-            var groupNames = connection.Metadata.Get<HashSet<string>>("group");
+            var groupNames = connection.Metadata.Get<HashSet<string>>(HubConnectionMetadataNames.Groups);
 
             if (groupNames != null)
             {
@@ -190,7 +192,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
         {
             var groupChannel = typeof(THub).FullName + ".group." + groupName;
 
-            var groupNames = connection.Metadata.GetOrAdd("group", _ => new HashSet<string>());
+            var groupNames = connection.Metadata.GetOrAdd(HubConnectionMetadataNames.Groups, _ => new HashSet<string>());
 
             lock (groupNames)
             {
@@ -210,7 +212,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                     return;
                 }
 
-                var previousTask = TaskCache.CompletedTask;
+                var previousTask = Task.CompletedTask;
 
                 await _bus.SubscribeAsync(groupChannel, async (c, data) =>
                 {
@@ -219,10 +221,12 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                     // want to do concurrent writes to the outgoing connections
                     await previousTask;
 
+                    var message = DeserializeMessage(data);
+
                     var tasks = new List<Task>(group.Connections.Count);
                     foreach (var groupConnection in group.Connections)
                     {
-                        tasks.Add(WriteAsync(groupConnection, data));
+                        tasks.Add(WriteAsync(groupConnection, message));
                     }
 
                     previousTask = Task.WhenAll(tasks);
@@ -244,7 +248,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                 return;
             }
 
-            var groupNames = connection.Metadata.Get<HashSet<string>>("group");
+            var groupNames = connection.Metadata.Get<HashSet<string>>(HubConnectionMetadataNames.Groups);
             if (groupNames != null)
             {
                 lock (groupNames)
@@ -275,9 +279,11 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             _redisServerConnection.Dispose();
         }
 
-        private async Task WriteAsync(Connection connection, byte[] data)
+        private async Task WriteAsync(Connection connection, HubMessage hubMessage)
         {
-            var message = new Message(data, MessageType.Text, endOfMessage: true);
+            var protocol = connection.Metadata.Get<IHubProtocol>(HubConnectionMetadataNames.HubProtocol);
+            var data = await protocol.WriteToArrayAsync(hubMessage);
+            var message = new Message(data, protocol.MessageType, endOfMessage: true);
 
             while (await connection.Transport.Output.WaitToWriteAsync())
             {
@@ -286,6 +292,23 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                     break;
                 }
             }
+        }
+
+        private string GetInvocationId()
+        {
+            var invocationId = Interlocked.Increment(ref _nextInvocationId) - 1;
+            return invocationId.ToString();
+        }
+
+        private HubMessage DeserializeMessage(RedisValue data)
+        {
+            HubMessage message;
+            using (var reader = new JsonTextReader(new StreamReader(new MemoryStream((byte[])data))))
+            {
+                message = (HubMessage)_serializer.Deserialize(reader);
+            }
+
+            return message;
         }
 
         private class LoggerTextWriter : TextWriter

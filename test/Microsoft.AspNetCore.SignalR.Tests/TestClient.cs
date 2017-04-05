@@ -2,29 +2,30 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
-using System.IO;
+using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
+using Microsoft.AspNetCore.SignalR.Internal;
+using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.Sockets;
 using Microsoft.AspNetCore.Sockets.Internal;
-using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
 
 namespace Microsoft.AspNetCore.SignalR.Tests
 {
-    public class TestClient : IDisposable
+    public class TestClient : IDisposable, IInvocationBinder
     {
         private static int _id;
-        private IInvocationAdapter _adapter;
+        private IHubProtocol _protocol;
         private CancellationTokenSource _cts;
-        private TestBinder _binder;
 
         public Connection Connection;
         public IChannelConnection<Message> Application { get; }
         public Task Connected => Connection.Metadata.Get<TaskCompletionSource<bool>>("ConnectedTask").Task;
 
-        public TestClient(IServiceProvider serviceProvider, string format = "json")
+        public TestClient(IServiceProvider serviceProvider)
         {
             var transportToApplication = Channel.CreateUnbounded<Message>();
             var applicationToTransport = Channel.CreateUnbounded<Message>();
@@ -33,62 +34,97 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             var transport = ChannelConnection.Create<Message>(input: transportToApplication, output: applicationToTransport);
 
             Connection = new Connection(Guid.NewGuid().ToString(), transport);
-            Connection.Metadata["formatType"] = format;
             Connection.User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, Interlocked.Increment(ref _id).ToString()) }));
             Connection.Metadata["ConnectedTask"] = new TaskCompletionSource<bool>();
 
-            var invocationAdapter = serviceProvider.GetService<InvocationAdapterRegistry>();
-            _adapter = invocationAdapter.GetInvocationAdapter(format);
-
-            _binder = new TestBinder();
+            _protocol = new JsonHubProtocol(new JsonSerializer());
 
             _cts = new CancellationTokenSource();
         }
 
-        public async Task<T> Invoke<T>(string methodName, params object[] args) where T : InvocationMessage
+        public async Task<IEnumerable<object>> InvokeAsync(string methodName, params object[] args)
         {
-            await Invoke(methodName, args);
+            var invocationId = await SendInvocationAsync(methodName, args);
 
-            return await Read<T>();
-        }
-
-        public async Task Invoke(string methodName, params object[] args)
-        {
-            var stream = new MemoryStream();
-            await _adapter.WriteMessageAsync(new InvocationDescriptor
+            var results = new List<object>();
+            while (true)
             {
-                Arguments = args,
-                Method = methodName
-            },
-            stream);
+                var message = await Read();
 
-            await Application.Output.WriteAsync(new Message(stream.ToArray(), MessageType.Binary, endOfMessage: true));
-        }
-
-        public async Task<T> Read<T>() where T : InvocationMessage
-        {
-            while (await Application.Input.WaitToReadAsync(_cts.Token))
-            {
-                var value = await TryRead<T>();
-
-                if (value != null)
+                if (!string.Equals(message.InvocationId, invocationId))
                 {
-                    return value;
+                    throw new NotSupportedException("TestClient does not support multiple outgoing invocations!");
+                }
+
+                if (message == null)
+                {
+                    throw new InvalidOperationException("Connection aborted!");
+                }
+
+                switch (message)
+                {
+                    case StreamItemMessage result:
+                        results.Add(result.Item);
+                        break;
+                    case CompletionMessage completion:
+                        if (!string.IsNullOrEmpty(completion.Error))
+                        {
+                            throw new Exception(completion.Error);
+                        }
+                        else if (completion.HasResult)
+                        {
+                            results.Add(completion.Result);
+                        }
+                        return results;
+                    default:
+                        throw new NotSupportedException("TestClient does not support receiving invocations!");
                 }
             }
-
-            return null;
         }
 
-        public async Task<T> TryRead<T>() where T : InvocationMessage
+        public async Task<string> SendInvocationAsync(string methodName, params object[] args)
         {
-            Message message;
-            if (Application.Input.TryRead(out message))
-            {
-                var value = await _adapter.ReadMessageAsync(new MemoryStream(message.Payload), _binder);
-                return value as T;
-            }
+            var invocationId = GetInvocationId();
+            var payload = await _protocol.WriteToArrayAsync(new InvocationMessage(invocationId, methodName, args, nonBlocking: false));
 
+            await Application.Output.WriteAsync(new Message(payload, _protocol.MessageType, endOfMessage: true));
+
+            return invocationId;
+        }
+
+        public async Task<HubMessage> Read()
+        {
+            while (true)
+            {
+                var message = TryRead();
+
+                if (message == null)
+                {
+                    if (!await Application.Input.WaitToReadAsync())
+                    {
+                        return null;
+                    }
+                }
+                else
+                {
+                    return message;
+                }
+            }
+        }
+
+        public HubMessage TryRead()
+        {
+            if (Application.Input.TryRead(out var message))
+            {
+                if (!_protocol.TryParseMessage(message.Payload, this, out var hubMessage))
+                {
+                    throw new InvalidOperationException("Received invalid message");
+                }
+                else
+                {
+                    return hubMessage;
+                }
+            }
             return null;
         }
 
@@ -98,18 +134,20 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             Connection.Dispose();
         }
 
-        private class TestBinder : IInvocationBinder
+        private static string GetInvocationId()
         {
-            public Type[] GetParameterTypes(string methodName)
-            {
-                // TODO: Possibly support actual client methods
-                return new[] { typeof(object) };
-            }
+            return Guid.NewGuid().ToString("N");
+        }
 
-            public Type GetReturnType(string invocationId)
-            {
-                return typeof(object);
-            }
+        Type[] IInvocationBinder.GetParameterTypes(string methodName)
+        {
+            // TODO: Possibly support actual client methods
+            return new[] { typeof(object) };
+        }
+
+        Type IInvocationBinder.GetReturnType(string invocationId)
+        {
+            return typeof(object);
         }
     }
 }

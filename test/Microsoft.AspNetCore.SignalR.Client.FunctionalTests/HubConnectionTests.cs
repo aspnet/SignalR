@@ -98,7 +98,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
             using (var httpClient = _testServer.CreateClient())
             {
-                var connection = new HubConnection(new Uri("http://test/hubs"), new JsonNetInvocationAdapter(), loggerFactory);
+                var connection = new HubConnection(new Uri("http://test/hubs"), loggerFactory);
                 try
                 {
                     await connection.StartAsync(TransportType.LongPolling, httpClient);
@@ -125,7 +125,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 var connection = new HubConnection(new Uri("http://test/hubs"));
                 try
                 {
+<<<<<<< HEAD
                     await connection.StartAsync(TransportType.LongPolling, httpClient);
+=======
+                    await connection.StartAsync(transport, httpClient).OrTimeout();
+>>>>>>> 51745f4... stash
 
                     var tcs = new TaskCompletionSource<string>();
                     connection.On("Echo", new[] { typeof(string) }, a =>
@@ -133,13 +137,13 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                         tcs.TrySetResult((string)a[0]);
                     });
 
-                    await connection.Invoke<Task>("CallEcho", originalMessage);
+                    await connection.Invoke<Task>("CallEcho", originalMessage).OrTimeout();
 
                     Assert.Equal(originalMessage, await tcs.Task.OrTimeout());
                 }
                 finally
                 {
-                    await connection.DisposeAsync();
+                    await connection.DisposeAsync().OrTimeout();
                 }
             }
         }
