@@ -37,7 +37,7 @@ In order to perform a single invocation, Caller follows the following basic flow
 7. Go to 3
 8. Complete the invocation, yielding that completion to the Caller (i.e. by completing a `Task` or `IObservable`)
 
-The `Target` of an `Invocation` message must refer to a specific method, overloading is **not** permitted. In the .NET Binder, the `Target` value for a method is defined as the simple name of the Method (i.e. without qualifying type name, since a SignalR endpoint is specific to a single Hub class).
+The `Target` of an `Invocation` message must refer to a specific method, overloading is **not** permitted. In the .NET Binder, the `Target` value for a method is defined as the simple name of the Method (i.e. without qualifying type name, since a SignalR endpoint is specific to a single Hub class). `Target` is case-sensitive
 
 **NOTE**: `Invocation ID`s are arbitrarily chosen by the Caller and the Callee is expected to use the same string in all response messages. Callees may establish reasonable limits on `Invocation ID` lengths and terminate the connection when an `Invocation ID` that is too long is received.
 
@@ -45,7 +45,7 @@ The `Target` of an `Invocation` message must refer to a specific method, overloa
 
 The SignalR protocol allows for multiple `Result` messages to be transmitted in response to an `Invocation` message, and allows the receiver to dispatch these results as they arrive, to allow for streaming data from one endpoint to another.
 
-On the Callee side, it is up to the Callee's Binder to determine if a method call will yield multiple results. For example, in .NET, a return type of `IEnumerable` or `IObservable` will yield multiple results, but other return types will yield a single result. The Callee's Binder must encode each result in separate `Result` messages, indicating the end of results by sending a `Completion` message.
+On the Callee side, it is up to the Callee's Binder to determine if a method call will yield multiple results. For example, in .NET certain return types may indicate multiple results, while others may indicate a single result. Even then, applications may wish for multiple results to be buffered and returned in a single `Result` frame. It is up to the Binder to decide how to map this. The Callee's Binder must encode each result in separate `Result` messages, indicating the end of results by sending a `Completion` message.
 
 On the Caller side, the user code which performs the invocation indicates how it would like to receive the results and it is up the Caller's Binder to determine how to handle the result. If the Caller expects only a single result, but multiple results are returned, the Caller's Binder should yield an error indicating that multiple results were returned. However, if a Caller expects multiple results, but only a single result is returned, the Caller's Binder should yield that single result and indicate there are no further results.
 
@@ -144,7 +144,7 @@ In order to support ProtoBuf, an application must provide a [ProtoBuf service de
 public bool SendMessageToUser(string userName, string message) {}
 ```
 
-In order to invoke this method, the application must provide a ProtoBuf schema representing the input and output values:
+In order to invoke this method, the application must provide a ProtoBuf schema representing the input and output values and defining the message:
 
 ```protobuf
 syntax = "proto3";
@@ -156,6 +156,10 @@ message SendMessageToUserRequest {
 
 message SendMessageToUserResponse {
     bool result = 1;
+}
+
+service ChatService {
+    rpc SendMessageToUser (SendMessageToUserRequest) returns (SendMessageToUserResponse);
 }
 ```
 
