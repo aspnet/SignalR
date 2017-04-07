@@ -1,4 +1,7 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
+using Microsoft.AspNetCore.SignalR;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System;
@@ -22,11 +25,11 @@ namespace ChatSample
             _presenceManager = presenceManager;
         }
 
-        public IEnumerable<UserDetails> UsersOnline
+        public Task<IEnumerable<UserDetails>> UsersOnline
         {
             get
             {
-                return _presenceManager.UsersOnline;
+                return _presenceManager.UsersOnline();
             }
         }
 
