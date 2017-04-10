@@ -109,10 +109,8 @@ namespace Microsoft.AspNetCore.SignalR
 
         private async Task WriteAsync(Connection connection, HubMessage hubMessage)
         {
-            var stream = new MemoryStream();
-            var payload = _protocol.WriteMessage(hubMessage);
-
-            var message = new Message(payload, MessageType.Text, endOfMessage: true);
+            var payload = await _protocol.WriteToArrayAsync(hubMessage);
+            var message = new Message(payload, _protocol.MessageType, endOfMessage: true);
 
             while (await connection.Transport.Output.WaitToWriteAsync())
             {

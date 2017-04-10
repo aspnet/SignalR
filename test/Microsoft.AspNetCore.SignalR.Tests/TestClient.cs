@@ -77,9 +77,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         public async Task<string> Invoke(string methodName, params object[] args)
         {
             var invocationId = GetInvocationId();
-            var payload = _protocol.WriteMessage(new InvocationMessage(invocationId, methodName, args));
+            var payload = await _protocol.WriteToArrayAsync(new InvocationMessage(invocationId, methodName, args));
 
-            await Application.Output.WriteAsync(new Message(payload, MessageType.Binary, endOfMessage: true));
+            await Application.Output.WriteAsync(new Message(payload, _protocol.MessageType, endOfMessage: true));
 
             return invocationId;
         }

@@ -4,8 +4,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Pipelines;
+using System.IO.Pipelines.Text.Primitives;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Internal;
@@ -227,21 +230,20 @@ namespace Microsoft.AspNetCore.SignalR
 
         private async Task SendMessageAsync(Connection connection, HubMessage hubMessage)
         {
-            // Encode the message
-            var payload = _protocol.WriteMessage(hubMessage);
-
-            // Create a message and put it on the outbound channel
+            var payload = await _protocol.WriteToArrayAsync(hubMessage);
             var message = new Message(payload, _protocol.MessageType, endOfMessage: true);
 
-            while (!connection.Transport.Output.TryWrite(message))
+            while (await connection.Transport.Output.WaitToWriteAsync())
             {
-                if (!await connection.Transport.Output.WaitToWriteAsync())
+                if (connection.Transport.Output.TryWrite(message))
                 {
-                    // Output is closed. Cancel this invocation completely
-                    _logger.LogWarning("Outbound channel was closed while trying to write hub message");
-                    throw new OperationCanceledException("Outbound channel was closed while trying to write hub message");
+                    return;
                 }
             }
+
+            // Output is closed. Cancel this invocation completely
+            _logger.LogWarning("Outbound channel was closed while trying to write hub message");
+            throw new OperationCanceledException("Outbound channel was closed while trying to write hub message");
         }
 
         private async Task<ResultMessage> Invoke(HubMethodDescriptor descriptor, Connection connection, InvocationMessage invocationMessage)

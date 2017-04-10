@@ -29,7 +29,6 @@ namespace Microsoft.AspNetCore.SignalR.Redis
         private readonly ILoggerFactory _loggerFactory;
         private readonly RedisOptions _options;
 
-        // TODO: What protocol should we use to publish to the bus?
         private readonly IHubProtocol _protocol = new JsonHubProtocol();
 
         public RedisHubLifetimeManager(ILoggerFactory loggerFactory,
@@ -87,10 +86,10 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             return PublishAsync(typeof(THub).FullName + ".user." + userId, message);
         }
 
-        private async Task PublishAsync(string channel, HubMessage message)
+        private async Task PublishAsync(string channel, HubMessage hubMessage)
         {
             // BAD
-            var payload = _protocol.WriteMessage(message);
+            var payload = await _protocol.WriteToArrayAsync(hubMessage);
 
             await _bus.PublishAsync(channel, payload);
         }

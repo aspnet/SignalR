@@ -17,6 +17,7 @@ using Xunit;
 using System.IO;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.SignalR.Internal;
+using System.Buffers;
 
 namespace Microsoft.AspNetCore.SignalR.Client.Tests
 {
@@ -306,7 +307,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 return false;
             }
 
-            public byte[] WriteMessage(HubMessage message)
+            public bool TryWriteMessage(HubMessage message, IOutput output)
             {
                 WriteCalls += 1;
 
@@ -314,7 +315,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 {
                     throw _error;
                 }
-                return new byte[0];
+                return true;
             }
         }
     }

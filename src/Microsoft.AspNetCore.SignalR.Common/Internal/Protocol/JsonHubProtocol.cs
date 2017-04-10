@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Buffers;
 using System.IO;
 using Microsoft.AspNetCore.Sockets;
 using Newtonsoft.Json;
@@ -40,14 +41,15 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             return true;
         }
 
-        public byte[] WriteMessage(HubMessage message)
+        public bool TryWriteMessage(HubMessage message, IOutput output)
         {
             // TODO: Need IOutput-compatible JSON serializer!
             using (var memoryStream = new MemoryStream())
             {
                 WriteMessage(message, memoryStream);
                 memoryStream.FlushAsync();
-                return memoryStream.ToArray();
+
+                return output.TryWrite(memoryStream.ToArray());
             }
         }
 
@@ -165,6 +167,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 var paramType = paramTypes[i];
 
                 // TODO(anurse): We can add some DI magic here to allow users to provide their own serialization
+                // Related Bug: https://github.com/aspnet/SignalR/issues/261
                 arguments[i] = args[i].ToObject(paramType, _serializer);
             }
 

@@ -132,12 +132,11 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             try
             {
-                var payload = _protocol.WriteMessage(invocationMessage);
+                var payload = await _protocol.WriteToArrayAsync(invocationMessage);
 
                 _logger.LogInformation("Sending Invocation #{0}", invocationMessage.InvocationId);
 
-                // TODO: Format.Text - who, where and when decides about the format of outgoing messages
-                await _connection.SendAsync(payload, MessageType.Text, cancellationToken);
+                await _connection.SendAsync(payload, _protocol.MessageType, cancellationToken);
                 _logger.LogInformation("Sending Invocation #{0} complete", invocationMessage.InvocationId);
             }
             catch (Exception ex)
