@@ -38,7 +38,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                     throw new InvalidOperationException("Failed to write message to the output stream");
                 }
 
-                await memoryStream.FlushAsync();
+                await output.FlushAsync();
 
                 // Create a message
                 return memoryStream.ToArray();
