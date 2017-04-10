@@ -5,14 +5,12 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.Pipelines;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.Sockets;
-using Microsoft.Extensions.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
@@ -41,7 +39,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             _redisServerConnection = _options.Connect(writer);
             _bus = _redisServerConnection.GetSubscriber();
 
-            var previousBroadcastTask = TaskCache.CompletedTask;
+            var previousBroadcastTask = Task.CompletedTask;
 
             _bus.Subscribe(typeof(THub).FullName, async (c, data) =>
             {
@@ -97,15 +95,15 @@ namespace Microsoft.AspNetCore.SignalR.Redis
         public override Task OnConnectedAsync(Connection connection)
         {
             var redisSubscriptions = connection.Metadata.GetOrAdd("redis_subscriptions", _ => new HashSet<string>());
-            var connectionTask = TaskCache.CompletedTask;
-            var userTask = TaskCache.CompletedTask;
+            var connectionTask = Task.CompletedTask;
+            var userTask = Task.CompletedTask;
 
             _connections.Add(connection);
 
             var connectionChannel = typeof(THub).FullName + "." + connection.ConnectionId;
             redisSubscriptions.Add(connectionChannel);
 
-            var previousConnectionTask = TaskCache.CompletedTask;
+            var previousConnectionTask = Task.CompletedTask;
 
             connectionTask = _bus.SubscribeAsync(connectionChannel, async (c, data) =>
             {
@@ -120,7 +118,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                 var userChannel = typeof(THub).FullName + ".user." + connection.User.Identity.Name;
                 redisSubscriptions.Add(userChannel);
 
-                var previousUserTask = TaskCache.CompletedTask;
+                var previousUserTask = Task.CompletedTask;
 
                 // TODO: Look at optimizing (looping over connections checking for Name)
                 userTask = _bus.SubscribeAsync(userChannel, async (c, data) =>
@@ -188,7 +186,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                     return;
                 }
 
-                var previousTask = TaskCache.CompletedTask;
+                var previousTask = Task.CompletedTask;
 
                 await _bus.SubscribeAsync(groupChannel, async (c, data) =>
                 {

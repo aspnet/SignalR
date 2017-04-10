@@ -608,7 +608,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
             public override Task OnDisconnectedAsync(Exception e)
             {
-                return TaskCache.CompletedTask;
+                return Task.CompletedTask;
             }
         }
 

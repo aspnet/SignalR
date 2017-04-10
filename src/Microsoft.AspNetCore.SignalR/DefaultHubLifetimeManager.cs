@@ -25,7 +25,7 @@ namespace Microsoft.AspNetCore.SignalR
                 groups.Add(groupName);
             }
 
-            return TaskCache.CompletedTask;
+            return Task.CompletedTask;
         }
 
         public override Task RemoveGroupAsync(Connection connection, string groupName)
@@ -34,7 +34,7 @@ namespace Microsoft.AspNetCore.SignalR
 
             if (groups == null)
             {
-                return TaskCache.CompletedTask;
+                return Task.CompletedTask;
             }
 
             lock (groups)
@@ -42,7 +42,7 @@ namespace Microsoft.AspNetCore.SignalR
                 groups.Remove(groupName);
             }
 
-            return TaskCache.CompletedTask;
+            return Task.CompletedTask;
         }
 
         public override Task InvokeAllAsync(string methodName, object[] args)
@@ -98,13 +98,13 @@ namespace Microsoft.AspNetCore.SignalR
         public override Task OnConnectedAsync(Connection connection)
         {
             _connections.Add(connection);
-            return TaskCache.CompletedTask;
+            return Task.CompletedTask;
         }
 
         public override Task OnDisconnectedAsync(Connection connection)
         {
             _connections.Remove(connection);
-            return TaskCache.CompletedTask;
+            return Task.CompletedTask;
         }
 
         private async Task WriteAsync(Connection connection, HubMessage hubMessage)
