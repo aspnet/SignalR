@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
@@ -98,7 +99,7 @@ namespace Microsoft.AspNetCore.Sockets
 
             try
             {
-                if (_disposed)
+                if (_disposed || Debugger.IsAttached)
                 {
                     return;
                 }

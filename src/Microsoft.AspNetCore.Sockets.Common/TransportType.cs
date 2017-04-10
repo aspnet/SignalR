@@ -11,6 +11,7 @@ namespace Microsoft.AspNetCore.Sockets
         WebSockets = 1,
         ServerSentEvents = 2,
         LongPolling = 4,
-        All = WebSockets | ServerSentEvents | LongPolling
+        Streaming = 8,
+        All = WebSockets | ServerSentEvents | Streaming | LongPolling,
     }
 }

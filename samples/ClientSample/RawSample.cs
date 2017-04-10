@@ -18,7 +18,7 @@ namespace ClientSample
     {
         public static async Task MainAsync(string[] args)
         {
-            if(args.Contains("--debug"))
+            if (args.Contains("--debug"))
             {
                 Console.WriteLine($"Ready for debugger to attach. Process ID: {Process.GetCurrentProcess().Id}");
                 Console.Write("Press ENTER to Continue");
@@ -39,7 +39,7 @@ namespace ClientSample
             using (var httpClient = new HttpClient(new LoggingMessageHandler(loggerFactory, new HttpClientHandler())))
             {
                 logger.LogInformation("Connecting to {0}", baseUrl);
-                var transport = new LongPollingTransport(httpClient, loggerFactory);
+                var transport = new HttpStreamingTransport(httpClient, loggerFactory);
                 var connection = new Connection(new Uri(baseUrl), loggerFactory);
                 try
                 {

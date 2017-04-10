@@ -104,6 +104,27 @@ namespace Microsoft.AspNetCore.Sockets
 
                 await DoPersistentConnection(endpoint, ws, context, state);
             }
+            else if (context.Request.Path.StartsWithSegments(path + "/streaming"))
+            {
+                // Connection can be established lazily
+                var state = await GetOrCreateConnectionAsync(context);
+                if (state == null)
+                {
+                    // No such connection, GetConnection already set the response status code
+                    return;
+                }
+
+                if (!await EnsureConnectionStateAsync(state, context, TransportType.Streaming, supportedTransports))
+                {
+                    // Bad connection state. It's already set the response status code.
+                    return;
+                }
+
+                // We only need to provide the Input channel since writing to the application is handled through /send.
+                var streamingHttp = new StreamingHttpTransport(state.Application, _loggerFactory);
+
+                await DoPersistentConnection(endpoint, streamingHttp, context, state);
+            }
             else if (context.Request.Path.StartsWithSegments(path + "/poll"))
             {
                 // Connection must already exist
