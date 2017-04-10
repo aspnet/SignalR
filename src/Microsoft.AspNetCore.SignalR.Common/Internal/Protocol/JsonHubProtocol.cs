@@ -12,7 +12,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 {
     public class JsonHubProtocol : IHubProtocol
     {
-        private const string PayloadPropertyName = "payload";
+        private const string ResultPropertyName = "result";
         private const string InvocationIdPropertyName = "invocationId";
         private const string TypePropertyName = "type";
         private const string ErrorPropertyName = "error";
@@ -76,7 +76,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                     return BindResultMessage(json, binder);
                 case CompletionMessageType:
                     // Completion
-                    return BindCompletionMessage(json);
+                    return BindCompletionMessage(json, binder);
                 default:
                     throw new FormatException($"Unknown message type: {type}");
             }
@@ -107,6 +107,16 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         {
             writer.WriteStartObject();
             WriteHubMessageCommon(message, writer, CompletionMessageType);
+            if (!string.IsNullOrEmpty(message.Error))
+            {
+                writer.WritePropertyName(ErrorPropertyName);
+                writer.WriteValue(message.Error);
+            }
+            else if (message.HasResult)
+            {
+                writer.WritePropertyName(ResultPropertyName);
+                writer.WriteValue(message.Result);
+            }
             writer.WriteEndObject();
         }
 
@@ -114,16 +124,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         {
             writer.WriteStartObject();
             WriteHubMessageCommon(message, writer, ResultMessageType);
-            if (string.IsNullOrEmpty(message.Error))
-            {
-                writer.WritePropertyName(PayloadPropertyName);
-                writer.WriteValue(message.Payload);
-            }
-            else
-            {
-                writer.WritePropertyName(ErrorPropertyName);
-                writer.WriteValue(message.Error);
-            }
+            writer.WritePropertyName(ResultPropertyName);
+            writer.WriteValue(message.Result);
             writer.WriteEndObject();
         }
 
@@ -177,17 +179,27 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         private ResultMessage BindResultMessage(JObject json, IInvocationBinder binder)
         {
             var invocationId = json.Value<string>(InvocationIdPropertyName);
-            var error = json.Value<string>(ErrorPropertyName);
-            var payload = json.Value<JToken>(PayloadPropertyName);
+            var payload = json.Value<JToken>(ResultPropertyName);
 
             var returnType = binder.GetReturnType(invocationId);
-            return new ResultMessage(invocationId, error, payload?.ToObject(returnType, _serializer));
+            return new ResultMessage(invocationId, payload?.ToObject(returnType, _serializer));
         }
 
-        private CompletionMessage BindCompletionMessage(JObject json)
+        private CompletionMessage BindCompletionMessage(JObject json, IInvocationBinder binder)
         {
             var invocationId = json.Value<string>(InvocationIdPropertyName);
-            return new CompletionMessage(invocationId);
+            var error = json.Value<string>(ErrorPropertyName);
+            var resultProp = json.Property(ResultPropertyName);
+            if (resultProp == null)
+            {
+                return new CompletionMessage(invocationId, error, result: null, hasResult: false);
+            }
+            else
+            {
+                var returnType = binder.GetReturnType(invocationId);
+                var payload = resultProp.Value?.ToObject(returnType, _serializer);
+                return new CompletionMessage(invocationId, error, result: payload, hasResult: true);
+            }
         }
     }
 }

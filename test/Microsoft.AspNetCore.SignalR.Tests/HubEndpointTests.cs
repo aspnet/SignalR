@@ -132,7 +132,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var result = (await client.InvokeAndWait(nameof(MethodHub.TaskValueMethod)).OrTimeout()).Single();
 
                 // json serializer makes this a long
-                Assert.Equal(42L, result.Payload);
+                Assert.Equal(42L, result.Result);
 
                 // kill the connection
                 client.Dispose();
@@ -155,7 +155,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var result = (await client.InvokeAndWait("echo", "hello").OrTimeout()).Single();
 
                 Assert.Null(result.Error);
-                Assert.Equal("hello", result.Payload);
+                Assert.Equal("hello", result.Result);
 
                 // kill the connection
                 client.Dispose();
@@ -178,7 +178,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var result = (await client.InvokeAndWait(nameof(MethodHub.ValueMethod)).OrTimeout()).Single();
 
                 // json serializer makes this a long
-                Assert.Equal(43L, result.Payload);
+                Assert.Equal(43L, result.Result);
 
                 // kill the connection
                 client.Dispose();
@@ -200,7 +200,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 var result = (await client.InvokeAndWait(nameof(MethodHub.StaticMethod)).OrTimeout()).Single();
 
-                Assert.Equal("fromStatic", result.Payload);
+                Assert.Equal("fromStatic", result.Result);
 
                 // kill the connection
                 client.Dispose();
@@ -222,7 +222,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 var result = (await client.InvokeAndWait(nameof(MethodHub.VoidMethod)).OrTimeout()).Single();
 
-                Assert.Null(result.Payload);
+                Assert.Null(result.Result);
 
                 // kill the connection
                 client.Dispose();
@@ -244,7 +244,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 var result = (await client.InvokeAndWait(nameof(MethodHub.ConcatString), (byte)32, 42, 'm', "string").OrTimeout()).Single();
 
-                Assert.Equal("32, 42, m, string", result.Payload);
+                Assert.Equal("32, 42, m, string", result.Result);
 
                 // kill the connection
                 client.Dispose();
@@ -266,7 +266,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 var result = (await client.InvokeAndWait(nameof(InheritedHub.BaseMethod), "string").OrTimeout()).Single();
 
-                Assert.Equal("string", result.Payload);
+                Assert.Equal("string", result.Result);
 
                 // kill the connection
                 client.Dispose();
@@ -288,7 +288,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 var result = (await client.InvokeAndWait(nameof(InheritedHub.VirtualMethod), 10).OrTimeout()).Single();
 
-                Assert.Equal(0L, result.Payload);
+                Assert.Equal(0L, result.Result);
 
                 // kill the connection
                 client.Dispose();

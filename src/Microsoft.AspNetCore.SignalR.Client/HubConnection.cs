@@ -244,8 +244,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 }
                 else
                 {
-                    _logger.LogInformation("Completing Invocation #{0} with result of type: {1}", result.InvocationId, result.Payload?.GetType()?.FullName ?? "<<void>>");
-                    irq.Completion.TrySetResult(result.Payload);
+                    _logger.LogInformation("Completing Invocation #{0} with result of type: {1}", result.InvocationId, result.Result?.GetType()?.FullName ?? "<<void>>");
+                    irq.Completion.TrySetResult(result.Result);
                 }
             }
         }

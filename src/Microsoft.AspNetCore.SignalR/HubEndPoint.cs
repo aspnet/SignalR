@@ -216,16 +216,13 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 // Send an error to the client. Then let the normal completion process occur
                 _logger.LogError("Unknown hub method '{method}'", invocationMessage.Target);
-                await SendMessageAsync(connection, ResultMessage.WithError(invocationMessage.InvocationId, $"Unknown hub method '{invocationMessage.Target}'"));
+                await SendMessageAsync(connection, CompletionMessage.WithError(invocationMessage.InvocationId, $"Unknown hub method '{invocationMessage.Target}'"));
             }
             else
             {
                 var result = await Invoke(descriptor, connection, invocationMessage);
                 await SendMessageAsync(connection, result);
             }
-
-            // Send the completion message
-            await SendMessageAsync(connection, new CompletionMessage(invocationMessage.InvocationId));
         }
 
         private async Task SendMessageAsync(Connection connection, HubMessage hubMessage)
@@ -246,7 +243,7 @@ namespace Microsoft.AspNetCore.SignalR
             throw new OperationCanceledException("Outbound channel was closed while trying to write hub message");
         }
 
-        private async Task<ResultMessage> Invoke(HubMethodDescriptor descriptor, Connection connection, InvocationMessage invocationMessage)
+        private async Task<CompletionMessage> Invoke(HubMethodDescriptor descriptor, Connection connection, InvocationMessage invocationMessage)
         {
             var methodExecutor = descriptor.MethodExecutor;
 
@@ -276,17 +273,17 @@ namespace Microsoft.AspNetCore.SignalR
                         result = methodExecutor.Execute(hub, invocationMessage.Arguments);
                     }
 
-                    return ResultMessage.WithPayload(invocationMessage.InvocationId, result);
+                    return CompletionMessage.WithResult(invocationMessage.InvocationId, result);
                 }
                 catch (TargetInvocationException ex)
                 {
                     _logger.LogError(0, ex, "Failed to invoke hub method");
-                    return ResultMessage.WithError(invocationMessage.InvocationId, ex.InnerException.Message);
+                    return CompletionMessage.WithError(invocationMessage.InvocationId, ex.InnerException.Message);
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(0, ex, "Failed to invoke hub method");
-                    return ResultMessage.WithError(invocationMessage.InvocationId, ex.Message);
+                    return CompletionMessage.WithError(invocationMessage.InvocationId, ex.Message);
                 }
                 finally
                 {
