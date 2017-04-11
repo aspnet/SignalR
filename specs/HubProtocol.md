@@ -30,15 +30,20 @@ In order to perform a single invocation, Caller follows the following basic flow
 
 1. Allocate a unique `Invocation ID` value (arbitrary string, chosen by the Caller) to represent the invocation
 2. Send an `Invocation` message containing the `Invocation ID`, the name of the `Target` being invoked, and the `Arguments` to provide to the method.
-3. Wait for a `Result` or `Completion` message with a matching `Invocation ID`
-4. If a `Completion` message arrives, go to 7
-5. If the `Result` message has a payload, dispatch the payload to the application (i.e. by yielding a result to an `IObservable`, or by collecting the result for dispatching in step 8)
-6. Go to 3
-7. Complete the invocation, dispatching the final payload item (if any) or the error (if any) to the application
+3. If the `Invocation` is marked as non-blocking (see "Non-Blocking Invocations" below), stop here and immediately yield back to the application.
+4. Wait for a `Result` or `Completion` message with a matching `Invocation ID`
+5. If a `Completion` message arrives, go to 8
+6. If the `Result` message has a payload, dispatch the payload to the application (i.e. by yielding a result to an `IObservable`, or by collecting the result for dispatching in step 8)
+7. Go to 4
+8. Complete the invocation, dispatching the final payload item (if any) or the error (if any) to the application
 
 The `Target` of an `Invocation` message must refer to a specific method, overloading is **not** permitted. In the .NET Binder, the `Target` value for a method is defined as the simple name of the Method (i.e. without qualifying type name, since a SignalR endpoint is specific to a single Hub class). `Target` is case-sensitive
 
 **NOTE**: `Invocation ID`s are arbitrarily chosen by the Caller and the Callee is expected to use the same string in all response messages. Callees may establish reasonable limits on `Invocation ID` lengths and terminate the connection when an `Invocation ID` that is too long is received.
+
+## Non-Blocking Invocations
+
+Invocations can be marked as "Non-Blocking" in the `Invocation` message, which indicates to the Callee that the Caller expects no results. When a Callee receives a "Non-Blocking" Invocation, it should dispatch the message, but send no results or errors back to the Caller. In a Caller application, the invocation will immediately return with no results. There is no tracking of completion for Non-Blocking Invocations.
 
 ## Multiple Results
 
@@ -55,6 +60,8 @@ Errors are indicated by the presence of the `error` field in a `Completion` mess
 ## Completion and Results
 
 A Invocation is only considered completed when the `Completion` message is recevied. Receiving **any** message using the same `Invocation ID` after a `Completion` message has been received for that invocation is considered a protocol error and the recipient should immediately terminate the connection. For non-streamed results, it is up to the Callee whether to encode the result in a separate `Result` message, or within the `Completion` message.
+
+It is a protocol error for a Caller to send a `Result` or `Completion` message in response to a Non-Blocking Invocation (see "Non-Blocking Invocations" above)
 
 ## Examples
 
@@ -96,6 +103,12 @@ public IEnumerable<int> StreamFailure(int count)
         yield return i;
     }
     throw new Exception("Ran out of data!");
+}
+
+private List<string> _callers = new List<string>();
+public void NonBlocking(string caller)
+{
+    _callers.Add(caller);
 }
 ```
 
@@ -169,6 +182,12 @@ S->C: Completion { Id = 42, Error = "Ran out of data!" }
 
 This should manifest to the Calling code as a sequence which emits `0`, `1`, `2`, `3`, `4`, but then fails with the error `Ran out of data!`.
 
+### Non-Blocking Call (`NonBlocking` example above)
+
+```
+C->S: Invocation { Id = 42, Target = "NonBlocking", Arguments = [ "foo" ] }
+```
+
 ## JSON Encoding
 
 In the JSON Encoding of the SignalR Protocol, each Message is represented as a single JSON object, which should be the only content of the underlying message from the Transport.
@@ -179,6 +198,7 @@ An `Invocation` message is a JSON object with the following properties:
 
 * `type` - A `Number` with the literal value 1, indicating that this message is an Invocation.
 * `invocationId` - A `String` encoding the `Invocation ID` for a message.
+* `nonblocking` - A `Boolean` indicating if the invocation is Non-Blocking (see "Non-Blocking Invocations" above). Optional and defaults to `false` if not present.
 * `target` - A `String` encoding the `Target` name, as expected by the Callee's Binder
 * `arguments` - An `Array` containing arguments to apply to the method referred to in Target. This is a sequence of JSON `Token`s, encoded as indicated below in the "JSON Payload Encoding" section
 
@@ -188,6 +208,20 @@ Example:
 {
     "type": 1,
     "invocationId": 123,
+    "target": "Send",
+    "arguments": [
+        42,
+        "Test Message"
+    ]
+}
+```
+Example (Non-Blocking):
+
+```json
+{
+    "type": 1,
+    "invocationId": 123,
+    "nonblocking": true,
     "target": "Send",
     "arguments": [
         42,
@@ -307,7 +341,8 @@ syntax = "proto3";
 
 message Invocation {
     string target = 1;
-    bytes arguments = 2;
+    bool nonblocking = 2;
+    bytes arguments = 3;
 }
 
 message Result {
