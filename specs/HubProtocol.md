@@ -52,6 +52,10 @@ On the Caller side, the user code which performs the invocation indicates how it
 
 Errors are indicated by the presence of the `error` field in a `Completion` message. Errors always indicate the immediate end of the invocation. In the case of streamed responses, the arrival of a `Completion` message indicating an error should **not** stop the dispatching of previously-received results. The error is only yielded after the previously-received results have been dispatched.
 
+## Completion and Results
+
+A Invocation is only considered completed when the `Completion` message is recevied. Receiving **any** message using the same `Invocation ID` after a `Completion` message has been received for that invocation is considered a protocol error and the recipient should immediately terminate the connection. For non-streamed results, it is up to the Callee whether to encode the result in a separate `Result` message, or within the `Completion` message.
+
 ## Examples
 
 Consider the following C# methods
@@ -75,8 +79,8 @@ public IEnumerable<int> Batched(int count)
     }
 }
 
-[return: StreamToClient] // This is a made-up attribute that is used to indicate to the .NET Binder that it should stream results
-public IEnumerable<int> Stream(int x, int y)
+[return: Streamed] // This is a made-up attribute that is used to indicate to the .NET Binder that it should stream results
+public IEnumerable<int> Stream(int count)
 {
     for(var i = 0; i < count; i++)
     {
@@ -84,8 +88,8 @@ public IEnumerable<int> Stream(int x, int y)
     }
 }
 
-[return: StreamToClient] // This is a made-up attribute that is used to indicate to the .NET Binder that it should stream results
-public IEnumerable<int> StreamFailure(int x, int y)
+[return: Streamed] // This is a made-up attribute that is used to indicate to the .NET Binder that it should stream results
+public IEnumerable<int> StreamFailure(int count)
 {
     for(var i = 0; i < count; i++)
     {
@@ -102,6 +106,14 @@ In each of the below examples, lines starting `C->S` indicate messages sent from
 ```
 C->S: Invocation { Id = 42, Target = "Add", Arguments = [ 40, 2 ] }
 S->C: Completion { Id = 42, Result = 42 }
+```
+
+The following is also acceptable, since the Callee may choose to encode the `Result` in a separate message
+
+```
+C->S: Invocation { Id = 42, Target = "Add", Arguments = [ 40, 2 ] }
+S->C: Result { Id = 42, Result = 42 }
+S->C: Completion { Id = 42 }
 ```
 
 ### Single Result with Error (`SingleResultFailure` example above)
