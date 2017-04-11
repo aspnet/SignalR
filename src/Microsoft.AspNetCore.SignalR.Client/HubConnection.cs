@@ -10,6 +10,8 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.SignalR.Internal;
+using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.Sockets;
 using Microsoft.AspNetCore.Sockets.Client;
 using Microsoft.Extensions.Logging;
@@ -21,7 +23,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
     {
         private readonly ILogger _logger;
         private readonly IConnection _connection;
-        private readonly IInvocationAdapter _adapter;
+        private readonly IHubProtocol _protocol;
         private readonly HubBinder _binder;
 
         private readonly CancellationTokenSource _connectionActive = new CancellationTokenSource();
@@ -47,18 +49,19 @@ namespace Microsoft.AspNetCore.SignalR.Client
         }
 
         public HubConnection(Uri url)
-            : this(new Connection(url), new JsonNetInvocationAdapter(), null)
+            : this(new Connection(url), new JsonHubProtocol(), null)
         { }
 
         public HubConnection(Uri url, ILoggerFactory loggerFactory)
-            : this(new Connection(url), new JsonNetInvocationAdapter(), loggerFactory)
+            : this(new Connection(url), new JsonHubProtocol(), loggerFactory)
         { }
 
-        public HubConnection(Uri url, IInvocationAdapter adapter, ILoggerFactory loggerFactory)
-            : this(new Connection(url, loggerFactory), adapter, loggerFactory)
+        // These are only really needed for tests now...
+        public HubConnection(IConnection connection, ILoggerFactory loggerFactory)
+            : this(connection, new JsonHubProtocol(), loggerFactory)
         { }
 
-        public HubConnection(IConnection connection, IInvocationAdapter adapter, ILoggerFactory loggerFactory)
+        public HubConnection(IConnection connection, IHubProtocol protocol, ILoggerFactory loggerFactory)
         {
             if (connection == null)
             {
@@ -67,7 +70,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             _connection = connection;
             _binder = new HubBinder(this);
-            _adapter = adapter;
+            _protocol = protocol;
             _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<HubConnection>();
             _connection.Received += OnDataReceived;
             _connection.Closed += Shutdown;
@@ -105,15 +108,10 @@ namespace Microsoft.AspNetCore.SignalR.Client
             _logger.LogTrace("Preparing invocation of '{0}', with return type '{1}' and {2} args", methodName, returnType.AssemblyQualifiedName, args.Length);
 
             // Create an invocation descriptor.
-            var descriptor = new InvocationDescriptor
-            {
-                Id = GetNextId(),
-                Method = methodName,
-                Arguments = args
-            };
+            var invocationMessage = new InvocationMessage(GetNextId().ToString(), methodName, args);
 
             // I just want an excuse to use 'irq' as a variable name...
-            _logger.LogDebug("Registering Invocation ID '{0}' for tracking", descriptor.Id);
+            _logger.LogDebug("Registering Invocation ID '{0}' for tracking", invocationMessage.InvocationId);
             var irq = new InvocationRequest(cancellationToken, returnType);
 
             lock (_pendingCallsLock)
@@ -122,34 +120,32 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 {
                     throw new InvalidOperationException("Connection has been terminated.");
                 }
-                _pendingCalls.Add(descriptor.Id, irq);
+                _pendingCalls.Add(invocationMessage.InvocationId, irq);
             }
 
             // Trace the invocation, but only if that logging level is enabled (because building the args list is a bit slow)
             if (_logger.IsEnabled(LogLevel.Trace))
             {
                 var argsList = string.Join(", ", args.Select(a => a.GetType().FullName));
-                _logger.LogTrace("Invocation #{0}: {1} {2}({3})", descriptor.Id, returnType.FullName, methodName, argsList);
+                _logger.LogTrace("Invocation #{0}: {1} {2}({3})", invocationMessage.InvocationId, returnType.FullName, methodName, argsList);
             }
 
             try
             {
-                var ms = new MemoryStream();
-                await _adapter.WriteMessageAsync(descriptor, ms, cancellationToken);
+                var payload = await _protocol.WriteToArrayAsync(invocationMessage);
 
-                _logger.LogInformation("Sending Invocation #{0}", descriptor.Id);
+                _logger.LogInformation("Sending Invocation #{0}", invocationMessage.InvocationId);
 
-                // TODO: Format.Text - who, where and when decides about the format of outgoing messages
-                await _connection.SendAsync(ms.ToArray(), MessageType.Text, cancellationToken);
-                _logger.LogInformation("Sending Invocation #{0} complete", descriptor.Id);
+                await _connection.SendAsync(payload, _protocol.MessageType, cancellationToken);
+                _logger.LogInformation("Sending Invocation #{0} complete", invocationMessage.InvocationId);
             }
             catch (Exception ex)
             {
-                _logger.LogError(0, ex, "Sending Invocation #{0} failed", descriptor.Id);
+                _logger.LogError(0, ex, "Sending Invocation #{0} failed", invocationMessage.InvocationId);
                 irq.Completion.TrySetException(ex);
                 lock (_pendingCallsLock)
                 {
-                    _pendingCalls.Remove(descriptor.Id);
+                    _pendingCalls.Remove(invocationMessage.InvocationId);
                 }
             }
 
@@ -157,25 +153,28 @@ namespace Microsoft.AspNetCore.SignalR.Client
             return await irq.Completion.Task;
         }
 
-        private async void OnDataReceived(byte[] data, MessageType messageType)
+        private void OnDataReceived(byte[] data, MessageType messageType)
         {
-            var message
-                = await _adapter.ReadMessageAsync(new MemoryStream(data), _binder, _connectionActive.Token);
+            if (!_protocol.TryParseMessage(data, _binder, out var message))
+            {
+                _logger.LogError("Received invalid message");
+                throw new InvalidOperationException("Received invalid message");
+            }
 
             switch (message)
             {
-                case InvocationDescriptor invocationDescriptor:
-                    DispatchInvocation(invocationDescriptor, _connectionActive.Token);
+                case InvocationMessage invocation:
+                    DispatchInvocation(invocation, _connectionActive.Token);
                     break;
-                case InvocationResultDescriptor invocationResultDescriptor:
+                case ResultMessage result:
                     InvocationRequest irq;
                     lock (_pendingCallsLock)
                     {
                         _connectionActive.Token.ThrowIfCancellationRequested();
-                        irq = _pendingCalls[invocationResultDescriptor.Id];
-                        _pendingCalls.Remove(invocationResultDescriptor.Id);
+                        irq = _pendingCalls[result.InvocationId];
+                        _pendingCalls.Remove(result.InvocationId);
                     }
-                    DispatchInvocationResult(invocationResultDescriptor, irq, _connectionActive.Token);
+                    DispatchInvocationResult(result, irq, _connectionActive.Token);
                     break;
             }
         }
@@ -206,23 +205,23 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
         }
 
-        private void DispatchInvocation(InvocationDescriptor invocationDescriptor, CancellationToken cancellationToken)
+        private void DispatchInvocation(InvocationMessage invocation, CancellationToken cancellationToken)
         {
             // Find the handler
-            if (!_handlers.TryGetValue(invocationDescriptor.Method, out InvocationHandler handler))
+            if (!_handlers.TryGetValue(invocation.Target, out InvocationHandler handler))
             {
-                _logger.LogWarning("Failed to find handler for '{0}' method", invocationDescriptor.Method);
+                _logger.LogWarning("Failed to find handler for '{0}' method", invocation.Target);
                 return;
             }
 
             // TODO: Return values
             // TODO: Dispatch to a sync context to ensure we aren't blocking this loop.
-            handler.Handler(invocationDescriptor.Arguments);
+            handler.Handler(invocation.Arguments);
         }
 
-        private void DispatchInvocationResult(InvocationResultDescriptor result, InvocationRequest irq, CancellationToken cancellationToken)
+        private void DispatchInvocationResult(ResultMessage result, InvocationRequest irq, CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Received Result for Invocation #{0}", result.Id);
+            _logger.LogInformation("Received Result for Invocation #{0}", result.InvocationId);
 
             if (cancellationToken.IsCancellationRequested)
             {
@@ -240,12 +239,12 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 // TODO: the TrySetXYZ methods will cause continuations attached to the Task to run, so we should dispatch to a sync context or thread pool.
                 if (!string.IsNullOrEmpty(result.Error))
                 {
-                    _logger.LogInformation("Completing Invocation #{0} with error: {1}", result.Id, result.Error);
+                    _logger.LogInformation("Completing Invocation #{0} with error: {1}", result.InvocationId, result.Error);
                     irq.Completion.TrySetException(new Exception(result.Error));
                 }
                 else
                 {
-                    _logger.LogInformation("Completing Invocation #{0} with result of type: {1}", result.Id, result.Result?.GetType()?.FullName ?? "<<void>>");
+                    _logger.LogInformation("Completing Invocation #{0} with result of type: {1}", result.InvocationId, result.Result?.GetType()?.FullName ?? "<<void>>");
                     irq.Completion.TrySetResult(result.Result);
                 }
             }

@@ -4,8 +4,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.Pipelines;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.Sockets;
 using Microsoft.Extensions.Internal;
 
@@ -14,12 +14,7 @@ namespace Microsoft.AspNetCore.SignalR
     public class DefaultHubLifetimeManager<THub> : HubLifetimeManager<THub>
     {
         private readonly ConnectionList _connections = new ConnectionList();
-        private readonly InvocationAdapterRegistry _registry;
-
-        public DefaultHubLifetimeManager(InvocationAdapterRegistry registry)
-        {
-            _registry = registry;
-        }
+        private readonly IHubProtocol _protocol = new JsonHubProtocol();
 
         public override Task AddGroupAsync(Connection connection, string groupName)
         {
@@ -30,7 +25,7 @@ namespace Microsoft.AspNetCore.SignalR
                 groups.Add(groupName);
             }
 
-            return TaskCache.CompletedTask;
+            return Task.CompletedTask;
         }
 
         public override Task RemoveGroupAsync(Connection connection, string groupName)
@@ -39,7 +34,7 @@ namespace Microsoft.AspNetCore.SignalR
 
             if (groups == null)
             {
-                return TaskCache.CompletedTask;
+                return Task.CompletedTask;
             }
 
             lock (groups)
@@ -47,7 +42,7 @@ namespace Microsoft.AspNetCore.SignalR
                 groups.Remove(groupName);
             }
 
-            return TaskCache.CompletedTask;
+            return Task.CompletedTask;
         }
 
         public override Task InvokeAllAsync(string methodName, object[] args)
@@ -58,11 +53,7 @@ namespace Microsoft.AspNetCore.SignalR
         private Task InvokeAllWhere(string methodName, object[] args, Func<Connection, bool> include)
         {
             var tasks = new List<Task>(_connections.Count);
-            var message = new InvocationDescriptor
-            {
-                Method = methodName,
-                Arguments = args
-            };
+            var message = new InvocationMessage(GetInvocationId(), methodName, args);
 
             // TODO: serialize once per format by providing a different stream?
             foreach (var connection in _connections)
@@ -72,9 +63,7 @@ namespace Microsoft.AspNetCore.SignalR
                     continue;
                 }
 
-                var invocationAdapter = _registry.GetInvocationAdapter(connection.Metadata.Get<string>("formatType"));
-
-                tasks.Add(WriteAsync(connection, invocationAdapter, message));
+                tasks.Add(WriteAsync(connection, message));
             }
 
             return Task.WhenAll(tasks);
@@ -84,15 +73,9 @@ namespace Microsoft.AspNetCore.SignalR
         {
             var connection = _connections[connectionId];
 
-            var invocationAdapter = _registry.GetInvocationAdapter(connection.Metadata.Get<string>("formatType"));
+            var message = new InvocationMessage(GetInvocationId(), methodName, args);
 
-            var message = new InvocationDescriptor
-            {
-                Method = methodName,
-                Arguments = args
-            };
-
-            return WriteAsync(connection, invocationAdapter, message);
+            return WriteAsync(connection, message);
         }
 
         public override Task InvokeGroupAsync(string groupName, string methodName, object[] args)
@@ -115,21 +98,19 @@ namespace Microsoft.AspNetCore.SignalR
         public override Task OnConnectedAsync(Connection connection)
         {
             _connections.Add(connection);
-            return TaskCache.CompletedTask;
+            return Task.CompletedTask;
         }
 
         public override Task OnDisconnectedAsync(Connection connection)
         {
             _connections.Remove(connection);
-            return TaskCache.CompletedTask;
+            return Task.CompletedTask;
         }
 
-        private static async Task WriteAsync(Connection connection, IInvocationAdapter invocationAdapter, InvocationDescriptor invocation)
+        private async Task WriteAsync(Connection connection, HubMessage hubMessage)
         {
-            var stream = new MemoryStream();
-            await invocationAdapter.WriteMessageAsync(invocation, stream);
-
-            var message = new Message(stream.ToArray(), MessageType.Text, endOfMessage: true);
+            var payload = await _protocol.WriteToArrayAsync(hubMessage);
+            var message = new Message(payload, _protocol.MessageType, endOfMessage: true);
 
             while (await connection.Transport.Output.WaitToWriteAsync())
             {
@@ -138,6 +119,11 @@ namespace Microsoft.AspNetCore.SignalR
                     break;
                 }
             }
+        }
+
+        private static string GetInvocationId()
+        {
+            return Guid.NewGuid().ToString("N");
         }
     }
 }

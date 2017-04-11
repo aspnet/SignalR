@@ -15,7 +15,6 @@ using System.Text.Formatting;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Sockets.Internal.Formatters;
-using Microsoft.Extensions.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -66,7 +65,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 return t;
             }).Unwrap();
 
-            return TaskCache.CompletedTask;
+            return Task.CompletedTask;
         }
 
         public async Task StopAsync()

@@ -102,7 +102,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             using (var httpClient = _testServer.CreateClient())
             {
                 var transport = new LongPollingTransport(httpClient, loggerFactory);
-                var connection = new HubConnection(new Uri("http://test/hubs"), new JsonNetInvocationAdapter(), loggerFactory);
+                var connection = new HubConnection(new Uri("http://test/hubs"), loggerFactory);
                 try
                 {
                     await connection.StartAsync(transport, httpClient);

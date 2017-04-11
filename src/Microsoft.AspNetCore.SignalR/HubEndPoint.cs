@@ -4,11 +4,15 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Pipelines;
+using System.IO.Pipelines.Text.Primitives;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Internal;
+using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.Sockets;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -20,11 +24,10 @@ namespace Microsoft.AspNetCore.SignalR
     {
         public HubEndPoint(HubLifetimeManager<THub> lifetimeManager,
                            IHubContext<THub> hubContext,
-                           InvocationAdapterRegistry registry,
                            IOptions<EndPointOptions<HubEndPoint<THub, IClientProxy>>> endPointOptions,
                            ILogger<HubEndPoint<THub>> logger,
                            IServiceScopeFactory serviceScopeFactory)
-            : base(lifetimeManager, hubContext, registry, endPointOptions, logger, serviceScopeFactory)
+            : base(lifetimeManager, hubContext, endPointOptions, logger, serviceScopeFactory)
         {
         }
     }
@@ -36,19 +39,19 @@ namespace Microsoft.AspNetCore.SignalR
         private readonly HubLifetimeManager<THub> _lifetimeManager;
         private readonly IHubContext<THub, TClient> _hubContext;
         private readonly ILogger<HubEndPoint<THub, TClient>> _logger;
-        private readonly InvocationAdapterRegistry _registry;
         private readonly IServiceScopeFactory _serviceScopeFactory;
+
+        // TODO: Configuration and Protobuf
+        private readonly JsonHubProtocol _protocol = new JsonHubProtocol();
 
         public HubEndPoint(HubLifetimeManager<THub> lifetimeManager,
                            IHubContext<THub, TClient> hubContext,
-                           InvocationAdapterRegistry registry,
                            IOptions<EndPointOptions<HubEndPoint<THub, TClient>>> endPointOptions,
                            ILogger<HubEndPoint<THub, TClient>> logger,
                            IServiceScopeFactory serviceScopeFactory)
         {
             _lifetimeManager = lifetimeManager;
             _hubContext = hubContext;
-            _registry = registry;
             _logger = logger;
             _serviceScopeFactory = serviceScopeFactory;
 
@@ -140,14 +143,12 @@ namespace Microsoft.AspNetCore.SignalR
 
         private async Task DispatchMessagesAsync(Connection connection)
         {
-            var invocationAdapter = _registry.GetInvocationAdapter(connection.Metadata.Get<string>("formatType"));
-
             // We use these for error handling. Since we dispatch multiple hub invocations
             // in parallel, we need a way to communicate failure back to the main processing loop. The
             // cancellation token is used to stop reading from the channel, the tcs
             // is used to get the exception so we can bubble it up the stack
             var cts = new CancellationTokenSource();
-            var tcs = new TaskCompletionSource<object>();
+            var completion = new TaskCompletionSource<object>();
 
             try
             {
@@ -155,100 +156,95 @@ namespace Microsoft.AspNetCore.SignalR
                 {
                     while (connection.Transport.Input.TryRead(out var incomingMessage))
                     {
-                        InvocationDescriptor invocationDescriptor;
-                        var inputStream = new MemoryStream(incomingMessage.Payload);
-
-                        // TODO: Handle receiving InvocationResultDescriptor
-                        invocationDescriptor = await invocationAdapter.ReadMessageAsync(inputStream, this) as InvocationDescriptor;
-
-                        // Is there a better way of detecting that a connection was closed?
-                        if (invocationDescriptor == null)
+                        if (!_protocol.TryParseMessage(incomingMessage.Payload, this, out var hubMessage))
                         {
-                            break;
+                            _logger.LogError("Received invalid message");
+                            throw new InvalidOperationException("Received invalid message");
                         }
 
-                        if (_logger.IsEnabled(LogLevel.Debug))
+                        switch (hubMessage)
                         {
-                            _logger.LogDebug("Received hub invocation: {invocation}", invocationDescriptor);
-                        }
+                            case InvocationMessage invocationMessage:
+                                if (_logger.IsEnabled(LogLevel.Debug))
+                                {
+                                    _logger.LogDebug("Received hub invocation: {invocation}", invocationMessage);
+                                }
 
-                        // Don't wait on the result of execution, continue processing other
-                        // incoming messages on this connection.
-                        var ignore = ProcessInvocation(connection, invocationAdapter, invocationDescriptor, cts, tcs);
+                                // Don't wait on the result of execution, continue processing other
+                                // incoming messages on this connection.
+                                var ignore = ProcessInvocation(connection, invocationMessage, cts, completion);
+                                break;
+                            default:
+                                _logger.LogError("Received unsupported message of type '{messageType}'", hubMessage.GetType().FullName);
+                                throw new NotSupportedException($"Received unsupported message: {hubMessage}");
+                        }
                     }
                 }
             }
             catch (OperationCanceledException)
             {
                 // Await the task so the exception bubbles up to the caller
-                await tcs.Task;
+                await completion.Task;
             }
         }
 
         private async Task ProcessInvocation(Connection connection,
-                                             IInvocationAdapter invocationAdapter,
-                                             InvocationDescriptor invocationDescriptor,
-                                             CancellationTokenSource cts,
-                                             TaskCompletionSource<object> tcs)
+                                             InvocationMessage invocationMessage,
+                                             CancellationTokenSource dispatcherCancellation,
+                                             TaskCompletionSource<object> dispatcherCompletion)
         {
             try
             {
                 // If an unexpected exception occurs then we want to kill the entire connection
                 // by ending the processing loop
-                await Execute(connection, invocationAdapter, invocationDescriptor);
+                await Execute(connection, invocationMessage);
             }
             catch (Exception ex)
             {
                 // Set the exception on the task completion source
-                tcs.TrySetException(ex);
+                dispatcherCompletion.TrySetException(ex);
 
                 // Cancel reading operation
-                cts.Cancel();
+                dispatcherCancellation.Cancel();
             }
         }
 
-        private async Task Execute(Connection connection, IInvocationAdapter invocationAdapter, InvocationDescriptor invocationDescriptor)
+        private async Task Execute(Connection connection, InvocationMessage invocationMessage)
         {
-            InvocationResultDescriptor result;
             HubMethodDescriptor descriptor;
-            if (_methods.TryGetValue(invocationDescriptor.Method, out descriptor))
+            if (!_methods.TryGetValue(invocationMessage.Target, out descriptor))
             {
-                result = await Invoke(descriptor, connection, invocationDescriptor);
+                // Send an error to the client. Then let the normal completion process occur
+                _logger.LogError("Unknown hub method '{method}'", invocationMessage.Target);
+                await SendMessageAsync(connection, CompletionMessage.WithError(invocationMessage.InvocationId, $"Unknown hub method '{invocationMessage.Target}'"));
             }
             else
             {
-                // If there's no method then return a failed response for this request
-                result = new InvocationResultDescriptor
-                {
-                    Id = invocationDescriptor.Id,
-                    Error = $"Unknown hub method '{invocationDescriptor.Method}'"
-                };
-
-                _logger.LogError("Unknown hub method '{method}'", invocationDescriptor.Method);
-            }
-
-            // TODO: Pool memory
-            var outStream = new MemoryStream();
-            await invocationAdapter.WriteMessageAsync(result, outStream);
-
-            var outMessage = new Message(outStream.ToArray(), MessageType.Text, endOfMessage: true);
-
-            while (await connection.Transport.Output.WaitToWriteAsync())
-            {
-                if (connection.Transport.Output.TryWrite(outMessage))
-                {
-                    break;
-                }
+                var result = await Invoke(descriptor, connection, invocationMessage);
+                await SendMessageAsync(connection, result);
             }
         }
 
-        private async Task<InvocationResultDescriptor> Invoke(HubMethodDescriptor descriptor, Connection connection, InvocationDescriptor invocationDescriptor)
+        private async Task SendMessageAsync(Connection connection, HubMessage hubMessage)
         {
-            var invocationResult = new InvocationResultDescriptor
-            {
-                Id = invocationDescriptor.Id
-            };
+            var payload = await _protocol.WriteToArrayAsync(hubMessage);
+            var message = new Message(payload, _protocol.MessageType, endOfMessage: true);
 
+            while (await connection.Transport.Output.WaitToWriteAsync())
+            {
+                if (connection.Transport.Output.TryWrite(message))
+                {
+                    return;
+                }
+            }
+
+            // Output is closed. Cancel this invocation completely
+            _logger.LogWarning("Outbound channel was closed while trying to write hub message");
+            throw new OperationCanceledException("Outbound channel was closed while trying to write hub message");
+        }
+
+        private async Task<CompletionMessage> Invoke(HubMethodDescriptor descriptor, Connection connection, InvocationMessage invocationMessage)
+        {
             var methodExecutor = descriptor.MethodExecutor;
 
             using (var scope = _serviceScopeFactory.CreateScope())
@@ -265,37 +261,35 @@ namespace Microsoft.AspNetCore.SignalR
                     {
                         if (methodExecutor.TaskGenericType == null)
                         {
-                            await (Task)methodExecutor.Execute(hub, invocationDescriptor.Arguments);
+                            await (Task)methodExecutor.Execute(hub, invocationMessage.Arguments);
                         }
                         else
                         {
-                            result = await methodExecutor.ExecuteAsync(hub, invocationDescriptor.Arguments);
+                            result = await methodExecutor.ExecuteAsync(hub, invocationMessage.Arguments);
                         }
                     }
                     else
                     {
-                        result = methodExecutor.Execute(hub, invocationDescriptor.Arguments);
+                        result = methodExecutor.Execute(hub, invocationMessage.Arguments);
                     }
 
-                    invocationResult.Result = result;
+                    return CompletionMessage.WithResult(invocationMessage.InvocationId, result);
                 }
                 catch (TargetInvocationException ex)
                 {
                     _logger.LogError(0, ex, "Failed to invoke hub method");
-                    invocationResult.Error = ex.InnerException.Message;
+                    return CompletionMessage.WithError(invocationMessage.InvocationId, ex.InnerException.Message);
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(0, ex, "Failed to invoke hub method");
-                    invocationResult.Error = ex.Message;
+                    return CompletionMessage.WithError(invocationMessage.InvocationId, ex.Message);
                 }
                 finally
                 {
                     hubActivator.Release(hub);
                 }
             }
-
-            return invocationResult;
         }
 
         private void InitializeHub(THub hub, Connection connection)

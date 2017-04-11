@@ -91,6 +91,18 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Fact]
+        public async Task ExecuteValueMethodAsyncUsingSyncExecute()
+        {
+            var executor = GetExecutorForMethod("ValueMethodAsync");
+            var result = executor.Execute(
+                _targetObject,
+                new object[] { 10, 20 });
+            var taskResult = Assert.IsType<Task<int>>(result);
+            var finalResult = await taskResult;
+            Assert.Equal(30, finalResult);
+        }
+
+        [Fact]
         public async Task ExecuteValueMethodWithReturnTypeAsync()
         {
             var executor = GetExecutorForMethod("ValueMethodWithReturnTypeAsync");

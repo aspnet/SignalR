@@ -1,4 +1,4 @@
-// Copyright (c) .NET Foundation. All rights reserved.
+﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
@@ -63,12 +63,12 @@ namespace Microsoft.AspNetCore.SignalR
 
         public virtual Task OnConnectedAsync()
         {
-            return TaskCache.CompletedTask;
+            return Task.CompletedTask;
         }
 
         public virtual Task OnDisconnectedAsync(Exception exception)
         {
-            return TaskCache.CompletedTask;
+            return Task.CompletedTask;
         }
 
         protected virtual void Dispose(bool disposing)

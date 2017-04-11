@@ -5,13 +5,12 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.Pipelines;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.Sockets;
-using Microsoft.Extensions.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
@@ -23,25 +22,24 @@ namespace Microsoft.AspNetCore.SignalR.Redis
         private readonly ConnectionList _connections = new ConnectionList();
         // TODO: Investigate "memory leak" entries never get removed
         private readonly ConcurrentDictionary<string, GroupData> _groups = new ConcurrentDictionary<string, GroupData>();
-        private readonly InvocationAdapterRegistry _registry;
         private readonly ConnectionMultiplexer _redisServerConnection;
         private readonly ISubscriber _bus;
         private readonly ILoggerFactory _loggerFactory;
         private readonly RedisOptions _options;
 
-        public RedisHubLifetimeManager(InvocationAdapterRegistry registry,
-                                       ILoggerFactory loggerFactory,
+        private readonly IHubProtocol _protocol = new JsonHubProtocol();
+
+        public RedisHubLifetimeManager(ILoggerFactory loggerFactory,
                                        IOptions<RedisOptions> options)
         {
             _loggerFactory = loggerFactory;
-            _registry = registry;
             _options = options.Value;
 
             var writer = new LoggerTextWriter(loggerFactory.CreateLogger<RedisHubLifetimeManager<THub>>());
             _redisServerConnection = _options.Connect(writer);
             _bus = _redisServerConnection.GetSubscriber();
 
-            var previousBroadcastTask = TaskCache.CompletedTask;
+            var previousBroadcastTask = Task.CompletedTask;
 
             _bus.Subscribe(typeof(THub).FullName, async (c, data) =>
             {
@@ -60,74 +58,52 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
         public override Task InvokeAllAsync(string methodName, object[] args)
         {
-            var message = new InvocationDescriptor
-            {
-                Method = methodName,
-                Arguments = args
-            };
+            var message = new InvocationMessage(GetInvocationId(), methodName, args);
 
             return PublishAsync(typeof(THub).FullName, message);
         }
 
         public override Task InvokeConnectionAsync(string connectionId, string methodName, object[] args)
         {
-            var message = new InvocationDescriptor
-            {
-                Method = methodName,
-                Arguments = args
-            };
+            var message = new InvocationMessage(GetInvocationId(), methodName, args);
 
             return PublishAsync(typeof(THub).FullName + "." + connectionId, message);
         }
 
         public override Task InvokeGroupAsync(string groupName, string methodName, object[] args)
         {
-            var message = new InvocationDescriptor
-            {
-                Method = methodName,
-                Arguments = args
-            };
+            var message = new InvocationMessage(GetInvocationId(), methodName, args);
 
             return PublishAsync(typeof(THub).FullName + ".group." + groupName, message);
         }
 
         public override Task InvokeUserAsync(string userId, string methodName, object[] args)
         {
-            var message = new InvocationDescriptor
-            {
-                Method = methodName,
-                Arguments = args
-            };
+            var message = new InvocationMessage(GetInvocationId(), methodName, args);
 
             return PublishAsync(typeof(THub).FullName + ".user." + userId, message);
         }
 
-        private async Task PublishAsync(string channel, InvocationDescriptor message)
+        private async Task PublishAsync(string channel, HubMessage hubMessage)
         {
-            // TODO: What format??
-            var invocationAdapter = _registry.GetInvocationAdapter("json");
-
             // BAD
-            using (var ms = new MemoryStream())
-            {
-                await invocationAdapter.WriteMessageAsync(message, ms);
+            var payload = await _protocol.WriteToArrayAsync(hubMessage);
 
-                await _bus.PublishAsync(channel, ms.ToArray());
-            }
+            await _bus.PublishAsync(channel, payload);
         }
 
         public override Task OnConnectedAsync(Connection connection)
         {
             var redisSubscriptions = connection.Metadata.GetOrAdd("redis_subscriptions", _ => new HashSet<string>());
-            var connectionTask = TaskCache.CompletedTask;
-            var userTask = TaskCache.CompletedTask;
+            var connectionTask = Task.CompletedTask;
+            var userTask = Task.CompletedTask;
 
             _connections.Add(connection);
 
             var connectionChannel = typeof(THub).FullName + "." + connection.ConnectionId;
             redisSubscriptions.Add(connectionChannel);
 
-            var previousConnectionTask = TaskCache.CompletedTask;
+            var previousConnectionTask = Task.CompletedTask;
 
             connectionTask = _bus.SubscribeAsync(connectionChannel, async (c, data) =>
             {
@@ -142,7 +118,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                 var userChannel = typeof(THub).FullName + ".user." + connection.User.Identity.Name;
                 redisSubscriptions.Add(userChannel);
 
-                var previousUserTask = TaskCache.CompletedTask;
+                var previousUserTask = Task.CompletedTask;
 
                 // TODO: Look at optimizing (looping over connections checking for Name)
                 userTask = _bus.SubscribeAsync(userChannel, async (c, data) =>
@@ -210,7 +186,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                     return;
                 }
 
-                var previousTask = TaskCache.CompletedTask;
+                var previousTask = Task.CompletedTask;
 
                 await _bus.SubscribeAsync(groupChannel, async (c, data) =>
                 {
@@ -286,6 +262,11 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                     break;
                 }
             }
+        }
+
+        private static string GetInvocationId()
+        {
+            return Guid.NewGuid().ToString("N");
         }
 
         private class LoggerTextWriter : TextWriter
