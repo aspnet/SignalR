@@ -51,6 +51,12 @@ The SignalR protocol allows for multiple `Result` messages to be transmitted in 
 
 On the Callee side, it is up to the Callee's Binder to determine if a method call will yield multiple results. For example, in .NET certain return types may indicate multiple results, while others may indicate a single result. Even then, applications may wish for multiple results to be buffered and returned in a single `Completion` frame. It is up to the Binder to decide how to map this. The Callee's Binder must encode each result in separate `Result` messages, indicating the end of results by sending a `Completion` message. Since the `Completion` message accepts an optional payload value, methods with single results can be handled with a single `Completion` message, bearing the complete results.
 
+On the Caller side, the user code which performs the invocation indicates how it would like to receive the results and it is up the Caller's Binder to determine how to handle the result. If the Caller expects only a single result, but multiple results are returned, the Caller's Binder should yield an error indicating that multiple results were returned. However, if a Caller expects multiple results, but only a single result is returned, the Caller's Binder should yield that single result and indicate there are no further results.
+
+## Completion and Results
+
+A Invocation is only considered completed when the `Completion` message is recevied. Receiving **any** message using the same `Invocation ID` after a `Completion` message has been received for that invocation is considered a protocol error and the recipient should immediately terminate the connection.
+
 If a Callee is going to stream results, it **MUST** send each individual result in a separate `Result` message, and the `Completion` message **MUST NOT** contain a result. If the Callee is going to return a single result, it **MUST** not send any `Result` messages, and **MUST** send the single result in a `Completion` message. This is to ensure that the Caller can unambiguously determine the intended streaming behavior of the method. As an example of why this distinction is necessary, consider the following C# methods:
 
 ```csharp
@@ -62,17 +68,18 @@ public IEnumerable<int> StreamedResults();
 
 If the caller invokes `SingleResult`, they will get a single result back, and there is no problem. The problem arises with `StreamedResults`. If the caller asks for a single `int`, and is thus not expecting a stream, and the callee returns a single int in a `Result` frame, the caller thinks that it has received the correct data, but actually they have disagreed on the return type of the method (the caller believes it is `int` but the callee believes it is `IEnumerable<int>`). Callers and callees should not disagree on the signatures of these methods, so the difference between a streamed result and a single result should be explicit. Thus, the rules above.
 
-On the Caller side, the user code which performs the invocation indicates how it would like to receive the results and it is up the Caller's Binder to determine how to handle the result. If the Caller expects only a single result, but multiple results are returned, the Caller's Binder should yield an error indicating that multiple results were returned. However, if a Caller expects multiple results, but only a single result is returned, the Caller's Binder should yield that single result and indicate there are no further results.
-
 ## Errors
 
 Errors are indicated by the presence of the `error` field in a `Completion` message. Errors always indicate the immediate end of the invocation. In the case of streamed responses, the arrival of a `Completion` message indicating an error should **not** stop the dispatching of previously-received results. The error is only yielded after the previously-received results have been dispatched.
 
-## Completion and Results
+If either endpoint commits a Protocol Error (see examples below), the other endpoint may immediately terminate the underlying connection.
 
-A Invocation is only considered completed when the `Completion` message is recevied. Receiving **any** message using the same `Invocation ID` after a `Completion` message has been received for that invocation is considered a protocol error and the recipient should immediately terminate the connection. For non-streamed results, it is up to the Callee whether to encode the result in a separate `Result` message, or within the `Completion` message.
-
-It is a protocol error for a Caller to send a `Result` or `Completion` message in response to a Non-Blocking Invocation (see "Non-Blocking Invocations" above)
+* It is a protocol error for any message to be missing a required field, or to have an unrecognized field.
+* It is a protocol error for a Caller to send a `Result` or `Completion` message with an `Invocation ID` that has not been received in an `Invocation` message from the Callee
+* It is a protocol error for a Caller to send a `Result` or `Completion` message in response to a Non-Blocking Invocation (see "Non-Blocking Invocations" above)
+* It is a protocol error for a Caller to send a `Completion` message carrying a result when a `Result` message has previously been sent for the same `Invocation ID`.
+* It is a protocol error for a Caller to send a `Completion` message carrying both a result and an error.
+* It is a protocol error for an `Invocation` message to have an `Invocation ID` that has already been used by *that* endpoint. However, it is **not an error** for one endpoint to use an `Invocation ID` that was previously used by the other endpoint (allowing each endpoint to track it's own IDs).
 
 ## Examples
 
@@ -199,7 +206,7 @@ C->S: Invocation { Id = 42, Target = "NonBlocking", Arguments = [ "foo" ] }
 
 ## JSON Encoding
 
-In the JSON Encoding of the SignalR Protocol, each Message is represented as a single JSON object, which should be the only content of the underlying message from the Transport.
+In the JSON Encoding of the SignalR Protocol, each Message is represented as a single JSON object, which should be the only content of the underlying message from the Transport. All property names are case-sensitive. The underlying protocol is expected to handle encoding and decoding of the text, so the JSON string should be encoded in whatever form is expected by the underlying transport. For example, when using the ASP.NET Sockets transports, UTF-8 encoding is always used for text.
 
 ### Invocation Message Encoding
 
