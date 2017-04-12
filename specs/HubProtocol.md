@@ -23,8 +23,8 @@ There are two encodings of the SignalR protocol: [JSON](http://www.json.org/) an
 In the SignalR protocol, the following types of messages can be sent:
 
 * `Invocation` Message - Indicates a request to invoke a particular method (the Target) with provided Arguments on the remote endpoint.
-* `Result` Message - Indicates response data from a previous Invocation message.
-* `Completion` Message - Indicates a previous Invocation has completed, and no further `Result` messages will be received. Optionally contains a final item of response data, or an error.
+* `Result` Message - Indicates individual items of streamed response data from a previous Invocation message.
+* `Completion` Message - Indicates a previous Invocation has completed, and no further `Result` messages will be received. Contains an error if the invocation concluded with an error, or the result if the invocation is not a streaming invocation.
 
 In order to perform a single invocation, Caller follows the following basic flow:
 
@@ -50,6 +50,17 @@ Invocations can be marked as "Non-Blocking" in the `Invocation` message, which i
 The SignalR protocol allows for multiple `Result` messages to be transmitted in response to an `Invocation` message, and allows the receiver to dispatch these results as they arrive, to allow for streaming data from one endpoint to another.
 
 On the Callee side, it is up to the Callee's Binder to determine if a method call will yield multiple results. For example, in .NET certain return types may indicate multiple results, while others may indicate a single result. Even then, applications may wish for multiple results to be buffered and returned in a single `Completion` frame. It is up to the Binder to decide how to map this. The Callee's Binder must encode each result in separate `Result` messages, indicating the end of results by sending a `Completion` message. Since the `Completion` message accepts an optional payload value, methods with single results can be handled with a single `Completion` message, bearing the complete results.
+
+If a Callee is going to stream results, it **MUST** send each individual result in a separate `Result` message, and the `Completion` message **MUST NOT** contain a result. If the Callee is going to return a single result, it **MUST** not send any `Result` messages, and **MUST** send the single result in a `Completion` message. This is to ensure that the Caller can unambiguously determine the intended streaming behavior of the method. As an example of why this distinction is necessary, consider the following C# methods:
+
+```csharp
+public int SingleResult();
+
+[return: Streamed]
+public IEnumerable<int> StreamedResults();
+```
+
+If the caller invokes `SingleResult`, they will get a single result back, and there is no problem. The problem arises with `StreamedResults`. If the caller asks for a single `int`, and is thus not expecting a stream, and the callee returns a single int in a `Result` frame, the caller thinks that it has received the correct data, but actually they have disagreed on the return type of the method (the caller believes it is `int` but the callee believes it is `IEnumerable<int>`). Callers and callees should not disagree on the signatures of these methods, so the difference between a streamed result and a single result should be explicit. Thus, the rules above.
 
 On the Caller side, the user code which performs the invocation indicates how it would like to receive the results and it is up the Caller's Binder to determine how to handle the result. If the Caller expects only a single result, but multiple results are returned, the Caller's Binder should yield an error indicating that multiple results were returned. However, if a Caller expects multiple results, but only a single result is returned, the Caller's Binder should yield that single result and indicate there are no further results.
 
@@ -121,7 +132,7 @@ C->S: Invocation { Id = 42, Target = "Add", Arguments = [ 40, 2 ] }
 S->C: Completion { Id = 42, Result = 42 }
 ```
 
-The following is also acceptable, since the Callee may choose to encode the `Result` in a separate message
+**NOTE:** The following is **NOT** an acceptable encoding of this invocation:
 
 ```
 C->S: Invocation { Id = 42, Target = "Add", Arguments = [ 40, 2 ] }
@@ -155,7 +166,7 @@ S->C: Result { Id = 42, Result = 4 }
 S->C: Completion { Id = 42 }
 ```
 
-Another acceptable sequence of messages for this is the following
+**NOTE:** The following is **NOT** an acceptable encoding of this invocation:
 
 ```
 C->S: Invocation { Id = 42, Target = "Stream", Arguments = [ 5 ] }
@@ -165,8 +176,6 @@ S->C: Result { Id = 42, Result = 2 }
 S->C: Result { Id = 42, Result = 3 }
 S->C: Completion { Id = 42, Result = 4 }
 ```
-
-It is generally desirable to include the final payload of a stream in the `Completion` message, since it reduces messages sent back and forth. However, some binders may not be able to achieve this. For example, in the .NET Binder, using `IEnumerable` would mean that the server does not know if a result is the final result until it requests the next one (i.e. `MoveNext()` returns `false`). In order to return the final payload in the `Completion` message, it would have to buffer each message to determine if it is the final message. For that reason, the protocol allows the `Completion` message to be missing a payload
 
 ### Streamed Result with Error (`StreamFailure` example above)
 
