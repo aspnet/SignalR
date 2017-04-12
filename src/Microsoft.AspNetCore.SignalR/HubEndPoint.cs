@@ -6,8 +6,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.Sockets;
 using Microsoft.Extensions.DependencyInjection;
@@ -38,6 +40,7 @@ namespace Microsoft.AspNetCore.SignalR
         private readonly ILogger<HubEndPoint<THub, TClient>> _logger;
         private readonly InvocationAdapterRegistry _registry;
         private readonly IServiceScopeFactory _serviceScopeFactory;
+        private readonly IAuthorizeData[] _authorizeData;
 
         public HubEndPoint(HubLifetimeManager<THub> lifetimeManager,
                            IHubContext<THub, TClient> hubContext,
@@ -51,6 +54,7 @@ namespace Microsoft.AspNetCore.SignalR
             _registry = registry;
             _logger = logger;
             _serviceScopeFactory = serviceScopeFactory;
+            _authorizeData = typeof(THub).GetTypeInfo().GetCustomAttributes().OfType<IAuthorizeData>().ToArray();
 
             DiscoverHubMethods();
         }
@@ -250,6 +254,18 @@ namespace Microsoft.AspNetCore.SignalR
             };
 
             var methodExecutor = descriptor.MethodExecutor;
+            var methodName = methodExecutor.MethodInfo.Name;
+
+            // TODO: Authenticate on method invocation?
+
+            if (!await AuthorizeAsync(descriptor.AuthorizeData, connection.User, null))
+            {
+                _logger.LogError($"Unauthorized access for Hub method '{methodName}'");
+                invocationResult.Error = $"Unauthorized access for Hub method '{methodName}'";
+                return invocationResult;
+            }
+
+            // TODO: Should we challenge? What does that mean in the context of hub invocation?
 
             using (var scope = _serviceScopeFactory.CreateScope())
             {
@@ -327,6 +343,33 @@ namespace Microsoft.AspNetCore.SignalR
             }
         }
 
+        private async Task<bool> AuthorizeAsync(IAuthorizeData[] authorizeData, ClaimsPrincipal user, object context)
+        {
+            // Default to Hub's IAuthorizeData if none specified
+            var effectiveAuthorizeData = authorizeData?.Length > 0 ? authorizeData : _authorizeData;
+
+            if (effectiveAuthorizeData != null && effectiveAuthorizeData.Length > 0)
+            {
+                using (var scope = _serviceScopeFactory.CreateScope())
+                {
+                    var authorizationService = scope.ServiceProvider.GetService<IAuthorizationService>();
+                    var provider = scope.ServiceProvider.GetService<IAuthorizationPolicyProvider>();
+
+                    if (authorizationService != null && provider != null)
+                    {
+                        var policy = await AuthorizationPolicy.CombineAsync(provider, effectiveAuthorizeData);
+
+                        if (!await authorizationService.AuthorizeAsync(user, context, policy))
+                        {
+                            return false;
+                        }
+                    }
+                }
+            }
+
+            return true;
+        }
+
         private static bool IsHubMethod(MethodInfo methodInfo)
         {
             // TODO: Add more checks
@@ -367,11 +410,14 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 MethodExecutor = methodExecutor;
                 ParameterTypes = methodExecutor.ActionParameters.Select(p => p.ParameterType).ToArray();
+                AuthorizeData = methodExecutor.MethodInfo.GetCustomAttributes().OfType<IAuthorizeData>().ToArray();
             }
 
             public ObjectMethodExecutor MethodExecutor { get; }
 
             public Type[] ParameterTypes { get; }
+
+            public IAuthorizeData[] AuthorizeData { get; }
         }
     }
 }

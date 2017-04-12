@@ -2,7 +2,9 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Security.Principal;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Sockets;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Internal;
@@ -309,6 +311,133 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var result = await client.Invoke<InvocationResultDescriptor>(nameof(MethodHub.OnDisconnectedAsync)).OrTimeout();
 
                 Assert.Equal("Unknown hub method 'OnDisconnectedAsync'", result.Error);
+
+                // kill the connection
+                client.Dispose();
+
+                await endPointTask.OrTimeout();
+            }
+        }
+
+        [Fact]
+        public async Task CannotCallImplicitylyUnauthorizedHubMethodWhenNotAuthenticated()
+        {
+            var serviceProvider = CreateServiceProvider(s =>
+            {
+                s.AddAuthorization();
+            });
+
+            var endPoint = serviceProvider.GetService<HubEndPoint<ProtectedHub>>();
+
+            using (var client = new TestClient(serviceProvider))
+            {
+                var endPointTask = endPoint.OnConnectedAsync(client.Connection);
+
+                var result = await client.Invoke<InvocationResultDescriptor>(nameof(ProtectedHub.ImplicitlyProtectedMethod)).OrTimeout();
+
+                Assert.Equal($"Unauthorized access for Hub method '{nameof(ProtectedHub.ImplicitlyProtectedMethod)}'", result.Error);
+
+                // kill the connection
+                client.Dispose();
+
+                await endPointTask.OrTimeout();
+            }
+        }
+
+        [Fact]
+        public async Task CannotCallUnauthorizedHubMethodWhenNotAuthenticated()
+        {
+            var serviceProvider = CreateServiceProvider(s =>
+            {
+                s.AddAuthorization();
+            });
+
+            var endPoint = serviceProvider.GetService<HubEndPoint<UnprotectedHub>>();
+
+            using (var client = new TestClient(serviceProvider))
+            {
+                var endPointTask = endPoint.OnConnectedAsync(client.Connection);
+
+                var result = await client.Invoke<InvocationResultDescriptor>(nameof(UnprotectedHub.ProtectedMethod)).OrTimeout();
+
+                Assert.Equal($"Unauthorized access for Hub method '{nameof(UnprotectedHub.ProtectedMethod)}'", result.Error);
+
+                // kill the connection
+                client.Dispose();
+
+                await endPointTask.OrTimeout();
+            }
+        }
+
+        [Fact]
+        public async Task CanCallAuthorizedHubMethodWhenAuthenticated()
+        {
+            var serviceProvider = CreateServiceProvider(s =>
+            {
+                s.AddAuthorization();
+            });
+
+            var endPoint = serviceProvider.GetService<HubEndPoint<UnprotectedHub>>();
+
+            using (var client = new TestClient(serviceProvider))
+            {
+                client.Connection.User = new GenericPrincipal(new GenericIdentity("Bob"), null);
+                var endPointTask = endPoint.OnConnectedAsync(client.Connection);
+
+                var result = await client.Invoke<InvocationResultDescriptor>(nameof(UnprotectedHub.ProtectedMethod)).OrTimeout();
+
+                Assert.Null(result.Result);
+
+                // kill the connection
+                client.Dispose();
+
+                await endPointTask.OrTimeout();
+            }
+        }
+
+        [Fact]
+        public async Task CanCallUnprotectedHubMethodInAuthorizedHubWhenAuthenticated()
+        {
+            var serviceProvider = CreateServiceProvider(s =>
+            {
+                s.AddAuthorization();
+            });
+
+            var endPoint = serviceProvider.GetService<HubEndPoint<ProtectedHub>>();
+
+            using (var client = new TestClient(serviceProvider))
+            {
+                client.Connection.User = new GenericPrincipal(new GenericIdentity("Bob"), null);
+                var endPointTask = endPoint.OnConnectedAsync(client.Connection);
+
+                var result = await client.Invoke<InvocationResultDescriptor>(nameof(ProtectedHub.UnprotectedMethod)).OrTimeout();
+
+                Assert.Null(result.Result);
+
+                // kill the connection
+                client.Dispose();
+
+                await endPointTask.OrTimeout();
+            }
+        }
+
+        [Fact]
+        public async Task CanCallUnprotectedHubMethodInAuthorizedHubWhenNotAuthenticated()
+        {
+            var serviceProvider = CreateServiceProvider(s =>
+            {
+                s.AddAuthorization();
+            });
+
+            var endPoint = serviceProvider.GetService<HubEndPoint<ProtectedHub>>();
+
+            using (var client = new TestClient(serviceProvider))
+            {
+                var endPointTask = endPoint.OnConnectedAsync(client.Connection);
+
+                var result = await client.Invoke<InvocationResultDescriptor>(nameof(ProtectedHub.UnprotectedMethod)).OrTimeout();
+
+                Assert.Null(result.Result);
 
                 // kill the connection
                 client.Dispose();
@@ -653,6 +782,27 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 {
                     _trackDispose.DisposeCount++;
                 }
+            }
+        }
+
+        [Authorize]
+        private class ProtectedHub : Hub
+        {
+            public void ImplicitlyProtectedMethod()
+            {
+            }
+
+            [AllowAnonymous]
+            public void UnprotectedMethod()
+            {
+            }
+        }
+
+        private class UnprotectedHub : Hub
+        {
+            [Authorize]
+            public void ProtectedMethod()
+            {
             }
         }
 
