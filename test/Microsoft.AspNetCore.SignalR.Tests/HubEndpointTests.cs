@@ -447,6 +447,298 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Fact]
+        public async Task CanCallProtectedHubMethodWithNamedPolicyWhenAuthenticated()
+        {
+            var serviceProvider = CreateServiceProvider(s =>
+            {
+                s.AddAuthorization(options =>
+                {
+                    options.AddPolicy("RequireAuthenticatedPolicy", policy => policy.RequireAuthenticatedUser());
+                });
+            });
+
+            var endPoint = serviceProvider.GetService<HubEndPoint<UnprotectedHub>>();
+
+            using (var client = new TestClient(serviceProvider))
+            {
+                client.Connection.User = new GenericPrincipal(new GenericIdentity("Bob"), null);
+                var endPointTask = endPoint.OnConnectedAsync(client.Connection);
+
+                var result = await client.Invoke<InvocationResultDescriptor>(nameof(UnprotectedHub.RequireAuthenticatedMethod)).OrTimeout();
+
+                Assert.Null(result.Result);
+
+                // kill the connection
+                client.Dispose();
+
+                await endPointTask.OrTimeout();
+            }
+        }
+
+        [Fact]
+        public async Task CannotCallProtectedHubMethodWithNamedPolicyWhenNotAuthenticated()
+        {
+            var serviceProvider = CreateServiceProvider(s =>
+            {
+                s.AddAuthorization(options =>
+                {
+                    options.AddPolicy("RequireAuthenticatedPolicy", policy => policy.RequireAuthenticatedUser());
+                });
+            });
+
+            var endPoint = serviceProvider.GetService<HubEndPoint<UnprotectedHub>>();
+
+            using (var client = new TestClient(serviceProvider))
+            {
+                var endPointTask = endPoint.OnConnectedAsync(client.Connection);
+
+                var result = await client.Invoke<InvocationResultDescriptor>(nameof(UnprotectedHub.RequireAuthenticatedMethod)).OrTimeout();
+
+                Assert.Equal($"Unauthorized access for Hub method '{nameof(UnprotectedHub.RequireAuthenticatedMethod)}'", result.Error);
+
+                // kill the connection
+                client.Dispose();
+
+                await endPointTask.OrTimeout();
+            }
+        }
+
+        [Fact]
+        public async Task CanCallProtectedHubMethodWithManyNamedPoliciesWhenAuthenticated()
+        {
+            var serviceProvider = CreateServiceProvider(s =>
+            {
+                s.AddAuthorization(options =>
+                {
+                    options.AddPolicy("RequireAuthenticatedPolicy", policy => policy.RequireAuthenticatedUser());
+                    options.AddPolicy("RequireUserRolePolicy", policy => policy.RequireRole("User"));
+                });
+            });
+
+            var endPoint = serviceProvider.GetService<HubEndPoint<UnprotectedHub>>();
+
+            using (var client = new TestClient(serviceProvider))
+            {
+                client.Connection.User = new GenericPrincipal(new GenericIdentity("Bob"), new[] { "User" });
+                var endPointTask = endPoint.OnConnectedAsync(client.Connection);
+
+                var result = await client.Invoke<InvocationResultDescriptor>(nameof(UnprotectedHub.RequireAuthenciatedAndUserRoleMethod)).OrTimeout();
+
+                Assert.Null(result.Result);
+
+                // kill the connection
+                client.Dispose();
+
+                await endPointTask.OrTimeout();
+            }
+        }
+
+        [Fact]
+        public async Task CannotCallProtectedHubMethodWithManyNamedPoliciesWhenNotAuthenticated()
+        {
+            var serviceProvider = CreateServiceProvider(s =>
+            {
+                s.AddAuthorization(options =>
+                {
+                    options.AddPolicy("RequireAuthenticatedPolicy", policy => policy.RequireAuthenticatedUser());
+                    options.AddPolicy("RequireUserRolePolicy", policy => policy.RequireRole("User"));
+                });
+            });
+
+            var endPoint = serviceProvider.GetService<HubEndPoint<UnprotectedHub>>();
+
+            using (var client = new TestClient(serviceProvider))
+            {
+                // Partially authenticated with authentication status
+                client.Connection.User = new GenericPrincipal(new GenericIdentity("Bob"), null);
+                var endPointTask = endPoint.OnConnectedAsync(client.Connection);
+
+                var result = await client.Invoke<InvocationResultDescriptor>(nameof(UnprotectedHub.RequireAuthenciatedAndUserRoleMethod)).OrTimeout();
+
+                Assert.Equal($"Unauthorized access for Hub method '{nameof(UnprotectedHub.RequireAuthenciatedAndUserRoleMethod)}'", result.Error);
+
+                // Partially authenticated with role
+                client.Connection.User = new GenericPrincipal(new GenericIdentity(""), new []{ "User" });
+
+                result = await client.Invoke<InvocationResultDescriptor>(nameof(UnprotectedHub.RequireAuthenciatedAndUserRoleMethod)).OrTimeout();
+
+                Assert.Equal($"Unauthorized access for Hub method '{nameof(UnprotectedHub.RequireAuthenciatedAndUserRoleMethod)}'", result.Error);
+
+                // kill the connection
+                client.Dispose();
+
+                await endPointTask.OrTimeout();
+            }
+        }
+
+        [Fact]
+        public async Task CanCallProtectedHubMethodWithRoleWhenAuthenticated()
+        {
+            var serviceProvider = CreateServiceProvider(s =>
+            {
+                s.AddAuthorization();
+            });
+
+            var endPoint = serviceProvider.GetService<HubEndPoint<UnprotectedHub>>();
+
+            using (var client = new TestClient(serviceProvider))
+            {
+                client.Connection.User = new GenericPrincipal(new GenericIdentity("Bob"), new []{ "User" });
+                var endPointTask = endPoint.OnConnectedAsync(client.Connection);
+
+                var result = await client.Invoke<InvocationResultDescriptor>(nameof(UnprotectedHub.RequireUserRoleMethod)).OrTimeout();
+
+                Assert.Null(result.Result);
+
+                // kill the connection
+                client.Dispose();
+
+                await endPointTask.OrTimeout();
+            }
+        }
+
+        [Fact]
+        public async Task CannotCallProtectedHubMethodWithRoleWhenNotAuthenticated()
+        {
+            var serviceProvider = CreateServiceProvider(s =>
+            {
+                s.AddAuthorization();
+            });
+
+            var endPoint = serviceProvider.GetService<HubEndPoint<UnprotectedHub>>();
+
+            using (var client = new TestClient(serviceProvider))
+            {
+                var endPointTask = endPoint.OnConnectedAsync(client.Connection);
+
+                var result = await client.Invoke<InvocationResultDescriptor>(nameof(UnprotectedHub.RequireUserRoleMethod)).OrTimeout();
+
+                Assert.Equal($"Unauthorized access for Hub method '{nameof(UnprotectedHub.RequireUserRoleMethod)}'", result.Error);
+
+                // kill the connection
+                client.Dispose();
+
+                await endPointTask.OrTimeout();
+            }
+        }
+
+        [Fact]
+        public async Task CanCallProtectedHubMethodWithManyRolesWhenAuthenticated()
+        {
+            var serviceProvider = CreateServiceProvider(s =>
+            {
+                s.AddAuthorization();
+            });
+
+            var endPoint = serviceProvider.GetService<HubEndPoint<UnprotectedHub>>();
+
+            using (var client = new TestClient(serviceProvider))
+            {
+                client.Connection.User = new GenericPrincipal(new GenericIdentity("Bob"), new[] { "User", "Moderator" });
+                var endPointTask = endPoint.OnConnectedAsync(client.Connection);
+
+                var result = await client.Invoke<InvocationResultDescriptor>(nameof(UnprotectedHub.RequireUserAndModeratorRoleMethod)).OrTimeout();
+
+                Assert.Null(result.Result);
+
+                // kill the connection
+                client.Dispose();
+
+                await endPointTask.OrTimeout();
+            }
+        }
+
+        [Fact]
+        public async Task CannotCallProtectedHubMethodWithManyRolesWhenNotAuthenticated()
+        {
+            var serviceProvider = CreateServiceProvider(s =>
+            {
+                s.AddAuthorization();
+            });
+
+            var endPoint = serviceProvider.GetService<HubEndPoint<UnprotectedHub>>();
+
+            using (var client = new TestClient(serviceProvider))
+            {
+                // Partially authenticated with User role
+                client.Connection.User = new GenericPrincipal(new GenericIdentity("Bob"), new[] { "User" });
+                var endPointTask = endPoint.OnConnectedAsync(client.Connection);
+
+                var result = await client.Invoke<InvocationResultDescriptor>(nameof(UnprotectedHub.RequireUserAndModeratorRoleMethod)).OrTimeout();
+
+                Assert.Equal($"Unauthorized access for Hub method '{nameof(UnprotectedHub.RequireUserAndModeratorRoleMethod)}'", result.Error);
+
+                // Partially authenticated with Moderator role
+                client.Connection.User = new GenericPrincipal(new GenericIdentity("Bob"), new[] { "Moderator" });
+
+                result = await client.Invoke<InvocationResultDescriptor>(nameof(UnprotectedHub.RequireUserAndModeratorRoleMethod)).OrTimeout();
+
+                Assert.Equal($"Unauthorized access for Hub method '{nameof(UnprotectedHub.RequireUserAndModeratorRoleMethod)}'", result.Error);
+
+                // kill the connection
+                client.Dispose();
+
+                await endPointTask.OrTimeout();
+            }
+        }
+
+        [Theory]
+        [InlineData("User")]
+        [InlineData("Moderator")]
+        [InlineData("User", "Moderator")]
+        public async Task CanCallProtectedHubMethodWithAtLeastOneRoleWhenAuthenticated(params string[] roles)
+        {
+            var serviceProvider = CreateServiceProvider(s =>
+            {
+                s.AddAuthorization();
+            });
+
+            var endPoint = serviceProvider.GetService<HubEndPoint<UnprotectedHub>>();
+
+            using (var client = new TestClient(serviceProvider))
+            {
+                client.Connection.User = new GenericPrincipal(new GenericIdentity("Bob"), roles);
+                var endPointTask = endPoint.OnConnectedAsync(client.Connection);
+
+                var result = await client.Invoke<InvocationResultDescriptor>(nameof(UnprotectedHub.RequireUserOrModeratorRoleMethod)).OrTimeout();
+
+                Assert.Null(result.Result);
+
+                // kill the connection
+                client.Dispose();
+
+                await endPointTask.OrTimeout();
+            }
+        }
+
+        [Fact]
+        public async Task CannotCallProtectedHubMethodWithAtLeastOneRoleWhenNotAuthenticated()
+        {
+            var serviceProvider = CreateServiceProvider(s =>
+            {
+                s.AddAuthorization();
+            });
+
+            var endPoint = serviceProvider.GetService<HubEndPoint<UnprotectedHub>>();
+
+            using (var client = new TestClient(serviceProvider))
+            {
+                // Partially authenticated with User role
+                client.Connection.User = new GenericPrincipal(new GenericIdentity("Bob"), null);
+                var endPointTask = endPoint.OnConnectedAsync(client.Connection);
+
+                var result = await client.Invoke<InvocationResultDescriptor>(nameof(UnprotectedHub.RequireUserOrModeratorRoleMethod)).OrTimeout();
+
+                Assert.Equal($"Unauthorized access for Hub method '{nameof(UnprotectedHub.RequireUserOrModeratorRoleMethod)}'", result.Error);
+
+                // kill the connection
+                client.Dispose();
+
+                await endPointTask.OrTimeout();
+            }
+        }
+
+        [Fact]
         public void HubsCannotHaveOverloadedMethods()
         {
             var serviceProvider = CreateServiceProvider();
@@ -788,22 +1080,33 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Authorize]
         private class ProtectedHub : Hub
         {
-            public void ImplicitlyProtectedMethod()
-            {
-            }
+            public void ImplicitlyProtectedMethod() { }
 
             [AllowAnonymous]
-            public void UnprotectedMethod()
-            {
-            }
+            public void UnprotectedMethod() { }
         }
 
         private class UnprotectedHub : Hub
         {
             [Authorize]
-            public void ProtectedMethod()
-            {
-            }
+            public void ProtectedMethod() { }
+
+            [Authorize(Policy = "RequireAuthenticatedPolicy")]
+            public void RequireAuthenticatedMethod() { }
+
+            [Authorize(Policy = "RequireAuthenticatedPolicy")]
+            [Authorize(Policy = "RequireUserRolePolicy")]
+            public void RequireAuthenciatedAndUserRoleMethod() { }
+
+            [Authorize(Roles = "User")]
+            public void RequireUserRoleMethod() { }
+
+            [Authorize(Roles = "User")]
+            [Authorize(Roles = "Moderator")]
+            public void RequireUserAndModeratorRoleMethod() { }
+
+            [Authorize(Roles = "User,Moderator")]
+            public void RequireUserOrModeratorRoleMethod() { }
         }
 
         private class TrackDispose
