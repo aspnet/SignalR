@@ -125,11 +125,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 var connection = new HubConnection(new Uri("http://test/hubs"));
                 try
                 {
-<<<<<<< HEAD
                     await connection.StartAsync(TransportType.LongPolling, httpClient);
-=======
-                    await connection.StartAsync(transport, httpClient).OrTimeout();
->>>>>>> 51745f4... stash
 
                     var tcs = new TaskCompletionSource<string>();
                     connection.On("Echo", new[] { typeof(string) }, a =>

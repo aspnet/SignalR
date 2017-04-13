@@ -4,7 +4,6 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 
@@ -25,7 +24,7 @@ namespace ClientSample
             var logger = loggerFactory.CreateLogger<Program>();
 
             logger.LogInformation("Connecting to {0}", baseUrl);
-            var connection = new HubConnection(new Uri(baseUrl), new JsonNetInvocationAdapter(), loggerFactory);
+            var connection = new HubConnection(new Uri(baseUrl), loggerFactory);
             try
             {
                 await connection.StartAsync();

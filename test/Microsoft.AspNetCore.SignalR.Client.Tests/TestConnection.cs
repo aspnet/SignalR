@@ -4,7 +4,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
-using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.Sockets;
 using Microsoft.AspNetCore.Sockets.Client;
 using Newtonsoft.Json;
@@ -56,7 +55,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             throw new ObjectDisposedException("Unable to send message, underlying channel was closed");
         }
 
-        public Task StartAsync(ITransport transport, HttpClient httpClient)
+        public Task StartAsync(ITransportFactory transportFactory, HttpClient httpClient)
         {
             _started.TrySetResult(null);
             Connected?.Invoke();
