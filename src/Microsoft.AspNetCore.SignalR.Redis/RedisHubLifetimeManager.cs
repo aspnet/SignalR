@@ -27,7 +27,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
         private readonly ConcurrentDictionary<string, GroupData> _groups = new ConcurrentDictionary<string, GroupData>();
         private readonly ConnectionMultiplexer _redisServerConnection;
         private readonly ISubscriber _bus;
-        private readonly ILoggerFactory _loggerFactory;
+        private readonly ILogger _logger;
         private readonly RedisOptions _options;
 
         // This serializer is ONLY use to transmit the data through redis, it has no connection to the serializer used on each connection.
@@ -41,21 +41,35 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
         private long _nextInvocationId = 0;
 
-        public RedisHubLifetimeManager(ILoggerFactory loggerFactory,
+        public RedisHubLifetimeManager(ILogger<RedisHubLifetimeManager<THub>> logger,
                                        IOptions<RedisOptions> options)
         {
-            _loggerFactory = loggerFactory;
+            _logger = logger;
             _options = options.Value;
 
-            var writer = new LoggerTextWriter(loggerFactory.CreateLogger<RedisHubLifetimeManager<THub>>());
+            var writer = new LoggerTextWriter(logger);
+            _logger.LogInformation("Connecting to redis endpoints: {endpoints}", string.Join(", ", options.Value.Options.EndPoints.Select(e => EndPointCollection.ToString(e))));
             _redisServerConnection = _options.Connect(writer);
+            if (_redisServerConnection.IsConnected)
+            {
+                _logger.LogInformation("Connected to redis");
+            }
+            else
+            {
+                // TODO: We could support reconnecting, like old SignalR does.
+                throw new InvalidOperationException("Connection to redis failed.");
+            }
             _bus = _redisServerConnection.GetSubscriber();
 
             var previousBroadcastTask = Task.CompletedTask;
 
-            _bus.Subscribe(typeof(THub).FullName, async (c, data) =>
+            var channelName = typeof(THub).FullName;
+            _logger.LogInformation("Subscribing to channel: {channel}", channelName);
+            _bus.Subscribe(channelName, async (c, data) =>
             {
                 await previousBroadcastTask;
+
+                _logger.LogTrace("Received message from redis channel {channel}", channelName);
 
                 var message = DeserializeMessage(data);
 
@@ -75,7 +89,6 @@ namespace Microsoft.AspNetCore.SignalR.Redis
         {
             var message = new InvocationMessage(GetInvocationId(), methodName, args, nonBlocking: true);
 
-            Console.WriteLine("NtlmAuthenticationTest");
             return PublishAsync(typeof(THub).FullName, message);
         }
 
@@ -111,6 +124,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                 payload = stream.ToArray();
             }
 
+            _logger.LogTrace("Publishing message to redis channel {channel}", channel);
             await _bus.PublishAsync(channel, payload);
         }
 
@@ -127,6 +141,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
             var previousConnectionTask = Task.CompletedTask;
 
+            _logger.LogInformation("Subscribing to connection channel: {channel}", connectionChannel);
             connectionTask = _bus.SubscribeAsync(connectionChannel, async (c, data) =>
             {
                 await previousConnectionTask;
@@ -169,6 +184,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             {
                 foreach (var subscription in redisSubscriptions)
                 {
+                    _logger.LogInformation("Unsubscribing from channel: {channel}", subscription);
                     tasks.Add(_bus.UnsubscribeAsync(subscription));
                 }
             }
@@ -214,6 +230,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
                 var previousTask = Task.CompletedTask;
 
+                _logger.LogInformation("Subscribing to group channel: {channel}", groupChannel);
                 await _bus.SubscribeAsync(groupChannel, async (c, data) =>
                 {
                     // Since this callback is async, we await the previous task then
@@ -264,6 +281,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
                 if (group.Connections.Count == 0)
                 {
+                    _logger.LogInformation("Unsubscribing from group channel: {channel}", groupChannel);
                     await _bus.UnsubscribeAsync(groupChannel);
                 }
             }
