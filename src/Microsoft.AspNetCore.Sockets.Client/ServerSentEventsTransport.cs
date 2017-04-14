@@ -27,9 +27,10 @@ namespace Microsoft.AspNetCore.Sockets.Client
         private readonly HttpClient _httpClient;
         private readonly ILogger _logger;
         private readonly CancellationTokenSource _transportCts = new CancellationTokenSource();
+        private readonly ServerSentEventsMessageParser _parser = new ServerSentEventsMessageParser();
+
 
         private IChannelConnection<SendMessage, Message> _application;
-        private ServerSentEventsMessageParser _parser = new ServerSentEventsMessageParser();
 
         public Task Running { get; private set; } = Task.CompletedTask;
 
@@ -69,7 +70,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             return TaskCache.CompletedTask;
         }
 
-        public async Task OpenConnection(IChannelConnection<SendMessage, Message> application, Uri url, CancellationToken cancellationToken)
+        private async Task OpenConnection(IChannelConnection<SendMessage, Message> application, Uri url, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Starting receive loop");
 
@@ -82,43 +83,42 @@ namespace Microsoft.AspNetCore.Sockets.Client
             var pipelineReader = stream.AsPipelineReader();
             try
             {
-
-            while (true)
-            {
-                var result = await pipelineReader.ReadAsync();
-                var input = result.Buffer;
-                var consumed = input.Start;
-                var examined = input.End;
-
-                try
+                while (true)
                 {
-                    if (input.IsEmpty && result.IsCompleted)
+                    var result = await pipelineReader.ReadAsync();
+                    var input = result.Buffer;
+                    var consumed = input.Start;
+                    var examined = input.End;
+
+                    try
                     {
-                        _logger.LogDebug("Done reading from pipeline");
-                        break;
+                        if (input.IsEmpty && result.IsCompleted)
+                        {
+                            _logger.LogDebug("Server-Sent Event Stream ended");
+                            break;
+                        }
+
+                        var parseResult = _parser.ParseMessage(input, out consumed, out examined, out var message);
+
+                        switch (parseResult)
+                        {
+                            case ServerSentEventsMessageParser.ParseResult.Completed:
+                                _application.Output.TryWrite(message);
+                                _parser.Reset();
+                                break;
+                            case ServerSentEventsMessageParser.ParseResult.Incomplete:
+                                if (result.IsCompleted)
+                                {
+                                    throw new FormatException("Incomplete message");
+                                }
+                                break;
+                        }
                     }
-
-                    var parseResult = _parser.ParseMessage(input, out consumed, out examined, out var message);
-
-                    switch (parseResult)
+                    finally
                     {
-                        case ServerSentEventsMessageParser.ParseResult.Completed:
-                            _application.Output.TryWrite(message);
-                            _parser.Reset();
-                            break;
-                        case ServerSentEventsMessageParser.ParseResult.Incomplete:
-                            if (result.IsCompleted)
-                            {
-                                throw new FormatException("Error parsing data from event stream");
-                            }
-                            break;
+                        pipelineReader.Advance(consumed, examined);
                     }
                 }
-                finally
-                {
-                    pipelineReader.Advance(consumed, examined);
-                }
-            }
             }
             finally
             {
@@ -130,7 +130,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
         {
             _logger.LogInformation("Starting the send loop");
 
-            IList<SendMessage> messages = null;
+            List<SendMessage> messages = null;
             try
             {
                 while (await _application.Input.WaitToReadAsync(cancellationToken))
@@ -203,7 +203,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             _logger.LogInformation("Send loop stopped");
         }
 
-        private async Task WriteMessagesAsync(IList<SendMessage> messages, PipelineTextOutput output, MessageFormat format)
+        private async Task WriteMessagesAsync(List<SendMessage> messages, PipelineTextOutput output, MessageFormat format)
         {
             output.Append(MessageFormatter.GetFormatIndicator(format), TextEncoder.Utf8);
 
