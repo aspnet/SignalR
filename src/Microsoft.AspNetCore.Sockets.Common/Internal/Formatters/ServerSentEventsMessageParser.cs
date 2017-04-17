@@ -20,6 +20,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
         const byte ByteE = (byte)'E';
 
         private static byte[] _dataPrefix = Encoding.UTF8.GetBytes("data: ");
+        private static byte[] _lineEnding = Encoding.UTF8.GetBytes("\r\n");
 
         private InternalParseState _internalParserState = InternalParseState.ReadMessageType;
         private List<byte[]> _data = new List<byte[]>();
@@ -48,10 +49,14 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
                 var line = ConvertBufferToSpan(buffer.Slice(start, lineEnd));
                 reader.Skip(line.Length);
 
-                // Check for a misplaced '\n'
                 if (line.Length <= 1)
                 {
                     throw new FormatException("There was an error in the frame format");
+                }
+
+                if(_data.Count > 0 && IsMessageEnd(line))
+                {
+                    _internalParserState = InternalParseState.ReadEndOfMessage;
                 }
 
                 // To ensure that the \n was preceded by a \r
@@ -59,7 +64,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
                 // data: foo\n\bar should be encoded as
                 // data: foo\r\n
                 // data: bar\r\n
-                if (line[line.Length - 2] != ByteCR)
+                 if (line[line.Length - 2] != ByteCR)
                 {
                     throw new FormatException("A '\\n' character can only be used as a line ending");
                 }
@@ -119,7 +124,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
                             message = new Message(Array.Empty<byte>(), messageType);
                         }
 
-                        consumed = lineEnd;
+                        consumed = buffer.Move(lineEnd, 1);
                         return ParseResult.Completed;
                 }
 
@@ -156,6 +161,11 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
             }
         }
 
+        private bool IsMessageEnd(ReadOnlySpan<byte> line)
+        {
+            return  line.Length == 2 && line.StartsWith(_lineEnding);
+        }
+
         private MessageType GetMessageType(ReadOnlySpan<byte> line)
         {
             EnsureStartsWithDataPrefix(line);
@@ -185,7 +195,6 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
 
         private enum InternalParseState
         {
-            Initial,
             ReadMessageType,
             ReadMessagePayload,
             ReadEndOfMessage,
