@@ -19,6 +19,8 @@ namespace Microsoft.AspNetCore.Sockets.Common.Tests.Internal.Formatters
         [InlineData("data: T\r\ndata: Major\r\ndata:  Key\r\ndata:  Alert\r\n\r\n", "Major Key Alert")]
         [InlineData("data: T\r\n\r\n", "")]
         [InlineData("data: T\r\ndata: Hello, World\r\n\r\ndata: ", "Hello, World")]
+        [InlineData("data: T\r\ndata: A\rB\r\n\r\n", "A\rB")]
+        [InlineData("data: T\r\ndata: \r\r\n\r\n", "\r")]
         public void ParseSSEMessageSuccessCases(string encodedMessage, string expectedMessage)
         {
             var buffer = Encoding.UTF8.GetBytes(encodedMessage);
@@ -47,6 +49,7 @@ namespace Microsoft.AspNetCore.Sockets.Common.Tests.Internal.Formatters
         [InlineData("food: T\r\ndata: Hello, World\r\n\r\n", "Expected the message prefix 'data: '")]
         [InlineData("data: T\r\ndata: Hello, World\r\n\n", "There was an error in the frame format")]
         [InlineData("data: T\r\ndata: Hello\n, World\r\n\r\n", "A '\\n' character can only be used as a line ending")]
+        [InlineData("data: data: \r\n", "Unknown message type: 'd'")]
         public void ParseSSEMessageFailureCases(string encodedMessage, string expectedExceptionMessage)
         {
             var buffer = Encoding.UTF8.GetBytes(encodedMessage);
@@ -123,6 +126,46 @@ namespace Microsoft.AspNetCore.Sockets.Common.Tests.Internal.Formatters
 
             var resultMessage = Encoding.UTF8.GetString(message.Payload);
             Assert.Equal(expectedMessage, resultMessage);
+        }
+
+        [Theory]
+        [InlineData("data: ", "X\r\n", "Unknown message type: 'X'")]
+        [InlineData("data: T", "\n", "A '\\n' character can only be used as a line ending")]
+        [InlineData("data: ", "X\r\n\r\n", "Unknown message type: 'X'")]
+        [InlineData("data: ", "Not the message type\r\n\r\n", "Unknown message type: 'N'")]
+        [InlineData("data: T\r\n","data: Hello, World\r\r\n\n", "There was an error in the frame format")]
+        [InlineData("data:", " Not the message type\r\r\n", "Unknown message type: 'N'")]
+        [InlineData("data: T\r\n", "data: Hello, World\n\n", "A '\\n' character can only be used as a line ending")]
+        [InlineData("data: T\r\nf", "oo: Hello, World\r\n\r\n", "Expected the message prefix 'data: '")]
+        [InlineData("foo", ": T\r\ndata: Hello, World\r\n\r\n", "Expected the message prefix 'data: '")]
+        [InlineData("food:", " T\r\ndata: Hello, World\r\n\r\n", "Expected the message prefix 'data: '")]
+        [InlineData("data: T\r\ndata: Hello, W", "orld\r\n\n", "There was an error in the frame format")]
+        [InlineData("data: T\r\nda", "ta: Hello\n, World\r\n\r\n", "A '\\n' character can only be used as a line ending")]
+        [InlineData("data:", " data: \r\n", "Unknown message type: 'd'")]
+        public async Task ParseMessageAcrossMultipleBuffersFailure(string encodedMessagePart1, string encodedMessagePart2, string expectedMessage)
+        {
+            var pipeFactory = new PipeFactory();
+            var pipe = pipeFactory.Create();
+
+            // Read the first part of the message
+            await pipe.Writer.WriteAsync(Encoding.UTF8.GetBytes(encodedMessagePart1));
+
+            var result = await pipe.Reader.ReadAsync();
+            var consumed = result.Buffer.Start;
+            var examined = result.Buffer.Start;
+            var parser = new ServerSentEventsMessageParser();
+
+            var parseResult = parser.ParseMessage(result.Buffer, out consumed, out examined, out Message message);
+            Assert.Equal(ServerSentEventsMessageParser.ParseResult.Incomplete, parseResult);
+
+            pipe.Reader.Advance(consumed, examined);
+
+            // Send the rest of the data and parse the complete message
+            await pipe.Writer.WriteAsync(Encoding.UTF8.GetBytes(encodedMessagePart2));
+            result = await pipe.Reader.ReadAsync();
+
+            var ex = Assert.Throws<FormatException>(() => { parser.ParseMessage(result.Buffer, out consumed, out examined, out message); });
+            Assert.Equal(expectedMessage, ex.Message);
         }
     }
 }
