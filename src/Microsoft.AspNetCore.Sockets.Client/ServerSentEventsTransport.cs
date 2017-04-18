@@ -29,7 +29,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
         private readonly CancellationTokenSource _transportCts = new CancellationTokenSource();
         private readonly ServerSentEventsMessageParser _parser = new ServerSentEventsMessageParser();
 
-
         private IChannelConnection<SendMessage, Message> _application;
 
         public Task Running { get; private set; } = Task.CompletedTask;
