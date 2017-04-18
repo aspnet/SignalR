@@ -13,14 +13,15 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
     {
         const byte ByteCR = (byte)'\r';
         const byte ByteLF = (byte)'\n';
-
         const byte ByteT = (byte)'T';
         const byte ByteB = (byte)'B';
         const byte ByteC = (byte)'C';
         const byte ByteE = (byte)'E';
 
         private static byte[] _dataPrefix = Encoding.UTF8.GetBytes("data: ");
-        private static byte[] _lineEnding = Encoding.UTF8.GetBytes("\r\n");
+        private static byte[] _sseLineEnding = Encoding.UTF8.GetBytes("\r\n");
+        private static byte[] _newLine = Encoding.UTF8.GetBytes(Environment.NewLine);
+
 
         private InternalParseState _internalParserState = InternalParseState.ReadMessageType;
         private List<byte[]> _data = new List<byte[]>();
@@ -54,68 +55,65 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
                     throw new FormatException("There was an error in the frame format");
                 }
 
-                if(_data.Count > 0 && IsMessageEnd(line))
+                if (IsMessageEnd(line))
                 {
                     _internalParserState = InternalParseState.ReadEndOfMessage;
                 }
-
                 // To ensure that the \n was preceded by a \r
                 // since messages can't contain \n.
                 // data: foo\n\bar should be encoded as
                 // data: foo\r\n
                 // data: bar\r\n
-                 if (line[line.Length - 2] != ByteCR)
+                else if (line[line.Length - _sseLineEnding.Length] != ByteCR)
                 {
                     throw new FormatException("A '\\n' character can only be used as a line ending");
                 }
-
-                // Remove the \r\n from the span
-                line = line.Slice(0, line.Length - 2);
 
                 switch (_internalParserState)
                 {
                     case InternalParseState.ReadMessageType:
                         messageType = GetMessageType(line);
-                        start = lineEnd;
-                        consumed = lineEnd;
+
                         _internalParserState = InternalParseState.ReadMessagePayload;
 
+                        start = lineEnd;
+                        consumed = lineEnd;
                         break;
                     case InternalParseState.ReadMessagePayload:
                         EnsureStartsWithDataPrefix(line);
 
                         // Slice away the 'data: '
-                        var newData = line.Slice(_dataPrefix.Length).ToArray();
+                        var payloadLength = line.Length - (_dataPrefix.Length + _sseLineEnding.Length);
+                        var newData = line.Slice(_dataPrefix.Length, payloadLength).ToArray();
+                        _data.Add(newData);
 
                         start = lineEnd;
                         consumed = lineEnd;
-                        _data.Add(newData);
                         break;
                     case InternalParseState.ReadEndOfMessage:
-                        if (ReadCursorOperations.Seek(start, end, out lineEnd, ByteLF) == -1)
-                        {
-                            // The message has ended with \r\n\r
-                            return ParseResult.Incomplete;
-                        }
-
                         if (_data.Count > 0)
                         {
                             // Find the final size of the payload
                             var payloadSize = 0;
                             foreach (var dataLine in _data)
                             {
-                                payloadSize += dataLine.Length;
+                                payloadSize += dataLine.Length + _newLine.Length;
                             }
-                            var payload = new byte[payloadSize];
 
-                            // Copy the contents of the data array to a single buffer
+                            // Allocate space in the paylod buffer for the data and the new lines 
+                            var payload = new byte[payloadSize - _newLine.Length];
+
                             var offset = 0;
                             foreach (var dataLine in _data)
                             {
                                 dataLine.CopyTo(payload, offset);
                                 offset += dataLine.Length;
+                                if (_data.Count > 1 && offset < payload.Length)
+                                {
+                                    _newLine.CopyTo(payload, offset);
+                                    offset += _newLine.Length;
+                                }
                             }
-
                             message = new Message(payload, messageType);
                         }
                         else
@@ -124,14 +122,9 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
                             message = new Message(Array.Empty<byte>(), messageType);
                         }
 
-                        consumed = buffer.Move(lineEnd, 1);
+                        consumed = lineEnd;
+                        examined = consumed;
                         return ParseResult.Completed;
-                }
-
-                // Peek into next byte. If it is a carriage return byte, then advance to the next state
-                if (reader.Peek() == ByteCR)
-                {
-                    _internalParserState = InternalParseState.ReadEndOfMessage;
                 }
             }
             return ParseResult.Incomplete;
@@ -163,7 +156,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
 
         private bool IsMessageEnd(ReadOnlySpan<byte> line)
         {
-            return  line.Length == 2 && line.StartsWith(_lineEnding);
+            return line.Length == _sseLineEnding.Length && line.SequenceEqual(_sseLineEnding);
         }
 
         private MessageType GetMessageType(ReadOnlySpan<byte> line)
