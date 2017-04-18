@@ -18,18 +18,18 @@ namespace Microsoft.AspNetCore.Sockets.Common.Tests.Internal.Formatters
         [InlineData("data: T\r\ndata: \r\r\n\r\n", "\r")]
         [InlineData("data: T\r\ndata: A\rB\r\n\r\n", "A\rB")]
         [InlineData("data: T\r\ndata: Hello, World\r\n\r\n", "Hello, World")]
-        [InlineData("data: E\r\ndata: Hello, World\r\n\r\n", "Hello, World")]
+        [InlineData("data: T\r\ndata: Hello, World\r\n\r\n", "Hello, World")]
         [InlineData("data: T\r\ndata: Hello, World\r\n\r\ndata: ", "Hello, World")]
         public void ParseSSEMessageSuccessCases(string encodedMessage, string expectedMessage)
         {
             var buffer = Encoding.UTF8.GetBytes(encodedMessage);
             var readableBuffer = ReadableBuffer.Create(buffer);
             var parser = new ServerSentEventsMessageParser();
-            var consumed = new ReadCursor();
-            var examined = new ReadCursor();
 
-            var parsePhase = parser.ParseMessage(readableBuffer, out consumed, out examined, out Message message);
-            Assert.Equal(ServerSentEventsMessageParser.ParseResult.Completed, parsePhase);
+            var parseResult = parser.ParseMessage(readableBuffer, out var consumed, out var examined, out Message message);
+            Assert.Equal(ServerSentEventsMessageParser.ParseResult.Completed, parseResult);
+            Assert.Equal(MessageType.Text, message.Type);
+            Assert.Equal(consumed, examined);
 
             var result = Encoding.UTF8.GetString(message.Payload);
             Assert.Equal(expectedMessage, result);
@@ -37,27 +37,28 @@ namespace Microsoft.AspNetCore.Sockets.Common.Tests.Internal.Formatters
 
         [Theory]
         [InlineData("data: X\r\n", "Unknown message type: 'X'")]
-        [InlineData("data: T\n", "A '\\n' character can only be used as a line ending")]
+        [InlineData("data: T\n", "Unexpected '\n' in message. A '\n' character can only be used as part of the newline sequence '\r\n'")]
         [InlineData("data: X\r\n\r\n", "Unknown message type: 'X'")]
         [InlineData("data: Not the message type\r\n\r\n", "Unknown message type: 'N'")]
         [InlineData("data: T\r\ndata: Hello, World\r\r\n\n", "There was an error in the frame format")]
         [InlineData("data: Not the message type\r\r\n", "Unknown message type: 'N'")]
-        [InlineData("data: T\r\ndata: Hello, World\n\n", "A '\\n' character can only be used as a line ending")]
+        [InlineData("data: T\r\ndata: Hello, World\n\n", "Unexpected '\n' in message. A '\n' character can only be used as part of the newline sequence '\r\n'")]
         [InlineData("data: T\r\nfoo: Hello, World\r\n\r\n", "Expected the message prefix 'data: '")]
         [InlineData("foo: T\r\ndata: Hello, World\r\n\r\n", "Expected the message prefix 'data: '")]
         [InlineData("food: T\r\ndata: Hello, World\r\n\r\n", "Expected the message prefix 'data: '")]
         [InlineData("data: T\r\ndata: Hello, World\r\n\n", "There was an error in the frame format")]
-        [InlineData("data: T\r\ndata: Hello\n, World\r\n\r\n", "A '\\n' character can only be used as a line ending")]
+        [InlineData("data: T\r\ndata: Hello\n, World\r\n\r\n", "Unexpected '\n' in message. A '\n' character can only be used as part of the newline sequence '\r\n'")]
         [InlineData("data: data: \r\n", "Unknown message type: 'd'")]
+        [InlineData("data: T\r\ndata: Hello, World\r\n\r\\", "Expected a \\r\\n frame ending")]
+        [InlineData("data: T\r\ndata: Major\r\ndata:  Key\rndata:  Alert\r\n\r\\", "Expected a \\r\\n frame ending")]
+        [InlineData("data: T\r\ndata: Major\r\ndata:  Key\r\ndata:  Alert\r\n\r\\", "Expected a \\r\\n frame ending")]
         public void ParseSSEMessageFailureCases(string encodedMessage, string expectedExceptionMessage)
         {
             var buffer = Encoding.UTF8.GetBytes(encodedMessage);
             var readableBuffer = ReadableBuffer.Create(buffer);
             var parser = new ServerSentEventsMessageParser();
-            var consumed = new ReadCursor();
-            var examined = new ReadCursor();
 
-            var ex = Assert.Throws<FormatException>(() => { parser.ParseMessage(readableBuffer, out consumed, out examined, out Message message); });
+            var ex = Assert.Throws<FormatException>(() => { parser.ParseMessage(readableBuffer, out var consumed, out var examined, out Message message); });
             Assert.Equal(expectedExceptionMessage, ex.Message);
         }
 
@@ -71,18 +72,13 @@ namespace Microsoft.AspNetCore.Sockets.Common.Tests.Internal.Formatters
         [InlineData("data: T\r\ndata: Hello, World\r")]
         [InlineData("data: T\r\ndata: Hello, World\r\n")]
         [InlineData("data: T\r\ndata: Hello, World\r\n\r")]
-        [InlineData("data: T\r\ndata: Hello, World\r\n\r\\")]
-        [InlineData("data: T\r\ndata: Major\r\ndata:  Key\rndata:  Alert\r\n\r\\")]
-        [InlineData("data: T\r\ndata: Major\r\ndata:  Key\r\ndata:  Alert\r\n\r\\")]
         public void ParseSSEMessageIncompleteParseResult(string encodedMessage)
         {
             var buffer = Encoding.UTF8.GetBytes(encodedMessage);
             var readableBuffer = ReadableBuffer.Create(buffer);
             var parser = new ServerSentEventsMessageParser();
-            var consumed = new ReadCursor();
-            var examined = new ReadCursor();
 
-            var parseResult = parser.ParseMessage(readableBuffer, out consumed, out examined, out Message message);
+            var parseResult = parser.ParseMessage(readableBuffer, out var consumed, out var examined, out Message message);
 
             Assert.Equal(ServerSentEventsMessageParser.ParseResult.Incomplete, parseResult);
         }
@@ -98,7 +94,7 @@ namespace Microsoft.AspNetCore.Sockets.Common.Tests.Internal.Formatters
         [InlineData("data: T\r\ndata: Hello, World\r\n", "\r\n", "Hello, World")]
         [InlineData("data: T", "\r\ndata: Hello, World\r\n\r\n", "Hello, World")]
         [InlineData("data: ", "T\r\ndata: Hello, World\r\n\r\n", "Hello, World")]
-        public async Task ParseMessageAcrossMultipleBuffersSuccess(string encodedMessagePart1, string encodedMessagePart2, string expectedMessage)
+        public async Task ParseMessageAcrossMultipleReadsSuccess(string encodedMessagePart1, string encodedMessagePart2, string expectedMessage)
         {
             using (var pipeFactory = new PipeFactory())
             {
@@ -108,11 +104,9 @@ namespace Microsoft.AspNetCore.Sockets.Common.Tests.Internal.Formatters
                 await pipe.Writer.WriteAsync(Encoding.UTF8.GetBytes(encodedMessagePart1));
 
                 var result = await pipe.Reader.ReadAsync();
-                var consumed = result.Buffer.Start;
-                var examined = result.Buffer.Start;
                 var parser = new ServerSentEventsMessageParser();
 
-                var parseResult = parser.ParseMessage(result.Buffer, out consumed, out examined, out Message message);
+                var parseResult = parser.ParseMessage(result.Buffer, out var consumed, out var examined, out Message message);
                 Assert.Equal(ServerSentEventsMessageParser.ParseResult.Incomplete, parseResult);
 
                 pipe.Reader.Advance(consumed, examined);
@@ -123,6 +117,8 @@ namespace Microsoft.AspNetCore.Sockets.Common.Tests.Internal.Formatters
 
                 parseResult = parser.ParseMessage(result.Buffer, out consumed, out examined, out message);
                 Assert.Equal(ServerSentEventsMessageParser.ParseResult.Completed, parseResult);
+                Assert.Equal(MessageType.Text, message.Type);
+                Assert.Equal(consumed, examined);
 
                 var resultMessage = Encoding.UTF8.GetString(message.Payload);
                 Assert.Equal(expectedMessage, resultMessage);
@@ -131,19 +127,20 @@ namespace Microsoft.AspNetCore.Sockets.Common.Tests.Internal.Formatters
 
         [Theory]
         [InlineData("data: ", "X\r\n", "Unknown message type: 'X'")]
-        [InlineData("data: T", "\n", "A '\\n' character can only be used as a line ending")]
+        [InlineData("data: T", "\n", "Unexpected '\n' in message. A '\n' character can only be used as part of the newline sequence '\r\n'")]
         [InlineData("data: ", "X\r\n\r\n", "Unknown message type: 'X'")]
         [InlineData("data: ", "Not the message type\r\n\r\n", "Unknown message type: 'N'")]
         [InlineData("data: T\r\n", "data: Hello, World\r\r\n\n", "There was an error in the frame format")]
         [InlineData("data:", " Not the message type\r\r\n", "Unknown message type: 'N'")]
-        [InlineData("data: T\r\n", "data: Hello, World\n\n", "A '\\n' character can only be used as a line ending")]
+        [InlineData("data: T\r\n", "data: Hello, World\n\n", "Unexpected '\n' in message. A '\n' character can only be used as part of the newline sequence '\r\n'")]
         [InlineData("data: T\r\nf", "oo: Hello, World\r\n\r\n", "Expected the message prefix 'data: '")]
         [InlineData("foo", ": T\r\ndata: Hello, World\r\n\r\n", "Expected the message prefix 'data: '")]
         [InlineData("food:", " T\r\ndata: Hello, World\r\n\r\n", "Expected the message prefix 'data: '")]
         [InlineData("data: T\r\ndata: Hello, W", "orld\r\n\n", "There was an error in the frame format")]
-        [InlineData("data: T\r\nda", "ta: Hello\n, World\r\n\r\n", "A '\\n' character can only be used as a line ending")]
+        [InlineData("data: T\r\nda", "ta: Hello\n, World\r\n\r\n", "Unexpected '\n' in message. A '\n' character can only be used as part of the newline sequence '\r\n'")]
         [InlineData("data:", " data: \r\n", "Unknown message type: 'd'")]
-        public async Task ParseMessageAcrossMultipleBuffersFailure(string encodedMessagePart1, string encodedMessagePart2, string expectedMessage)
+        [InlineData("data: ", "T\r\ndata: Major\r\ndata:  Key\r\ndata:  Alert\r\n\r\\", "Expected a \\r\\n frame ending")]
+        public async Task ParseMessageAcrossMultipleReadsFailure(string encodedMessagePart1, string encodedMessagePart2, string expectedMessage)
         {
             using (var pipeFactory = new PipeFactory())
             {
@@ -153,11 +150,9 @@ namespace Microsoft.AspNetCore.Sockets.Common.Tests.Internal.Formatters
                 await pipe.Writer.WriteAsync(Encoding.UTF8.GetBytes(encodedMessagePart1));
 
                 var result = await pipe.Reader.ReadAsync();
-                var consumed = result.Buffer.Start;
-                var examined = result.Buffer.Start;
                 var parser = new ServerSentEventsMessageParser();
 
-                var parseResult = parser.ParseMessage(result.Buffer, out consumed, out examined, out Message message);
+                var parseResult = parser.ParseMessage(result.Buffer, out var consumed, out var examined, out Message message);
                 Assert.Equal(ServerSentEventsMessageParser.ParseResult.Incomplete, parseResult);
 
                 pipe.Reader.Advance(consumed, examined);
@@ -168,11 +163,12 @@ namespace Microsoft.AspNetCore.Sockets.Common.Tests.Internal.Formatters
 
                 var ex = Assert.Throws<FormatException>(() => parser.ParseMessage(result.Buffer, out consumed, out examined, out message));
                 Assert.Equal(expectedMessage, ex.Message);
+
             }
         }
 
         [Fact]
-        public async Task ParseMessageAcrossMultipleWontStall()
+        public async Task ParseMultipleMessages()
         {
             using (var pipeFactory = new PipeFactory())
             {
@@ -205,7 +201,7 @@ namespace Microsoft.AspNetCore.Sockets.Common.Tests.Internal.Formatters
             }
         }
 
-        public static IEnumerable<object[]> MessageSizesData
+        public static IEnumerable<object[]> MultilineMessages
         {
             get
             {
@@ -215,20 +211,32 @@ namespace Microsoft.AspNetCore.Sockets.Common.Tests.Internal.Formatters
         }
 
         [Theory]
-        [MemberData(nameof(MessageSizesData))]
+        [MemberData(nameof(MultilineMessages))]
         public void ParseMessagesWithMultipleDataLines(string encodedMessage, string expectedMessage)
         {
             var buffer = Encoding.UTF8.GetBytes(encodedMessage);
             var readableBuffer = ReadableBuffer.Create(buffer);
             var parser = new ServerSentEventsMessageParser();
-            var consumed = new ReadCursor();
-            var examined = new ReadCursor();
 
-            var parsePhase = parser.ParseMessage(readableBuffer, out consumed, out examined, out Message message);
-            Assert.Equal(ServerSentEventsMessageParser.ParseResult.Completed, parsePhase);
+            var parseResult = parser.ParseMessage(readableBuffer, out var consumed, out var examined, out Message message);
+            Assert.Equal(ServerSentEventsMessageParser.ParseResult.Completed, parseResult);
+            Assert.Equal(MessageType.Text, message.Type);
+            Assert.Equal(consumed, examined);
 
             var result = Encoding.UTF8.GetString(message.Payload);
             Assert.Equal(expectedMessage, result);
+        }
+
+        [Fact]
+        public void ParseSSEMessageBinaryNotSupported()
+        {
+            var encodedMessage = "data: B\r\ndata: \r\n\r\n";
+            var buffer = Encoding.UTF8.GetBytes(encodedMessage);
+            var readableBuffer = ReadableBuffer.Create(buffer);
+            var parser = new ServerSentEventsMessageParser();
+
+            var ex = Assert.Throws<NotSupportedException>(() => { parser.ParseMessage(readableBuffer, out var consumed, out var examined, out Message message); });
+            Assert.Equal("Support for binary messages has not been implemented yet", ex.Message);
         }
     }
 }

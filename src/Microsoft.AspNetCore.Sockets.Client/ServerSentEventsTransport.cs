@@ -50,7 +50,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         public Task StartAsync(Uri url, IChannelConnection<SendMessage, Message> application)
         {
-            _logger.LogInformation("Starting {0}", nameof(ServerSentEventsTransport));
+            _logger.LogInformation("Starting {transportName}", nameof(ServerSentEventsTransport));
 
             _application = application;
             var sseUrl = Utils.AppendPath(url, "sse");
@@ -60,7 +60,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
             Running = Task.WhenAll(sendTask, receiveTask).ContinueWith(t =>
             {
-                _logger.LogDebug("Transport stopped. Exception: '{0}'", t.Exception?.InnerException);
+                if (t.Exception != null) { _logger.LogError(t.Exception, "Transport stopped"); }
 
                 _application.Output.TryComplete(t.IsFaulted ? t.Exception.InnerException : null);
                 return t;
@@ -125,7 +125,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             }
         }
 
-        public async Task SendMessages(Uri sendUrl, CancellationToken cancellationToken)
+        private async Task SendMessages(Uri sendUrl, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Starting the send loop");
 
@@ -142,7 +142,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
                     if (messages.Count > 0)
                     {
-                        _logger.LogDebug("Sending {0} message(s) to the server using url: {1}", messages.Count, sendUrl);
+                        _logger.LogDebug("Sending {messageCount} message(s) to the server using url: {url}", messages.Count, sendUrl);
 
                         var request = new HttpRequestMessage(HttpMethod.Post, sendUrl);
                         request.Headers.UserAgent.Add(DefaultUserAgentHeader);
@@ -183,7 +183,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             }
             catch (Exception ex)
             {
-                _logger.LogDebug("Error while sending to '{0}' : '{1}'", sendUrl, ex);
+                _logger.LogDebug("Error while sending to '{url}' : '{exception}'", sendUrl, ex);
                 if (messages != null)
                 {
                     foreach (var message in messages)
@@ -208,7 +208,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
             foreach (var message in messages)
             {
-                _logger.LogDebug("Writing '{0}' message to the server", message.Type);
+                _logger.LogDebug("Writing '{messageType}' message to the server", message.Type);
 
                 var payload = message.Payload ?? Array.Empty<byte>();
                 if (!MessageFormatter.TryWriteMessage(new Message(payload, message.Type, endOfMessage: true), output, format))
@@ -222,7 +222,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         public async Task StopAsync()
         {
-            _logger.LogInformation("Transport {0} is stopping", nameof(ServerSentEventsTransport));
+            _logger.LogInformation("Transport {transportName} is stopping", nameof(ServerSentEventsTransport));
             _transportCts.Cancel();
             _application.Output.TryComplete();
             await Running;

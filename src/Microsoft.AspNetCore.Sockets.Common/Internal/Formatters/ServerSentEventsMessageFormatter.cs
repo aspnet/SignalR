@@ -14,11 +14,11 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
         private static readonly byte[] DataPrefix = new byte[] { (byte)'d', (byte)'a', (byte)'t', (byte)'a', (byte)':', (byte)' ' };
         private static readonly byte[] Newline = new byte[] { (byte)'\r', (byte)'\n' };
 
-        const byte LineFeed = (byte)'\n';
-        const char TextTypeFlag = 'T';
-        const char BinaryTypeFlag = 'B';
-        const char CloseTypeFlag = 'C';
-        const char ErrorTypeFlag = 'E';
+        private const byte LineFeed = (byte)'\n';
+        private const char TextTypeFlag = 'T';
+        private const char BinaryTypeFlag = 'B';
+        private const char CloseTypeFlag = 'C';
+        private const char ErrorTypeFlag = 'E';
 
         public static bool TryWriteMessage(Message message, IOutput output)
         {
