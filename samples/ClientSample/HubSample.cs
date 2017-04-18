@@ -31,14 +31,13 @@ namespace ClientSample
             baseUrl = string.IsNullOrEmpty(baseUrl) ? "http://localhost:5000/hubs" : baseUrl;
 
             var loggerFactory = new LoggerFactory();
-            var logger = loggerFactory.CreateLogger<Program>();
 
-            logger.LogInformation("Connecting to {0}", baseUrl);
+            Console.WriteLine("Connecting to {0}", baseUrl);
             var connection = new HubConnection(new Uri(baseUrl), new JsonNetInvocationAdapter(), loggerFactory);
             try
             {
                 await connection.StartAsync();
-                logger.LogInformation("Connected to {0}", baseUrl);
+                Console.WriteLine("Connected to {0}", baseUrl);
 
                 var cts = new CancellationTokenSource();
                 Console.CancelKeyPress += (sender, a) =>
@@ -59,7 +58,7 @@ namespace ClientSample
                 {
                     var line = await Task.Run(() => Console.ReadLine(), cts.Token);
 
-                    if(line == null)
+                    if (line == null)
                     {
                         break;
                     }
@@ -67,10 +66,10 @@ namespace ClientSample
                     await connection.Invoke<object>("Send", cts.Token, line);
                 }
             }
-            catch(AggregateException aex) when (aex.InnerExceptions.All(e => e is OperationCanceledException))
+            catch (AggregateException aex) when (aex.InnerExceptions.All(e => e is OperationCanceledException))
             {
             }
-            catch(OperationCanceledException)
+            catch (OperationCanceledException)
             {
             }
             finally

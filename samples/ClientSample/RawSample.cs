@@ -58,7 +58,7 @@ namespace ClientSample
                 {
                     var line = await Task.Run(() => Console.ReadLine(), cts.Token);
 
-                    if(line == null)
+                    if (line == null)
                     {
                         break;
                     }
@@ -66,10 +66,10 @@ namespace ClientSample
                     await connection.SendAsync(Encoding.UTF8.GetBytes(line), MessageType.Text, cts.Token);
                 }
             }
-            catch(AggregateException aex) when (aex.InnerExceptions.All(e => e is OperationCanceledException))
+            catch (AggregateException aex) when (aex.InnerExceptions.All(e => e is OperationCanceledException))
             {
             }
-            catch(OperationCanceledException)
+            catch (OperationCanceledException)
             {
             }
             finally
