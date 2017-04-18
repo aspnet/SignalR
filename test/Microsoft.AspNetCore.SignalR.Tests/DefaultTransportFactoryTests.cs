@@ -68,7 +68,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Theory]
-        [InlineData(TransportType.WebSockets, typeof(LongPollingTransport))]
+        [InlineData(TransportType.WebSockets, typeof(ServerSentEventsTransport))]
         [InlineData(TransportType.LongPolling, typeof(LongPollingTransport))]
         public void DefaultTransportFactoryCreatesRequestedTransportIfAvailable_Win7(TransportType requestedTransport, Type expectedTransportType)
         {
