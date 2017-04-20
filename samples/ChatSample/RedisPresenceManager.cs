@@ -54,8 +54,9 @@ namespace ChatSample
 
             _redisSubscriber.Subscribe(_redisChannel, (channel, value) =>
             {
-                var user = ToUserDetails(((string)value).Substring(1));
-                if (((string)value)[0] == '-')
+                var stringValue = (string)value;
+                var user = ToUserDetails(stringValue.Substring(1));
+                if (stringValue[0] == '-')
                 {
                     _ = Notify(hub => hub.OnUserLeft(user));
                 }
@@ -107,7 +108,7 @@ namespace ChatSample
             connections.TryRemove(connection, out object _);
 
             var database = _redisConnection.GetDatabase(_redisDatabase);
-            var user = $"{connection.ConnectionId }|{ connection.User.Identity.Name}";
+            var user = $"{connection.ConnectionId}|{connection.User.Identity.Name}";
             // Fire and forget
             _ = database.SetRemoveAsync(UsersOnlineRedisKey, user);
             _ = _redisSubscriber.PublishAsync(_redisChannel, "-" + user);

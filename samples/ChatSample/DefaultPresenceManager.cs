@@ -29,11 +29,11 @@ namespace ChatSample
             _logger = loggerFactory.CreateLogger<DefaultPresenceManager<THub>>();
         }
 
-        private readonly ConcurrentDictionary<Connection, UserDetails> usersOnline
+        private readonly ConcurrentDictionary<Connection, UserDetails> _usersOnline
             = new ConcurrentDictionary<Connection, UserDetails>();
 
         public Task<IEnumerable<UserDetails>> UsersOnline()
-            => Task.FromResult(usersOnline.Values.AsEnumerable());
+            => Task.FromResult(_usersOnline.Values.AsEnumerable());
 
         public async Task UserJoined(Connection connection)
         {
@@ -41,20 +41,20 @@ namespace ChatSample
 
             await Notify(hub => hub.OnUserJoined(user));
 
-            usersOnline.TryAdd(connection, user);
+            _usersOnline.TryAdd(connection, user);
         }
 
         public async Task UserLeft(Connection connection)
         {
-            if (usersOnline.TryRemove(connection, out UserDetails user))
+            if (_usersOnline.TryRemove(connection, out var userDetails))
             {
-                await Notify(hub => hub.OnUserLeft(user));
+                await Notify(hub => hub.OnUserLeft(userDetails));
             }
         }
 
         private async Task Notify(Func<THub, Task> invocation)
         {
-            foreach (var connection in usersOnline.Keys)
+            foreach (var connection in _usersOnline.Keys)
             {
                 using (var scope = _serviceScopeFactory.CreateScope())
                 {

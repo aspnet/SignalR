@@ -64,11 +64,11 @@ document.getElementById('sendmessage').addEventListener('submit', event => {
         document.getElementById('messages').appendChild(child);
     });
 
-    newMessage.value = ''; 
+    newMessage.value = '';
     event.preventDefault();
 });
 
-let addUserOnline = function (user) {
+function addUserOnline (user) {
     var userLi = document.createElement('li');
     userLi.innerText = user.Name;
     userLi.id = user.ConnectionId;
