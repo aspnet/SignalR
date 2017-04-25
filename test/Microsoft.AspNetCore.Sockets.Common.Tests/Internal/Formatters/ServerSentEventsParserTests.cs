@@ -146,7 +146,6 @@ namespace Microsoft.AspNetCore.Sockets.Common.Tests.Internal.Formatters
         [InlineData("data:", " data: \r\n", "Unknown message type: 'd'")]
         [InlineData("data: ", "T\r\ndata: Major\r\ndata:  Key\r\ndata:  Alert\r\n\r\\", "Expected a \\r\\n frame ending")]
         [InlineData("data: B\r\ndata: SGVs", "bG8sIFdvcmxk\r\n\n\n", "There was an error in the frame format")]
-
         public async Task ParseMessageAcrossMultipleReadsFailure(string encodedMessagePart1, string encodedMessagePart2, string expectedMessage)
         {
             using (var pipeFactory = new PipeFactory())
