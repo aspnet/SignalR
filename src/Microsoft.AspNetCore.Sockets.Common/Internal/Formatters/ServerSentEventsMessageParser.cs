@@ -128,6 +128,14 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
                                     offset += _newLine.Length;
                                 }
                             }
+
+                            switch (_messageType)
+                            {
+                                case MessageType.Binary:
+                                    payload = MessageFormatUtils.DecodePayload(payload);
+                                    break;
+                            }
+
                             message = new Message(payload, _messageType);
                         }
                         else
@@ -188,7 +196,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
                 case ByteT:
                     return MessageType.Text;
                 case ByteB:
-                    throw new NotSupportedException("Support for binary messages has not been implemented yet");
+                    return MessageType.Binary;
                 case ByteC:
                     return MessageType.Close;
                 case ByteE:
