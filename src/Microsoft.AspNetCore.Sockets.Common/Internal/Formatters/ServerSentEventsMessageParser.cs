@@ -83,6 +83,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
                     EnsureStartsWithDataPrefix(line);
                 }
 
+                var payload = Array.Empty<byte>();
                 switch (_internalParserState)
                 {
                     case InternalParseState.ReadMessageType:
@@ -104,7 +105,18 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
                         consumed = lineEnd;
                         break;
                     case InternalParseState.ReadEndOfMessage:
-                        if (_data.Count > 0)
+                        if (_data.Count == 1)
+                        {
+                            if (_messageType == MessageType.Binary)
+                            {
+                                payload = MessageFormatUtils.DecodePayload(_data[0]);
+                            }
+                            else
+                            {
+                                payload = _data[0];
+                            }
+                        }
+                        else if (_data.Count > 1)
                         {
                             // Find the final size of the payload
                             var payloadSize = 0;
@@ -115,7 +127,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
 
                             // Allocate space in the paylod buffer for the data and the new lines. 
                             // Subtract newLine length because we don't want a trailing newline. 
-                            var payload = new byte[payloadSize - _newLine.Length];
+                            payload = new byte[payloadSize - _newLine.Length];
 
                             var offset = 0;
                             foreach (var dataLine in _data)
@@ -129,21 +141,15 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
                                 }
                             }
 
-                            switch (_messageType)
+                            if( _messageType == MessageType.Binary)
                             {
-                                case MessageType.Binary:
-                                    payload = MessageFormatUtils.DecodePayload(payload);
-                                    break;
+                                payload = MessageFormatUtils.DecodePayload(payload);
                             }
 
                             message = new Message(payload, _messageType);
                         }
-                        else
-                        {
-                            // Empty message
-                            message = new Message(Array.Empty<byte>(), _messageType);
-                        }
 
+                        message = new Message(payload, _messageType);
                         consumed = lineEnd;
                         examined = consumed;
                         return ParseResult.Completed;
