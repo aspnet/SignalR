@@ -94,7 +94,6 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
                         consumed = lineEnd;
                         break;
                     case InternalParseState.ReadMessagePayload:
-
                         // Slice away the 'data: '
                         var payloadLength = line.Length - (_dataPrefix.Length + _sseLineEnding.Length);
                         var newData = line.Slice(_dataPrefix.Length, payloadLength).ToArray();
@@ -106,15 +105,9 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
                     case InternalParseState.ReadEndOfMessage:
                         if (_data.Count == 1)
                         {
-                            if (_messageType == MessageType.Binary)
-                            {
-                                payload = MessageFormatUtils.DecodePayload(_data[0]);
-                            }
-                            else
-                            {
-                                payload = _data[0];
-                            }
+                            payload = _data[0];
                         }
+
                         else if (_data.Count > 1)
                         {
                             // Find the final size of the payload
@@ -139,13 +132,11 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
                                     offset += _newLine.Length;
                                 }
                             }
+                        }
 
-                            if( _messageType == MessageType.Binary)
-                            {
-                                payload = MessageFormatUtils.DecodePayload(payload);
-                            }
-
-                            message = new Message(payload, _messageType);
+                        if (_messageType == MessageType.Binary)
+                        {
+                            payload = MessageFormatUtils.DecodePayload(payload);
                         }
 
                         message = new Message(payload, _messageType);
@@ -153,6 +144,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
                         examined = consumed;
                         return ParseResult.Completed;
                 }
+
                 if (reader.Peek() == ByteCR)
                 {
                     _internalParserState = InternalParseState.ReadEndOfMessage;
