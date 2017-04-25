@@ -32,7 +32,6 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
             examined = buffer.End;
             message = new Message();
             var reader = new ReadableBufferReader(buffer);
-            _messageType = MessageType.Text;
 
             var start = consumed;
             var end = examined;
