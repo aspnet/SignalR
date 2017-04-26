@@ -22,7 +22,8 @@ namespace Microsoft.AspNetCore.Sockets.Common.Tests.Internal.Formatters
         [InlineData("data: T\r\ndata: Hello, World\r\n\r\n", "Hello, World", MessageType.Text)]
         [InlineData("data: T\r\ndata: Hello, World\r\n\r\ndata: ", "Hello, World", MessageType.Text)]
         [InlineData("data: B\r\ndata: SGVsbG8sIFdvcmxk\r\n\r\n", "Hello, World", MessageType.Binary)]
-        public void ParseSSEMessageSuccessCases(string encodedMessage, string expectedMessage, MessageType messageType)
+        [InlineData("data: B\r\ndata: SGVsbG8g\r\ndata: V29ybGQ=\r\n\r\n", "Hello World", MessageType.Binary)]
+    public void ParseSSEMessageSuccessCases(string encodedMessage, string expectedMessage, MessageType messageType)
         {
             var buffer = Encoding.UTF8.GetBytes(encodedMessage);
             var readableBuffer = ReadableBuffer.Create(buffer);
@@ -211,14 +212,14 @@ namespace Microsoft.AspNetCore.Sockets.Common.Tests.Internal.Formatters
         {
             get
             {
-                yield return new object[] { "data: T\r\ndata: Shaolin\r\ndata:  Fantastic\r\n\r\n", "Shaolin" + Environment.NewLine + " Fantastic" };
-                yield return new object[] { "data: T\r\ndata: The\r\ndata: Get\r\ndata: Down\r\n\r\n", "The" + Environment.NewLine + "Get" + Environment.NewLine + "Down" };
+                yield return new object[] { "data: T\r\ndata: Shaolin\r\ndata:  Fantastic\r\n\r\n", "Shaolin" + Environment.NewLine + " Fantastic", MessageType.Text };
+                yield return new object[] { "data: T\r\ndata: The\r\ndata: Get\r\ndata: Down\r\n\r\n", "The" + Environment.NewLine + "Get" + Environment.NewLine + "Down", MessageType.Text };
             }
         }
 
         [Theory]
         [MemberData(nameof(MultilineMessages))]
-        public void ParseMessagesWithMultipleDataLines(string encodedMessage, string expectedMessage)
+        public void ParseMessagesWithMultipleDataLines(string encodedMessage, string expectedMessage, MessageType expectedMessageType)
         {
             var buffer = Encoding.UTF8.GetBytes(encodedMessage);
             var readableBuffer = ReadableBuffer.Create(buffer);
@@ -226,7 +227,7 @@ namespace Microsoft.AspNetCore.Sockets.Common.Tests.Internal.Formatters
 
             var parseResult = parser.ParseMessage(readableBuffer, out var consumed, out var examined, out Message message);
             Assert.Equal(ServerSentEventsMessageParser.ParseResult.Completed, parseResult);
-            Assert.Equal(MessageType.Text, message.Type);
+            Assert.Equal(expectedMessageType, message.Type);
             Assert.Equal(consumed, examined);
 
             var result = Encoding.UTF8.GetString(message.Payload);

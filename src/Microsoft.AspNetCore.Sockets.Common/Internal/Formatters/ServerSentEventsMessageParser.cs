@@ -107,26 +107,34 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
                         {
                             payload = _data[0];
                         }
-
                         else if (_data.Count > 1)
                         {
                             // Find the final size of the payload
                             var payloadSize = 0;
                             foreach (var dataLine in _data)
                             {
-                                payloadSize += dataLine.Length + _newLine.Length;
+                                payloadSize += dataLine.Length;
                             }
 
-                            // Allocate space in the paylod buffer for the data and the new lines. 
-                            // Subtract newLine length because we don't want a trailing newline. 
-                            payload = new byte[payloadSize - _newLine.Length];
+                            if (_messageType != MessageType.Binary)
+                            {
+                                payloadSize += _newLine.Length*_data.Count;
+
+                                // Allocate space in the paylod buffer for the data and the new lines.
+                                // Subtract newLine length because we don't want a trailing newline.
+                                payload = new byte[payloadSize - _newLine.Length];
+                            }
+                            else
+                            {
+                                payload = new byte[payloadSize];
+                            }
 
                             var offset = 0;
                             foreach (var dataLine in _data)
                             {
                                 dataLine.CopyTo(payload, offset);
                                 offset += dataLine.Length;
-                                if (offset < payload.Length)
+                                if (offset < payload.Length && _messageType != MessageType.Binary)
                                 {
                                     _newLine.CopyTo(payload, offset);
                                     offset += _newLine.Length;
