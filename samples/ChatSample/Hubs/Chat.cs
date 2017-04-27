@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace ChatSample.Hubs
 {
-    // TODO: Make this work
     [Authorize]
     public class Chat : Hub
     {
@@ -30,6 +29,12 @@ namespace ChatSample.Hubs
         public async Task Send(string message)
         {
             await Clients.All.InvokeAsync("Send", $"{Context.User.Identity.Name}: {message}");
+        }
+
+        [Authorize(Roles = "Moderator")]
+        public async Task Shout(string message)
+        {
+            await Clients.All.InvokeAsync("Shout", $"{Context.User.Identity.Name}: {message}");
         }
     }
 }

@@ -10,6 +10,7 @@
     <form id="sendmessage" action="#">
         <input type="text" id="new-message" />
         <input type="submit" id="send" value="Send" class="send" />
+        <input type="button" id="shout" value="Shout" class="shout" />
     </form>
 </div>
 <script src="lib/signalr-client/signalr-client.js"></script>
@@ -22,17 +23,37 @@ connection.on('Send', function (message) {
     document.getElementById('messages').appendChild(child);
 });
 
+connection.on('Shout', function (message) {
+    var child = document.createElement('li');
+    child.style.color = 'blue';
+    child.style.fontWeight = 'bold';
+    child.innerText = message;
+    document.getElementById('messages').appendChild(child);
+});
+
 connection.start();
 
-document.getElementById('sendmessage').addEventListener('submit', event => {
-    let data = document.getElementById('new-message').value;
+function onSendError(err) {
+    var child = document.createElement('li');
+    child.style.color = 'red';
+    child.innerText = err;
+    document.getElementById('messages').appendChild(child);
+}
 
-    connection.invoke('Send', data).catch(err => {
-        var child = document.createElement('li');
-        child.style.color = 'red';
-        child.innerText = err;
-        document.getElementById('messages').appendChild(child);
-    });
+document.getElementById('sendmessage').addEventListener('submit', event => {
+    let element = document.getElementById('new-message');
+
+    connection.invoke('Send', element.value).catch(onSendError);
+    element.value = '';
+
+    event.preventDefault();
+});
+
+document.getElementById('shout').addEventListener('click', event => {
+    let element = document.getElementById('new-message');
+
+    connection.invoke('Shout', element.value).catch(onSendError);
+    element.value = '';
 
     event.preventDefault();
 });
