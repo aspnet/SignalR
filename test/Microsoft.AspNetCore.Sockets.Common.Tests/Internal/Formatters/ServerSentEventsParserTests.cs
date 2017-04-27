@@ -61,11 +61,8 @@ namespace Microsoft.AspNetCore.Sockets.Common.Tests.Internal.Formatters
         [InlineData("data: T\r\ndata: Hello, World\r\n\r\\", "Expected a \\r\\n frame ending")]
         [InlineData("data: T\r\ndata: Major\r\ndata:  Key\rndata:  Alert\r\n\r\\", "Expected a \\r\\n frame ending")]
         [InlineData("data: T\r\ndata: Major\r\ndata:  Key\r\ndata:  Alert\r\n\r\\", "Expected a \\r\\n frame ending")]
-<<<<<<< HEAD
-        [InlineData("data: B\r\n SGVsbG8sIFdvcmxk\r\n\r\n", "Expected the message prefix 'data: '")]
-=======
         [InlineData("data: This is not a message type\r\n", "Expected a data format message of the form 'data: <MesssageType>'")]
->>>>>>> 779b73d... Added stricter requirements to message type parsing
+        [InlineData("data: B\r\n SGVsbG8sIFdvcmxk\r\n\r\n", "Expected the message prefix 'data: '")]
         public void ParseSSEMessageFailureCases(string encodedMessage, string expectedExceptionMessage)
         {
             var buffer = Encoding.UTF8.GetBytes(encodedMessage);
@@ -171,11 +168,8 @@ namespace Microsoft.AspNetCore.Sockets.Common.Tests.Internal.Formatters
         [InlineData("data:", " data: \r\n", "Expected a data format message of the form 'data: <MesssageType>'")]
         [InlineData("data: ", "T\r\ndata: Major\r\ndata:  Key\r\ndata:  Alert\r\n\r\\", "Expected a \\r\\n frame ending")]
         [InlineData("data: ", "This is not a message type\r\n", "Expected a data format message of the form 'data: <MesssageType>'")]
-<<<<<<< HEAD
         [InlineData("data: B\r\ndata: SGVs", "bG8sIFdvcmxk\r\n\n\n", "There was an error in the frame format")]
-=======
         [InlineData("data: T", "his is not a message type\r\n", "Expected a data format message of the form 'data: <MesssageType>'")]
->>>>>>> 8959ad7... Moved the message type message format checks out fo the GetMessageType method
         public async Task ParseMessageAcrossMultipleReadsFailure(string encodedMessagePart1, string encodedMessagePart2, string expectedMessage)
         {
             using (var pipeFactory = new PipeFactory())
