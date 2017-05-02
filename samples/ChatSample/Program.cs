@@ -15,6 +15,7 @@ namespace ChatSample
                 .UseContentRoot(Directory.GetCurrentDirectory())
                 .UseIISIntegration()
                 .UseStartup<Startup>()
+                .UseKestrel().UseUrls("http://*.5000")//Add this Access to by IP
                 .Build();
 
             host.Run();
