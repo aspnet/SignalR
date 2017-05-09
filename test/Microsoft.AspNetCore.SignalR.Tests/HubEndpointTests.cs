@@ -1,4 +1,4 @@
-﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
@@ -176,7 +176,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 var result = (await client.InvokeAsync(methodName).OrTimeout());
 
-                // json serializer makes this a long
                 Assert.Equal("BOOM!", result.Error);
 
                 // kill the connection
