@@ -1,4 +1,4 @@
-﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
@@ -60,7 +60,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             using (var memoryStream = new MemoryStream())
             {
                 WriteMessage(message, memoryStream);
-                memoryStream.FlushAsync();
+                memoryStream.Flush();
 
                 return output.TryWrite(memoryStream.ToArray());
             }
@@ -90,10 +90,14 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                     var type = GetRequiredProperty<int>(json, TypePropertyName, JTokenType.Integer);
                     switch (type)
                     {
-                        case InvocationMessageType: return BindInvocationMessage(json, binder);
-                        case ResultMessageType: return BindResultMessage(json, binder);
-                        case CompletionMessageType: return BindCompletionMessage(json, binder);
-                        default: throw new FormatException($"Unknown message type: {type}");
+                        case InvocationMessageType:
+                            return BindInvocationMessage(json, binder);
+                        case ResultMessageType:
+                            return BindResultMessage(json, binder);
+                        case CompletionMessageType:
+                            return BindCompletionMessage(json, binder);
+                        default:
+                            throw new FormatException($"Unknown message type: {type}");
                     }
                 }
                 catch (JsonReaderException jrex)

@@ -1,4 +1,4 @@
-﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
@@ -16,17 +16,17 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
         public InvocationMessage(string invocationId, bool nonBlocking, string target, params object[] arguments) : base(invocationId)
         {
-            if(string.IsNullOrEmpty(invocationId))
+            if (string.IsNullOrEmpty(invocationId))
             {
                 throw new ArgumentNullException(nameof(invocationId));
             }
 
-            if(string.IsNullOrEmpty(target))
+            if (string.IsNullOrEmpty(target))
             {
                 throw new ArgumentNullException(nameof(target));
             }
 
-            if(arguments == null)
+            if (arguments == null)
             {
                 throw new ArgumentNullException(nameof(arguments));
             }

@@ -124,13 +124,13 @@ namespace Microsoft.AspNetCore.SignalR.Client
         public async Task<object> Invoke(string methodName, Type returnType, CancellationToken cancellationToken, params object[] args)
         {
             ThrowIfConnectionTerminated();
-            _logger.LogTrace("Preparing invocation of '{0}', with return type '{1}' and {2} args", methodName, returnType.AssemblyQualifiedName, args.Length);
+                _logger.LogTrace("Preparing invocation of '{target}', with return type '{returnType}' and {argumentCount} args", methodName, returnType.AssemblyQualifiedName, args.Length);
 
             // Create an invocation descriptor. Client invocations are always blocking
             var invocationMessage = new InvocationMessage(GetNextId(), nonBlocking: false, target: methodName, arguments: args);
 
             // I just want an excuse to use 'irq' as a variable name...
-            _logger.LogDebug("Registering Invocation ID '{0}' for tracking", invocationMessage.InvocationId);
+            _logger.LogDebug("Registering Invocation ID '{invocationId}' for tracking", invocationMessage.InvocationId);
             var irq = new InvocationRequest(cancellationToken, returnType, invocationMessage.InvocationId, _loggerFactory);
 
             AddInvocation(irq);
@@ -205,7 +205,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             _logger.LogTrace("Shutting down connection");
             if (ex != null)
             {
-                _logger.LogError("Connection is shutting down due to an error: {0}", ex);
+                _logger.LogError(ex, "Connection is shutting down due to an error");
             }
 
             lock (_pendingCallsLock)
@@ -233,7 +233,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             // Find the handler
             if (!_handlers.TryGetValue(invocation.Target, out InvocationHandler handler))
             {
-                _logger.LogWarning("Failed to find handler for '{0}' method", invocation.Target);
+                _logger.LogWarning("Failed to find handler for '{target}' method", invocation.Target);
                 return;
             }
 
@@ -244,7 +244,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private void DispatchInvocationCompletion(CompletionMessage completion, InvocationRequest irq)
         {
-            _logger.LogTrace("Received Completion for Invocation #{0}", completion.InvocationId);
+            _logger.LogTrace("Received Completion for Invocation #{invocationId}", completion.InvocationId);
 
             if (irq.CancellationToken.IsCancellationRequested)
             {
@@ -330,7 +330,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             {
                 if (!_connection._pendingCalls.TryGetValue(invocationId, out InvocationRequest irq))
                 {
-                    _connection._logger.LogError("Unsolicited response received for invocation '{0}'", invocationId);
+                    _connection._logger.LogError("Unsolicited response received for invocation '{invocationId}'", invocationId);
                     return null;
                 }
                 return irq.ResultType;
@@ -340,7 +340,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             {
                 if (!_connection._handlers.TryGetValue(methodName, out InvocationHandler handler))
                 {
-                    _connection._logger.LogWarning("Failed to find handler for '{0}' method", methodName);
+                    _connection._logger.LogWarning("Failed to find handler for '{target}' method", methodName);
                     return Type.EmptyTypes;
                 }
                 return handler.ParameterTypes;
