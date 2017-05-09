@@ -13,8 +13,8 @@ namespace Microsoft.AspNetCore.SignalR
 {
     public class DefaultHubLifetimeManager<THub> : HubLifetimeManager<THub>
     {
-        private readonly ConnectionList _connections = new ConnectionList();
-        private readonly InvocationAdapterRegistry _registry;
+        protected readonly ConnectionList _connections = new ConnectionList();
+        protected readonly InvocationAdapterRegistry _registry;
 
         public DefaultHubLifetimeManager(InvocationAdapterRegistry registry)
         {
@@ -55,7 +55,7 @@ namespace Microsoft.AspNetCore.SignalR
             return InvokeAllWhere(methodName, args, c => true);
         }
 
-        private Task InvokeAllWhere(string methodName, object[] args, Func<Connection, bool> include)
+        protected Task InvokeAllWhere(string methodName, object[] args, Func<Connection, bool> include)
         {
             var tasks = new List<Task>(_connections.Count);
             var message = new InvocationDescriptor
