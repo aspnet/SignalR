@@ -8,8 +8,4 @@
     <!-- Don't create a NuGet package -->
     <IsPackable>false</IsPackable>
   </PropertyGroup>
-
-  <ItemGroup>
-  </ItemGroup>
-
 </Project>
