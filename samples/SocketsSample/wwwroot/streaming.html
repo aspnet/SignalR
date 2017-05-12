@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+</head>
+<body>
+    <h1 id="transportName">Unknown Transport</h1>
+
+    <h2>Controls</h2>
+    <div>
+        <button id="connectButton" type="button">Connect</button>
+        <button id="disconnectButton" type="button" disabled>Disconnect</button>
+    </div>
+
+    <div>
+        <button id="observableButton" name="observable" type="button" disabled>From Observable</button>
+        <button id="channelButton" name="channel" type="button" disabled>From Channel</button>
+        <button id="streamButton" name="stream" type="button" disabled>From Stream</button>
+    </div>
+
+    <h2>Results</h2>
+    <ul id="resultsList"></ul>
+
+    <ul id="messages"></ul>
+    <script src="lib/signalr-client/signalr-client.js"></script>
+    <script src="utils.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            let status = document.getElementById('status');
+            let resultsList = document.getElementById('resultsList');
+            let streamButton = document.getElementById('streamButton');
+            let channelButton = document.getElementById('channelButton');
+            let observableButton = document.getElementById('observableButton');
+
+            let connectButton = document.getElementById('connectButton');
+            let disconnectButton = document.getElementById('disconnectButton');
+
+            let transportType = signalR.TransportType[getParameterByName('transport')] || signalR.TransportType.WebSockets;
+
+            document.getElementById('transportName').innerHTML = signalR.TransportType[transportType];
+
+            let url = `http://${document.location.host}/streaming`
+            let connection = new signalR.HubConnection(url, 'formatType=json&format=text');
+
+            connection.onClosed = function () {
+                status.innerHTML = "disconnected";
+                streamButton.disabled = true;
+                channelButton.disabled = true;
+                observableButton.disabled = true;
+                connectButton.disabled = false;
+                disconnectButton.disabled = true;
+                addLine('resultsList', 'disconnected', 'green');
+            };
+
+            click('disconnectButton', function () {
+                connection.stop();
+            });
+
+            click('connectButton', function () {
+                connection.start(transportType)
+                    .then(function () {
+                        streamButton.disabled = false;
+                        channelButton.disabled = false;
+                        observableButton.disabled = false;
+                        connectButton.disabled = true;
+                        disconnectButton.disabled = false;
+                        addLine('resultsList', 'connected', 'green');
+                    });
+            });
+
+            click('observableButton', function () {
+                run('ObservableCounter')
+            });
+
+            click('channelButton', function () {
+                run('ChannelCounter')
+            });
+
+            click('streamButton', function () {
+                run('StreamCounter')
+            });
+
+            function run(method) {
+                addLine('resultsList', `running ${method} ...`);
+                connection.stream(method, 10, 1000).subscribe({
+                    closed: false,
+                    next: function (item) {
+                        addLine('resultsList', item);
+                    },
+                    error: function (err) {
+                        addLine('resultsList', 'error', 'red');
+                    },
+                    complete: function () {
+                        addLine('resultsList', 'complete', 'green');
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
