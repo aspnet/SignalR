@@ -174,7 +174,7 @@ The body is encoded as follows. The `Content-Type` response header is set to `ap
 B([Length][Type][Body])([Length][Type][Body])... continues until end of the response body ...
 ```
 
-* `[Length]` - A 64-bit integer in Network Byte Order (Big-endian) representing the length of the body in bytes
+* `[Length]` - A 64-bit integer in Little Endian Byte Order representing the length of the body in bytes
 * `[Type]` - An 8-bit integer indicating the type of the message.
     * `0x00` => `Text` - `[Body]` is UTF-8 encoded text data
     * `0x01` => `Binary` - `[Body]` is raw binary data
