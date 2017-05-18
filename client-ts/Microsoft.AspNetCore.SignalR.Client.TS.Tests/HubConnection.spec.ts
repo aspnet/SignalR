@@ -143,7 +143,7 @@ describe("HubConnection", () => {
             fail();
         }
         catch (e) {
-            expect(e.message).toBe("Streaming is not supported.");
+            expect(e.message).toBe("Streaming methods must be invoked using HubConnection.stream");
         }
 
         done();
