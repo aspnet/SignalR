@@ -1,7 +1,11 @@
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 using System;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
 
 namespace Microsoft.AspNetCore.SignalR.Internal
@@ -9,9 +13,14 @@ namespace Microsoft.AspNetCore.SignalR.Internal
     // True-internal because this is a weird and tricky class to use :)
     internal static class AsyncEnumeratorAdapters
     {
+        private static readonly MethodInfo _boxEnumeratorMethod = typeof(AsyncEnumeratorAdapters)
+            .GetRuntimeMethods()
+            .Single(m => m.Name.Equals(nameof(BoxEnumerator)) && m.IsGenericMethod);
+
         private static readonly MethodInfo _fromObservableMethod = typeof(AsyncEnumeratorAdapters)
             .GetRuntimeMethods()
             .Single(m => m.Name.Equals(nameof(FromObservable)) && m.IsGenericMethod);
+
         private static readonly object[] _getAsyncEnumeratorArgs = new object[] { CancellationToken.None };
 
         public static IAsyncEnumerator<object> FromObservable(object observable, Type observableInterface)
@@ -35,10 +44,26 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         public static IAsyncEnumerator<object> FromChannel(object readableChannelOfT, Type payloadType)
         {
-            return (IAsyncEnumerator<object>)readableChannelOfT
+            var enumerator = readableChannelOfT
                 .GetType()
                 .GetRuntimeMethod("GetAsyncEnumerator", new[] { typeof(CancellationToken) })
                 .Invoke(readableChannelOfT, _getAsyncEnumeratorArgs);
+
+            if (payloadType.IsValueType)
+            {
+                return (IAsyncEnumerator<object>)_boxEnumeratorMethod
+                    .MakeGenericMethod(payloadType)
+                    .Invoke(null, new[] { enumerator });
+            }
+            else
+            {
+                return (IAsyncEnumerator<object>)enumerator;
+            }
+        }
+
+        private static IAsyncEnumerator<object> BoxEnumerator<T>(IAsyncEnumerator<T> input) where T : struct
+        {
+            return new BoxingEnumerator<T>(input);
         }
 
         private class ChannelObserver<T> : IObserver<T>
@@ -68,7 +93,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
                 // This will block the thread emitting the object if the channel is bounded and full
                 // I think this is OK, since we want to push the backpressure up. However, we may need
-                // to find a way to force the subscription off to a dedicated thread in order to
+                // to find a way to force the entire subscription off to a dedicated thread in order to
                 // ensure we don't block other tasks
 
                 // Right now however, we use unbounded channels, so all of the above is moot because TryWrite will always succeed
@@ -82,6 +107,19 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                     }
                 }
             }
+        }
+
+        private class BoxingEnumerator<T> : IAsyncEnumerator<object> where T : struct
+        {
+            private IAsyncEnumerator<T> _input;
+
+            public BoxingEnumerator(IAsyncEnumerator<T> input)
+            {
+                _input = input;
+            }
+
+            public object Current => _input.Current;
+            public Task<bool> MoveNextAsync() => _input.MoveNextAsync();
         }
     }
 }

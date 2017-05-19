@@ -112,7 +112,7 @@ describe("HubConnection", () => {
         done();
     });
 
-    it("rejects streaming responses", async done => {
+    it("rejects streaming responses made using 'invoke'", async done => {
         let connection: IConnection = {
             start(transportType: TransportType): Promise<void> {
                 return Promise.resolve();
