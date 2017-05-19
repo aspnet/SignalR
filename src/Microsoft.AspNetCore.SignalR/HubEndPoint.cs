@@ -280,10 +280,12 @@ namespace Microsoft.AspNetCore.SignalR
 
                     if (hasResult && IsStreamed(methodExecutor, result, out var channel))
                     {
+                        _logger.LogTrace("[{connectionId}/{invocationId}] Streaming result of type {resultType}", connection.ConnectionId, invocationMessage.InvocationId, result.GetType().FullName);
                         await StreamResultsAsync(invocationMessage.InvocationId, connection, protocol, channel);
                     }
                     else
                     {
+                        _logger.LogTrace("[{connectionId}/{invocationId}] Sending result of type {resultType}", connection.ConnectionId, invocationMessage.InvocationId, result.GetType().FullName);
                         await SendMessageAsync(connection, protocol, CompletionMessage.WithResult(invocationMessage.InvocationId, result));
                     }
                 }
@@ -347,14 +349,6 @@ namespace Microsoft.AspNetCore.SignalR
 
         private bool IsStreamed(ObjectMethodExecutor methodExecutor, object result, out IAsyncEnumerator<object> enumerator)
         {
-            // TODO: Cache attributes the OME?
-            var streamingAttribute = methodExecutor.MethodInfo.ReturnParameter.GetCustomAttribute<StreamingAttribute>();
-            if (streamingAttribute == null)
-            {
-                enumerator = null;
-                return false;
-            }
-
             var observableInterface = result.GetType().GetInterfaces().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IObservable<>));
             if (observableInterface != null)
             {
@@ -368,8 +362,9 @@ namespace Microsoft.AspNetCore.SignalR
             }
             else
             {
-                // This type cannot be streamed
-                throw new NotSupportedException($"Cannot stream results of type: {result.GetType().FullName}");
+                // Not streamed
+                enumerator = null;
+                return false;
             }
         }
 

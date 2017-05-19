@@ -3,134 +3,50 @@ import { HubConnection } from "../Microsoft.AspNetCore.SignalR.Client.TS/HubConn
 import { DataReceived, ConnectionClosed } from "../Microsoft.AspNetCore.SignalR.Client.TS/Common"
 import { TransportType, ITransport } from "../Microsoft.AspNetCore.SignalR.Client.TS/Transports"
 
+import { asyncit as it, captureException } from './JasmineUtils';
+
 describe("HubConnection", () => {
-    it("completes pending invocations when stopped", async done => {
-        let connection: IConnection = {
-            start(transportType: TransportType | ITransport): Promise<void> {
-                return Promise.resolve();
-            },
-
-            send(data: any): Promise<void> {
-                return Promise.resolve();
-            },
-
-            stop(): void {
-                if (this.onClosed) {
-                    this.onClosed();
-                }
-            },
-
-            onDataReceived: null,
-            onClosed: null
-        };
+    it("completes pending invocations when stopped", async () => {
+        let connection = new TestConnection();
 
         let hubConnection = new HubConnection(connection);
         var invokePromise = hubConnection.invoke("testMethod");
         hubConnection.stop();
 
-        try {
-            await invokePromise;
-            fail();
-        }
-        catch (e) {
-            expect(e.message).toBe("Invocation cancelled due to connection being closed.");
-        }
-        done();
+        let ex = await captureException(async () => await invokePromise);
+        expect(ex.message).toBe("Invocation cancelled due to connection being closed.");
     });
 
-    it("completes pending invocations when connection is lost", async done => {
-        let connection: IConnection = {
-            start(transportType: TransportType | ITransport): Promise<void> {
-                return Promise.resolve();
-            },
-
-            send(data: any): Promise<void> {
-                return Promise.resolve();
-            },
-
-            stop(): void {
-                if (this.onClosed) {
-                    this.onClosed();
-                }
-            },
-
-            onDataReceived: null,
-            onClosed: null
-        };
+    it("completes pending invocations when connection is lost", async () => {
+        let connection = new TestConnection();
 
         let hubConnection = new HubConnection(connection);
         var invokePromise = hubConnection.invoke("testMethod");
         // Typically this would be called by the transport
         connection.onClosed(new Error("Connection lost"));
 
-        try {
-            await invokePromise;
-            fail();
-        }
-        catch (e) {
-            expect(e.message).toBe("Connection lost");
-        }
-        done();
+        let ex = await captureException(async () => await invokePromise);
+        expect(ex.message).toBe("Connection lost");
     });
 
-    it("sends invocations as nonblocking", async done => {
-        let dataSent: string;
-        let connection: IConnection = {
-            start(transportType: TransportType): Promise<void> {
-                return Promise.resolve();
-            },
-
-            send(data: any): Promise<void> {
-                dataSent = data;
-                return Promise.resolve();
-            },
-
-            stop(): void {
-                if (this.onClosed) {
-                    this.onClosed();
-                }
-            },
-
-            onDataReceived: null,
-            onClosed: null
-        };
+    it("sends invocations as nonblocking", async () => {
+        let connection = new TestConnection();
 
         let hubConnection = new HubConnection(connection);
         let invokePromise = hubConnection.invoke("testMethod");
 
-        expect(JSON.parse(dataSent).nonblocking).toBe(false);
+        expect(connection.sentData.length).toBe(1);
+        expect(JSON.parse(connection.sentData[0]).nonblocking).toBe(false);
 
         // will clean pending promises
         connection.onClosed();
 
-        try {
-            await invokePromise;
-            fail(); // exception is expected because the call has not completed
-        }
-        catch (e) {
-        }
-        done();
+        let ex = await captureException(async () => await invokePromise);
+        // Don't care about the exception
     });
 
-    it("rejects streaming responses made using 'invoke'", async done => {
-        let connection: IConnection = {
-            start(transportType: TransportType): Promise<void> {
-                return Promise.resolve();
-            },
-
-            send(data: any): Promise<void> {
-                return Promise.resolve();
-            },
-
-            stop(): void {
-                if (this.onClosed) {
-                    this.onClosed();
-                }
-            },
-
-            onDataReceived: null,
-            onClosed: null
-        };
+    it("rejects streaming responses made using 'invoke'", async () => {
+        let connection = new TestConnection();
 
         let hubConnection = new HubConnection(connection);
         let invokePromise = hubConnection.invoke("testMethod");
@@ -138,14 +54,33 @@ describe("HubConnection", () => {
         connection.onDataReceived("{ \"type\": 2, \"invocationId\": \"0\", \"result\": null }");
         connection.onClosed();
 
-        try {
-            await invokePromise;
-            fail();
-        }
-        catch (e) {
-            expect(e.message).toBe("Streaming methods must be invoked using HubConnection.stream");
-        }
-
-        done();
+        let ex = await captureException(async () => await invokePromise);
+        expect(ex.message).toBe("Streaming methods must be invoked using HubConnection.stream");
     });
 });
+
+class TestConnection implements IConnection {
+    start(transportType: TransportType | ITransport): Promise<void> {
+        return Promise.resolve();
+    };
+
+    send(data: any): Promise<void> {
+        if (this.sentData) {
+            this.sentData.push(data);
+        }
+        else {
+            this.sentData = [data];
+        }
+        return Promise.resolve();
+    };
+
+    stop(): void {
+        if (this.onClosed) {
+            this.onClosed();
+        }
+    };
+
+    onDataReceived: DataReceived;
+    onClosed: ConnectionClosed;
+    sentData: [any];
+};

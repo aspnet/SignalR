@@ -9,13 +9,11 @@ namespace SocketsSample.Hubs
 {
     public class Streaming : Hub
     {
-        [return: Streaming]
         public IObservable<int> ObservableCounter(int count, int delay)
         {
             return new CounterObservable(count, delay);
         }
 
-        [return: Streaming]
         public ReadableChannel<int> ChannelCounter(int count, int delay)
         {
             var channel = Channel.CreateUnbounded<int>();
