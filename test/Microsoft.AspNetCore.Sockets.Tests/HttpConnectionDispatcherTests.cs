@@ -315,7 +315,8 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
 
-            var context = MakeRequest<ImmediatelyCompleteEndPoint>("/", state, isWebSocketRequest: true);
+            var context = MakeRequest<ImmediatelyCompleteEndPoint>("/", state);
+            SetTransport(context, TransportType.WebSockets);
 
             var task = dispatcher.ExecuteAsync<ImmediatelyCompleteEndPoint>("", context);
 
@@ -323,17 +324,17 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         }
 
         [Theory]
-        [InlineData(TransportType.WebSockets, true)]
-        [InlineData(TransportType.ServerSentEvents, false)]
-        public async Task RequestToActiveConnectionId409ForStreamingTransports(TransportType transportType, bool isWebSocketRequest)
+        [InlineData(TransportType.WebSockets)]
+        [InlineData(TransportType.ServerSentEvents)]
+        public async Task RequestToActiveConnectionId409ForStreamingTransports(TransportType transportType)
         {
             var manager = CreateConnectionManager();
             var state = manager.CreateConnection();
 
             var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
 
-            var context1 = MakeRequest<TestEndPoint>("/", state, isWebSocketRequest: isWebSocketRequest);
-            var context2 = MakeRequest<TestEndPoint>("/", state, isWebSocketRequest: isWebSocketRequest);
+            var context1 = MakeRequest<TestEndPoint>("/", state);
+            var context2 = MakeRequest<TestEndPoint>("/", state);
 
             SetTransport(context1, transportType);
             SetTransport(context2, transportType);
@@ -346,9 +347,9 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             var webSocketTask = Task.CompletedTask;
 
-            if (isWebSocketRequest)
+            var ws = (TestWebSocketConnectionFeature)context1.Features.Get<IHttpWebSocketConnectionFeature>();
+            if (ws != null)
             {
-                var ws = (TestWebSocketConnectionFeature)context1.Features.Get<IHttpWebSocketConnectionFeature>();
                 webSocketTask = ws.Client.ExecuteAsync(frame => Task.CompletedTask);
                 await ws.Client.CloseAsync(new WebSocketCloseResult(WebSocketCloseStatus.NormalClosure), CancellationToken.None);
             }
@@ -882,7 +883,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             return messages;
         }
 
-        private static DefaultHttpContext MakeRequest<TEndPoint>(string path, ConnectionState state, string format = null, bool isWebSocketRequest = false) where TEndPoint : EndPoint
+        private static DefaultHttpContext MakeRequest<TEndPoint>(string path, ConnectionState state, string format = null) where TEndPoint : EndPoint
         {
             var context = new DefaultHttpContext();
             var services = new ServiceCollection();
@@ -905,12 +906,6 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var qs = new QueryCollection(values);
             context.Request.Query = qs;
             context.Response.Body = new MemoryStream();
-
-            if (isWebSocketRequest)
-            {
-                SetTransport(context, TransportType.WebSockets);
-            }
-
             return context;
         }
 
