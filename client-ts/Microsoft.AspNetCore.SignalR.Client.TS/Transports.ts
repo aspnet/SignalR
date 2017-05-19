@@ -22,7 +22,7 @@ export class WebSocketTransport implements ITransport {
     connect(url: string, queryString: string = ""): Promise<void> {
         return new Promise<void>((resolve, reject) => {
             url = url.replace(/^http/, "ws");
-            let connectUrl = url + "/ws?" + queryString;
+            let connectUrl = url + (queryString == "" ? "" : "?" + queryString);
 
             let webSocket = new WebSocket(connectUrl);
 
@@ -94,10 +94,10 @@ export class ServerSentEventsTransport implements ITransport {
 
         this.queryString = queryString;
         this.url = url;
-        let tmp = `${this.url}/sse?${this.queryString}`;
 
         return new Promise<void>((resolve, reject) => {
-            let eventSource = new EventSource(`${this.url}/sse?${this.queryString}`);
+            let connectUrl = url + (queryString == "" ? "" : "?" + queryString);
+            let eventSource = new EventSource(connectUrl);
 
             try {
                 eventSource.onmessage = (e: MessageEvent) => {
@@ -139,7 +139,8 @@ export class ServerSentEventsTransport implements ITransport {
     }
 
     async send(data: any): Promise<void> {
-        return send(this.httpClient, `${this.url}/send?${this.queryString}`, data);
+        let sendUrl = this.url + (this.queryString == "" ? "" : "?" + this.queryString);
+        return send(this.httpClient, sendUrl, data);
     }
 
     stop(): void {
@@ -168,7 +169,8 @@ export class LongPollingTransport implements ITransport {
         this.url = url;
         this.queryString = queryString;
         this.shouldPoll = true;
-        this.poll(url + "/poll?" + this.queryString)
+        let connectUrl = url + (queryString == "" ? "" : "?" + queryString);
+        this.poll(connectUrl);
         return Promise.resolve();
     }
 
@@ -231,7 +233,8 @@ export class LongPollingTransport implements ITransport {
     }
 
     async send(data: any): Promise<void> {
-        return send(this.httpClient, `${this.url}/send?${this.queryString}`, data);
+        let sendUrl = this.url + (this.queryString == "" ? "" : "?" + this.queryString);
+        return send(this.httpClient, sendUrl, data);
     }
 
     stop(): void {
