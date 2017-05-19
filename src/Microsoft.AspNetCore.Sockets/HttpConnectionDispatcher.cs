@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Sockets.Internal;
 using Microsoft.AspNetCore.Sockets.Internal.Formatters;
 using Microsoft.AspNetCore.Sockets.Transports;
+using Microsoft.AspNetCore.WebSockets.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -44,10 +45,12 @@ namespace Microsoft.AspNetCore.Sockets
 
             if (context.Request.Path.StartsWithSegments(path + "/negotiate"))
             {
+                // GET /{path}/negotiate
                 await ProcessNegotiate(context, options);
             }
-            else if (context.Request.Path.StartsWithSegments(path + "/send"))
+            else if (string.Equals(context.Request.Method, HttpMethods.Post))
             {
+                // POST /{path}
                 await ProcessSend(context);
             }
             else
@@ -63,7 +66,10 @@ namespace Microsoft.AspNetCore.Sockets
             var supportedTransports = options.Transports;
 
             // Server sent events transport
-            if (context.Request.Path.StartsWithSegments(path + "/sse"))
+            // GET /{path}
+            // Accept: text/event-stream
+            var headers = context.Request.GetTypedHeaders();
+            if (headers.Accept?.Contains(new Net.Http.Headers.MediaTypeHeaderValue("text/event-stream")) == true)
             {
                 // Connection must already exist
                 var state = await GetConnectionAsync(context);
@@ -84,7 +90,7 @@ namespace Microsoft.AspNetCore.Sockets
 
                 await DoPersistentConnection(endpoint, sse, context, state);
             }
-            else if (context.Request.Path.StartsWithSegments(path + "/ws"))
+            else if (context.Features.Get<IHttpWebSocketConnectionFeature>()?.IsWebSocketRequest == true)
             {
                 // Connection can be established lazily
                 var state = await GetOrCreateConnectionAsync(context);
@@ -104,8 +110,10 @@ namespace Microsoft.AspNetCore.Sockets
 
                 await DoPersistentConnection(endpoint, ws, context, state);
             }
-            else if (context.Request.Path.StartsWithSegments(path + "/poll"))
+            else if (string.Equals(context.Request.Method, HttpMethods.Get))
             {
+                // GET /{path} maps to long polling
+
                 // Connection must already exist
                 var state = await GetConnectionAsync(context);
                 if (state == null)
@@ -352,7 +360,7 @@ namespace Microsoft.AspNetCore.Sockets
             var messages = ParseSendBatch(ref reader, messageFormat);
 
             // REVIEW: Do we want to return a specific status code here if the connection has ended?
-            _logger.LogDebug("Received batch of {count} message(s) in '/send'", messages.Count);
+            _logger.LogDebug("Received batch of {count} message(s)", messages.Count);
             foreach (var message in messages)
             {
                 while (!state.Application.Output.TryWrite(message))

@@ -6,7 +6,6 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Sockets.Internal.Formatters;
@@ -45,9 +44,9 @@ namespace Microsoft.AspNetCore.Sockets.Client
             _application = application;
 
             // Start sending and polling (ask for binary if the server supports it)
-            var pollUrl = Utils.AppendQueryString(Utils.AppendPath(url, "poll"), "supportsBinary=true");
+            var pollUrl = Utils.AppendQueryString(url, "supportsBinary=true");
             _poller = Poll(pollUrl, _transportCts.Token);
-            _sender = SendUtils.SendMessages(Utils.AppendPath(url, "send"), _application, _httpClient, _transportCts, _logger);
+            _sender = SendUtils.SendMessages(url, _application, _httpClient, _transportCts, _logger);
 
             Running = Task.WhenAll(_sender, _poller).ContinueWith(t =>
             {
