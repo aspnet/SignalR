@@ -137,7 +137,7 @@ namespace Microsoft.AspNetCore.Client.Tests
                 .Returns<HttpRequestMessage, CancellationToken>(async (request, cancellationToken) =>
                 {
                     await Task.Yield();
-                    var statusCode = request.RequestUri.AbsolutePath.EndsWith("send")
+                    var statusCode = request.Method == HttpMethod.Post
                         ? HttpStatusCode.InternalServerError
                         : HttpStatusCode.OK;
                     return ResponseUtils.CreateResponse(statusCode);
@@ -340,7 +340,7 @@ namespace Microsoft.AspNetCore.Client.Tests
                 .Returns<HttpRequestMessage, CancellationToken>(async (request, cancellationToken) =>
                 {
                     await Task.Yield();
-                    if (request.RequestUri.LocalPath.EndsWith("send"))
+                    if (request.Method == HttpMethod.Post)
                     {
                         // Build a new request object, but convert the entire payload to string
                         sentRequests.Add(await request.Content.ReadAsByteArrayAsync());
