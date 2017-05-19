@@ -26,9 +26,6 @@ namespace SocketsSample.EndPoints
                     Message message;
                     if (connection.Transport.Input.TryRead(out message))
                     {
-                        // We can avoid the copy here but we'll deal with that later
-                        var text = Encoding.UTF8.GetString(message.Payload);
-                        text = $"{connection.ConnectionId}: {text}";
                         await Broadcast(message.Payload, message.Type, message.EndOfMessage);
                     }
                 }
