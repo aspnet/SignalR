@@ -40,6 +40,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             context.RequestServices = services.BuildServiceProvider();
             var ms = new MemoryStream();
             context.Request.Path = "/negotiate";
+            context.Request.Method = "GET";
             context.Response.Body = ms;
             await dispatcher.ExecuteAsync<TestEndPoint>("", context);
 
@@ -51,11 +52,10 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         }
 
         [Theory]
-        [InlineData("/send")]
-        [InlineData("/sse")]
-        [InlineData("/poll")]
-        [InlineData("/ws")]
-        public async Task EndpointsThatAcceptConnectionId404WhenUnknownConnectionIdProvided(string path)
+        [InlineData(TransportType.WebSockets)]
+        [InlineData(TransportType.ServerSentEvents)]
+        [InlineData(TransportType.LongPolling)]
+        public async Task EndpointsThatAcceptConnectionId404WhenUnknownConnectionIdProvided(TransportType transportType)
         {
             var manager = CreateConnectionManager();
             var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
@@ -69,7 +69,40 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 services.AddEndPoint<TestEndPoint>();
                 services.AddOptions();
                 context.RequestServices = services.BuildServiceProvider();
-                context.Request.Path = path;
+                context.Request.Path = "/";
+                context.Request.Method = "GET";
+                var values = new Dictionary<string, StringValues>();
+                values["id"] = "unknown";
+                var qs = new QueryCollection(values);
+                context.Request.Query = qs;
+                SetTransport(context, transportType);
+
+                await dispatcher.ExecuteAsync<TestEndPoint>("", context);
+
+                Assert.Equal(StatusCodes.Status404NotFound, context.Response.StatusCode);
+                await strm.FlushAsync();
+                Assert.Equal("No Connection with that ID", Encoding.UTF8.GetString(strm.ToArray()));
+            }
+        }
+
+
+        [Fact]
+        public async Task EndpointsThatAcceptConnectionId404WhenUnknownConnectionIdProvidedForPost()
+        {
+            var manager = CreateConnectionManager();
+            var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
+
+            using (var strm = new MemoryStream())
+            {
+                var context = new DefaultHttpContext();
+                context.Response.Body = strm;
+
+                var services = new ServiceCollection();
+                services.AddEndPoint<TestEndPoint>();
+                services.AddOptions();
+                context.RequestServices = services.BuildServiceProvider();
+                context.Request.Path = "/";
+                context.Request.Method = "POST";
                 var values = new Dictionary<string, StringValues>();
                 values["id"] = "unknown";
                 var qs = new QueryCollection(values);
@@ -84,10 +117,9 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         }
 
         [Theory]
-        [InlineData("/send")]
-        [InlineData("/sse")]
-        [InlineData("/poll")]
-        public async Task EndpointsThatRequireConnectionId400WhenNoConnectionIdProvided(string path)
+        [InlineData(TransportType.ServerSentEvents)]
+        [InlineData(TransportType.LongPolling)]
+        public async Task EndpointsThatRequireConnectionId400WhenNoConnectionIdProvided(TransportType transportType)
         {
             var manager = CreateConnectionManager();
             var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
@@ -99,7 +131,34 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 services.AddOptions();
                 services.AddEndPoint<TestEndPoint>();
                 context.RequestServices = services.BuildServiceProvider();
-                context.Request.Path = path;
+                context.Request.Path = "/";
+                context.Request.Method = "GET";
+
+                SetTransport(context, transportType);
+
+                await dispatcher.ExecuteAsync<TestEndPoint>("", context);
+
+                Assert.Equal(StatusCodes.Status400BadRequest, context.Response.StatusCode);
+                await strm.FlushAsync();
+                Assert.Equal("Connection ID required", Encoding.UTF8.GetString(strm.ToArray()));
+            }
+        }
+
+        [Fact]
+        public async Task EndpointsThatRequireConnectionId400WhenNoConnectionIdProvidedForPost()
+        {
+            var manager = CreateConnectionManager();
+            var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
+            using (var strm = new MemoryStream())
+            {
+                var context = new DefaultHttpContext();
+                context.Response.Body = strm;
+                var services = new ServiceCollection();
+                services.AddOptions();
+                services.AddEndPoint<TestEndPoint>();
+                context.RequestServices = services.BuildServiceProvider();
+                context.Request.Path = "/";
+                context.Request.Method = "POST";
 
                 await dispatcher.ExecuteAsync<TestEndPoint>("", context);
 
@@ -122,7 +181,8 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 services.AddOptions();
                 services.AddEndPoint<TestEndPoint>();
                 context.RequestServices = services.BuildServiceProvider();
-                context.Request.Path = "/send";
+                context.Request.Path = "/";
+                context.Request.Method = "POST";
                 context.Request.QueryString = new QueryString($"?id={connectionState.Connection.ConnectionId}");
                 context.Request.ContentType = "text/plain";
                 context.Response.Body = strm;
@@ -177,7 +237,8 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
 
-            var context = MakeRequest<ImmediatelyCompleteEndPoint>("/sse", state);
+            var context = MakeRequest<ImmediatelyCompleteEndPoint>("/", state);
+            SetTransport(context, TransportType.ServerSentEvents);
 
             await dispatcher.ExecuteAsync<ImmediatelyCompleteEndPoint>("", context);
 
@@ -196,7 +257,8 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
 
-            var context = MakeRequest<SynchronusExceptionEndPoint>("/sse", state);
+            var context = MakeRequest<SynchronusExceptionEndPoint>("/", state);
+            SetTransport(context, TransportType.ServerSentEvents);
 
             await dispatcher.ExecuteAsync<SynchronusExceptionEndPoint>("", context);
 
@@ -215,7 +277,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
 
-            var context = MakeRequest<SynchronusExceptionEndPoint>("/poll", state);
+            var context = MakeRequest<SynchronusExceptionEndPoint>("/", state);
 
             await dispatcher.ExecuteAsync<SynchronusExceptionEndPoint>("", context);
 
@@ -234,7 +296,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
 
-            var context = MakeRequest<ImmediatelyCompleteEndPoint>("/poll", state);
+            var context = MakeRequest<ImmediatelyCompleteEndPoint>("/", state);
 
             await dispatcher.ExecuteAsync<ImmediatelyCompleteEndPoint>("", context);
 
@@ -253,7 +315,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
 
-            var context = MakeRequest<ImmediatelyCompleteEndPoint>("/ws", state, isWebSocketRequest: true);
+            var context = MakeRequest<ImmediatelyCompleteEndPoint>("/", state, isWebSocketRequest: true);
 
             var task = dispatcher.ExecuteAsync<ImmediatelyCompleteEndPoint>("", context);
 
@@ -261,17 +323,20 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         }
 
         [Theory]
-        [InlineData("/ws", true)]
-        [InlineData("/sse", false)]
-        public async Task RequestToActiveConnectionId409ForStreamingTransports(string path, bool isWebSocketRequest)
+        [InlineData(TransportType.WebSockets, true)]
+        [InlineData(TransportType.ServerSentEvents, false)]
+        public async Task RequestToActiveConnectionId409ForStreamingTransports(TransportType transportType, bool isWebSocketRequest)
         {
             var manager = CreateConnectionManager();
             var state = manager.CreateConnection();
 
             var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
 
-            var context1 = MakeRequest<TestEndPoint>(path, state, isWebSocketRequest: isWebSocketRequest);
-            var context2 = MakeRequest<TestEndPoint>(path, state, isWebSocketRequest: isWebSocketRequest);
+            var context1 = MakeRequest<TestEndPoint>("/", state, isWebSocketRequest: isWebSocketRequest);
+            var context2 = MakeRequest<TestEndPoint>("/", state, isWebSocketRequest: isWebSocketRequest);
+
+            SetTransport(context1, transportType);
+            SetTransport(context2, transportType);
 
             var request1 = dispatcher.ExecuteAsync<TestEndPoint>("", context1);
 
@@ -303,8 +368,8 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
 
-            var context1 = MakeRequest<TestEndPoint>("/poll", state);
-            var context2 = MakeRequest<TestEndPoint>("/poll", state);
+            var context1 = MakeRequest<TestEndPoint>("/", state);
+            var context2 = MakeRequest<TestEndPoint>("/", state);
 
             var request1 = dispatcher.ExecuteAsync<TestEndPoint>("", context1);
             var request2 = dispatcher.ExecuteAsync<TestEndPoint>("", context2);
@@ -322,9 +387,9 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         }
 
         [Theory]
-        [InlineData("/sse")]
-        [InlineData("/poll")]
-        public async Task RequestToDisposedConnectionIdReturns404(string path)
+        [InlineData(TransportType.ServerSentEvents)]
+        [InlineData(TransportType.LongPolling)]
+        public async Task RequestToDisposedConnectionIdReturns404(TransportType transportType)
         {
             var manager = CreateConnectionManager();
             var state = manager.CreateConnection();
@@ -332,7 +397,8 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
 
-            var context = MakeRequest<TestEndPoint>(path, state);
+            var context = MakeRequest<TestEndPoint>("/", state);
+            SetTransport(context, transportType);
 
             await dispatcher.ExecuteAsync<TestEndPoint>("", context);
 
@@ -347,7 +413,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
 
-            var context = MakeRequest<TestEndPoint>("/poll", state);
+            var context = MakeRequest<TestEndPoint>("/", state);
 
             var task = dispatcher.ExecuteAsync<TestEndPoint>("", context);
 
@@ -372,7 +438,8 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
 
-            var context = MakeRequest<BlockingEndPoint>("/sse", state);
+            var context = MakeRequest<BlockingEndPoint>("/", state);
+            SetTransport(context, TransportType.ServerSentEvents);
 
             var task = dispatcher.ExecuteAsync<BlockingEndPoint>("", context);
 
@@ -397,7 +464,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
 
-            var context = MakeRequest<BlockingEndPoint>("/poll", state);
+            var context = MakeRequest<BlockingEndPoint>("/", state);
 
             var task = dispatcher.ExecuteAsync<BlockingEndPoint>("", context);
 
@@ -422,9 +489,9 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
 
-            var context1 = MakeRequest<BlockingEndPoint>("/poll", state);
+            var context1 = MakeRequest<BlockingEndPoint>("/", state);
             var task1 = dispatcher.ExecuteAsync<BlockingEndPoint>("", context1);
-            var context2 = MakeRequest<BlockingEndPoint>("/poll", state);
+            var context2 = MakeRequest<BlockingEndPoint>("/", state);
             var task2 = dispatcher.ExecuteAsync<BlockingEndPoint>("", context2);
 
             // Task 1 should finish when request 2 arrives
@@ -498,7 +565,8 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             services.AddLogging();
 
             context.RequestServices = services.BuildServiceProvider();
-            context.Request.Path = "/poll";
+            context.Request.Path = "/";
+            context.Request.Method = "GET";
             var values = new Dictionary<string, StringValues>();
             values["id"] = state.Connection.ConnectionId;
             var qs = new QueryCollection(values);
@@ -536,7 +604,8 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             services.AddLogging();
 
             context.RequestServices = services.BuildServiceProvider();
-            context.Request.Path = "/poll";
+            context.Request.Path = "/";
+            context.Request.Method = "GET";
             var values = new Dictionary<string, StringValues>();
             values["id"] = state.Connection.ConnectionId;
             var qs = new QueryCollection(values);
@@ -580,7 +649,8 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             services.AddLogging();
 
             context.RequestServices = services.BuildServiceProvider();
-            context.Request.Path = "/poll";
+            context.Request.Path = "/";
+            context.Request.Method = "GET";
             var values = new Dictionary<string, StringValues>();
             values["id"] = state.Connection.ConnectionId;
             var qs = new QueryCollection(values);
@@ -633,7 +703,8 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             services.AddLogging();
 
             context.RequestServices = services.BuildServiceProvider();
-            context.Request.Path = "/poll";
+            context.Request.Path = "/";
+            context.Request.Method = "GET";
             var values = new Dictionary<string, StringValues>();
             values["id"] = state.Connection.ConnectionId;
             var qs = new QueryCollection(values);
@@ -679,7 +750,8 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             services.AddLogging();
 
             context.RequestServices = services.BuildServiceProvider();
-            context.Request.Path = "/poll";
+            context.Request.Path = "/";
+            context.Request.Method = "GET";
             var values = new Dictionary<string, StringValues>();
             values["id"] = state.Connection.ConnectionId;
             var qs = new QueryCollection(values);
@@ -747,22 +819,6 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
         private static async Task CheckTransportSupported(TransportType supportedTransports, TransportType transportType, int status)
         {
-            var path = "";
-            switch (transportType)
-            {
-                case TransportType.WebSockets:
-                    path = "/ws";
-                    break;
-                case TransportType.ServerSentEvents:
-                    path = "/sse";
-                    break;
-                case TransportType.LongPolling:
-                    path = "/poll";
-                    break;
-                default:
-                    break;
-            }
-
             var manager = CreateConnectionManager();
             var state = manager.CreateConnection();
             var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
@@ -777,8 +833,10 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                     options.Transports = supportedTransports;
                 });
 
+                SetTransport(context, transportType);
                 context.RequestServices = services.BuildServiceProvider();
-                context.Request.Path = path;
+                context.Request.Path = "/";
+                context.Request.Method = "GET";
                 var values = new Dictionary<string, StringValues>();
                 values["id"] = state.Connection.ConnectionId;
                 var qs = new QueryCollection(values);
@@ -802,7 +860,8 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
 
-            var context = MakeRequest<TestEndPoint>("/send", state, format);
+            var context = MakeRequest<TestEndPoint>("/", state, format);
+            context.Request.Method = "POST";
             context.Request.ContentType = contentType;
             var endPoint = context.RequestServices.GetRequiredService<TestEndPoint>();
 
@@ -836,6 +895,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             services.AddOptions();
             context.RequestServices = services.BuildServiceProvider();
             context.Request.Path = path;
+            context.Request.Method = "GET";
             var values = new Dictionary<string, StringValues>();
             values["id"] = state.Connection.ConnectionId;
             if (format != null)
@@ -848,11 +908,25 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             if (isWebSocketRequest)
             {
-                // Add Test WebSocket feature
-                context.Features.Set<IHttpWebSocketConnectionFeature>(new TestWebSocketConnectionFeature());
+                SetTransport(context, TransportType.WebSockets);
             }
 
             return context;
+        }
+
+        private static void SetTransport(HttpContext context, TransportType transportType)
+        {
+            switch (transportType)
+            {
+                case TransportType.WebSockets:
+                    context.Features.Set<IHttpWebSocketConnectionFeature>(new TestWebSocketConnectionFeature());
+                    break;
+                case TransportType.ServerSentEvents:
+                    context.Request.Headers["Accept"] = "text/event-stream";
+                    break;
+                default:
+                    break;
+            }
         }
 
         private static ConnectionManager CreateConnectionManager()
