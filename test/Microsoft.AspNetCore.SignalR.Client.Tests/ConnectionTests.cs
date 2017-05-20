@@ -298,8 +298,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 .Returns<HttpRequestMessage, CancellationToken>(async (request, cancellationToken) =>
                 {
                     await Task.Yield();
-                    if (!request.RequestUri.AbsolutePath.EndsWith("/negotiate") &&
-                        request.Method == HttpMethod.Get)
+                    if (request.Method == HttpMethod.Get)
                     {
                         return new HttpResponseMessage(HttpStatusCode.InternalServerError) { Content = new StringContent(string.Empty) };
                     }
@@ -526,8 +525,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                     await Task.Yield();
 
                     var content = string.Empty;
-                    if (!request.RequestUri.AbsolutePath.EndsWith("/negotiate") &&
-                        request.Method == HttpMethod.Get)
+                    if (request.Method == HttpMethod.Get)
                     {
                         content = "T2:T:42;";
                     }
@@ -589,8 +587,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
 
                     var content = string.Empty;
 
-                    if (!request.RequestUri.AbsolutePath.EndsWith("/negotiate") &&
-                        request.Method == HttpMethod.Get)
+                    if (request.Method == HttpMethod.Get)
                     {
                         content = "T2:T:42;";
                     }
@@ -636,8 +633,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 .Returns<HttpRequestMessage, CancellationToken>(async (request, cancellationToken) =>
                 {
                     await Task.Yield();
-                    if (!request.RequestUri.AbsolutePath.EndsWith("/negotiate") &&
-                        request.Method == HttpMethod.Get)
+                    if (request.Method == HttpMethod.Get)
                     {
                         return new HttpResponseMessage(HttpStatusCode.InternalServerError) { Content = new StringContent(string.Empty) };
                     }

@@ -39,10 +39,10 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             services.AddOptions();
             context.RequestServices = services.BuildServiceProvider();
             var ms = new MemoryStream();
-            context.Request.Path = "/negotiate";
-            context.Request.Method = "GET";
+            context.Request.Path = "/foo";
+            context.Request.Method = "OPTIONS";
             context.Response.Body = ms;
-            await dispatcher.ExecuteAsync<TestEndPoint>("", context);
+            await dispatcher.ExecuteAsync<TestEndPoint>("/foo", context);
 
             var id = Encoding.UTF8.GetString(ms.ToArray());
 

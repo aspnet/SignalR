@@ -43,28 +43,33 @@ namespace Microsoft.AspNetCore.Sockets
                 return;
             }
 
-            if (context.Request.Path.StartsWithSegments(path + "/negotiate", StringComparison.OrdinalIgnoreCase))
+            if (context.Request.Path.Equals(path, StringComparison.OrdinalIgnoreCase))
             {
-                // GET /{path}/negotiate
-                await ProcessNegotiate(context, options);
-            }
-            else if (context.Request.Path.Equals(path, StringComparison.OrdinalIgnoreCase))
-            {
+                if (HttpMethods.IsOptions(context.Request.Method))
+                {
+                    // OPTIONS /{path}
+                    await ProcessNegotiate(context, options);
+                }
                 if (HttpMethods.IsPost(context.Request.Method))
                 {
                     // POST /{path}
                     await ProcessSend(context);
                 }
-                else
+                else if (HttpMethods.IsGet(context.Request.Method))
                 {
+                    // GET /{path}
+
                     // Get the end point mapped to this http connection
                     var endpoint = (EndPoint)context.RequestServices.GetRequiredService<TEndPoint>();
                     await ExecuteEndpointAsync(path, context, endpoint, options);
                 }
+                else
+                {
+                    context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
+                }
             }
             else
             {
-                // REVIEW: Should we fall through or just fail with a 400?
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
             }
         }
@@ -118,7 +123,7 @@ namespace Microsoft.AspNetCore.Sockets
 
                 await DoPersistentConnection(endpoint, ws, context, state);
             }
-            else if (HttpMethods.IsGet(context.Request.Method))
+            else
             {
                 // GET /{path} maps to long polling
 
@@ -318,6 +323,11 @@ namespace Microsoft.AspNetCore.Sockets
 
         private Task ProcessNegotiate<TEndPoint>(HttpContext context, EndPointOptions<TEndPoint> options) where TEndPoint : EndPoint
         {
+            // Set the allowed headers for this resource
+            context.Response.Headers.AppendCommaSeparatedValues("Allow", "GET", "POST", "OPTIONS");
+
+            context.Response.ContentType = "text/plain";
+
             // Establish the connection
             var state = CreateConnection(context);
 
