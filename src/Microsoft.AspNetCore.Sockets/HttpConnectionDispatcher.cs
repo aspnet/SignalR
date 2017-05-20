@@ -43,21 +43,29 @@ namespace Microsoft.AspNetCore.Sockets
                 return;
             }
 
-            if (context.Request.Path.StartsWithSegments(path + "/negotiate"))
+            if (context.Request.Path.StartsWithSegments(path + "/negotiate", StringComparison.OrdinalIgnoreCase))
             {
                 // GET /{path}/negotiate
                 await ProcessNegotiate(context, options);
             }
-            else if (string.Equals(context.Request.Method, HttpMethods.Post))
+            else if (context.Request.Path.Equals(path, StringComparison.OrdinalIgnoreCase))
             {
-                // POST /{path}
-                await ProcessSend(context);
+                if (HttpMethods.IsPost(context.Request.Method))
+                {
+                    // POST /{path}
+                    await ProcessSend(context);
+                }
+                else
+                {
+                    // Get the end point mapped to this http connection
+                    var endpoint = (EndPoint)context.RequestServices.GetRequiredService<TEndPoint>();
+                    await ExecuteEndpointAsync(path, context, endpoint, options);
+                }
             }
             else
             {
-                // Get the end point mapped to this http connection
-                var endpoint = (EndPoint)context.RequestServices.GetRequiredService<TEndPoint>();
-                await ExecuteEndpointAsync(path, context, endpoint, options);
+                // REVIEW: Should we fall through or just fail with a 400?
+                context.Response.StatusCode = StatusCodes.Status400BadRequest;
             }
         }
 
@@ -110,7 +118,7 @@ namespace Microsoft.AspNetCore.Sockets
 
                 await DoPersistentConnection(endpoint, ws, context, state);
             }
-            else if (string.Equals(context.Request.Method, HttpMethods.Get))
+            else if (HttpMethods.IsGet(context.Request.Method))
             {
                 // GET /{path} maps to long polling
 

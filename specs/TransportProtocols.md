@@ -30,7 +30,7 @@ For the Long-Polling and Server-Sent events transports, there are two additional
 
 The WebSockets transport is unique in that it is full duplex, and a persistent connection that can be established in a single operation. As a result, the client is not required to use the `[endpoint-base]/negotiate` endpoint to establish a connection in advance. It also includes all the necessary metadata in it's own frame metadata.
 
-The WebSocket transport is activated by making a WebSocket connection to `[endpoint-base]/ws`. The **optional** `connectionId` query string value is used to identify the connection to attach to. If there is no `connectionId` query string value, a new connection is established. If the parameter is specified but there is no connection with the specified ID value, a `404 Not Found` response is returned. Upon receiving this request, the connection is established and the server responds with a WebSocket upgrade (`101 Switching Protocols`) immediately ready for frames to be sent/received. The WebSocket OpCode field is used to indicate the type of the frame (Text or Binary) and the WebSocket "FIN" flag is used to indicate the end of a message.
+The WebSocket transport is activated by making a WebSocket connection to `[endpoint-base]`. The **optional** `connectionId` query string value is used to identify the connection to attach to. If there is no `connectionId` query string value, a new connection is established. If the parameter is specified but there is no connection with the specified ID value, a `404 Not Found` response is returned. Upon receiving this request, the connection is established and the server responds with a WebSocket upgrade (`101 Switching Protocols`) immediately ready for frames to be sent/received. The WebSocket OpCode field is used to indicate the type of the frame (Text or Binary) and the WebSocket "FIN" flag is used to indicate the end of a message.
 
 Establishing a second WebSocket connection when there is already a WebSocket connection associated with the Endpoints connection is not permitted and will fail with a `409 Conflict` status code.
 
@@ -42,7 +42,7 @@ HTTP Post is a half-transport, it is only able to send messages from the Client 
 
 This transport requires that a connection be established using the `[endpoint-base]/negotiate` end point.
 
-The HTTP POST request is made to the URL `[endpoint-base]/send`. The **mandatory** `connectionId` query string value is used to identify the connection to send to. If there is no `connectionId` query string value, a `400 Bad Request` response is returned. The content consists of frames in the same format as the Long Polling transport. It is up to the client which of the Text or Binary protocol they use, and the server is able to detect which they use either via the `Content-Type` (see the Long Polling transport section) or via the first byte (`T` for the Text-based protocol, `B` for the binary protocol). Upon receipt of the **entire** request, the server will process and deliver all the messages, responding with `202 Accepted` if all the messages are successfully processed. If a client makes another request to `/send` while an existing one is outstanding, the new request is immediately terminated by the server with the `409 Conflict` status code.
+The HTTP POST request is made to the URL `[endpoint-base]`. The **mandatory** `connectionId` query string value is used to identify the connection to send to. If there is no `connectionId` query string value, a `400 Bad Request` response is returned. The content consists of frames in the same format as the Long Polling transport. It is up to the client which of the Text or Binary protocol they use, and the server is able to detect which they use either via the `Content-Type` (see the Long Polling transport section) or via the first byte (`T` for the Text-based protocol, `B` for the binary protocol). Upon receipt of the **entire** request, the server will process and deliver all the messages, responding with `202 Accepted` if all the messages are successfully processed. If a client makes another request to `/` while an existing one is outstanding, the new request is immediately terminated by the server with the `409 Conflict` status code.
 
 If the client transmits a `Close` or `Error` frame, the server will ignore and discard any frames following that frame and immediately return `202 Accepted`. Any further attempts to send to that connection will receive a `404 Not Found` response, as the connection will have been terminated.
 
@@ -72,7 +72,7 @@ foo: boz
 
 In the first event, the value of `baz` would be `boz\nbiz\nflarg`, due to the concatenation behavior above. Full details can be found in the spec linked above.
 
-In this transport, the client establishes an SSE connection to `[endpoint-base]/[connection-id]/sse`, and the server responds with an HTTP response with a `Content-Type` of `text/event-stream`. The **mandatory** `connectionId` query string value is used to identify the connection to send to. If there is no `connectionId` query string value, a `400 Bad Request` response is returned, if there is no connection with the specified ID, a `404 Not Found` response is returned. Each SSE event represents a single frame from client to server. The transport uses unnamed events, which means only the `data` field is available. Thus we use the first line of the `data` field for frame metadata. The frame body starts on the **second** line of the `data` field value. The first line has the following format (Identifiers in square brackets `[]` indicate fields defined below):
+In this transport, the client establishes an SSE connection to `[endpoint-base]`, and the server responds with an HTTP response with a `Content-Type` of `text/event-stream`. The **mandatory** `connectionId` query string value is used to identify the connection to send to. If there is no `connectionId` query string value, a `400 Bad Request` response is returned, if there is no connection with the specified ID, a `404 Not Found` response is returned. Each SSE event represents a single frame from client to server. The transport uses unnamed events, which means only the `data` field is available. Thus we use the first line of the `data` field for frame metadata. The frame body starts on the **second** line of the `data` field value. The first line has the following format (Identifiers in square brackets `[]` indicate fields defined below):
 
 ```
 [Type]
@@ -117,16 +117,17 @@ Long Polling requires that the client poll the server for new messages. Unlike t
 
 Since there is such a long round-trip-time for messages, given that the client must issue a request before the server can transmit a message back, Long Polling responses contain batches of multiple messages. Also, in order to support browsers which do not support XHR2, which provides the ability to read binary data, there are two different modes for the polling transport.
 
-A Poll is established by sending an HTTP GET request to `[endpoint-base]/poll` with the following query string parameters
+A Poll is established by sending an HTTP GET request to `[endpoint-base]` with the following query string parameters
 
 * `connectionId` (Required) - The Connection ID of the destination connection.
-* `supportsBinary` (Optional: default `false`) - A boolean indicating if the client supports raw binary data in responses
 
-When messages are available, the server responds with a body in one of the two formats below (depending upon the value of `supportsBinary`). The response may be chunked, as per the chunked encoding part of the HTTP spec.
+Adding the `Accept` header with value `application/vnd.microsoft.aspnetcore.endpoint-messages.v1+binary` indicates if the client supports raw binary data in responses.
+
+When messages are available, the server responds with a body in one of the two formats below (depending upon the value of the `Accept` header). The response may be chunked, as per the chunked encoding part of the HTTP spec.
 
 If the `connectionId` parameter is missing, a `400 Bad Request` response is returned. If there is no connection with the ID specified in `connectionId`, a `404 Not Found` response is returned.
 
-### Text-based encoding (`supportsBinary` = `false` or not present)
+### Text-based encoding
 
 The body will be formatted as below and encoded in UTF-8. The `Content-Type` response header is set to `application/vnd.microsoft.aspnetcore.endpoint-messages.v1+text`. Identifiers in square brackets `[]` indicate fields defined below, and parenthesis `()` indicate grouping.
 
@@ -164,7 +165,7 @@ Note that the final frame still ends with the `;` terminator, and that since the
 
 This transport will buffer incomplete frames sent by the server until the full message is available and then send the message in a single frame.
 
-### Binary encoding (`supportsBinary` = `true`)
+### Binary encoding
 
 In JavaScript/Browser clients, this encoding requires XHR2 (or similar HTTP request functionality which allows binary data) and TypedArray support.
 
