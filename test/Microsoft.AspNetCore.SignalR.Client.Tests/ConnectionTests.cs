@@ -298,7 +298,8 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 .Returns<HttpRequestMessage, CancellationToken>(async (request, cancellationToken) =>
                 {
                     await Task.Yield();
-                    if (request.RequestUri.AbsolutePath.EndsWith("/poll"))
+                    if (!request.RequestUri.AbsolutePath.EndsWith("/negotiate") &&
+                        request.Method == HttpMethod.Get)
                     {
                         return new HttpResponseMessage(HttpStatusCode.InternalServerError) { Content = new StringContent(string.Empty) };
                     }
@@ -479,7 +480,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 .Returns<HttpRequestMessage, CancellationToken>(async (request, cancellationToken) =>
                 {
                     await Task.Yield();
-                    if (request.RequestUri.AbsolutePath.EndsWith("/send"))
+                    if (request.Method == HttpMethod.Post)
                     {
                         sendTcs.SetResult(await request.Content.ReadAsByteArrayAsync());
                     }
@@ -525,7 +526,8 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                     await Task.Yield();
 
                     var content = string.Empty;
-                    if (request.RequestUri.AbsolutePath.EndsWith("/poll"))
+                    if (!request.RequestUri.AbsolutePath.EndsWith("/negotiate") &&
+                        request.Method == HttpMethod.Get)
                     {
                         content = "T2:T:42;";
                     }
@@ -555,7 +557,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 .Returns<HttpRequestMessage, CancellationToken>(async (request, cancellationToken) =>
                 {
                     await Task.Yield();
-                    if (request.RequestUri.AbsolutePath.EndsWith("/send"))
+                    if (request.Method == HttpMethod.Post)
                     {
                         return ResponseUtils.CreateResponse(HttpStatusCode.InternalServerError);
                     }
@@ -586,7 +588,9 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                     await Task.Yield();
 
                     var content = string.Empty;
-                    if (request.RequestUri.AbsolutePath.EndsWith("/poll"))
+
+                    if (!request.RequestUri.AbsolutePath.EndsWith("/negotiate") &&
+                        request.Method == HttpMethod.Get)
                     {
                         content = "T2:T:42;";
                     }
@@ -632,7 +636,8 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 .Returns<HttpRequestMessage, CancellationToken>(async (request, cancellationToken) =>
                 {
                     await Task.Yield();
-                    if (request.RequestUri.AbsolutePath.EndsWith("/poll"))
+                    if (!request.RequestUri.AbsolutePath.EndsWith("/negotiate") &&
+                        request.Method == HttpMethod.Get)
                     {
                         return new HttpResponseMessage(HttpStatusCode.InternalServerError) { Content = new StringContent(string.Empty) };
                     }
