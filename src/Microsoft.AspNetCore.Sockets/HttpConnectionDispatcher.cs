@@ -50,7 +50,7 @@ namespace Microsoft.AspNetCore.Sockets
                     // OPTIONS /{path}
                     await ProcessNegotiate(context, options);
                 }
-                if (HttpMethods.IsPost(context.Request.Method))
+                else if (HttpMethods.IsPost(context.Request.Method))
                 {
                     // POST /{path}
                     await ProcessSend(context);
