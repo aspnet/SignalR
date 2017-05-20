@@ -51,6 +51,8 @@ namespace Microsoft.AspNetCore.Sockets.Transports
         {
             var feature = context.Features.Get<IHttpWebSocketConnectionFeature>();
 
+            Debug.Assert(feature != null, $"The {nameof(IHttpWebSocketConnectionFeature)} feature is missing!");
+
             using (var ws = await feature.AcceptWebSocketConnectionAsync(_emptyContext))
             {
                 _logger.LogInformation("Socket opened.");

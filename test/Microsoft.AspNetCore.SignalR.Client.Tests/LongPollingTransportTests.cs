@@ -313,7 +313,7 @@ namespace Microsoft.AspNetCore.Client.Tests
 
                     // Check the provided request
                     Assert.Equal(2, sentRequests.Count);
-                    Assert.Equal("?supportsBinary=true", sentRequests[0].RequestUri.Query);
+                    Assert.Contains(MessageFormatter.BinaryContentType, sentRequests[0].Headers.Accept.FirstOrDefault()?.ToString());
 
                     // Check the messages received
                     Assert.Equal(2, messages.Count);
