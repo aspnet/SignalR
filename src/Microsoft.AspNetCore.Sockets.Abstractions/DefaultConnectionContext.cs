@@ -22,6 +22,6 @@ namespace Microsoft.AspNetCore.Sockets
         public override ClaimsPrincipal User { get; set; }
         public override ConnectionMetadata Metadata { get; } = new ConnectionMetadata();
 
-        public override IChannelConnection<Message> Transport { get; }
+        public override IChannelConnection<Message> Transport { get; set; }
     }
 }

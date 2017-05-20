@@ -19,7 +19,7 @@ namespace Microsoft.AspNetCore.Sockets
         public abstract ConnectionMetadata Metadata { get; }
 
         // TEMPORARY
-        public abstract IChannelConnection<Message> Transport { get; }
+        public abstract IChannelConnection<Message> Transport { get; set; }
 
         // TEMPORARY
         public void Dispose()
