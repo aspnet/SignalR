@@ -22,7 +22,7 @@ export class WebSocketTransport implements ITransport {
     connect(url: string, queryString: string = ""): Promise<void> {
         return new Promise<void>((resolve, reject) => {
             url = url.replace(/^http/, "ws");
-            let connectUrl = url + (queryString ? "" : "?" + queryString);
+            let connectUrl = url + (queryString ? "?" + queryString : "");
 
             let webSocket = new WebSocket(connectUrl);
 
@@ -95,7 +95,7 @@ export class ServerSentEventsTransport implements ITransport {
 
         this.queryString = queryString;
         this.url = url;
-        this.fullUrl = url + (queryString ? "" : "?" + queryString);
+        this.fullUrl = url + (queryString ? "?" + queryString : "");
 
         return new Promise<void>((resolve, reject) => {
             let eventSource = new EventSource(this.fullUrl);
@@ -170,7 +170,7 @@ export class LongPollingTransport implements ITransport {
         this.url = url;
         this.queryString = queryString;
         this.shouldPoll = true;
-        this.fullUrl = url + (queryString ? "" : "?" + queryString);
+        this.fullUrl = url + (queryString ? "?" + queryString : "");
         this.poll(this.fullUrl);
         return Promise.resolve();
     }
