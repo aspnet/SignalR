@@ -490,10 +490,10 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
 
-            var context1 = MakeRequest<BlockingEndPoint>("/foo", state);
-            var task1 = dispatcher.ExecuteAsync<BlockingEndPoint>("/foo", context1);
-            var context2 = MakeRequest<BlockingEndPoint>("/foo", state);
-            var task2 = dispatcher.ExecuteAsync<BlockingEndPoint>("/foo", context2);
+            var context1 = MakeRequest<TestEndPoint>("/foo", state);
+            var task1 = dispatcher.ExecuteAsync<TestEndPoint>("/foo", context1);
+            var context2 = MakeRequest<TestEndPoint>("/foo", state);
+            var task2 = dispatcher.ExecuteAsync<TestEndPoint>("/foo", context2);
 
             // Task 1 should finish when request 2 arrives
             await task1.OrTimeout();
@@ -555,7 +555,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var context = new DefaultHttpContext();
             var services = new ServiceCollection();
             services.AddOptions();
-            services.AddEndPoint<BlockingEndPoint>(options =>
+            services.AddEndPoint<TestEndPoint>(options =>
             {
                 options.AuthorizationPolicyNames.Add("test");
             });
@@ -577,7 +577,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             context.Features.Set<IHttpAuthenticationFeature>(authFeature);
 
             // would hang if EndPoint was running
-            await dispatcher.ExecuteAsync<BlockingEndPoint>("/foo", context).OrTimeout();
+            await dispatcher.ExecuteAsync<TestEndPoint>("/foo", context).OrTimeout();
 
             Assert.Equal(StatusCodes.Status401Unauthorized, context.Response.StatusCode);
         }
@@ -591,7 +591,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var context = new DefaultHttpContext();
             var services = new ServiceCollection();
             services.AddOptions();
-            services.AddEndPoint<BlockingEndPoint>(options =>
+            services.AddEndPoint<TestEndPoint>(options =>
             {
                 options.AuthorizationPolicyNames.Add("test");
             });
@@ -619,7 +619,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             // "authorize" user
             context.User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "name") }));
 
-            var endPointTask = dispatcher.ExecuteAsync<BlockingEndPoint>("/foo", context);
+            var endPointTask = dispatcher.ExecuteAsync<TestEndPoint>("/foo", context);
             await state.Connection.Transport.Output.WriteAsync(new Message(Encoding.UTF8.GetBytes("Hello, World"), MessageType.Text)).OrTimeout();
 
             await endPointTask.OrTimeout();
@@ -637,7 +637,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var context = new DefaultHttpContext();
             var services = new ServiceCollection();
             services.AddOptions();
-            services.AddEndPoint<BlockingEndPoint>(options =>
+            services.AddEndPoint<TestEndPoint>(options =>
             {
                 options.AuthorizationPolicyNames.Add("test");
                 options.AuthorizationPolicyNames.Add("secondPolicy");
@@ -665,14 +665,14 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             context.User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "name") }));
 
             // would hang if EndPoint was running
-            await dispatcher.ExecuteAsync<BlockingEndPoint>("/foo", context).OrTimeout();
+            await dispatcher.ExecuteAsync<TestEndPoint>("/foo", context).OrTimeout();
 
             Assert.Equal(StatusCodes.Status401Unauthorized, context.Response.StatusCode);
 
             // fully "authorize" user
             context.User.AddIdentity(new ClaimsIdentity(new[] { new Claim(ClaimTypes.StreetAddress, "12345 123rd St. NW") }));
 
-            var endPointTask = dispatcher.ExecuteAsync<BlockingEndPoint>("/foo", context);
+            var endPointTask = dispatcher.ExecuteAsync<TestEndPoint>("/foo", context);
             await state.Connection.Transport.Output.WriteAsync(new Message(Encoding.UTF8.GetBytes("Hello, World"), MessageType.Text)).OrTimeout();
 
             await endPointTask.OrTimeout();
@@ -689,7 +689,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var context = new DefaultHttpContext();
             var services = new ServiceCollection();
             services.AddOptions();
-            services.AddEndPoint<BlockingEndPoint>(options =>
+            services.AddEndPoint<TestEndPoint>(options =>
             {
                 options.AuthorizationPolicyNames.Add("test");
             });
@@ -718,7 +718,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             // "authorize" user
             context.User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "name") }));
 
-            var endPointTask = dispatcher.ExecuteAsync<BlockingEndPoint>("/foo", context);
+            var endPointTask = dispatcher.ExecuteAsync<TestEndPoint>("/foo", context);
             await state.Connection.Transport.Output.WriteAsync(new Message(Encoding.UTF8.GetBytes("Hello, World"), MessageType.Text)).OrTimeout();
 
             await endPointTask.OrTimeout();
@@ -736,7 +736,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var context = new DefaultHttpContext();
             var services = new ServiceCollection();
             services.AddOptions();
-            services.AddEndPoint<BlockingEndPoint>(options =>
+            services.AddEndPoint<TestEndPoint>(options =>
             {
                 options.AuthorizationPolicyNames.Add("test");
             });
@@ -766,7 +766,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             context.User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "name") }));
 
             // would block if EndPoint was executed
-            await dispatcher.ExecuteAsync<BlockingEndPoint>("/foo", context).OrTimeout();
+            await dispatcher.ExecuteAsync<TestEndPoint>("/foo", context).OrTimeout();
 
             Assert.Equal(StatusCodes.Status401Unauthorized, context.Response.StatusCode);
         }
