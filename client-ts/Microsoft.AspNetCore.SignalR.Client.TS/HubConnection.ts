@@ -138,6 +138,9 @@ export class HubConnection {
                 if (completionMessage.error) {
                     subject.error(new Error(completionMessage.error));
                 }
+                else if(completionMessage.result) {
+                    subject.error(new Error("Server provided a result in a completion response to a streamed invocation."));
+                }
                 else {
                     // TODO: Log a warning if there's a payload?
                     subject.complete();
