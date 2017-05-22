@@ -1,4 +1,4 @@
-﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
@@ -33,6 +33,19 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
 
             return (TResult)await hubConnection.Invoke(methodName, typeof(TResult), cancellationToken, args);
+        }
+
+        public static IObservable<TResult> Stream<TResult>(this HubConnection hubConnection, string methodName, params object[] args) =>
+            Stream<TResult>(hubConnection, methodName, CancellationToken.None, args);
+
+        public static IObservable<TResult> Stream<TResult>(this HubConnection hubConnection, string methodName, CancellationToken cancellationToken, params object[] args)
+        {
+            if (hubConnection == null)
+            {
+                throw new ArgumentNullException(nameof(hubConnection));
+            }
+
+            return new CastObservable<TResult>(hubConnection.Stream(methodName, typeof(TResult), cancellationToken, args));
         }
 
         public static void On(this HubConnection hubConnection, string methodName, Action handler)

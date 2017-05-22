@@ -115,17 +115,29 @@ namespace Microsoft.AspNetCore.SignalR.Client
             _handlers.AddOrUpdate(methodName, invocationHandler, (_, __) => invocationHandler);
         }
 
-        public async Task<object> Invoke(string methodName, Type returnType, CancellationToken cancellationToken, params object[] args)
+        public IObservable<object> Stream(string methodName, Type returnType, CancellationToken cancellationToken, params object[] args)
+        {
+            var irq = InvokeCore(methodName, returnType, cancellationToken, args, streaming: true);
+            return irq.Observable;
+        }
+
+        public Task<object> Invoke(string methodName, Type returnType, CancellationToken cancellationToken, params object[] args)
+        {
+            var irq = InvokeCore(methodName, returnType, cancellationToken, args, streaming: false);
+            return irq.Task;
+        }
+
+        private InvocationRequest InvokeCore(string methodName, Type returnType, CancellationToken cancellationToken, object[] args, bool streaming)
         {
             ThrowIfConnectionTerminated();
-                _logger.LogTrace("Preparing invocation of '{target}', with return type '{returnType}' and {argumentCount} args", methodName, returnType.AssemblyQualifiedName, args.Length);
+            _logger.LogTrace("Preparing invocation of '{target}', with return type '{returnType}' and {argumentCount} args", methodName, returnType.AssemblyQualifiedName, args.Length);
 
             // Create an invocation descriptor. Client invocations are always blocking
             var invocationMessage = new InvocationMessage(GetNextId(), nonBlocking: false, target: methodName, arguments: args);
 
             // I just want an excuse to use 'irq' as a variable name...
             _logger.LogDebug("Registering Invocation ID '{invocationId}' for tracking", invocationMessage.InvocationId);
-            var irq = new InvocationRequest(cancellationToken, returnType, invocationMessage.InvocationId, _loggerFactory);
+            var irq = new InvocationRequest(cancellationToken, returnType, invocationMessage.InvocationId, _loggerFactory, streaming);
 
             AddInvocation(irq);
 
@@ -136,6 +148,15 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 _logger.LogTrace("Issuing Invocation '{invocationId}': {returnType} {methodName}({args})", invocationMessage.InvocationId, returnType.FullName, methodName, argsList);
             }
 
+            // We don't need to wait for this to complete. It will signal back to the invocation request.
+            _ = SendInvocation(invocationMessage, irq, cancellationToken);
+
+            // Return the completion task. It will be completed by ReceiveMessages when the response is received.
+            return irq;
+        }
+
+        private async Task SendInvocation(InvocationMessage invocationMessage, InvocationRequest irq, CancellationToken cancellationToken)
+        {
             try
             {
                 var payload = await _protocol.WriteToArrayAsync(invocationMessage);
@@ -151,9 +172,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 irq.Fail(ex);
                 TryRemoveInvocation(invocationMessage.InvocationId, out _);
             }
-
-            // Return the completion task. It will be completed by ReceiveMessages when the response is received.
-            return await irq.Completion;
         }
 
         private void OnDataReceived(byte[] data, MessageType messageType)
@@ -182,12 +200,12 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     break;
                 case StreamItemMessage streamItem:
                     // Complete the invocation with an error, we don't support streaming (yet)
-                    if (!TryRemoveInvocation(streamItem.InvocationId, out irq))
+                    if (!TryGetInvocation(streamItem.InvocationId, out irq))
                     {
                         _logger.LogWarning("Dropped unsolicited Stream Item message for invocation '{invocationId}'", streamItem.InvocationId);
                         return;
                     }
-                    irq.Fail(new NotSupportedException("Streaming method results are not supported"));
+                    DispatchInvocationStreamItem(streamItem, irq);
                     break;
                 default:
                     throw new InvalidOperationException($"Unknown message type: {message.GetType().FullName}");
@@ -234,6 +252,20 @@ namespace Microsoft.AspNetCore.SignalR.Client
             // TODO: Return values
             // TODO: Dispatch to a sync context to ensure we aren't blocking this loop.
             handler.Handler(invocation.Arguments);
+        }
+
+        private void DispatchInvocationStreamItem(StreamItemMessage streamItem, InvocationRequest irq)
+        {
+            _logger.LogTrace("Received StreamItem for Invocation #{invocationId}", streamItem.InvocationId);
+
+            if (irq.CancellationToken.IsCancellationRequested)
+            {
+                _logger.LogTrace("Cancelling dispatch of StreamItem message for Invocation {invocationId}. The invocation was cancelled.", irq.InvocationId);
+            }
+            else
+            {
+                irq.StreamItem(streamItem.Item);
+            }
         }
 
         private void DispatchInvocationCompletion(CompletionMessage completion, InvocationRequest irq)
@@ -350,54 +382,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
             {
                 Handler = handler;
                 ParameterTypes = parameterTypes;
-            }
-        }
-
-        private class InvocationRequest : IDisposable
-        {
-            private readonly TaskCompletionSource<object> _completionSource = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
-            private readonly CancellationTokenRegistration _cancellationTokenRegistration;
-            private readonly ILogger _logger;
-
-            public Type ResultType { get; }
-            public CancellationToken CancellationToken { get; }
-            public string InvocationId { get; }
-
-            public Task<object> Completion => _completionSource.Task;
-
-
-            public InvocationRequest(CancellationToken cancellationToken, Type resultType, string invocationId, ILoggerFactory loggerFactory)
-            {
-                _logger = loggerFactory.CreateLogger<InvocationRequest>();
-                _cancellationTokenRegistration = cancellationToken.Register(() => _completionSource.TrySetCanceled());
-
-                InvocationId = invocationId;
-                CancellationToken = cancellationToken;
-                ResultType = resultType;
-
-                _logger.LogTrace("Invocation {invocationId} created", InvocationId);
-            }
-
-            public void Fail(Exception exception)
-            {
-                _logger.LogTrace("Invocation {invocationId} marked as failed", InvocationId);
-                _completionSource.TrySetException(exception);
-            }
-
-            public void Complete(object result)
-            {
-                _logger.LogTrace("Invocation {invocationId} marked as completed", InvocationId);
-                _completionSource.TrySetResult(result);
-            }
-
-            public void Dispose()
-            {
-                _logger.LogTrace("Invocation {invocationId} disposed", InvocationId);
-
-                // Just in case it hasn't already been completed
-                _completionSource.TrySetCanceled();
-
-                _cancellationTokenRegistration.Dispose();
             }
         }
     }

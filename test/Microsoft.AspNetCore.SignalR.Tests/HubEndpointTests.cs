@@ -527,30 +527,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
-        [Fact]
-        public async Task HubEndPointYieldsErrorWhenAskedToStreamNonStreamableResultAsync()
-{
-            var serviceProvider = CreateServiceProvider();
-
-            var endPoint = serviceProvider.GetService<HubEndPoint<StreamingHub>>();
-
-            using (var client = new TestClient())
-            {
-                var endPointLifetime = endPoint.OnConnectedAsync(client.Connection);
-
-                await client.Connected.OrTimeout();
-
-                var messages = await client.StreamAsync(nameof(StreamingHub.NotStreamable)).OrTimeout();
-
-                Assert.Equal(1, messages.Count);
-                AssertHubMessage(new CompletionMessage(string.Empty, error: $"Cannot stream results of type: {typeof(int).FullName}", result: null, hasResult: false), messages[0]);
-
-                client.Dispose();
-
-                await endPointLifetime;
-            }
-        }
-
         private static void AssertHubMessage(HubMessage expected, HubMessage actual)
         {
             // We aren't testing InvocationIds here
@@ -602,13 +578,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
         public class StreamingHub : TestHub
         {
-            [return: Streaming]
             public IObservable<string> CounterObservable(int count)
             {
                 return new CountingObservable(count);
             }
 
-            [return: Streaming]
             public ReadableChannel<string> CounterChannel(int count)
             {
                 var channel = Channel.CreateUnbounded<string>();
@@ -623,12 +597,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 });
 
                 return channel.In;
-            }
-
-            [return: Streaming]
-            public int NotStreamable()
-            {
-                return 42;
             }
 
             private class CountingObservable : IObservable<string>
