@@ -258,14 +258,12 @@ namespace Microsoft.AspNetCore.SignalR
                     InitializeHub(hub, connection);
 
                     object result = null;
-                    var hasResult = true; // Need to distinguish betweeen 'null' and 'void'
 
                     // ReadableChannel is awaitable but we don't want to await it.
                     if (methodExecutor.IsMethodAsync && !IsChannel(methodExecutor.MethodReturnType, out _))
                     {
                         if (methodExecutor.MethodReturnType == typeof(Task))
                         {
-                            hasResult = false;
                             await (Task)methodExecutor.Execute(hub, invocationMessage.Arguments);
                         }
                         else
@@ -278,14 +276,14 @@ namespace Microsoft.AspNetCore.SignalR
                         result = methodExecutor.Execute(hub, invocationMessage.Arguments);
                     }
 
-                    if (hasResult && IsStreamed(methodExecutor, result, out var channel))
+                    if (IsStreamed(methodExecutor, result, methodExecutor.MethodReturnType, out var enumerator))
                     {
-                        _logger.LogTrace("[{connectionId}/{invocationId}] Streaming result of type {resultType}", connection.ConnectionId, invocationMessage.InvocationId, result.GetType().FullName);
-                        await StreamResultsAsync(invocationMessage.InvocationId, connection, protocol, channel);
+                        _logger.LogTrace("[{connectionId}/{invocationId}] Streaming result of type {resultType}", connection.ConnectionId, invocationMessage.InvocationId, methodExecutor.MethodReturnType.FullName);
+                        await StreamResultsAsync(invocationMessage.InvocationId, connection, protocol, enumerator);
                     }
                     else
                     {
-                        _logger.LogTrace("[{connectionId}/{invocationId}] Sending result of type {resultType}", connection.ConnectionId, invocationMessage.InvocationId, result.GetType().FullName);
+                        _logger.LogTrace("[{connectionId}/{invocationId}] Sending result of type {resultType}", connection.ConnectionId, invocationMessage.InvocationId, methodExecutor.MethodReturnType.FullName);
                         await SendMessageAsync(connection, protocol, CompletionMessage.WithResult(invocationMessage.InvocationId, result));
                     }
                 }
@@ -347,15 +345,23 @@ namespace Microsoft.AspNetCore.SignalR
             }
         }
 
-        private bool IsStreamed(ObjectMethodExecutor methodExecutor, object result, out IAsyncEnumerator<object> enumerator)
+        private bool IsStreamed(ObjectMethodExecutor methodExecutor, object result, Type resultType, out IAsyncEnumerator<object> enumerator)
         {
-            var observableInterface = result.GetType().GetInterfaces().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IObservable<>));
+            if (result == null)
+            {
+                enumerator = null;
+                return false;
+            }
+
+            var observableInterface = IsIObservable(resultType) ?
+                resultType :
+                resultType.GetInterfaces().FirstOrDefault(IsIObservable);
             if (observableInterface != null)
             {
                 enumerator = AsyncEnumeratorAdapters.FromObservable(result, observableInterface);
                 return true;
             }
-            else if (IsChannel(result.GetType(), out var payloadType))
+            else if (IsChannel(resultType, out var payloadType))
             {
                 enumerator = AsyncEnumeratorAdapters.FromChannel(result, payloadType);
                 return true;
@@ -366,6 +372,18 @@ namespace Microsoft.AspNetCore.SignalR
                 enumerator = null;
                 return false;
             }
+        }
+
+        private static bool IsIObservable(Type iface)
+        {
+            return iface.IsGenericType && iface.GetGenericTypeDefinition() == typeof(IObservable<>);
+        }
+
+        private void InitializeHub(THub hub, Connection connection)
+        {
+            hub.Clients = _hubContext.Clients;
+            hub.Context = new HubCallerContext(connection);
+            hub.Groups = new GroupManager<THub>(connection, _lifetimeManager);
         }
 
         private void DiscoverHubMethods()

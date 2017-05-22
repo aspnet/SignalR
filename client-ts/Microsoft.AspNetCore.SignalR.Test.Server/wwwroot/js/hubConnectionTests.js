@@ -2,7 +2,7 @@ const TESTHUBENDPOINT_URL = `http://${document.location.host}/testhub`;
 
 describe('hubConnection', () => {
     eachTransport(transportType => {
-        describe(`${transportType} transport`, () => {
+        describe(`${signalR.TransportType[transportType]} transport`, () => {
             it(`can invoke server method and receive result`, done => {
                 const message = "Hi";
                 let hubConnection = new signalR.HubConnection(TESTHUBENDPOINT_URL, 'formatType=json&format=text');
@@ -17,21 +17,20 @@ describe('hubConnection', () => {
                             .then(result => {
                                 expect(result).toBe(message);
                             })
-                            .catch(() => {
-                                fail();
+                            .catch(e => {
+                                fail(e);
                             })
                             .then(() => {
                                 hubConnection.stop();
                             })
                     })
-                    .catch(() => {
-                        fail();
+                    .catch(e => {
+                        fail(e);
                         done();
                     });
             });
 
             it(`can stream server method and receive result`, done => {
-                const message = "Hi";
                 let hubConnection = new signalR.HubConnection(TESTHUBENDPOINT_URL, 'formatType=json&format=text');
                 hubConnection.onClosed = error => {
                     expect(error).toBe(undefined);
@@ -41,24 +40,23 @@ describe('hubConnection', () => {
                 let received = [];
                 hubConnection.start(transportType)
                     .then(() => {
-                        hubConnection.stream('Stream', message)
+                        hubConnection.stream('Stream')
                             .subscribe({
                                 next: (item) => {
                                     received.push(item);
                                 },
-
                                 error: (err) => {
-                                    fail();
+                                    fail(err);
+                                    done();
                                 },
-
                                 complete: () => {
                                     expect(received).toEqual(["a", "b", "c"]);
                                     done();
                                 }
                             });
                     })
-                    .catch(() => {
-                        fail();
+                    .catch(e => {
+                        fail(e);
                         done();
                     });
             });
@@ -84,8 +82,8 @@ describe('hubConnection', () => {
                                 done();
                             });
                     })
-                    .catch(() => {
-                        fail();
+                    .catch(e => {
+                        fail(e);
                         done();
                     });
             });
@@ -112,7 +110,7 @@ describe('hubConnection', () => {
                         done();
                     })
                     .catch(e => {
-                        fail();
+                        fail(e);
                         done();
                     });
             });
