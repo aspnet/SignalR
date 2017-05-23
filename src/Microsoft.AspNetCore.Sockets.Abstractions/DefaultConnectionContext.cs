@@ -20,6 +20,7 @@ namespace Microsoft.AspNetCore.Sockets
         public override IFeatureCollection Features { get; } = new FeatureCollection();
 
         public override ClaimsPrincipal User { get; set; }
+
         public override ConnectionMetadata Metadata { get; } = new ConnectionMetadata();
 
         public override IChannelConnection<Message> Transport { get; set; }

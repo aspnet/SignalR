@@ -52,7 +52,6 @@ namespace Microsoft.AspNetCore.Sockets
             else if (HttpMethods.IsGet(context.Request.Method))
             {
                 // GET /{path}
-
                 await ExecuteEndpointAsync(context, socketDelegate, options);
             }
             else
