@@ -328,7 +328,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         private async Task StreamResultsAsync(string invocationId, ConnectionContext connection, IHubProtocol protocol, IAsyncEnumerator<object> enumerator)
         {
-            // TODO: Cancellation?
+            // TODO: Cancellation? See https://github.com/aspnet/SignalR/issues/481
             try
             {
                 while (await enumerator.MoveNextAsync())
