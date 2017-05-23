@@ -1,0 +1,33 @@
+{
+    "moduleFileExtensions": [
+        "ts",
+        "js"
+    ],
+    "moduleDirectories": [
+        "node_modules",
+        "src"
+    ],
+    "collectCoverageFrom": [
+        "src/**/*.ts"
+    ],
+    "coverageDirectory": ".coverage",
+    "coveragePathIgnorePatterns": [
+        "<rootDir>/node_modules/",
+        "<rootDir>/src/types"
+    ],
+    "coverageReporters": [
+        "text"
+    ],
+    "moduleNameMapper": {
+        "\\.(css|less)$": "identity-obj-provider"
+    },
+    "transform": {
+        ".(ts|tsx)": "<rootDir>/node_modules/ts-jest/preprocessor.js"
+    },
+    "testMatch": [
+        "**/?(*.)(spec|test).(js|ts)"
+    ],
+    "setupFiles": [
+        "<rootDir>/node_modules/core-js/shim.js"
+    ]
+}
