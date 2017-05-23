@@ -35,9 +35,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         {
             // TODO: Allow bounding and optimizations?
             var channel = Channel.CreateUnbounded<object>();
-            var cancellationTokenSource = new CancellationTokenSource();
 
-            var subscription = observable.Subscribe(new ChannelObserver<T>(channel.Out, cancellationTokenSource.Token));
+            var subscription = observable.Subscribe(new ChannelObserver<T>(channel.Out, CancellationToken.None));
 
             return channel.In.GetAsyncEnumerator();
         }
