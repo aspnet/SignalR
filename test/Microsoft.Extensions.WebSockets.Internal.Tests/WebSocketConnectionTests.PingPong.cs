@@ -17,41 +17,44 @@ namespace Microsoft.Extensions.WebSockets.Internal.Tests
         [Fact]
         public async Task AutomaticPingTransmission()
         {
-            var startTime = DateTime.UtcNow;
-            // Arrange
-            using (var pair = WebSocketPair.Create(
-                serverOptions: new WebSocketOptions().WithAllFramesPassedThrough().WithPingInterval(TimeSpan.FromMilliseconds(10)),
-                clientOptions: new WebSocketOptions().WithAllFramesPassedThrough()))
+            await Task.Run(async () =>
             {
-                var client = pair.ClientSocket.ExecuteAndCaptureFramesAsync();
-                var server = pair.ServerSocket.ExecuteAndCaptureFramesAsync();
-
-                // Act
-                // Wait for pings to be sent
-                await Task.Delay(500);
-
-                await pair.ServerSocket.CloseAsync(WebSocketCloseStatus.NormalClosure).OrTimeout();
-                var clientSummary = await client.OrTimeout();
-                await pair.ClientSocket.CloseAsync(WebSocketCloseStatus.NormalClosure).OrTimeout();
-                var serverSummary = await server.OrTimeout();
-
-                // Assert
-                Assert.NotEqual(0, clientSummary.Received.Count);
-
-                Assert.True(clientSummary.Received.All(f => f.EndOfMessage));
-                Assert.True(clientSummary.Received.All(f => f.Opcode == WebSocketOpcode.Ping));
-                Assert.True(clientSummary.Received.All(f =>
+                var startTime = DateTime.UtcNow;
+                // Arrange
+                using (var pair = WebSocketPair.Create(
+                    serverOptions: new WebSocketOptions().WithAllFramesPassedThrough().WithPingInterval(TimeSpan.FromMilliseconds(10)),
+                    clientOptions: new WebSocketOptions().WithAllFramesPassedThrough()))
                 {
-                    var str = Encoding.UTF8.GetString(f.Payload.ToArray());
+                    var client = pair.ClientSocket.ExecuteAndCaptureFramesAsync();
+                    var server = pair.ServerSocket.ExecuteAndCaptureFramesAsync();
+
+                    // Act
+                    // Wait for pings to be sent
+                    await Task.Delay(500);
+
+                    await pair.ServerSocket.CloseAsync(WebSocketCloseStatus.NormalClosure).OrTimeout();
+                    var clientSummary = await client.OrTimeout();
+                    await pair.ClientSocket.CloseAsync(WebSocketCloseStatus.NormalClosure).OrTimeout();
+                    var serverSummary = await server.OrTimeout();
+
+                    // Assert
+                    Assert.NotEqual(0, clientSummary.Received.Count);
+
+                    Assert.True(clientSummary.Received.All(f => f.EndOfMessage));
+                    Assert.True(clientSummary.Received.All(f => f.Opcode == WebSocketOpcode.Ping));
+                    Assert.True(clientSummary.Received.All(f =>
+                    {
+                        var str = Encoding.UTF8.GetString(f.Payload.ToArray());
 
                     // We can't verify the exact timestamp, but we can verify that it is a timestamp created after we started.
                     if (DateTime.TryParseExact(str, "O", CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal, out var dt))
-                    {
-                        return dt >= startTime;
-                    }
-                    return false;
-                }));
-            }
+                        {
+                            return dt >= startTime;
+                        }
+                        return false;
+                    }));
+                }
+            });
         }
 
         [Fact]
