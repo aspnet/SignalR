@@ -8,7 +8,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         public static IEnumerable<Type> AllBaseTypes(this Type type)
         {
             var current = type;
-            while(current != null)
+            while (current != null)
             {
                 yield return current;
                 current = current.BaseType;

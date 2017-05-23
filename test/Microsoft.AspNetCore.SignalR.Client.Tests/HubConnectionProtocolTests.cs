@@ -2,16 +2,16 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Linq;
+using System.Reactive;
 using System.Reactive.Linq;
+using System.Reactive.Threading.Tasks;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.SignalR.Tests.Common;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Xunit;
-using System.Reactive;
-using System.Linq;
-using System.Reactive.Threading.Tasks;
 
 namespace Microsoft.AspNetCore.SignalR.Client.Tests
 {

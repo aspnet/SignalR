@@ -22,7 +22,7 @@ interface InvocationMessage extends HubMessage {
 }
 
 interface ResultMessage extends HubMessage {
-    readonly result?: any;
+    readonly item?: any;
 }
 
 interface CompletionMessage extends HubMessage {
@@ -147,7 +147,7 @@ export class HubConnection {
                 }
             }
             else {
-                subject.next(<T>(<ResultMessage>invocationEvent).result);
+                subject.next(<T>(<ResultMessage>invocationEvent).item);
             }
         });
 

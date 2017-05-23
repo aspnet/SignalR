@@ -9,7 +9,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
     internal class InvocationSubject : IObservable<object>
     {
         private readonly object _lock = new object();
-        private IList<IObserver<object>> _observers = new List<IObserver<object>>();
+        private List<IObserver<object>> _observers = new List<IObserver<object>>();
         private Exception _error = null;
         private bool _completed = false;
 
@@ -20,16 +20,18 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 if (_completed)
                 {
                     observer.OnCompleted();
+                    return Subscription.Null;
                 }
                 else if (_error != null)
                 {
                     observer.OnError(_error);
+                    return Subscription.Null;
                 }
                 else
                 {
                     _observers.Add(observer);
+                    return new Subscription(this, observer);
                 }
-                return new Subscription(this, observer);
             }
         }
 
@@ -98,6 +100,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private class Subscription : IDisposable
         {
+            public static readonly Subscription Null = new Subscription(null, null);
+
             private InvocationSubject _invocationObservable;
             private IObserver<object> _observer;
 
@@ -109,7 +113,10 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             public void Dispose()
             {
-                _invocationObservable.Unsubscribe(_observer);
+                if (_invocationObservable != null && _observer != null)
+                {
+                    _invocationObservable.Unsubscribe(_observer);
+                }
             }
         }
     }

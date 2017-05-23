@@ -260,7 +260,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             if (irq.CancellationToken.IsCancellationRequested)
             {
-                _logger.LogTrace("Cancelling dispatch of StreamItem message for Invocation {invocationId}. The invocation was cancelled.", irq.InvocationId);
+                _logger.LogTrace("Canceling dispatch of StreamItem message for Invocation {invocationId}. The invocation was cancelled.", irq.InvocationId);
             }
             else
             {

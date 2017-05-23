@@ -20,13 +20,13 @@ namespace Microsoft.AspNetCore.SignalR.Client
         public CancellationToken CancellationToken { get; }
         public string InvocationId { get; }
 
-        public Task<object> Task => _completionSource?.Task;
+        public Task<object> Task => _completionSource?.Task ?? Task.CompletedTask;
         public IObservable<object> Observable => _subject;
 
         public InvocationRequest(CancellationToken cancellationToken, Type resultType, string invocationId, ILoggerFactory loggerFactory, bool streaming)
         {
             _logger = loggerFactory.CreateLogger<InvocationRequest>();
-            _cancellationTokenRegistration = cancellationToken.Register(() => _completionSource.TrySetCanceled());
+            _cancellationTokenRegistration = cancellationToken.Register(state => (state as TaskCompletionSource<object>)?.TrySetCanceled(), _completionSource);
             _streaming = streaming;
 
             if (_streaming)
@@ -81,7 +81,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         public void StreamItem(object item)
         {
-            if(_streaming)
+            if (_streaming)
             {
                 _logger.LogTrace("Invocation {invocationId} received stream item.", InvocationId);
                 _subject.TryOnNext(item);
