@@ -52,7 +52,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
             using (var httpClient = _testServer.CreateClient())
             {
-                var connection = new HubConnection(new Uri("http://test/hubs"));
+                var connection = new HubConnection(new Uri("http://test/hubs", loggerFactory));
                 try
                 {
                     await connection.StartAsync(TransportType.LongPolling, httpClient);
@@ -76,7 +76,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
             using (var httpClient = _testServer.CreateClient())
             {
-                var connection = new HubConnection(new Uri("http://test/hubs"));
+                var connection = new HubConnection(new Uri("http://test/hubs", loggerFactory));
                 try
                 {
                     await connection.StartAsync(TransportType.LongPolling, httpClient);
@@ -124,7 +124,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
             using (var httpClient = _testServer.CreateClient())
             {
-                var connection = new HubConnection(new Uri("http://test/hubs"));
+                var connection = new HubConnection(new Uri("http://test/hubs"), loggerFactory);
                 try
                 {
                     await connection.StartAsync(TransportType.LongPolling, httpClient);
@@ -150,7 +150,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
             using (var httpClient = _testServer.CreateClient())
             {
-                var connection = new HubConnection(new Uri("http://test/hubs"));
+                var connection = new HubConnection(new Uri("http://test/hubs"), loggerFactory);
                 try
                 {
                     await connection.StartAsync(TransportType.LongPolling, httpClient);
@@ -175,7 +175,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
             using (var httpClient = _testServer.CreateClient())
             {
-                var connection = new HubConnection(new Uri("http://test/hubs"));
+                var connection = new HubConnection(new Uri("http://test/hubs"), loggerFactory);
                 try
                 {
                     await connection.StartAsync(TransportType.LongPolling, httpClient);
