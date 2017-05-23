@@ -20,7 +20,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         public CancellationToken CancellationToken { get; }
         public string InvocationId { get; }
 
-        public Task<object> Task => _completionSource?.Task ?? Task.CompletedTask;
+        public Task<object> Result => _completionSource?.Task ?? Task.FromResult<object>(null);
         public IObservable<object> Observable => _subject;
 
         public InvocationRequest(CancellationToken cancellationToken, Type resultType, string invocationId, ILoggerFactory loggerFactory, bool streaming)

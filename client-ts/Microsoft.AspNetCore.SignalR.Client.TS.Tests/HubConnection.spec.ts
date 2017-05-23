@@ -13,7 +13,7 @@ describe("HubConnection", () => {
 
             let hubConnection = new HubConnection(connection);
             var invokePromise = hubConnection.invoke("testMethod", "foo", 42)
-                .catch((_) => {}); // Suppress exception and unhandled promise rejection warning.
+                .catch((_) => { }); // Suppress exception and unhandled promise rejection warning.
 
             // Verify the message is sent
             expect(connection.sentData.length).toBe(1);
@@ -84,7 +84,7 @@ describe("HubConnection", () => {
             let hubConnection = new HubConnection(connection);
             let invokePromise = hubConnection.invoke("testMethod");
 
-            connection.receive({ type: 2, invocationId: connection.lastInvocationId, result: null });
+            connection.receive({ type: 2, invocationId: connection.lastInvocationId, item: null });
             connection.onClosed();
 
             let ex = await captureException(async () => await invokePromise);
@@ -194,13 +194,13 @@ describe("HubConnection", () => {
             hubConnection.stream<any>("testMethod")
                 .subscribe(observer);
 
-            connection.receive({ type: 2, invocationId: connection.lastInvocationId, result: 1 });
+            connection.receive({ type: 2, invocationId: connection.lastInvocationId, item: 1 });
             expect(observer.itemsReceived).toEqual([1]);
 
-            connection.receive({ type: 2, invocationId: connection.lastInvocationId, result: 2 });
+            connection.receive({ type: 2, invocationId: connection.lastInvocationId, item: 2 });
             expect(observer.itemsReceived).toEqual([1, 2]);
 
-            connection.receive({ type: 2, invocationId: connection.lastInvocationId, result: 3 });
+            connection.receive({ type: 2, invocationId: connection.lastInvocationId, item: 3 });
             expect(observer.itemsReceived).toEqual([1, 2, 3]);
 
             connection.receive({ type: 3, invocationId: connection.lastInvocationId });

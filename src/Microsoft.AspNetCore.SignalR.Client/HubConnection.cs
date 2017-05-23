@@ -124,7 +124,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         public Task<object> Invoke(string methodName, Type returnType, CancellationToken cancellationToken, params object[] args)
         {
             var irq = InvokeCore(methodName, returnType, cancellationToken, args, streaming: false);
-            return irq.Task;
+            return irq.Result;
         }
 
         private InvocationRequest InvokeCore(string methodName, Type returnType, CancellationToken cancellationToken, object[] args, bool streaming)

@@ -326,7 +326,7 @@ namespace Microsoft.AspNetCore.SignalR
             }
         }
 
-        private async Task StreamResultsAsync(string invocationId, Connection connection, IHubProtocol protocol, IAsyncEnumerator<object> enumerator)
+        private async Task StreamResultsAsync(string invocationId, ConnectionContext connection, IHubProtocol protocol, IAsyncEnumerator<object> enumerator)
         {
             // TODO: Cancellation?
             try
@@ -377,13 +377,6 @@ namespace Microsoft.AspNetCore.SignalR
         private static bool IsIObservable(Type iface)
         {
             return iface.IsGenericType && iface.GetGenericTypeDefinition() == typeof(IObservable<>);
-        }
-
-        private void InitializeHub(THub hub, Connection connection)
-        {
-            hub.Clients = _hubContext.Clients;
-            hub.Context = new HubCallerContext(connection);
-            hub.Groups = new GroupManager<THub>(connection, _lifetimeManager);
         }
 
         private void DiscoverHubMethods()
