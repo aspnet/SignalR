@@ -10,7 +10,7 @@ namespace Microsoft.AspNetCore.SignalR
     {
         public static ISocketBuilder UseHub<THub>(this ISocketBuilder socketBuilder) where THub : Hub<IClientProxy>
         {
-            return socketBuilder.Use((connection, _) =>
+            return socketBuilder.Run(connection =>
             {
                 var endpoint = socketBuilder.ApplicationServices.GetRequiredService<HubEndPoint<THub>>();
                 return endpoint.OnConnectedAsync(connection);
