@@ -2,8 +2,8 @@
   "name": "signalr-client",
   "version": "0.1.0",
   "description": "ASP.NET Core SignalR",
-  "main": "./dist/src/index.js",
-  "types": "./dist/src/index.d.ts",
+  "main": "./dist/signalr-client.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
     "tsc": "tsc -p tsconfig.noEmit.json",
     "test": "jest --config jestconfig.json --runInBand",
