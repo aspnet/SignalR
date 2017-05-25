@@ -2,14 +2,12 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
-using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Internal;
 
 namespace Microsoft.AspNetCore.Sockets.Internal
 {
@@ -44,17 +42,31 @@ namespace Microsoft.AspNetCore.Sockets.Internal
             }
             else if (authorizeResult.Challenged)
             {
-                foreach (var scheme in authorizePolicy.AuthenticationSchemes)
+                if (authorizePolicy.AuthenticationSchemes.Count > 0)
                 {
-                    await context.ChallengeAsync(scheme);
+                    foreach (var scheme in authorizePolicy.AuthenticationSchemes)
+                    {
+                        await context.ChallengeAsync(scheme);
+                    }
+                }
+                else
+                {
+                    await context.ChallengeAsync();
                 }
                 return false;
             }
             else if (authorizeResult.Forbidden)
             {
-                foreach (var scheme in authorizePolicy.AuthenticationSchemes)
+                if (authorizePolicy.AuthenticationSchemes.Count > 0)
                 {
-                    await context.ForbidAsync(scheme);
+                    foreach (var scheme in authorizePolicy.AuthenticationSchemes)
+                    {
+                        await context.ForbidAsync(scheme);
+                    }
+                }
+                else
+                {
+                    await context.ForbidAsync();
                 }
                 return false;
             }
