@@ -61,7 +61,7 @@ describe('hubConnection', () => {
                     });
             });
 
-            it(`rethrows an exception from the server`, done => {
+            it(`rethrows an exception from the server when invoking`, done => {
                 const errorMessage = "An error occurred.";
                 let hubConnection = new signalR.HubConnection(TESTHUBENDPOINT_URL, 'formatType=json&format=text');
 
@@ -81,6 +81,33 @@ describe('hubConnection', () => {
                             .then(() => {
                                 done();
                             });
+                    })
+                    .catch(e => {
+                        fail(e);
+                        done();
+                    });
+            });
+
+            it(`rethrows an exception from the server when streaming`, done => {
+                const errorMessage = "An error occurred.";
+                let hubConnection = new signalR.HubConnection(TESTHUBENDPOINT_URL, 'formatType=json&format=text');
+
+                hubConnection.start(transportType)
+                    .then(() => {
+                        hubConnection.stream('ThrowException', errorMessage)
+                            .subscribe({
+                                next: (item) => {
+                                    fail();
+                                },
+                                error: (err) => {
+                                    expect(err.message).toEqual("An error occurred.");
+                                    done();
+                                },
+                                complete: () => {
+                                    fail();
+                                }
+                            });
+
                     })
                     .catch(e => {
                         fail(e);

@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace Microsoft.AspNetCore.SignalR.Client
 {
@@ -15,28 +16,34 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         public IDisposable Subscribe(IObserver<object> observer)
         {
+            // We lock here so that nobody can trigger completed/error
+            // until we've added our observer (if we're going to)
+            // If we're already completed/faulted, we can continue outside
+            // the lock safely because nobody can "uncomplete" or "unfault" us.
             lock (_lock)
             {
-                if (_completed)
-                {
-                    observer.OnCompleted();
-                    return Subscription.Null;
-                }
-                else if (_error != null)
-                {
-                    observer.OnError(_error);
-                    return Subscription.Null;
-                }
-                else
+                if (!_completed && _error == null)
                 {
                     _observers.Add(observer);
                     return new Subscription(this, observer);
                 }
             }
+
+            if(_error != null)
+            {
+                observer.OnError(_error);
+            }
+            else
+            {
+                Debug.Assert(_completed, "Expected that if the subject wasn't faulted, it was completed.");
+                observer.OnCompleted();
+            }
+            return Subscription.Null;
         }
 
         public bool TryOnCompleted()
         {
+            List<IObserver<object>> localObservers;
             lock (_lock)
             {
                 if (_completed || _error != null)
@@ -44,18 +51,21 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     return false;
                 }
 
+                localObservers = new List<IObserver<object>>(_observers);
                 _completed = true;
-                foreach (var observer in _observers)
-                {
-                    observer.OnCompleted();
-                }
                 _observers.Clear();
-                return true;
             }
+
+            foreach (var observer in localObservers)
+            {
+                observer.OnCompleted();
+            }
+            return true;
         }
 
         public bool TryOnError(Exception error)
         {
+            List<IObserver<object>> localObservers;
             lock (_lock)
             {
                 if (_completed || _error != null)
@@ -63,18 +73,21 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     return false;
                 }
 
+                localObservers = new List<IObserver<object>>(_observers);
                 _error = error;
-                foreach (var observer in _observers)
-                {
-                    observer.OnError(error);
-                }
                 _observers.Clear();
-                return true;
             }
+
+            foreach (var observer in localObservers)
+            {
+                observer.OnError(error);
+            }
+            return true;
         }
 
         public bool TryOnNext(object value)
         {
+            List<IObserver<object>> localObservers;
             lock (_lock)
             {
                 if (_completed || _error != null)
@@ -82,12 +95,14 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     return false;
                 }
 
-                foreach (var observer in _observers)
-                {
-                    observer.OnNext(value);
-                }
-                return true;
+                localObservers = new List<IObserver<object>>(_observers);
             }
+
+            foreach (var observer in localObservers)
+            {
+                observer.OnNext(value);
+            }
+            return true;
         }
 
         private void Unsubscribe(IObserver<object> observer)

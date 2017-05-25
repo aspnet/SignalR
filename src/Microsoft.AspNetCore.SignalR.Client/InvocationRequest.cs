@@ -8,64 +8,76 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.SignalR.Client
 {
-    internal class InvocationRequest : IDisposable
+    internal abstract class InvocationRequest : IDisposable
     {
-        private readonly TaskCompletionSource<object> _completionSource;
         private readonly CancellationTokenRegistration _cancellationTokenRegistration;
         private readonly bool _streaming;
-        private readonly ILogger _logger;
-        private readonly InvocationSubject _subject;
+
+        protected ILogger Logger { get; }
 
         public Type ResultType { get; }
         public CancellationToken CancellationToken { get; }
         public string InvocationId { get; }
 
-        public Task<object> Result => _completionSource?.Task ?? Task.FromResult<object>(null);
-        public IObservable<object> Observable => _subject;
-
-        public InvocationRequest(CancellationToken cancellationToken, Type resultType, string invocationId, ILoggerFactory loggerFactory, bool streaming)
+        protected InvocationRequest(CancellationToken cancellationToken, Type resultType, string invocationId, ILogger logger)
         {
-            _logger = loggerFactory.CreateLogger<InvocationRequest>();
-            _cancellationTokenRegistration = cancellationToken.Register(state => (state as TaskCompletionSource<object>)?.TrySetCanceled(), _completionSource);
-            _streaming = streaming;
-
-            if (_streaming)
-            {
-                _subject = new InvocationSubject();
-            }
-            else
-            {
-                _completionSource = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
-            }
+            _cancellationTokenRegistration = cancellationToken.Register(self => ((InvocationRequest)self).Cancel(), this);
 
             InvocationId = invocationId;
             CancellationToken = cancellationToken;
             ResultType = resultType;
 
-            _logger.LogTrace("Invocation {invocationId} created", InvocationId);
+            Logger.LogTrace("Invocation {invocationId} created", InvocationId);
         }
 
-        public void Fail(Exception exception)
+        public static InvocationRequest Invoke(CancellationToken cancellationToken, Type resultType, string invocationId, ILoggerFactory loggerFactory, out Task<object> result)
         {
-            _logger.LogTrace("Invocation {invocationId} marked as failed.", InvocationId);
-            if (_streaming)
-            {
-                _subject.TryOnError(exception);
-            }
-            else
-            {
-                _completionSource.TrySetException(exception);
-            }
+            var req = new NonStreaming(cancellationToken, resultType, invocationId, loggerFactory);
+            result = req.Result;
+            return req;
         }
 
-        public void Complete(object result)
+
+        public static InvocationRequest Stream(CancellationToken cancellationToken, Type resultType, string invocationId, ILoggerFactory loggerFactory, out IObservable<object> result)
         {
-            _logger.LogTrace("Invocation {invocationId} marked as completed.", InvocationId);
-            if (_streaming)
+            var req = new Streaming(cancellationToken, resultType, invocationId, loggerFactory);
+            result = req.Result;
+            return req;
+        }
+
+        public abstract void Fail(Exception exception);
+        public abstract void Complete(object result);
+        public abstract void StreamItem(object item);
+
+        protected abstract void Cancel();
+
+        public virtual void Dispose()
+        {
+            Logger.LogTrace("Invocation {invocationId} disposed", InvocationId);
+
+            // Just in case it hasn't already been completed
+            Cancel();
+
+            _cancellationTokenRegistration.Dispose();
+        }
+
+        private class Streaming : InvocationRequest
+        {
+            private readonly InvocationSubject _subject;
+
+            public Streaming(CancellationToken cancellationToken, Type resultType, string invocationId, ILoggerFactory loggerFactory)
+                : base(cancellationToken, resultType, invocationId, loggerFactory.CreateLogger<Streaming>())
             {
+            }
+
+            public IObservable<object> Result => _subject;
+
+            public override void Complete(object result)
+            {
+                Logger.LogTrace("Invocation {invocationId} marked as completed.", InvocationId);
                 if (result != null)
                 {
-                    _logger.LogError("Invocation {invocationId} received a completion result, but was invoked as a streaming invocation.", InvocationId);
+                    Logger.LogError("Invocation {invocationId} received a completion result, but was invoked as a streaming invocation.", InvocationId);
                     _subject.TryOnError(new InvalidOperationException("Server provided a result in a completion response to a streamed invocation."));
                 }
                 else
@@ -73,41 +85,58 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     _subject.TryOnCompleted();
                 }
             }
-            else
-            {
-                _completionSource.TrySetResult(result);
-            }
-        }
 
-        public void StreamItem(object item)
-        {
-            if (_streaming)
+            public override void Fail(Exception exception)
             {
-                _logger.LogTrace("Invocation {invocationId} received stream item.", InvocationId);
+                Logger.LogTrace("Invocation {invocationId} marked as failed.", InvocationId);
+                _subject.TryOnError(exception);
+            }
+
+            public override void StreamItem(object item)
+            {
+                Logger.LogTrace("Invocation {invocationId} received stream item.", InvocationId);
                 _subject.TryOnNext(item);
             }
-            else
-            {
-                _logger.LogError("Invocation {invocationId} received stream item but was invoked as a non-streamed invocation.", InvocationId);
-                _completionSource.TrySetException(new InvalidOperationException("Streaming methods must be invoked using HubConnection.Stream"));
-            }
-        }
 
-        public void Dispose()
-        {
-            _logger.LogTrace("Invocation {invocationId} disposed", InvocationId);
-
-            // Just in case it hasn't already been completed
-            if (_streaming)
+            protected override void Cancel()
             {
                 _subject.TryOnError(new OperationCanceledException("Connection terminated"));
             }
-            else
+        }
+
+        private class NonStreaming : InvocationRequest
+        {
+            private readonly TaskCompletionSource<object> _completionSource = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            public NonStreaming(CancellationToken cancellationToken, Type resultType, string invocationId, ILoggerFactory loggerFactory)
+                : base(cancellationToken, resultType, invocationId, loggerFactory.CreateLogger<NonStreaming>())
+            {
+            }
+
+            public Task<object> Result => _completionSource.Task;
+
+            public override void Complete(object result)
+            {
+                Logger.LogTrace("Invocation {invocationId} marked as completed.", InvocationId);
+                _completionSource.TrySetResult(result);
+            }
+
+            public override void Fail(Exception exception)
+            {
+                Logger.LogTrace("Invocation {invocationId} marked as failed.", InvocationId);
+                _completionSource.TrySetException(exception);
+            }
+
+            public override void StreamItem(object item)
+            {
+                Logger.LogError("Invocation {invocationId} received stream item but was invoked as a non-streamed invocation.", InvocationId);
+                _completionSource.TrySetException(new InvalidOperationException("Streaming methods must be invoked using HubConnection.Stream"));
+            }
+
+            protected override void Cancel()
             {
                 _completionSource.TrySetCanceled();
             }
-
-            _cancellationTokenRegistration.Dispose();
         }
     }
 }

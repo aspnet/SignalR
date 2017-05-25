@@ -12,7 +12,7 @@ describe("HubConnection", () => {
             let connection = new TestConnection();
 
             let hubConnection = new HubConnection(connection);
-            var invokePromise = hubConnection.invoke("testMethod", "foo", 42)
+            var invokePromise = hubConnection.invoke("testMethod", "arg", 42)
                 .catch((_) => { }); // Suppress exception and unhandled promise rejection warning.
 
             // Verify the message is sent
@@ -23,7 +23,7 @@ describe("HubConnection", () => {
                 target: "testMethod",
                 nonblocking: false,
                 arguments: [
-                    "foo",
+                    "arg",
                     42
                 ]
             });
@@ -36,7 +36,7 @@ describe("HubConnection", () => {
             let connection = new TestConnection();
 
             let hubConnection = new HubConnection(connection);
-            var invokePromise = hubConnection.invoke("testMethod", "foo", 42);
+            var invokePromise = hubConnection.invoke("testMethod", "arg", 42);
 
             connection.receive({ type: 3, invocationId: connection.lastInvocationId, error: "foo" });
 
@@ -48,7 +48,7 @@ describe("HubConnection", () => {
             let connection = new TestConnection();
 
             let hubConnection = new HubConnection(connection);
-            var invokePromise = hubConnection.invoke("testMethod", "foo", 42);
+            var invokePromise = hubConnection.invoke("testMethod", "arg", 42);
 
             connection.receive({ type: 3, invocationId: connection.lastInvocationId, result: "foo" });
 
@@ -97,7 +97,7 @@ describe("HubConnection", () => {
             let connection = new TestConnection();
 
             let hubConnection = new HubConnection(connection);
-            var invokePromise = hubConnection.stream("testStream", "foo", 42);
+            var invokePromise = hubConnection.stream("testStream", "arg", 42);
 
             // Verify the message is sent
             expect(connection.sentData.length).toBe(1);
@@ -107,7 +107,7 @@ describe("HubConnection", () => {
                 target: "testStream",
                 nonblocking: false,
                 arguments: [
-                    "foo",
+                    "arg",
                     42
                 ]
             });
@@ -121,7 +121,7 @@ describe("HubConnection", () => {
 
             let hubConnection = new HubConnection(connection);
             let observer = new TestObserver();
-            hubConnection.stream<any>("testMethod", "foo", 42)
+            hubConnection.stream<any>("testMethod", "arg", 42)
                 .subscribe(observer);
 
             connection.receive({ type: 3, invocationId: connection.lastInvocationId, error: "foo" });
@@ -136,7 +136,7 @@ describe("HubConnection", () => {
 
             let hubConnection = new HubConnection(connection);
             let observer = new TestObserver();
-            hubConnection.stream<any>("testMethod", "foo", 42)
+            hubConnection.stream<any>("testMethod", "arg", 42)
                 .subscribe(observer);
 
             connection.receive({ type: 3, invocationId: connection.lastInvocationId });
