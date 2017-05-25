@@ -10,7 +10,6 @@ namespace Microsoft.Extensions.DependencyInjection
         public static ISignalRBuilder AddSignalR(this IServiceCollection services)
         {
             services.AddSockets();
-            services.AddAuthorizationPolicyEvaluator();
             return services.AddSignalRCore();
         }
     }
