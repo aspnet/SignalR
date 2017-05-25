@@ -638,6 +638,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var services = new ServiceCollection();
             services.AddOptions();
             services.AddEndPoint<TestEndPoint>();
+            services.AddAuthorizationPolicyEvaluator();
             services.AddAuthorization(o =>
             {
                 o.AddPolicy("test", policy => policy.RequireClaim(ClaimTypes.NameIdentifier));
@@ -666,6 +667,46 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         }
 
         [Fact]
+        public async Task AuthenticatedUserWithoutPermissionCausesForbidden()
+        {
+            var manager = CreateConnectionManager();
+            var state = manager.CreateConnection();
+            var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
+            var context = new DefaultHttpContext();
+            var services = new ServiceCollection();
+            services.AddOptions();
+            services.AddEndPoint<TestEndPoint>();
+            services.AddAuthorizationPolicyEvaluator();
+            services.AddAuthorization(o =>
+            {
+                o.AddPolicy("test", policy => policy.RequireClaim(ClaimTypes.NameIdentifier));
+            });
+            services.AddAuthenticationCore(o => o.AddScheme("Default", a => a.HandlerType = typeof(TestAuthenticationHandler)));
+            services.AddLogging();
+            var sp = services.BuildServiceProvider();
+            context.Request.Path = "/foo";
+            context.Request.Method = "GET";
+            context.RequestServices = sp;
+            var values = new Dictionary<string, StringValues>();
+            values["id"] = state.Connection.ConnectionId;
+            var qs = new QueryCollection(values);
+            context.Request.Query = qs;
+
+            var builder = new SocketBuilder(sp);
+            builder.UseEndPoint<TestEndPoint>();
+            var app = builder.Build();
+            var options = new HttpSocketOptions();
+            options.AuthorizationPolicyNames.Add("test");
+
+            context.User = new ClaimsPrincipal(new ClaimsIdentity("authenticated"));
+
+            // would hang if EndPoint was running
+            await dispatcher.ExecuteAsync(context, options, app).OrTimeout();
+
+            Assert.Equal(StatusCodes.Status403Forbidden, context.Response.StatusCode);
+        }
+
+        [Fact]
         public async Task AuthorizedConnectionCanConnectToEndPoint()
         {
             var manager = CreateConnectionManager();
@@ -675,6 +716,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var services = new ServiceCollection();
             services.AddOptions();
             services.AddEndPoint<TestEndPoint>();
+            services.AddAuthorizationPolicyEvaluator();
             services.AddAuthorization(o =>
             {
                 o.AddPolicy("test", policy =>
@@ -712,59 +754,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             Assert.Equal("T12:T:Hello, World;", GetContentAsString(context.Response.Body));
         }
 
-        [Fact]
-        public async Task AllPoliciesRequiredForAuthorizedEndPoint()
-        {
-            var manager = CreateConnectionManager();
-            var state = manager.CreateConnection();
-            var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
-            var context = new DefaultHttpContext();
-            var services = new ServiceCollection();
-            services.AddOptions();
-            services.AddEndPoint<TestEndPoint>();
-            services.AddAuthorization(o =>
-            {
-                o.AddPolicy("test", policy => policy.RequireClaim(ClaimTypes.NameIdentifier));
-                o.AddPolicy("secondPolicy", policy => policy.RequireClaim(ClaimTypes.StreetAddress));
-            });
-            services.AddLogging();
-            services.AddAuthenticationCore(o => o.AddScheme("Default", a => a.HandlerType = typeof(TestAuthenticationHandler)));
-            var sp = services.BuildServiceProvider();
-            context.Request.Path = "/foo";
-            context.Request.Method = "GET";
-            context.RequestServices = sp;
-            var values = new Dictionary<string, StringValues>();
-            values["id"] = state.Connection.ConnectionId;
-            var qs = new QueryCollection(values);
-            context.Request.Query = qs;
-            context.Response.Body = new MemoryStream();
-
-            var builder = new SocketBuilder(sp);
-            builder.UseEndPoint<TestEndPoint>();
-            var app = builder.Build();
-            var options = new HttpSocketOptions();
-            options.AuthorizationPolicyNames.Add("test");
-            options.AuthorizationPolicyNames.Add("secondPolicy");
-
-            // partialy "authorize" user
-            context.User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "name") }));
-
-            // would hang if EndPoint was running
-            await dispatcher.ExecuteAsync(context, options, app).OrTimeout();
-
-            Assert.Equal(StatusCodes.Status401Unauthorized, context.Response.StatusCode);
-
-            // fully "authorize" user
-            context.User.AddIdentity(new ClaimsIdentity(new[] { new Claim(ClaimTypes.StreetAddress, "12345 123rd St. NW") }));
-
-            var endPointTask = dispatcher.ExecuteAsync(context, options, app);
-            await state.Connection.Transport.Output.WriteAsync(new Message(Encoding.UTF8.GetBytes("Hello, World"), MessageType.Text)).OrTimeout();
-
-            await endPointTask.OrTimeout();
-
-            Assert.Equal("T12:T:Hello, World;", GetContentAsString(context.Response.Body));
-        }
-
+ 
         [Fact]
         public async Task AuthorizedConnectionWithAcceptedSchemesCanConnectToEndPoint()
         {
@@ -783,6 +773,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                     policy.AddAuthenticationSchemes("Default");
                 });
             });
+            services.AddAuthorizationPolicyEvaluator();
             services.AddLogging();
             services.AddAuthenticationCore(o => o.AddScheme("Default", a => a.HandlerType = typeof(TestAuthenticationHandler)));
             var sp = services.BuildServiceProvider();
@@ -831,6 +822,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                     policy.AddAuthenticationSchemes("Default");
                 });
             });
+            services.AddAuthorizationPolicyEvaluator();
             services.AddLogging();
             services.AddAuthenticationCore(o => o.AddScheme("Default", a => a.HandlerType = typeof(RejectHandler)));
             var sp = services.BuildServiceProvider();
