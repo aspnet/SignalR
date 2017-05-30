@@ -59,29 +59,23 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                 // TODO: We could support reconnecting, like old SignalR does.
                 throw new InvalidOperationException("Connection to redis failed.");
             }
+            _redisServerConnection.PreserveAsyncOrder = true;
             _bus = _redisServerConnection.GetSubscriber();
-
-            var previousBroadcastTask = Task.CompletedTask;
 
             var channelName = typeof(THub).FullName;
             _logger.LogInformation("Subscribing to channel: {channel}", channelName);
             _bus.Subscribe(channelName, async (c, data) =>
             {
-                await previousBroadcastTask;
-
                 _logger.LogTrace("Received message from redis channel {channel}", channelName);
 
                 var message = DeserializeMessage(data);
 
                 // TODO: This isn't going to work when we allow JsonSerializer customization or add Protobuf
-                var tasks = new List<Task>(_connections.Count);
 
                 foreach (var connection in _connections)
                 {
-                    tasks.Add(WriteAsync(connection, message));
+                    await WriteAsync(connection, message);
                 }
-
-                previousBroadcastTask = Task.WhenAll(tasks);
             });
         }
 
@@ -139,16 +133,12 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             var connectionChannel = typeof(THub).FullName + "." + connection.ConnectionId;
             redisSubscriptions.Add(connectionChannel);
 
-            var previousConnectionTask = Task.CompletedTask;
-
             _logger.LogInformation("Subscribing to connection channel: {channel}", connectionChannel);
             connectionTask = _bus.SubscribeAsync(connectionChannel, async (c, data) =>
             {
-                await previousConnectionTask;
-
                 var message = DeserializeMessage(data);
 
-                previousConnectionTask = WriteAsync(connection, message);
+                await WriteAsync(connection, message);
             });
 
 
@@ -157,16 +147,12 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                 var userChannel = typeof(THub).FullName + ".user." + connection.User.Identity.Name;
                 redisSubscriptions.Add(userChannel);
 
-                var previousUserTask = Task.CompletedTask;
-
                 // TODO: Look at optimizing (looping over connections checking for Name)
                 userTask = _bus.SubscribeAsync(userChannel, async (c, data) =>
                 {
-                    await previousUserTask;
-
                     var message = DeserializeMessage(data);
 
-                    previousUserTask = WriteAsync(connection, message);
+                    await WriteAsync(connection, message);
                 });
             }
 
@@ -228,25 +214,15 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                     return;
                 }
 
-                var previousTask = Task.CompletedTask;
-
                 _logger.LogInformation("Subscribing to group channel: {channel}", groupChannel);
                 await _bus.SubscribeAsync(groupChannel, async (c, data) =>
                 {
-                    // Since this callback is async, we await the previous task then
-                    // before sending the current message. This is because we don't
-                    // want to do concurrent writes to the outgoing connections
-                    await previousTask;
-
                     var message = DeserializeMessage(data);
 
-                    var tasks = new List<Task>(group.Connections.Count);
                     foreach (var groupConnection in group.Connections)
                     {
-                        tasks.Add(WriteAsync(groupConnection, message));
+                        await WriteAsync(groupConnection, message);
                     }
-
-                    previousTask = Task.WhenAll(tasks);
                 });
             }
             finally
