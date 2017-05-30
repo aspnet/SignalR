@@ -8,6 +8,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.Sockets;
@@ -115,7 +116,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             _handlers.AddOrUpdate(methodName, invocationHandler, (_, __) => invocationHandler);
         }
 
-        public IObservable<object> Stream(string methodName, Type returnType, CancellationToken cancellationToken, params object[] args)
+        public ReadableChannel<object> Stream(string methodName, Type returnType, CancellationToken cancellationToken, params object[] args)
         {
             var irq = InvocationRequest.Stream(cancellationToken, returnType, GetNextId(), _loggerFactory, out var observable);
             InvokeCore(methodName, irq, args);
@@ -161,7 +162,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
                 _logger.LogInformation("Sending Invocation '{invocationId}'", invocationMessage.InvocationId);
 
-                await _connection.SendAsync(payload, _protocol.MessageType, cancellationToken);
+                await _connection.SendAsync(payload, _protocol.MessageType, irq.CancellationToken);
                 _logger.LogInformation("Sending Invocation '{invocationId}' complete", invocationMessage.InvocationId);
             }
             catch (Exception ex)
@@ -203,7 +204,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                         _logger.LogWarning("Dropped unsolicited Stream Item message for invocation '{invocationId}'", streamItem.InvocationId);
                         return;
                     }
-                    DispatchInvocationStreamItem(streamItem, irq);
+                    DispatchInvocationStreamItemAsync(streamItem, irq);
                     break;
                 default:
                     throw new InvalidOperationException($"Unknown message type: {message.GetType().FullName}");
@@ -252,7 +253,9 @@ namespace Microsoft.AspNetCore.SignalR.Client
             handler.Handler(invocation.Arguments);
         }
 
-        private void DispatchInvocationStreamItem(StreamItemMessage streamItem, InvocationRequest irq)
+        // This async void is GROSS but we need to dispatch asynchronously because we're writing to a Channel
+        // and there's nobody to actually wait for us to finish.
+        private async void DispatchInvocationStreamItemAsync(StreamItemMessage streamItem, InvocationRequest irq)
         {
             _logger.LogTrace("Received StreamItem for Invocation #{invocationId}", streamItem.InvocationId);
 
@@ -260,9 +263,9 @@ namespace Microsoft.AspNetCore.SignalR.Client
             {
                 _logger.LogTrace("Canceling dispatch of StreamItem message for Invocation {invocationId}. The invocation was cancelled.", irq.InvocationId);
             }
-            else
+            else if (!await irq.StreamItem(streamItem.Item))
             {
-                irq.StreamItem(streamItem.Item);
+                _logger.LogWarning("Invocation {invocationId} received stream item after channel was closed.", irq.InvocationId);
             }
         }
 

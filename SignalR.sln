@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26517.0
+VisualStudioVersion = 15.0.26526.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{DA69F624-5398-4884-87E4-B816698CDE65}"
 EndProject
@@ -69,6 +69,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Common", "Common", "{6CEC3DC2-5B01-45A8-8F0D-8531315DA90B}"
 	ProjectSection(SolutionItems) = preProject
 		test\Common\ArrayOutput.cs = test\Common\ArrayOutput.cs
+		test\Common\ByteArrayExtensions.cs = test\Common\ByteArrayExtensions.cs
+		test\Common\ChannelExtensions.cs = test\Common\ChannelExtensions.cs
 		test\Common\TaskExtensions.cs = test\Common\TaskExtensions.cs
 	EndProjectSection
 EndProject

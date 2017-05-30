@@ -3,8 +3,8 @@
 
 using System;
 using System.Reactive.Linq;
-using System.Reactive.Threading.Tasks;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.SignalR.Tests.Common;
@@ -52,7 +52,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
             using (var httpClient = _testServer.CreateClient())
             {
-                var connection = new HubConnection(new Uri("http://test/hubs", loggerFactory));
+                var connection = new HubConnection(new Uri("http://test/hubs"), loggerFactory);
                 try
                 {
                     await connection.StartAsync(TransportType.LongPolling, httpClient);
@@ -76,7 +76,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
             using (var httpClient = _testServer.CreateClient())
             {
-                var connection = new HubConnection(new Uri("http://test/hubs", loggerFactory));
+                var connection = new HubConnection(new Uri("http://test/hubs"), loggerFactory);
                 try
                 {
                     await connection.StartAsync(TransportType.LongPolling, httpClient);
@@ -157,9 +157,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
                     var tcs = new TaskCompletionSource<string>();
 
-                    var results = await connection.Stream<string>(nameof(TestHub.Stream)).ToArray().ToTask().OrTimeout();
+                    var results = await connection.Stream<string>(nameof(TestHub.Stream)).ReadAllAsync().OrTimeout();
 
-                    Assert.Equal(new[] { "a", "b", "c" }, results);
+                    Assert.Equal(new[] { "a", "b", "c" }, results.ToArray());
                 }
                 finally
                 {

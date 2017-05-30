@@ -4,6 +4,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Channels;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.SignalR.Client
@@ -11,7 +12,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
     internal abstract class InvocationRequest : IDisposable
     {
         private readonly CancellationTokenRegistration _cancellationTokenRegistration;
-        private readonly bool _streaming;
 
         protected ILogger Logger { get; }
 
@@ -26,6 +26,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             InvocationId = invocationId;
             CancellationToken = cancellationToken;
             ResultType = resultType;
+            Logger = logger;
 
             Logger.LogTrace("Invocation {invocationId} created", InvocationId);
         }
@@ -38,7 +39,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         }
 
 
-        public static InvocationRequest Stream(CancellationToken cancellationToken, Type resultType, string invocationId, ILoggerFactory loggerFactory, out IObservable<object> result)
+        public static InvocationRequest Stream(CancellationToken cancellationToken, Type resultType, string invocationId, ILoggerFactory loggerFactory, out ReadableChannel<object> result)
         {
             var req = new Streaming(cancellationToken, resultType, invocationId, loggerFactory);
             result = req.Result;
@@ -47,7 +48,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         public abstract void Fail(Exception exception);
         public abstract void Complete(object result);
-        public abstract void StreamItem(object item);
+        public abstract Task<bool> StreamItem(object item);
 
         protected abstract void Cancel();
 
@@ -63,14 +64,14 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private class Streaming : InvocationRequest
         {
-            private readonly InvocationSubject _subject;
+            private readonly Channel<object> _channel = Channel.CreateUnbounded<object>();
 
             public Streaming(CancellationToken cancellationToken, Type resultType, string invocationId, ILoggerFactory loggerFactory)
                 : base(cancellationToken, resultType, invocationId, loggerFactory.CreateLogger<Streaming>())
             {
             }
 
-            public IObservable<object> Result => _subject;
+            public ReadableChannel<object> Result => _channel.In;
 
             public override void Complete(object result)
             {
@@ -78,29 +79,36 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 if (result != null)
                 {
                     Logger.LogError("Invocation {invocationId} received a completion result, but was invoked as a streaming invocation.", InvocationId);
-                    _subject.TryOnError(new InvalidOperationException("Server provided a result in a completion response to a streamed invocation."));
+                    _channel.Out.TryComplete(new InvalidOperationException("Server provided a result in a completion response to a streamed invocation."));
                 }
                 else
                 {
-                    _subject.TryOnCompleted();
+                    _channel.Out.TryComplete();
                 }
             }
 
             public override void Fail(Exception exception)
             {
                 Logger.LogTrace("Invocation {invocationId} marked as failed.", InvocationId);
-                _subject.TryOnError(exception);
+                _channel.Out.TryComplete(exception);
             }
 
-            public override void StreamItem(object item)
+            public override async Task<bool> StreamItem(object item)
             {
                 Logger.LogTrace("Invocation {invocationId} received stream item.", InvocationId);
-                _subject.TryOnNext(item);
+                while(!_channel.Out.TryWrite(item))
+                {
+                    if(!await _channel.Out.WaitToWriteAsync())
+                    {
+                        return false;
+                    }
+                }
+                return true;
             }
 
             protected override void Cancel()
             {
-                _subject.TryOnError(new OperationCanceledException("Connection terminated"));
+                _channel.Out.TryComplete(new OperationCanceledException("Connection terminated"));
             }
         }
 
@@ -127,10 +135,13 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 _completionSource.TrySetException(exception);
             }
 
-            public override void StreamItem(object item)
+            public override Task<bool> StreamItem(object item)
             {
                 Logger.LogError("Invocation {invocationId} received stream item but was invoked as a non-streamed invocation.", InvocationId);
                 _completionSource.TrySetException(new InvalidOperationException("Streaming methods must be invoked using HubConnection.Stream"));
+
+                // We "delivered" the stream item successfully as far as the caller cares
+                return Task.FromResult(true);
             }
 
             protected override void Cancel()

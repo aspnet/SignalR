@@ -2,11 +2,8 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
-using System.Linq;
-using System.Reactive;
-using System.Reactive.Linq;
-using System.Reactive.Threading.Tasks;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.SignalR.Tests.Common;
 using Microsoft.Extensions.Logging;
@@ -51,11 +48,15 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 await hubConnection.StartAsync();
 
-                var observable = hubConnection.Stream<object>("Foo");
+                var channel = hubConnection.Stream<object>("Foo");
 
                 var invokeMessage = await connection.ReadSentTextMessageAsync().OrTimeout();
 
                 Assert.Equal("{\"invocationId\":\"1\",\"type\":1,\"target\":\"Foo\",\"arguments\":[]}", invokeMessage);
+
+                // Complete the channel
+                await connection.ReceiveJsonMessage(new { invocationId = "1", type = 3 }).OrTimeout();
+                await channel.Completion;
             }
             finally
             {
@@ -95,11 +96,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 await hubConnection.StartAsync();
 
-                var observable = hubConnection.Stream<int>("Foo");
+                var channel = hubConnection.Stream<int>("Foo");
 
                 await connection.ReceiveJsonMessage(new { invocationId = "1", type = 3 }).OrTimeout();
 
-                Assert.True(await observable.IsEmpty().Timeout(TimeSpan.FromSeconds(1)));
+                Assert.Empty(await channel.ReadAllAsync());
             }
             finally
             {
@@ -139,11 +140,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 await hubConnection.StartAsync();
 
-                var observable = hubConnection.Stream<string>("Foo");
+                var channel = hubConnection.Stream<string>("Foo");
 
                 await connection.ReceiveJsonMessage(new { invocationId = "1", type = 3, result = "Oops" }).OrTimeout();
 
-                var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () => await observable.Timeout(TimeSpan.FromSeconds(1)));
+                var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () => await channel.ReadAllAsync().OrTimeout());
                 Assert.Equal("Server provided a result in a completion response to a streamed invocation.", ex.Message);
             }
             finally
@@ -185,11 +186,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 await hubConnection.StartAsync();
 
-                var observable = hubConnection.Stream<int>("Foo");
+                var channel = hubConnection.Stream<int>("Foo");
 
                 await connection.ReceiveJsonMessage(new { invocationId = "1", type = 3, error = "An error occurred" }).OrTimeout();
 
-                var ex = await Assert.ThrowsAsync<HubException>(async () => await observable.Timeout(TimeSpan.FromSeconds(1)));
+                var ex = await Assert.ThrowsAsync<HubException>(async () => await channel.ReadAllAsync().OrTimeout());
                 Assert.Equal("An error occurred", ex.Message);
             }
             finally
@@ -231,25 +232,16 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 await hubConnection.StartAsync();
 
-                var observable = hubConnection.Stream<string>("Foo");
-
-                // Materialize notifications, and create a Task to force the observer to be subscribed.
-                var listResult = observable.Materialize().ToList().ToTask();
+                var channel = hubConnection.Stream<string>("Foo");
 
                 await connection.ReceiveJsonMessage(new { invocationId = "1", type = 2, item = "1" }).OrTimeout();
                 await connection.ReceiveJsonMessage(new { invocationId = "1", type = 2, item = "2" }).OrTimeout();
                 await connection.ReceiveJsonMessage(new { invocationId = "1", type = 2, item = "3" }).OrTimeout();
                 await connection.ReceiveJsonMessage(new { invocationId = "1", type = 3 }).OrTimeout();
 
-                var notifications = await listResult;
+                var notifications = await channel.ReadAllAsync().OrTimeout();
 
-                Assert.Equal(new[]
-                {
-                    Notification.CreateOnNext("1"),
-                    Notification.CreateOnNext("2"),
-                    Notification.CreateOnNext("3"),
-                    Notification.CreateOnCompleted<string>()
-                }, notifications.ToArray());
+                Assert.Equal(new[] { "1", "2", "3", }, notifications.ToArray());
             }
             finally
             {
