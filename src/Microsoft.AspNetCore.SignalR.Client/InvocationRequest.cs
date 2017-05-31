@@ -48,7 +48,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         public abstract void Fail(Exception exception);
         public abstract void Complete(object result);
-        public abstract Task<bool> StreamItem(object item);
+        public abstract ValueTask<bool> StreamItem(object item);
 
         protected abstract void Cancel();
 
@@ -93,15 +93,22 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 _channel.Out.TryComplete(exception);
             }
 
-            public override async Task<bool> StreamItem(object item)
+            public override async ValueTask<bool> StreamItem(object item)
             {
-                Logger.LogTrace("Invocation {invocationId} received stream item.", InvocationId);
-                while(!_channel.Out.TryWrite(item))
+                try
                 {
-                    if(!await _channel.Out.WaitToWriteAsync())
+                    Logger.LogTrace("Invocation {invocationId} received stream item.", InvocationId);
+                    while (!_channel.Out.TryWrite(item))
                     {
-                        return false;
+                        if (!await _channel.Out.WaitToWriteAsync())
+                        {
+                            return false;
+                        }
                     }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Invocation {invocationId} caused an error trying to write a stream item.", InvocationId);
                 }
                 return true;
             }
@@ -135,13 +142,13 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 _completionSource.TrySetException(exception);
             }
 
-            public override Task<bool> StreamItem(object item)
+            public override ValueTask<bool> StreamItem(object item)
             {
                 Logger.LogError("Invocation {invocationId} received stream item but was invoked as a non-streamed invocation.", InvocationId);
                 _completionSource.TrySetException(new InvalidOperationException("Streaming methods must be invoked using HubConnection.Stream"));
 
                 // We "delivered" the stream item successfully as far as the caller cares
-                return Task.FromResult(true);
+                return new ValueTask<bool>(true);
             }
 
             protected override void Cancel()

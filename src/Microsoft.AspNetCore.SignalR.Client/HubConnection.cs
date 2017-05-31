@@ -118,9 +118,9 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         public ReadableChannel<object> Stream(string methodName, Type returnType, CancellationToken cancellationToken, params object[] args)
         {
-            var irq = InvocationRequest.Stream(cancellationToken, returnType, GetNextId(), _loggerFactory, out var observable);
+            var irq = InvocationRequest.Stream(cancellationToken, returnType, GetNextId(), _loggerFactory, out var channel);
             InvokeCore(methodName, irq, args);
-            return observable;
+            return channel;
         }
 
         public Task<object> Invoke(string methodName, Type returnType, CancellationToken cancellationToken, params object[] args)
