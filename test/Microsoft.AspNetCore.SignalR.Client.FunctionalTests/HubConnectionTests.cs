@@ -28,7 +28,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 {
                     services.AddSignalR();
                 })
-                .ConfigureLogging(loggerFactory =>
+                .ConfigureLogging((_, loggerFactory) =>
                 {
                     if (_verbose)
                     {
