@@ -7,6 +7,8 @@ env:
     - DOTNET_CLI_TELEMETRY_OPTOUT: 1
     - SIGNALR_TESTS_VERBOSE: 1
     - TRAVIS_NODE_VERSION: 6.9.1
+    - MSBUILDDEBUGCOMM: 1
+    - MSBUILDDEBUGPATH: /tmp/msbuild
 mono: none
 python:
   - "2.7"
@@ -25,3 +27,15 @@ before_install:
   - if test "$TRAVIS_OS_NAME" == "linux"; then nvm install $TRAVIS_NODE_VERSION; fi
 script:
   - ./build.sh
+after_failure:
+  - find / -iname MSBuild_* 2>/dev/null
+  - ls -al /tmp/*
+  - ls /var/tmp/*
+  - cat /tmp/MSBuild_*.failure.txt
+  - cat /var/tmp/MSBuild_*.failure.txt
+  - cat /tmp/*.txt
+  - cat /tmp/msbuild/*.txt
+after_success:
+  - ls -al /tmp/*
+  - cat /tmp/*.txt
+  - cat /tmp/msbuild/*.txt
