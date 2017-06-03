@@ -147,7 +147,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         public void Dispose()
         {
             _cts.Cancel();
-            Connection.Transport.Output.TryComplete();
+            Connection.Transport.Dispose();
         }
 
         private static string GetInvocationId()
