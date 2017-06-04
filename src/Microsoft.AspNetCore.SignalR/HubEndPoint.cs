@@ -248,7 +248,7 @@ namespace Microsoft.AspNetCore.SignalR
 
             if (payload.Unread[0] != MessageFormatter.GetFormatIndicator(messageFormat))
             {
-                throw new FormatException($"Format indicator '{(char)payload.Unread[0]}' does not match format determined by Content-Type '{MessageFormatter.GetContentType(messageFormat)}'");
+                throw new FormatException($"Format indicator '{(char)payload.Unread[0]}' does not match format");
             }
 
             payload.Advance(1);

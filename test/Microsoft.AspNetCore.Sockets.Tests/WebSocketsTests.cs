@@ -18,9 +18,9 @@ namespace Microsoft.AspNetCore.Sockets.Tests
     public class WebSocketsTests
     {
         [Theory]
-        [InlineData(MessageType.Text, WebSocketMessageType.Text)]
-        [InlineData(MessageType.Binary, WebSocketMessageType.Binary)]
-        public async Task ReceivedFramesAreWrittenToChannel(MessageType format, WebSocketMessageType webSocketMessageType)
+        [InlineData(WebSocketMessageType.Text)]
+        [InlineData(WebSocketMessageType.Binary)]
+        public async Task ReceivedFramesAreWrittenToChannel(WebSocketMessageType webSocketMessageType)
         {
             var transportToApplication = Channel.CreateUnbounded<byte[]>();
             var applicationToTransport = Channel.CreateUnbounded<byte[]>();

@@ -83,7 +83,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 {
                     var request = new HttpRequestMessage(HttpMethod.Get, pollUrl);
                     request.Headers.UserAgent.Add(SendUtils.DefaultUserAgentHeader);
-                    request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(MessageFormatter.BinaryContentType));
+                    request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(ContentTypes.BinaryContentType));
 
                     var response = await _httpClient.SendAsync(request, cancellationToken);
                     response.EnsureSuccessStatusCode();
@@ -98,8 +98,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     else
                     {
                         _logger.LogDebug("Received messages from the server");
-
-                        var messageFormat = MessageParser.GetFormatFromContentType(response.Content.Headers.ContentType.ToString());
 
                         // Until Pipeline starts natively supporting BytesReader, this is the easiest way to do this.
                         var payload = await response.Content.ReadAsByteArrayAsync();

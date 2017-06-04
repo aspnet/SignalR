@@ -36,10 +36,10 @@ namespace Microsoft.AspNetCore.Sockets.Transports
                 }
 
                 var headers = context.Request.GetTypedHeaders();
-                var messageFormat = headers.Accept?.Contains(new Net.Http.Headers.MediaTypeHeaderValue(MessageFormatter.BinaryContentType)) == true ?
+                var messageFormat = headers.Accept?.Contains(new Net.Http.Headers.MediaTypeHeaderValue(ContentTypes.BinaryContentType)) == true ?
                 MessageFormat.Binary :
                 MessageFormat.Text;
-                context.Response.ContentType = MessageFormatter.GetContentType(messageFormat);
+                context.Response.ContentType = ContentTypes.GetContentType(messageFormat);
 
                 var contentLength = 0;
                 var buffers = new List<byte[]>();

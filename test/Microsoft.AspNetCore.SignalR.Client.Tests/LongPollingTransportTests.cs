@@ -232,7 +232,7 @@ namespace Microsoft.AspNetCore.Client.Tests
                     if (firstCall)
                     {
                         firstCall = false;
-                        return ResponseUtils.CreateResponse(HttpStatusCode.OK, MessageFormatter.BinaryContentType, encoded);
+                        return ResponseUtils.CreateResponse(HttpStatusCode.OK, ContentTypes.BinaryContentType, encoded);
                     }
 
                     return ResponseUtils.CreateResponse(HttpStatusCode.NoContent);
@@ -265,7 +265,7 @@ namespace Microsoft.AspNetCore.Client.Tests
 
                     // Check the provided request
                     Assert.Equal(2, sentRequests.Count);
-                    Assert.Contains(MessageFormatter.BinaryContentType, sentRequests[0].Headers.Accept.FirstOrDefault()?.ToString());
+                    Assert.Contains(ContentTypes.BinaryContentType, sentRequests[0].Headers.Accept.FirstOrDefault()?.ToString());
 
                     // Check the messages received
                     Assert.Equal(2, messages.Count);

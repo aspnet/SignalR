@@ -3,10 +3,7 @@
 
 using System;
 using System.Binary;
-using System.Binary.Base64;
 using System.Buffers;
-using System.Text;
-using System.Text.Formatting;
 
 namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
 {

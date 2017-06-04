@@ -114,10 +114,6 @@ export namespace TextMessageFormat {
             return []
         }
 
-        //if (input[0] != 'T') {
-        //    throw new Error(`Unsupported message format: '${input[0]}'`);
-        //}
-
         let messages = [];
         var offset = 0;
         while (offset < input.length) {

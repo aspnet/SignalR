@@ -591,7 +591,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                     {
                         content = "T2:T:42;";
                     }
-                    return ResponseUtils.CreateResponse(HttpStatusCode.OK, MessageFormatter.TextContentType, content);
+                    return ResponseUtils.CreateResponse(HttpStatusCode.OK, ContentTypes.TextContentType, content);
                 });
 
             using (var httpClient = new HttpClient(mockHttpHandler.Object))

@@ -35,12 +35,7 @@ namespace SocialWeather
         {
             foreach (var connection in _connectionList)
             {
-                var context = connection.Metadata.Get<HttpContext>(ConnectionMetadataNames.HttpContext);
-                var format =
-                    string.Equals(context.Request.Query["format"], "binary", StringComparison.OrdinalIgnoreCase)
-                        ? MessageType.Binary
-                        : MessageType.Text;
-
+                var context = connection.GetHttpContext();
                 var formatter = _formatterResolver.GetFormatter<T>(connection.Metadata.Get<string>("format"));
                 var ms = new MemoryStream();
                 await formatter.WriteAsync(data, ms);

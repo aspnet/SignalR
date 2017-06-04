@@ -8,7 +8,6 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Sockets.Internal.Formatters;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.Sockets.Client
@@ -52,7 +51,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
                         // Set the, now filled, stream as the content
                         request.Content = new StreamContent(memoryStream);
-                        request.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(MessageFormatter.GetContentType(MessageFormat.Binary));
+                        request.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(ContentTypes.GetContentType(MessageFormat.Binary));
 
                         var response = await httpClient.SendAsync(request);
                         response.EnsureSuccessStatusCode();

@@ -122,8 +122,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     await connection.SendAsync(bytes).OrTimeout();
                     logger.LogInformation("Sent message", bytes.Length);
 
-                    var receiveData = new ReceiveData();
-
                     logger.LogInformation("Receiving message");
                     Assert.Equal(message, await receiveTcs.Task.OrTimeout());
                     logger.LogInformation("Completed receive");
@@ -176,8 +174,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     logger.LogInformation("Sending {length} byte message", bytes.Length);
                     await connection.SendAsync(bytes).OrTimeout();
                     logger.LogInformation("Sent message", bytes.Length);
-
-                    var receiveData = new ReceiveData();
 
                     logger.LogInformation("Receiving message");
                     var receivedData = await receiveTcs.Task.OrTimeout();
