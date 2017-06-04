@@ -176,6 +176,9 @@ namespace Microsoft.AspNetCore.Sockets
                     }
                     else
                     {
+                        // Set the http context metadata since we removed it after the previous poll completed
+                        connection.Metadata[ConnectionMetadataNames.HttpContext] = context;
+
                         _logger.LogDebug("Resuming existing connection: {connectionId} on {requestId}", connection.ConnectionId, connection.GetHttpContext().TraceIdentifier);
                     }
 
