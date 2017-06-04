@@ -176,9 +176,6 @@ namespace Microsoft.AspNetCore.Sockets
                     }
                     else
                     {
-                        // Set the http context metadata since we removed it after the previous poll completed
-                        connection.Metadata[ConnectionMetadataNames.HttpContext] = context;
-
                         _logger.LogDebug("Resuming existing connection: {connectionId} on {requestId}", connection.ConnectionId, connection.GetHttpContext().TraceIdentifier);
                     }
 
@@ -257,16 +254,6 @@ namespace Microsoft.AspNetCore.Sockets
             }
         }
 
-        private DefaultConnectionContext CreateConnection(HttpContext context)
-        {
-            var connection = _manager.CreateConnection();
-            var format = (string)context.Request.Query[ConnectionMetadataNames.Format];
-            connection.User = context.User;
-            connection.Metadata[ConnectionMetadataNames.HttpContext] = context;
-            connection.Metadata[ConnectionMetadataNames.Format] = string.IsNullOrEmpty(format) ? "json" : format;
-            return connection;
-        }
-
         private async Task DoPersistentConnection(SocketDelegate socketDelegate,
                                                   IHttpTransport transport,
                                                   HttpContext context,
@@ -333,7 +320,7 @@ namespace Microsoft.AspNetCore.Sockets
             context.Response.ContentType = "text/plain";
 
             // Establish the connection
-            var connection = CreateConnection(context);
+            var connection = _manager.CreateConnection();
 
             // Get the bytes for the connection id
             var connectionIdBuffer = Encoding.UTF8.GetBytes(connection.ConnectionId);
@@ -404,8 +391,6 @@ namespace Microsoft.AspNetCore.Sockets
                 return false;
             }
 
-            connection.User = context.User;
-
             var transport = connection.Metadata.Get<TransportType?>(ConnectionMetadataNames.Transport);
 
             if (transport == null)
@@ -418,6 +403,13 @@ namespace Microsoft.AspNetCore.Sockets
                 await context.Response.WriteAsync("Cannot change transports mid-connection");
                 return false;
             }
+
+            // Setup the connection state from the http context
+            var format = (string)context.Request.Query[ConnectionMetadataNames.Format];
+            connection.User = context.User;
+            connection.Metadata[ConnectionMetadataNames.HttpContext] = context;
+            connection.Metadata[ConnectionMetadataNames.Format] = string.IsNullOrEmpty(format) ? "json" : format;
+
             return true;
         }
 
@@ -452,7 +444,7 @@ namespace Microsoft.AspNetCore.Sockets
             // There's no connection id so this is a brand new connection
             if (StringValues.IsNullOrEmpty(connectionId))
             {
-                connection = CreateConnection(context);
+                connection = _manager.CreateConnection();
             }
             else if (!_manager.TryGetConnection(connectionId, out connection))
             {
