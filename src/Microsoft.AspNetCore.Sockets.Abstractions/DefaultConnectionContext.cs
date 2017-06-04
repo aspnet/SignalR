@@ -20,6 +20,7 @@ namespace Microsoft.AspNetCore.Sockets
             Transport = transport;
             Application = application;
             ConnectionId = id;
+            LastSeenUtc = DateTime.UtcNow;
         }
 
         public CancellationTokenSource Cancellation { get; set; }

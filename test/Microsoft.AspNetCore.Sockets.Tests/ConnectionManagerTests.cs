@@ -22,6 +22,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             Assert.Null(connection.ApplicationTask);
             Assert.Null(connection.TransportTask);
             Assert.Null(connection.Cancellation);
+            Assert.NotEqual(default(DateTime), connection.LastSeenUtc);
             Assert.NotNull(connection.Transport);
         }
 
