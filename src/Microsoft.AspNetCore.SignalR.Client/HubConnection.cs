@@ -167,21 +167,10 @@ namespace Microsoft.AspNetCore.SignalR.Client
             try
             {
                 var payload = await _protocol.WriteToArrayAsync(invocationMessage);
-                var memoryStream = new MemoryStream();
-
-                // Write the messages to the stream
-                var pipe = memoryStream.AsPipelineWriter();
-                var output = new PipelineTextOutput(pipe, TextEncoder.Utf8);
-                var message = new Message(payload, MessageType.Text);
-
-                output.Append(MessageFormatter.GetFormatIndicator(MessageFormat.Text), TextEncoder.Utf8);
-
-                MessageFormatter.TryWriteMessage(message, output, MessageFormat.Text);
-                await output.FlushAsync();
 
                 _logger.LogInformation("Sending Invocation '{invocationId}'", invocationMessage.InvocationId);
 
-                await _connection.SendAsync(memoryStream.ToArray(), irq.CancellationToken);
+                await _connection.SendAsync(payload, irq.CancellationToken);
                 _logger.LogInformation("Sending Invocation '{invocationId}' complete", invocationMessage.InvocationId);
             }
             catch (Exception ex)
@@ -194,41 +183,42 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private void OnDataReceived(byte[] data)
         {
-            foreach (var frame in ParsePayload(data, MessageFormat.Text))
+            if (_protocol.TryParseMessages(data, _binder, out var messages))
             {
-                var message = _protocol.ParseMessage(frame.Payload, _binder);
-
-                InvocationRequest irq;
-                switch (message)
+                foreach (var message in messages)
                 {
-                    case InvocationMessage invocation:
-                        if (_logger.IsEnabled(LogLevel.Trace))
-                        {
-                            var argsList = string.Join(", ", invocation.Arguments.Select(a => a.GetType().FullName));
-                            _logger.LogTrace("Received Invocation '{invocationId}': {methodName}({args})", invocation.InvocationId, invocation.Target, argsList);
-                        }
-                        DispatchInvocation(invocation, _connectionActive.Token);
-                        break;
-                    case CompletionMessage completion:
-                        if (!TryRemoveInvocation(completion.InvocationId, out irq))
-                        {
-                            _logger.LogWarning("Dropped unsolicited Completion message for invocation '{invocationId}'", completion.InvocationId);
-                            return;
-                        }
-                        DispatchInvocationCompletion(completion, irq);
-                        irq.Dispose();
-                        break;
-                    case StreamItemMessage streamItem:
-                        // Complete the invocation with an error, we don't support streaming (yet)
-                        if (!TryGetInvocation(streamItem.InvocationId, out irq))
-                        {
-                            _logger.LogWarning("Dropped unsolicited Stream Item message for invocation '{invocationId}'", streamItem.InvocationId);
-                            return;
-                        }
-                        DispatchInvocationStreamItemAsync(streamItem, irq);
-                        break;
-                    default:
-                        throw new InvalidOperationException($"Unknown message type: {message.GetType().FullName}");
+                    InvocationRequest irq;
+                    switch (message)
+                    {
+                        case InvocationMessage invocation:
+                            if (_logger.IsEnabled(LogLevel.Trace))
+                            {
+                                var argsList = string.Join(", ", invocation.Arguments.Select(a => a.GetType().FullName));
+                                _logger.LogTrace("Received Invocation '{invocationId}': {methodName}({args})", invocation.InvocationId, invocation.Target, argsList);
+                            }
+                            DispatchInvocation(invocation, _connectionActive.Token);
+                            break;
+                        case CompletionMessage completion:
+                            if (!TryRemoveInvocation(completion.InvocationId, out irq))
+                            {
+                                _logger.LogWarning("Dropped unsolicited Completion message for invocation '{invocationId}'", completion.InvocationId);
+                                return;
+                            }
+                            DispatchInvocationCompletion(completion, irq);
+                            irq.Dispose();
+                            break;
+                        case StreamItemMessage streamItem:
+                            // Complete the invocation with an error, we don't support streaming (yet)
+                            if (!TryGetInvocation(streamItem.InvocationId, out irq))
+                            {
+                                _logger.LogWarning("Dropped unsolicited Stream Item message for invocation '{invocationId}'", streamItem.InvocationId);
+                                return;
+                            }
+                            DispatchInvocationStreamItemAsync(streamItem, irq);
+                            break;
+                        default:
+                            throw new InvalidOperationException($"Unknown message type: {message.GetType().FullName}");
+                    }
                 }
             }
         }
@@ -364,30 +354,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     return false;
                 }
             }
-        }
-
-        private IList<Message> ParsePayload(byte[] payload, MessageFormat messageFormat)
-        {
-            var reader = new BytesReader(payload);
-            reader.Advance(1);
-
-            _parser.Reset();
-            var messages = new List<Message>();
-            while (_parser.TryParseMessage(ref reader, messageFormat, out var message))
-            {
-                messages.Add(message);
-            }
-
-            // Since we pre-read the whole payload, we know that when this fails we have read everything.
-            // Once Pipelines natively support BytesReader, we could get into situations where the data for
-            // a message just isn't available yet.
-
-            // If there's still data, we hit an incomplete message
-            if (reader.Unread.Length > 0)
-            {
-                throw new FormatException("Incomplete message");
-            }
-            return messages;
         }
 
         private class HubBinder : IInvocationBinder

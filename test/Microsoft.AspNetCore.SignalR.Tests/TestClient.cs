@@ -137,9 +137,10 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
         public HubMessage TryRead()
         {
-            if (Application.Input.TryRead(out var buffer))
+            if (Application.Input.TryRead(out var buffer) && 
+                _protocol.TryParseMessages(buffer, this, out var messages))
             {
-                return _protocol.ParseMessage(buffer, this);
+                return messages[0];
             }
             return null;
         }

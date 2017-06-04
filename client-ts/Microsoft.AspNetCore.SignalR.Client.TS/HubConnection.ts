@@ -160,7 +160,10 @@ export class HubConnection {
         });
 
         //TODO: separate conversion to enable different data formats
-        this.connection.send(JSON.stringify(invocationDescriptor))
+        let data = JSON.stringify(invocationDescriptor);
+        let message = `${data.length.toString()}:T:${data};`;
+
+        this.connection.send(message)
             .catch(e => {
                 subject.error(e);
                 this.callbacks.delete(invocationDescriptor.invocationId);
@@ -190,7 +193,7 @@ export class HubConnection {
 
             // TODO: separate conversion to enable different data formats
             let data = JSON.stringify(invocationDescriptor);
-            let message = `T${data.length.toString()}:T:${data};`;
+            let message = `${data.length.toString()}:T:${data};`;
 
             this.connection.send(message)
                 .catch(e => {

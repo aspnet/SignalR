@@ -304,17 +304,10 @@ namespace Microsoft.AspNetCore.SignalR.Redis
         {
             var protocol = connection.Metadata.Get<IHubProtocol>(HubConnectionMetadataNames.HubProtocol);
             var data = await protocol.WriteToArrayAsync(hubMessage);
-            var message = new Message(data, protocol.MessageType);
-
-            var ms = new MemoryStream();
-            var pipe = ms.AsPipelineWriter();
-            var output = new PipelineTextOutput(pipe, TextEncoder.Utf8); // We don't need the Encoder, but it's harmless to set.
-
-            MessageFormatter.TryWriteMessage(message, output, MessageFormat.Text);
 
             while (await connection.Transport.Output.WaitToWriteAsync())
             {
-                if (connection.Transport.Output.TryWrite(ms.ToArray()))
+                if (connection.Transport.Output.TryWrite(data))
                 {
                     break;
                 }

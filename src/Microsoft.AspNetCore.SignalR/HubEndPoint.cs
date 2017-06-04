@@ -164,30 +164,28 @@ namespace Microsoft.AspNetCore.SignalR
                 {
                     while (connection.Transport.Input.TryRead(out var buffer))
                     {
-                        var reader = new BytesReader(buffer);
-                        var messages = ParseSendBatch(ref reader, MessageFormat.Text);
-
-                        foreach (var m in messages)
+                        if (protocol.TryParseMessages(buffer, this, out var hubMessages))
                         {
-                            var hubMessage = protocol.ParseMessage(m.Payload, this);
-
-                            switch (hubMessage)
+                            foreach (var hubMessage in hubMessages)
                             {
-                                case InvocationMessage invocationMessage:
-                                    if (_logger.IsEnabled(LogLevel.Debug))
-                                    {
-                                        _logger.LogDebug("Received hub invocation: {invocation}", invocationMessage);
-                                    }
+                                switch (hubMessage)
+                                {
+                                    case InvocationMessage invocationMessage:
+                                        if (_logger.IsEnabled(LogLevel.Debug))
+                                        {
+                                            _logger.LogDebug("Received hub invocation: {invocation}", invocationMessage);
+                                        }
 
-                                    // Don't wait on the result of execution, continue processing other
-                                    // incoming messages on this connection.
-                                    var ignore = ProcessInvocation(connection, protocol, invocationMessage, cts, completion);
-                                    break;
+                                        // Don't wait on the result of execution, continue processing other
+                                        // incoming messages on this connection.
+                                        var ignore = ProcessInvocation(connection, protocol, invocationMessage, cts, completion);
+                                        break;
 
-                                // Other kind of message we weren't expecting
-                                default:
-                                    _logger.LogError("Received unsupported message of type '{messageType}'", hubMessage.GetType().FullName);
-                                    throw new NotSupportedException($"Received unsupported message: {hubMessage}");
+                                    // Other kind of message we weren't expecting
+                                    default:
+                                        _logger.LogError("Received unsupported message of type '{messageType}'", hubMessage.GetType().FullName);
+                                        throw new NotSupportedException($"Received unsupported message: {hubMessage}");
+                                }
                             }
                         }
                     }
@@ -224,8 +222,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         private async Task Execute(ConnectionContext connection, IHubProtocol protocol, InvocationMessage invocationMessage)
         {
-            HubMethodDescriptor descriptor;
-            if (!_methods.TryGetValue(invocationMessage.Target, out descriptor))
+            if (!_methods.TryGetValue(invocationMessage.Target, out var descriptor))
             {
                 // Send an error to the client. Then let the normal completion process occur
                 _logger.LogError("Unknown hub method '{method}'", invocationMessage.Target);
@@ -237,46 +234,13 @@ namespace Microsoft.AspNetCore.SignalR
             }
         }
 
-        private List<Message> ParseSendBatch(ref BytesReader payload, MessageFormat messageFormat)
-        {
-            var messages = new List<Message>();
-
-            if (payload.Unread.Length == 0)
-            {
-                return messages;
-            }
-
-            if (payload.Unread[0] != MessageFormatter.GetFormatIndicator(messageFormat))
-            {
-                throw new FormatException($"Format indicator '{(char)payload.Unread[0]}' does not match format");
-            }
-
-            payload.Advance(1);
-
-            // REVIEW: This needs a little work. We could probably new up exactly the right parser, if we tinkered with the inheritance hierarchy a bit.
-            var parser = new MessageParser();
-            while (parser.TryParseMessage(ref payload, messageFormat, out var message))
-            {
-                messages.Add(message);
-            }
-            return messages;
-        }
-
         private async Task SendMessageAsync(ConnectionContext connection, IHubProtocol protocol, HubMessage hubMessage)
         {
             var payload = await protocol.WriteToArrayAsync(hubMessage);
-            var message = new Message(payload, protocol.MessageType);
-
-            var ms = new MemoryStream();
-            var pipe = ms.AsPipelineWriter();
-            var output = new PipelineTextOutput(pipe, TextEncoder.Utf8);
-
-            MessageFormatter.TryWriteMessage(message, output, MessageFormat.Text);
-            await output.FlushAsync();
 
             while (await connection.Transport.Output.WaitToWriteAsync())
             {
-                if (connection.Transport.Output.TryWrite(ms.ToArray()))
+                if (connection.Transport.Output.TryWrite(payload))
                 {
                     return;
                 }
