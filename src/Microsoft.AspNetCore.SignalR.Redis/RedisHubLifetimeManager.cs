@@ -5,12 +5,15 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Pipelines;
+using System.IO.Pipelines.Text.Primitives;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.Sockets;
+using Microsoft.AspNetCore.Sockets.Internal.Formatters;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -303,9 +306,15 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             var data = await protocol.WriteToArrayAsync(hubMessage);
             var message = new Message(data, protocol.MessageType);
 
+            var ms = new MemoryStream();
+            var pipe = ms.AsPipelineWriter();
+            var output = new PipelineTextOutput(pipe, TextEncoder.Utf8); // We don't need the Encoder, but it's harmless to set.
+
+            MessageFormatter.TryWriteMessage(message, output, MessageFormat.Text);
+
             while (await connection.Transport.Output.WaitToWriteAsync())
             {
-                if (connection.Transport.Output.TryWrite(message))
+                if (connection.Transport.Output.TryWrite(ms.ToArray()))
                 {
                     break;
                 }

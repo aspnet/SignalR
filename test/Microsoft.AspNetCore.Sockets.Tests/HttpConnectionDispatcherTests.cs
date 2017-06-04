@@ -453,7 +453,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var buffer = Encoding.UTF8.GetBytes("Hello World");
 
             // Write to the transport so the poll yields
-            await connection.Transport.Output.WriteAsync(new Message(buffer, MessageType.Text));
+            await connection.Transport.Output.WriteAsync(buffer);
 
             await task;
 
@@ -485,7 +485,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var buffer = Encoding.UTF8.GetBytes("Hello World");
 
             // Write to the application
-            await connection.Application.Output.WriteAsync(new Message(buffer, MessageType.Text));
+            await connection.Application.Output.WriteAsync(buffer);
 
             await task;
 
@@ -515,7 +515,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var buffer = Encoding.UTF8.GetBytes("Hello World");
 
             // Write to the application
-            await connection.Application.Output.WriteAsync(new Message(buffer, MessageType.Text));
+            await connection.Application.Output.WriteAsync(buffer);
 
             await task;
 
@@ -548,7 +548,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             await task1.OrTimeout();
 
             // Send a message from the app to complete Task 2
-            await connection.Transport.Output.WriteAsync(new Message(Encoding.UTF8.GetBytes("Hello, World"), MessageType.Text));
+            await connection.Transport.Output.WriteAsync(Encoding.UTF8.GetBytes("Hello, World"));
 
             await task2.OrTimeout();
 
@@ -556,43 +556,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             Assert.Equal(StatusCodes.Status204NoContent, context1.Response.StatusCode);
             Assert.Equal(string.Empty, GetContentAsString(context1.Response.Body));
             Assert.Equal(StatusCodes.Status200OK, context2.Response.StatusCode);
-            Assert.Equal("T12:T:Hello, World;", GetContentAsString(context2.Response.Body));
-        }
-
-        [Theory]
-        [InlineData(TextContentType, null, "T12:T:Hello, World;", "Hello, World", MessageType.Text)]
-        [InlineData(TextContentType, null, "T16:B:SGVsbG8sIFdvcmxk;", "Hello, World", MessageType.Binary)]
-        [InlineData(TextContentType, null, "T12:E:Hello, World;", "Hello, World", MessageType.Error)]
-        [InlineData(TextContentType, null, "T12:C:Hello, World;", "Hello, World", MessageType.Close)]
-        [InlineData(BinaryContentType, null, "QgAAAAAAAAAMAEhlbGxvLCBXb3JsZA==", "Hello, World", MessageType.Text)]
-        [InlineData(BinaryContentType, null, "QgAAAAAAAAAMAUhlbGxvLCBXb3JsZA==", "Hello, World", MessageType.Binary)]
-        [InlineData(BinaryContentType, null, "QgAAAAAAAAAMAkhlbGxvLCBXb3JsZA==", "Hello, World", MessageType.Error)]
-        [InlineData(BinaryContentType, null, "QgAAAAAAAAAMA0hlbGxvLCBXb3JsZA==", "Hello, World", MessageType.Close)]
-        public async Task SendPutsPayloadsInTheChannel(string contentType, string format, string encoded, string payload, MessageType type)
-        {
-            var messages = await RunSendTest(contentType, encoded, format);
-
-            Assert.Equal(1, messages.Count);
-            Assert.Equal(payload, Encoding.UTF8.GetString(messages[0].Payload));
-            Assert.Equal(type, messages[0].Type);
-        }
-
-        [Theory]
-        [InlineData(TextContentType, "T12:T:Hello, World;16:B:SGVsbG8sIFdvcmxk;5:E:Error;6:C:Closed;")]
-        [InlineData(BinaryContentType, "QgAAAAAAAAAMAEhlbGxvLCBXb3JsZAAAAAAAAAAMAUhlbGxvLCBXb3JsZAAAAAAAAAAFAkVycm9yAAAAAAAAAAYDQ2xvc2Vk")]
-        public async Task SendAllowsMultipleMessages(string contentType, string encoded)
-        {
-            var messages = await RunSendTest(contentType, encoded, format: null);
-
-            Assert.Equal(4, messages.Count);
-            Assert.Equal("Hello, World", Encoding.UTF8.GetString(messages[0].Payload));
-            Assert.Equal(MessageType.Text, messages[0].Type);
-            Assert.Equal("Hello, World", Encoding.UTF8.GetString(messages[1].Payload));
-            Assert.Equal(MessageType.Binary, messages[1].Type);
-            Assert.Equal("Error", Encoding.UTF8.GetString(messages[2].Payload));
-            Assert.Equal(MessageType.Error, messages[2].Type);
-            Assert.Equal("Closed", Encoding.UTF8.GetString(messages[3].Payload));
-            Assert.Equal(MessageType.Close, messages[3].Type);
+            Assert.Equal("Hello, World", GetContentAsString(context2.Response.Body));
         }
 
         [Fact]
@@ -713,7 +677,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             context.User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "name") }));
 
             var endPointTask = dispatcher.ExecuteAsync(context, options, app);
-            await connection.Transport.Output.WriteAsync(new Message(Encoding.UTF8.GetBytes("Hello, World"), MessageType.Text)).OrTimeout();
+            await connection.Transport.Output.WriteAsync(Encoding.UTF8.GetBytes("Hello, World")).OrTimeout();
 
             await endPointTask.OrTimeout();
 
@@ -763,7 +727,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             context.User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "name") }));
 
             var endPointTask = dispatcher.ExecuteAsync(context, options, app);
-            await connection.Transport.Output.WriteAsync(new Message(Encoding.UTF8.GetBytes("Hello, World"), MessageType.Text)).OrTimeout();
+            await connection.Transport.Output.WriteAsync(Encoding.UTF8.GetBytes("Hello, World")).OrTimeout();
 
             await endPointTask.OrTimeout();
 
@@ -907,40 +871,6 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                     Assert.Equal($"{transportType} transport not supported by this end point type", Encoding.UTF8.GetString(strm.ToArray()));
                 }
             }
-        }
-
-        private static async Task<List<Message>> RunSendTest(string contentType, string encoded, string format)
-        {
-            var manager = CreateConnectionManager();
-            var connection = manager.CreateConnection();
-
-            var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
-
-            var context = MakeRequest("/foo", connection, format);
-            context.Request.Method = "POST";
-            context.Request.ContentType = contentType;
-
-            var services = new ServiceCollection();
-            services.AddEndPoint<TestEndPoint>();
-            var builder = new SocketBuilder(services.BuildServiceProvider());
-            builder.UseEndPoint<TestEndPoint>();
-            var app = builder.Build();
-
-            var buffer = contentType == BinaryContentType ?
-                Convert.FromBase64String(encoded) :
-                Encoding.UTF8.GetBytes(encoded);
-            var messages = new List<Message>();
-            using (context.Request.Body = new MemoryStream(buffer, writable: false))
-            {
-                await dispatcher.ExecuteAsync(context, new HttpSocketOptions(), app).OrTimeout();
-            }
-
-            while (connection.Transport.Input.TryRead(out var message))
-            {
-                messages.Add(message);
-            }
-
-            return messages;
         }
 
         private static DefaultHttpContext MakeRequest(string path, DefaultConnectionContext connection, string format = null)
