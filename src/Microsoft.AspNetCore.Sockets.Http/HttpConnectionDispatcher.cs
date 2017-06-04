@@ -141,7 +141,7 @@ namespace Microsoft.AspNetCore.Sockets
 
                     if (connection.Status == DefaultConnectionContext.ConnectionStatus.Active)
                     {
-                        _logger.LogDebug("Connection {connectionId} is already active via {requestId}. Cancelling previous request.", connection.ConnectionId, connection.RequestId);
+                        _logger.LogDebug("Connection {connectionId} is already active via {requestId}. Cancelling previous request.", connection.ConnectionId, connection.GetHttpContext().TraceIdentifier);
 
                         using (connection.Cancellation)
                         {
@@ -158,12 +158,9 @@ namespace Microsoft.AspNetCore.Sockets
                                 // Should be a cancelled task
                             }
 
-                            _logger.LogDebug("Previous poll cancelled for {connectionId} on {requestId}.", connection.ConnectionId, connection.RequestId);
+                            _logger.LogDebug("Previous poll cancelled for {connectionId} on {requestId}.", connection.ConnectionId, connection.GetHttpContext().TraceIdentifier);
                         }
                     }
-
-                    // Mark the request identifier
-                    connection.RequestId = context.TraceIdentifier;
 
                     // Mark the connection as active
                     connection.Status = DefaultConnectionContext.ConnectionStatus.Active;
@@ -171,7 +168,7 @@ namespace Microsoft.AspNetCore.Sockets
                     // Raise OnConnected for new connections only since polls happen all the time
                     if (connection.ApplicationTask == null)
                     {
-                        _logger.LogDebug("Establishing new connection: {connectionId} on {requestId}", connection.ConnectionId, connection.RequestId);
+                        _logger.LogDebug("Establishing new connection: {connectionId} on {requestId}", connection.ConnectionId, connection.GetHttpContext().TraceIdentifier);
 
                         connection.Metadata[ConnectionMetadataNames.Transport] = TransportType.LongPolling;
 
@@ -179,7 +176,7 @@ namespace Microsoft.AspNetCore.Sockets
                     }
                     else
                     {
-                        _logger.LogDebug("Resuming existing connection: {connectionId} on {requestId}", connection.ConnectionId, connection.RequestId);
+                        _logger.LogDebug("Resuming existing connection: {connectionId} on {requestId}", connection.ConnectionId, connection.GetHttpContext().TraceIdentifier);
                     }
 
                     var longPolling = new LongPollingTransport(connection.Application.Input, _loggerFactory);
@@ -241,7 +238,7 @@ namespace Microsoft.AspNetCore.Sockets
 
                             connection.Status = DefaultConnectionContext.ConnectionStatus.Inactive;
 
-                            connection.RequestId = null;
+                            connection.Metadata[ConnectionMetadataNames.HttpContext] = null;
 
                             // Dispose the cancellation token
                             connection.Cancellation.Dispose();
@@ -288,7 +285,7 @@ namespace Microsoft.AspNetCore.Sockets
                 // There's already an active request
                 if (connection.Status == DefaultConnectionContext.ConnectionStatus.Active)
                 {
-                    _logger.LogDebug("Connection {connectionId} is already active via {requestId}.", connection.ConnectionId, connection.RequestId);
+                    _logger.LogDebug("Connection {connectionId} is already active via {requestId}.", connection.ConnectionId, connection.GetHttpContext().TraceIdentifier);
 
                     // Reject the request with a 409 conflict
                     context.Response.StatusCode = StatusCodes.Status409Conflict;
@@ -297,9 +294,6 @@ namespace Microsoft.AspNetCore.Sockets
 
                 // Mark the connection as active
                 connection.Status = DefaultConnectionContext.ConnectionStatus.Active;
-
-                // Store the request identifier
-                connection.RequestId = context.TraceIdentifier;
 
                 // Call into the end point passing the connection
                 connection.ApplicationTask = ExecuteApplication(socketDelegate, connection);
