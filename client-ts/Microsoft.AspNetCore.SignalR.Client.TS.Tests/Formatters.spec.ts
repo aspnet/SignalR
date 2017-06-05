@@ -18,7 +18,7 @@ describe("Text Message Formatter", () => {
 
     ([
         ["ABC", new Error("Invalid length: 'ABC'")],
-        ["1:X:A", new Error("Message is incomplete")],
+        ["1:X:A;", new Error("Unknown type value: 'X'")],
         ["1:T:A;12ab34:", new Error("Invalid length: '12ab34'")],
         ["1:T:A;1:asdf:", new Error("Unknown type value: 'asdf'")],
         ["1:T:A;1::", new Error("Message is incomplete")],
