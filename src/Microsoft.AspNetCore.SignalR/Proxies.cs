@@ -86,12 +86,12 @@ namespace Microsoft.AspNetCore.SignalR
 
         public Task AddAsync(string groupName)
         {
-            return _lifetimeManager.AddGroupAsync(_connection, groupName);
+            return _lifetimeManager.AddGroupAsync(_connection.ConnectionId, groupName);
         }
 
         public Task RemoveAsync(string groupName)
         {
-            return _lifetimeManager.RemoveGroupAsync(_connection, groupName);
+            return _lifetimeManager.RemoveGroupAsync(_connection.ConnectionId, groupName);
         }
     }
 }

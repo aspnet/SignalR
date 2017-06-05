@@ -20,8 +20,9 @@ namespace Microsoft.AspNetCore.SignalR
         private long _nextInvocationId = 0;
         private readonly ConnectionList _connections = new ConnectionList();
 
-        public override Task AddGroupAsync(ConnectionContext connection, string groupName)
+        public override Task AddGroupAsync(string connectionId, string groupName)
         {
+            var connection = _connections[connectionId];
             var groups = connection.Metadata.GetOrAdd(HubConnectionMetadataNames.Groups, _ => new HashSet<string>());
 
             lock (groups)
@@ -32,8 +33,9 @@ namespace Microsoft.AspNetCore.SignalR
             return Task.CompletedTask;
         }
 
-        public override Task RemoveGroupAsync(ConnectionContext connection, string groupName)
+        public override Task RemoveGroupAsync(string connectionId, string groupName)
         {
+            var connection = _connections[connectionId];
             var groups = connection.Metadata.Get<HashSet<string>>(HubConnectionMetadataNames.Groups);
 
             if (groups == null)
