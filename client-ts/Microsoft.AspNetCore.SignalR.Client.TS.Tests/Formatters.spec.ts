@@ -8,10 +8,7 @@ describe("Text Message Formatter", () => {
     });
     ([
         ["0:T:;", [new Message(MessageType.Text, "")]],
-        ["0:C:;", [new Message(MessageType.Close, "")]],
-        ["0:E:;", [new Message(MessageType.Error, "")]],
         ["5:T:Hello;", [new Message(MessageType.Text, "Hello")]],
-        ["5:T:Hello;5:C:World;5:E:Error;", [new Message(MessageType.Text, "Hello"), new Message(MessageType.Close, "World"), new Message(MessageType.Error, "Error")]],
     ] as [[string, Message[]]]).forEach(([payload, expected_messages]) => {
         it(`should parse '${payload}' correctly`, () => {
             let messages = TextMessageFormat.parse(payload);

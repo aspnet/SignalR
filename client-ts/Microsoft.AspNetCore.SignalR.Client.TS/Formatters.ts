@@ -2,9 +2,7 @@
 
 let knownTypes = {
     "T": MessageType.Text,
-    "B": MessageType.Binary,
-    "C": MessageType.Close,
-    "E": MessageType.Error
+    "B": MessageType.Binary
 };
 
 function splitAt(input: string, searchString: string, position: number): [string, number] {
