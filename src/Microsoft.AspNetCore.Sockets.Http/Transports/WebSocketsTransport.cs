@@ -155,6 +155,7 @@ namespace Microsoft.AspNetCore.Sockets.Transports
 
                 if (incomingMessage.Count > 1)
                 {
+                    messageBuffer = new byte[totalBytes];
                     var offset = 0;
                     for (var i = 0; i < incomingMessage.Count; i++)
                     {

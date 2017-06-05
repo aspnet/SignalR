@@ -27,8 +27,7 @@ namespace Microsoft.AspNetCore.Sockets.Common.Tests.Internal.Formatters
         [InlineData("data: Hello, World\r\n\r\n:comment", "Hello, World")]
         [InlineData("data: Hello, World\r\n\r\n:comment\r\n", "Hello, World")]
         [InlineData("data: Hello, World\r\n:comment\r\n\r\n", "Hello, World")]
-        [InlineData("data: SGVsbG8sIFdvcmxk\r\n\r\n", "Hello, World")]
-        [InlineData("data: SGVsbG8g\r\ndata: V29ybGQ=\r\n\r\n", "Hello World")]
+        [InlineData("data: SGVsbG8sIFdvcmxk\r\n\r\n", "SGVsbG8sIFdvcmxk")]
         public void ParseSSEMessageSuccessCases(string encodedMessage, string expectedMessage)
         {
             var buffer = Encoding.UTF8.GetBytes(encodedMessage);

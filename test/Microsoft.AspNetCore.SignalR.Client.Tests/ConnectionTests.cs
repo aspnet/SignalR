@@ -336,9 +336,9 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 });
 
             var mockTransport = new Mock<ITransport>();
-            IChannelConnection<SendMessage, Message> channel = null;
+            IChannelConnection<SendMessage, byte[]> channel = null;
             mockTransport.Setup(t => t.StartAsync(It.IsAny<Uri>(), It.IsAny<IChannelConnection<SendMessage, byte[]>>()))
-                .Returns<Uri, IChannelConnection<SendMessage, Message>>((url, c) =>
+                .Returns<Uri, IChannelConnection<SendMessage, byte[]>>((url, c) =>
                 {
                     channel = c;
                     return Task.CompletedTask;
@@ -348,7 +348,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 {
                     // The connection is now in the Disconnected state so the Received event for
                     // this message should not be raised
-                    channel.Output.TryWrite(new Message());
+                    channel.Output.TryWrite(Array.Empty<byte>());
                     channel.Output.TryComplete();
                     return Task.CompletedTask;
                 });
@@ -469,8 +469,6 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
         public async Task CanSendData()
         {
             var data = new byte[] { 1, 1, 2, 3, 5, 8 };
-            var message = new Message(data, MessageType.Binary);
-            var expectedPayload = FormatMessageToArray(message, MessageFormat.Binary);
 
             var sendTcs = new TaskCompletionSource<byte[]>();
             var mockHttpHandler = new Mock<HttpMessageHandler>();
@@ -495,7 +493,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
 
                     await connection.SendAsync(data);
 
-                    Assert.Equal(expectedPayload, await sendTcs.Task.OrTimeout());
+                    Assert.Equal(data, await sendTcs.Task.OrTimeout());
                 }
                 finally
                 {
@@ -589,7 +587,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
 
                     if (request.Method == HttpMethod.Get)
                     {
-                        content = "T2:T:42;";
+                        content = "42";
                     }
                     return ResponseUtils.CreateResponse(HttpStatusCode.OK, ContentTypes.TextContentType, content);
                 });

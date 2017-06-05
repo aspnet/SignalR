@@ -176,35 +176,6 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             }
         }
 
-        [Fact]
-        public async Task SendRequestsWithInvalidContentTypeAreRejected()
-        {
-            var manager = CreateConnectionManager();
-            var connection = manager.CreateConnection();
-            var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
-            using (var strm = new MemoryStream())
-            {
-                var context = new DefaultHttpContext();
-                var services = new ServiceCollection();
-                services.AddOptions();
-                services.AddEndPoint<TestEndPoint>();
-                context.Request.Path = "/foo";
-                context.Request.Method = "POST";
-                context.Request.QueryString = new QueryString($"?id={connection.ConnectionId}");
-                context.Request.ContentType = "text/plain";
-                context.Response.Body = strm;
-
-                var builder = new SocketBuilder(services.BuildServiceProvider());
-                builder.UseEndPoint<TestEndPoint>();
-                var app = builder.Build();
-                await dispatcher.ExecuteAsync(context, new HttpSocketOptions(), app);
-
-                Assert.Equal(StatusCodes.Status400BadRequest, context.Response.StatusCode);
-                await strm.FlushAsync();
-                Assert.Equal("'text/plain' is not a valid Content-Type for send requests.", Encoding.UTF8.GetString(strm.ToArray()));
-            }
-        }
-
         [Theory]
         [InlineData(TransportType.LongPolling, 204)]
         [InlineData(TransportType.WebSockets, 404)]
@@ -682,7 +653,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             await endPointTask.OrTimeout();
 
             Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
-            Assert.Equal("T12:T:Hello, World;", GetContentAsString(context.Response.Body));
+            Assert.Equal("Hello, World", GetContentAsString(context.Response.Body));
         }
 
  
@@ -732,7 +703,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             await endPointTask.OrTimeout();
 
             Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
-            Assert.Equal("T12:T:Hello, World;", GetContentAsString(context.Response.Body));
+            Assert.Equal("Hello, World", GetContentAsString(context.Response.Body));
         }
 
         [Fact]

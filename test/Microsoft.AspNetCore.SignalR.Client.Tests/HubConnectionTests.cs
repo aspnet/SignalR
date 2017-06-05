@@ -255,7 +255,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             var hubConnection = new HubConnection(mockConnection.Object, mockProtocol, null);
             await hubConnection.StartAsync(new TestTransportFactory(Mock.Of<ITransport>()), httpClient: null);
 
-            mockConnection.Raise(c => c.Received += null, new object[] { new byte[] { }, MessageType.Text });
+            mockConnection.Raise(c => c.Received += null, new object[] { new byte[] { } });
             Assert.Equal(1, mockProtocol.ParseCalls);
         }
 

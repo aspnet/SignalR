@@ -153,7 +153,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                         {
                             _logger.LogDebug("Received message from application. Payload size: {1}", message.Payload.Length);
 
-                            await _webSocket.SendAsync(new ArraySegment<byte>(message.Payload), WebSocketMessageType.Binary, true, _transportCts.Token);
+                            await _webSocket.SendAsync(new ArraySegment<byte>(message.Payload), WebSocketMessageType.Text, true, _transportCts.Token);
 
                             message.SendResult.SetResult(null);
                         }

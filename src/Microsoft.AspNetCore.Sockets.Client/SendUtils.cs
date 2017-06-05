@@ -46,8 +46,13 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
                         foreach (var message in messages)
                         {
-                            memoryStream.Write(message.Payload, 0, message.Payload.Length);
+                            if (message.Payload != null)
+                            {
+                                memoryStream.Write(message.Payload, 0, message.Payload.Length);
+                            }
                         }
+
+                        memoryStream.Position = 0;
 
                         // Set the, now filled, stream as the content
                         request.Content = new StreamContent(memoryStream);

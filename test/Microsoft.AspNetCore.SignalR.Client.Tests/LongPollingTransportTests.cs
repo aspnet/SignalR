@@ -212,11 +212,6 @@ namespace Microsoft.AspNetCore.Client.Tests
         public async Task LongPollingTransportDispatchesMessagesReceivedFromPoll()
         {
             var message1Payload = new byte[] { (byte)'H', (byte)'e', (byte)'l', (byte)'l', (byte)'o' };
-            var message2Payload = new byte[] { (byte)'W', (byte)'o', (byte)'r', (byte)'l', (byte)'d' };
-            var encoded = Enumerable.SelectMany(new[] {
-                new byte[] { (byte)'B', 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00 }, message1Payload,
-                new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x01 }, message2Payload
-            }, b => b).ToArray();
 
             var firstCall = true;
             var mockHttpHandler = new Mock<HttpMessageHandler>();
@@ -232,7 +227,7 @@ namespace Microsoft.AspNetCore.Client.Tests
                     if (firstCall)
                     {
                         firstCall = false;
-                        return ResponseUtils.CreateResponse(HttpStatusCode.OK, ContentTypes.BinaryContentType, encoded);
+                        return ResponseUtils.CreateResponse(HttpStatusCode.OK, ContentTypes.BinaryContentType, message1Payload);
                     }
 
                     return ResponseUtils.CreateResponse(HttpStatusCode.NoContent);
@@ -268,9 +263,8 @@ namespace Microsoft.AspNetCore.Client.Tests
                     Assert.Contains(ContentTypes.BinaryContentType, sentRequests[0].Headers.Accept.FirstOrDefault()?.ToString());
 
                     // Check the messages received
-                    Assert.Equal(2, messages.Count);
+                    Assert.Equal(1, messages.Count);
                     Assert.Equal(message1Payload, messages[0]);
-                    Assert.Equal(message2Payload, messages[1]);
                 }
                 finally
                 {
@@ -323,10 +317,7 @@ namespace Microsoft.AspNetCore.Client.Tests
                     await connectionToTransport.In.Completion.OrTimeout();
 
                     Assert.Equal(1, sentRequests.Count);
-                    Assert.Equal(new byte[] {
-                        (byte)'B',
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, (byte)'H', (byte)'e', (byte)'l', (byte)'l', (byte)'o',
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x01, (byte)'W', (byte)'o', (byte)'r', (byte)'l', (byte)'d'
+                    Assert.Equal(new byte[] { (byte)'H', (byte)'e', (byte)'l', (byte)'l', (byte)'o', (byte)'W', (byte)'o', (byte)'r', (byte)'l', (byte)'d'
                     }, sentRequests[0]);
                 }
                 finally
