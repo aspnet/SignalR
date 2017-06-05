@@ -321,7 +321,7 @@ Example - The following `Completion` message is a protocol error because it has 
 
 Items in the arguments array within the `Invocation` message type, as well as the `item` value of the `StreamItem` message and the `result` value of the `Completion` message, encode values which have meaning to each particular Binder. A general guideline for encoding/decoding these values is provided in the "Type Mapping" section at the end of this document, but Binders should provide configuration to applications to allow them to customize these mappings. These mappings need not be self-describing, because when decoding the value, the Binder is expected to know the destination type (by looking up the definition of the method indicated by the Target).
 
-JSON payloads are wrapped in an outer message framing to support batching over various transports and to ease the parsing. Below are the 2 types of outer framing protocols determined by the transport's ability to transmit binary or text data.
+JSON payloads are wrapped in an outer message framing to support batching over various transports and to ease the parsing.
 
 #### Text-based encoding
 
@@ -356,36 +356,6 @@ World;4:B:AQI=;0:T:;
 ```
 
 Note that the final frame still ends with the `;` terminator, and that since the body may contain `;`, newlines, etc., the length is specified in order to know exactly where the body ends.
-
-#### Binary encoding
-
-In JavaScript/Browser clients, this encoding requires XHR2 (or similar HTTP request functionality which allows binary data) and TypedArray support.
-
-```
-([Length][Type][Body])([Length][Type][Body])... continues until end of the connection ...
-```
-
-* `[Length]` - A 64-bit integer in Network Byte Order (Big-endian) representing the length of the body in bytes
-* `[Type]` - An 8-bit integer indicating the type of the message.
-    * `0x00` => `Text` - `[Body]` is UTF-8 encoded text data
-    * `0x01` => `Binary` - `[Body]` is raw binary data
-    * All other values are reserved and must **not** be used. An endpoint may reject a frame using any other value and terminate the connection.
-* `[Body]` - The body of the message, exactly `[Length]` bytes in length. `Text` frames are always encoded in UTF-8.
-
-For example, when sending the following frames (`\n` indicates the actual Line Feed character, not an escape sequence):
-
-* Type=`Text`, "Hello\nWorld"
-* Type=`Binary`, `0x01 0x02`
-
-The encoding will be as follows, as a list of binary digits in hex (text in parentheses `()` are comments). Whitespace and newlines are irrelevant and for illustration only.
-```
-0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x0B                (start of frame; 64-bit integer value: 11)
-0x00                                                   (Type = Text)
-0x68 0x65 0x6C 0x6C 0x6F 0x0A 0x77 0x6F 0x72 0x6C 0x64 (UTF-8 encoding of 'Hello\nWorld')
-0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x02                (start of frame; 64-bit integer value: 2)
-0x01                                                   (Type = Binary)
-0x01 0x02                                              (body)
-```
 
 ## Protocol Buffers (ProtoBuf) Encoding
 
@@ -480,3 +450,33 @@ Below are some sample type mappings between JSON/ProtoBuf types and the .NET cli
 | `IEnumerable<T>`                                | `Array`                      | `repeated`                                   |
 | custom `enum`                                   | `Number`                     | `uint64`                                     |
 | custom `struct` or `class`                      | `Object`                     | Requires an explicit .proto file definition  |
+
+Protobuf payloads are wrapped in an outer message framing described below.
+
+#### Binary encoding
+
+```
+([Length][Type][Body])([Length][Type][Body])... continues until end of the connection ...
+```
+
+* `[Length]` - A 64-bit integer in Network Byte Order (Big-endian) representing the length of the body in bytes
+* `[Type]` - An 8-bit integer indicating the type of the message.
+    * `0x00` => `Text` - `[Body]` is UTF-8 encoded text data
+    * `0x01` => `Binary` - `[Body]` is raw binary data
+    * All other values are reserved and must **not** be used. An endpoint may reject a frame using any other value and terminate the connection.
+* `[Body]` - The body of the message, exactly `[Length]` bytes in length. `Text` frames are always encoded in UTF-8.
+
+For example, when sending the following frames (`\n` indicates the actual Line Feed character, not an escape sequence):
+
+* Type=`Text`, "Hello\nWorld"
+* Type=`Binary`, `0x01 0x02`
+
+The encoding will be as follows, as a list of binary digits in hex (text in parentheses `()` are comments). Whitespace and newlines are irrelevant and for illustration only.
+```
+0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x0B                (start of frame; 64-bit integer value: 11)
+0x00                                                   (Type = Text)
+0x68 0x65 0x6C 0x6C 0x6F 0x0A 0x77 0x6F 0x72 0x6C 0x64 (UTF-8 encoding of 'Hello\nWorld')
+0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x02                (start of frame; 64-bit integer value: 2)
+0x01                                                   (Type = Binary)
+0x01 0x02                                              (body)
+```

@@ -72,18 +72,9 @@ Long Polling is a server-to-client half-transport, so it is always paired with H
 
 Long Polling requires that the client poll the server for new messages. Unlike traditional polling, if there is no data available, the server will simply wait for messages to be dispatched. At some point, the server, client or an upstream proxy will likely terminate the connection, at which point the client should immediately re-send the request. Long Polling is the only transport that allows a "reconnection" where a new request can be received while the server believes an existing request is in process. This can happen because of a time out. When this happens, the existing request is immediately terminated with status code `204 No Content`. Any messages which have already been written to the existing request will be flushed and considered sent.
 
-In order to support browsers which do not support XHR2, which provides the ability to read binary data, there are two different modes for the polling transport.
-
 A Poll is established by sending an HTTP GET request to `[endpoint-base]` with the following query string parameters
 
 * `connectionId` (Required) - The Connection ID of the destination connection.
-
-The following headers are also supported:
-
-* `Accept: application/vnd.microsoft.aspnetcore.endpoint-messages.v1+binary` - indicates if the client supports raw binary data in responses.
-* `Accept: application/vnd.microsoft.aspnetcore.endpoint-messages.v1+text` - indicates if the client only supports text in responses.
-
-If the Accept header doesn't specify one of the above formats, `application/vnd.microsoft.aspnetcore.endpoint-messages.v1+text` is assumed.
 
 When data is available, the server responds with a body in one of the two formats below (depending upon the value of the `Accept` header). The response may be chunked, as per the chunked encoding part of the HTTP spec.
 
