@@ -161,7 +161,7 @@ export class HubConnection {
 
         //TODO: separate conversion to enable different data formats
         let data = JSON.stringify(invocationDescriptor);
-        let message = `${data.length.toString()}:T:${data};`;
+        let message = `${data.length}:T:${data};`;
 
         this.connection.send(message)
             .catch(e => {
@@ -193,7 +193,7 @@ export class HubConnection {
 
             // TODO: separate conversion to enable different data formats
             let data = JSON.stringify(invocationDescriptor);
-            let message = `${data.length.toString()}:T:${data};`;
+            let message = `${data.length}:T:${data};`;
 
             this.connection.send(message)
                 .catch(e => {
