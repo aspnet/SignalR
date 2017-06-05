@@ -44,16 +44,13 @@ namespace Microsoft.AspNetCore.Sockets.Common.Tests.Internal.Formatters
 
         [Theory]
         [InlineData("data: T\n", "Unexpected '\n' in message. A '\n' character can only be used as part of the newline sequence '\r\n'")]
-        [InlineData("data: Not the message type\r\n\r\n", "Expected a data format message of the form 'data: <MesssageType>'")]
         [InlineData("data: T\r\ndata: Hello, World\r\r\n\n", "There was an error in the frame format")]
-        [InlineData("data: Not the message type\r\r\n", "Expected a data format message of the form 'data: <MesssageType>'")]
         [InlineData("data: T\r\ndata: Hello, World\n\n", "Unexpected '\n' in message. A '\n' character can only be used as part of the newline sequence '\r\n'")]
         [InlineData("data: T\r\nfoo: Hello, World\r\n\r\n", "Expected the message prefix 'data: '")]
         [InlineData("foo: T\r\ndata: Hello, World\r\n\r\n", "Expected the message prefix 'data: '")]
         [InlineData("food: T\r\ndata: Hello, World\r\n\r\n", "Expected the message prefix 'data: '")]
         [InlineData("data: T\r\ndata: Hello, World\r\n\n", "There was an error in the frame format")]
         [InlineData("data: T\r\ndata: Hello\n, World\r\n\r\n", "Unexpected '\n' in message. A '\n' character can only be used as part of the newline sequence '\r\n'")]
-        [InlineData("data: data: \r\n", "Expected a data format message of the form 'data: <MesssageType>'")]
         [InlineData("data: Hello, World\r\n\r\\", "Expected a \\r\\n frame ending")]
         [InlineData("data: Major\r\ndata:  Key\rndata:  Alert\r\n\r\\", "Expected a \\r\\n frame ending")]
         [InlineData("data: Major\r\ndata:  Key\r\ndata:  Alert\r\n\r\\", "Expected a \\r\\n frame ending")]
@@ -97,19 +94,18 @@ namespace Microsoft.AspNetCore.Sockets.Common.Tests.Internal.Formatters
         }
 
         [Theory]
-        [InlineData(new[] { "d", "ata: T\r\ndata: Hello, World\r\n\r\n" }, "Hello, World")]
-        [InlineData(new[] { "data: T", "\r\ndata: Hello, World\r\n\r\n" }, "Hello, World")]
-        [InlineData(new[] { "data: T\r", "\ndata: Hello, World\r\n\r\n" }, "Hello, World")]
-        [InlineData(new[] { "data: T\r\n", "data: Hello, World\r\n\r\n" }, "Hello, World")]
-        [InlineData(new[] { "data: T\r\nd", "ata: Hello, World\r\n\r\n" }, "Hello, World")]
-        [InlineData(new[] { "data: T\r\ndata: ", "Hello, World\r\n\r\n" }, "Hello, World")]
-        [InlineData(new[] { "data: T\r\ndata: Hello, World", "\r\n\r\n" }, "Hello, World")]
-        [InlineData(new[] { "data: T\r\ndata: Hello, World\r\n", "\r\n" }, "Hello, World")]
-        [InlineData(new[] { "data: ", "T\r\ndata: Hello, World\r\n\r\n" }, "Hello, World")]
-        [InlineData(new[] { ":", "comment", "\r\n", "d", "ata: T\r\ndata: Hello, World\r\n\r\n" }, "Hello, World")]
-        [InlineData(new[] { "data: T\r\n", ":comment", "\r\n", "data: Hello, World", "\r\n\r\n" }, "Hello, World")]
-        [InlineData(new[] { "data: T\r\ndata: Hello, World\r\n", ":comment\r\n", "\r\n" }, "Hello, World")]
-        [InlineData(new[] { "data: B\r\ndata: SGVs", "bG8sIFdvcmxk\r\n\r\n" }, "Hello, World")]
+        [InlineData(new[] { "d", "ata: Hello, World\r\n\r\n" }, "Hello, World")]
+        [InlineData(new[] { "da", "ta: Hello, World\r\n\r\n" }, "Hello, World")]
+        [InlineData(new[] { "dat", "a: Hello, World\r\n\r\n" }, "Hello, World")]
+        [InlineData(new[] { "data", ": Hello, World\r\n\r\n" }, "Hello, World")]
+        [InlineData(new[] { "data:", " Hello, World\r\n\r\n" }, "Hello, World")]
+        [InlineData(new[] { "data: ", "Hello, World\r\n\r\n" }, "Hello, World")]
+        [InlineData(new[] { "data: Hello, World", "\r\n\r\n" }, "Hello, World")]
+        [InlineData(new[] { "data: Hello, World\r\n", "\r\n" }, "Hello, World")]
+        [InlineData(new[] { "data: ", "Hello, World\r\n\r\n" }, "Hello, World")]
+        [InlineData(new[] { ":", "comment", "\r\n", "d", "ata: Hello, World\r\n\r\n" }, "Hello, World")]
+        [InlineData(new[] { ":comment", "\r\n", "data: Hello, World", "\r\n\r\n" }, "Hello, World")]
+        [InlineData(new[] { "data: Hello, World\r\n", ":comment\r\n", "\r\n" }, "Hello, World")]
         public async Task ParseMessageAcrossMultipleReadsSuccess(string[] messageParts, string expectedMessage)
         {
             using (var pipeFactory = new PipeFactory())
@@ -147,20 +143,15 @@ namespace Microsoft.AspNetCore.Sockets.Common.Tests.Internal.Formatters
 
         [Theory]
         [InlineData("data: T", "\n", "Unexpected '\n' in message. A '\n' character can only be used as part of the newline sequence '\r\n'")]
-        [InlineData("data: ", "Not the message type\r\n\r\n", "Expected a data format message of the form 'data: <MesssageType>'")]
         [InlineData("data: T\r\n", "data: Hello, World\r\r\n\n", "There was an error in the frame format")]
-        [InlineData("data:", " Not the message type\r\r\n", "Expected a data format message of the form 'data: <MesssageType>'")]
         [InlineData("data: T\r\n", "data: Hello, World\n\n", "Unexpected '\n' in message. A '\n' character can only be used as part of the newline sequence '\r\n'")]
         [InlineData("data: T\r\nf", "oo: Hello, World\r\n\r\n", "Expected the message prefix 'data: '")]
         [InlineData("foo", ": T\r\ndata: Hello, World\r\n\r\n", "Expected the message prefix 'data: '")]
         [InlineData("food:", " T\r\ndata: Hello, World\r\n\r\n", "Expected the message prefix 'data: '")]
         [InlineData("data: T\r\ndata: Hello, W", "orld\r\n\n", "There was an error in the frame format")]
         [InlineData("data: T\r\nda", "ta: Hello\n, World\r\n\r\n", "Unexpected '\n' in message. A '\n' character can only be used as part of the newline sequence '\r\n'")]
-        [InlineData("data:", " data: \r\n", "Expected a data format message of the form 'data: <MesssageType>'")]
         [InlineData("data: ", "T\r\ndata: Major\r\ndata:  Key\r\ndata:  Alert\r\n\r\\", "Expected a \\r\\n frame ending")]
-        [InlineData("data: ", "This is not a message type\r\n", "Expected a data format message of the form 'data: <MesssageType>'")]
         [InlineData("data: B\r\ndata: SGVs", "bG8sIFdvcmxk\r\n\n\n", "There was an error in the frame format")]
-        [InlineData("data: T", "his is not a message type\r\n", "Expected a data format message of the form 'data: <MesssageType>'")]
         public async Task ParseMessageAcrossMultipleReadsFailure(string encodedMessagePart1, string encodedMessagePart2, string expectedMessage)
         {
             using (var pipeFactory = new PipeFactory())
@@ -190,7 +181,6 @@ namespace Microsoft.AspNetCore.Sockets.Common.Tests.Internal.Formatters
 
         [Theory]
         [InlineData("data: foo\r\n\r\n", "data: bar\r\n\r\n")]
-        [InlineData("data: Zm9v\r\n\r\n", "data: YmFy\r\n\r\n")]
         public async Task ParseMultipleMessagesText(string message1, string message2)
         {
             using (var pipeFactory = new PipeFactory())
