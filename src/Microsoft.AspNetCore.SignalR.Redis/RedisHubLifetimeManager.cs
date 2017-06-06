@@ -211,7 +211,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
         {
             var groupChannel = typeof(THub).FullName + ".group." + groupName;
             var connection = _connections[connectionId];
-            if(connection != null)
+            if (connection != null)
             {
                 var groupNames = connection.Metadata.GetOrAdd(HubConnectionMetadataNames.Groups, _ => new HashSet<string>());
 
@@ -272,7 +272,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             }
 
             var connection = _connections[connectionId];
-            if(connection != null)
+            if (connection != null)
             {
                 var groupNames = connection.Metadata.Get<HashSet<string>>(HubConnectionMetadataNames.Groups);
                 if (groupNames != null)
