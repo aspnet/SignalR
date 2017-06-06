@@ -60,7 +60,7 @@ namespace ChatSample
                  //.AddRedis()
                 ;
             services.AddAuthentication();
-
+            services.AddCookieAuthentication();
 
             services.AddSingleton(typeof(DefaultHubLifetimeManager<>), typeof(DefaultHubLifetimeManager<>));
             services.AddSingleton(typeof(HubLifetimeManager<>), typeof(DefaultPresenceHublifetimeMenager<>));
@@ -87,9 +87,6 @@ namespace ChatSample
             app.UseStaticFiles();
 
             app.UseAuthentication();
-
-            // Add external authentication middleware below. To configure them please see http://go.microsoft.com/fwlink/?LinkID=532715
-            //app.UseCookieAuthentication();
 
             app.UseSignalR(routes =>
             {
