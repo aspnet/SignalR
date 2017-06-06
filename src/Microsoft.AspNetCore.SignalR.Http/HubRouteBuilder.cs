@@ -19,7 +19,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public void MapHub<THub>(string path) where THub : Hub<IClientProxy>
         {
-            MapHub<THub>(path, null);
+            MapHub<THub>(path, socketOptions: null);
         }
 
         public void MapHub<THub>(string path, Action<HttpSocketOptions> socketOptions) where THub : Hub<IClientProxy>
