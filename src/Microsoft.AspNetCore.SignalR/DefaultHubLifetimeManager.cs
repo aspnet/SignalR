@@ -23,11 +23,13 @@ namespace Microsoft.AspNetCore.SignalR
         public override Task AddGroupAsync(string connectionId, string groupName)
         {
             var connection = _connections[connectionId];
-            var groups = connection.Metadata.GetOrAdd(HubConnectionMetadataNames.Groups, _ => new HashSet<string>());
-
-            lock (groups)
+            if (connection != null)
             {
-                groups.Add(groupName);
+                var groups = connection.Metadata.GetOrAdd(HubConnectionMetadataNames.Groups, _ => new HashSet<string>());
+                lock (groups)
+                {
+                    groups.Add(groupName);
+                }
             }
 
             return Task.CompletedTask;
@@ -36,16 +38,19 @@ namespace Microsoft.AspNetCore.SignalR
         public override Task RemoveGroupAsync(string connectionId, string groupName)
         {
             var connection = _connections[connectionId];
-            var groups = connection.Metadata.Get<HashSet<string>>(HubConnectionMetadataNames.Groups);
-
-            if (groups == null)
+            if (connection != null)
             {
-                return Task.CompletedTask;
-            }
+                var groups = connection.Metadata.Get<HashSet<string>>(HubConnectionMetadataNames.Groups);
 
-            lock (groups)
-            {
-                groups.Remove(groupName);
+                if (groups == null)
+                {
+                    return Task.CompletedTask;
+                }
+
+                lock (groups)
+                {
+                    groups.Remove(groupName);
+                }
             }
 
             return Task.CompletedTask;

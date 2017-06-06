@@ -211,50 +211,53 @@ namespace Microsoft.AspNetCore.SignalR.Redis
         {
             var groupChannel = typeof(THub).FullName + ".group." + groupName;
             var connection = _connections[connectionId];
-            var groupNames = connection.Metadata.GetOrAdd(HubConnectionMetadataNames.Groups, _ => new HashSet<string>());
-
-            lock (groupNames)
+            if(connection != null)
             {
-                groupNames.Add(groupName);
-            }
+                var groupNames = connection.Metadata.GetOrAdd(HubConnectionMetadataNames.Groups, _ => new HashSet<string>());
 
-            var group = _groups.GetOrAdd(groupChannel, _ => new GroupData());
-
-            await group.Lock.WaitAsync();
-            try
-            {
-                group.Connections.Add(connection);
-
-                // Subscribe once
-                if (group.Connections.Count > 1)
+                lock (groupNames)
                 {
-                    return;
+                    groupNames.Add(groupName);
                 }
 
-                var previousTask = Task.CompletedTask;
+                var group = _groups.GetOrAdd(groupChannel, _ => new GroupData());
 
-                _logger.LogInformation("Subscribing to group channel: {channel}", groupChannel);
-                await _bus.SubscribeAsync(groupChannel, async (c, data) =>
+                await group.Lock.WaitAsync();
+                try
                 {
-                    // Since this callback is async, we await the previous task then
-                    // before sending the current message. This is because we don't
-                    // want to do concurrent writes to the outgoing connections
-                    await previousTask;
+                    group.Connections.Add(connection);
 
-                    var message = DeserializeMessage(data);
-
-                    var tasks = new List<Task>(group.Connections.Count);
-                    foreach (var groupConnection in group.Connections)
+                    // Subscribe once
+                    if (group.Connections.Count > 1)
                     {
-                        tasks.Add(WriteAsync(groupConnection, message));
+                        return;
                     }
 
-                    previousTask = Task.WhenAll(tasks);
-                });
-            }
-            finally
-            {
-                group.Lock.Release();
+                    var previousTask = Task.CompletedTask;
+
+                    _logger.LogInformation("Subscribing to group channel: {channel}", groupChannel);
+                    await _bus.SubscribeAsync(groupChannel, async (c, data) =>
+                    {
+                        // Since this callback is async, we await the previous task then
+                        // before sending the current message. This is because we don't
+                        // want to do concurrent writes to the outgoing connections
+                        await previousTask;
+
+                        var message = DeserializeMessage(data);
+
+                        var tasks = new List<Task>(group.Connections.Count);
+                        foreach (var groupConnection in group.Connections)
+                        {
+                            tasks.Add(WriteAsync(groupConnection, message));
+                        }
+
+                        previousTask = Task.WhenAll(tasks);
+                    });
+                }
+                finally
+                {
+                    group.Lock.Release();
+                }
             }
         }
 
@@ -269,29 +272,32 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             }
 
             var connection = _connections[connectionId];
-            var groupNames = connection.Metadata.Get<HashSet<string>>(HubConnectionMetadataNames.Groups);
-            if (groupNames != null)
+            if(connection != null)
             {
-                lock (groupNames)
+                var groupNames = connection.Metadata.Get<HashSet<string>>(HubConnectionMetadataNames.Groups);
+                if (groupNames != null)
                 {
-                    groupNames.Remove(groupName);
+                    lock (groupNames)
+                    {
+                        groupNames.Remove(groupName);
+                    }
                 }
-            }
 
-            await group.Lock.WaitAsync();
-            try
-            {
-                group.Connections.Remove(connection);
-
-                if (group.Connections.Count == 0)
+                await group.Lock.WaitAsync();
+                try
                 {
-                    _logger.LogInformation("Unsubscribing from group channel: {channel}", groupChannel);
-                    await _bus.UnsubscribeAsync(groupChannel);
+                    group.Connections.Remove(connection);
+
+                    if (group.Connections.Count == 0)
+                    {
+                        _logger.LogInformation("Unsubscribing from group channel: {channel}", groupChannel);
+                        await _bus.UnsubscribeAsync(groupChannel);
+                    }
                 }
-            }
-            finally
-            {
-                group.Lock.Release();
+                finally
+                {
+                    group.Lock.Release();
+                }
             }
         }
 
