@@ -40,12 +40,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
             // removes methods such as Hub<TClient>.OnConnectedAsync
             var baseType = baseDefinition.GetTypeInfo().IsGenericType ? baseDefinition.GetGenericTypeDefinition() : baseDefinition;
-            if (typeof(Hub<>) == baseType)
-            {
-                return false;
-            }
-
-            return true;
+            return typeof(Hub<>) != baseType;
         }
     }
 }
