@@ -60,7 +60,7 @@ namespace Microsoft.AspNetCore.Client.Tests
         }
 
         [Fact]
-        public async Task LongPollingTransportStopsWhenPollReceives205()
+        public async Task LongPollingTransportStopsWhenPollReceives204()
         {
             var mockHttpHandler = new Mock<HttpMessageHandler>();
             mockHttpHandler.Protected()
@@ -68,7 +68,7 @@ namespace Microsoft.AspNetCore.Client.Tests
                 .Returns<HttpRequestMessage, CancellationToken>(async (request, cancellationToken) =>
                 {
                     await Task.Yield();
-                    return ResponseUtils.CreateResponse(HttpStatusCode.ResetContent);
+                    return ResponseUtils.CreateResponse(HttpStatusCode.NoContent);
                 });
 
             using (var httpClient = new HttpClient(mockHttpHandler.Object))
@@ -93,7 +93,7 @@ namespace Microsoft.AspNetCore.Client.Tests
         }
 
         [Fact]
-        public async Task LongPollingTransportDoesNotStopWhenPollReceives204()
+        public async Task LongPollingTransportResponseWithNoContentDoesNotStopPoll()
         {
             int requests = 0;
             var mockHttpHandler = new Mock<HttpMessageHandler>();
@@ -112,7 +112,7 @@ namespace Microsoft.AspNetCore.Client.Tests
                     {
                         requests++;
                         // Time out
-                        return ResponseUtils.CreateResponse(HttpStatusCode.NoContent);
+                        return ResponseUtils.CreateResponse(HttpStatusCode.OK);
                     }
                     else if (requests == 2)
                     {
@@ -121,7 +121,7 @@ namespace Microsoft.AspNetCore.Client.Tests
                     }
 
                     // Done
-                    return ResponseUtils.CreateResponse(HttpStatusCode.ResetContent);
+                    return ResponseUtils.CreateResponse(HttpStatusCode.NoContent);
                 });
 
             using (var httpClient = new HttpClient(mockHttpHandler.Object))
@@ -284,7 +284,7 @@ namespace Microsoft.AspNetCore.Client.Tests
                         return ResponseUtils.CreateResponse(HttpStatusCode.OK, message1Payload);
                     }
 
-                    return ResponseUtils.CreateResponse(HttpStatusCode.ResetContent);
+                    return ResponseUtils.CreateResponse(HttpStatusCode.NoContent);
                 });
 
             using (var httpClient = new HttpClient(mockHttpHandler.Object))

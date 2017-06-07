@@ -31,8 +31,8 @@ namespace Microsoft.AspNetCore.Sockets.Transports
                 if (!await _application.WaitToReadAsync(token))
                 {
                     await _application.Completion;
-                    _logger.LogInformation("Terminating Long Polling connection by sending 205 response.");
-                    context.Response.StatusCode = StatusCodes.Status205ResetContent;
+                    _logger.LogInformation("Terminating Long Polling connection by sending 204 response.");
+                    context.Response.StatusCode = StatusCodes.Status204NoContent;
                     return;
                 }
 
@@ -74,14 +74,16 @@ namespace Microsoft.AspNetCore.Sockets.Transports
                 // Case 2
                 else if (_timeoutToken.IsCancellationRequested)
                 {
-                    _logger.LogInformation("Poll request timed out. Sending 204 response.");
-                    context.Response.StatusCode = StatusCodes.Status204NoContent;
+                    _logger.LogInformation("Poll request timed out. Sending 200 response.");
+
+                    context.Response.ContentLength = 0;
+                    context.Response.StatusCode = StatusCodes.Status200OK;
                 }
                 else
                 {
                     // Case 3
-                    _logger.LogInformation("Terminating Long Polling connection by sending 205 response.");
-                    context.Response.StatusCode = StatusCodes.Status205ResetContent;
+                    _logger.LogInformation("Terminating Long Polling connection by sending 204 response.");
+                    context.Response.StatusCode = StatusCodes.Status204NoContent;
                 }
             }
             catch (Exception ex)

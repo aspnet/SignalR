@@ -18,7 +18,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
     public class LongPollingTests
     {
         [Fact]
-        public async Task Set205StatusCodeWhenChannelComplete()
+        public async Task Set204StatusCodeWhenChannelComplete()
         {
             var channel = Channel.CreateUnbounded<byte[]>();
             var context = new DefaultHttpContext();
@@ -28,11 +28,11 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             await poll.ProcessRequestAsync(context, context.RequestAborted);
 
-            Assert.Equal(205, context.Response.StatusCode);
+            Assert.Equal(204, context.Response.StatusCode);
         }
 
         [Fact]
-        public async Task Set204StatusCodeWhenTimeoutTokenFires()
+        public async Task Set200StatusCodeWhenTimeoutTokenFires()
         {
             var channel = Channel.CreateUnbounded<byte[]>();
             var context = new DefaultHttpContext();
@@ -43,7 +43,8 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             {
                 await poll.ProcessRequestAsync(context, cts.Token).OrTimeout();
 
-                Assert.Equal(204, context.Response.StatusCode);
+                Assert.Equal(0, context.Response.ContentLength);
+                Assert.Equal(200, context.Response.StatusCode);
             }
         }
 

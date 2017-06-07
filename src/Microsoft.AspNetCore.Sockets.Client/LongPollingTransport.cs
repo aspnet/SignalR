@@ -4,10 +4,8 @@
 using System;
 using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Sockets.Internal.Formatters;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -87,7 +85,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     var response = await _httpClient.SendAsync(request, cancellationToken);
                     response.EnsureSuccessStatusCode();
 
-                    if (response.StatusCode == HttpStatusCode.ResetContent || cancellationToken.IsCancellationRequested)
+                    if (response.StatusCode == HttpStatusCode.NoContent || cancellationToken.IsCancellationRequested)
                     {
                         _logger.LogDebug("The server is closing the connection");
 
