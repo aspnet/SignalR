@@ -209,7 +209,7 @@ namespace Microsoft.AspNetCore.Sockets
                     // Wait for the transport to run
                     await connection.TransportTask;
 
-                    // If the status code is a 205 it means the connection is done
+                    // If the status code is a 204 it means the connection is done
                     if (context.Response.StatusCode == StatusCodes.Status204NoContent)
                     {
                         // We should be able to safely dispose because there's no more data being written
