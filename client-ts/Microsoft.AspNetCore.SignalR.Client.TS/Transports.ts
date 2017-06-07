@@ -173,8 +173,13 @@ export class LongPollingTransport implements ITransport {
             if (pollXhr.status == 200) {
                 if (this.onDataReceived) {
                     try {
-                        console.log(`(LongPolling transport) data received: ${pollXhr.response}`);
-                        this.onDataReceived(pollXhr.response);
+                        if (pollXhr.response) {
+                            console.log(`(LongPolling transport) data received: ${pollXhr.response}`);
+                            this.onDataReceived(pollXhr.response);
+                        }
+                        else {
+                            console.log(`(LongPolling transport) timed out`);
+                        }
                     } catch (error) {
                         if (this.onClosed) {
                             this.onClosed(error);
@@ -184,11 +189,7 @@ export class LongPollingTransport implements ITransport {
                 }
                 this.poll(url);
             }
-            else if (pollXhr.status == 204) {
-                console.log(`(LongPolling transport) timed out`);
-                this.poll(url);
-            }
-            else if (this.pollXhr.status == 205) {
+            else if (this.pollXhr.status == 204) {
                 if (this.onClosed) {
                     this.onClosed();
                 }
