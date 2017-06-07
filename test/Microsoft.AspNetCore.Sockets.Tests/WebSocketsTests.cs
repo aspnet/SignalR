@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.SignalR.Tests.Common;
 using Microsoft.AspNetCore.Sockets.Internal;
-using Microsoft.AspNetCore.Sockets.Transports;
+using Microsoft.AspNetCore.Sockets.Internal.Transports;
 using Microsoft.Extensions.Logging;
 using Xunit;
 
@@ -33,7 +33,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 var ws = new WebSocketsTransport(new WebSocketOptions(), transportSide, new LoggerFactory());
 
                 // Give the server socket to the transport and run it
-                var transport = ws.ProcessSocketAsync(await feature.AcceptAsync());
+                var transport = ws.ProcessSocketCoreAsync(await feature.AcceptAsync(), requestId: string.Empty);
 
                 // Run the client socket
                 var client = feature.Client.ExecuteAndCaptureFramesAsync();
@@ -77,7 +77,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 var ws = new WebSocketsTransport(new WebSocketOptions() { WebSocketMessageType = webSocketMessageType }, transportSide, new LoggerFactory());
 
                 // Give the server socket to the transport and run it
-                var transport = ws.ProcessSocketAsync(await feature.AcceptAsync());
+                var transport = ws.ProcessSocketCoreAsync(await feature.AcceptAsync(), requestId: string.Empty);
 
                 // Run the client socket
                 var client = feature.Client.ExecuteAndCaptureFramesAsync();
@@ -114,7 +114,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 var ws = new WebSocketsTransport(new WebSocketOptions() { WebSocketMessageType = webSocketMessageType }, transportSide, new LoggerFactory());
 
                 // Give the server socket to the transport and run it
-                var transport = ws.ProcessSocketAsync(await feature.AcceptAsync());
+                var transport = ws.ProcessSocketCoreAsync(await feature.AcceptAsync(), requestId: string.Empty);
 
                 // Run the client socket
                 var client = feature.Client.ExecuteAndCaptureFramesAsync();
@@ -153,7 +153,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 var ws = new WebSocketsTransport(new WebSocketOptions(), transportSide, new LoggerFactory());
 
                 // Give the server socket to the transport and run it
-                var transport = ws.ProcessSocketAsync(await feature.AcceptAsync());
+                var transport = ws.ProcessSocketCoreAsync(await feature.AcceptAsync(), requestId: string.Empty);
 
                 // Run the client socket
                 var client = feature.Client.ExecuteAndCaptureFramesAsync();
@@ -180,7 +180,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 var ws = new WebSocketsTransport(new WebSocketOptions(), transportSide, new LoggerFactory());
 
                 // Give the server socket to the transport and run it
-                var transport = ws.ProcessSocketAsync(await feature.AcceptAsync());
+                var transport = ws.ProcessSocketCoreAsync(await feature.AcceptAsync(), requestId: string.Empty);
 
                 // Run the client socket
                 var client = feature.Client.ExecuteAndCaptureFramesAsync();
@@ -218,7 +218,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
                 var serverSocket = await feature.AcceptAsync();
                 // Give the server socket to the transport and run it
-                var transport = ws.ProcessSocketAsync(serverSocket);
+                var transport = ws.ProcessSocketCoreAsync(serverSocket, requestId: string.Empty);
 
                 // End the app
                 applicationSide.Dispose();
