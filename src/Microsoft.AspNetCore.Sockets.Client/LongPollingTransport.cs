@@ -92,10 +92,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
                         // Transport closed or polling stopped, we're done
                         break;
                     }
-                    else if (response.StatusCode == HttpStatusCode.NoContent)
-                    {
-                        _logger.LogDebug("The server is timed out poll");
-                    }
                     else
                     {
                         _logger.LogDebug("Received messages from the server");
