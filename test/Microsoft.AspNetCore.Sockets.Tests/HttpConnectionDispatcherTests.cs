@@ -62,6 +62,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var manager = CreateConnectionManager();
             var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
             var context = new DefaultHttpContext();
+            context.Features.Set<IHttpResponseFeature>(new ResponseFeature());
             var services = new ServiceCollection();
             services.AddEndPoint<TestEndPoint>();
             services.AddOptions();
@@ -96,6 +97,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             using (var strm = new MemoryStream())
             {
                 var context = new DefaultHttpContext();
+                context.Features.Set<IHttpResponseFeature>(new ResponseFeature());
                 context.Response.Body = strm;
 
                 var services = new ServiceCollection();
@@ -163,6 +165,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             using (var strm = new MemoryStream())
             {
                 var context = new DefaultHttpContext();
+                context.Features.Set<IHttpResponseFeature>(new ResponseFeature());
                 context.Response.Body = strm;
                 var services = new ServiceCollection();
                 services.AddOptions();
@@ -210,7 +213,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         }
 
         [Theory]
-        [InlineData(TransportType.LongPolling, 204)]
+        [InlineData(TransportType.LongPolling, 205)]
         [InlineData(TransportType.WebSockets, 404)]
         [InlineData(TransportType.ServerSentEvents, 404)]
         public async Task EndPointThatOnlySupportsLongPollingRejectsOtherTransports(TransportType transportType, int status)
@@ -307,10 +310,32 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var app = builder.Build();
             await dispatcher.ExecuteAsync(context, new HttpSocketOptions(), app);
 
-            Assert.Equal(StatusCodes.Status204NoContent, context.Response.StatusCode);
+            Assert.Equal(StatusCodes.Status205ResetContent, context.Response.StatusCode);
 
             bool exists = manager.TryGetConnection(connection.ConnectionId, out _);
             Assert.False(exists);
+        }
+
+        [Fact]
+        public async Task LongPollingTimeoutSets204StatusCode()
+        {
+            var manager = CreateConnectionManager();
+            var connection = manager.CreateConnection();
+
+            var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
+
+            var context = MakeRequest("/foo", connection);
+
+            var services = new ServiceCollection();
+            services.AddEndPoint<TestEndPoint>();
+            var builder = new SocketBuilder(services.BuildServiceProvider());
+            builder.UseEndPoint<TestEndPoint>();
+            var app = builder.Build();
+            var options = new HttpSocketOptions();
+            options.LongPolling.PollTimeout = TimeSpan.FromSeconds(2);
+            await dispatcher.ExecuteAsync(context, options, app).OrTimeout();
+
+            Assert.Equal(StatusCodes.Status204NoContent, context.Response.StatusCode);
         }
 
         [Fact]
@@ -400,7 +425,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             await request1;
 
-            Assert.Equal(StatusCodes.Status204NoContent, context1.Response.StatusCode);
+            Assert.Equal(StatusCodes.Status205ResetContent, context1.Response.StatusCode);
             Assert.Equal(DefaultConnectionContext.ConnectionStatus.Active, connection.Status);
 
             Assert.False(request2.IsCompleted);
@@ -523,7 +548,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             await task;
 
-            Assert.Equal(StatusCodes.Status204NoContent, context.Response.StatusCode);
+            Assert.Equal(StatusCodes.Status205ResetContent, context.Response.StatusCode);
             bool exists = manager.TryGetConnection(connection.ConnectionId, out _);
             Assert.False(exists);
         }
@@ -557,7 +582,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             await task2.OrTimeout();
 
             // Verify the results
-            Assert.Equal(StatusCodes.Status204NoContent, context1.Response.StatusCode);
+            Assert.Equal(StatusCodes.Status205ResetContent, context1.Response.StatusCode);
             Assert.Equal(string.Empty, GetContentAsString(context1.Response.Body));
             Assert.Equal(StatusCodes.Status200OK, context2.Response.StatusCode);
             Assert.Equal("Hello, World", GetContentAsString(context2.Response.Body));
@@ -648,6 +673,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var connection = manager.CreateConnection();
             var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
             var context = new DefaultHttpContext();
+            context.Features.Set<IHttpResponseFeature>(new ResponseFeature());
             var services = new ServiceCollection();
             services.AddOptions();
             services.AddEndPoint<TestEndPoint>();
@@ -696,6 +722,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var connection = manager.CreateConnection();
             var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
             var context = new DefaultHttpContext();
+            context.Features.Set<IHttpResponseFeature>(new ResponseFeature());
             var services = new ServiceCollection();
             services.AddOptions();
             services.AddEndPoint<TestEndPoint>();
@@ -918,6 +945,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             using (var strm = new MemoryStream())
             {
                 var context = new DefaultHttpContext();
+                context.Features.Set<IHttpResponseFeature>(new ResponseFeature());
                 context.Response.Body = strm;
                 var services = new ServiceCollection();
                 services.AddOptions();
@@ -951,6 +979,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         private static DefaultHttpContext MakeRequest(string path, DefaultConnectionContext connection, string format = null)
         {
             var context = new DefaultHttpContext();
+            context.Features.Set<IHttpResponseFeature>(new ResponseFeature());
             context.Request.Path = path;
             context.Request.Method = "GET";
             var values = new Dictionary<string, StringValues>();
@@ -1037,6 +1066,18 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             while (await connection.Transport.Input.WaitToReadAsync())
             {
             }
+        }
+    }
+
+    public class ResponseFeature : HttpResponseFeature
+    {
+        public override void OnCompleted(Func<object, Task> callback, object state)
+        {
+            
+        }
+
+        public override void OnStarting(Func<object, Task> callback, object state)
+        {
         }
     }
 }

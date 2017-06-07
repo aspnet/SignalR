@@ -7,7 +7,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Sockets.Internal.Formatters;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.Sockets.Transports
@@ -16,9 +15,11 @@ namespace Microsoft.AspNetCore.Sockets.Transports
     {
         private readonly ReadableChannel<byte[]> _application;
         private readonly ILogger _logger;
+        private readonly CancellationToken _timeoutToken;
 
-        public LongPollingTransport(ReadableChannel<byte[]> application, ILoggerFactory loggerFactory)
+        public LongPollingTransport(CancellationToken timeoutToken, ReadableChannel<byte[]> application, ILoggerFactory loggerFactory)
         {
+            _timeoutToken = timeoutToken;
             _application = application;
             _logger = loggerFactory.CreateLogger<LongPollingTransport>();
         }
@@ -30,8 +31,8 @@ namespace Microsoft.AspNetCore.Sockets.Transports
                 if (!await _application.WaitToReadAsync(token))
                 {
                     await _application.Completion;
-                    _logger.LogInformation("Terminating Long Polling connection by sending 204 response.");
-                    context.Response.StatusCode = StatusCodes.Status204NoContent;
+                    _logger.LogInformation("Terminating Long Polling connection by sending 205 response.");
+                    context.Response.StatusCode = StatusCodes.Status205ResetContent;
                     return;
                 }
 
@@ -58,16 +59,30 @@ namespace Microsoft.AspNetCore.Sockets.Transports
             }
             catch (OperationCanceledException)
             {
-                if (!context.RequestAborted.IsCancellationRequested)
-                {
-                    _logger.LogInformation("Terminating Long Polling connection by sending 204 response.");
-                    context.Response.StatusCode = StatusCodes.Status204NoContent;
-                    throw;
-                }
+                // 3 cases:
+                // 1 - Request aborted, the client disconnected (no response)
+                // 2 - The poll timeout is hit (204)
+                // 3 - A new request comes in and cancels this request (205)
 
-                // Don't count this as cancellation, this is normal as the poll can end due to the browesr closing.
-                // The background thread will eventually dispose this connection if it's inactive
-                _logger.LogDebug("Client disconnected from Long Polling endpoint.");
+                // Case 1
+                if (context.RequestAborted.IsCancellationRequested)
+                {
+                    // Don't count this as cancellation, this is normal as the poll can end due to the browser closing.
+                    // The background thread will eventually dispose this connection if it's inactive
+                    _logger.LogDebug("Client disconnected from Long Polling endpoint.");
+                }
+                // Case 2
+                else if (_timeoutToken.IsCancellationRequested)
+                {
+                    _logger.LogInformation("Poll request timed out. Sending 204 response.");
+                    context.Response.StatusCode = StatusCodes.Status204NoContent;
+                }
+                else
+                {
+                    // Case 3
+                    _logger.LogInformation("Terminating Long Polling connection by sending 205 response.");
+                    context.Response.StatusCode = StatusCodes.Status205ResetContent;
+                }
             }
             catch (Exception ex)
             {

@@ -60,7 +60,7 @@ namespace Microsoft.AspNetCore.Client.Tests
         }
 
         [Fact]
-        public async Task LongPollingTransportStopsWhenPollReceives204()
+        public async Task LongPollingTransportStopsWhenPollReceives205()
         {
             var mockHttpHandler = new Mock<HttpMessageHandler>();
             mockHttpHandler.Protected()
@@ -68,7 +68,7 @@ namespace Microsoft.AspNetCore.Client.Tests
                 .Returns<HttpRequestMessage, CancellationToken>(async (request, cancellationToken) =>
                 {
                     await Task.Yield();
-                    return ResponseUtils.CreateResponse(HttpStatusCode.NoContent);
+                    return ResponseUtils.CreateResponse(HttpStatusCode.ResetContent);
                 });
 
             using (var httpClient = new HttpClient(mockHttpHandler.Object))
@@ -84,6 +84,63 @@ namespace Microsoft.AspNetCore.Client.Tests
 
                     await longPollingTransport.Running.OrTimeout();
                     Assert.True(transportToConnection.In.Completion.IsCompleted);
+                }
+                finally
+                {
+                    await longPollingTransport.StopAsync();
+                }
+            }
+        }
+
+        [Fact]
+        public async Task LongPollingTransportDoesNotStopWhenPollReceives204()
+        {
+            int requests = 0;
+            var mockHttpHandler = new Mock<HttpMessageHandler>();
+            mockHttpHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+                .Returns<HttpRequestMessage, CancellationToken>(async (request, cancellationToken) =>
+                {
+                    await Task.Yield();
+
+                    if (requests == 0)
+                    {
+                        requests++;
+                        return ResponseUtils.CreateResponse(HttpStatusCode.OK, "Hello");
+                    }
+                    else if (requests == 1)
+                    {
+                        requests++;
+                        // Time out
+                        return ResponseUtils.CreateResponse(HttpStatusCode.NoContent);
+                    }
+                    else if (requests == 2)
+                    {
+                        requests++;
+                        return ResponseUtils.CreateResponse(HttpStatusCode.OK, "World");
+                    }
+
+                    // Done
+                    return ResponseUtils.CreateResponse(HttpStatusCode.ResetContent);
+                });
+
+            using (var httpClient = new HttpClient(mockHttpHandler.Object))
+            {
+
+                var longPollingTransport = new LongPollingTransport(httpClient, new LoggerFactory());
+                try
+                {
+                    var connectionToTransport = Channel.CreateUnbounded<SendMessage>();
+                    var transportToConnection = Channel.CreateUnbounded<byte[]>();
+                    var channelConnection = new ChannelConnection<SendMessage, byte[]>(connectionToTransport, transportToConnection);
+                    await longPollingTransport.StartAsync(new Uri("http://fakeuri.org"), channelConnection);
+
+                    var data = await transportToConnection.In.ReadAllAsync().OrTimeout();
+                    await longPollingTransport.Running.OrTimeout();
+                    Assert.True(transportToConnection.In.Completion.IsCompleted);
+                    Assert.Equal(2, data.Count);
+                    Assert.Equal(Encoding.UTF8.GetBytes("Hello"), data[0]);
+                    Assert.Equal(Encoding.UTF8.GetBytes("World"), data[1]);
                 }
                 finally
                 {
@@ -227,7 +284,7 @@ namespace Microsoft.AspNetCore.Client.Tests
                         return ResponseUtils.CreateResponse(HttpStatusCode.OK, message1Payload);
                     }
 
-                    return ResponseUtils.CreateResponse(HttpStatusCode.NoContent);
+                    return ResponseUtils.CreateResponse(HttpStatusCode.ResetContent);
                 });
 
             using (var httpClient = new HttpClient(mockHttpHandler.Object))

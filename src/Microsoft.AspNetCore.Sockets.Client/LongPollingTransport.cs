@@ -87,12 +87,16 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     var response = await _httpClient.SendAsync(request, cancellationToken);
                     response.EnsureSuccessStatusCode();
 
-                    if (response.StatusCode == HttpStatusCode.NoContent || cancellationToken.IsCancellationRequested)
+                    if (response.StatusCode == HttpStatusCode.ResetContent || cancellationToken.IsCancellationRequested)
                     {
                         _logger.LogDebug("The server is closing the connection");
 
                         // Transport closed or polling stopped, we're done
                         break;
+                    }
+                    else if (response.StatusCode == HttpStatusCode.NoContent)
+                    {
+                        _logger.LogDebug("The server is timed out poll");
                     }
                     else
                     {
@@ -109,7 +113,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
                                     return;
                                 }
                             }
-
                         }
                     }
                 }

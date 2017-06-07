@@ -3,12 +3,12 @@
 
 using System;
 using System.IO;
-using System.IO.Pipelines;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Sockets.Internal.Formatters;
+using Microsoft.AspNetCore.SignalR.Tests.Common;
 using Microsoft.AspNetCore.Sockets.Transports;
 using Microsoft.Extensions.Logging;
 using Xunit;
@@ -18,17 +18,33 @@ namespace Microsoft.AspNetCore.Sockets.Tests
     public class LongPollingTests
     {
         [Fact]
-        public async Task Set204StatusCodeWhenChannelComplete()
+        public async Task Set205StatusCodeWhenChannelComplete()
         {
             var channel = Channel.CreateUnbounded<byte[]>();
             var context = new DefaultHttpContext();
-            var poll = new LongPollingTransport(channel, new LoggerFactory());
+            var poll = new LongPollingTransport(CancellationToken.None, channel, new LoggerFactory());
 
             Assert.True(channel.Out.TryComplete());
 
             await poll.ProcessRequestAsync(context, context.RequestAborted);
 
-            Assert.Equal(204, context.Response.StatusCode);
+            Assert.Equal(205, context.Response.StatusCode);
+        }
+
+        [Fact]
+        public async Task Set204StatusCodeWhenTimeoutTokenFires()
+        {
+            var channel = Channel.CreateUnbounded<byte[]>();
+            var context = new DefaultHttpContext();
+            var timeoutToken = new CancellationToken(true);
+            var poll = new LongPollingTransport(timeoutToken, channel, new LoggerFactory());
+
+            using (var cts = CancellationTokenSource.CreateLinkedTokenSource(timeoutToken, context.RequestAborted))
+            {
+                await poll.ProcessRequestAsync(context, cts.Token).OrTimeout();
+
+                Assert.Equal(204, context.Response.StatusCode);
+            }
         }
 
         [Fact]
@@ -36,7 +52,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         {
             var channel = Channel.CreateUnbounded<byte[]>();
             var context = new DefaultHttpContext();
-            var poll = new LongPollingTransport(channel, new LoggerFactory());
+            var poll = new LongPollingTransport(CancellationToken.None, channel, new LoggerFactory());
             var ms = new MemoryStream();
             context.Response.Body = ms;
 
@@ -56,7 +72,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var channel = Channel.CreateUnbounded<byte[]>();
             var context = new DefaultHttpContext();
 
-            var poll = new LongPollingTransport(channel, new LoggerFactory());
+            var poll = new LongPollingTransport(CancellationToken.None, channel, new LoggerFactory());
             var ms = new MemoryStream();
             context.Response.Body = ms;
 

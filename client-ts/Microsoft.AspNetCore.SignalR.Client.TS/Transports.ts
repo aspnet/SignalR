@@ -184,7 +184,11 @@ export class LongPollingTransport implements ITransport {
                 }
                 this.poll(url);
             }
-            else if (this.pollXhr.status == 204) {
+            else if (pollXhr.status == 204) {
+                console.log(`(LongPolling transport) timed out`);
+                this.poll(url);
+            }
+            else if (this.pollXhr.status == 205) {
                 if (this.onClosed) {
                     this.onClosed();
                 }
@@ -210,7 +214,7 @@ export class LongPollingTransport implements ITransport {
         this.pollXhr = pollXhr;
         this.pollXhr.open("GET", url, true);
         // TODO: consider making timeout configurable
-        this.pollXhr.timeout = 110000;
+        this.pollXhr.timeout = 120000;
         this.pollXhr.send();
     }
 
