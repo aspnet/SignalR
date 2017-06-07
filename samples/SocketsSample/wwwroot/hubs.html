@@ -130,7 +130,7 @@ click('leave-group', event => {
 
 click('groupmsg', event => {
     let groupName = getText('target');
-    let message = getText('messages');
+    let message = getText('message');
     invoke(connection, 'SendToGroup', groupName, message);
 });
 
