@@ -26,10 +26,6 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 {
     public class HttpConnectionDispatcherTests
     {
-        // Redefined from MessageFormatter because we want constants to go in the Attributes
-        private const string TextContentType = "application/vnd.microsoft.aspnetcore.endpoint-messages.v1+text";
-        private const string BinaryContentType = "application/vnd.microsoft.aspnetcore.endpoint-messages.v1+binary";
-
         [Fact]
         public async Task NegotiateReservesConnectionIdAndReturnsIt()
         {
@@ -767,6 +763,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             // reset HttpContext
             context = new DefaultHttpContext();
+            context.Features.Set<IHttpResponseFeature>(new ResponseFeature());
             context.Request.Path = "/foo";
             context.Request.Method = "GET";
             context.RequestServices = sp;
@@ -795,6 +792,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var connection = manager.CreateConnection();
             var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
             var context = new DefaultHttpContext();
+            context.Features.Set<IHttpResponseFeature>(new ResponseFeature());
             var services = new ServiceCollection();
             services.AddOptions();
             services.AddEndPoint<TestEndPoint>();
