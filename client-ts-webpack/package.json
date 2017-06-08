@@ -1,0 +1,46 @@
+{
+  "name": "signalr-client",
+  "version": "0.1.0",
+  "description": "ASP.NET Core SignalR",
+  "main": "./dist/signalr-client.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "tsc": "tsc -p tsconfig.noEmit.json",
+    "test": "jest --config jestconfig.json --runInBand",
+    "test:watch": "npm test -- --watch",
+    "test:cover": "npm test -- --coverage --no-cache",
+    "build": "npm-run-all clean lint test webpack",
+    "clean": "rimraf dist",
+    "lint": "tslint --config tslint.json src/**/*.ts",
+    "webpack": "webpack --config webpack.config.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aspnet/SignalR.git"
+  },
+  "author": "Microsoft",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/aspnet/SignalR/issues"
+  },
+  "homepage": "https://github.com/aspnet/SignalR#readme",
+  "devDependencies": {
+    "@types/core-js": "^0.9.41",
+    "@types/jasmine": "^2.5.47",
+    "@types/jest": "^19.2.3",
+    "@types/node": "^7.0.21",
+    "core-js": "^2.4.1",
+    "jasmine": "^2.6.0",
+    "jest": "^20.0.3",
+    "npm-run-all": "^4.0.2",
+    "rimraf": "^2.6.1",
+    "ts-jest": "^20.0.4",
+    "ts-loader": "^2.1.0",
+    "ts-node": "^3.0.4",
+    "tslint": "^5.3.2",
+    "typescript": "^2.3.2",
+    "webpack": "^2.5.1",
+    "yargs": "^8.0.1"
+  },
+  "dependencies": {}
+}
