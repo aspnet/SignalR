@@ -12,8 +12,8 @@ using System.Linq;
 
 namespace ChatSample
 {
-    public class DefaultPresenceHublifetimeManager<THub> : PresenceHubLifetimeManager<THub, DefaultHubLifetimeManager<THub>>
-        where THub : HubWithPresence
+    public class DefaultPresenceHublifetimeManager<THub, TClient> : PresenceHubLifetimeManager<THub, DefaultHubLifetimeManager<THub, TClient>, TClient>
+        where THub : HubWithPresence<TClient>
     {
         public DefaultPresenceHublifetimeManager(IUserTracker<THub> userTracker, IServiceScopeFactory serviceScopeFactory,
             ILoggerFactory loggerFactory, IServiceProvider serviceProvider)
@@ -22,8 +22,8 @@ namespace ChatSample
         }
     }
 
-    public class RedisPresenceHublifetimeManager<THub> : PresenceHubLifetimeManager<THub, RedisHubLifetimeManager<THub>>
-    where THub : HubWithPresence
+    public class RedisPresenceHublifetimeManager<THub, TClient> : PresenceHubLifetimeManager<THub, RedisHubLifetimeManager<THub, TClient>, TClient>
+    where THub : HubWithPresence<TClient>
     {
         public RedisPresenceHublifetimeManager(IUserTracker<THub> userTracker, IServiceScopeFactory serviceScopeFactory,
             ILoggerFactory loggerFactory, IServiceProvider serviceProvider)
@@ -32,17 +32,17 @@ namespace ChatSample
         }
     }
 
-    public class PresenceHubLifetimeManager<THub, THubLifetimeManager> : HubLifetimeManager<THub>, IDisposable
-        where THubLifetimeManager : HubLifetimeManager<THub>
-        where THub : HubWithPresence
+    public class PresenceHubLifetimeManager<THub, THubLifetimeManager, TClient> : HubLifetimeManager<THub, TClient>, IDisposable
+        where THubLifetimeManager : HubLifetimeManager<THub, TClient>
+        where THub : HubWithPresence<TClient>
     {
         private readonly ConnectionList _connections = new ConnectionList();
         private readonly IUserTracker<THub> _userTracker;
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly ILogger _logger;
         private readonly IServiceProvider _serviceProvider;
-        private readonly HubLifetimeManager<THub> _wrappedHubLifetimeManager;
-        private IHubContext<THub> _hubContext;
+        private readonly HubLifetimeManager<THub, TClient> _wrappedHubLifetimeManager;
+        private IHubContext<THub, TClient> _hubContext;
 
         public PresenceHubLifetimeManager(IUserTracker<THub> userTracker, IServiceScopeFactory serviceScopeFactory,
             ILoggerFactory loggerFactory, IServiceProvider serviceProvider)
@@ -53,7 +53,7 @@ namespace ChatSample
 
             _serviceScopeFactory = serviceScopeFactory;
             _serviceProvider = serviceProvider;
-            _logger = loggerFactory.CreateLogger<PresenceHubLifetimeManager<THub, THubLifetimeManager>>();
+            _logger = loggerFactory.CreateLogger<PresenceHubLifetimeManager<THub, THubLifetimeManager, TClient>>();
             _wrappedHubLifetimeManager = serviceProvider.GetRequiredService<THubLifetimeManager>();
         }
 
@@ -102,18 +102,18 @@ namespace ChatSample
             {
                 using (var scope = _serviceScopeFactory.CreateScope())
                 {
-                    var hubActivator = scope.ServiceProvider.GetRequiredService<IHubActivator<THub, IClientProxy>>();
+                    var hubActivator = scope.ServiceProvider.GetRequiredService<IHubActivator<THub, TClient>>();
                     var hub = hubActivator.Create();
 
                     if (_hubContext == null)
                     {
                         // Cannot be injected due to circular dependency
-                        _hubContext = _serviceProvider.GetRequiredService<IHubContext<THub>>();
+                        _hubContext = _serviceProvider.GetRequiredService<IHubContext<THub, TClient>>();
                     }
 
                     hub.Clients = _hubContext.Clients;
                     hub.Context = new HubCallerContext(connection);
-                    hub.Groups = new GroupManager<THub>(connection, this);
+                    hub.Groups = new GroupManager<THub, TClient>(connection, this);
 
                     try
                     {

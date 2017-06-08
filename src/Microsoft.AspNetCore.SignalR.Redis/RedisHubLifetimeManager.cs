@@ -21,7 +21,7 @@ using StackExchange.Redis;
 
 namespace Microsoft.AspNetCore.SignalR.Redis
 {
-    public class RedisHubLifetimeManager<THub> : HubLifetimeManager<THub>, IDisposable
+    public class RedisHubLifetimeManager<THub, TClient> : HubLifetimeManager<THub, TClient>, IDisposable
     {
         private const string RedisSubscriptionsMetadataName = "redis_subscriptions";
 
@@ -44,7 +44,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
         private long _nextInvocationId = 0;
 
-        public RedisHubLifetimeManager(ILogger<RedisHubLifetimeManager<THub>> logger,
+        public RedisHubLifetimeManager(ILogger<RedisHubLifetimeManager<THub, object>> logger,
                                        IOptions<RedisOptions> options)
         {
             _logger = logger;

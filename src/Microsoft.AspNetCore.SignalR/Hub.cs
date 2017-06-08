@@ -6,11 +6,16 @@ using System.Threading.Tasks;
 
 namespace Microsoft.AspNetCore.SignalR
 {
+    public interface IHub
+    {
+
+    }
+
     public class Hub : Hub<IClientProxy>
     {
     }
 
-    public class Hub<TClient> : IDisposable
+    public class Hub<TClient> : IHub, IDisposable
     {
         private bool _disposed;
         private IHubConnectionContext<TClient> _clients;

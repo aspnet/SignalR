@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Sockets;
 
 namespace Microsoft.AspNetCore.SignalR
 {
-    public abstract class HubLifetimeManager<THub>
+    public abstract class HubLifetimeManager<THub, TClient>
     {
         public abstract Task OnConnectedAsync(ConnectionContext connection);
 

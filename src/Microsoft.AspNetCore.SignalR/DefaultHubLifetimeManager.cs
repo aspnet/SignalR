@@ -15,7 +15,7 @@ using Microsoft.AspNetCore.Sockets.Internal.Formatters;
 
 namespace Microsoft.AspNetCore.SignalR
 {
-    public class DefaultHubLifetimeManager<THub> : HubLifetimeManager<THub>
+    public class DefaultHubLifetimeManager<THub, TClient> : HubLifetimeManager<THub, TClient>
     {
         private long _nextInvocationId = 0;
         private readonly ConnectionList _connections = new ConnectionList();

@@ -10,10 +10,10 @@ namespace Microsoft.Extensions.DependencyInjection
     {
         public static ISignalRBuilder AddSignalRCore(this IServiceCollection services)
         {
-            services.AddSingleton(typeof(HubLifetimeManager<>), typeof(DefaultHubLifetimeManager<>));
+            services.AddSingleton(typeof(HubLifetimeManager<,>), typeof(DefaultHubLifetimeManager<,>));
             services.AddSingleton(typeof(IHubProtocolResolver), typeof(DefaultHubProtocolResolver));
-            services.AddSingleton(typeof(IHubContext<>), typeof(HubContext<>));
-            services.AddSingleton(typeof(HubEndPoint<>), typeof(HubEndPoint<>));
+            services.AddSingleton(typeof(IHubContext<,>), typeof(HubContext<>));
+            services.AddSingleton(typeof(HubEndPoint<,>), typeof(HubEndPoint<,>));
             services.AddScoped(typeof(IHubActivator<,>), typeof(DefaultHubActivator<,>));
 
             return new SignalRBuilder(services);

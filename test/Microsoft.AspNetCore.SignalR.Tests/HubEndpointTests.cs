@@ -21,7 +21,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             var trackDispose = new TrackDispose();
             var serviceProvider = CreateServiceProvider(s => s.AddSingleton(trackDispose));
-            var endPoint = serviceProvider.GetService<HubEndPoint<DisposeTrackingHub>>();
+            var endPoint = serviceProvider.GetService<HubEndPoint<DisposeTrackingHub, IClientProxy>>();
 
             using (var client = new TestClient())
             {
@@ -39,7 +39,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task LifetimeManagerOnDisconnectedAsyncCalledIfLifetimeManagerOnConnectedAsyncThrows()
         {
-            var mockLifetimeManager = new Mock<HubLifetimeManager<Hub>>();
+            var mockLifetimeManager = new Mock<HubLifetimeManager<Hub, IClientProxy>>();
             mockLifetimeManager
                 .Setup(m => m.OnConnectedAsync(It.IsAny<ConnectionContext>()))
                 .Throws(new InvalidOperationException("Lifetime manager OnConnectedAsync failed."));
@@ -51,7 +51,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 services.AddSingleton(mockHubActivator.Object);
             });
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<Hub>>();
+            var endPoint = serviceProvider.GetService<HubEndPoint<Hub, IClientProxy>>();
 
             using (var client = new TestClient())
             {
@@ -73,13 +73,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task HubOnDisconnectedAsyncCalledIfHubOnConnectedAsyncThrows()
         {
-            var mockLifetimeManager = new Mock<HubLifetimeManager<OnConnectedThrowsHub>>();
+            var mockLifetimeManager = new Mock<HubLifetimeManager<OnConnectedThrowsHub, IClientProxy>>();
             var serviceProvider = CreateServiceProvider(services =>
             {
                 services.AddSingleton(mockLifetimeManager.Object);
             });
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<OnConnectedThrowsHub>>();
+            var endPoint = serviceProvider.GetService<HubEndPoint<OnConnectedThrowsHub, IClientProxy>>();
 
             using (var client = new TestClient())
             {
@@ -97,13 +97,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task LifetimeManagerOnDisconnectedAsyncCalledIfHubOnDisconnectedAsyncThrows()
         {
-            var mockLifetimeManager = new Mock<HubLifetimeManager<OnDisconnectedThrowsHub>>();
+            var mockLifetimeManager = new Mock<HubLifetimeManager<OnDisconnectedThrowsHub, IClientProxy>>();
             var serviceProvider = CreateServiceProvider(services =>
             {
                 services.AddSingleton(mockLifetimeManager.Object);
             });
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<OnDisconnectedThrowsHub>>();
+            var endPoint = serviceProvider.GetService<HubEndPoint<OnDisconnectedThrowsHub, IClientProxy>>();
 
             using (var client = new TestClient())
             {
@@ -123,7 +123,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             var serviceProvider = CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub, IClientProxy>>();
 
             using (var client = new TestClient())
             {
@@ -146,7 +146,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             var serviceProvider = CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub, IClientProxy>>();
 
             using (var client = new TestClient())
             {
@@ -170,7 +170,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             var serviceProvider = CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub, IClientProxy>>();
 
             using (var client = new TestClient())
             {
@@ -192,7 +192,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             var serviceProvider = CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub, IClientProxy>>();
 
             using (var client = new TestClient())
             {
@@ -215,7 +215,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             var serviceProvider = CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub, IClientProxy>>();
 
             using (var client = new TestClient())
             {
@@ -237,7 +237,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             var serviceProvider = CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub, IClientProxy>>();
 
             using (var client = new TestClient())
             {
@@ -259,7 +259,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             var serviceProvider = CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<InheritedHub>>();
+            var endPoint = serviceProvider.GetService<HubEndPoint<InheritedHub, IClientProxy>>();
 
             using (var client = new TestClient())
             {
@@ -281,7 +281,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             var serviceProvider = CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<InheritedHub>>();
+            var endPoint = serviceProvider.GetService<HubEndPoint<InheritedHub, IClientProxy>>();
 
             using (var client = new TestClient())
             {
@@ -303,7 +303,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             var serviceProvider = CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub, IClientProxy>>();
 
             using (var client = new TestClient())
             {
@@ -327,7 +327,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
             try
             {
-                var endPoint = serviceProvider.GetService<HubEndPoint<InvalidHub>>();
+                var endPoint = serviceProvider.GetService<HubEndPoint<InvalidHub, IClientProxy>>();
                 Assert.True(false);
             }
             catch (NotSupportedException ex)
@@ -341,7 +341,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             var serviceProvider = CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub, IClientProxy>>();
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
@@ -376,7 +376,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             var serviceProvider = CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub, IClientProxy>>();
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
@@ -418,7 +418,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             var serviceProvider = CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub, IClientProxy>>();
 
             using (var client = new TestClient())
             {
@@ -438,7 +438,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             var serviceProvider = CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub, IClientProxy>>();
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
@@ -470,7 +470,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             var serviceProvider = CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub, IClientProxy>>();
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
@@ -504,7 +504,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             var serviceProvider = CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<StreamingHub>>();
+            var endPoint = serviceProvider.GetService<HubEndPoint<StreamingHub, IClientProxy>>();
 
             using (var client = new TestClient())
             {
@@ -555,7 +555,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
         private static Type GetEndPointType(Type hubType)
         {
-            var endPointType = typeof(HubEndPoint<>);
+            var endPointType = typeof(HubEndPoint<,>);
             return endPointType.MakeGenericType(hubType);
         }
 

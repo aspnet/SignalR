@@ -8,15 +8,15 @@ using System.Threading.Tasks;
 
 namespace Microsoft.AspNetCore.SignalR
 {
-    public class HubContext<THub> : IHubContext<THub>, IHubConnectionContext<IClientProxy>
+    public class HubContext<THub> : IHubContext<THub, IClientProxy>, IHubConnectionContext<IClientProxy>
     {
-        private readonly HubLifetimeManager<THub> _lifetimeManager;
-        private readonly AllClientProxy<THub> _all;
+        private readonly HubLifetimeManager<THub, IClientProxy> _lifetimeManager;
+        private readonly AllClientProxy<THub, IClientProxy> _all;
 
-        public HubContext(HubLifetimeManager<THub> lifetimeManager)
+        public HubContext(HubLifetimeManager<THub, IClientProxy> lifetimeManager)
         {
             _lifetimeManager = lifetimeManager;
-            _all = new AllClientProxy<THub>(_lifetimeManager);
+            _all = new AllClientProxy<THub, IClientProxy>(_lifetimeManager);
         }
 
         public IHubConnectionContext<IClientProxy> Clients => this;
@@ -25,17 +25,17 @@ namespace Microsoft.AspNetCore.SignalR
 
         public virtual IClientProxy Client(string connectionId)
         {
-            return new SingleClientProxy<THub>(_lifetimeManager, connectionId);
+            return new SingleClientProxy<THub, IClientProxy>(_lifetimeManager, connectionId);
         }
 
         public virtual IClientProxy Group(string groupName)
         {
-            return new GroupProxy<THub>(_lifetimeManager, groupName);
+            return new GroupProxy<THub, IClientProxy>(_lifetimeManager, groupName);
         }
 
         public virtual IClientProxy User(string userId)
         {
-            return new UserProxy<THub>(_lifetimeManager, userId);
+            return new UserProxy<THub, IClientProxy>(_lifetimeManager, userId);
         }
     }
 }

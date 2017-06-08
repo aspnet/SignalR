@@ -60,8 +60,8 @@ namespace ChatSample
             services.AddAuthentication();
             services.AddCookieAuthentication();
 
-            services.AddSingleton(typeof(DefaultHubLifetimeManager<>), typeof(DefaultHubLifetimeManager<>));
-            services.AddSingleton(typeof(HubLifetimeManager<>), typeof(DefaultPresenceHublifetimeManager<>));
+            services.AddSingleton(typeof(DefaultHubLifetimeManager<,>), typeof(DefaultHubLifetimeManager<,>));
+            services.AddSingleton(typeof(HubLifetimeManager<,>), typeof(DefaultPresenceHublifetimeManager<,>));
             services.AddSingleton(typeof(IUserTracker<>), typeof(InMemoryUserTracker<>));
 
             //services.AddSingleton(typeof(RedisHubLifetimeManager<>), typeof(RedisHubLifetimeManager<>));

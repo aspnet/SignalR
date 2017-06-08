@@ -13,36 +13,23 @@ using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.Sockets;
-using Microsoft.AspNetCore.Sockets.Internal.Formatters;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Internal;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.SignalR
 {
-    public class HubEndPoint<THub> : HubEndPoint<THub, IClientProxy> where THub : Hub<IClientProxy>
-    {
-        public HubEndPoint(HubLifetimeManager<THub> lifetimeManager,
-                           IHubProtocolResolver protocolResolver,
-                           IHubContext<THub> hubContext,
-                           ILogger<HubEndPoint<THub>> logger,
-                           IServiceScopeFactory serviceScopeFactory)
-            : base(lifetimeManager, protocolResolver, hubContext, logger, serviceScopeFactory)
-        {
-        }
-    }
-
     public class HubEndPoint<THub, TClient> : IInvocationBinder where THub : Hub<TClient>
     {
         private readonly Dictionary<string, HubMethodDescriptor> _methods = new Dictionary<string, HubMethodDescriptor>(StringComparer.OrdinalIgnoreCase);
 
-        private readonly HubLifetimeManager<THub> _lifetimeManager;
+        private readonly HubLifetimeManager<THub, TClient> _lifetimeManager;
         private readonly IHubContext<THub, TClient> _hubContext;
         private readonly ILogger<HubEndPoint<THub, TClient>> _logger;
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly IHubProtocolResolver _protocolResolver;
 
-        public HubEndPoint(HubLifetimeManager<THub> lifetimeManager,
+        public HubEndPoint(HubLifetimeManager<THub, TClient> lifetimeManager,
                            IHubProtocolResolver protocolResolver,
                            IHubContext<THub, TClient> hubContext,
                            ILogger<HubEndPoint<THub, TClient>> logger,
@@ -312,7 +299,7 @@ namespace Microsoft.AspNetCore.SignalR
         {
             hub.Clients = _hubContext.Clients;
             hub.Context = new HubCallerContext(connection);
-            hub.Groups = new GroupManager<THub>(connection, _lifetimeManager);
+            hub.Groups = new GroupManager<THub, TClient>(connection, _lifetimeManager);
         }
 
         private bool IsChannel(Type type, out Type payloadType)

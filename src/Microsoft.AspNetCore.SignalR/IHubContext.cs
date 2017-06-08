@@ -12,8 +12,5 @@ namespace Microsoft.AspNetCore.SignalR
     {
         IHubConnectionContext<TClient> Clients { get; }
     }
-
-    public interface IHubContext<THub> : IHubContext<THub, IClientProxy>
-    {
-    }
+    
 }

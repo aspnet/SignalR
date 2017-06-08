@@ -1,20 +1,27 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using System.Dynamic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Sockets;
 
 namespace Microsoft.AspNetCore.SignalR
 {
-    public class UserProxy<THub> : IClientProxy
+    public class UserProxy<THub, TClient> : DynamicObject, IClientProxy
     {
         private readonly string _userId;
-        private readonly HubLifetimeManager<THub> _lifetimeManager;
+        private readonly HubLifetimeManager<THub, TClient> _lifetimeManager;
 
-        public UserProxy(HubLifetimeManager<THub> lifetimeManager, string userId)
+        public UserProxy(HubLifetimeManager<THub, TClient> lifetimeManager, string userId)
         {
             _lifetimeManager = lifetimeManager;
             _userId = userId;
+        }
+
+        public override bool TryInvokeMember(InvokeMemberBinder binder, object[] args, out object result)
+        {
+            result = InvokeAsync(binder.Name, args);
+            return true;
         }
 
         public Task InvokeAsync(string method, params object[] args)
@@ -23,15 +30,21 @@ namespace Microsoft.AspNetCore.SignalR
         }
     }
 
-    public class GroupProxy<THub> : IClientProxy
+    public class GroupProxy<THub, TClient> : DynamicObject, IClientProxy
     {
         private readonly string _groupName;
-        private readonly HubLifetimeManager<THub> _lifetimeManager;
+        private readonly HubLifetimeManager<THub, TClient> _lifetimeManager;
 
-        public GroupProxy(HubLifetimeManager<THub> lifetimeManager, string groupName)
+        public GroupProxy(HubLifetimeManager<THub, TClient> lifetimeManager, string groupName)
         {
             _lifetimeManager = lifetimeManager;
             _groupName = groupName;
+        }
+
+        public override bool TryInvokeMember(InvokeMemberBinder binder, object[] args, out object result)
+        {
+            result = InvokeAsync(binder.Name, args);
+            return true;
         }
 
         public Task InvokeAsync(string method, params object[] args)
@@ -40,13 +53,18 @@ namespace Microsoft.AspNetCore.SignalR
         }
     }
 
-    public class AllClientProxy<THub> : IClientProxy
+    public class AllClientProxy<THub, TClient> : DynamicObject, IClientProxy
     {
-        private readonly HubLifetimeManager<THub> _lifetimeManager;
+        private readonly HubLifetimeManager<THub, TClient> _lifetimeManager;
 
-        public AllClientProxy(HubLifetimeManager<THub> lifetimeManager)
+        public AllClientProxy(HubLifetimeManager<THub, TClient> lifetimeManager)
         {
             _lifetimeManager = lifetimeManager;
+        }
+        public override bool TryInvokeMember(InvokeMemberBinder binder, object[] args, out object result)
+        {
+            result = InvokeAsync(binder.Name, args);
+            return true;
         }
 
         public Task InvokeAsync(string method, params object[] args)
@@ -55,16 +73,22 @@ namespace Microsoft.AspNetCore.SignalR
         }
     }
 
-    public class SingleClientProxy<THub> : IClientProxy
+    public class SingleClientProxy<THub, TClient> : DynamicObject, IClientProxy
     {
         private readonly string _connectionId;
-        private readonly HubLifetimeManager<THub> _lifetimeManager;
+        private readonly HubLifetimeManager<THub, TClient> _lifetimeManager;
 
 
-        public SingleClientProxy(HubLifetimeManager<THub> lifetimeManager, string connectionId)
+        public SingleClientProxy(HubLifetimeManager<THub, TClient> lifetimeManager, string connectionId)
         {
             _lifetimeManager = lifetimeManager;
             _connectionId = connectionId;
+        }
+
+        public override bool TryInvokeMember(InvokeMemberBinder binder, object[] args, out object result)
+        {
+            result = InvokeAsync(binder.Name, args);
+            return true;
         }
 
         public Task InvokeAsync(string method, params object[] args)
@@ -73,12 +97,12 @@ namespace Microsoft.AspNetCore.SignalR
         }
     }
 
-    public class GroupManager<THub> : IGroupManager
+    public class GroupManager<THub, TClient> : IGroupManager
     {
         private readonly ConnectionContext _connection;
-        private readonly HubLifetimeManager<THub> _lifetimeManager;
+        private readonly HubLifetimeManager<THub, TClient> _lifetimeManager;
 
-        public GroupManager(ConnectionContext connection, HubLifetimeManager<THub> lifetimeManager)
+        public GroupManager(ConnectionContext connection, HubLifetimeManager<THub, TClient> lifetimeManager)
         {
             _connection = connection;
             _lifetimeManager = lifetimeManager;
