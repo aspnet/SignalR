@@ -76,7 +76,10 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AspNetCore.Sockets.Client.Http", "src\Microsoft.AspNetCore.Sockets.Client.Http\Microsoft.AspNetCore.Sockets.Client.Http.csproj", "{B0243F99-2D3F-4CC6-AD71-E3F891B64724}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AspNetCore.Sockets.Common.Http", "src\Microsoft.AspNetCore.Sockets.Common.Http\Microsoft.AspNetCore.Sockets.Common.Http.csproj", "{E081EE41-D95F-4AD2-BC0B-4B562C0A2A47}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AspNetCore.SignalR.Tools", "src\Microsoft.AspNetCore.SignalR.Tools\Microsoft.AspNetCore.SignalR.Tools.csproj", "{3699A787-D261-472C-A534-115F06F5D8DD}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AspNetCore.SignalR.Tools.Tests", "test\Microsoft.AspNetCore.SignalR.Tools.Tests\Microsoft.AspNetCore.SignalR.Tools.Tests.csproj", "{9575A5CA-47AB-4533-AE24-552D722E3625}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -180,6 +183,10 @@ Global
 		{3699A787-D261-472C-A534-115F06F5D8DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3699A787-D261-472C-A534-115F06F5D8DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3699A787-D261-472C-A534-115F06F5D8DD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9575A5CA-47AB-4533-AE24-552D722E3625}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9575A5CA-47AB-4533-AE24-552D722E3625}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9575A5CA-47AB-4533-AE24-552D722E3625}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9575A5CA-47AB-4533-AE24-552D722E3625}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -210,5 +217,6 @@ Global
 		{B0243F99-2D3F-4CC6-AD71-E3F891B64724} = {DA69F624-5398-4884-87E4-B816698CDE65}
 		{E081EE41-D95F-4AD2-BC0B-4B562C0A2A47} = {DA69F624-5398-4884-87E4-B816698CDE65}
 		{3699A787-D261-472C-A534-115F06F5D8DD} = {DA69F624-5398-4884-87E4-B816698CDE65}
+		{9575A5CA-47AB-4533-AE24-552D722E3625} = {6A35B453-52EC-48AF-89CA-D4A69800F131}
 	EndGlobalSection
 EndGlobal

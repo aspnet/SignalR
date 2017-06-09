@@ -13,6 +13,11 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.CommandLineUtils.Sources" Version="$(AspNetCoreVersion)" PrivateAssets="All" />
+    <PackageReference Include="Mono.Cecil" Version="$(MonoCecilVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Microsoft.AspNetCore.SignalR\Microsoft.AspNetCore.SignalR.csproj" />
   </ItemGroup>
 
 </Project>

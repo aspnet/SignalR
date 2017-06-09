@@ -7,14 +7,24 @@ namespace Microsoft.AspNetCore.SignalR.Tools
 {
     internal class GenerateHubProxiesCommand
     {
-        private CommandOption _project;
+        private CommandOption _path;
 
         public void Configure(CommandLineApplication command)
         {
             command.Description = "Generate hub proxies";
-            _project = command.Option("-p|--project <PROJECT>", "Project to generate proxies from", CommandOptionType.SingleValue);
+            _path = command.Option("-p|--path <Assembly>", "Path to the assembly to generate proxies from", CommandOptionType.SingleValue);
 
-            command.OnExecute(() => 0);
+            command.OnExecute(() =>
+            {
+                using (var hubDiscovery = new HubDiscovery(_path.Value()))
+                {
+                    var proxies = hubDiscovery.GetHubProxies();
+                    // TODO: Write proxies
+                    // TODO: Handle exceptions
+                }
+
+                return 0;
+            });
         }
     }
 }
