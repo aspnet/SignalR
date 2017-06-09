@@ -70,11 +70,10 @@ namespace Microsoft.AspNetCore.Sockets.Client
         public HttpConnection(Uri url, ITransportFactory transportFactory, ILoggerFactory loggerFactory, HttpMessageHandler httpMessageHandler)
         {
             Url = url ?? throw new ArgumentNullException(nameof(url));
-
             _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
             _logger = _loggerFactory.CreateLogger<HttpConnection>();
             _httpClient = httpMessageHandler == null ? new HttpClient() : new HttpClient(httpMessageHandler);
-            _transportFactory = transportFactory;
+            _transportFactory = transportFactory ?? throw new ArgumentNullException(nameof(transportFactory));
         }
 
         public Task StartAsync()
@@ -168,7 +167,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     _logger.LogDebug("Draining event queue");
                     await _eventQueue.Drain();
 
-                    _httpClient?.Dispose();
+                    _httpClient.Dispose();
 
                     _logger.LogDebug("Raising Closed event");
 
@@ -394,7 +393,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 await _receiveLoopTask;
             }
 
-            _httpClient?.Dispose();
+            _httpClient.Dispose();
         }
 
         private class ConnectionState

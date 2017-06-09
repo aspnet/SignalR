@@ -18,6 +18,28 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
     public class HubConnectionTests
     {
         [Fact]
+        public async Task StartAsyncCallsConnectionStart()
+        {
+            var connection = new Mock<IConnection>();
+            connection.Setup(m => m.StartAsync()).Returns(Task.CompletedTask).Verifiable();
+            var hubConnection = new HubConnection(connection.Object);
+            await hubConnection.StartAsync();
+
+            connection.Verify(c => c.StartAsync(), Times.Once());
+        }
+
+        [Fact]
+        public async Task DisposeAsyncCallsConnectionStart()
+        {
+            var connection = new Mock<IConnection>();
+            connection.Setup(m => m.StartAsync()).Verifiable();
+            var hubConnection = new HubConnection(connection.Object);
+            await hubConnection.DisposeAsync();
+
+            connection.Verify(c => c.DisposeAsync(), Times.Once());
+        }
+
+        [Fact]
         public async Task InvokeThrowsIfSerializingMessageFails()
         {
             var exception = new InvalidOperationException();
