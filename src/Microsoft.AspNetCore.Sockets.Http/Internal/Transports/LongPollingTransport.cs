@@ -47,7 +47,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                     contentLength += buffer.Length;
                     buffers.Add(buffer);
 
-                    _logger.WritingMessage(buffer.Length, context.TraceIdentifier);
+                    _logger.LongPollingWritingMessage(buffer.Length, context.TraceIdentifier);
                 }
 
                 context.Response.ContentLength = contentLength;

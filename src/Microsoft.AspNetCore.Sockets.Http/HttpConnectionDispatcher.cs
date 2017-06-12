@@ -84,7 +84,7 @@ namespace Microsoft.AspNetCore.Sockets
                 }
 
                 // We only need to provide the Input channel since writing to the application is handled through /send.
-                var sse = new ServerSentEventsTransport(connection.Application.Input, _loggerFactory);
+                var sse = new ServerSentEventsTransport(connection.Application.Input, connection.ConnectionId, _loggerFactory);
 
                 await DoPersistentConnection(socketDelegate, sse, context, connection);
             }
@@ -106,7 +106,7 @@ namespace Microsoft.AspNetCore.Sockets
                     return;
                 }
 
-                var ws = new WebSocketsTransport(options.WebSockets, connection.Application, _loggerFactory);
+                var ws = new WebSocketsTransport(options.WebSockets, connection.Application, connection.ConnectionId, _loggerFactory);
 
                 await DoPersistentConnection(socketDelegate, ws, context, connection);
             }

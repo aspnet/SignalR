@@ -17,8 +17,9 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
         private readonly WebSocketOptions _options;
         private readonly ILogger _logger;
         private readonly IChannelConnection<byte[]> _application;
+        private readonly string _connectionId;
 
-        public WebSocketsTransport(WebSocketOptions options, IChannelConnection<byte[]> application, ILoggerFactory loggerFactory)
+        public WebSocketsTransport(WebSocketOptions options, IChannelConnection<byte[]> application, string connectionId, ILoggerFactory loggerFactory)
         {
             if (options == null)
             {
@@ -37,6 +38,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
 
             _options = options;
             _application = application;
+            _connectionId = connectionId;
             _logger = loggerFactory.CreateLogger<WebSocketsTransport>();
         }
 
@@ -46,18 +48,18 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
 
             using (var ws = await context.WebSockets.AcceptWebSocketAsync())
             {
-                _logger.SocketOpened(context.TraceIdentifier);
+                _logger.SocketOpened(_connectionId);
 
-                await ProcessSocketCoreAsync(ws, context.TraceIdentifier);
+                await ProcessSocketCoreAsync(ws);
             }
             _logger.SocketClosed(context.TraceIdentifier);
         }
 
-        public async Task ProcessSocketCoreAsync(WebSocket socket, string requestId)
+        public async Task ProcessSocketCoreAsync(WebSocket socket)
         {
             // Begin sending and receiving. Receiving must be started first because ExecuteAsync enables SendAsync.
-            var receiving = StartReceiving(socket, requestId);
-            var sending = StartSending(socket, requestId);
+            var receiving = StartReceiving(socket);
+            var sending = StartSending(socket);
 
             // Wait for something to shut down.
             var trigger = await Task.WhenAny(
@@ -79,11 +81,11 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
 
                 // Shutting down because we received a close frame from the client.
                 // Complete the input writer so that the application knows there won't be any more input.
-                _logger.ClientClosed(receiving.Result.CloseStatus, receiving.Result.CloseStatusDescription, requestId);
+                _logger.ClientClosed(receiving.Result.CloseStatus, receiving.Result.CloseStatusDescription, _connectionId);
                 _application.Output.TryComplete();
 
                 // Wait for the application to finish sending.
-                _logger.WaitingForSend(requestId);
+                _logger.WaitingForSend(_connectionId);
                 await sending;
 
                 // Send the server's close frame
@@ -96,18 +98,18 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                 // The application finished sending. Close our end of the connection
                 if (failed)
                 {
-                    _logger.FailedSending(requestId);
+                    _logger.FailedSending(_connectionId);
                 }
                 else
                 {
-                    _logger.FinishedSending(requestId);
+                    _logger.FinishedSending(_connectionId);
                 }
                 await socket.CloseOutputAsync(!failed ? WebSocketCloseStatus.NormalClosure : WebSocketCloseStatus.InternalServerError, "", CancellationToken.None);
 
                 // Now trigger the exception from the application, if there was one.
                 sending.GetAwaiter().GetResult();
 
-                _logger.WaitingForClose(requestId);
+                _logger.WaitingForClose(_connectionId);
 
                 // Wait for the client to close or wait for the close timeout
                 var resultTask = await Task.WhenAny(receiving, Task.Delay(_options.CloseTimeout));
@@ -115,7 +117,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                 // We timed out waiting for the transport to close so abort the connection so we don't attempt to write anything else
                 if (resultTask != receiving)
                 {
-                    _logger.CloseTimedOut(requestId);
+                    _logger.CloseTimedOut(_connectionId);
                     socket.Abort();
                 }
 
@@ -124,7 +126,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
             }
         }
 
-        private async Task<WebSocketReceiveResult> StartReceiving(WebSocket socket, string requestId)
+        private async Task<WebSocketReceiveResult> StartReceiving(WebSocket socket)
         {
             // REVIEW: This code was copied from the client, it's highly unoptimized at the moment (especially 
             // for server logic)
@@ -145,7 +147,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                         return receiveResult;
                     }
 
-                    _logger.MessageReceived(requestId, receiveResult.MessageType, receiveResult.Count, receiveResult.EndOfMessage);
+                    _logger.MessageReceived(_connectionId, receiveResult.MessageType, receiveResult.Count, receiveResult.EndOfMessage);
 
                     var truncBuffer = new ArraySegment<byte>(buffer.Array, 0, receiveResult.Count);
                     incomingMessage.Add(truncBuffer);
@@ -175,7 +177,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                     Buffer.BlockCopy(incomingMessage[0].Array, incomingMessage[0].Offset, messageBuffer, 0, incomingMessage[0].Count);
                 }
 
-                _logger.MessageToApplication(requestId, messageBuffer.Length);
+                _logger.MessageToApplication(_connectionId, messageBuffer.Length);
                 while (await _application.Output.WaitToWriteAsync())
                 {
                     if (_application.Output.TryWrite(messageBuffer))
@@ -187,7 +189,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
             }
         }
 
-        private async Task StartSending(WebSocket ws, string requestId)
+        private async Task StartSending(WebSocket ws)
         {
             while (await _application.Input.WaitToReadAsync())
             {
@@ -198,13 +200,13 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                     {
                         try
                         {
-                            _logger.SendPayload(requestId, buffer.Length);
+                            _logger.SendPayload(_connectionId, buffer.Length);
 
                             await ws.SendAsync(new ArraySegment<byte>(buffer), _options.WebSocketMessageType, endOfMessage: true, cancellationToken: CancellationToken.None);
                         }
                         catch (Exception ex)
                         {
-                            _logger.ErrorWritingFrame(requestId, ex);
+                            _logger.ErrorWritingFrame(_connectionId, ex);
                             break;
                         }
                     }

@@ -20,7 +20,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         {
             var channel = Channel.CreateUnbounded<byte[]>();
             var context = new DefaultHttpContext();
-            var sse = new ServerSentEventsTransport(channel, new LoggerFactory());
+            var sse = new ServerSentEventsTransport(channel, connectionId: string.Empty, loggerFactory: new LoggerFactory());
 
             Assert.True(channel.Out.TryComplete());
 
@@ -37,7 +37,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var context = new DefaultHttpContext();
             var feature = new HttpBufferingFeature();
             context.Features.Set<IHttpBufferingFeature>(feature);
-            var sse = new ServerSentEventsTransport(channel, new LoggerFactory());
+            var sse = new ServerSentEventsTransport(channel, connectionId: string.Empty, loggerFactory: new LoggerFactory());
 
             Assert.True(channel.Out.TryComplete());
 
@@ -54,7 +54,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         {
             var channel = Channel.CreateUnbounded<byte[]>();
             var context = new DefaultHttpContext();
-            var sse = new ServerSentEventsTransport(channel, new LoggerFactory());
+            var sse = new ServerSentEventsTransport(channel, connectionId: string.Empty, loggerFactory: new LoggerFactory());
             var ms = new MemoryStream();
             context.Response.Body = ms;
 

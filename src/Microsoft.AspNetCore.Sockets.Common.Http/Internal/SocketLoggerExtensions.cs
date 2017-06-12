@@ -9,14 +9,14 @@ namespace Microsoft.AspNetCore.Sockets.Internal
 {
     public static class SocketLoggerExtensions
     {
-        // Category: LongPollingTransport & ServerSentEventsTransport
+        // Category: LongPollingTransport
         private static readonly Action<ILogger, DateTime, string, Exception> _longPolling204 =
             LoggerMessage.Define<DateTime, string>(LogLevel.Information, 0, "{time}: Terminating Long Polling connection by sending 204 response to request {requestId}.");
 
         private static readonly Action<ILogger, DateTime, string, Exception> _pollTimedOut =
             LoggerMessage.Define<DateTime, string>(LogLevel.Information, 1, "{time}: Poll request timed out. Sending 200 response to request {requestId}.");
 
-        private static readonly Action<ILogger, DateTime, int, string, Exception> _writingMessage =
+        private static readonly Action<ILogger, DateTime, int, string, Exception> _longPollingWritingMessage =
             LoggerMessage.Define<DateTime, int, string>(LogLevel.Debug, 2, "{time}: Writing a {count} byte message to request {requestId}.");
 
         private static readonly Action<ILogger, DateTime, string, Exception> _longPollingDisconnected =
@@ -55,40 +55,44 @@ namespace Microsoft.AspNetCore.Sockets.Internal
 
         // Category: WebSocketsTransport
         private static readonly Action<ILogger, DateTime, string, Exception> _socketOpened =
-            LoggerMessage.Define<DateTime, string>(LogLevel.Information, 0, "{time}: Socket opened for request {requestId}.");
+            LoggerMessage.Define<DateTime, string>(LogLevel.Information, 0, "{time}: Socket opened for connection {connectionId}.");
 
         private static readonly Action<ILogger, DateTime, string, Exception> _socketClosed =
-            LoggerMessage.Define<DateTime, string>(LogLevel.Information, 1, "{time}: Socket closed for request {requestId}.");
+            LoggerMessage.Define<DateTime, string>(LogLevel.Information, 1, "{time}: Socket closed for connection {connectionId}.");
 
         private static readonly Action<ILogger, DateTime, WebSocketCloseStatus?, string, string, Exception> _clientClosed =
-            LoggerMessage.Define<DateTime, WebSocketCloseStatus?, string, string>(LogLevel.Debug, 2, "{time}: Client closed connection with status code '{status}' ({description}). Signaling end-of-input to application for request {requestId}.");
+            LoggerMessage.Define<DateTime, WebSocketCloseStatus?, string, string>(LogLevel.Debug, 2, "{time}: Client closed connection with status code '{status}' ({description}). Signaling end-of-input to application for connection {connectionId}.");
 
         private static readonly Action<ILogger, DateTime, string, Exception> _waitingForSend =
-            LoggerMessage.Define<DateTime, string>(LogLevel.Debug, 3, "{time}: Waiting for the application to finish sending data for request {requestId}.");
+            LoggerMessage.Define<DateTime, string>(LogLevel.Debug, 3, "{time}: Waiting for the application to finish sending data for connection {connectionId}.");
 
         private static readonly Action<ILogger, DateTime, string, Exception> _failedSending =
-            LoggerMessage.Define<DateTime, string>(LogLevel.Debug, 4, "{time}: Application failed during sending. Sending InternalServerError close frame to request {requestId}.");
+            LoggerMessage.Define<DateTime, string>(LogLevel.Debug, 4, "{time}: Application failed during sending. Sending InternalServerError close frame to connection {connectionId}.");
 
         private static readonly Action<ILogger, DateTime, string, Exception> _finishedSending =
-            LoggerMessage.Define<DateTime, string>(LogLevel.Debug, 5, "{time}: Application finished sending. Sending close frame to request {requestId}.");
+            LoggerMessage.Define<DateTime, string>(LogLevel.Debug, 5, "{time}: Application finished sending. Sending close frame to connection {connectionId}.");
 
         private static readonly Action<ILogger, DateTime, string, Exception> _waitingForClose =
-            LoggerMessage.Define<DateTime, string>(LogLevel.Debug, 6, "{time}: Waiting for the client to close the socket for request {requestId}.");
+            LoggerMessage.Define<DateTime, string>(LogLevel.Debug, 6, "{time}: Waiting for the client to close the socket for connection {connectionId}.");
 
         private static readonly Action<ILogger, DateTime, string, Exception> _closeTimedOut =
-            LoggerMessage.Define<DateTime, string>(LogLevel.Debug, 7, "{time}: Timed out waiting for client to send the close frame, aborting the connection for request {requestId}.");
+            LoggerMessage.Define<DateTime, string>(LogLevel.Debug, 7, "{time}: Timed out waiting for client to send the close frame, aborting the connection {connectionId}.");
 
         private static readonly Action<ILogger, DateTime, string, WebSocketMessageType, int, bool, Exception> _messageReceived =
-            LoggerMessage.Define<DateTime, string, WebSocketMessageType, int, bool>(LogLevel.Debug, 8, "{time}: Message received from request {requestId}. Type: {messageType}, size: {size}, EndOfMessage: {endOfMessage}.");
+            LoggerMessage.Define<DateTime, string, WebSocketMessageType, int, bool>(LogLevel.Debug, 8, "{time}: Message received from connectionId {connectionId}. Type: {messageType}, size: {size}, EndOfMessage: {endOfMessage}.");
 
         private static readonly Action<ILogger, DateTime, string, int, Exception> _messageToApplication =
-            LoggerMessage.Define<DateTime, string, int>(LogLevel.Debug, 9, "{time}: Passing message to application from request {requestId}. Payload size: {size}.");
+            LoggerMessage.Define<DateTime, string, int>(LogLevel.Debug, 9, "{time}: Passing message to application from connection {connectionId}. Payload size: {size}.");
 
         private static readonly Action<ILogger, DateTime, string, int, Exception> _sendPayload =
-            LoggerMessage.Define<DateTime, string, int>(LogLevel.Debug, 10, "{time}: Sending payload to request {requestId}: {size} bytes.");
+            LoggerMessage.Define<DateTime, string, int>(LogLevel.Debug, 10, "{time}: Sending payload to connection {connectionId}: {size} bytes.");
 
         private static readonly Action<ILogger, DateTime, string, Exception> _errorWritingFrame =
-            LoggerMessage.Define<DateTime, string>(LogLevel.Error, 11, "{time}: Error writing frame to request {requestId}.");
+            LoggerMessage.Define<DateTime, string>(LogLevel.Error, 11, "{time}: Error writing frame to connection {connectionId}.");
+
+        // Category: ServerSentEventsTransport
+        private static readonly Action<ILogger, DateTime, int, string, Exception> _sseWritingMessage =
+            LoggerMessage.Define<DateTime, int, string>(LogLevel.Debug, 0, "{time}: Writing a {count} byte message to connection {connectionId}.");
 
         public static void LongPolling204(this ILogger logger, string requestId)
         {
@@ -106,11 +110,11 @@ namespace Microsoft.AspNetCore.Sockets.Internal
             }
         }
 
-        public static void WritingMessage(this ILogger logger, int count, string requestId)
+        public static void LongPollingWritingMessage(this ILogger logger, int count, string requestId)
         {
             if (logger.IsEnabled(LogLevel.Debug))
             {
-                _writingMessage(logger, DateTime.Now, count, requestId, null);
+                _longPollingWritingMessage(logger, DateTime.Now, count, requestId, null);
             }
         }
 
@@ -202,99 +206,107 @@ namespace Microsoft.AspNetCore.Sockets.Internal
             }
         }
 
-        public static void SocketOpened(this ILogger logger, string requestId)
+        public static void SocketOpened(this ILogger logger, string connectionId)
         {
             if (logger.IsEnabled(LogLevel.Information))
             {
-                _socketOpened(logger, DateTime.Now, requestId, null);
+                _socketOpened(logger, DateTime.Now, connectionId, null);
             }
         }
 
-        public static void SocketClosed(this ILogger logger, string requestId)
+        public static void SocketClosed(this ILogger logger, string connectionId)
         {
             if (logger.IsEnabled(LogLevel.Information))
             {
-                _socketClosed(logger, DateTime.Now, requestId, null);
+                _socketClosed(logger, DateTime.Now, connectionId, null);
             }
         }
 
-        public static void ClientClosed(this ILogger logger, WebSocketCloseStatus? closeStatus, string closeDescription, string requestId)
+        public static void ClientClosed(this ILogger logger, WebSocketCloseStatus? closeStatus, string closeDescription, string connectionId)
         {
             if (logger.IsEnabled(LogLevel.Debug))
             {
-                _clientClosed(logger, DateTime.Now, closeStatus, closeDescription, requestId, null);
+                _clientClosed(logger, DateTime.Now, closeStatus, closeDescription, connectionId, null);
             }
         }
 
-        public static void WaitingForSend(this ILogger logger, string requestId)
+        public static void WaitingForSend(this ILogger logger, string connectionId)
         {
             if (logger.IsEnabled(LogLevel.Debug))
             {
-                _waitingForSend(logger, DateTime.Now, requestId, null);
+                _waitingForSend(logger, DateTime.Now, connectionId, null);
             }
         }
 
-        public static void FailedSending(this ILogger logger, string requestId)
+        public static void FailedSending(this ILogger logger, string connectionId)
         {
             if (logger.IsEnabled(LogLevel.Debug))
             {
-                _failedSending(logger, DateTime.Now, requestId, null);
+                _failedSending(logger, DateTime.Now, connectionId, null);
             }
         }
 
-        public static void FinishedSending(this ILogger logger, string requestId)
+        public static void FinishedSending(this ILogger logger, string connectionId)
         {
             if (logger.IsEnabled(LogLevel.Debug))
             {
-                _finishedSending(logger, DateTime.Now, requestId, null);
+                _finishedSending(logger, DateTime.Now, connectionId, null);
             }
         }
 
-        public static void WaitingForClose(this ILogger logger, string requestId)
+        public static void WaitingForClose(this ILogger logger, string connectionId)
         {
             if (logger.IsEnabled(LogLevel.Debug))
             {
-                _waitingForClose(logger, DateTime.Now, requestId, null);
+                _waitingForClose(logger, DateTime.Now, connectionId, null);
             }
         }
 
-        public static void CloseTimedOut(this ILogger logger, string requestId)
+        public static void CloseTimedOut(this ILogger logger, string connectionId)
         {
             if (logger.IsEnabled(LogLevel.Debug))
             {
-                _closeTimedOut(logger, DateTime.Now, requestId, null);
+                _closeTimedOut(logger, DateTime.Now, connectionId, null);
             }
         }
 
-        public static void MessageReceived(this ILogger logger, string requestId, WebSocketMessageType type, int size, bool endOfMessage)
+        public static void MessageReceived(this ILogger logger, string connectionId, WebSocketMessageType type, int size, bool endOfMessage)
         {
             if (logger.IsEnabled(LogLevel.Debug))
             {
-                _messageReceived(logger, DateTime.Now, requestId, type, size, endOfMessage, null);
+                _messageReceived(logger, DateTime.Now, connectionId, type, size, endOfMessage, null);
             }
         }
 
-        public static void MessageToApplication(this ILogger logger, string requestId, int size)
+        public static void MessageToApplication(this ILogger logger, string connectionId, int size)
         {
             if (logger.IsEnabled(LogLevel.Debug))
             {
-                _messageToApplication(logger, DateTime.Now, requestId, size, null);
+                _messageToApplication(logger, DateTime.Now, connectionId, size, null);
             }
         }
 
-        public static void SendPayload(this ILogger logger, string requestId, int size)
+        public static void SendPayload(this ILogger logger, string connectionId, int size)
         {
             if (logger.IsEnabled(LogLevel.Debug))
             {
-                _sendPayload(logger, DateTime.Now, requestId, size, null);
+                _sendPayload(logger, DateTime.Now, connectionId, size, null);
             }
         }
 
-        public static void ErrorWritingFrame(this ILogger logger, string requestId, Exception ex)
+        public static void ErrorWritingFrame(this ILogger logger, string connectionId, Exception ex)
         {
             if (logger.IsEnabled(LogLevel.Error))
             {
-                _errorWritingFrame(logger, DateTime.Now, requestId, ex);
+                _errorWritingFrame(logger, DateTime.Now, connectionId, ex);
+            }
+        }
+
+        public static void SSEWritingMessage(this ILogger logger, int count, string connectionId)
+        {
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                _sseWritingMessage(logger, DateTime.Now, count, connectionId, null);
             }
         }
     }
