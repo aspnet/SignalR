@@ -50,12 +50,12 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
             {
                 _logger.SocketOpened(_connectionId);
 
-                await ProcessSocketCoreAsync(ws);
+                await ProcessSocketAsync(ws);
             }
             _logger.SocketClosed(context.TraceIdentifier);
         }
 
-        public async Task ProcessSocketCoreAsync(WebSocket socket)
+        public async Task ProcessSocketAsync(WebSocket socket)
         {
             // Begin sending and receiving. Receiving must be started first because ExecuteAsync enables SendAsync.
             var receiving = StartReceiving(socket);

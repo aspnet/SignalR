@@ -10,20 +10,20 @@ namespace Microsoft.AspNetCore.Sockets.Internal
     public static class SocketLoggerExtensions
     {
         // Category: LongPollingTransport
-        private static readonly Action<ILogger, DateTime, string, Exception> _longPolling204 =
-            LoggerMessage.Define<DateTime, string>(LogLevel.Information, 0, "{time}: Terminating Long Polling connection by sending 204 response to request {requestId}.");
+        private static readonly Action<ILogger, DateTime, string, string, Exception> _longPolling204 =
+            LoggerMessage.Define<DateTime, string, string>(LogLevel.Information, 0, "{time}: Terminating Long Polling connection {connectionId} by sending 204 response to request {requestId}.");
 
-        private static readonly Action<ILogger, DateTime, string, Exception> _pollTimedOut =
-            LoggerMessage.Define<DateTime, string>(LogLevel.Information, 1, "{time}: Poll request timed out. Sending 200 response to request {requestId}.");
+        private static readonly Action<ILogger, DateTime, string, string, Exception> _pollTimedOut =
+            LoggerMessage.Define<DateTime, string, string>(LogLevel.Information, 1, "{time}: Poll request timed out. Sending 200 response to connection {connectionId} on request {requestId}.");
 
-        private static readonly Action<ILogger, DateTime, int, string, Exception> _longPollingWritingMessage =
-            LoggerMessage.Define<DateTime, int, string>(LogLevel.Debug, 2, "{time}: Writing a {count} byte message to request {requestId}.");
+        private static readonly Action<ILogger, DateTime, int, string, string, Exception> _longPollingWritingMessage =
+            LoggerMessage.Define<DateTime, int, string, string>(LogLevel.Debug, 2, "{time}: Writing a {count} byte message to connection {connectionId} on request {requestId}.");
 
-        private static readonly Action<ILogger, DateTime, string, Exception> _longPollingDisconnected =
-            LoggerMessage.Define<DateTime, string>(LogLevel.Debug, 3, "{time}: Client disconnected from Long Polling endpoint for request {requestId}.");
+        private static readonly Action<ILogger, DateTime, string, string, Exception> _longPollingDisconnected =
+            LoggerMessage.Define<DateTime, string, string>(LogLevel.Debug, 3, "{time}: Client disconnected from Long Polling endpoint for connection {connectionId} on request {requestId}.");
 
-        private static readonly Action<ILogger, DateTime, string, Exception> _longPollingTerminated =
-            LoggerMessage.Define<DateTime, string>(LogLevel.Error, 4, "{time}: Long Polling transport was terminated due to an error on request {requestId}.");
+        private static readonly Action<ILogger, DateTime, string, string, Exception> _longPollingTerminated =
+            LoggerMessage.Define<DateTime, string, string>(LogLevel.Error, 4, "{time}: Long Polling transport was terminated due to an error on connection {connectionId} on request {requestId}.");
 
         // Category: HttpConnectionDispatcher
         private static readonly Action<ILogger, DateTime, string, Exception> _connectionDisposed =
@@ -94,43 +94,43 @@ namespace Microsoft.AspNetCore.Sockets.Internal
         private static readonly Action<ILogger, DateTime, int, string, Exception> _sseWritingMessage =
             LoggerMessage.Define<DateTime, int, string>(LogLevel.Debug, 0, "{time}: Writing a {count} byte message to connection {connectionId}.");
 
-        public static void LongPolling204(this ILogger logger, string requestId)
+        public static void LongPolling204(this ILogger logger, string connectionId, string requestId)
         {
             if (logger.IsEnabled(LogLevel.Information))
             {
-                _longPolling204(logger, DateTime.Now, requestId, null);
+                _longPolling204(logger, DateTime.Now, connectionId, requestId, null);
             }
         }
 
-        public static void PollTimedOut(this ILogger logger, string requestId)
+        public static void PollTimedOut(this ILogger logger, string connectionId, string requestId)
         {
             if (logger.IsEnabled(LogLevel.Information))
             {
-                _pollTimedOut(logger, DateTime.Now, requestId, null);
+                _pollTimedOut(logger, DateTime.Now, connectionId, requestId, null);
             }
         }
 
-        public static void LongPollingWritingMessage(this ILogger logger, int count, string requestId)
+        public static void LongPollingWritingMessage(this ILogger logger, int count, string connectionId, string requestId)
         {
             if (logger.IsEnabled(LogLevel.Debug))
             {
-                _longPollingWritingMessage(logger, DateTime.Now, count, requestId, null);
+                _longPollingWritingMessage(logger, DateTime.Now, count, connectionId, requestId, null);
             }
         }
 
-        public static void LongPollingDisconnected(this ILogger logger, string requestId)
+        public static void LongPollingDisconnected(this ILogger logger, string connectionId, string requestId)
         {
             if (logger.IsEnabled(LogLevel.Debug))
             {
-                _longPollingDisconnected(logger, DateTime.Now, requestId, null);
+                _longPollingDisconnected(logger, DateTime.Now, connectionId, requestId, null);
             }
         }
 
-        public static void LongPollingTerminated(this ILogger logger, string requestId, Exception ex)
+        public static void LongPollingTerminated(this ILogger logger, string connectionId, string requestId, Exception ex)
         {
             if (logger.IsEnabled(LogLevel.Error))
             {
-                _longPollingTerminated(logger, DateTime.Now, requestId, ex);
+                _longPollingTerminated(logger, DateTime.Now, connectionId, requestId, ex);
             }
         }
 

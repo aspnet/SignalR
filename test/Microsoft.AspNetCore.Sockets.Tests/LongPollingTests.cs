@@ -21,7 +21,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         {
             var channel = Channel.CreateUnbounded<byte[]>();
             var context = new DefaultHttpContext();
-            var poll = new LongPollingTransport(CancellationToken.None, channel, new LoggerFactory());
+            var poll = new LongPollingTransport(CancellationToken.None, channel, connectionId: string.Empty, loggerFactory: new LoggerFactory());
 
             Assert.True(channel.Out.TryComplete());
 
@@ -36,7 +36,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var channel = Channel.CreateUnbounded<byte[]>();
             var context = new DefaultHttpContext();
             var timeoutToken = new CancellationToken(true);
-            var poll = new LongPollingTransport(timeoutToken, channel, new LoggerFactory());
+            var poll = new LongPollingTransport(timeoutToken, channel, connectionId: string.Empty, loggerFactory: new LoggerFactory());
 
             using (var cts = CancellationTokenSource.CreateLinkedTokenSource(timeoutToken, context.RequestAborted))
             {
@@ -52,7 +52,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         {
             var channel = Channel.CreateUnbounded<byte[]>();
             var context = new DefaultHttpContext();
-            var poll = new LongPollingTransport(CancellationToken.None, channel, new LoggerFactory());
+            var poll = new LongPollingTransport(CancellationToken.None, channel, connectionId: string.Empty, loggerFactory: new LoggerFactory());
             var ms = new MemoryStream();
             context.Response.Body = ms;
 
@@ -72,7 +72,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var channel = Channel.CreateUnbounded<byte[]>();
             var context = new DefaultHttpContext();
 
-            var poll = new LongPollingTransport(CancellationToken.None, channel, new LoggerFactory());
+            var poll = new LongPollingTransport(CancellationToken.None, channel, connectionId: string.Empty, loggerFactory: new LoggerFactory());
             var ms = new MemoryStream();
             context.Response.Body = ms;
 

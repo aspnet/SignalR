@@ -16,11 +16,13 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
         private readonly ReadableChannel<byte[]> _application;
         private readonly ILogger _logger;
         private readonly CancellationToken _timeoutToken;
+        private readonly string _connectionId;
 
-        public LongPollingTransport(CancellationToken timeoutToken, ReadableChannel<byte[]> application, ILoggerFactory loggerFactory)
+        public LongPollingTransport(CancellationToken timeoutToken, ReadableChannel<byte[]> application, string connectionId, ILoggerFactory loggerFactory)
         {
             _timeoutToken = timeoutToken;
             _application = application;
+            _connectionId = connectionId;
             _logger = loggerFactory.CreateLogger<LongPollingTransport>();
         }
 
@@ -31,7 +33,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                 if (!await _application.WaitToReadAsync(token))
                 {
                     await _application.Completion;
-                    _logger.LongPolling204(context.TraceIdentifier);
+                    _logger.LongPolling204(_connectionId, context.TraceIdentifier);
                     context.Response.StatusCode = StatusCodes.Status204NoContent;
                     return;
                 }
@@ -47,7 +49,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                     contentLength += buffer.Length;
                     buffers.Add(buffer);
 
-                    _logger.LongPollingWritingMessage(buffer.Length, context.TraceIdentifier);
+                    _logger.LongPollingWritingMessage(buffer.Length, _connectionId, context.TraceIdentifier);
                 }
 
                 context.Response.ContentLength = contentLength;
@@ -69,12 +71,12 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                 {
                     // Don't count this as cancellation, this is normal as the poll can end due to the browser closing.
                     // The background thread will eventually dispose this connection if it's inactive
-                    _logger.LongPollingDisconnected(context.TraceIdentifier);
+                    _logger.LongPollingDisconnected(_connectionId, context.TraceIdentifier);
                 }
                 // Case 2
                 else if (_timeoutToken.IsCancellationRequested)
                 {
-                    _logger.PollTimedOut(context.TraceIdentifier);
+                    _logger.PollTimedOut(_connectionId, context.TraceIdentifier);
 
                     context.Response.ContentLength = 0;
                     context.Response.StatusCode = StatusCodes.Status200OK;
@@ -82,13 +84,13 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                 else
                 {
                     // Case 3
-                    _logger.LongPolling204(context.TraceIdentifier);
+                    _logger.LongPolling204(_connectionId, context.TraceIdentifier);
                     context.Response.StatusCode = StatusCodes.Status204NoContent;
                 }
             }
             catch (Exception ex)
             {
-                _logger.LongPollingTerminated(context.TraceIdentifier, ex);
+                _logger.LongPollingTerminated(_connectionId, context.TraceIdentifier, ex);
                 throw;
             }
         }
