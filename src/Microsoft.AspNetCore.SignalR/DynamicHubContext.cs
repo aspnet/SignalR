@@ -1,6 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 namespace Microsoft.AspNetCore.SignalR
 {
@@ -10,9 +9,9 @@ namespace Microsoft.AspNetCore.SignalR
         {
             if (typeof(TClient) == typeof(object))
             {
-                Clients = (IHubConnectionContext<TClient>)new DynamicHubContext<THub, TClient>(hubLifetimeManager);
+                Clients = (IHubConnectionContext<TClient>)new DynamicHubContext<THub>(hubLifetimeManager as HubLifetimeManager<THub, object>);
             }
-            else
+            else if(typeof(TClient) == typeof(IClientProxy))
             {
                 Clients = (IHubConnectionContext<TClient>)new HubContext<THub>(hubLifetimeManager as HubLifetimeManager<THub, IClientProxy>);
             }
@@ -21,15 +20,15 @@ namespace Microsoft.AspNetCore.SignalR
         public IHubConnectionContext<TClient> Clients { get; }
     }
 
-    public class DynamicHubContext<THub, T> : IHubContext<THub, object>, IHubConnectionContext<object>
+    public class DynamicHubContext<THub> : IHubContext<THub, object>, IHubConnectionContext<object>
     {
-        private readonly HubLifetimeManager<THub, T> _lifetimeManager;
-        private readonly AllClientProxy<THub, T> _all;
+        private readonly HubLifetimeManager<THub, object> _lifetimeManager;
+        private readonly AllClientProxy<THub, object> _all;
 
-        public DynamicHubContext(HubLifetimeManager<THub, T> lifetimeManager)
+        public DynamicHubContext(HubLifetimeManager<THub, object> lifetimeManager)
         {
             _lifetimeManager = lifetimeManager;
-            _all = new AllClientProxy<THub, T>(_lifetimeManager);
+            _all = new AllClientProxy<THub, object>(_lifetimeManager);
         }
         
         public virtual dynamic All => _all;
@@ -38,17 +37,17 @@ namespace Microsoft.AspNetCore.SignalR
 
         public virtual dynamic Client(string connectionId)
         {
-            return new SingleClientProxy<THub, T>(_lifetimeManager, connectionId);
+            return new SingleClientProxy<THub, object>(_lifetimeManager, connectionId);
         }
 
         public virtual dynamic Group(string groupName)
         {
-            return new GroupProxy<THub, T>(_lifetimeManager, groupName);
+            return new GroupProxy<THub, object>(_lifetimeManager, groupName);
         }
 
         public virtual dynamic User(string userId)
         {
-            return new UserProxy<THub, T>(_lifetimeManager, userId);
+            return new UserProxy<THub, object>(_lifetimeManager, userId);
         }
     }
 }

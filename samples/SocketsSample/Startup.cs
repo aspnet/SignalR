@@ -17,6 +17,7 @@ namespace SocketsSample
         {
 
             services.AddSignalR();
+            services.AddTransient<object>();
             // .AddRedis();
 
             services.AddCors(o =>
@@ -47,7 +48,6 @@ namespace SocketsSample
             app.UseSignalR(routes =>
             {
                 routes.MapHub<Chat>("hubs");
-                routes.MapHub<TestHub>("test");
                 routes.MapHub<Streaming>("streaming");
             });
 
