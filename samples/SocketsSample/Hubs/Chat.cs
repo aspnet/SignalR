@@ -7,11 +7,12 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace SocketsSample.Hubs
 {
-    public class Chat : Hub
+    public class Chat : Hub<dynamic>
     {
         public override async Task OnConnectedAsync()
         {
-            await Clients.All.InvokeAsync("Send", $"{Context.ConnectionId} joined");
+            await Clients.All.Send($"{Context.ConnectionId} joined"); 
+            //await Clients.All.InvokeAsync("Send", $"{Context.ConnectionId} joined");
         }
 
         public override async Task OnDisconnectedAsync(Exception ex)

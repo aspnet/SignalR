@@ -19,6 +19,18 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.SignalR
 {
+    public class HubEndPoint<THub> : HubEndPoint<THub, object> where THub : Hub<object>
+    {
+        public HubEndPoint(HubLifetimeManager<THub, object> lifetimeManager,
+                           IHubProtocolResolver protocolResolver,
+                           IHubContext<THub, object> hubContext,
+                           ILogger<HubEndPoint<THub>> logger,
+                           IServiceScopeFactory serviceScopeFactory)
+            : base(lifetimeManager, protocolResolver, hubContext, logger, serviceScopeFactory)
+        {
+        }
+    }
+
     public class HubEndPoint<THub, TClient> : IInvocationBinder where THub : Hub<TClient>
     {
         private readonly Dictionary<string, HubMethodDescriptor> _methods = new Dictionary<string, HubMethodDescriptor>(StringComparer.OrdinalIgnoreCase);
