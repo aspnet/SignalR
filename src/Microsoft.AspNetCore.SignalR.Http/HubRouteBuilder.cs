@@ -33,8 +33,18 @@ namespace Microsoft.AspNetCore.SignalR
                     var clientType = hubType.GetGenericArguments()[0];
                     var method = typeof(HubRouteBuilder).GetMethod(nameof(MapHubCore), BindingFlags.NonPublic | BindingFlags.Instance)
                                                         .MakeGenericMethod(typeof(THub), clientType);
-                    method.Invoke(this, new object[] { path, socketOptions });
-
+                    try
+                    {
+                        method.Invoke(this, new object[] { path, socketOptions });
+                    }
+                    catch (TargetInvocationException ex)
+                    {
+                        if(ex.InnerException != null)
+                        {
+                            throw ex.InnerException;
+                        }
+                        throw;
+                    }
                     return;
                 }
 
