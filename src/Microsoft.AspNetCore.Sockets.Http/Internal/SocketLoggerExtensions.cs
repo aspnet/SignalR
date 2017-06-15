@@ -9,7 +9,6 @@ namespace Microsoft.AspNetCore.Sockets.Internal
 {
     public static class SocketLoggerExtensions
     {
-        //Connection id "0HL5ILL9H6928", Request id "0HL5ILL9H6928:00000001":
         // Category: LongPollingTransport
         private static readonly Action<ILogger, DateTime, string, string, Exception> _longPolling204 =
             LoggerMessage.Define<DateTime, string, string>(LogLevel.Information, 0, "{time}: Connection Id {connectionId}, Request Id {requestId}: Terminating Long Polling connection by sending 204 response.");
@@ -17,8 +16,8 @@ namespace Microsoft.AspNetCore.Sockets.Internal
         private static readonly Action<ILogger, DateTime, string, string, Exception> _pollTimedOut =
             LoggerMessage.Define<DateTime, string, string>(LogLevel.Information, 1, "{time}: Connection Id {connectionId}, Request Id {requestId}: Poll request timed out. Sending 200 response to connection.");
 
-        private static readonly Action<ILogger, DateTime, int, string, string, Exception> _longPollingWritingMessage =
-            LoggerMessage.Define<DateTime, int, string, string>(LogLevel.Debug, 2, "{time}: Connection Id {connectionId}, Request Id {requestId}: Writing a {count} byte message to connection.");
+        private static readonly Action<ILogger, DateTime, string, string, int, Exception> _longPollingWritingMessage =
+            LoggerMessage.Define<DateTime, string, string, int>(LogLevel.Debug, 2, "{time}: Connection Id {connectionId}, Request Id {requestId}: Writing a {count} byte message to connection.");
 
         private static readonly Action<ILogger, DateTime, string, string, Exception> _longPollingDisconnected =
             LoggerMessage.Define<DateTime, string, string>(LogLevel.Debug, 3, "{time}: Connection Id {connectionId}, Request Id {requestId}: Client disconnected from Long Polling endpoint for connection.");
@@ -111,11 +110,11 @@ namespace Microsoft.AspNetCore.Sockets.Internal
             }
         }
 
-        public static void LongPollingWritingMessage(this ILogger logger, int count, string connectionId, string requestId)
+        public static void LongPollingWritingMessage(this ILogger logger, string connectionId, string requestId, int count)
         {
             if (logger.IsEnabled(LogLevel.Debug))
             {
-                _longPollingWritingMessage(logger, DateTime.Now, count, connectionId, requestId, null);
+                _longPollingWritingMessage(logger, DateTime.Now, connectionId, requestId, count, null);
             }
         }
 

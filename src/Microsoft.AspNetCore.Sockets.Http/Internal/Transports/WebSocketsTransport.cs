@@ -52,7 +52,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
 
                 await ProcessSocketAsync(ws);
             }
-            _logger.SocketClosed(context.TraceIdentifier);
+            _logger.SocketClosed(_connectionId);
         }
 
         public async Task ProcessSocketAsync(WebSocket socket)

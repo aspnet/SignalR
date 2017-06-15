@@ -49,7 +49,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                     contentLength += buffer.Length;
                     buffers.Add(buffer);
 
-                    _logger.LongPollingWritingMessage(buffer.Length, _connectionId, context.TraceIdentifier);
+                    _logger.LongPollingWritingMessage(_connectionId, context.TraceIdentifier, buffer.Length);
                 }
 
                 context.Response.ContentLength = contentLength;
