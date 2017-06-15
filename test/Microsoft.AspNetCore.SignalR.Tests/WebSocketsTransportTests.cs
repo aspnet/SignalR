@@ -27,7 +27,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             _serverFixture = serverFixture;
         }
 
-        [ConditionalFact(Skip = "WebsocketClient.CloseAsync never returns - investigating")]
+        [ConditionalFact]
         [OSSkipCondition(OperatingSystems.Windows, WindowsVersions.Win7, WindowsVersions.Win2008R2, SkipReason = "No WebSockets Client for this platform")]
         public async Task WebSocketsTransportStopsSendAndReceiveLoopsWhenTransportIsStopped()
         {
@@ -36,8 +36,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             var channelConnection = new ChannelConnection<SendMessage, byte[]>(connectionToTransport, transportToConnection);
 
             var webSocketsTransport = new WebSocketsTransport();
-            await webSocketsTransport.StartAsync(new Uri(_serverFixture.WebSocketsUrl + "/echo"), channelConnection);
-            await webSocketsTransport.StopAsync();
+            await webSocketsTransport.StartAsync(new Uri(_serverFixture.WebSocketsUrl + "/echo"), channelConnection).OrTimeout();
+            await webSocketsTransport.StopAsync().OrTimeout();
             await webSocketsTransport.Running.OrTimeout();
         }
 

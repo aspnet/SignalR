@@ -86,10 +86,17 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
 
                 // Wait for the application to finish sending.
                 _logger.WaitingForSend(_connectionId);
-                await sending;
 
-                // Send the server's close frame
-                await socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+                try
+                {
+                    await sending;
+                }
+                finally
+                {
+                    var failed = sending.IsFaulted || _application.Input.Completion.IsFaulted;
+                    // Send the server's close frame
+                    await socket.CloseOutputAsync(!failed ? WebSocketCloseStatus.NormalClosure: WebSocketCloseStatus.InternalServerError, "", CancellationToken.None);
+                }
             }
             else
             {
