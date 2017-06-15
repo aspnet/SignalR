@@ -81,7 +81,7 @@ let transportType = signalR.TransportType[getParameterByName('transport')] || si
 
 document.getElementById('head1').innerHTML = signalR.TransportType[transportType];
 
-let connection = new signalR.HubConnection(`http://${document.location.host}/hubs`, 'formatType=json&format=text');
+let connection = new signalR.HubConnection(new signalR.HttpConnection(`http://${document.location.host}/hubs`, 'formatType=json&format=text'));
 connection.on('Send', msg => {
     addLine('message-list', msg);
 });
