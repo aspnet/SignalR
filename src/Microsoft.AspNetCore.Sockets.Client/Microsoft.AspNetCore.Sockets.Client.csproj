@@ -24,4 +24,9 @@
     <PackageReference Include="System.Threading.Tasks.Channels" Version="$(CoreFxLabsVersion)" />
   </ItemGroup>
 
+  <!-- Temporary workaround to unblock build -->
+  <ItemGroup>
+    <PackageReference Include="NETStandard.Library" Version="2.0.0-preview2-*" />
+  </ItemGroup>
+
 </Project>
