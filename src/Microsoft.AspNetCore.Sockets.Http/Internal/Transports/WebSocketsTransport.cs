@@ -81,7 +81,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
 
                 // Shutting down because we received a close frame from the client.
                 // Complete the input writer so that the application knows there won't be any more input.
-                _logger.ClientClosed(receiving.Result.CloseStatus, receiving.Result.CloseStatusDescription, _connectionId);
+                _logger.ClientClosed(_connectionId, receiving.Result.CloseStatus, receiving.Result.CloseStatusDescription);
                 _application.Output.TryComplete();
 
                 // Wait for the application to finish sending.

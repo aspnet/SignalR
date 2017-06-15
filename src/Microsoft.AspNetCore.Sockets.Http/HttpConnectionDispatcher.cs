@@ -384,7 +384,7 @@ namespace Microsoft.AspNetCore.Sockets
                 buffer = stream.ToArray();
             }
 
-            _logger.ReceivedBytes(buffer.Length, connection.ConnectionId);
+            _logger.ReceivedBytes(connection.ConnectionId, buffer.Length);
             while (!connection.Application.Output.TryWrite(buffer))
             {
                 if (!await connection.Application.Output.WaitToWriteAsync())
@@ -399,7 +399,7 @@ namespace Microsoft.AspNetCore.Sockets
             if ((supportedTransports & transportType) == 0)
             {
                 context.Response.StatusCode = StatusCodes.Status404NotFound;
-                _logger.TransportNotSupported(transportType, connection.ConnectionId);
+                _logger.TransportNotSupported(connection.ConnectionId, transportType);
                 await context.Response.WriteAsync($"{transportType} transport not supported by this end point type");
                 return false;
             }
@@ -413,7 +413,7 @@ namespace Microsoft.AspNetCore.Sockets
             else if (transport != transportType)
             {
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                _logger.CannotChangeTransport(transport.Value, transportType, connection.ConnectionId);
+                _logger.CannotChangeTransport(connection.ConnectionId, transport.Value, transportType);
                 await context.Response.WriteAsync("Cannot change transports mid-connection");
                 return false;
             }
