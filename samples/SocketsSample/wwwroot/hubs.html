@@ -97,7 +97,7 @@ connection.onClosed = e => {
 }
 
 click('connect', event => {
-    connection.start(transportType)
+    connection.start()
         .then(() => {
             isConnected = true;
             addLine('message-list', 'Connected successfully', 'green');
