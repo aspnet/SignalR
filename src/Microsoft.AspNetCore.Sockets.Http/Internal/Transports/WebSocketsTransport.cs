@@ -8,6 +8,7 @@ using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Sockets.Http.Internal;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.Sockets.Internal.Transports
@@ -66,12 +67,13 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                 receiving,
                 sending);
 
-            // What happened?
+            var failed = false;
+            var task = Task.CompletedTask;
             if (trigger == receiving)
             {
                 if (receiving.IsCanceled || receiving.IsFaulted)
                 {
-                    // The receiver faulted or cancelled. This means the socket is probably broken. Abort the socket and propagate the exception
+                    // The receiver faulted or canceled. This means the socket is probably broken. Abort the socket and propagate the exception
                     receiving.GetAwaiter().GetResult();
 
                     // Should never get here because GetResult above will throw
@@ -79,63 +81,37 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                     return;
                 }
 
-                // Shutting down because we received a close frame from the client.
-                // Complete the input writer so that the application knows there won't be any more input.
-                _logger.ClientClosed(_connectionId, receiving.Result.CloseStatus, receiving.Result.CloseStatusDescription);
-                _application.Output.TryComplete();
-
-                // Wait for the application to finish sending.
+                task = sending;
                 _logger.WaitingForSend(_connectionId);
-
-                try
-                {
-                    await sending;
-                }
-                finally
-                {
-                    var failed = sending.IsFaulted || _application.Input.Completion.IsFaulted;
-                    // Send the server's close frame
-                    await socket.CloseOutputAsync(!failed ? WebSocketCloseStatus.NormalClosure: WebSocketCloseStatus.InternalServerError, "", CancellationToken.None);
-                }
             }
             else
             {
-                var failed = sending.IsFaulted || _application.Input.Completion.IsFaulted;
-
-                // The application finished sending. Close our end of the connection
-                if (failed)
-                {
-                    _logger.FailedSending(_connectionId);
-                }
-                else
-                {
-                    _logger.FinishedSending(_connectionId);
-                }
-                await socket.CloseOutputAsync(!failed ? WebSocketCloseStatus.NormalClosure : WebSocketCloseStatus.InternalServerError, "", CancellationToken.None);
-
-                // Now trigger the exception from the application, if there was one.
-                sending.GetAwaiter().GetResult();
-
+                task = receiving;
                 _logger.WaitingForClose(_connectionId);
+            }
 
-                // Wait for the client to close or wait for the close timeout
-                var resultTask = await Task.WhenAny(receiving, Task.Delay(_options.CloseTimeout));
+            // We're done writing
+            _application.Output.TryComplete();
 
-                // We timed out waiting for the transport to close so abort the connection so we don't attempt to write anything else
-                if (resultTask != receiving)
-                {
-                    _logger.CloseTimedOut(_connectionId);
-                    socket.Abort();
-                }
+            await socket.CloseOutputAsync(failed ? WebSocketCloseStatus.InternalServerError : WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
 
-                // We're done writing
-                _application.Output.TryComplete();
+            var resultTask = await Task.WhenAny(task, Task.Delay(_options.CloseTimeout));
+
+            if (resultTask != task)
+            {
+                _logger.CloseTimedOut(_connectionId);
+                socket.Abort();
+            }
+            else
+            {
+                // Observe any exceptions
+                task.GetAwaiter().GetResult();
             }
         }
 
         private async Task<WebSocketReceiveResult> StartReceiving(WebSocket socket)
         {
-            // REVIEW: This code was copied from the client, it's highly unoptimized at the moment (especially 
+            // REVIEW: This code was copied from the client, it's highly unoptimized at the moment (especially
             // for server logic)
             var incomingMessage = new List<ArraySegment<byte>>();
             while (true)
