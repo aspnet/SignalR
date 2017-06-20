@@ -93,10 +93,11 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
             }
             else
             {
-                // Observe any exceptions
+                // Observe any exceptions from second completed task
                 task.GetAwaiter().GetResult();
             }
 
+            // Observe any exceptions from original completed task
             trigger.GetAwaiter().GetResult();
         }
 
