@@ -8,7 +8,6 @@ using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Sockets.Http.Internal;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.Sockets.Internal.Transports
@@ -67,20 +66,10 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                 receiving,
                 sending);
 
-            var failed = false;
+            var failed = trigger.IsCanceled || trigger.IsFaulted;
             var task = Task.CompletedTask;
             if (trigger == receiving)
             {
-                if (receiving.IsCanceled || receiving.IsFaulted)
-                {
-                    // The receiver faulted or canceled. This means the socket is probably broken. Abort the socket and propagate the exception
-                    receiving.GetAwaiter().GetResult();
-
-                    // Should never get here because GetResult above will throw
-                    Debug.Fail("GetResult didn't throw?");
-                    return;
-                }
-
                 task = sending;
                 _logger.WaitingForSend(_connectionId);
             }
@@ -107,6 +96,8 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                 // Observe any exceptions
                 task.GetAwaiter().GetResult();
             }
+
+            trigger.GetAwaiter().GetResult();
         }
 
         private async Task<WebSocketReceiveResult> StartReceiving(WebSocket socket)
