@@ -51,14 +51,14 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 var message = await Read();
 
-                if (!string.Equals(message.InvocationId, invocationId))
-                {
-                    throw new NotSupportedException("TestClient does not support multiple outgoing invocations!");
-                }
-
                 if (message == null)
                 {
                     throw new InvalidOperationException("Connection aborted!");
+                }
+
+                if (!string.Equals(message.InvocationId, invocationId))
+                {
+                    throw new NotSupportedException("TestClient does not support multiple outgoing invocations!");
                 }
 
                 switch (message)
@@ -83,14 +83,14 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 var message = await Read();
 
-                if (!string.Equals(message.InvocationId, invocationId))
-                {
-                    throw new NotSupportedException("TestClient does not support multiple outgoing invocations!");
-                }
-
                 if (message == null)
                 {
                     throw new InvalidOperationException("Connection aborted!");
+                }
+
+                if (!string.Equals(message.InvocationId, invocationId))
+                {
+                    throw new NotSupportedException("TestClient does not support multiple outgoing invocations!");
                 }
 
                 switch (message)
