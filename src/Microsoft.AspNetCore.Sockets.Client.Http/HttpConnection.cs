@@ -39,7 +39,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
         public event Action<Exception> Closed;
 
         public HttpConnection(Uri url)
-            : this(url, TransportType.WebSockets)
+            : this(url, TransportType.All)
         { }
 
         public HttpConnection(Uri url, TransportType transportType)
@@ -48,7 +48,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
         }
 
         public HttpConnection(Uri url, ILoggerFactory loggerFactory)
-            : this(url, TransportType.WebSockets, loggerFactory, httpMessageHandler: null)
+            : this(url, TransportType.All, loggerFactory, httpMessageHandler: null)
         {
         }
 
