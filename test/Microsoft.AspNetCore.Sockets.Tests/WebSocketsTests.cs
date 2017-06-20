@@ -192,7 +192,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         }
 
         [Fact]
-        public async Task TransportFailsWhenClientClosesChannelWithError()
+        public async Task TransportFailsOnTimeoutWithErrorIfClientDoesNotSendCloseFrame()
         {
             var transportToApplication = Channel.CreateUnbounded<byte[]>();
             var applicationToTransport = Channel.CreateUnbounded<byte[]>();
@@ -208,8 +208,9 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
                 var ws = new WebSocketsTransport(options, transportSide, connectionId: string.Empty, loggerFactory: new LoggerFactory());
 
+                var serverSocket = await feature.AcceptAsync();
                 // Give the server socket to the transport and run it
-                var transport = ws.ProcessSocketAsync(await feature.AcceptAsync());
+                var transport = ws.ProcessSocketAsync(serverSocket);
 
                 // Run the client socket
                 var client = feature.Client.ExecuteAndCaptureFramesAsync();
@@ -218,6 +219,8 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 applicationToTransport.Out.TryComplete(new Exception());
 
                 await Assert.ThrowsAsync<Exception>(() => transport).OrTimeout();
+
+                Assert.Equal(WebSocketState.Aborted, serverSocket.State);
             }
         }
     }
