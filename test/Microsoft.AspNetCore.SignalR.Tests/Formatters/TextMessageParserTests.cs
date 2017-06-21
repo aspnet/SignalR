@@ -21,10 +21,10 @@ namespace Microsoft.AspNetCore.Sockets.Common.Tests.Internal.Formatters
         {
             var parser = new TextMessageParser();
             var buffer = Encoding.UTF8.GetBytes(encoded);
-            var reader = new BytesReader(buffer.ToChunkedReadOnlyBytes(chunkSize));
+            ReadOnlySpan<byte> span = buffer.AsSpan();
 
-            Assert.True(parser.TryParseMessage(ref reader, out var message));
-            Assert.Equal(reader.Index, buffer.Length);
+            Assert.True(parser.TryParseMessage(ref span, out var message));
+            Assert.Equal(0, span.Length);
             Assert.Equal(Encoding.UTF8.GetBytes(payload), message.ToArray());
         }
 
@@ -37,19 +37,15 @@ namespace Microsoft.AspNetCore.Sockets.Common.Tests.Internal.Formatters
             const string encoded = "0:;14:Hello,\r\nWorld!;";
             var parser = new TextMessageParser();
             var data = Encoding.UTF8.GetBytes(encoded);
-            var buffer = chunkSize > 0 ?
-                data.ToChunkedReadOnlyBytes(chunkSize) :
-                new ReadOnlyBytes(data);
-
-            var reader = new BytesReader(buffer);
+            ReadOnlySpan<byte> span = data.AsSpan();
 
             var messages = new List<byte[]>();
-            while (parser.TryParseMessage(ref reader, out var message))
+            while (parser.TryParseMessage(ref span, out var message))
             {
                 messages.Add(message.ToArray());
             }
 
-            Assert.Equal(reader.Index, Encoding.UTF8.GetByteCount(encoded));
+            Assert.Equal(0, span.Length);
 
             Assert.Equal(2, messages.Count);
             Assert.Equal(new byte[0], messages[0]);
@@ -68,8 +64,8 @@ namespace Microsoft.AspNetCore.Sockets.Common.Tests.Internal.Formatters
         {
             var parser = new TextMessageParser();
             var buffer = Encoding.UTF8.GetBytes(encoded);
-            var reader = new BytesReader(buffer);
-            Assert.False(parser.TryParseMessage(ref reader, out _));
+            ReadOnlySpan<byte> span = buffer.AsSpan();
+            Assert.False(parser.TryParseMessage(ref span, out _));
         }
 
         [Theory]
@@ -82,8 +78,11 @@ namespace Microsoft.AspNetCore.Sockets.Common.Tests.Internal.Formatters
         {
             var parser = new TextMessageParser();
             var buffer = Encoding.UTF8.GetBytes(encoded);
-            var reader = new BytesReader(buffer);
-            var ex = Assert.Throws<FormatException>(() => parser.TryParseMessage(ref reader, out _));
+            var ex = Assert.Throws<FormatException>(() =>
+            {
+                ReadOnlySpan<byte> span = buffer.AsSpan();
+                parser.TryParseMessage(ref span, out _);
+            });
             Assert.Equal(expectedMessage, ex.Message);
         }
 
@@ -96,7 +95,11 @@ namespace Microsoft.AspNetCore.Sockets.Common.Tests.Internal.Formatters
             // We need to include the ':' so that
             var buffer = new byte[] { 0x48, 0x65, 0x80, 0x6C, 0x6F, (byte)':' };
             var reader = new BytesReader(buffer);
-            var ex = Assert.Throws<FormatException>(() => parser.TryParseMessage(ref reader, out _));
+            var ex = Assert.Throws<FormatException>(() =>
+            {
+                ReadOnlySpan<byte> span = buffer.AsSpan();
+                parser.TryParseMessage(ref span, out _);
+            });
             Assert.Equal("Invalid length", ex.Message);
         }
     }
