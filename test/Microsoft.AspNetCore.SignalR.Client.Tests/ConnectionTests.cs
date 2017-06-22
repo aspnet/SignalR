@@ -351,7 +351,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
 
             var connection = new HttpConnection(new Uri("http://fakeuri.org/"), new TestTransportFactory(mockTransport.Object), loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
             var receivedInvoked = false;
-            connection.Received += (m) => receivedInvoked = true;
+            connection.Received += (m) => { receivedInvoked = true; return Task.CompletedTask; };
 
             await connection.StartAsync();
             await connection.DisposeAsync();
@@ -388,30 +388,29 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 });
 
 
+            var callbackInvokedTcs = new TaskCompletionSource<object>();
             var closedTcs = new TaskCompletionSource<object>();
-            var allowDisposeTcs = new TaskCompletionSource<object>();
-            int receivedInvocationCount = 0;
 
             var connection = new HttpConnection(new Uri("http://fakeuri.org/"), new TestTransportFactory(mockTransport.Object), loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
             connection.Received +=
-                async (m) =>
+                async m =>
                 {
-                    if (Interlocked.Increment(ref receivedInvocationCount) == 2)
-                    {
-                        allowDisposeTcs.TrySetResult(null);
-                    }
+                    callbackInvokedTcs.SetResult(null);
                     await closedTcs.Task;
                 };
-            connection.Closed += e => closedTcs.SetResult(null);
 
             await connection.StartAsync();
             channel.Out.TryWrite(Array.Empty<byte>());
+
+            // Ensure that the Received callback has been called before attempting the second write
+            await callbackInvokedTcs.Task.OrTimeout();
             channel.Out.TryWrite(Array.Empty<byte>());
-            await allowDisposeTcs.Task.OrTimeout();
+
+            // Ensure that SignalR isn't blocked by the receive callback
+            Assert.False(channel.In.TryRead(out var message));
+            closedTcs.SetResult(null);
+
             await connection.DisposeAsync();
-            Assert.Equal(2, receivedInvocationCount);
-            // if the events were running on the main loop they would deadlock
-            await closedTcs.Task.OrTimeout();
         }
 
         [Fact]
@@ -593,7 +592,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
             try
             {
                 var receiveTcs = new TaskCompletionSource<string>();
-                connection.Received += (data) => receiveTcs.TrySetResult(Encoding.UTF8.GetString(data));
+                connection.Received += (data) => { receiveTcs.TrySetResult(Encoding.UTF8.GetString(data)); return Task.CompletedTask; };
                 connection.Closed += e =>
                     {
                         if (e != null)

@@ -35,7 +35,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
         public Uri Url { get; }
 
         public event Action Connected;
-        public event Action<byte[]> Received;
+        public event Func<byte[], Task> Received;
         public event Action<Exception> Closed;
 
         public HttpConnection(Uri url)
@@ -284,13 +284,11 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     if (Input.TryRead(out var buffer))
                     {
                         _logger.LogDebug("Scheduling raising Received event.");
-                        var ignore = _eventQueue.Enqueue(() =>
+                        var ignore = _eventQueue.Enqueue(async () =>
                         {
                             _logger.LogDebug("Raising Received event.");
 
-                            Received?.Invoke(buffer);
-
-                            return Task.CompletedTask;
+                            await Received?.Invoke(buffer);
                         });
                     }
                     else
