@@ -11,6 +11,8 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
 {
     public static class TextMessageFormatter
     {
+        private const int Int32OverflowLength = 10;
+
         internal const char FieldDelimiter = ':';
         internal const char MessageDelimiter = ';';
 
@@ -22,7 +24,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
 
             // Super inefficient...
             var lengthString = payload.Length.ToString(CultureInfo.InvariantCulture);
-            var buffer = ArrayPool<byte>.Shared.Rent(10);
+            var buffer = ArrayPool<byte>.Shared.Rent(Int32OverflowLength);
             var encodedLength = Encoding.UTF8.GetBytes(lengthString, 0, lengthString.Length, buffer, 0);
             output.Write(buffer, 0, encodedLength);
             ArrayPool<byte>.Shared.Return(buffer);

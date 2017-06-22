@@ -8,7 +8,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 {
     public static class HubProtocolWriteMessageExtensions
     {
-        public static byte[] WriteToArrayAsync(this IHubProtocol protocol, HubMessage message)
+        public static byte[] WriteToArray(this IHubProtocol protocol, HubMessage message)
         {
             using (var output = new MemoryStream())
             {

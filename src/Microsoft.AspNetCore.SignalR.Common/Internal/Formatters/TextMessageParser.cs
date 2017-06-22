@@ -8,7 +8,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
 {
     public class TextMessageParser
     {
-        const int Int32OverflowLength = 10;
+        private const int Int32OverflowLength = 10;
 
         private ParserState _state;
 
