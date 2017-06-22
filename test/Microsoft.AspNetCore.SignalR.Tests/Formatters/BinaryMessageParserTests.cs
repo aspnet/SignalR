@@ -38,12 +38,8 @@ namespace Microsoft.AspNetCore.Sockets.Common.Tests.Internal.Formatters
             Assert.Equal(payload, message.ToArray());
         }
 
-        [Theory]
-        [InlineData(0)] // No chunking
-        [InlineData(4)]
-        [InlineData(8)]
-        [InlineData(256)]
-        public void ReadMultipleMessages(int chunkSize)
+        [Fact]
+        public void ReadMultipleMessages()
         {
             var encoded = new byte[]
             {

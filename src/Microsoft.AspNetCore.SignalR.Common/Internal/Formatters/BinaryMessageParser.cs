@@ -34,7 +34,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
                     throw new FormatException("Messages over 2GB in size are not supported");
                 }
 
-                buffer = buffer.Slice((int)length);
+                buffer = buffer.Slice(sizeof(long));
                 _state.Length = (int)length;
             }
 

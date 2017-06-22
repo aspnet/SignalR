@@ -28,11 +28,8 @@ namespace Microsoft.AspNetCore.Sockets.Common.Tests.Internal.Formatters
             Assert.Equal(Encoding.UTF8.GetBytes(payload), message.ToArray());
         }
 
-        [Theory]
-        [InlineData(0)] // Not chunked
-        [InlineData(4)]
-        [InlineData(8)]
-        public void ReadMultipleMessages(int chunkSize)
+        [Fact]
+        public void ReadMultipleMessages()
         {
             const string encoded = "0:;14:Hello,\r\nWorld!;";
             var parser = new TextMessageParser();
@@ -100,7 +97,7 @@ namespace Microsoft.AspNetCore.Sockets.Common.Tests.Internal.Formatters
                 ReadOnlySpan<byte> span = buffer.AsSpan();
                 parser.TryParseMessage(ref span, out _);
             });
-            Assert.Equal("Invalid length", ex.Message);
+            Assert.Equal("Invalid length: 'He�lo'", ex.Message);
         }
     }
 }

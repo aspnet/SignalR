@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Text;
 
 namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
 {
@@ -78,10 +79,9 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
 
             var lengthSpan = buffer.Slice(0, found);
 
-            if (!TryParseInt32(lengthSpan, out var length, out var bytesConsumed))
+            if (!TryParseInt32(lengthSpan, out var length, out var bytesConsumed) || bytesConsumed < lengthSpan.Length)
             {
-                // TODO: Handle partial data
-                throw new FormatException("Invalid length");
+                throw new FormatException($"Invalid length: '{Encoding.UTF8.GetString(lengthSpan.ToArray())}'");
             }
 
             buffer = buffer.Slice(found);
