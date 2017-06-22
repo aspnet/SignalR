@@ -354,7 +354,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
         }
 
-        public struct InvocationHandler
+        private struct InvocationHandler
         {
             public Func<object[], Task> Handler { get; }
             public Type[] ParameterTypes { get; }

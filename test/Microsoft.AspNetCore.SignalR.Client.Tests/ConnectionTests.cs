@@ -351,7 +351,11 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
 
             var connection = new HttpConnection(new Uri("http://fakeuri.org/"), new TestTransportFactory(mockTransport.Object), loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
             var receivedInvoked = false;
-            connection.Received += (m) => { receivedInvoked = true; return Task.CompletedTask; };
+            connection.Received += (m) => 
+            {
+                receivedInvoked = true;
+                return Task.CompletedTask;
+            };
 
             await connection.StartAsync();
             await connection.DisposeAsync();
@@ -592,7 +596,12 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
             try
             {
                 var receiveTcs = new TaskCompletionSource<string>();
-                connection.Received += (data) => { receiveTcs.TrySetResult(Encoding.UTF8.GetString(data)); return Task.CompletedTask; };
+                connection.Received += (data) => 
+                {
+                    receiveTcs.TrySetResult(Encoding.UTF8.GetString(data));
+                    return Task.CompletedTask;
+                };
+
                 connection.Closed += e =>
                     {
                         if (e != null)
