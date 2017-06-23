@@ -284,11 +284,11 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     if (Input.TryRead(out var buffer))
                     {
                         _logger.LogDebug("Scheduling raising Received event.");
-                        var ignore = _eventQueue.Enqueue(async () =>
+                        var _ = _eventQueue.Enqueue(() =>
                         {
                             _logger.LogDebug("Raising Received event.");
 
-                            await Received?.Invoke(buffer);
+                            return Received?.Invoke(buffer);
                         });
                     }
                     else

@@ -92,7 +92,11 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private static void On(this HubConnection hubConnetion, string methodName, Type[] parameterTypes, Action<object[]> handler)
         {
-            hubConnetion.On(methodName, parameterTypes, (parameters) => { handler(parameters); return Task.CompletedTask; });
+            hubConnetion.On(methodName, parameterTypes, (parameters) => 
+            {
+                handler(parameters);
+                return Task.CompletedTask;
+            });
         }
 
         public static void On(this HubConnection hubConnection, string methodName, Action handler)

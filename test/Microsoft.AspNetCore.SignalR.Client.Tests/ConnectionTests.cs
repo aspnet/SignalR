@@ -11,14 +11,20 @@ using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.Client.Tests;
 using Microsoft.AspNetCore.SignalR.Tests.Common;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 using Moq;
 using Moq.Protected;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Microsoft.AspNetCore.Sockets.Client.Tests
 {
-    public class ConnectionTests
+    public class ConnectionTests : LoggedTest
     {
+        public ConnectionTests(ITestOutputHelper output) : base(output)
+        {
+        }
+
         [Fact]
         public void CannotCreateConnectionWithNullUrl()
         {
@@ -351,7 +357,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
 
             var connection = new HttpConnection(new Uri("http://fakeuri.org/"), new TestTransportFactory(mockTransport.Object), loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
             var receivedInvoked = false;
-            connection.Received += (m) => 
+            connection.Received += m => 
             {
                 receivedInvoked = true;
                 return Task.CompletedTask;
@@ -365,16 +371,16 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
         [Fact]
         public async Task EventsAreNotRunningOnMainLoop()
         {
-            var mockHttpHandler = new Mock<HttpMessageHandler>();
-            mockHttpHandler.Protected()
-                .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
-                .Returns<HttpRequestMessage, CancellationToken>(async (request, cancellationToken) =>
-                {
-                    await Task.Yield();
-                    return request.Method == HttpMethod.Options
-                        ? ResponseUtils.CreateResponse(HttpStatusCode.OK, ResponseUtils.CreateNegotiationResponse())
-                        : ResponseUtils.CreateResponse(HttpStatusCode.OK);
-                });
+                var mockHttpHandler = new Mock<HttpMessageHandler>();
+                mockHttpHandler.Protected()
+                    .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+                    .Returns<HttpRequestMessage, CancellationToken>(async (request, cancellationToken) =>
+                    {
+                        await Task.Yield();
+                        return request.Method == HttpMethod.Options
+                            ? ResponseUtils.CreateResponse(HttpStatusCode.OK, ResponseUtils.CreateNegotiationResponse())
+                            : ResponseUtils.CreateResponse(HttpStatusCode.OK);
+                    });
 
             var mockTransport = new Mock<ITransport>();
             Channel<byte[], SendMessage> channel = null;
