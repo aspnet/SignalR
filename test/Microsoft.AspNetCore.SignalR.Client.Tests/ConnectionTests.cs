@@ -19,12 +19,8 @@ using Xunit.Abstractions;
 
 namespace Microsoft.AspNetCore.Sockets.Client.Tests
 {
-    public class ConnectionTests : LoggedTest
+    public class ConnectionTests
     {
-        public ConnectionTests(ITestOutputHelper output) : base(output)
-        {
-        }
-
         [Fact]
         public void CannotCreateConnectionWithNullUrl()
         {
@@ -386,6 +382,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
             Channel<byte[], SendMessage> channel = null;
             mockTransport.Setup(t => t.StartAsync(It.IsAny<Uri>(), It.IsAny<Channel<byte[], SendMessage>>()))
                 .Returns<Uri, Channel<byte[], SendMessage>>((url, c) =>
+
                 {
                     channel = c;
                     return Task.CompletedTask;
@@ -394,6 +391,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 .Returns(() =>
                 {
                     channel.Out.TryComplete();
+
                     return Task.CompletedTask;
                 });
 
@@ -410,6 +408,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 };
 
             await connection.StartAsync();
+<<<<<<< HEAD
             channel.Out.TryWrite(Array.Empty<byte>());
 
             // Ensure that the Received callback has been called before attempting the second write
@@ -418,6 +417,16 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
 
             // Ensure that SignalR isn't blocked by the receive callback
             Assert.False(channel.In.TryRead(out var message));
+=======
+            channel.Output.TryWrite(Array.Empty<byte>());
+
+            // Ensure that the Received callback has been called before attempting the second write
+            await callbackInvokedTcs.Task.OrTimeout();
+            channel.Output.TryWrite(Array.Empty<byte>());
+
+            // Ensure that SignalR isn't blocked by the receive callback
+            Assert.False(channel.Input.TryRead(out var message));
+>>>>>>> Fix test
             closedTcs.SetResult(null);
 
             await connection.DisposeAsync();
