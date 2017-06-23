@@ -408,7 +408,6 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 };
 
             await connection.StartAsync();
-<<<<<<< HEAD
             channel.Out.TryWrite(Array.Empty<byte>());
 
             // Ensure that the Received callback has been called before attempting the second write
@@ -417,16 +416,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
 
             // Ensure that SignalR isn't blocked by the receive callback
             Assert.False(channel.In.TryRead(out var message));
-=======
-            channel.Output.TryWrite(Array.Empty<byte>());
 
-            // Ensure that the Received callback has been called before attempting the second write
-            await callbackInvokedTcs.Task.OrTimeout();
-            channel.Output.TryWrite(Array.Empty<byte>());
-
-            // Ensure that SignalR isn't blocked by the receive callback
-            Assert.False(channel.Input.TryRead(out var message));
->>>>>>> Fix test
             closedTcs.SetResult(null);
 
             await connection.DisposeAsync();
