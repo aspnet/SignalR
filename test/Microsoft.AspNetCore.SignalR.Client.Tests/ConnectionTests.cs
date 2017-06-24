@@ -353,7 +353,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
 
             var connection = new HttpConnection(new Uri("http://fakeuri.org/"), new TestTransportFactory(mockTransport.Object), loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
             var receivedInvoked = false;
-            connection.Received += m => 
+            connection.Received += m =>
             {
                 receivedInvoked = true;
                 return Task.CompletedTask;
@@ -367,16 +367,16 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
         [Fact]
         public async Task EventsAreNotRunningOnMainLoop()
         {
-                var mockHttpHandler = new Mock<HttpMessageHandler>();
-                mockHttpHandler.Protected()
-                    .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
-                    .Returns<HttpRequestMessage, CancellationToken>(async (request, cancellationToken) =>
-                    {
-                        await Task.Yield();
-                        return request.Method == HttpMethod.Options
-                            ? ResponseUtils.CreateResponse(HttpStatusCode.OK, ResponseUtils.CreateNegotiationResponse())
-                            : ResponseUtils.CreateResponse(HttpStatusCode.OK);
-                    });
+            var mockHttpHandler = new Mock<HttpMessageHandler>();
+            mockHttpHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+                .Returns<HttpRequestMessage, CancellationToken>(async (request, cancellationToken) =>
+                {
+                    await Task.Yield();
+                    return request.Method == HttpMethod.Options
+                        ? ResponseUtils.CreateResponse(HttpStatusCode.OK, ResponseUtils.CreateNegotiationResponse())
+                        : ResponseUtils.CreateResponse(HttpStatusCode.OK);
+                });
 
             var mockTransport = new Mock<ITransport>();
             Channel<byte[], SendMessage> channel = null;
@@ -601,7 +601,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
             try
             {
                 var receiveTcs = new TaskCompletionSource<string>();
-                connection.Received += (data) => 
+                connection.Received += data =>
                 {
                     receiveTcs.TrySetResult(Encoding.UTF8.GetString(data));
                     return Task.CompletedTask;
