@@ -6,39 +6,36 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Client;
-using Microsoft.AspNetCore.Sockets.Client;
+using Microsoft.AspNetCore.SignalR.Redis;
 using Microsoft.Extensions.CommandLineUtils;
 using Microsoft.Extensions.Logging;
 
 namespace ClientSample
 {
-    internal class HubSample
+    internal class RedisHubSample
     {
         internal static void Register(CommandLineApplication app)
         {
-            app.Command("hub", cmd =>
+            app.Command("redis", cmd =>
             {
-                cmd.Description = "Tests a connection to a hub";
+                cmd.Description = "Tests a connection to a hub via redis";
 
-                var baseUrlArgument = cmd.Argument("<BASEURL>", "The URL to the Chat Hub to test");
-
-                cmd.OnExecute(() => ExecuteAsync(baseUrlArgument.Value));
+                cmd.OnExecute(() => ExecuteAsync());
             });
         }
 
-        public static async Task<int> ExecuteAsync(string baseUrl)
+        public static async Task<int> ExecuteAsync()
         {
-            baseUrl = string.IsNullOrEmpty(baseUrl) ? "http://localhost:5000/hubs" : baseUrl;
-
             var loggerFactory = new LoggerFactory();
 
-            Console.WriteLine("Connecting to {0}", baseUrl);
-            var httpConnection = new HttpConnection(new Uri(baseUrl));
-            var connection = new HubConnection(httpConnection, loggerFactory);
+            Console.WriteLine("Connecting to redis");
+            var redisConnection = new RedisConnection("channel");
+
+            var connection = new HubConnection(redisConnection, loggerFactory);
             try
             {
                 await connection.StartAsync();
-                Console.WriteLine("Connected to {0}", baseUrl);
+                Console.WriteLine("Connected to redis");
 
                 var cts = new CancellationTokenSource();
                 Console.CancelKeyPress += (sender, a) =>
