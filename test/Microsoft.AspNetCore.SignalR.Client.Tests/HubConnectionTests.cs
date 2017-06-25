@@ -9,8 +9,9 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.SignalR.Tests.Common;
-using Microsoft.AspNetCore.Sockets.Client;
+using Microsoft.AspNetCore.Sockets;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
@@ -45,7 +46,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         {
             var exception = new InvalidOperationException();
             var mockProtocol = MockHubProtocol.Throw(exception);
-            var hubConnection = new HubConnection(new TestConnection(), mockProtocol, null);
+            var hubConnection = new HubConnection(new TestConnection(), mockProtocol, NullLoggerFactory.Instance);
             await hubConnection.StartAsync();
 
             var actualException =
@@ -61,7 +62,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             try
             {
                 var connectedEventRaisedTcs = new TaskCompletionSource<object>();
-                hubConnection.Connected += () => connectedEventRaisedTcs.SetResult(null);
+                hubConnection.Connected += () =>
+                {
+                    connectedEventRaisedTcs.SetResult(null);
+                    return Task.CompletedTask;
+                };
 
                 await hubConnection.StartAsync();
 
@@ -78,7 +83,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         {
             var hubConnection = new HubConnection(new TestConnection());
             var closedEventTcs = new TaskCompletionSource<Exception>();
-            hubConnection.Closed += e => closedEventTcs.SetResult(e);
+            hubConnection.Closed += e =>
+            {
+                closedEventTcs.SetResult(e);
+                return Task.CompletedTask;
+            };
 
             await hubConnection.StartAsync();
             await hubConnection.DisposeAsync();
@@ -142,7 +151,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
             var mockProtocol = MockHubProtocol.ReturnOnParse(invocation);
 
-            var hubConnection = new HubConnection(mockConnection.Object, mockProtocol, null);
+            var hubConnection = new HubConnection(mockConnection.Object, mockProtocol, NullLoggerFactory.Instance);
             await hubConnection.StartAsync();
 
             mockConnection.Raise(c => c.Received += null, new object[] { new byte[] { } });

@@ -29,11 +29,11 @@ namespace Microsoft.AspNetCore.SignalR.Client
         private readonly object _pendingCallsLock = new object();
         private readonly CancellationTokenSource _connectionActive = new CancellationTokenSource();
         private readonly Dictionary<string, InvocationRequest> _pendingCalls = new Dictionary<string, InvocationRequest>();
-        private readonly ConcurrentDictionary<string, InvocationHandler> _handlers = new ConcurrentDictionary<string, InvocationHandler>();
+        private readonly ConcurrentDictionary<string, InvocationHandler> _handlers = new ConcurrentDictionary<string, InvocationHandler>(StringComparer.OrdinalIgnoreCase);
 
         private int _nextId = 0;
 
-        public event Action Connected
+        public event Func<Task> Connected
         {
             add { _connection.Connected += value; }
             remove { _connection.Connected -= value; }
@@ -100,7 +100,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
         }
 
-        public event Action<Exception> Closed
+        public event Func<Exception, Task> Closed
         {
             add { _connection.Closed += value; }
             remove { _connection.Closed -= value; }
@@ -225,7 +225,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
         }
 
-        private void OnDataReceived(byte[] data)
+        private Task OnDataReceived(byte[] data)
         {
             if (_protocol.TryParseMessages(data, _binder, out var messages))
             {
@@ -246,7 +246,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                             if (!TryRemoveInvocation(completion.InvocationId, out irq))
                             {
                                 _logger.LogWarning("Dropped unsolicited Completion message for invocation '{invocationId}'", completion.InvocationId);
-                                return;
+                                return Task.CompletedTask;
                             }
                             DispatchInvocationCompletion(completion, irq);
                             irq.Dispose();
@@ -256,18 +256,19 @@ namespace Microsoft.AspNetCore.SignalR.Client
                             if (!TryGetInvocation(streamItem.InvocationId, out irq))
                             {
                                 _logger.LogWarning("Dropped unsolicited Stream Item message for invocation '{invocationId}'", streamItem.InvocationId);
-                                return;
+                                return Task.CompletedTask;
                             }
-                            DispatchInvocationStreamItemAsync(streamItem, irq);
+                            _ = DispatchInvocationStreamItemAsync(streamItem, irq);
                             break;
                         default:
                             throw new InvalidOperationException($"Unknown message type: {message.GetType().FullName}");
                     }
                 }
             }
+            return Task.CompletedTask;
         }
 
-        private void Shutdown(Exception ex = null)
+        private Task Shutdown(Exception ex = null)
         {
             _logger.LogTrace("Shutting down connection");
             if (ex != null)
@@ -293,6 +294,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 }
                 _pendingCalls.Clear();
             }
+
+            return Task.CompletedTask;
         }
 
         private async Task DispatchInvocation(InvocationMessage invocationMessage, CancellationToken cancellationToken)
@@ -300,7 +303,11 @@ namespace Microsoft.AspNetCore.SignalR.Client
             // Find the handler
             if (!_handlers.TryGetValue(invocationMessage.Target, out var handler))
             {
-                _logger.LogWarning("Failed to find handler for '{target}' method", invocationMessage.Target);
+                _logger.LogError("Unknown hub method '{method}'", invocationMessage.Target);
+                if (!invocationMessage.NonBlocking)
+                {
+                    await SendMessageAsync(CompletionMessage.WithError(invocationMessage.InvocationId, $"Unknown hub method '{invocationMessage.Target}'"));
+                }
                 return;
             }
 
@@ -406,9 +413,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             return iface.IsGenericType && iface.GetGenericTypeDefinition() == typeof(IObservable<>);
         }
 
-        // This async void is GROSS but we need to dispatch asynchronously because we're writing to a Channel
-        // and there's nobody to actually wait for us to finish.
-        private async void DispatchInvocationStreamItemAsync(StreamItemMessage streamItem, InvocationRequest irq)
+        private async Task DispatchInvocationStreamItemAsync(StreamItemMessage streamItem, InvocationRequest irq)
         {
             _logger.LogTrace("Received StreamItem for Invocation #{invocationId}", streamItem.InvocationId);
 

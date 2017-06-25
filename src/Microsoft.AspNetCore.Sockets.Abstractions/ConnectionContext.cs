@@ -12,9 +12,9 @@ namespace Microsoft.AspNetCore.Sockets
 {
     public abstract class ConnectionContext : IConnection
     {
-        private event Action _connected;
-        private event Action<byte[]> _received;
-        private event Action<Exception> _closed;
+        private event Func<Task> _connected;
+        private event Func<byte[], Task> _received;
+        private event Func<Exception, Task> _closed;
 
         public abstract string ConnectionId { get; }
 
@@ -28,7 +28,7 @@ namespace Microsoft.AspNetCore.Sockets
         public abstract Channel<byte[]> Transport { get; set; }
 
 
-        event Action IConnection.Connected
+        event Func<Task> IConnection.Connected
         {
             add
             {
@@ -40,7 +40,7 @@ namespace Microsoft.AspNetCore.Sockets
             }
         }
 
-        event Action<byte[]> IConnection.Received
+        event Func<byte[], Task> IConnection.Received
         {
             add
             {
@@ -52,7 +52,7 @@ namespace Microsoft.AspNetCore.Sockets
             }
         }
 
-        event Action<Exception> IConnection.Closed
+        event Func<Exception, Task> IConnection.Closed
         {
             add
             {
@@ -93,23 +93,22 @@ namespace Microsoft.AspNetCore.Sockets
                     {
                         while (Transport.In.TryRead(out var buffer))
                         {
-                            _received?.Invoke(buffer);
+                            // Don't block here
+                            _ = _received?.Invoke(buffer);
                         }
                     }
 
-                    _closed?.Invoke(null);
+                    await _closed?.Invoke(null);
                 }
                 catch (Exception ex)
                 {
-                    _closed?.Invoke(ex);
+                    await _closed?.Invoke(ex);
                 }
             }
 
             _ = Run();
 
-            _connected?.Invoke();
-
-            return Task.CompletedTask;
+            return _connected?.Invoke() ?? Task.CompletedTask;
         }
     }
 }

@@ -136,15 +136,22 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 _logger.LogError(0, error, "Error when processing requests.");
 
-                await HubOnDisconnectedAsync(connection, error);
+                try
+                {
+                    await HubOnDisconnectedAsync(connection, error);
 
-                if (error != null)
-                {
-                    tcs.TrySetException(error);
+                    if (error != null)
+                    {
+                        tcs.TrySetException(error);
+                    }
+                    else
+                    {
+                        tcs.TrySetResult(null);
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    tcs.TrySetResult(null);
+                    tcs.TrySetException(ex);
                 }
             };
 

@@ -34,9 +34,9 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         public Uri Url { get; }
 
-        public event Action Connected;
-        public event Action<byte[]> Received;
-        public event Action<Exception> Closed;
+        public event Func<Task> Connected;
+        public event Func<byte[], Task> Received;
+        public event Func<Exception, Task> Closed;
 
         public string ConnectionId { get; set; }
 
@@ -144,9 +144,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 {
                     _logger.LogDebug("Raising Connected event");
 
-                    Connected?.Invoke();
-
-                    return Task.CompletedTask;
+                    return Connected?.Invoke() ?? Task.CompletedTask;
                 });
 
                 ignore = Input.Completion.ContinueWith(async t =>
@@ -170,9 +168,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
                     _logger.LogDebug("Raising Closed event");
 
-                    Closed?.Invoke(t.IsFaulted ? t.Exception.InnerException : null);
-
-                    return Task.CompletedTask;
+                    return Closed?.Invoke(t.IsFaulted ? t.Exception.InnerException : null) ?? Task.CompletedTask;
                 });
 
                 // start receive loop only after the Connected event was raised to
@@ -292,7 +288,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
                         {
                             _logger.LogDebug("Raising Received event.");
 
-                            Received?.Invoke(buffer);
+                            // TODO: Return this
+                            _ = Received?.Invoke(buffer);
 
                             return Task.CompletedTask;
                         });

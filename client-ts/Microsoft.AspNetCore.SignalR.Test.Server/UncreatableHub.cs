@@ -5,7 +5,7 @@ using System;
 
 namespace Microsoft.AspNetCore.SignalR.Test.Server
 {
-    public class UncreatableHub: Hub
+    public class UncreatableHub : Hub
     {
         public UncreatableHub(object obj)
         {
