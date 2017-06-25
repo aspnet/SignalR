@@ -171,14 +171,14 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         public Task Invoke(string methodName, params object[] args)
         {
-            var irq = InvocationRequest.Invoke(CancellationToken.None, resultType: null, invocationId: GetNextId(), logger: _logger, result: out var task);
+            var irq = InvocationRequest.Invoke(CancellationToken.None, resultType: typeof(void), invocationId: GetNextId(), logger: _logger, result: out var task);
             return InvokeCore(methodName, irq, args, nonBlocking: true);
         }
 
         private Task InvokeCore(string methodName, InvocationRequest irq, object[] args, bool nonBlocking)
         {
             ThrowIfConnectionTerminated();
-            _logger.LogTrace("Preparing invocation of '{target}', with return type '{returnType}' and {argumentCount} args", methodName, irq.ResultType.AssemblyQualifiedName, args.Length);
+            _logger.LogTrace("Preparing invocation of '{target}', with return type '{returnType}' and {argumentCount} args", methodName, irq.ResultType.AssemblyQualifiedName ?? "null", args.Length);
 
             // Create an invocation descriptor. Client invocations are always blocking
             var invocationMessage = new InvocationMessage(irq.InvocationId, nonBlocking, methodName, args);

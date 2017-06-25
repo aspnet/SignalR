@@ -64,6 +64,10 @@ namespace ClientSample
                         break;
                     }
 
+                    // Fire and forget
+                    await connection.Invoke("Send", line);
+
+                    // Stream the results
                     var stream = connection.Stream<int>("Stream", cts.Token);
                     while (await stream.WaitToReadAsync())
                     {
@@ -93,6 +97,11 @@ namespace ClientSample
         public void Send(string message)
         {
             Console.WriteLine(message);
+        }
+
+        public int Add(int a, int b)
+        {
+            return a + b;
         }
 
         public ReadableChannel<int> ChannelCounter(int count, int delay)
