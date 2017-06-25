@@ -45,7 +45,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             mockLifetimeManager
                 .Setup(m => m.OnConnectedAsync(It.IsAny<ConnectionContext>()))
                 .Throws(new InvalidOperationException("Lifetime manager OnConnectedAsync failed."));
-            var mockHubActivator = new Mock<IHubActivator<Hub, IClientProxy>>();
+            var mockHubActivator = new Mock<IHubActivator<Hub, IHubProxy>>();
 
             var serviceProvider = CreateServiceProvider(services =>
             {

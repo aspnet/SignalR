@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace ChatSample
 {
-    public class HubWithPresence : HubWithPresence<IClientProxy>
+    public class HubWithPresence : HubWithPresence<IHubProxy>
     {
         public HubWithPresence(IUserTracker<HubWithPresence> userTracker)
             : base(userTracker)

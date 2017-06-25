@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.Sockets;
 using Microsoft.Extensions.Logging;
@@ -92,12 +93,27 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             return PublishAsync(typeof(THub).FullName, message);
         }
 
-        public override Task InvokeConnectionAsync(string connectionId, string methodName, object[] args)
+        public override IHubClientProxy GetConnectionProxy(string connectionId)
         {
-            var message = new InvocationMessage(GetInvocationId(), nonBlocking: true, target: methodName, arguments: args);
-
-            return PublishAsync(typeof(THub).FullName + "." + connectionId, message);
+            throw new NotImplementedException();
         }
+
+        //public override Task<object> InvokeConnectionAsync(string connectionId, string methodName, Type returnType, CancellationToken cancellationToken, params object[] args)
+        //{
+        //    throw new NotImplementedException();
+        //}
+
+        //public override Task InvokeConnectionNonBlockingAsync(string connectionId, string methodName, object[] args)
+        //{
+        //    var message = new InvocationMessage(GetInvocationId(), nonBlocking: true, target: methodName, arguments: args);
+
+        //    return PublishAsync(typeof(THub).FullName + "." + connectionId, message);
+        //}
+
+        //public override ReadableChannel<object> StreamConnectionAsync(string connectionId, string methodName, Type returnType, CancellationToken cancellationToken, params object[] args)
+        //{
+        //    throw new NotImplementedException();
+        //}
 
         public override Task InvokeGroupAsync(string groupName, string methodName, object[] args)
         {

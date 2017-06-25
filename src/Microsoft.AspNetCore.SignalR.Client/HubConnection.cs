@@ -5,21 +5,22 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.Sockets.Client;
+using Microsoft.Extensions.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Newtonsoft.Json;
 
 namespace Microsoft.AspNetCore.SignalR.Client
 {
-    public class HubConnection
+    public class HubConnection : IHubClientProxy
     {
-        private readonly ILoggerFactory _loggerFactory;
         private readonly ILogger _logger;
         private readonly IConnection _connection;
         private readonly IHubProtocol _protocol;
@@ -45,7 +46,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         }
 
         public HubConnection(IConnection connection)
-            : this(connection, new JsonHubProtocol(new JsonSerializer()), null)
+            : this(connection, new JsonHubProtocol(new JsonSerializer()), loggerFactory: NullLoggerFactory.Instance)
         { }
 
         // These are only really needed for tests now...
@@ -54,6 +55,10 @@ namespace Microsoft.AspNetCore.SignalR.Client
         { }
 
         public HubConnection(IConnection connection, IHubProtocol protocol, ILoggerFactory loggerFactory)
+            : this(connection, protocol, loggerFactory.CreateLogger<HubConnection>())
+        { }
+
+        public HubConnection(IConnection connection, IHubProtocol protocol, ILogger logger)
         {
             if (connection == null)
             {
@@ -68,8 +73,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             _connection = connection;
             _binder = new HubBinder(this);
             _protocol = protocol;
-            _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
-            _logger = _loggerFactory.CreateLogger<HubConnection>();
+            _logger = logger;
             _connection.Received += OnDataReceived;
             _connection.Closed += Shutdown;
         }
@@ -84,67 +88,79 @@ namespace Microsoft.AspNetCore.SignalR.Client
             await _connection.DisposeAsync();
         }
 
-        // TODO: Client return values/tasks?
-        public void On(string methodName, Type[] parameterTypes, Action<object[]> handler)
+        public void On(string methodName, Type[] parameterTypes, Type returnType, Func<object[], Task<object>> handler)
         {
-            var invocationHandler = new InvocationHandler(parameterTypes, handler);
+            var invocationHandler = new InvocationHandler(parameterTypes, returnType, handler);
             _handlers.AddOrUpdate(methodName, invocationHandler, (_, __) => invocationHandler);
         }
 
         public ReadableChannel<object> Stream(string methodName, Type returnType, CancellationToken cancellationToken, params object[] args)
         {
-            var irq = InvocationRequest.Stream(cancellationToken, returnType, GetNextId(), _loggerFactory, out var channel);
-            InvokeCore(methodName, irq, args);
+            var irq = InvocationRequest.Stream(cancellationToken, returnType, GetNextId(), _logger, out var channel);
+            _ = InvokeCore(methodName, irq, args, nonBlocking: false);
             return channel;
         }
 
-        public Task<object> Invoke(string methodName, Type returnType, CancellationToken cancellationToken, params object[] args)
+        public async Task<object> InvokeAsync(string methodName, Type returnType, CancellationToken cancellationToken, params object[] args)
         {
-            var irq = InvocationRequest.Invoke(cancellationToken, returnType, GetNextId(), _loggerFactory, out var task);
-            InvokeCore(methodName, irq, args);
-            return task;
+            var irq = InvocationRequest.Invoke(cancellationToken, returnType, GetNextId(), _logger, out var task);
+            await InvokeCore(methodName, irq, args, nonBlocking: false);
+            return await task;
         }
 
-        private void InvokeCore(string methodName, InvocationRequest irq, object[] args)
+        public Task Invoke(string methodName, params object[] args)
+        {
+            var irq = InvocationRequest.Invoke(CancellationToken.None, resultType: null, invocationId: GetNextId(), logger: _logger, result: out var task);
+            return InvokeCore(methodName, irq, args, nonBlocking: true);
+        }
+
+        private Task InvokeCore(string methodName, InvocationRequest irq, object[] args, bool nonBlocking)
         {
             ThrowIfConnectionTerminated();
             _logger.LogTrace("Preparing invocation of '{target}', with return type '{returnType}' and {argumentCount} args", methodName, irq.ResultType.AssemblyQualifiedName, args.Length);
 
             // Create an invocation descriptor. Client invocations are always blocking
-            var invocationMessage = new InvocationMessage(irq.InvocationId, nonBlocking: false, target: methodName, arguments: args);
+            var invocationMessage = new InvocationMessage(irq.InvocationId, nonBlocking, methodName, args);
 
-            // I just want an excuse to use 'irq' as a variable name...
-            _logger.LogDebug("Registering Invocation ID '{invocationId}' for tracking", invocationMessage.InvocationId);
-
-            AddInvocation(irq);
-
-            // Trace the full invocation, but only if that logging level is enabled (because building the args list is a bit slow)
-            if (_logger.IsEnabled(LogLevel.Trace))
+            if (!nonBlocking)
             {
-                var argsList = string.Join(", ", args.Select(a => a.GetType().FullName));
-                _logger.LogTrace("Issuing Invocation '{invocationId}': {returnType} {methodName}({args})", invocationMessage.InvocationId, irq.ResultType.FullName, methodName, argsList);
+                // I just want an excuse to use 'irq' as a variable name...
+                _logger.LogDebug("Registering Invocation ID '{invocationId}' for tracking", invocationMessage.InvocationId);
+
+                AddInvocation(irq);
+
+                // Trace the full invocation, but only if that logging level is enabled (because building the args list is a bit slow)
+                if (_logger.IsEnabled(LogLevel.Trace))
+                {
+                    var argsList = string.Join(", ", args.Select(a => a.GetType().FullName));
+                    _logger.LogTrace("Issuing Invocation '{invocationId}': {returnType} {methodName}({args})", invocationMessage.InvocationId, irq.ResultType.FullName, methodName, argsList);
+                }
             }
 
             // We don't need to wait for this to complete. It will signal back to the invocation request.
-            _ = SendInvocation(invocationMessage, irq);
+            return SendMessageAsync(invocationMessage, irq);
         }
 
-        private async Task SendInvocation(InvocationMessage invocationMessage, InvocationRequest irq)
+        private async Task SendMessageAsync(HubMessage message, InvocationRequest irq = null)
         {
             try
             {
-                var payload = _protocol.WriteToArray(invocationMessage);
+                var payload = _protocol.WriteToArray(message);
 
-                _logger.LogInformation("Sending Invocation '{invocationId}'", invocationMessage.InvocationId);
+                _logger.LogInformation("Sending message '{invocationId}'", message.InvocationId);
 
-                await _connection.SendAsync(payload, irq.CancellationToken);
-                _logger.LogInformation("Sending Invocation '{invocationId}' complete", invocationMessage.InvocationId);
+                await _connection.SendAsync(payload, irq?.CancellationToken ?? CancellationToken.None);
+                _logger.LogInformation("Sending message '{invocationId}' complete", message.InvocationId);
             }
             catch (Exception ex)
             {
-                _logger.LogError(0, ex, "Sending Invocation '{invocationId}' failed", invocationMessage.InvocationId);
-                irq.Fail(ex);
-                TryRemoveInvocation(invocationMessage.InvocationId, out _);
+                _logger.LogError(0, ex, "Sending message '{invocationId}' failed", message.InvocationId);
+
+                if (irq != null)
+                {
+                    irq.Fail(ex);
+                    TryRemoveInvocation(message.InvocationId, out _);
+                }
             }
         }
 
@@ -163,7 +179,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                                 var argsList = string.Join(", ", invocation.Arguments.Select(a => a.GetType().FullName));
                                 _logger.LogTrace("Received Invocation '{invocationId}': {methodName}({args})", invocation.InvocationId, invocation.Target, argsList);
                             }
-                            DispatchInvocation(invocation, _connectionActive.Token);
+                            _ = DispatchInvocation(invocation, _connectionActive.Token);
                             break;
                         case CompletionMessage completion:
                             if (!TryRemoveInvocation(completion.InvocationId, out irq))
@@ -218,18 +234,115 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
         }
 
-        private void DispatchInvocation(InvocationMessage invocation, CancellationToken cancellationToken)
+        private async Task DispatchInvocation(InvocationMessage invocationMessage, CancellationToken cancellationToken)
         {
             // Find the handler
-            if (!_handlers.TryGetValue(invocation.Target, out InvocationHandler handler))
+            if (!_handlers.TryGetValue(invocationMessage.Target, out var handler))
             {
-                _logger.LogWarning("Failed to find handler for '{target}' method", invocation.Target);
+                _logger.LogWarning("Failed to find handler for '{target}' method", invocationMessage.Target);
                 return;
             }
 
-            // TODO: Return values
-            // TODO: Dispatch to a sync context to ensure we aren't blocking this loop.
-            handler.Handler(invocation.Arguments);
+            try
+            {
+                object result = await handler.Handler(invocationMessage.Arguments);
+
+                if (IsStreamed(result, handler.MethodReturnType, out var enumerator))
+                {
+                    _logger.LogTrace("[{connectionId}/{invocationId}] Streaming result of type {resultType}", _connection.ConnectionId, invocationMessage.InvocationId, handler.MethodReturnType.FullName);
+                    await StreamResultsAsync(invocationMessage.InvocationId, enumerator);
+                }
+                else if (!invocationMessage.NonBlocking)
+                {
+                    _logger.LogTrace("[{connectionId}/{invocationId}] Sending result of type {resultType}", _connection.ConnectionId, invocationMessage.InvocationId, handler.MethodReturnType.FullName);
+                    await SendMessageAsync(CompletionMessage.WithResult(invocationMessage.InvocationId, result));
+                }
+            }
+            catch (TargetInvocationException ex)
+            {
+                _logger.LogError(0, ex, "Failed to invoke hub method");
+
+                if (!invocationMessage.NonBlocking)
+                {
+                    await SendMessageAsync(CompletionMessage.WithError(invocationMessage.InvocationId, ex.InnerException.Message));
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(0, ex, "Failed to invoke hub method");
+                if (!invocationMessage.NonBlocking)
+                {
+                    await SendMessageAsync(CompletionMessage.WithError(invocationMessage.InvocationId, ex.Message));
+                }
+            }
+        }
+
+        private bool IsChannel(Type type, out Type payloadType)
+        {
+            var channelType = type.AllBaseTypes().FirstOrDefault(t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(ReadableChannel<>));
+            if (channelType == null)
+            {
+                payloadType = null;
+                return false;
+            }
+            else
+            {
+                payloadType = channelType.GetGenericArguments()[0];
+                return true;
+            }
+        }
+
+        private async Task StreamResultsAsync(string invocationId, IAsyncEnumerator<object> enumerator)
+        {
+            // TODO: Cancellation? See https://github.com/aspnet/SignalR/issues/481
+            try
+            {
+                while (await enumerator.MoveNextAsync())
+                {
+                    // Send the stream item
+                    await SendMessageAsync(new StreamItemMessage(invocationId, enumerator.Current));
+                }
+
+                await SendMessageAsync(CompletionMessage.Empty(invocationId));
+            }
+            catch (Exception ex)
+            {
+                await SendMessageAsync(CompletionMessage.WithError(invocationId, ex.Message));
+            }
+        }
+
+        private bool IsStreamed(object result, Type resultType, out IAsyncEnumerator<object> enumerator)
+        {
+            if (result == null)
+            {
+                enumerator = null;
+                return false;
+            }
+
+            var observableInterface = IsIObservable(resultType) ?
+                resultType :
+                resultType.GetInterfaces().FirstOrDefault(IsIObservable);
+            if (observableInterface != null)
+            {
+                enumerator = AsyncEnumeratorAdapters.FromObservable(result, observableInterface);
+                return true;
+            }
+            else if (IsChannel(resultType, out var payloadType))
+            {
+                enumerator = AsyncEnumeratorAdapters.FromChannel(result, payloadType);
+                return true;
+            }
+            else
+            {
+                // Not streamed
+                enumerator = null;
+                return false;
+            }
+        }
+
+        private static bool IsIObservable(Type iface)
+        {
+            return iface.IsGenericType && iface.GetGenericTypeDefinition() == typeof(IObservable<>);
         }
 
         // This async void is GROSS but we need to dispatch asynchronously because we're writing to a Channel
@@ -355,13 +468,15 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private struct InvocationHandler
         {
-            public Action<object[]> Handler { get; }
+            public Func<object[], Task<object>> Handler { get; }
             public Type[] ParameterTypes { get; }
+            public Type MethodReturnType { get; }
 
-            public InvocationHandler(Type[] parameterTypes, Action<object[]> handler)
+            public InvocationHandler(Type[] parameterTypes, Type returnType, Func<object[], Task<object>> handler)
             {
-                Handler = handler;
                 ParameterTypes = parameterTypes;
+                Handler = handler;
+                MethodReturnType = returnType;
             }
         }
     }

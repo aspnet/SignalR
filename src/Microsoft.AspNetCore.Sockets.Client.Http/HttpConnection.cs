@@ -38,6 +38,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
         public event Action<byte[]> Received;
         public event Action<Exception> Closed;
 
+        public string ConnectionId { get; set; }
+
         public HttpConnection(Uri url)
             : this(url, TransportType.WebSockets)
         { }
@@ -119,6 +121,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     _logger.LogDebug("Connection was closed from a different thread.");
                     return;
                 }
+
+                ConnectionId = negotiationResponse.ConnectionId;
 
                 _transport = _transportFactory.CreateTransport(GetAvailableServerTransports(negotiationResponse));
 

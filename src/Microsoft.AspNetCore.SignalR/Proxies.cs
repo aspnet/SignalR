@@ -1,12 +1,14 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using System;
+using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Sockets;
+using System.Threading.Tasks.Channels;
 
 namespace Microsoft.AspNetCore.SignalR
 {
-    public class UserProxy<THub> : IClientProxy
+    public class UserProxy<THub> : IHubProxy
     {
         private readonly string _userId;
         private readonly HubLifetimeManager<THub> _lifetimeManager;
@@ -17,13 +19,13 @@ namespace Microsoft.AspNetCore.SignalR
             _userId = userId;
         }
 
-        public Task InvokeAsync(string method, params object[] args)
+        public Task Invoke(string methodName, params object[] args)
         {
-            return _lifetimeManager.InvokeUserAsync(_userId, method, args);
+            return _lifetimeManager.InvokeUserAsync(_userId, methodName, args);
         }
     }
 
-    public class GroupProxy<THub> : IClientProxy
+    public class GroupProxy<THub> : IHubProxy
     {
         private readonly string _groupName;
         private readonly HubLifetimeManager<THub> _lifetimeManager;
@@ -34,13 +36,13 @@ namespace Microsoft.AspNetCore.SignalR
             _groupName = groupName;
         }
 
-        public Task InvokeAsync(string method, params object[] args)
+        public Task Invoke(string methodName, params object[] args)
         {
-            return _lifetimeManager.InvokeGroupAsync(_groupName, method, args);
+            return _lifetimeManager.InvokeGroupAsync(_groupName, methodName, args);
         }
     }
 
-    public class AllClientProxy<THub> : IClientProxy
+    public class AllClientProxy<THub> : IHubProxy
     {
         private readonly HubLifetimeManager<THub> _lifetimeManager;
 
@@ -49,27 +51,9 @@ namespace Microsoft.AspNetCore.SignalR
             _lifetimeManager = lifetimeManager;
         }
 
-        public Task InvokeAsync(string method, params object[] args)
+        public Task Invoke(string methodName, params object[] args)
         {
-            return _lifetimeManager.InvokeAllAsync(method, args);
-        }
-    }
-
-    public class SingleClientProxy<THub> : IClientProxy
-    {
-        private readonly string _connectionId;
-        private readonly HubLifetimeManager<THub> _lifetimeManager;
-
-
-        public SingleClientProxy(HubLifetimeManager<THub> lifetimeManager, string connectionId)
-        {
-            _lifetimeManager = lifetimeManager;
-            _connectionId = connectionId;
-        }
-
-        public Task InvokeAsync(string method, params object[] args)
-        {
-            return _lifetimeManager.InvokeConnectionAsync(_connectionId, method, args);
+            return _lifetimeManager.InvokeAllAsync(methodName, args);
         }
     }
 

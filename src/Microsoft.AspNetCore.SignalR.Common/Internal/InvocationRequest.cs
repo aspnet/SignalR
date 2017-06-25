@@ -7,9 +7,9 @@ using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
 using Microsoft.Extensions.Logging;
 
-namespace Microsoft.AspNetCore.SignalR.Client
+namespace Microsoft.AspNetCore.SignalR.Internal
 {
-    internal abstract class InvocationRequest : IDisposable
+    public abstract class InvocationRequest : IDisposable
     {
         private readonly CancellationTokenRegistration _cancellationTokenRegistration;
 
@@ -31,17 +31,17 @@ namespace Microsoft.AspNetCore.SignalR.Client
             Logger.LogTrace("Invocation {invocationId} created", InvocationId);
         }
 
-        public static InvocationRequest Invoke(CancellationToken cancellationToken, Type resultType, string invocationId, ILoggerFactory loggerFactory, out Task<object> result)
+        public static InvocationRequest Invoke(CancellationToken cancellationToken, Type resultType, string invocationId, ILogger logger, out Task<object> result)
         {
-            var req = new NonStreaming(cancellationToken, resultType, invocationId, loggerFactory);
+            var req = new NonStreaming(cancellationToken, resultType, invocationId, logger);
             result = req.Result;
             return req;
         }
 
 
-        public static InvocationRequest Stream(CancellationToken cancellationToken, Type resultType, string invocationId, ILoggerFactory loggerFactory, out ReadableChannel<object> result)
+        public static InvocationRequest Stream(CancellationToken cancellationToken, Type resultType, string invocationId, ILogger logger, out ReadableChannel<object> result)
         {
-            var req = new Streaming(cancellationToken, resultType, invocationId, loggerFactory);
+            var req = new Streaming(cancellationToken, resultType, invocationId, logger);
             result = req.Result;
             return req;
         }
@@ -66,8 +66,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
         {
             private readonly Channel<object> _channel = Channel.CreateUnbounded<object>();
 
-            public Streaming(CancellationToken cancellationToken, Type resultType, string invocationId, ILoggerFactory loggerFactory)
-                : base(cancellationToken, resultType, invocationId, loggerFactory.CreateLogger<Streaming>())
+            public Streaming(CancellationToken cancellationToken, Type resultType, string invocationId, ILogger logger)
+                : base(cancellationToken, resultType, invocationId, logger)
             {
             }
 
@@ -123,8 +123,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
         {
             private readonly TaskCompletionSource<object> _completionSource = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            public NonStreaming(CancellationToken cancellationToken, Type resultType, string invocationId, ILoggerFactory loggerFactory)
-                : base(cancellationToken, resultType, invocationId, loggerFactory.CreateLogger<NonStreaming>())
+            public NonStreaming(CancellationToken cancellationToken, Type resultType, string invocationId, ILogger logger)
+                : base(cancellationToken, resultType, invocationId, logger)
             {
             }
 

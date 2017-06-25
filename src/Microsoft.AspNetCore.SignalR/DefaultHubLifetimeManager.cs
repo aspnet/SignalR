@@ -7,6 +7,9 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Channels;
+using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.Sockets;
 
@@ -16,6 +19,7 @@ namespace Microsoft.AspNetCore.SignalR
     {
         private long _nextInvocationId = 0;
         private readonly ConnectionList _connections = new ConnectionList();
+        private readonly Dictionary<string, InvocationRequest> _pendingCalls = new Dictionary<string, InvocationRequest>();
 
         public override Task AddGroupAsync(string connectionId, string groupName)
         {
@@ -81,13 +85,9 @@ namespace Microsoft.AspNetCore.SignalR
             return Task.WhenAll(tasks);
         }
 
-        public override Task InvokeConnectionAsync(string connectionId, string methodName, object[] args)
+        public override IHubClientProxy GetConnectionProxy(string connectionId)
         {
-            var connection = _connections[connectionId];
-
-            var message = new InvocationMessage(GetInvocationId(), nonBlocking: true, target: methodName, arguments: args);
-
-            return WriteAsync(connection, message);
+            return _connections[connectionId].Metadata.Get<IHubClientProxy>(typeof(HubConnection));
         }
 
         public override Task InvokeGroupAsync(string groupName, string methodName, object[] args)

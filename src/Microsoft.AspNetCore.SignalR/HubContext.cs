@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Microsoft.AspNetCore.SignalR
 {
-    public class HubContext<THub> : IHubContext<THub>, IHubConnectionContext<IClientProxy>
+    public class HubContext<THub> : IHubContext<THub>, IHubConnectionContext
     {
         private readonly HubLifetimeManager<THub> _lifetimeManager;
         private readonly AllClientProxy<THub> _all;
@@ -19,21 +19,21 @@ namespace Microsoft.AspNetCore.SignalR
             _all = new AllClientProxy<THub>(_lifetimeManager);
         }
 
-        public IHubConnectionContext<IClientProxy> Clients => this;
+        public IHubConnectionContext Clients => this;
 
-        public virtual IClientProxy All => _all;
+        public virtual IHubProxy All => _all;
 
-        public virtual IClientProxy Client(string connectionId)
+        public virtual IHubClientProxy Client(string connectionId)
         {
-            return new SingleClientProxy<THub>(_lifetimeManager, connectionId);
+            return _lifetimeManager.GetConnectionProxy(connectionId);
         }
 
-        public virtual IClientProxy Group(string groupName)
+        public virtual IHubProxy Group(string groupName)
         {
             return new GroupProxy<THub>(_lifetimeManager, groupName);
         }
 
-        public virtual IClientProxy User(string userId)
+        public virtual IHubProxy User(string userId)
         {
             return new UserProxy<THub>(_lifetimeManager, userId);
         }
