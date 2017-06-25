@@ -12,6 +12,7 @@ using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.Sockets;
+using Microsoft.Extensions.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Newtonsoft.Json;
@@ -36,6 +37,67 @@ namespace Microsoft.AspNetCore.SignalR.Client
         {
             add { _connection.Connected += value; }
             remove { _connection.Connected -= value; }
+        }
+
+        public void Bind<THub>(THub instance)
+        {
+            Bind(() => instance);
+        }
+
+        public void Bind<THub>(Func<THub> factory)
+        {
+            if (factory == null)
+            {
+                throw new ArgumentNullException(nameof(factory));
+            }
+
+            var hubType = typeof(THub);
+            var hubTypeInfo = hubType.GetTypeInfo();
+            var methods = new HashSet<string>();
+
+            foreach (var methodInfo in hubType.GetMethods(BindingFlags.Public | BindingFlags.Instance))
+            {
+                var methodName = methodInfo.Name;
+
+                if (!methods.Add(methodName))
+                {
+                    throw new NotSupportedException($"Duplicate definitions of '{methodName}'. Overloading is not supported.");
+                }
+
+                var executor = ObjectMethodExecutor.Create(methodInfo, hubTypeInfo);
+
+                if (_logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.LogDebug("Hub method '{methodName}' is bound", methodName);
+                }
+
+                var methodExecutor = executor;
+
+                On(methodName, methodInfo.GetParameters().Select(p => p.ParameterType).ToArray(), methodInfo.ReturnType, async args =>
+                {
+                    object result = null;
+                    var hub = factory();
+
+                    // ReadableChannel is awaitable but we don't want to await it.
+                    if (methodExecutor.IsMethodAsync && !IsChannel(methodExecutor.MethodReturnType, out _))
+                    {
+                        if (methodExecutor.MethodReturnType == typeof(Task))
+                        {
+                            await (Task)methodExecutor.Execute(hub, args);
+                        }
+                        else
+                        {
+                            result = await methodExecutor.ExecuteAsync(hub, args);
+                        }
+                    }
+                    else
+                    {
+                        result = methodExecutor.Execute(hub, args);
+                    }
+
+                    return result;
+                });
+            }
         }
 
         public event Action<Exception> Closed

@@ -41,6 +41,9 @@ namespace ClientSample
             var connection = new HubConnection(httpConnection, loggerFactory);
             try
             {
+                // Wire up client side Chat
+                connection.Bind(new Chat());
+
                 await connection.StartAsync();
                 Console.WriteLine("Connected to {0}", baseUrl);
 
@@ -51,16 +54,7 @@ namespace ClientSample
                     Console.WriteLine("Stopping loops...");
                     cts.Cancel();
                 };
-
-                connection.On<string>("Send", Console.WriteLine);
-
-                // Set up handler
-                connection.On("ChannelCounter", new[] { typeof(int), typeof(int) }, typeof(ReadableChannel<int>), (args) =>
-                {
-                    var channel = ChannelCounter((int)args[0], (int)args[1]);
-                    return Task.FromResult<object>(channel);
-                });
-
+                
                 while (!cts.Token.IsCancellationRequested)
                 {
                     var line = await Task.Run(() => Console.ReadLine(), cts.Token);
@@ -92,8 +86,16 @@ namespace ClientSample
             }
             return 0;
         }
+    }
 
-        public static ReadableChannel<int> ChannelCounter(int count, int delay)
+    public class Chat
+    {
+        public void Send(string message)
+        {
+            Console.WriteLine(message);
+        }
+
+        public ReadableChannel<int> ChannelCounter(int count, int delay)
         {
             var channel = Channel.CreateUnbounded<int>();
 
