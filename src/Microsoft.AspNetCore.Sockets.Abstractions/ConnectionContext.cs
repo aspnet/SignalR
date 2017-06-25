@@ -7,12 +7,15 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.Http.Features;
-using Microsoft.AspNetCore.Sockets.Client;
 
 namespace Microsoft.AspNetCore.Sockets
 {
     public abstract class ConnectionContext : IConnection
     {
+        private event Action _connected;
+        private event Action<byte[]> _received;
+        private event Action<Exception> _closed;
+
         public abstract string ConnectionId { get; }
 
         public abstract IFeatureCollection Features { get; }
@@ -24,9 +27,42 @@ namespace Microsoft.AspNetCore.Sockets
 
         public abstract Channel<byte[]> Transport { get; set; }
 
-        public event Action Connected;
-        public event Action<byte[]> Received;
-        public event Action<Exception> Closed;
+
+        event Action IConnection.Connected
+        {
+            add
+            {
+                _connected += value;
+            }
+            remove
+            {
+                _connected -= value;
+            }
+        }
+
+        event Action<byte[]> IConnection.Received
+        {
+            add
+            {
+                _received += value;
+            }
+            remove
+            {
+                _received -= value;
+            }
+        }
+
+        event Action<Exception> IConnection.Closed
+        {
+            add
+            {
+                _closed += value;
+            }
+            remove
+            {
+                _closed -= value;
+            }
+        }
 
         Task IConnection.DisposeAsync()
         {
@@ -36,7 +72,7 @@ namespace Microsoft.AspNetCore.Sockets
             return Transport.In.Completion;
         }
 
-        public async Task SendAsync(byte[] data, CancellationToken cancellationToken)
+        async Task IConnection.SendAsync(byte[] data, CancellationToken cancellationToken)
         {
             while (await Transport.Out.WaitToWriteAsync(cancellationToken))
             {
@@ -47,7 +83,7 @@ namespace Microsoft.AspNetCore.Sockets
             }
         }
 
-        public Task StartAsync()
+        Task IConnection.StartAsync()
         {
             async Task Run()
             {
@@ -57,21 +93,21 @@ namespace Microsoft.AspNetCore.Sockets
                     {
                         while (Transport.In.TryRead(out var buffer))
                         {
-                            Received?.Invoke(buffer);
+                            _received?.Invoke(buffer);
                         }
                     }
 
-                    Closed?.Invoke(null);
+                    _closed?.Invoke(null);
                 }
                 catch (Exception ex)
                 {
-                    Closed?.Invoke(ex);
+                    _closed?.Invoke(ex);
                 }
             }
 
             _ = Run();
 
-            Connected?.Invoke();
+            _connected?.Invoke();
 
             return Task.CompletedTask;
         }

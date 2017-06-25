@@ -68,15 +68,25 @@ namespace Microsoft.AspNetCore.SignalR
         private async Task RunHubAsync(ConnectionContext connection, IHubProtocol protocol)
         {
             var hubConnection = new HubConnection(connection, protocol, _logger);
+            connection.Metadata[typeof(HubConnection)] = hubConnection;
 
+            // TODO: Don't register this per connection
             foreach (var method in _methods)
             {
+                var descriptor = method.Value;
                 var methodExecutor = method.Value.MethodExecutor;
 
                 hubConnection.On(method.Key, method.Value.ParameterTypes, method.Value.MethodExecutor.MethodReturnType, async args =>
                 {
                     using (var scope = _serviceScopeFactory.CreateScope())
                     {
+                        if (!await IsHubMethodAuthorized(scope.ServiceProvider, connection.User, descriptor.Policies))
+                        {
+                            _logger.LogDebug("Failed to invoke {hubMethod} because user is unauthorized", method.Key);
+
+                            throw new InvalidOperationException($"Failed to invoke '{method.Key}' because user is unauthorized");
+                        }
+
                         var hubActivator = scope.ServiceProvider.GetRequiredService<IHubActivator<THub>>();
                         var hub = hubActivator.Create();
 
@@ -139,6 +149,26 @@ namespace Microsoft.AspNetCore.SignalR
             };
 
             await tcs.Task;
+        }
+
+        private async Task<bool> IsHubMethodAuthorized(IServiceProvider provider, ClaimsPrincipal principal, IList<IAuthorizeData> policies)
+        {
+            // If there are no policies we don't need to run auth
+            if (!policies.Any())
+            {
+                return true;
+            }
+
+            var authService = provider.GetRequiredService<IAuthorizationService>();
+            var policyProvider = provider.GetRequiredService<IAuthorizationPolicyProvider>();
+
+            var authorizePolicy = await AuthorizationPolicy.CombineAsync(policyProvider, policies);
+            // AuthorizationPolicy.CombineAsync only returns null if there are no policies and we check that above
+            Debug.Assert(authorizePolicy != null);
+
+            var authorizationResult = await authService.AuthorizeAsync(principal, authorizePolicy);
+            // Only check authorization success, challenge or forbid wouldn't make sense from a hub method invocation
+            return authorizationResult.Succeeded;
         }
 
         private static bool IsChannel(Type type, out Type payloadType)

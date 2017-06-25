@@ -44,9 +44,9 @@ namespace SocketsSample.Hubs
             await Clients.Group(groupName).Invoke("Send", $"{Context.ConnectionId} left {groupName}");
         }
 
-        public ReadableChannel<byte[]> Download()
+        public ReadableChannel<int> Stream()
         {
-            return Clients.Client(Context.ConnectionId).Stream<byte[]>("Upload");
+            return Clients.Client(Context.ConnectionId).Stream<int>("ChannelCounter", 10, 200);
         }
     }
 }

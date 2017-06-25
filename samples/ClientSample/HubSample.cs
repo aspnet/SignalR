@@ -5,8 +5,9 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.SignalR.Client;
+using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.AspNetCore.Sockets.Client;
 using Microsoft.Extensions.CommandLineUtils;
 using Microsoft.Extensions.Logging;
@@ -29,6 +30,8 @@ namespace ClientSample
 
         public static async Task<int> ExecuteAsync(string baseUrl)
         {
+            Console.WriteLine("Press enter to connect");
+            Console.ReadKey();
             baseUrl = string.IsNullOrEmpty(baseUrl) ? "http://localhost:5000/hubs" : baseUrl;
 
             var loggerFactory = new LoggerFactory();
@@ -49,8 +52,14 @@ namespace ClientSample
                     cts.Cancel();
                 };
 
-                // Set up handler
                 connection.On<string>("Send", Console.WriteLine);
+
+                // Set up handler
+                connection.On("ChannelCounter", new[] { typeof(int), typeof(int) }, typeof(ReadableChannel<int>), (args) =>
+                {
+                    var channel = ChannelCounter((int)args[0], (int)args[1]);
+                    return Task.FromResult<object>(channel);
+                });
 
                 while (!cts.Token.IsCancellationRequested)
                 {
@@ -61,7 +70,14 @@ namespace ClientSample
                         break;
                     }
 
-                    await connection.InvokeAsync("Send", cts.Token, line);
+                    var stream = connection.Stream<int>("Stream", cts.Token);
+                    while (await stream.WaitToReadAsync())
+                    {
+                        while (stream.TryRead(out var item))
+                        {
+                            Console.WriteLine(item);
+                        }
+                    }
                 }
             }
             catch (AggregateException aex) when (aex.InnerExceptions.All(e => e is OperationCanceledException))
@@ -75,6 +91,24 @@ namespace ClientSample
                 await connection.DisposeAsync();
             }
             return 0;
+        }
+
+        public static ReadableChannel<int> ChannelCounter(int count, int delay)
+        {
+            var channel = Channel.CreateUnbounded<int>();
+
+            Task.Run(async () =>
+            {
+                for (var i = 0; i < count; i++)
+                {
+                    await channel.Out.WriteAsync(i);
+                    await Task.Delay(delay);
+                }
+
+                channel.Out.TryComplete();
+            });
+
+            return channel.In;
         }
     }
 }
