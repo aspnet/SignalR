@@ -288,7 +288,13 @@ namespace Microsoft.AspNetCore.Sockets.Client
                         {
                             _logger.LogDebug("Raising Received event.");
 
-                            return Received?.Invoke(buffer);
+                            var receivedHandler = Received;
+                            if (receivedHandler != null)
+                            {
+                                return receivedHandler(buffer);
+                            }
+
+                            return Task.CompletedTask;
                         });
                     }
                     else
