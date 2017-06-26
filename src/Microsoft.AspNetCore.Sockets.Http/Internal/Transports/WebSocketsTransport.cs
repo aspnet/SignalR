@@ -178,12 +178,13 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                         {
                             _logger.SendPayload(_connectionId, buffer.Length);
 
-                            await ws.SendAsync(new ArraySegment<byte>(buffer), _options.WebSocketMessageType, endOfMessage: true, cancellationToken: CancellationToken.None);
+                            if (WebSocketCanSend(ws))
+                            {
+                                await ws.SendAsync(new ArraySegment<byte>(buffer), _options.WebSocketMessageType, endOfMessage: true, cancellationToken: CancellationToken.None);
+                            }
                         }
                         catch (WebSocketException socketException)
-                        when (ws.State == WebSocketState.Aborted ||
-                              ws.State == WebSocketState.Closed ||
-                              ws.State == WebSocketState.CloseSent)
+                        when (!WebSocketCanSend(ws))
                         {
                             // this can happen when we send the CloseFrame to the client and try to write afterwards
                             _logger.SendFailed(_connectionId, socketException);
@@ -197,6 +198,13 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                     }
                 }
             }
+        }
+
+        private static bool WebSocketCanSend(WebSocket ws)
+        {
+            return !(ws.State == WebSocketState.Aborted ||
+                   ws.State == WebSocketState.Closed ||
+                   ws.State == WebSocketState.CloseSent);
         }
     }
 }
