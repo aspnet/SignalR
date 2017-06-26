@@ -288,6 +288,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
                         {
                             _logger.LogDebug("Raising Received event.");
 
+                            // Making a copy of the Received handler to ensure that its not null
+                            // Can't use the ? operator because we specifically want to check if the handler is null
                             var receivedHandler = Received;
                             if (receivedHandler != null)
                             {

@@ -382,7 +382,6 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
             Channel<byte[], SendMessage> channel = null;
             mockTransport.Setup(t => t.StartAsync(It.IsAny<Uri>(), It.IsAny<Channel<byte[], SendMessage>>()))
                 .Returns<Uri, Channel<byte[], SendMessage>>((url, c) =>
-
                 {
                     channel = c;
                     return Task.CompletedTask;
@@ -391,7 +390,6 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 .Returns(() =>
                 {
                     channel.Out.TryComplete();
-
                     return Task.CompletedTask;
                 });
 
