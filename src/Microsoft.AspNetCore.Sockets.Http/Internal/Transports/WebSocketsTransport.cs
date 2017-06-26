@@ -181,7 +181,9 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                             await ws.SendAsync(new ArraySegment<byte>(buffer), _options.WebSocketMessageType, endOfMessage: true, cancellationToken: CancellationToken.None);
                         }
                         catch (WebSocketException socketException)
-                        when (socketException.WebSocketErrorCode == WebSocketError.InvalidState)
+                        when (ws.State == WebSocketState.Aborted ||
+                              ws.State == WebSocketState.Closed ||
+                              ws.State == WebSocketState.CloseSent)
                         {
                             // this can happen when we send the CloseFrame to the client and try to write afterwards
                             _logger.SendFailed(_connectionId, socketException);
