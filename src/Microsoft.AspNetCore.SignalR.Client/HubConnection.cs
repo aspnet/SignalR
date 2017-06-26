@@ -169,7 +169,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             return await task;
         }
 
-        public Task Invoke(string methodName, params object[] args)
+        public Task SendAsync(string methodName, params object[] args)
         {
             var irq = InvocationRequest.Invoke(CancellationToken.None, resultType: typeof(void), invocationId: GetNextId(), logger: _logger, result: out var task);
             return InvokeCore(methodName, irq, args, nonBlocking: true);

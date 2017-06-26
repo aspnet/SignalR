@@ -26,7 +26,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 await hubConnection.StartAsync();
 
-                var invokeTask = hubConnection.Invoke("Foo");
+                var invokeTask = hubConnection.SendAsync("Foo");
 
                 var invokeMessage = await connection.ReadSentTextMessageAsync().OrTimeout();
 

@@ -65,7 +65,7 @@ namespace ClientSample
                     }
 
                     // Fire and forget
-                    await connection.Invoke("Send", line);
+                    await connection.SendAsync("Send", line);
 
                     // Stream the results
                     var stream = connection.Stream<int>("Stream", cts.Token);

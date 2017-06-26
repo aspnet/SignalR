@@ -15,7 +15,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// </summary>
         /// <param name="methodName"></param>
         /// <param name="args"></param>
-        Task Invoke(string methodName, params object[] args);
+        Task SendAsync(string methodName, params object[] args);
     }
 
     public interface IHubClientProxy : IHubProxy

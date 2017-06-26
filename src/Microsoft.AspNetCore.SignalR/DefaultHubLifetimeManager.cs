@@ -87,7 +87,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public override IHubClientProxy GetConnectionProxy(string connectionId)
         {
-            return _connections[connectionId].Metadata.Get<IHubClientProxy>(typeof(HubConnection));
+            return _connections[connectionId]?.Metadata.Get<IHubClientProxy>(typeof(HubConnection));
         }
 
         public override Task InvokeGroupAsync(string groupName, string methodName, object[] args)

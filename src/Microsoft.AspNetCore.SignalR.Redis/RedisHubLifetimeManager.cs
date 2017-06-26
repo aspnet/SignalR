@@ -10,6 +10,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
+using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.Sockets;
 using Microsoft.Extensions.Logging;
@@ -19,7 +20,7 @@ using StackExchange.Redis;
 
 namespace Microsoft.AspNetCore.SignalR.Redis
 {
-    public class RedisHubLifetimeManager<THub> : HubLifetimeManager<THub>, IDisposable
+    public class RedisHubLifetimeManager<THub> : HubLifetimeManager<THub>, IDisposable, IHubClientProxy
     {
         private const string RedisSubscriptionsMetadataName = "redis_subscriptions";
 
@@ -95,7 +96,9 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
         public override IHubClientProxy GetConnectionProxy(string connectionId)
         {
-            throw new NotImplementedException();
+            var connection = _connections[connectionId];
+
+            return connection?.Metadata.Get<IHubClientProxy>(typeof(HubConnection)) ?? this;
         }
 
         public override Task InvokeGroupAsync(string groupName, string methodName, object[] args)
@@ -335,6 +338,22 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             }
 
             return message;
+        }
+
+        // Remote invocation
+        public Task<object> InvokeAsync(string methodName, Type returnType, CancellationToken cancellationToken, params object[] args)
+        {
+            throw new NotImplementedException();
+        }
+
+        public ReadableChannel<object> Stream(string methodName, Type returnType, CancellationToken cancellationToken, params object[] args)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task SendAsync(string methodName, params object[] args)
+        {
+            throw new NotImplementedException();
         }
 
         private class LoggerTextWriter : TextWriter
