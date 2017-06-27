@@ -43,13 +43,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 services.AddSockets();
                 services.AddSignalR();
                 services.AddEndPoint<EchoEndPoint>();
-                services.AddEndPoint<TestEndPoint>();
+                services.AddEndPoint<MultipleMessagesEndPoint>();
             }
 
             public void Configure(IApplicationBuilder app, IHostingEnvironment env)
             {
                 app.UseSockets(options => options.MapEndPoint<EchoEndPoint>("echo"));
-                app.UseSockets(options => options.MapEndPoint<TestEndPoint>("testEndPoint"));
+                app.UseSockets(options => options.MapEndPoint<MultipleMessagesEndPoint>("multiple"));
                 app.UseSignalR(options => options.MapHub<UncreatableHub>("uncreatable"));
             }
         }

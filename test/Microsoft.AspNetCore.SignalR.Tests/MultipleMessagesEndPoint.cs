@@ -10,36 +10,43 @@ using Microsoft.AspNetCore.Sockets;
 
 namespace Microsoft.AspNetCore.SignalR.Test.Server
 {
-    public class TestEndPoint : EndPoint
+    public class MultipleMessagesEndPoint : EndPoint
     {
         public ConnectionList Connections { get; } = new ConnectionList();
 
         public override async Task OnConnectedAsync(ConnectionContext connection)
         {
+            Connections.Add(connection);
             while (await connection.Transport.In.WaitToReadAsync())
             {
-                if (connection.Transport.In.TryRead(out var buffer))
+                while (connection.Transport.In.TryRead(out var buffer))
                 {
                     if (Encoding.UTF8.GetString(buffer) != "close")
                     {
-                        await Broadcast(buffer, connection);
+                        await Broadcast(buffer);
                     }
                     else
+                    {
+                        return;
+                    }
+                }
+            }
+            Connections.Remove(connection);
+        }
+
+        private async Task Broadcast(byte[] payload)
+        {
+            foreach(var connection in Connections)
+            {
+                while (await connection.Transport.Out.WaitToWriteAsync())
+                {
+                    if (connection.Transport.Out.TryWrite(payload))
                     {
                         break;
                     }
                 }
             }
-        }
-
-        private Task Broadcast(byte[] payload, ConnectionContext connection)
-        {
-            var tasks = new List<Task>(Connections.Count);
-            {
-                tasks.Add(connection.Transport.Out.WriteAsync(payload));
-            }
-
-            return Task.WhenAll(tasks);
+           
         }
     }
 }

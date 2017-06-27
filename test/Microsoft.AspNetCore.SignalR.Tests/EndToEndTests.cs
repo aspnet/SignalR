@@ -150,8 +150,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 const string secondMessage = "Second Message";
                 const string closeMessage= "close";
 
-
-                var url = _serverFixture.BaseUrl + "/testEndPoint";
+                var url = _serverFixture.BaseUrl + "/multiple";
                 var connection = new HttpConnection(new Uri(url), transportType, loggerFactory);
                 try
                 {
@@ -163,13 +162,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                         receiveTcs.TrySetResult(Encoding.UTF8.GetString(data));
                         return Task.CompletedTask;
                     };
-                    connection.Closed += e =>
+                    connection.Closed += exception =>
                     {
                         logger.LogInformation("Connection closed");
-                        if (e != null)
+                        if (exception != null)
                         {
-                            receiveTcs.TrySetException(e);
-                            closeTcs.TrySetException(e);
+                            receiveTcs.TrySetException(exception);
+                            closeTcs.TrySetException(exception);
                         }
                         else
                         {
@@ -213,6 +212,135 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     logger.LogInformation("Disposing Connection");
                     await connection.DisposeAsync().OrTimeout();
                     logger.LogInformation("Disposed Connection");
+                }
+            }
+        }
+
+        [Fact]
+        public async Task ConnectionCanSendAndReceiveMultipleMessagesMultipleConnections()
+        {
+            var transportType = TransportType.All;
+            using (StartLog(out var loggerFactory, testName: $"ConnectionCanSendAndReceiveMessages_{transportType.ToString()}"))
+            {
+                var logger = loggerFactory.CreateLogger<EndToEndTests>();
+
+                const string firstMessage = "Major Key";
+                const string secondMessage = "Second Message";
+                const string closeMessage = "close";
+
+                var url = _serverFixture.BaseUrl + "/multiple";
+                var firstConnection = new HttpConnection(new Uri(url), transportType, loggerFactory);
+                var secondConnection = new HttpConnection(new Uri(url), transportType, loggerFactory);
+
+                try
+                {
+                    var firstConnectionReceiveTcs = new TaskCompletionSource<string>();
+                    var firstConnectionCloseTcs = new TaskCompletionSource<object>();
+                    var secondConnectionReceiveTcs = new TaskCompletionSource<string>();
+                    var secondConnectionCloseTcs = new TaskCompletionSource<object>();
+
+                    firstConnection.Received += data =>
+                    {
+                        logger.LogInformation("Received {length} byte message", data.Length);
+                        firstConnectionReceiveTcs.TrySetResult(Encoding.UTF8.GetString(data));
+                        return Task.CompletedTask;
+                    };
+
+                    firstConnection.Closed += exception =>
+                    {
+                        logger.LogInformation("Fisrt connection closed");
+                        if (exception != null)
+                        {
+                            firstConnectionReceiveTcs.TrySetException(exception);
+                            firstConnectionCloseTcs.TrySetException(exception);
+                        }
+                        else
+                        {
+                            firstConnectionReceiveTcs.TrySetResult(null);
+                            firstConnectionCloseTcs.TrySetResult(null);
+                        }
+                    };
+
+                    secondConnection.Received += data =>
+                    {
+                        logger.LogInformation("Received {length} byte message", data.Length);
+                        secondConnectionReceiveTcs.TrySetResult(Encoding.UTF8.GetString(data));
+                        return Task.CompletedTask;
+                    };
+
+                    secondConnection.Closed += exception =>
+                    {
+                        logger.LogInformation("Second connection closed");
+                        if (exception != null)
+                        {
+                            secondConnectionReceiveTcs.TrySetException(exception);
+                            secondConnectionCloseTcs.TrySetException(exception);
+                        }
+                        else
+                        {
+                            secondConnectionReceiveTcs.TrySetResult(null);
+                            secondConnectionCloseTcs.TrySetResult(null);
+                        }
+                    };
+
+                    logger.LogInformation("Starting first connection to {url}", url);
+                    await firstConnection.StartAsync().OrTimeout();
+                    logger.LogInformation("Started first connection to {url}", url);
+
+                    logger.LogInformation("Starting first connection to {url}", url);
+                    await secondConnection.StartAsync().OrTimeout();
+                    logger.LogInformation("Started second connection to {url}", url);
+
+                    var bytes = Encoding.UTF8.GetBytes(firstMessage);
+                    logger.LogInformation("Sending {length} byte message", bytes.Length);
+                    await firstConnection.SendAsync(bytes).OrTimeout();
+                    logger.LogInformation("Sent message", bytes.Length);
+
+                    logger.LogInformation("Receiving first message");
+                    Assert.Equal(firstMessage, await firstConnectionReceiveTcs.Task.OrTimeout());
+                    logger.LogInformation("Completed first receive");
+
+                    logger.LogInformation("Receiving first message");
+                    Assert.Equal(firstMessage, await secondConnectionReceiveTcs.Task.OrTimeout());
+                    logger.LogInformation("Completed first receive");
+
+                    firstConnectionReceiveTcs = new TaskCompletionSource<string>();
+                    secondConnectionReceiveTcs = new TaskCompletionSource<string>();
+
+                    bytes = Encoding.UTF8.GetBytes(secondMessage);
+                    logger.LogInformation("Sending {length} byte message", bytes.Length);
+                    await secondConnection.SendAsync(bytes).OrTimeout();
+                    logger.LogInformation("Sent second message", bytes.Length);
+
+                    logger.LogInformation("Receiving second message on first connection");
+                    Assert.Equal(secondMessage, await firstConnectionReceiveTcs.Task.OrTimeout());
+                    logger.LogInformation("Completed second receive on first connection");
+
+                    logger.LogInformation("Receiving second message on second connection");
+                    Assert.Equal(secondMessage, await secondConnectionReceiveTcs.Task.OrTimeout());
+                    logger.LogInformation("Completed second receive on second connection");
+
+                    bytes = Encoding.UTF8.GetBytes(closeMessage);
+                    logger.LogInformation("Sending {length} byte message", bytes.Length);
+                    await firstConnection.SendAsync(bytes).OrTimeout();
+                    logger.LogInformation("Sent Close message to first connection", bytes.Length);
+                    await firstConnectionCloseTcs.Task.OrTimeout();
+
+                    bytes = Encoding.UTF8.GetBytes(closeMessage);
+                    logger.LogInformation("Sending {length} byte message", bytes.Length);
+                    await secondConnection.SendAsync(bytes).OrTimeout();
+                    logger.LogInformation("Sent Close message to second connection", bytes.Length);
+                    await secondConnectionCloseTcs.Task.OrTimeout();
+                }
+                finally
+                {
+                    logger.LogInformation("Disposing first Connection");
+                    await firstConnection.DisposeAsync().OrTimeout();
+                    logger.LogInformation("Disposed first Connection");
+
+                    logger.LogInformation("Disposing secondConnection");
+                    await secondConnection.DisposeAsync().OrTimeout();
+                    logger.LogInformation("Disposed second Connection");
                 }
             }
         }
