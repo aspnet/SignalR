@@ -3,14 +3,14 @@
 
 namespace Microsoft.AspNetCore.SignalR
 {
-    public interface IHubConnectionContext<TClient>
+    public interface IHubConnectionContext
     {
-        TClient All { get; }
+        IHubProxy All { get; }
 
-        TClient Client(string connectionId);
+        IHubClientProxy Client(string connectionId);
 
-        TClient Group(string groupName);
+        IHubProxy Group(string groupName);
 
-        TClient User(string userId);
+        IHubProxy User(string userId);
     }
 }

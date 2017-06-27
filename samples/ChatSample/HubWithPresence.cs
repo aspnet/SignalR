@@ -7,14 +7,14 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace ChatSample
 {
-    public class HubWithPresence : HubWithPresence<IClientProxy>
+    public class HubWithPresence : HubWithPresence<IHubProxy>
     {
         public HubWithPresence(IUserTracker<HubWithPresence> userTracker)
             : base(userTracker)
         { }
     }
 
-    public class HubWithPresence<TClient> : Hub<TClient>
+    public class HubWithPresence<TClient> : Hub
     {
         private IUserTracker<HubWithPresence<TClient>> _userTracker;
 

@@ -5,16 +5,18 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Microsoft.AspNetCore.Sockets.Client
+namespace Microsoft.AspNetCore.Sockets
 {
     public interface IConnection
     {
+        string ConnectionId { get; }
+
         Task StartAsync();
         Task SendAsync(byte[] data, CancellationToken cancellationToken);
         Task DisposeAsync();
 
-        event Action Connected;
-        event Action<byte[]> Received;
-        event Action<Exception> Closed;
+        event Func<Task> Connected;
+        event Func<byte[], Task> Received;
+        event Func<Exception, Task> Closed;
     }
 }

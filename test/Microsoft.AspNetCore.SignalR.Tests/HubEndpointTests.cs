@@ -45,7 +45,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             mockLifetimeManager
                 .Setup(m => m.OnConnectedAsync(It.IsAny<ConnectionContext>()))
                 .Throws(new InvalidOperationException("Lifetime manager OnConnectedAsync failed."));
-            var mockHubActivator = new Mock<IHubActivator<Hub, IClientProxy>>();
+            var mockHubActivator = new Mock<IHubActivator<Hub>>();
 
             var serviceProvider = CreateServiceProvider(services =>
             {
@@ -797,7 +797,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
             public Task ClientSendMethod(string userId, string message)
             {
-                return Clients.User(userId).InvokeAsync("Send", message);
+                return Clients.User(userId).SendAsync("Send", message);
             }
 
             public Task ConnectionSendMethod(string connectionId, string message)
@@ -812,12 +812,12 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
             public Task GroupSendMethod(string groupName, string message)
             {
-                return Clients.Group(groupName).InvokeAsync("Send", message);
+                return Clients.Group(groupName).SendAsync("Send", message);
             }
 
             public Task BroadcastMethod(string message)
             {
-                return Clients.All.InvokeAsync("Broadcast", message);
+                return Clients.All.SendAsync("Broadcast", message);
             }
 
             public Task<int> TaskValueMethod()

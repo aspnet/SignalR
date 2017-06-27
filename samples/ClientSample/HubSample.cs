@@ -5,6 +5,8 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Channels;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.AspNetCore.Sockets.Client;
 using Microsoft.Extensions.CommandLineUtils;
@@ -28,6 +30,8 @@ namespace ClientSample
 
         public static async Task<int> ExecuteAsync(string baseUrl)
         {
+            Console.WriteLine("Press enter to connect");
+            Console.ReadKey();
             baseUrl = string.IsNullOrEmpty(baseUrl) ? "http://localhost:5000/hubs" : baseUrl;
 
             var loggerFactory = new LoggerFactory();
@@ -37,6 +41,9 @@ namespace ClientSample
             var connection = new HubConnection(httpConnection, loggerFactory);
             try
             {
+                // Wire up client side Chat
+                connection.Bind(new Chat());
+
                 await connection.StartAsync();
                 Console.WriteLine("Connected to {0}", baseUrl);
 
@@ -47,10 +54,7 @@ namespace ClientSample
                     Console.WriteLine("Stopping loops...");
                     cts.Cancel();
                 };
-
-                // Set up handler
-                connection.On<string>("Send", Console.WriteLine);
-
+                
                 while (!cts.Token.IsCancellationRequested)
                 {
                     var line = await Task.Run(() => Console.ReadLine(), cts.Token);
@@ -60,7 +64,18 @@ namespace ClientSample
                         break;
                     }
 
-                    await connection.Invoke<object>("Send", cts.Token, line);
+                    // Fire and forget
+                    await connection.SendAsync("Send", line);
+
+                    // Stream the results
+                    var stream = connection.Stream<int>("Stream", cts.Token);
+                    while (await stream.WaitToReadAsync())
+                    {
+                        while (stream.TryRead(out var item))
+                        {
+                            Console.WriteLine(item);
+                        }
+                    }
                 }
             }
             catch (AggregateException aex) when (aex.InnerExceptions.All(e => e is OperationCanceledException))
@@ -74,6 +89,37 @@ namespace ClientSample
                 await connection.DisposeAsync();
             }
             return 0;
+        }
+    }
+
+    public class Chat
+    {
+        public void Send(string message)
+        {
+            Console.WriteLine(message);
+        }
+
+        public int Add(int a, int b)
+        {
+            return a + b;
+        }
+
+        public ReadableChannel<int> ChannelCounter(int count, int delay)
+        {
+            var channel = Channel.CreateUnbounded<int>();
+
+            Task.Run(async () =>
+            {
+                for (var i = 0; i < count; i++)
+                {
+                    await channel.Out.WriteAsync(i);
+                    await Task.Delay(delay);
+                }
+
+                channel.Out.TryComplete();
+            });
+
+            return channel.In;
         }
     }
 }

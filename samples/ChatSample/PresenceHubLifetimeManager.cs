@@ -102,7 +102,7 @@ namespace ChatSample
             {
                 using (var scope = _serviceScopeFactory.CreateScope())
                 {
-                    var hubActivator = scope.ServiceProvider.GetRequiredService<IHubActivator<THub, IClientProxy>>();
+                    var hubActivator = scope.ServiceProvider.GetRequiredService<IHubActivator<THub>>();
                     var hub = hubActivator.Create();
 
                     if (_hubContext == null)
@@ -142,9 +142,9 @@ namespace ChatSample
             return _wrappedHubLifetimeManager.InvokeAllAsync(methodName, args);
         }
 
-        public override Task InvokeConnectionAsync(string connectionId, string methodName, object[] args)
+        public override IHubClientProxy GetConnectionProxy(string connectionId)
         {
-            return _wrappedHubLifetimeManager.InvokeConnectionAsync(connectionId, methodName, args);
+            return _wrappedHubLifetimeManager.GetConnectionProxy(connectionId);
         }
 
         public override Task InvokeGroupAsync(string groupName, string methodName, object[] args)

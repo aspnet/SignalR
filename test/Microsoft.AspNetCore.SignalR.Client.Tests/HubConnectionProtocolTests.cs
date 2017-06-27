@@ -18,6 +18,28 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
     public class HubConnectionProtocolTests
     {
         [Fact]
+        public async Task InvokeSendsANonBlockingInvocationMessage()
+        {
+            var connection = new TestConnection();
+            var hubConnection = new HubConnection(connection, new JsonHubProtocol(new JsonSerializer()), new LoggerFactory());
+            try
+            {
+                await hubConnection.StartAsync();
+
+                var invokeTask = hubConnection.SendAsync("Foo");
+
+                var invokeMessage = await connection.ReadSentTextMessageAsync().OrTimeout();
+
+                Assert.Equal("78:{\"invocationId\":\"1\",\"type\":1,\"target\":\"Foo\",\"nonBlocking\":true,\"arguments\":[]};", invokeMessage);
+            }
+            finally
+            {
+                await hubConnection.DisposeAsync().OrTimeout();
+                await connection.DisposeAsync().OrTimeout();
+            }
+        }
+
+        [Fact]
         public async Task InvokeSendsAnInvocationMessage()
         {
             var connection = new TestConnection();
@@ -26,7 +48,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 await hubConnection.StartAsync();
 
-                var invokeTask = hubConnection.Invoke("Foo");
+                var invokeTask = hubConnection.InvokeAsync("Foo");
 
                 var invokeMessage = await connection.ReadSentTextMessageAsync().OrTimeout();
 
@@ -74,7 +96,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 await hubConnection.StartAsync();
 
-                var invokeTask = hubConnection.Invoke("Foo");
+                var invokeTask = hubConnection.InvokeAsync("Foo");
 
                 await connection.ReceiveJsonMessage(new { invocationId = "1", type = 3 }).OrTimeout();
 
@@ -118,7 +140,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 await hubConnection.StartAsync();
 
-                var invokeTask = hubConnection.Invoke<int>("Foo");
+                var invokeTask = hubConnection.InvokeAsync<int>("Foo");
 
                 await connection.ReceiveJsonMessage(new { invocationId = "1", type = 3, result = 42 }).OrTimeout();
 
@@ -163,7 +185,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 await hubConnection.StartAsync();
 
-                var invokeTask = hubConnection.Invoke<int>("Foo");
+                var invokeTask = hubConnection.InvokeAsync<int>("Foo");
 
                 await connection.ReceiveJsonMessage(new { invocationId = "1", type = 3, error = "An error occurred" }).OrTimeout();
 
@@ -209,7 +231,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 await hubConnection.StartAsync();
 
-                var invokeTask = hubConnection.Invoke<int>("Foo");
+                var invokeTask = hubConnection.InvokeAsync<int>("Foo");
 
                 await connection.ReceiveJsonMessage(new { invocationId = "1", type = 2, item = 42 }).OrTimeout();
 

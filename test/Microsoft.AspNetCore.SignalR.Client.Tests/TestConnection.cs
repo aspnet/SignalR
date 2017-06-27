@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
-using Microsoft.AspNetCore.Sockets.Client;
+using Microsoft.AspNetCore.Sockets;
 using Microsoft.AspNetCore.Sockets.Internal.Formatters;
 using Newtonsoft.Json;
 using Xunit;
@@ -26,17 +26,20 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         private CancellationTokenSource _receiveShutdownToken = new CancellationTokenSource();
         private Task _receiveLoop;
 
-        public event Action Connected;
-        public event Action<byte[]> Received;
-        public event Action<Exception> Closed;
+        public event Func<Task> Connected;
+        public event Func<byte[], Task> Received;
+        public event Func<Exception, Task> Closed;
 
         public Task Started => _started.Task;
         public Task Disposed => _disposed.Task;
         public ReadableChannel<byte[]> SentMessages => _sentMessages.In;
         public WritableChannel<byte[]> ReceivedMessages => _receivedMessages.Out;
 
+        public string ConnectionId { get; }
+
         public TestConnection()
         {
+            ConnectionId = Guid.NewGuid().ToString();
             _receiveLoop = ReceiveLoopAsync(_receiveShutdownToken.Token);
         }
 
@@ -67,8 +70,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public Task StartAsync()
         {
             _started.TrySetResult(null);
-            Connected?.Invoke();
-            return Task.CompletedTask;
+            return Connected?.Invoke() ?? Task.CompletedTask;
         }
 
         public async Task<string> ReadSentTextMessageAsync()
@@ -102,20 +104,20 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     {
                         while (_receivedMessages.In.TryRead(out var message))
                         {
-                            Received?.Invoke(message);
+                            _ = Received?.Invoke(message);
                         }
                     }
                 }
-                Closed?.Invoke(null);
+                await Closed?.Invoke(null);
             }
             catch (OperationCanceledException)
             {
                 // Do nothing, we were just asked to shut down.
-                Closed?.Invoke(null);
+                await Closed?.Invoke(null);
             }
             catch (Exception ex)
             {
-                Closed?.Invoke(ex);
+                await Closed?.Invoke(ex);
             }
         }
     }
