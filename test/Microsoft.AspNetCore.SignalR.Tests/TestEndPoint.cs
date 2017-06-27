@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Sockets;
 
@@ -12,22 +13,28 @@ namespace Microsoft.AspNetCore.SignalR.Test.Server
     public class TestEndPoint : EndPoint
     {
         public ConnectionList Connections { get; } = new ConnectionList();
+
         public override async Task OnConnectedAsync(ConnectionContext connection)
         {
             while (await connection.Transport.In.WaitToReadAsync())
             {
                 if (connection.Transport.In.TryRead(out var buffer))
                 {
-                    await Broadcast(buffer);
+                    if (Encoding.UTF8.GetString(buffer) != "close")
+                    {
+                        await Broadcast(buffer, connection);
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
             }
         }
 
-        private Task Broadcast(byte[] payload)
+        private Task Broadcast(byte[] payload, ConnectionContext connection)
         {
             var tasks = new List<Task>(Connections.Count);
-
-            foreach (var connection in Connections)
             {
                 tasks.Add(connection.Transport.Out.WriteAsync(payload));
             }

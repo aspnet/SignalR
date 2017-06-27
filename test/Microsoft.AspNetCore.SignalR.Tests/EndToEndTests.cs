@@ -138,6 +138,84 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
+        [Fact]
+        public async Task ConnectionCanSendAndReceiveMultipleMessages()
+        {
+            var transportType = TransportType.All;
+            using (StartLog(out var loggerFactory, testName: $"ConnectionCanSendAndReceiveMessages_{transportType.ToString()}"))
+            {
+                var logger = loggerFactory.CreateLogger<EndToEndTests>();
+
+                const string firstMessage = "Major Key";
+                const string secondMessage = "Second Message";
+                const string closeMessage= "close";
+
+
+                var url = _serverFixture.BaseUrl + "/testEndPoint";
+                var connection = new HttpConnection(new Uri(url), transportType, loggerFactory);
+                try
+                {
+                    var receiveTcs = new TaskCompletionSource<string>();
+                    var closeTcs = new TaskCompletionSource<object>();
+                    connection.Received += data =>
+                    {
+                        logger.LogInformation("Received {length} byte message", data.Length);
+                        receiveTcs.TrySetResult(Encoding.UTF8.GetString(data));
+                    };
+                    connection.Closed += e =>
+                    {
+                        logger.LogInformation("Connection closed");
+                        if (e != null)
+                        {
+                            receiveTcs.TrySetException(e);
+                            closeTcs.TrySetException(e);
+                        }
+                        else
+                        {
+                            receiveTcs.TrySetResult(null);
+                            closeTcs.TrySetResult(null);
+                        }
+                    };
+
+                    logger.LogInformation("Starting connection to {url}", url);
+                    await connection.StartAsync().OrTimeout();
+                    logger.LogInformation("Started connection to {url}", url);
+
+                    var bytes = Encoding.UTF8.GetBytes(firstMessage);
+                    logger.LogInformation("Sending {length} byte message", bytes.Length);
+                    await connection.SendAsync(bytes).OrTimeout();
+                    logger.LogInformation("Sent message", bytes.Length);
+
+                    logger.LogInformation("Receiving first message");
+                    Assert.Equal(firstMessage, await receiveTcs.Task.OrTimeout());
+                    logger.LogInformation("Completed first receive");
+
+                    receiveTcs = new TaskCompletionSource<string>();
+
+                    bytes = Encoding.UTF8.GetBytes(secondMessage);
+                    logger.LogInformation("Sending {length} byte message", bytes.Length);
+                    await connection.SendAsync(bytes).OrTimeout();
+                    logger.LogInformation("Sent second message", bytes.Length);
+
+                    logger.LogInformation("Receiving second message");
+                    Assert.Equal(secondMessage, await receiveTcs.Task.OrTimeout());
+                    logger.LogInformation("Completed second receive");
+
+                    bytes = Encoding.UTF8.GetBytes(closeMessage);
+                    logger.LogInformation("Sending {length} byte message", bytes.Length);
+                    await connection.SendAsync(bytes).OrTimeout();
+                    logger.LogInformation("Sent Close message", bytes.Length);
+                    await closeTcs.Task.OrTimeout();
+                }
+                finally
+                {
+                    logger.LogInformation("Disposing Connection");
+                    await connection.DisposeAsync().OrTimeout();
+                    logger.LogInformation("Disposed Connection");
+                }
+            }
+        }
+
         public static IEnumerable<object[]> MessageSizesData
         {
             get
@@ -190,6 +268,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 }
             }
         }
+
 
         [ConditionalFact]
         [OSSkipCondition(OperatingSystems.Windows, WindowsVersions.Win7, WindowsVersions.Win2008R2, SkipReason = "No WebSockets Client for this platform")]
