@@ -42,6 +42,10 @@ namespace Microsoft.AspNetCore.Sockets.Client
             : this(url, TransportType.WebSockets)
         { }
 
+        public HttpConnection(Uri url, HttpMessageHandler httpMessageHandler)
+            : this(url, TransportType.WebSockets, loggerFactory: null, httpMessageHandler: httpMessageHandler)
+        { }
+
         public HttpConnection(Uri url, TransportType transportType)
                     : this(url, transportType, loggerFactory: null)
         {
