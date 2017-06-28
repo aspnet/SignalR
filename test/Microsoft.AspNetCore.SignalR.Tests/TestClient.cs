@@ -116,7 +116,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
         public Task<string> SendInvocationAsync(string methodName, params object[] args)
         {
-            return SendInvocationAsync(methodName, args);
+            return SendInvocationAsync(methodName, nonBlocking: false, args: args);
         }
 
         public async Task<string> SendInvocationAsync(string methodName, bool nonBlocking, params object[] args)
