@@ -28,6 +28,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
                 var invokeTask = hubConnection.SendAsync("Foo");
 
+                // skip negotiation
+                await connection.ReadSentTextMessageAsync().OrTimeout();
                 var invokeMessage = await connection.ReadSentTextMessageAsync().OrTimeout();
 
                 Assert.Equal("78:{\"invocationId\":\"1\",\"type\":1,\"target\":\"Foo\",\"nonBlocking\":true,\"arguments\":[]};", invokeMessage);
