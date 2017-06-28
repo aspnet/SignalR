@@ -138,10 +138,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
-        [Fact]
-        public async Task ConnectionCanSendAndReceiveMultipleMessages()
+        [ConditionalTheory]
+        [OSSkipCondition(OperatingSystems.Windows, WindowsVersions.Win7, WindowsVersions.Win2008R2, SkipReason = "No WebSockets Client for this platform")]
+        [MemberData(nameof(TransportTypes))]
+        public async Task ConnectionCanSendAndReceiveMultipleMessages(TransportType transportType)
         {
-            var transportType = TransportType.All;
             using (StartLog(out var loggerFactory, testName: $"ConnectionCanSendAndReceiveMessages_{transportType.ToString()}"))
             {
                 var logger = loggerFactory.CreateLogger<EndToEndTests>();
@@ -216,10 +217,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
-        [Fact]
-        public async Task ConnectionCanSendAndReceiveMultipleMessagesMultipleConnections()
+        [ConditionalTheory]
+        [OSSkipCondition(OperatingSystems.Windows, WindowsVersions.Win7, WindowsVersions.Win2008R2, SkipReason = "No WebSockets Client for this platform")]
+        [MemberData(nameof(TransportTypes))]
+        public async Task ConnectionCanSendAndReceiveMultipleMessagesMultipleConnections(TransportType transportType)
         {
-            var transportType = TransportType.All;
             using (StartLog(out var loggerFactory, testName: $"ConnectionCanSendAndReceiveMessages_{transportType.ToString()}"))
             {
                 var logger = loggerFactory.CreateLogger<EndToEndTests>();
@@ -287,50 +289,23 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     await firstConnection.StartAsync().OrTimeout();
                     logger.LogInformation("Started first connection to {url}", url);
 
-                    logger.LogInformation("Starting first connection to {url}", url);
+                    logger.LogInformation("Starting second connection to {url}", url);
                     await secondConnection.StartAsync().OrTimeout();
                     logger.LogInformation("Started second connection to {url}", url);
 
-                    var bytes = Encoding.UTF8.GetBytes(firstMessage);
-                    logger.LogInformation("Sending {length} byte message", bytes.Length);
-                    await firstConnection.SendAsync(bytes).OrTimeout();
-                    logger.LogInformation("Sent message", bytes.Length);
+                    await Send(firstMessage, firstConnection, logger);
 
-                    logger.LogInformation("Receiving first message");
-                    Assert.Equal(firstMessage, await firstConnectionReceiveTcs.Task.OrTimeout());
-                    logger.LogInformation("Completed first receive");
-
-                    logger.LogInformation("Receiving first message");
-                    Assert.Equal(firstMessage, await secondConnectionReceiveTcs.Task.OrTimeout());
-                    logger.LogInformation("Completed first receive");
+                    await AssertMessage(firstMessage, firstConnectionReceiveTcs, secondConnectionReceiveTcs, logger);
 
                     firstConnectionReceiveTcs = new TaskCompletionSource<string>();
                     secondConnectionReceiveTcs = new TaskCompletionSource<string>();
 
-                    bytes = Encoding.UTF8.GetBytes(secondMessage);
-                    logger.LogInformation("Sending {length} byte message", bytes.Length);
-                    await secondConnection.SendAsync(bytes).OrTimeout();
-                    logger.LogInformation("Sent second message", bytes.Length);
+                    await Send(secondMessage, secondConnection, logger);
 
-                    logger.LogInformation("Receiving second message on first connection");
-                    Assert.Equal(secondMessage, await firstConnectionReceiveTcs.Task.OrTimeout());
-                    logger.LogInformation("Completed second receive on first connection");
+                    await AssertMessage(secondMessage, firstConnectionReceiveTcs, secondConnectionReceiveTcs, logger);
 
-                    logger.LogInformation("Receiving second message on second connection");
-                    Assert.Equal(secondMessage, await secondConnectionReceiveTcs.Task.OrTimeout());
-                    logger.LogInformation("Completed second receive on second connection");
-
-                    bytes = Encoding.UTF8.GetBytes(closeMessage);
-                    logger.LogInformation("Sending {length} byte message", bytes.Length);
-                    await firstConnection.SendAsync(bytes).OrTimeout();
-                    logger.LogInformation("Sent Close message to first connection", bytes.Length);
-                    await firstConnectionCloseTcs.Task.OrTimeout();
-
-                    bytes = Encoding.UTF8.GetBytes(closeMessage);
-                    logger.LogInformation("Sending {length} byte message", bytes.Length);
-                    await secondConnection.SendAsync(bytes).OrTimeout();
-                    logger.LogInformation("Sent Close message to second connection", bytes.Length);
-                    await secondConnectionCloseTcs.Task.OrTimeout();
+                    await Send(closeMessage, firstConnection, logger);
+                    await Send(closeMessage, secondConnection, logger);
                 }
                 finally
                 {
@@ -464,5 +439,24 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 new object[] { TransportType.ServerSentEvents },
                 new object[] { TransportType.LongPolling }
             };
+
+        private async Task AssertMessage(string expectedMessage, TaskCompletionSource<string> firstConnectionReceiveTcs, TaskCompletionSource<string> secondConnectionReceiveTcs, ILogger logger)
+        {
+            logger.LogInformation("Receiving message on first connection");
+            Assert.Equal(expectedMessage, await firstConnectionReceiveTcs.Task.OrTimeout());
+            logger.LogInformation("Completed receive on first connection");
+
+            logger.LogInformation("Receiving message on second connection");
+            Assert.Equal(expectedMessage, await secondConnectionReceiveTcs.Task.OrTimeout());
+            logger.LogInformation("Completed receive on second connection");
+        }
+
+        private async Task Send(string message, HttpConnection connection, ILogger logger)
+        {
+            var bytes = Encoding.UTF8.GetBytes(message);
+            logger.LogInformation("Sending {length} byte message", bytes.Length);
+            await connection.SendAsync(bytes).OrTimeout();
+            logger.LogInformation("Sent message", bytes.Length); ;
+        }
     }
 }
