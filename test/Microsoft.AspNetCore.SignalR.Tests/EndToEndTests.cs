@@ -75,6 +75,15 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
+        [Fact]
+        public async Task CanStartConnectionUsingDefaultTransport()
+        {
+            var url = _serverFixture.BaseUrl + "/echo";
+            var connection = new HttpConnection(new Uri(url));
+            await connection.StartAsync().OrTimeout();
+            await connection.DisposeAsync().OrTimeout();
+        }
+
         [ConditionalTheory]
         [OSSkipCondition(OperatingSystems.Windows, WindowsVersions.Win7, WindowsVersions.Win2008R2, SkipReason = "No WebSockets Client for this platform")]
         [MemberData(nameof(TransportTypes))]
