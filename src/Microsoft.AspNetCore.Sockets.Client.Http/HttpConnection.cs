@@ -11,6 +11,7 @@ using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Sockets.Features;
 using Microsoft.AspNetCore.Sockets.Client.Internal;
+using Microsoft.AspNetCore.Sockets.Http.Internal;
 using Microsoft.AspNetCore.Sockets.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -173,6 +174,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     _logger.DrainEvents(_connectionId);
                     await _eventQueue.Drain();
 
+                    await Task.WhenAny(_eventQueue.Drain().NoThrow(), Task.Delay(5000));
                     _httpClient.Dispose();
 
                     _logger.RaiseClosed(_connectionId);
