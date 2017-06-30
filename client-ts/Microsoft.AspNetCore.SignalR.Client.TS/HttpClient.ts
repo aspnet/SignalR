@@ -23,6 +23,7 @@ export class HttpClient implements IHttpClient {
 
             xhr.open(method, url, true);
 
+            headers.set("X-Requested-With", "XMLHttpRequest")
             if (headers) {
                 headers.forEach((value, header) => xhr.setRequestHeader(header, value));
             }
