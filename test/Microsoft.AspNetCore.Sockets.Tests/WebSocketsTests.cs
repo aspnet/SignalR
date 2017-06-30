@@ -99,34 +99,37 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [Fact]
         public async Task TransportFailsWhenClientDisconnectsAbnormally()
         {
-            var transportToApplication = Channel.CreateUnbounded<byte[]>();
-            var applicationToTransport = Channel.CreateUnbounded<byte[]>();
-
-            using (var transportSide = ChannelConnection.Create<byte[]>(applicationToTransport, transportToApplication))
-            using (var applicationSide = ChannelConnection.Create<byte[]>(transportToApplication, applicationToTransport))
-            using (var feature = new TestWebSocketConnectionFeature())
+            while (true)
             {
-                var options = new WebSocketOptions()
+                var transportToApplication = Channel.CreateUnbounded<byte[]>();
+                var applicationToTransport = Channel.CreateUnbounded<byte[]>();
+
+                using (var transportSide = ChannelConnection.Create<byte[]>(applicationToTransport, transportToApplication))
+                using (var applicationSide = ChannelConnection.Create<byte[]>(transportToApplication, applicationToTransport))
+                using (var feature = new TestWebSocketConnectionFeature())
                 {
-                    CloseTimeout = TimeSpan.FromMilliseconds(100)
-                };
+                    var options = new WebSocketOptions()
+                    {
+                        CloseTimeout = TimeSpan.FromMilliseconds(100)
+                    };
 
-                var ws = new WebSocketsTransport(options, transportSide, connectionId: string.Empty, loggerFactory: new LoggerFactory());
+                    var ws = new WebSocketsTransport(options, transportSide, connectionId: string.Empty, loggerFactory: new LoggerFactory());
 
-                // Give the server socket to the transport and run it
-                var transport = ws.ProcessSocketAsync(await feature.AcceptAsync());
+                    // Give the server socket to the transport and run it
+                    var transport = ws.ProcessSocketAsync(await feature.AcceptAsync());
 
-                // Run the client socket
-                var client = feature.Client.ExecuteAndCaptureFramesAsync();
+                    // Run the client socket
+                    var client = feature.Client.ExecuteAndCaptureFramesAsync();
 
-                // Terminate the client to server channel with an exception
-                feature.Client.Abort();
+                    // Terminate the client to server channel with an exception
+                    feature.Client.Abort();
 
-                // Wait for the transport
-                await Assert.ThrowsAsync<OperationCanceledException>(() => transport).OrTimeout();
+                    // Wait for the transport
+                    await Assert.ThrowsAsync<OperationCanceledException>(() => transport).OrTimeout();
 
-                var summary = await client.OrTimeout();
-                Assert.Equal(WebSocketCloseStatus.InternalServerError, summary.CloseResult.CloseStatus);
+                    var summary = await client.OrTimeout();
+                    Assert.Equal(WebSocketCloseStatus.InternalServerError, summary.CloseResult.CloseStatus);
+                }
             }
         }
 
