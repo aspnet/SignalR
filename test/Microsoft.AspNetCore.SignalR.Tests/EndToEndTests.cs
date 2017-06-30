@@ -176,6 +176,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                             receiveTcs.TrySetResult(null);
                             closeTcs.TrySetResult(null);
                         }
+                        return Task.CompletedTask;
                     };
 
                     logger.LogInformation("Starting connection to {url}", url);
@@ -261,6 +262,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                             firstConnectionReceiveTcs.TrySetResult(null);
                             firstConnectionCloseTcs.TrySetResult(null);
                         }
+                        return Task.CompletedTask;
                     };
 
                     secondConnection.Received += data =>
@@ -283,6 +285,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                             secondConnectionReceiveTcs.TrySetResult(null);
                             secondConnectionCloseTcs.TrySetResult(null);
                         }
+                        return Task.CompletedTask;
                     };
 
                     logger.LogInformation("Starting first connection to {url}", url);
