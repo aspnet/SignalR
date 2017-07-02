@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Pipelines;
 using Microsoft.AspNetCore.Sockets.Internal.Formatters;
 using MsgPack;
 using MsgPack.Serialization;
@@ -16,15 +17,13 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         private const int StreamItemMessageType = 2;
         private const int CompletionMessageType = 3;
 
-        public string Name { get => "messagepack"; }
+        public string Name => "messagepack";
 
-        public bool TryParseMessages(ReadOnlySpan<byte> input, IInvocationBinder binder, out IList<HubMessage> messages)
+        public bool TryParseMessages(ReadableBuffer input, IInvocationBinder binder, out ReadCursor consumed, out ReadCursor examined, out IList<HubMessage> messages)
         {
             messages = new List<HubMessage>();
 
-            var messageParser = new BinaryMessageParser();
-
-            while (messageParser.TryParseMessage(ref input, out var payload))
+            while (BinaryMessageParser.TryParseMessage(input, out consumed, out examined, out var payload))
             {
                 using (var memoryStream = new MemoryStream(payload.ToArray()))
                 {

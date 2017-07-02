@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
+using System.IO.Pipelines;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Sockets;
@@ -20,14 +21,21 @@ namespace SocketsSample.EndPoints
 
             try
             {
-                while (await connection.Transport.In.WaitToReadAsync())
+                while (true)
                 {
-                    if (connection.Transport.In.TryRead(out var buffer))
+                    var result = await connection.Transport.Reader.ReadAsync();
+                    var buffer = result.Buffer;
+
+                    try
                     {
                         // We can avoid the copy here but we'll deal with that later
-                        var text = Encoding.UTF8.GetString(buffer);
+                        var text = Encoding.UTF8.GetString(buffer.ToArray());
                         text = $"{connection.ConnectionId}: {text}";
                         await Broadcast(Encoding.UTF8.GetBytes(text));
+                    }
+                    finally
+                    {
+                        connection.Transport.Reader.Advance(buffer.End);
                     }
                 }
             }
@@ -50,7 +58,7 @@ namespace SocketsSample.EndPoints
 
             foreach (var c in Connections)
             {
-                tasks.Add(c.Transport.Out.WriteAsync(payload));
+                tasks.Add(c.Transport.Writer.WriteAsync(payload));
             }
 
             return Task.WhenAll(tasks);

@@ -2,136 +2,79 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.IO.Pipelines;
 using System.Text;
 
 namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
 {
-    public class TextMessageParser
+    public static class TextMessageParser
     {
         private const int Int32OverflowLength = 10;
-
-        private ParserState _state;
-
-        public void Reset()
-        {
-            _state = default(ParserState);
-        }
 
         /// <summary>
         /// Attempts to parse a message from the buffer. Returns 'false' if there is not enough data to complete a message. Throws an
         /// exception if there is a format error in the provided data.
         /// </summary>
-        public bool TryParseMessage(ref ReadOnlySpan<byte> buffer, out ReadOnlyBuffer<byte> payload)
+        public static bool TryParseMessage(ReadableBuffer input, out ReadCursor consumed, out ReadCursor examined, out ReadableBuffer payload)
         {
-            while (buffer.Length > 0)
+            consumed = input.Start;
+            examined = input.End;
+            payload = default(ReadableBuffer);
+
+            // {length}:{payload};
+            if (!TryReadLength(input, out var found, out var length))
             {
-                switch (_state.Phase)
-                {
-                    case ParsePhase.ReadingLength:
-                        if (!TryReadLength(ref buffer))
-                        {
-                            payload = default(ReadOnlyBuffer<byte>);
-                            return false;
-                        }
-
-                        break;
-                    case ParsePhase.LengthComplete:
-                        if (!TryReadDelimiter(ref buffer, TextMessageFormatter.FieldDelimiter, ParsePhase.ReadingPayload, "length"))
-                        {
-                            payload = default(ReadOnlyBuffer<byte>);
-                            return false;
-                        }
-                        break;
-                    case ParsePhase.ReadingPayload:
-                        ReadPayload(ref buffer);
-
-                        break;
-                    case ParsePhase.PayloadComplete:
-                        if (!TryReadDelimiter(ref buffer, TextMessageFormatter.MessageDelimiter, ParsePhase.ReadingPayload, "payload"))
-                        {
-                            payload = default(ReadOnlyBuffer<byte>);
-                            return false;
-                        }
-
-                        // We're done!
-                        payload = _state.Payload;
-                        Reset();
-                        return true;
-                    default:
-                        throw new InvalidOperationException($"Invalid parser phase: {_state.Phase}");
-                }
+                return false;
             }
 
-            payload = default(ReadOnlyBuffer<byte>);
-            return false;
+            var start = input.Move(found, 1);
+            var remaining = input.Slice(start);
+
+            // Expect payload + 1
+            if (remaining.Length < length + 1)
+            {
+                return false;
+            }
+
+            // Payload
+            payload = remaining.Slice(remaining.Start, length);
+
+            // .... This is pretty awful
+            var span = input.Slice(payload.Move(payload.End, 1), 1).First.Span;
+
+            // Verify the next character is TextMessageFormatter.MessageDelimiter
+            if (span[0] != (byte)TextMessageFormatter.MessageDelimiter)
+            {
+                throw new FormatException($"Missing delimiter '{TextMessageFormatter.MessageDelimiter}' after payload");
+            }
+
+            consumed = payload.End;
+            examined = payload.End;
+
+            return true;
         }
 
-        private bool TryReadLength(ref ReadOnlySpan<byte> buffer)
+        private static bool TryReadLength(ReadableBuffer input, out ReadCursor found, out int length)
         {
             // Read until the first ':' to find the length
-            var found = buffer.IndexOf((byte)TextMessageFormatter.FieldDelimiter);
-
-            if (found == -1)
+            if (ReadCursorOperations.Seek(input.Start, input.End, out found, (byte)TextMessageFormatter.MessageDelimiter) == -1)
             {
                 // Insufficient data
+                length = 0;
                 return false;
             }
 
-            var lengthSpan = buffer.Slice(0, found);
+            var lengthBuffer = input.Slice(input.Start, found).ToArray();
 
-            if (!TryParseInt32(lengthSpan, out var length, out var bytesConsumed) || bytesConsumed < lengthSpan.Length)
+            if (!TryParseInt32(lengthBuffer, out length, out var bytesConsumed) || bytesConsumed < lengthBuffer.Length)
             {
-                throw new FormatException($"Invalid length: '{Encoding.UTF8.GetString(lengthSpan.ToArray())}'");
+                throw new FormatException($"Invalid length: '{Encoding.UTF8.GetString(lengthBuffer)}'");
             }
 
-            buffer = buffer.Slice(found);
-
-            _state.Length = length;
-            _state.Phase = ParsePhase.LengthComplete;
             return true;
         }
 
-        private bool TryReadDelimiter(ref ReadOnlySpan<byte> buffer, char delimiter, ParsePhase nextPhase, string field)
-        {
-            if (buffer.Length == 0)
-            {
-                return false;
-            }
-
-            if (buffer[0] != delimiter)
-            {
-                throw new FormatException($"Missing delimiter '{delimiter}' after {field}");
-            }
-
-            buffer = buffer.Slice(1);
-
-            _state.Phase = nextPhase;
-            return true;
-        }
-
-        private void ReadPayload(ref ReadOnlySpan<byte> buffer)
-        {
-            if (_state.Payload == null)
-            {
-                _state.Payload = new byte[_state.Length];
-            }
-
-            if (_state.Read == _state.Length)
-            {
-                _state.Phase = ParsePhase.PayloadComplete;
-            }
-            else
-            {
-                // Copy as much as possible from the Unread buffer
-                var toCopy = Math.Min(_state.Length - _state.Read, buffer.Length);
-
-                buffer.Slice(0, toCopy).CopyTo(new Span<byte>(_state.Payload, _state.Read));
-                _state.Read += toCopy;
-                buffer = buffer.Slice(toCopy);
-            }
-        }
-
-        public static bool TryParseInt32(ReadOnlySpan<byte> text, out int value, out int bytesConsumed)
+        private static bool TryParseInt32(ReadOnlySpan<byte> text, out int value, out int bytesConsumed)
         {
             if (text.Length < 1)
             {
@@ -220,22 +163,6 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
             bytesConsumed = text.Length;
             value = parsedValue * sign;
             return true;
-        }
-
-        private struct ParserState
-        {
-            public ParsePhase Phase;
-            public int Length;
-            public byte[] Payload;
-            public int Read;
-        }
-
-        private enum ParsePhase
-        {
-            ReadingLength = 0,
-            LengthComplete,
-            ReadingPayload,
-            PayloadComplete
         }
     }
 }

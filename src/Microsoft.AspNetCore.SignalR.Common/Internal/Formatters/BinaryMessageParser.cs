@@ -3,72 +3,51 @@
 
 using System;
 using System.Binary;
+using System.IO.Pipelines;
 
 namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
 {
-    public class BinaryMessageParser
+    public static class BinaryMessageParser
     {
-        private ParserState _state;
-
-        public void Reset()
+        public static bool TryParseMessage(ReadableBuffer input, out ReadCursor consumed, out ReadCursor examined, out ReadableBuffer payload)
         {
-            _state = default(ParserState);
-        }
+            consumed = input.Start;
+            examined = input.End;
+            payload = default(ReadableBuffer);
 
-        public bool TryParseMessage(ref ReadOnlySpan<byte> buffer, out ReadOnlyBuffer<byte> payload)
-        {
-            if (_state.Length == null)
+            if (input.Length < sizeof(long))
             {
-                long length = 0;
-
-                if (buffer.Length < sizeof(long))
-                {
-                    payload = default(ReadOnlyBuffer<byte>);
-                    return false;
-                }
-
-                length = buffer.Slice(0, sizeof(long)).ReadBigEndian<long>();
-
-                if (length > Int32.MaxValue)
-                {
-                    throw new FormatException("Messages over 2GB in size are not supported");
-                }
-
-                buffer = buffer.Slice(sizeof(long));
-                _state.Length = (int)length;
+                return false;
             }
 
-            if (_state.Payload == null)
+            Span<byte> lengthSpan;
+            if (input.First.Length < sizeof(long))
             {
-                _state.Payload = new byte[_state.Length.Value];
+                // Length split across buffers
+                lengthSpan = input.Slice(input.Start, sizeof(long)).ToArray().AsSpan();
+            }
+            else
+            {
+                lengthSpan = input.First.Span;
             }
 
-            while (_state.Read < _state.Payload.Length && buffer.Length > 0)
+            var length = lengthSpan.ReadBigEndian<long>();
+
+            if (length > Int32.MaxValue)
             {
-                // Copy what we can from the current unread segment
-                var toCopy = Math.Min(_state.Payload.Length - _state.Read, buffer.Length);
-                buffer.Slice(0, toCopy).CopyTo(new Span<byte>(_state.Payload, _state.Read));
-                _state.Read += toCopy;
-                buffer = buffer.Slice(toCopy);
+                throw new FormatException("Messages over 2GB in size are not supported");
             }
 
-            if (_state.Read == _state.Payload.Length)
+            if ((input.Length - sizeof(long)) < length)
             {
-                payload = _state.Payload;
-                Reset();
-                return true;
+                return false;
             }
 
-            // There's still more to read.
-            payload = default(ReadOnlyBuffer<byte>);
-            return false;
-        }
+            payload = input.Slice(sizeof(long), (int)length);
 
-        private struct ParserState
-        {
-            public int? Length;
-            public byte[] Payload;
-            public int Read;
+            consumed = payload.End;
+            examined = payload.End;
+            return true;
         }
     }
 }

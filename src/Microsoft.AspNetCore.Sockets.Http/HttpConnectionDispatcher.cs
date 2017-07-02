@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.IO.Pipelines;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -83,7 +84,7 @@ namespace Microsoft.AspNetCore.Sockets
                 }
 
                 // We only need to provide the Input channel since writing to the application is handled through /send.
-                var sse = new ServerSentEventsTransport(connection.Application.In, connection.ConnectionId, _loggerFactory);
+                var sse = new ServerSentEventsTransport(connection.Application.Reader, connection.ConnectionId, _loggerFactory);
 
                 await DoPersistentConnection(socketDelegate, sse, context, connection);
             }
@@ -184,7 +185,7 @@ namespace Microsoft.AspNetCore.Sockets
                     context.Response.RegisterForDispose(timeoutSource);
                     context.Response.RegisterForDispose(tokenSource);
 
-                    var longPolling = new LongPollingTransport(timeoutSource.Token, connection.Application.In, connection.ConnectionId, _loggerFactory);
+                    var longPolling = new LongPollingTransport(timeoutSource.Token, connection.Application.Reader, connection.ConnectionId, _loggerFactory);
 
                     // Start the transport
                     connection.TransportTask = longPolling.ProcessRequestAsync(context, tokenSource.Token);
@@ -206,7 +207,7 @@ namespace Microsoft.AspNetCore.Sockets
                 if (resultTask == connection.ApplicationTask)
                 {
                     // Complete the transport (notifying it of the application error if there is one)
-                    connection.Transport.Out.TryComplete(connection.ApplicationTask.Exception);
+                    connection.Transport.Writer.Complete(connection.ApplicationTask.Exception);
 
                     // Wait for the transport to run
                     await connection.TransportTask;
@@ -374,7 +375,6 @@ namespace Microsoft.AspNetCore.Sockets
             }
 
             // TODO: Use a pool here
-
             byte[] buffer;
             using (var stream = new MemoryStream())
             {
@@ -384,13 +384,10 @@ namespace Microsoft.AspNetCore.Sockets
             }
 
             _logger.ReceivedBytes(connection.ConnectionId, buffer.Length);
-            while (!connection.Application.Out.TryWrite(buffer))
-            {
-                if (!await connection.Application.Out.WaitToWriteAsync())
-                {
-                    return;
-                }
-            }
+
+            var wb = connection.Application.Writer.Alloc();
+            wb.Write(buffer);
+            await wb.FlushAsync();
         }
 
         private async Task<bool> EnsureConnectionStateAsync(DefaultConnectionContext connection, HttpContext context, TransportType transportType, TransportType supportedTransports)

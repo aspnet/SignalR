@@ -5,10 +5,9 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO.Pipelines;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Threading.Tasks.Channels;
-using Microsoft.AspNetCore.Sockets.Internal;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.Sockets
@@ -20,6 +19,7 @@ namespace Microsoft.AspNetCore.Sockets
         private readonly ILogger<ConnectionManager> _logger;
         private object _executionLock = new object();
         private bool _disposed;
+        private PipeFactory _pipeFactory = new PipeFactory();
 
         public ConnectionManager(ILogger<ConnectionManager> logger)
         {
@@ -51,11 +51,11 @@ namespace Microsoft.AspNetCore.Sockets
         {
             var id = MakeNewConnectionId();
 
-            var transportToApplication = Channel.CreateUnbounded<byte[]>();
-            var applicationToTransport = Channel.CreateUnbounded<byte[]>();
+            var transportToApplication = _pipeFactory.Create();
+            var applicationToTransport = _pipeFactory.Create();
 
-            var transportSide = ChannelConnection.Create<byte[]>(applicationToTransport, transportToApplication);
-            var applicationSide = ChannelConnection.Create<byte[]>(transportToApplication, applicationToTransport);
+            var transportSide = new Pipe(applicationToTransport, transportToApplication);
+            var applicationSide = new Pipe(transportToApplication, applicationToTransport);
 
             var connection = new DefaultConnectionContext(id, applicationSide, transportSide);
 
@@ -181,6 +181,28 @@ namespace Microsoft.AspNetCore.Sockets
                 // Remove it from the list after disposal so that's it's easy to see
                 // connections that might be in a hung state via the connections list
                 RemoveConnection(connection.ConnectionId);
+            }
+        }
+
+        private class Pipe : IPipe
+        {
+            private readonly IPipe _input;
+            private readonly IPipe _output;
+
+            public Pipe(IPipe input, IPipe output)
+            {
+                _input = input;
+                _output = output;
+            }
+
+            public IPipeReader Reader => _input.Reader;
+
+            public IPipeWriter Writer => _output.Writer;
+
+            public void Reset()
+            {
+                _input.Reset();
+                _output.Reset();
             }
         }
     }

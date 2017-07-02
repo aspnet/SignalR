@@ -4,10 +4,10 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO.Pipelines;
 using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
@@ -17,10 +17,10 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
     {
         private readonly WebSocketOptions _options;
         private readonly ILogger _logger;
-        private readonly Channel<byte[]> _application;
+        private readonly IPipe _application;
         private readonly string _connectionId;
 
-        public WebSocketsTransport(WebSocketOptions options, Channel<byte[]> application, string connectionId, ILoggerFactory loggerFactory)
+        public WebSocketsTransport(WebSocketOptions options, IPipe application, string connectionId, ILoggerFactory loggerFactory)
         {
             if (options == null)
             {
@@ -80,9 +80,6 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                 _logger.WaitingForClose(_connectionId);
             }
 
-            // We're done writing
-            _application.Out.TryComplete();
-
             await socket.CloseOutputAsync(failed ? WebSocketCloseStatus.InternalServerError : WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
 
             var resultTask = await Task.WhenAny(task, Task.Delay(_options.CloseTimeout));
@@ -104,98 +101,126 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
 
         private async Task<WebSocketReceiveResult> StartReceiving(WebSocket socket)
         {
-            // REVIEW: This code was copied from the client, it's highly unoptimized at the moment (especially
-            // for server logic)
-            var incomingMessage = new List<ArraySegment<byte>>();
-            while (true)
+            try
             {
-                const int bufferSize = 4096;
-                var totalBytes = 0;
-                WebSocketReceiveResult receiveResult;
-                do
+                // REVIEW: This code was copied from the client, it's highly unoptimized at the moment (especially
+                // for server logic)
+                var incomingMessage = new List<ArraySegment<byte>>();
+                while (true)
                 {
-                    var buffer = new ArraySegment<byte>(new byte[bufferSize]);
-
-                    // Exceptions are handled above where the send and receive tasks are being run.
-                    receiveResult = await socket.ReceiveAsync(buffer, CancellationToken.None);
-                    if (receiveResult.MessageType == WebSocketMessageType.Close)
+                    const int bufferSize = 4096;
+                    var totalBytes = 0;
+                    WebSocketReceiveResult receiveResult;
+                    do
                     {
-                        return receiveResult;
+                        var buffer = new ArraySegment<byte>(new byte[bufferSize]);
+
+                        // Exceptions are handled above where the send and receive tasks are being run.
+                        receiveResult = await socket.ReceiveAsync(buffer, CancellationToken.None);
+                        if (receiveResult.MessageType == WebSocketMessageType.Close)
+                        {
+                            return receiveResult;
+                        }
+
+                        _logger.MessageReceived(_connectionId, receiveResult.MessageType, receiveResult.Count, receiveResult.EndOfMessage);
+
+                        var truncBuffer = new ArraySegment<byte>(buffer.Array, 0, receiveResult.Count);
+                        incomingMessage.Add(truncBuffer);
+                        totalBytes += receiveResult.Count;
+                    } while (!receiveResult.EndOfMessage);
+
+                    // Making sure the message type is either text or binary
+                    Debug.Assert((receiveResult.MessageType == WebSocketMessageType.Binary || receiveResult.MessageType == WebSocketMessageType.Text), "Unexpected message type");
+
+                    // TODO: Check received message type against the _options.WebSocketMessageType
+
+                    byte[] messageBuffer = null;
+
+                    if (incomingMessage.Count > 1)
+                    {
+                        messageBuffer = new byte[totalBytes];
+                        var offset = 0;
+                        for (var i = 0; i < incomingMessage.Count; i++)
+                        {
+                            Buffer.BlockCopy(incomingMessage[i].Array, 0, messageBuffer, offset, incomingMessage[i].Count);
+                            offset += incomingMessage[i].Count;
+                        }
+                    }
+                    else
+                    {
+                        messageBuffer = new byte[incomingMessage[0].Count];
+                        Buffer.BlockCopy(incomingMessage[0].Array, incomingMessage[0].Offset, messageBuffer, 0, incomingMessage[0].Count);
                     }
 
-                    _logger.MessageReceived(_connectionId, receiveResult.MessageType, receiveResult.Count, receiveResult.EndOfMessage);
+                    _logger.MessageToApplication(_connectionId, messageBuffer.Length);
 
-                    var truncBuffer = new ArraySegment<byte>(buffer.Array, 0, receiveResult.Count);
-                    incomingMessage.Add(truncBuffer);
-                    totalBytes += receiveResult.Count;
-                } while (!receiveResult.EndOfMessage);
-
-                // Making sure the message type is either text or binary
-                Debug.Assert((receiveResult.MessageType == WebSocketMessageType.Binary || receiveResult.MessageType == WebSocketMessageType.Text), "Unexpected message type");
-
-                // TODO: Check received message type against the _options.WebSocketMessageType
-
-                byte[] messageBuffer = null;
-
-                if (incomingMessage.Count > 1)
-                {
-                    messageBuffer = new byte[totalBytes];
-                    var offset = 0;
-                    for (var i = 0; i < incomingMessage.Count; i++)
-                    {
-                        Buffer.BlockCopy(incomingMessage[i].Array, 0, messageBuffer, offset, incomingMessage[i].Count);
-                        offset += incomingMessage[i].Count;
-                    }
+                    var wb = _application.Writer.Alloc();
+                    wb.Write(messageBuffer);
+                    await wb.FlushAsync();
                 }
-                else
-                {
-                    messageBuffer = new byte[incomingMessage[0].Count];
-                    Buffer.BlockCopy(incomingMessage[0].Array, incomingMessage[0].Offset, messageBuffer, 0, incomingMessage[0].Count);
-                }
-
-                _logger.MessageToApplication(_connectionId, messageBuffer.Length);
-                while (await _application.Out.WaitToWriteAsync())
-                {
-                    if (_application.Out.TryWrite(messageBuffer))
-                    {
-                        incomingMessage.Clear();
-                        break;
-                    }
-                }
+            }
+            finally
+            {
+                _application.Writer.Complete();
             }
         }
 
         private async Task StartSending(WebSocket ws)
         {
-            while (await _application.In.WaitToReadAsync())
+            try
             {
-                // Get a frame from the application
-                while (_application.In.TryRead(out var buffer))
+                while (true)
                 {
-                    if (buffer.Length > 0)
-                    {
-                        try
-                        {
-                            _logger.SendPayload(_connectionId, buffer.Length);
+                    var result = await _application.Reader.ReadAsync();
+                    var buffer = result.Buffer;
 
-                            if (WebSocketCanSend(ws))
+                    try
+                    {
+                        if (!buffer.IsEmpty)
+                        {
+                            try
                             {
-                                await ws.SendAsync(new ArraySegment<byte>(buffer), _options.WebSocketMessageType, endOfMessage: true, cancellationToken: CancellationToken.None);
+                                _logger.SendPayload(_connectionId, buffer.Length);
+
+                                if (WebSocketCanSend(ws))
+                                {
+                                    foreach (var b in buffer)
+                                    {
+                                        if (!b.TryGetArray(out var segment))
+                                        {
+                                            throw new InvalidOperationException("Not using managed memory");
+                                        }
+
+                                        await ws.SendAsync(segment, _options.WebSocketMessageType, endOfMessage: true, cancellationToken: CancellationToken.None);
+                                    }
+                                }
+                            }
+                            catch (WebSocketException socketException) when (!WebSocketCanSend(ws))
+                            {
+                                // this can happen when we send the CloseFrame to the client and try to write afterwards
+                                _logger.SendFailed(_connectionId, socketException);
+                                break;
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.ErrorWritingFrame(_connectionId, ex);
+                                break;
                             }
                         }
-                        catch (WebSocketException socketException) when (!WebSocketCanSend(ws))
+                        else if (result.IsCompleted)
                         {
-                            // this can happen when we send the CloseFrame to the client and try to write afterwards
-                            _logger.SendFailed(_connectionId, socketException);
-                            break;
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.ErrorWritingFrame(_connectionId, ex);
                             break;
                         }
                     }
+                    finally
+                    {
+                        _application.Reader.Advance(buffer.End);
+                    }
                 }
+            }
+            finally
+            {
+                _application.Reader.Complete();
             }
         }
 

@@ -3,9 +3,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO.Pipelines;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
@@ -13,12 +13,12 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
 {
     public class LongPollingTransport : IHttpTransport
     {
-        private readonly ReadableChannel<byte[]> _application;
+        private readonly IPipeReader _application;
         private readonly ILogger _logger;
         private readonly CancellationToken _timeoutToken;
         private readonly string _connectionId;
 
-        public LongPollingTransport(CancellationToken timeoutToken, ReadableChannel<byte[]> application, string connectionId, ILoggerFactory loggerFactory)
+        public LongPollingTransport(CancellationToken timeoutToken, IPipeReader application, string connectionId, ILoggerFactory loggerFactory)
         {
             _timeoutToken = timeoutToken;
             _application = application;
@@ -30,33 +30,40 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
         {
             try
             {
-                if (!await _application.WaitToReadAsync(token))
+                var result = await _application.ReadAsync(token);
+                var buffer = result.Buffer;
+
+                try
                 {
-                    await _application.Completion;
-                    _logger.LongPolling204(_connectionId, context.TraceIdentifier);
-                    context.Response.StatusCode = StatusCodes.Status204NoContent;
-                    return;
+                    // REVIEW: What should the content type be?
+
+                    // We're intentionally not checking cancellation here because we need to drain messages we've got so far,
+                    // but it's too late to emit the 204 required by being cancelled.
+
+                    if (!buffer.IsEmpty)
+                    {
+                        context.Response.ContentLength = buffer.Length;
+
+                        foreach (var b in buffer)
+                        {
+                            if (!b.TryGetArray(out var segment))
+                            {
+                                throw new InvalidOperationException("No managed buffers");
+                            }
+                            await context.Response.Body.WriteAsync(segment.Array, segment.Offset, segment.Count);
+                        }
+
+                        _logger.LongPollingWritingMessage(_connectionId, context.TraceIdentifier, buffer.Length);
+                    }
+                    else if (result.IsCompleted)
+                    {
+                        _logger.LongPolling204(_connectionId, context.TraceIdentifier);
+                        context.Response.StatusCode = StatusCodes.Status204NoContent;
+                    }
                 }
-
-                // REVIEW: What should the content type be?
-
-                var contentLength = 0;
-                var buffers = new List<byte[]>();
-                // We're intentionally not checking cancellation here because we need to drain messages we've got so far,
-                // but it's too late to emit the 204 required by being cancelled.
-                while (_application.TryRead(out var buffer))
+                finally
                 {
-                    contentLength += buffer.Length;
-                    buffers.Add(buffer);
-
-                    _logger.LongPollingWritingMessage(_connectionId, context.TraceIdentifier, buffer.Length);
-                }
-
-                context.Response.ContentLength = contentLength;
-
-                foreach (var buffer in buffers)
-                {
-                    await context.Response.Body.WriteAsync(buffer, 0, buffer.Length);
+                    _application.Advance(buffer.End);
                 }
             }
             catch (OperationCanceledException)

@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.IO.Pipelines;
 using Microsoft.AspNetCore.Sockets.Internal.Formatters;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -29,12 +30,12 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             }
         }
 
-        public static bool TryParseMessage(ReadOnlySpan<byte> input, out NegotiationMessage negotiationMessage)
+        public static bool TryParseMessage(ReadableBuffer input, out ReadCursor consumed, out ReadCursor examined, out NegotiationMessage negotiationMessage)
         {
-            var parser = new TextMessageParser();
-            if (!parser.TryParseMessage(ref input, out var payload))
+            if (!TextMessageParser.TryParseMessage(input, out consumed, out examined, out var payload))
             {
-                throw new FormatException("Unable to parse payload as a negotiation message.");
+                negotiationMessage = null;
+                return false;
             }
 
             using (var memoryStream = new MemoryStream(payload.ToArray()))

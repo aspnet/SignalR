@@ -16,6 +16,7 @@
     <PackageReference Include="Newtonsoft.Json" Version="$(JsonNetVersion)" />
     <PackageReference Include="MsgPack.Cli" Version="$(MsgPackVersion)" />
     <PackageReference Include="System.Binary" Version="$(CoreFxLabsVersion)" />
+    <PackageReference Include="System.IO.Pipelines" Version="$(CoreFxLabsVersion)" />
     <PackageReference Include="System.Buffers.Primitives" Version="$(CoreFxLabsVersion)" />
     <PackageReference Include="System.Memory" Version="$(CoreFxVersion)" />
     <PackageReference Include="System.Numerics.Vectors" Version="$(CoreFxVersion)" />

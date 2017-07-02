@@ -13,6 +13,6 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Http.Features" Version="$(AspNetCoreVersion)" />
-    <PackageReference Include="System.Threading.Tasks.Channels" Version="$(CoreFxLabsVersion)" />
+    <PackageReference Include="System.IO.Pipelines" Version="$(CoreFxLabsVersion)" />
   </ItemGroup>
 </Project>

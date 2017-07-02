@@ -3,9 +3,9 @@
 
 using System;
 using System.IO;
+using System.IO.Pipelines;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Sockets.Internal.Formatters;
@@ -15,11 +15,11 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
 {
     public class ServerSentEventsTransport : IHttpTransport
     {
-        private readonly ReadableChannel<byte[]> _application;
+        private readonly IPipeReader _application;
         private readonly string _connectionId;
         private readonly ILogger _logger;
 
-        public ServerSentEventsTransport(ReadableChannel<byte[]> application, string connectionId, ILoggerFactory loggerFactory)
+        public ServerSentEventsTransport(IPipeReader application, string connectionId, ILoggerFactory loggerFactory)
         {
             _application = application;
             _connectionId = connectionId;
@@ -44,25 +44,41 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
 
             try
             {
-                while (await _application.WaitToReadAsync(token))
+                while (true)
                 {
-                    var ms = new MemoryStream();
-                    while (_application.TryRead(out var buffer))
+                    var result = await _application.ReadAsync(token);
+                    var buffer = result.Buffer;
+
+                    try
                     {
                         _logger.SSEWritingMessage(_connectionId, buffer.Length);
 
-                        ServerSentEventsMessageFormatter.WriteMessage(buffer, ms);
+                        var ms = new MemoryStream();
+                        foreach (var b in buffer)
+                        {
+                            if (!b.TryGetArray(out var segment))
+                            {
+                                throw new InvalidOperationException("No managed buffers");
+                            }
+                            ServerSentEventsMessageFormatter.WriteMessage(b.Span, ms);
+                        }
+
+                        ms.Seek(0, SeekOrigin.Begin);
+                        await ms.CopyToAsync(context.Response.Body);
                     }
-
-                    ms.Seek(0, SeekOrigin.Begin);
-                    await ms.CopyToAsync(context.Response.Body);
+                    finally
+                    {
+                        _application.Advance(buffer.End);
+                    }
                 }
-
-                await _application.Completion;
             }
             catch (OperationCanceledException)
             {
                 // Closed connection
+            }
+            finally
+            {
+                _application.Complete();
             }
         }
     }
