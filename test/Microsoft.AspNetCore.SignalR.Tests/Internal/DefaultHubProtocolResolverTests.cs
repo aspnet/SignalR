@@ -18,7 +18,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Protocol.Tests
         [MemberData(nameof(HubProtocols))]
         public void DefaultHubProtocolResolverTestsCanCreateSupportedProtocols(IHubProtocol protocol)
         {
-            var mockConnection = new Mock<ConnectionContext>();
+            var mockConnection = new Mock<HubConnectionContext>();
             Assert.IsType(
                 protocol.GetType(),
                 new DefaultHubProtocolResolver().GetProtocol(protocol.Name, mockConnection.Object));
@@ -29,7 +29,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Protocol.Tests
         [InlineData("dummy")]
         public void DefaultHubProtocolResolverThrowsForNotSupportedProtocol(string protocolName)
         {
-            var mockConnection = new Mock<ConnectionContext>();
+            var mockConnection = new Mock<HubConnectionContext>();
             var exception = Assert.Throws<NotSupportedException>(
                 () => new DefaultHubProtocolResolver().GetProtocol(protocolName, mockConnection.Object));
 
