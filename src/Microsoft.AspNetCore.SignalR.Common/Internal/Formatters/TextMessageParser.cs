@@ -73,7 +73,6 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
                 throw new FormatException($"Invalid length: '{Encoding.UTF8.GetString(lengthSpan.ToArray())}'");
             }
 
-            buffer = buffer.Slice(index);
             return true;
         }
 
