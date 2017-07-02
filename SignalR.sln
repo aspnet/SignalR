@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26606.0
+VisualStudioVersion = 15.0.26621.2
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{DA69F624-5398-4884-87E4-B816698CDE65}"
 EndProject
@@ -74,6 +74,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AspNetCore.Sockets.Client.Http", "src\Microsoft.AspNetCore.Sockets.Client.Http\Microsoft.AspNetCore.Sockets.Client.Http.csproj", "{B0243F99-2D3F-4CC6-AD71-E3F891B64724}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AspNetCore.Sockets.Common.Http", "src\Microsoft.AspNetCore.Sockets.Common.Http\Microsoft.AspNetCore.Sockets.Common.Http.csproj", "{E081EE41-D95F-4AD2-BC0B-4B562C0A2A47}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AspNetCore.Sockets.HttpServer", "src\Microsoft.AspNetCore.Sockets.HttpServer\Microsoft.AspNetCore.Sockets.HttpServer.csproj", "{A2F08A00-021C-47EB-8C9B-806637014AE5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -173,6 +175,10 @@ Global
 		{E081EE41-D95F-4AD2-BC0B-4B562C0A2A47}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E081EE41-D95F-4AD2-BC0B-4B562C0A2A47}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E081EE41-D95F-4AD2-BC0B-4B562C0A2A47}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A2F08A00-021C-47EB-8C9B-806637014AE5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A2F08A00-021C-47EB-8C9B-806637014AE5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A2F08A00-021C-47EB-8C9B-806637014AE5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A2F08A00-021C-47EB-8C9B-806637014AE5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -202,5 +208,9 @@ Global
 		{9E403E93-3284-486F-9A5F-1E15FCE426A5} = {DA69F624-5398-4884-87E4-B816698CDE65}
 		{B0243F99-2D3F-4CC6-AD71-E3F891B64724} = {DA69F624-5398-4884-87E4-B816698CDE65}
 		{E081EE41-D95F-4AD2-BC0B-4B562C0A2A47} = {DA69F624-5398-4884-87E4-B816698CDE65}
+		{A2F08A00-021C-47EB-8C9B-806637014AE5} = {DA69F624-5398-4884-87E4-B816698CDE65}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E1F17365-D713-4418-8658-8138990974A9}
 	EndGlobalSection
 EndGlobal
