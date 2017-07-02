@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO.Pipelines;
 using System.Security.Claims;
 using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
@@ -23,7 +24,7 @@ namespace Microsoft.AspNetCore.SignalR
         }
 
         // Used by the HubEndPoint only
-        internal ReadableChannel<byte[]> Input => _connectionContext.Transport;
+        internal IPipeReader Input => _connectionContext.Transport.Reader;
 
         public virtual string ConnectionId => _connectionContext.ConnectionId;
 

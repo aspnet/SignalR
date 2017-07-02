@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO.Pipelines;
 using System.Linq;
 using System.Reflection;
 using System.Security.Claims;
@@ -72,12 +73,13 @@ namespace Microsoft.AspNetCore.SignalR
                 {
                     while (output.In.TryRead(out var buffer))
                     {
-                        while (await connection.Transport.Out.WaitToWriteAsync())
+                        var wb = connection.Transport.Writer.Alloc();
+                        wb.Write(buffer);
+                        var result = await wb.FlushAsync();
+
+                        if (result.IsCompleted)
                         {
-                            if (connection.Transport.Out.TryWrite(buffer))
-                            {
-                                break;
-                            }
+                            return;
                         }
                     }
                 }
@@ -104,20 +106,36 @@ namespace Microsoft.AspNetCore.SignalR
 
         private async Task ProcessNegotiate(HubConnectionContext connection)
         {
-            while (await connection.Input.WaitToReadAsync())
+            while (true)
             {
-                while (connection.Input.TryRead(out var buffer))
-                {
-                    if (NegotiationProtocol.TryParseMessage(buffer, out var negotiationMessage))
-                    {
-                        // Resolve the Hub Protocol for the connection and store it in metadata
-                        // Other components, outside the Hub, may need to know what protocol is in use
-                        // for a particular connection, so we store it here.
-                        connection.Metadata[HubConnectionMetadataNames.HubProtocol] =
-                            _protocolResolver.GetProtocol(negotiationMessage.Protocol, connection);
+                var result = await connection.Input.ReadAsync();
+                var buffer = result.Buffer;
+                var consumed = buffer.Start;
+                var examined = buffer.End;
 
-                        return;
+                try
+                {
+                    if (!buffer.IsEmpty)
+                    {
+                        if (NegotiationProtocol.TryParseMessage(buffer, out consumed, out examined, out var negotiationMessage))
+                        {
+                            // Resolve the Hub Protocol for the connection and store it in metadata
+                            // Other components, outside the Hub, may need to know what protocol is in use
+                            // for a particular connection, so we store it here.
+                            connection.Metadata[HubConnectionMetadataNames.HubProtocol] =
+                                _protocolResolver.GetProtocol(negotiationMessage.Protocol, connection);
+
+                            return;
+                        }
                     }
+                    else if (result.IsCompleted)
+                    {
+                        break;
+                    }
+                }
+                finally
+                {
+                    connection.Input.Advance(consumed, examined);
                 }
             }
         }
@@ -204,34 +222,50 @@ namespace Microsoft.AspNetCore.SignalR
 
             try
             {
-                while (await connection.Input.WaitToReadAsync(cts.Token))
+                while (true)
                 {
-                    while (connection.Input.TryRead(out var buffer))
+                    var result = await connection.Input.ReadAsync(cts.Token);
+                    var buffer = result.Buffer;
+                    var consumed = buffer.Start;
+                    var examined = buffer.End;
+
+                    try
                     {
-                        if (protocol.TryParseMessages(buffer, this, out var hubMessages))
+                        if (!buffer.IsEmpty)
                         {
-                            foreach (var hubMessage in hubMessages)
+                            if (protocol.TryParseMessages(buffer, this, out consumed, out examined, out var hubMessages))
                             {
-                                switch (hubMessage)
+                                foreach (var hubMessage in hubMessages)
                                 {
-                                    case InvocationMessage invocationMessage:
-                                        if (_logger.IsEnabled(LogLevel.Debug))
-                                        {
-                                            _logger.LogDebug("Received hub invocation: {invocation}", invocationMessage);
-                                        }
+                                    switch (hubMessage)
+                                    {
+                                        case InvocationMessage invocationMessage:
+                                            if (_logger.IsEnabled(LogLevel.Debug))
+                                            {
+                                                _logger.LogDebug("Received hub invocation: {invocation}", invocationMessage);
+                                            }
 
-                                        // Don't wait on the result of execution, continue processing other
-                                        // incoming messages on this connection.
-                                        var ignore = ProcessInvocation(connection, protocol, invocationMessage, cts, completion);
-                                        break;
+                                            // Don't wait on the result of execution, continue processing other
+                                            // incoming messages on this connection.
+                                            var ignore = ProcessInvocation(connection, protocol, invocationMessage, cts, completion);
+                                            break;
 
-                                    // Other kind of message we weren't expecting
-                                    default:
-                                        _logger.LogError("Received unsupported message of type '{messageType}'", hubMessage.GetType().FullName);
-                                        throw new NotSupportedException($"Received unsupported message: {hubMessage}");
+                                        // Other kind of message we weren't expecting
+                                        default:
+                                            _logger.LogError("Received unsupported message of type '{messageType}'", hubMessage.GetType().FullName);
+                                            throw new NotSupportedException($"Received unsupported message: {hubMessage}");
+                                    }
                                 }
                             }
                         }
+                        else if (result.IsCompleted)
+                        {
+                            break;
+                        }
+                    }
+                    finally
+                    {
+                        connection.Input.Advance(consumed, examined);
                     }
                 }
             }
