@@ -3,7 +3,6 @@
 
 using System;
 using System.IO.Pipelines;
-using System.Security.Claims;
 using Microsoft.AspNetCore.Http.Features;
 
 namespace Microsoft.AspNetCore.Sockets
@@ -14,10 +13,10 @@ namespace Microsoft.AspNetCore.Sockets
 
         public abstract IFeatureCollection Features { get; }
 
-        public abstract ClaimsPrincipal User { get; set; }
-
         // REVIEW: Should this be changed to items
         public abstract ConnectionMetadata Metadata { get; }
+
+        public abstract PipeFactory PipeFactory { get; }
 
         public abstract IPipe Transport { get; set; }
     }

@@ -2,6 +2,7 @@
 using System.IO.Pipelines;
 using System.Security.Claims;
 using System.Threading.Tasks.Channels;
+using Microsoft.AspNetCore.Http.Features.Authentication;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.Sockets;
 
@@ -28,7 +29,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public virtual string ConnectionId => _connectionContext.ConnectionId;
 
-        public virtual ClaimsPrincipal User => _connectionContext.User;
+        public virtual ClaimsPrincipal User => _connectionContext.Features.Get<IHttpAuthenticationFeature>()?.User;
 
         public virtual ConnectionMetadata Metadata => _connectionContext.Metadata;
 
