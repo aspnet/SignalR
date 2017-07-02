@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Builder.Internal;
@@ -10,6 +11,8 @@ namespace Microsoft.AspNetCore.Sockets.HttpServer
 {
     public static class HttpServerSocketBuilderExtensions
     {
+        private static long _lastFrameConnectionId = long.MinValue;
+
         public static ISocketBuilder UseHttpServer(this ISocketBuilder socketBuilder, RequestDelegate requestDelegate)
         {
             return socketBuilder.UseHttpServer(app =>
@@ -20,25 +23,35 @@ namespace Microsoft.AspNetCore.Sockets.HttpServer
 
         public static ISocketBuilder UseHttpServer(this ISocketBuilder socketBuilder, Action<IApplicationBuilder> configure)
         {
+            var trace = new KestrelTrace(null);
+            var serviceContext = new ServiceContext
+            {
+                ConnectionManager = new FrameConnectionManager(trace, normalConnectionLimit:null, upgradedConnectionLimit:null),
+                DateHeaderValueManager = new DateHeaderValueManager(),
+                HttpParserFactory = context => new HttpParser<FrameAdapter>(showErrorDetails: true),
+                Log = trace,
+                SystemClock = new SystemClock(),
+                ThreadPool = new LoggingThreadPool(trace),
+            };
+
             return socketBuilder.Run(connection =>
             {
+                var connectionId = CorrelationIdGenerator.GetNextId();
+                var frameConnectionId = Interlocked.Increment(ref _lastFrameConnectionId);
+
+                var frameConnection = new FrameConnection(new FrameConnectionContext
+                {
+                    ConnectionId = connectionId,
+                    FrameConnectionId = frameConnectionId,
+                    ServiceContext = serviceContext,
+                    Connection = connection
+                });
+
                 var builder = new ApplicationBuilder(socketBuilder.ApplicationServices);
                 configure(builder);
                 var requestDelegate = builder.Build();
                 var app = new HttpContextApplication(requestDelegate);
-                var frame = new Frame<HttpContext>(app, new FrameContext
-                {
-                    ConnectionId = connection.ConnectionId,
-                    Input = connection.Transport.Reader,
-                    Output = connection.Transport.Writer,
-                    Connection = connection,
-                    ServiceContext = new ServiceContext()
-                    {
-
-                    },
-                });
-
-                return frame.ProcessRequestsAsync();
+                return frameConnection.ProcessRequestsAsync(app);
             });
         }
 

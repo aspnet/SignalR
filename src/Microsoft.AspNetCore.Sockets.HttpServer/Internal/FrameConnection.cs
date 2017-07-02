@@ -9,7 +9,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using System.IO.Pipelines;
-using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Hosting.Server;
 
 namespace Microsoft.AspNetCore.Sockets.HttpServer
@@ -30,7 +29,7 @@ namespace Microsoft.AspNetCore.Sockets.HttpServer
         private long _readTimingElapsedTicks;
         private long _readTimingBytesRead;
 
-        private Task _lifetimeTask;
+        // private Task _lifetimeTask;
 
         public FrameConnection(FrameConnectionContext context)
         {
@@ -41,12 +40,7 @@ namespace Microsoft.AspNetCore.Sockets.HttpServer
         internal Frame Frame => _frame;
         internal IDebugger Debugger { get; set; } = DebuggerWrapper.Singleton;
 
-
         public bool TimedOut { get; private set; }
-
-        public string ConnectionId => _context.ConnectionId;
-        public IPipeWriter Input => _context.Input.Writer;
-        public IPipeReader Output => _context.Output.Reader;
 
         // Internal for testing
         internal PipeOptions AdaptedInputPipeOptions => new PipeOptions
@@ -62,21 +56,18 @@ namespace Microsoft.AspNetCore.Sockets.HttpServer
         };
 
         private IKestrelTrace Log => _context.ServiceContext.Log;
+        public ConnectionContext Connection => _context.Connection;
+        public string ConnectionId => Connection.ConnectionId;
 
-        public void StartRequestProcessing<TContext>(IHttpApplication<TContext> application)
-        {
-            _lifetimeTask = ProcessRequestsAsync<TContext>(application);
-        }
-
-        private async Task ProcessRequestsAsync<TContext>(IHttpApplication<TContext> application)
+        public async Task ProcessRequestsAsync<TContext>(IHttpApplication<TContext> application)
         {
             try
             {
                 Log.ConnectionStart(ConnectionId);
                 KestrelEventSource.Log.ConnectionStart(null);
 
-                var input = _context.Input.Reader;
-                var output = _context.Output;
+                var input = Connection.Transport.Reader;
+                var output = Connection.Transport.Writer;
 
                 // _frame must be initialized before adding the connection to the connection manager
                 CreateFrame(application, input, output);
@@ -111,7 +102,7 @@ namespace Microsoft.AspNetCore.Sockets.HttpServer
             }
         }
 
-        internal void CreateFrame<TContext>(IHttpApplication<TContext> application, IPipeReader input, IPipe output)
+        internal void CreateFrame<TContext>(IHttpApplication<TContext> application, IPipeReader input, IPipeWriter output)
         {
             _frame = new Frame<TContext>(application, new FrameContext
             {
@@ -119,46 +110,46 @@ namespace Microsoft.AspNetCore.Sockets.HttpServer
                 ServiceContext = _context.ServiceContext,
                 TimeoutControl = this,
                 Input = input,
-                Output = output.Writer
+                Output = output
             });
         }
 
-        public void OnConnectionClosed(Exception ex)
-        {
-            Debug.Assert(_frame != null, $"{nameof(_frame)} is null");
+        //public void OnConnectionClosed(Exception ex)
+        //{
+        //    Debug.Assert(_frame != null, $"{nameof(_frame)} is null");
 
-            // Abort the connection (if not already aborted)
-            _frame.Abort(ex);
+        //    // Abort the connection (if not already aborted)
+        //    _frame.Abort(ex);
 
-            _socketClosedTcs.TrySetResult(null);
-        }
+        //    _socketClosedTcs.TrySetResult(null);
+        //}
 
-        public Task StopAsync()
-        {
-            Debug.Assert(_frame != null, $"{nameof(_frame)} is null");
+        //public Task StopAsync()
+        //{
+        //    Debug.Assert(_frame != null, $"{nameof(_frame)} is null");
 
-            _frame.Stop();
+        //    _frame.Stop();
 
-            return _lifetimeTask;
-        }
+        //    return _lifetimeTask;
+        //}
 
-        public void Abort(Exception ex)
-        {
-            Debug.Assert(_frame != null, $"{nameof(_frame)} is null");
+        //public void Abort(Exception ex)
+        //{
+        //    Debug.Assert(_frame != null, $"{nameof(_frame)} is null");
 
-            // Abort the connection (if not already aborted)
-            _frame.Abort(ex);
-        }
+        //    // Abort the connection (if not already aborted)
+        //    _frame.Abort(ex);
+        //}
 
-        public Task AbortAsync(Exception ex)
-        {
-            Debug.Assert(_frame != null, $"{nameof(_frame)} is null");
+        //public Task AbortAsync(Exception ex)
+        //{
+        //    Debug.Assert(_frame != null, $"{nameof(_frame)} is null");
 
-            // Abort the connection (if not already aborted)
-            _frame.Abort(ex);
+        //    // Abort the connection (if not already aborted)
+        //    _frame.Abort(ex);
 
-            return _lifetimeTask;
-        }
+        //    return _lifetimeTask;
+        //}
 
         public void SetTimeoutResponse()
         {

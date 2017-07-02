@@ -10,9 +10,7 @@ namespace Microsoft.AspNetCore.Sockets.HttpServer
     {
         public string ConnectionId { get; set; }
         public long FrameConnectionId { get; set; }
+        public ConnectionContext Connection { get; set; }
         public ServiceContext ServiceContext { get; set; }
-
-        public IPipe Input { get; set; }
-        public IPipe Output { get; set; }
     }
 }
