@@ -56,10 +56,6 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                         var ms = new MemoryStream();
                         foreach (var b in buffer)
                         {
-                            if (!b.TryGetArray(out var segment))
-                            {
-                                throw new InvalidOperationException("No managed buffers");
-                            }
                             ServerSentEventsMessageFormatter.WriteMessage(b.Span, ms);
                         }
 
