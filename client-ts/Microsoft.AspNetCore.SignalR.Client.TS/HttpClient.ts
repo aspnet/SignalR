@@ -22,8 +22,8 @@ export class HttpClient implements IHttpClient {
             let xhr = new XMLHttpRequest();
 
             xhr.open(method, url, true);
+            xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
 
-            headers.set("X-Requested-With", "XMLHttpRequest")
             if (headers) {
                 headers.forEach((value, header) => xhr.setRequestHeader(header, value));
             }
@@ -34,19 +34,11 @@ export class HttpClient implements IHttpClient {
                     resolve(xhr.response);
                 }
                 else {
-                    reject({
-                        status: xhr.status,
-                        statusText: xhr.statusText
-                    });
+                    reject(new Error(xhr.statusText));
                 }
             };
 
-            xhr.onerror = () => {
-                reject({
-                    status: xhr.status,
-                    statusText: xhr.statusText
-                });
-            };
+            xhr.onerror = () => reject(new Error(xhr.statusText));
         });
     }
 }
