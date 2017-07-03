@@ -22,6 +22,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
         public string Name => "messagepack";
 
+        public ProtocolType ProtocolType => ProtocolType.Binary;
+
         public bool TryParseMessages(ReadOnlyBuffer<byte> input, IInvocationBinder binder, out IList<HubMessage> messages)
         {
             messages = new List<HubMessage>();
@@ -169,7 +171,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 completionMessage.HasResult ? NonVoidResult :
                 VoidResult;
 
-            packer.PackArrayHeader(3 + resultKind != VoidResult ? 1 : 0);
+            packer.PackArrayHeader(3 + (resultKind != VoidResult ? 1 : 0));
             packer.Pack(CompletionMessageType);
             packer.PackString(completionMessage.InvocationId);
             packer.Pack(resultKind);

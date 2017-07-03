@@ -6,6 +6,10 @@ export class JsonHubProtocol implements IHubProtocol {
         return "json"
     }
 
+    isBinary() : boolean {
+        return false;
+    }
+
     parseMessages(input: string): HubMessage[] {
         if (!input) {
             return [];

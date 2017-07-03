@@ -83,9 +83,9 @@ namespace Microsoft.AspNetCore.SignalR
                         // Resolve the Hub Protocol for the connection and store it in metadata
                         // Other components, outside the Hub, may need to know what protocol is in use
                         // for a particular connection, so we store it here.
-                        connection.Metadata[HubConnectionMetadataNames.HubProtocol] =
-                            _protocolResolver.GetProtocol(negotiationMessage.Protocol, connection);
-
+                        var protocol = _protocolResolver.GetProtocol(negotiationMessage.Protocol, connection);
+                        connection.Metadata[HubConnectionMetadataNames.HubProtocol] = protocol;
+                        connection.Metadata["Binary"] = protocol.ProtocolType == ProtocolType.Binary;
                         return;
                     }
                 }
