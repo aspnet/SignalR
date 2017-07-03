@@ -5,8 +5,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using Microsoft.AspNetCore.Sockets.HttpServer;
-using Microsoft.AspNetCore.Server.Kestrel.Internal.System;
 using Microsoft.Extensions.Primitives;
 using Microsoft.Net.Http.Headers;
 

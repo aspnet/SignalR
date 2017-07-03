@@ -45,6 +45,7 @@ namespace Microsoft.AspNetCore.Sockets.HttpServer
                 Log = trace,
                 SystemClock = new SystemClock(),
                 ThreadPool = new LoggingThreadPool(trace),
+                ServerOptions = new HttpServerOptions()
             };
 
             return socketBuilder.Run(connection =>

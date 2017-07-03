@@ -17,6 +17,7 @@ using System.IO.Pipelines;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using HttpVersionEnum = Microsoft.AspNetCore.Sockets.HttpServer.HttpVersion;
+using System.Text.Encodings.Web.Utf8;
 
 // ReSharper disable AccessToModifiedClosure
 
@@ -111,7 +112,7 @@ namespace Microsoft.AspNetCore.Sockets.HttpServer
         protected IKestrelTrace Log => ServiceContext.Log;
         private DateHeaderValueManager DateHeaderValueManager => ServiceContext.DateHeaderValueManager;
         // Hold direct reference to ServerOptions since this is used very often in the request processing path
-        private KestrelServerOptions ServerOptions { get; }
+        private HttpServerOptions ServerOptions { get; }
         private IPEndPoint LocalEndPoint => null;
         private IPEndPoint RemoteEndPoint => null;
         protected string ConnectionId => _frameContext.ConnectionId;

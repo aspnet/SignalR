@@ -3,8 +3,6 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using Microsoft.AspNetCore.Sockets.HttpServer;
-using Microsoft.AspNetCore.Server.Kestrel.Internal.System;
 using System.IO.Pipelines;
 
 namespace Microsoft.AspNetCore.Sockets.HttpServer

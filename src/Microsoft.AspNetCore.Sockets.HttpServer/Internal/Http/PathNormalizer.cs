@@ -3,7 +3,6 @@
 
 using System;
 using System.Diagnostics;
-using Microsoft.AspNetCore.Server.Kestrel.Internal.System;
 
 namespace Microsoft.AspNetCore.Sockets.HttpServer
 {

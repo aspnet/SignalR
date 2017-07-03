@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.IO.Pipelines;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 
@@ -53,6 +54,21 @@ namespace Microsoft.AspNetCore.Sockets.HttpServer
         public void Schedule(Action<object> action, object state)
         {
             Run(() => action(state));
+        }
+
+        void IThreadPool.Run(Action action)
+        {
+            throw new NotImplementedException();
+        }
+
+        void IThreadPool.UnsafeRun(WaitCallback action, object state)
+        {
+            throw new NotImplementedException();
+        }
+
+        void IScheduler.Schedule(Action action)
+        {
+            throw new NotImplementedException();
         }
     }
 }

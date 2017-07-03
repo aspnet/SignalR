@@ -5,8 +5,6 @@ using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Server.Kestrel.Internal.System;
-using Microsoft.AspNetCore.Server.Kestrel.Internal.System.Buffers;
 using System.IO.Pipelines;
 
 namespace Microsoft.AspNetCore.Sockets.HttpServer
@@ -45,7 +43,7 @@ namespace Microsoft.AspNetCore.Sockets.HttpServer
                 return;
             }
 
-            var dest = buffer.Span;
+            var dest = buffer.Buffer.Span;
             var destLength = dest.Length;
             var sourceLength = data.Length;
 
@@ -71,7 +69,7 @@ namespace Microsoft.AspNetCore.Sockets.HttpServer
         {
             const byte AsciiDigitStart = (byte)'0';
 
-            var span = buffer.Span;
+            var span = buffer.Buffer.Span;
             var bytesLeftInBlock = span.Length;
 
             // Fast path, try copying to the available memory directly
@@ -148,7 +146,7 @@ namespace Microsoft.AspNetCore.Sockets.HttpServer
 
                 while (remaining > 0)
                 {
-                    var writable = Math.Min(remaining, buffer.Span.Length);
+                    var writable = Math.Min(remaining, buffer.Buffer.Span.Length);
 
                     if (writable == 0)
                     {
@@ -156,7 +154,7 @@ namespace Microsoft.AspNetCore.Sockets.HttpServer
                         continue;
                     }
 
-                    fixed (byte* output = &buffer.Span.DangerousGetPinnableReference())
+                    fixed (byte* output = &buffer.Buffer.Span.DangerousGetPinnableReference())
                     {
                         EncodeAsciiCharsToBytes(inputSlice, output, writable);
                     }

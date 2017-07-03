@@ -4,7 +4,6 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Server.Kestrel.Transport.Abstractions.Internal;
 
 namespace Microsoft.AspNetCore.Sockets.HttpServer
 {
@@ -16,7 +15,8 @@ namespace Microsoft.AspNetCore.Sockets.HttpServer
 
             connectionManager.Walk(connection =>
             {
-                closeTasks.Add(connection.StopAsync());
+                // TODO: StopAsync
+                // closeTasks.Add(connection.StopAsync());
             });
 
             var allClosedTask = Task.WhenAll(closeTasks.ToArray());
@@ -26,11 +26,12 @@ namespace Microsoft.AspNetCore.Sockets.HttpServer
         public static async Task<bool> AbortAllConnectionsAsync(this FrameConnectionManager connectionManager)
         {
             var abortTasks = new List<Task>();
-            var canceledException = new ConnectionAbortedException();
+            var canceledException = new TaskCanceledException();
 
             connectionManager.Walk(connection =>
             {
-                abortTasks.Add(connection.AbortAsync(canceledException));
+                // TODO: AbortAsync
+                // abortTasks.Add(connection.AbortAsync(canceledException));
             });
 
             var allAbortedTask = Task.WhenAll(abortTasks.ToArray());

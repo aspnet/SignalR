@@ -18,5 +18,7 @@ namespace Microsoft.AspNetCore.Sockets.HttpServer
         public DateHeaderValueManager DateHeaderValueManager { get; set; }
 
         public FrameConnectionManager ConnectionManager { get; set; }
+
+        public HttpServerOptions ServerOptions { get; set; }
     }
 }

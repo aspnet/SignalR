@@ -78,7 +78,6 @@ namespace Microsoft.AspNetCore.Sockets.HttpServer
                 _lastTimestamp = _context.ServiceContext.SystemClock.UtcNow.Ticks;
 
                 await _frame.ProcessRequestsAsync();
-                await _socketClosedTcs.Task;
             }
             catch (Exception ex)
             {
@@ -108,6 +107,7 @@ namespace Microsoft.AspNetCore.Sockets.HttpServer
             {
                 ConnectionId = _context.ConnectionId,
                 ServiceContext = _context.ServiceContext,
+                Connection = Connection,
                 TimeoutControl = this,
                 Input = input,
                 Output = output
