@@ -34,11 +34,15 @@ export class HttpClient implements IHttpClient {
                     resolve(xhr.response);
                 }
                 else {
-                    reject(new Error(xhr.statusText));
+                    var errorMessage = xhr.statusText + " Error Status Code: " + xhr.status;
+                    reject(new Error(errorMessage));
                 }
             };
 
-            xhr.onerror = () => reject(new Error(xhr.statusText));
+            xhr.onerror = () => {
+                var errorMessage = xhr.statusText + " Error Status Code: " + xhr.status;
+                reject(new Error(errorMessage));
+            }
         });
     }
 }
