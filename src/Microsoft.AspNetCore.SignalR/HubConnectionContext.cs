@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
+using System;
 using System.Security.Claims;
 using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
@@ -10,11 +13,6 @@ namespace Microsoft.AspNetCore.SignalR
     {
         private readonly WritableChannel<byte[]> _output;
         private readonly ConnectionContext _connectionContext;
-
-        public HubConnectionContext()
-        {
-
-        }
 
         public HubConnectionContext(WritableChannel<byte[]> output, ConnectionContext connectionContext)
         {
