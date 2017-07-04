@@ -105,7 +105,7 @@ namespace Microsoft.AspNetCore.Sockets
                     return;
                 }
 
-                var ws = new WebSocketsTransport(options.WebSockets, connection.Application, connection.ConnectionId, _loggerFactory);
+                var ws = new WebSocketsTransport(options.WebSockets, connection.Application, connection, _loggerFactory);
 
                 await DoPersistentConnection(socketDelegate, ws, context, connection);
             }

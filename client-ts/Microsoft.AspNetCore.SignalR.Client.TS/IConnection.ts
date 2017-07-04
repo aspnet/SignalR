@@ -2,7 +2,7 @@ import { DataReceived, ConnectionClosed } from "./Common"
 import { TransportType, ITransport } from  "./Transports"
 
 export interface IConnection {
-    start(): Promise<void>;
+    start(isBinary: boolean): Promise<void>;
     send(data: any): Promise<void>;
     stop(): void;
 

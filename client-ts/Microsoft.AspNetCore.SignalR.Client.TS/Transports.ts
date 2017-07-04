@@ -8,7 +8,7 @@ export enum TransportType {
 }
 
 export interface ITransport {
-    connect(url: string): Promise<void>;
+    connect(url: string, isBinary: boolean): Promise<void>;
     send(data: any): Promise<void>;
     stop(): void;
     onDataReceived: DataReceived;
@@ -18,11 +18,14 @@ export interface ITransport {
 export class WebSocketTransport implements ITransport {
     private webSocket: WebSocket;
 
-    connect(url: string, queryString: string = ""): Promise<void> {
+    connect(url: string, isBinary: boolean): Promise<void> {
         return new Promise<void>((resolve, reject) => {
             url = url.replace(/^http/, "ws");
 
             let webSocket = new WebSocket(url);
+            if (isBinary) {
+                webSocket.binaryType = "arraybuffer";
+            }
 
             webSocket.onopen = (event: Event) => {
                 console.log(`WebSocket connected to ${url}`);
@@ -85,9 +88,12 @@ export class ServerSentEventsTransport implements ITransport {
         this.httpClient = httpClient;
     }
 
-    connect(url: string): Promise<void> {
-        if (typeof (EventSource) === "undefined") {
+    connect(url: string, isBinary: boolean): Promise<void> {
+        if (typeof(EventSource) === "undefined") {
             Promise.reject("EventSource not supported by the browser.")
+        }
+        if (isBinary) {
+            throw new Error("ServerSentEvents does not support binary protocols.");
         }
         this.url = url;
 
@@ -147,6 +153,7 @@ export class ServerSentEventsTransport implements ITransport {
 
 export class LongPollingTransport implements ITransport {
     private url: string;
+    private isBinary: boolean;
     private httpClient: IHttpClient;
     private pollXhr: XMLHttpRequest;
     private shouldPoll: boolean;
@@ -155,8 +162,9 @@ export class LongPollingTransport implements ITransport {
         this.httpClient = httpClient;
     }
 
-    connect(url: string): Promise<void> {
+    connect(url: string, isBinary: boolean): Promise<void> {
         this.url = url;
+        this.isBinary = isBinary;
         this.shouldPoll = true;
         this.poll(this.url);
         return Promise.resolve();
@@ -168,6 +176,9 @@ export class LongPollingTransport implements ITransport {
         }
 
         let pollXhr = new XMLHttpRequest();
+        if (this.isBinary) {
+            pollXhr.responseType = "arraybuffer";
+        }
 
         pollXhr.onload = () => {
             if (pollXhr.status == 200) {
@@ -196,6 +207,8 @@ export class LongPollingTransport implements ITransport {
             }
             else {
                 if (this.onClosed) {
+                    // TODO: Uncaught DOMException: Failed to read the 'responseText' property from 'XMLHttpRequest':
+                    // The value is only accessible if the object's 'responseType' is '' or 'text' (was 'arraybuffer').
                     this.onClosed(new Error(`Status: ${pollXhr.status}, Message: ${pollXhr.responseText}`));
                 }
             }

@@ -1,11 +1,12 @@
 const TESTHUBENDPOINT_URL = `http://${document.location.host}/testhub`;
 
 describe('hubConnection', () => {
-    eachTransport(transportType => {
-        describe(`${signalR.TransportType[transportType]} transport`, () => {
+    eachTransportAndProtocol((transportType, protocol) => {
+        describe(`${signalR.TransportType[transportType]} transport using ${protocol.name()}`, () => {
             it(`can invoke server method and receive result`, done => {
                 const message = "Hi";
-                let hubConnection = new signalR.HubConnection(new signalR.HttpConnection(TESTHUBENDPOINT_URL, { transport: transportType }), 'formatType=json&format=text');
+                let hubConnection = new signalR.HubConnection(
+                    new signalR.HttpConnection(TESTHUBENDPOINT_URL, { transport: transportType }), protocol);
                 hubConnection.onClosed = error => {
                     expect(error).toBe(undefined);
                     done();
@@ -31,7 +32,8 @@ describe('hubConnection', () => {
             });
 
             it(`can stream server method and receive result`, done => {
-                let hubConnection = new signalR.HubConnection(new signalR.HttpConnection(TESTHUBENDPOINT_URL, { transport: transportType }), 'formatType=json&format=text');
+                let hubConnection = new signalR.HubConnection(
+                    new signalR.HttpConnection(TESTHUBENDPOINT_URL, { transport: transportType }), protocol);
                 hubConnection.onClosed = error => {
                     expect(error).toBe(undefined);
                     done();
@@ -63,7 +65,8 @@ describe('hubConnection', () => {
 
             it(`rethrows an exception from the server when invoking`, done => {
                 const errorMessage = "An error occurred.";
-                let hubConnection = new signalR.HubConnection(new signalR.HttpConnection(TESTHUBENDPOINT_URL, { transport: transportType }), 'formatType=json&format=text');
+                let hubConnection = new signalR.HubConnection(
+                    new signalR.HttpConnection(TESTHUBENDPOINT_URL, { transport: transportType }), protocol);
 
                 hubConnection.start()
                     .then(() => {
@@ -90,7 +93,8 @@ describe('hubConnection', () => {
 
             it(`rethrows an exception from the server when streaming`, done => {
                 const errorMessage = "An error occurred.";
-                let hubConnection = new signalR.HubConnection(new signalR.HttpConnection(TESTHUBENDPOINT_URL, { transport: transportType }), 'formatType=json&format=text');
+                let hubConnection = new signalR.HubConnection(
+                    new signalR.HttpConnection(TESTHUBENDPOINT_URL, { transport: transportType }), protocol);
 
                 hubConnection.start()
                     .then(() => {
@@ -116,7 +120,8 @@ describe('hubConnection', () => {
             });
 
             it(`can receive server calls`, done => {
-                let client = new signalR.HubConnection(new signalR.HttpConnection(TESTHUBENDPOINT_URL, { transport: transportType }), 'formatType=json&format=text');
+                let client = new signalR.HubConnection(
+                    new signalR.HttpConnection(TESTHUBENDPOINT_URL, { transport: transportType }), protocol);
                 const message = "Hello SignalR";
 
                 let callbackPromise = new Promise((resolve, reject) => {
@@ -150,7 +155,8 @@ describe('hubConnection', () => {
                 ServerSentEvents: "Error occurred"
             };
 
-            let hubConnection = new signalR.HubConnection(new signalR.HttpConnection(`http://${document.location.host}/uncreatable`, { transport: transportType }), 'formatType=json&format=text');
+            let hubConnection = new signalR.HubConnection(
+                new signalR.HttpConnection(`http://${document.location.host}/uncreatable`, { transport: transportType }), protocol);
 
             hubConnection.onClosed = error => {
                 expect(error).toMatch(errorRegex[signalR.TransportType[transportType]]);

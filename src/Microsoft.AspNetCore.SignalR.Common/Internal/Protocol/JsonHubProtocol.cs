@@ -46,6 +46,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
         public string Name => "json";
 
+        public ProtocolType ProtocolType => ProtocolType.Text;
+
         public bool TryParseMessages(ReadOnlyBuffer<byte> input, IInvocationBinder binder, out IList<HubMessage> messages)
         {
             messages = new List<HubMessage>();

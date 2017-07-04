@@ -8,6 +8,10 @@ export class MessagePackHubProtocol implements IHubProtocol {
         return "messagepack";
     }
 
+    isBinary(): boolean {
+        return true;
+    }
+
     parseMessages(input: ArrayBuffer): HubMessage[] {
         return BinaryMessageFormat.parse(input).map(m => this.parseMessage(m));
     }

@@ -2,11 +2,13 @@ import { ConnectionClosed } from "./Common"
 import { IConnection } from "./IConnection"
 import { TransportType } from "./Transports"
 import { Subject, Observable } from "./Observable"
-export { TransportType } from "./Transports"
-export { HttpConnection } from "./HttpConnection"
 import { IHubProtocol, MessageType, HubMessage, CompletionMessage, ResultMessage, InvocationMessage, NegotiationMessage } from "./IHubProtocol";
 import { JsonHubProtocol } from "./JsonHubProtocol";
 import { TextMessageFormat } from "./Formatters"
+
+export { TransportType } from "./Transports"
+export { HttpConnection } from "./HttpConnection"
+export { JsonHubProtocol } from "./JsonHubProtocol"
 
 export class HubConnection {
     private connection: IConnection;
@@ -91,7 +93,7 @@ export class HubConnection {
     }
 
     async start(): Promise<void> {
-        await this.connection.start();
+        await this.connection.start(this.protocol.isBinary());
         await this.connection.send(
             TextMessageFormat.write(
                 JSON.stringify(<NegotiationMessage>{ protocol: this.protocol.name()})));
