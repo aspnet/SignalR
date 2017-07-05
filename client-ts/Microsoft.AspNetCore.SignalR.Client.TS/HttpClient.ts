@@ -1,3 +1,5 @@
+import { HttpError } from "./HttpError"
+
 export interface IHttpClient {
     get(url: string, headers?: Map<string, string>): Promise<string>;
     options(url: string, headers?: Map<string, string>): Promise<string>;
@@ -34,14 +36,12 @@ export class HttpClient implements IHttpClient {
                     resolve(xhr.response);
                 }
                 else {
-                    var errorMessage = xhr.statusText + " Error Status Code: " + xhr.status;
-                    reject(new Error(errorMessage));
+                    reject(new HttpError(xhr.statusText, xhr.status));
                 }
             };
 
             xhr.onerror = () => {
-                var errorMessage = xhr.statusText + " Error Status Code: " + xhr.status;
-                reject(new Error(errorMessage));
+                reject(new HttpError(xhr.statusText, xhr.status));
             }
         });
     }
