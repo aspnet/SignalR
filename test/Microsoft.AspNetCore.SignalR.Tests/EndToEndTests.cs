@@ -138,6 +138,191 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
+        [ConditionalTheory]
+        [OSSkipCondition(OperatingSystems.Windows, WindowsVersions.Win7, WindowsVersions.Win2008R2, SkipReason = "No WebSockets Client for this platform")]
+        [MemberData(nameof(TransportTypes))]
+        public async Task ConnectionCanSendAndReceiveMultipleMessages(TransportType transportType)
+        {
+            using (StartLog(out var loggerFactory, testName: $"ConnectionCanSendAndReceiveMessages_{transportType.ToString()}"))
+            {
+                var logger = loggerFactory.CreateLogger<EndToEndTests>();
+
+                const string firstMessage = "Major Key";
+                const string secondMessage = "Second Message";
+                const string closeMessage= "close";
+
+                var url = _serverFixture.BaseUrl + "/multiple";
+                var connection = new HttpConnection(new Uri(url), transportType, loggerFactory);
+                try
+                {
+                    var receiveTcs = new TaskCompletionSource<string>();
+                    var closeTcs = new TaskCompletionSource<object>();
+                    connection.Received += data =>
+                    {
+                        logger.LogInformation("Received {length} byte message", data.Length);
+                        receiveTcs.TrySetResult(Encoding.UTF8.GetString(data));
+                        return Task.CompletedTask;
+                    };
+                    connection.Closed += exception =>
+                    {
+                        logger.LogInformation("Connection closed");
+                        if (exception != null)
+                        {
+                            receiveTcs.TrySetException(exception);
+                            closeTcs.TrySetException(exception);
+                        }
+                        else
+                        {
+                            receiveTcs.TrySetResult(null);
+                            closeTcs.TrySetResult(null);
+                        }
+                        return Task.CompletedTask;
+                    };
+
+                    logger.LogInformation("Starting connection to {url}", url);
+                    await connection.StartAsync().OrTimeout();
+                    logger.LogInformation("Started connection to {url}", url);
+
+                    var bytes = Encoding.UTF8.GetBytes(firstMessage);
+                    logger.LogInformation("Sending {length} byte message", bytes.Length);
+                    await connection.SendAsync(bytes).OrTimeout();
+                    logger.LogInformation("Sent message", bytes.Length);
+
+                    logger.LogInformation("Receiving first message");
+                    Assert.Equal(firstMessage, await receiveTcs.Task.OrTimeout());
+                    logger.LogInformation("Completed first receive");
+
+                    receiveTcs = new TaskCompletionSource<string>();
+
+                    bytes = Encoding.UTF8.GetBytes(secondMessage);
+                    logger.LogInformation("Sending {length} byte message", bytes.Length);
+                    await connection.SendAsync(bytes).OrTimeout();
+                    logger.LogInformation("Sent second message", bytes.Length);
+
+                    logger.LogInformation("Receiving second message");
+                    Assert.Equal(secondMessage, await receiveTcs.Task.OrTimeout());
+                    logger.LogInformation("Completed second receive");
+
+                    bytes = Encoding.UTF8.GetBytes(closeMessage);
+                    logger.LogInformation("Sending {length} byte message", bytes.Length);
+                    await connection.SendAsync(bytes).OrTimeout();
+                    logger.LogInformation("Sent Close message", bytes.Length);
+                    await closeTcs.Task.OrTimeout();
+                }
+                finally
+                {
+                    logger.LogInformation("Disposing Connection");
+                    await connection.DisposeAsync().OrTimeout();
+                    logger.LogInformation("Disposed Connection");
+                }
+            }
+        }
+
+        [ConditionalTheory]
+        [OSSkipCondition(OperatingSystems.Windows, WindowsVersions.Win7, WindowsVersions.Win2008R2, SkipReason = "No WebSockets Client for this platform")]
+        [MemberData(nameof(TransportTypes))]
+        public async Task ConnectionCanSendAndReceiveMultipleMessagesMultipleConnections(TransportType transportType)
+        {
+            using (StartLog(out var loggerFactory, testName: $"ConnectionCanSendAndReceiveMessages_{transportType.ToString()}"))
+            {
+                var logger = loggerFactory.CreateLogger<EndToEndTests>();
+
+                const string firstMessage = "Major Key";
+                const string secondMessage = "Second Message";
+                const string closeMessage = "close";
+
+                var url = _serverFixture.BaseUrl + "/multiple";
+                var firstConnection = new HttpConnection(new Uri(url), transportType, loggerFactory);
+                var secondConnection = new HttpConnection(new Uri(url), transportType, loggerFactory);
+
+                try
+                {
+                    var firstConnectionReceiveTcs = new TaskCompletionSource<string>();
+                    var firstConnectionCloseTcs = new TaskCompletionSource<object>();
+                    var secondConnectionReceiveTcs = new TaskCompletionSource<string>();
+                    var secondConnectionCloseTcs = new TaskCompletionSource<object>();
+
+                    firstConnection.Received += data =>
+                    {
+                        logger.LogInformation("Received {length} byte message", data.Length);
+                        firstConnectionReceiveTcs.TrySetResult(Encoding.UTF8.GetString(data));
+                        return Task.CompletedTask;
+                    };
+
+                    firstConnection.Closed += exception =>
+                    {
+                        logger.LogInformation("Fisrt connection closed");
+                        if (exception != null)
+                        {
+                            firstConnectionReceiveTcs.TrySetException(exception);
+                            firstConnectionCloseTcs.TrySetException(exception);
+                        }
+                        else
+                        {
+                            firstConnectionReceiveTcs.TrySetResult(null);
+                            firstConnectionCloseTcs.TrySetResult(null);
+                        }
+                        return Task.CompletedTask;
+                    };
+
+                    secondConnection.Received += data =>
+                    {
+                        logger.LogInformation("Received {length} byte message", data.Length);
+                        secondConnectionReceiveTcs.TrySetResult(Encoding.UTF8.GetString(data));
+                        return Task.CompletedTask;
+                    };
+
+                    secondConnection.Closed += exception =>
+                    {
+                        logger.LogInformation("Second connection closed");
+                        if (exception != null)
+                        {
+                            secondConnectionReceiveTcs.TrySetException(exception);
+                            secondConnectionCloseTcs.TrySetException(exception);
+                        }
+                        else
+                        {
+                            secondConnectionReceiveTcs.TrySetResult(null);
+                            secondConnectionCloseTcs.TrySetResult(null);
+                        }
+                        return Task.CompletedTask;
+                    };
+
+                    logger.LogInformation("Starting first connection to {url}", url);
+                    await firstConnection.StartAsync().OrTimeout();
+                    logger.LogInformation("Started first connection to {url}", url);
+
+                    logger.LogInformation("Starting second connection to {url}", url);
+                    await secondConnection.StartAsync().OrTimeout();
+                    logger.LogInformation("Started second connection to {url}", url);
+
+                    await Send(firstMessage, firstConnection, logger);
+
+                    await AssertMessage(firstMessage, firstConnectionReceiveTcs, secondConnectionReceiveTcs, logger);
+
+                    firstConnectionReceiveTcs = new TaskCompletionSource<string>();
+                    secondConnectionReceiveTcs = new TaskCompletionSource<string>();
+
+                    await Send(secondMessage, secondConnection, logger);
+
+                    await AssertMessage(secondMessage, firstConnectionReceiveTcs, secondConnectionReceiveTcs, logger);
+
+                    await Send(closeMessage, firstConnection, logger);
+                    await Send(closeMessage, secondConnection, logger);
+                }
+                finally
+                {
+                    logger.LogInformation("Disposing first Connection");
+                    await firstConnection.DisposeAsync().OrTimeout();
+                    logger.LogInformation("Disposed first Connection");
+
+                    logger.LogInformation("Disposing secondConnection");
+                    await secondConnection.DisposeAsync().OrTimeout();
+                    logger.LogInformation("Disposed second Connection");
+                }
+            }
+        }
+
         public static IEnumerable<object[]> MessageSizesData
         {
             get
@@ -190,6 +375,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 }
             }
         }
+
 
         [ConditionalFact]
         [OSSkipCondition(OperatingSystems.Windows, WindowsVersions.Win7, WindowsVersions.Win2008R2, SkipReason = "No WebSockets Client for this platform")]
@@ -256,5 +442,24 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 new object[] { TransportType.ServerSentEvents },
                 new object[] { TransportType.LongPolling }
             };
+
+        private async Task AssertMessage(string expectedMessage, TaskCompletionSource<string> firstConnectionReceiveTcs, TaskCompletionSource<string> secondConnectionReceiveTcs, ILogger logger)
+        {
+            logger.LogInformation("Receiving message on first connection");
+            Assert.Equal(expectedMessage, await firstConnectionReceiveTcs.Task.OrTimeout());
+            logger.LogInformation("Completed receive on first connection");
+
+            logger.LogInformation("Receiving message on second connection");
+            Assert.Equal(expectedMessage, await secondConnectionReceiveTcs.Task.OrTimeout());
+            logger.LogInformation("Completed receive on second connection");
+        }
+
+        private async Task Send(string message, HttpConnection connection, ILogger logger)
+        {
+            var bytes = Encoding.UTF8.GetBytes(message);
+            logger.LogInformation("Sending {length} byte message", bytes.Length);
+            await connection.SendAsync(bytes).OrTimeout();
+            logger.LogInformation("Sent message", bytes.Length); ;
+        }
     }
 }
