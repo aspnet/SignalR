@@ -61,7 +61,7 @@ namespace SocialWeather
 
         public void AddGroupAsync(ConnectionContext connection, string groupName)
         {
-            var groups = (HashSet<string>)connection.Metadata;
+            var groups = (HashSet<string>)connection.Metadata["groups"];
             lock (groups)
             {
                 groups.Add(groupName);

@@ -10,6 +10,6 @@ namespace Microsoft.AspNetCore.Sockets.Features
 {
     public interface IConnectionUserFeature
     {
-        ClaimsPrincipal User { get; }
+        ClaimsPrincipal User { get; set; }
     }
 }

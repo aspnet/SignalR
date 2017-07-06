@@ -90,9 +90,14 @@ namespace Microsoft.AspNetCore.SignalR
         {
             return InvokeAllWhere(methodName, args, connection =>
             {
-                // REVIEW: Not thread safe... (we should be locking on groups)
                 var feature = connection.Features.Get<IHubGroupsFeature>();
-                return feature.Groups.Contains(groupName) == true;
+                var groups = feature.Groups;
+
+                // PERF: ...
+                lock (groups)
+                {
+                    return groups.Contains(groupName) == true;
+                }
             });
         }
 

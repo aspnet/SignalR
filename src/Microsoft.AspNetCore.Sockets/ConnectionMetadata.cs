@@ -26,8 +26,7 @@ namespace Microsoft.AspNetCore.Sockets
         {
             get
             {
-                object value;
-                if (Items.TryGetValue(key, out value))
+                if (Items.TryGetValue(key, out var value))
                 {
                     return value;
                 }
