@@ -20,32 +20,20 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.SignalR
 {
-    public class HubEndPoint<THub> : HubEndPoint<THub, IClientProxy> where THub : Hub
-    {
-        public HubEndPoint(HubLifetimeManager<THub> lifetimeManager,
-                           IHubProtocolResolver protocolResolver,
-                           IHubContext<THub> hubContext,
-                           ILogger<HubEndPoint<THub>> logger,
-                           IServiceScopeFactory serviceScopeFactory)
-            : base(lifetimeManager, protocolResolver, hubContext, logger, serviceScopeFactory)
-        {
-        }
-    }
-
-    public class HubEndPoint<THub, TClient> : IInvocationBinder where THub : Hub
+    public class HubEndPoint<THub> : IInvocationBinder where THub : Hub
     {
         private readonly Dictionary<string, HubMethodDescriptor> _methods = new Dictionary<string, HubMethodDescriptor>(StringComparer.OrdinalIgnoreCase);
 
         private readonly HubLifetimeManager<THub> _lifetimeManager;
         private readonly IHubContext<THub> _hubContext;
-        private readonly ILogger<HubEndPoint<THub, TClient>> _logger;
+        private readonly ILogger<HubEndPoint<THub>> _logger;
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly IHubProtocolResolver _protocolResolver;
 
         public HubEndPoint(HubLifetimeManager<THub> lifetimeManager,
                            IHubProtocolResolver protocolResolver,
                            IHubContext<THub> hubContext,
-                           ILogger<HubEndPoint<THub, TClient>> logger,
+                           ILogger<HubEndPoint<THub>> logger,
                            IServiceScopeFactory serviceScopeFactory)
         {
             _protocolResolver = protocolResolver;
@@ -116,7 +104,7 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 using (var scope = _serviceScopeFactory.CreateScope())
                 {
-                    var hubActivator = scope.ServiceProvider.GetRequiredService<IHubActivator<THub, TClient>>();
+                    var hubActivator = scope.ServiceProvider.GetRequiredService<IHubActivator<THub>>();
                     var hub = hubActivator.Create();
                     try
                     {
@@ -142,7 +130,7 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 using (var scope = _serviceScopeFactory.CreateScope())
                 {
-                    var hubActivator = scope.ServiceProvider.GetRequiredService<IHubActivator<THub, TClient>>();
+                    var hubActivator = scope.ServiceProvider.GetRequiredService<IHubActivator<THub>>();
                     var hub = hubActivator.Create();
                     try
                     {
@@ -281,7 +269,7 @@ namespace Microsoft.AspNetCore.SignalR
                     return;
                 }
 
-                var hubActivator = scope.ServiceProvider.GetRequiredService<IHubActivator<THub, TClient>>();
+                var hubActivator = scope.ServiceProvider.GetRequiredService<IHubActivator<THub>>();
                 var hub = hubActivator.Create();
 
                 try
