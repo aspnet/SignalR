@@ -20,7 +20,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.SignalR
 {
-    public class HubEndPoint<THub> : HubEndPoint<THub, IClientProxy> where THub : Hub<IClientProxy>
+    public class HubEndPoint<THub> : HubEndPoint<THub, IClientProxy> where THub : Hub
     {
         public HubEndPoint(HubLifetimeManager<THub> lifetimeManager,
                            IHubProtocolResolver protocolResolver,
@@ -32,19 +32,19 @@ namespace Microsoft.AspNetCore.SignalR
         }
     }
 
-    public class HubEndPoint<THub, TClient> : IInvocationBinder where THub : Hub<TClient>
+    public class HubEndPoint<THub, TClient> : IInvocationBinder where THub : Hub
     {
         private readonly Dictionary<string, HubMethodDescriptor> _methods = new Dictionary<string, HubMethodDescriptor>(StringComparer.OrdinalIgnoreCase);
 
         private readonly HubLifetimeManager<THub> _lifetimeManager;
-        private readonly IHubContext<THub, TClient> _hubContext;
+        private readonly IHubContext<THub> _hubContext;
         private readonly ILogger<HubEndPoint<THub, TClient>> _logger;
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly IHubProtocolResolver _protocolResolver;
 
         public HubEndPoint(HubLifetimeManager<THub> lifetimeManager,
                            IHubProtocolResolver protocolResolver,
-                           IHubContext<THub, TClient> hubContext,
+                           IHubContext<THub> hubContext,
                            ILogger<HubEndPoint<THub, TClient>> logger,
                            IServiceScopeFactory serviceScopeFactory)
         {

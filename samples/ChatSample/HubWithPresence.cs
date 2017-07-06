@@ -14,7 +14,7 @@ namespace ChatSample
         { }
     }
 
-    public class HubWithPresence<TClient> : Hub<TClient>
+    public class HubWithPresence<TClient> : Hub
     {
         private IUserTracker<HubWithPresence<TClient>> _userTracker;
 
