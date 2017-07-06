@@ -25,7 +25,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
         public DefaultConnectionContext Connection { get; }
         public Channel<byte[]> Application { get; }
-        public Task Connected => Connection.Metadata.Get<TaskCompletionSource<bool>>("ConnectedTask").Task;
+        public Task Connected => (Connection.Metadata["ConnectedTask"] as TaskCompletionSource<bool>).Task;
 
         public TestClient(bool synchronousCallbacks = false)
         {
