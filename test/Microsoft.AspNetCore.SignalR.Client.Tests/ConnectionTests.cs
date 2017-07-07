@@ -154,7 +154,8 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
             releaseDisposeTcs.SetResult(null);
             await disposeTask.OrTimeout();
 
-            transport.Verify(t => t.StartAsync(It.IsAny<Uri>(), It.IsAny<Channel<byte[], SendMessage>>()), Times.Never);
+            transport.Verify(t => t.StartAsync(
+                It.IsAny<Uri>(), It.IsAny<Channel<byte[], SendMessage>>(), It.IsAny<TransferMode>()), Times.Never);
         }
 
         [Fact]
@@ -241,7 +242,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 });
 
             var mockTransport = new Mock<ITransport>();
-            mockTransport.Setup(t => t.StartAsync(It.IsAny<Uri>(), It.IsAny<Channel<byte[], SendMessage>>()))
+            mockTransport.Setup(t => t.StartAsync(It.IsAny<Uri>(), It.IsAny<Channel<byte[], SendMessage>>(), It.IsAny<TransferMode>()))
                 .Returns(Task.FromException(new InvalidOperationException("Transport failed to start")));
 
 
@@ -350,7 +351,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
 
             var mockTransport = new Mock<ITransport>();
             Channel<byte[], SendMessage> channel = null;
-            mockTransport.Setup(t => t.StartAsync(It.IsAny<Uri>(), It.IsAny<Channel<byte[], SendMessage>>()))
+            mockTransport.Setup(t => t.StartAsync(It.IsAny<Uri>(), It.IsAny<Channel<byte[], SendMessage>>(), It.IsAny<TransferMode>()))
                 .Returns<Uri, Channel<byte[], SendMessage>>((url, c) =>
                 {
                     channel = c;
@@ -396,7 +397,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
 
             var mockTransport = new Mock<ITransport>();
             Channel<byte[], SendMessage> channel = null;
-            mockTransport.Setup(t => t.StartAsync(It.IsAny<Uri>(), It.IsAny<Channel<byte[], SendMessage>>()))
+            mockTransport.Setup(t => t.StartAsync(It.IsAny<Uri>(), It.IsAny<Channel<byte[], SendMessage>>(), It.IsAny<TransferMode>()))
                 .Returns<Uri, Channel<byte[], SendMessage>>((url, c) =>
                 {
                     channel = c;

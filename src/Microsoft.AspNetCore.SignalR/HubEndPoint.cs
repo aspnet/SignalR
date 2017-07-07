@@ -91,7 +91,7 @@ namespace Microsoft.AspNetCore.SignalR
                 // Nothing should be writing to the HubConnectionContext
                 output.Out.TryComplete();
 
-                // This should unwind once we complete the output 
+                // This should unwind once we complete the output
                 await writingOutputTask;
             }
         }
@@ -108,7 +108,11 @@ namespace Microsoft.AspNetCore.SignalR
                         // Other components, outside the Hub, may need to know what protocol is in use
                         // for a particular connection, so we store it here.
                         connection.Protocol = _protocolResolver.GetProtocol(negotiationMessage.Protocol, connection);
+                        var transferMode = connection.Protocol.Type == ProtocolType.Binary
+                            ? TransferMode.Binary
+                            : TransferMode.Text;
 
+                        connection.Features.Set(new TransferModeFeature { });
                         return;
                     }
                 }

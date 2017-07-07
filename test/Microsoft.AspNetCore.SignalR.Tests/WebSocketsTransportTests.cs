@@ -5,6 +5,7 @@ using System;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.SignalR.Tests.Common;
+using Microsoft.AspNetCore.Sockets;
 using Microsoft.AspNetCore.Sockets.Client;
 using Microsoft.AspNetCore.Sockets.Internal;
 using Microsoft.AspNetCore.Testing.xunit;
@@ -40,7 +41,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var channelConnection = new ChannelConnection<SendMessage, byte[]>(connectionToTransport, transportToConnection);
 
                 var webSocketsTransport = new WebSocketsTransport(loggerFactory);
-                await webSocketsTransport.StartAsync(new Uri(_serverFixture.WebSocketsUrl + "/echo"), channelConnection).OrTimeout();
+                await webSocketsTransport.StartAsync(new Uri(_serverFixture.WebSocketsUrl + "/echo"), channelConnection, TransferMode.Text).OrTimeout();
                 await webSocketsTransport.StopAsync().OrTimeout();
                 await webSocketsTransport.Running.OrTimeout();
             }
@@ -57,7 +58,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var channelConnection = new ChannelConnection<SendMessage, byte[]>(connectionToTransport, transportToConnection);
 
                 var webSocketsTransport = new WebSocketsTransport(loggerFactory);
-                await webSocketsTransport.StartAsync(new Uri(_serverFixture.WebSocketsUrl + "/echo"), channelConnection);
+                await webSocketsTransport.StartAsync(new Uri(_serverFixture.WebSocketsUrl + "/echo"), channelConnection, TransferMode.Text);
                 connectionToTransport.Out.TryComplete();
                 await webSocketsTransport.Running.OrTimeout();
             }
@@ -74,7 +75,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var channelConnection = new ChannelConnection<SendMessage, byte[]>(connectionToTransport, transportToConnection);
 
                 var webSocketsTransport = new WebSocketsTransport(loggerFactory);
-                await webSocketsTransport.StartAsync(new Uri(_serverFixture.WebSocketsUrl + "/echo"), channelConnection);
+                await webSocketsTransport.StartAsync(new Uri(_serverFixture.WebSocketsUrl + "/echo"), channelConnection, TransferMode.Text);
 
                 var sendTcs = new TaskCompletionSource<object>();
                 connectionToTransport.Out.TryWrite(new SendMessage(new byte[] { 0x42 }, sendTcs));
