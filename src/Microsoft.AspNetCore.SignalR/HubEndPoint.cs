@@ -112,7 +112,7 @@ namespace Microsoft.AspNetCore.SignalR
                             ? TransferMode.Binary
                             : TransferMode.Text;
 
-                        connection.Features.Set(new TransferModeFeature { });
+                        connection.Features.Set<ITransferModeFeature>(new TransferModeFeature { TransferMode = transferMode });
                         return;
                     }
                 }

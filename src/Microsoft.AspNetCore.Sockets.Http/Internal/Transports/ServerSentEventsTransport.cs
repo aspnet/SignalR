@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
@@ -16,13 +17,13 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
     public class ServerSentEventsTransport : IHttpTransport
     {
         private readonly ReadableChannel<byte[]> _application;
-        private readonly string _connectionId;
+        private readonly ConnectionContext _connection;
         private readonly ILogger _logger;
 
-        public ServerSentEventsTransport(ReadableChannel<byte[]> application, string connectionId, ILoggerFactory loggerFactory)
+        public ServerSentEventsTransport(ReadableChannel<byte[]> application, ConnectionContext connection, ILoggerFactory loggerFactory)
         {
             _application = application;
-            _connectionId = connectionId;
+            _connection = connection;
             _logger = loggerFactory.CreateLogger<ServerSentEventsTransport>();
         }
 
@@ -49,7 +50,14 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                     var ms = new MemoryStream();
                     while (_application.TryRead(out var buffer))
                     {
-                        _logger.SSEWritingMessage(_connectionId, buffer.Length);
+                        _logger.SSEWritingMessage(_connection.ConnectionId, buffer.Length);
+
+                        var transferModeFeature = _connection.Features.Get<ITransferModeFeature>();
+                        if (transferModeFeature != null && transferModeFeature.TransferMode == TransferMode.Binary)
+                        {
+                            var base64String = Convert.ToBase64String(buffer);
+                            buffer = Encoding.UTF8.GetBytes(base64String);
+                        }
 
                         ServerSentEventsMessageFormatter.WriteMessage(buffer, ms);
                     }

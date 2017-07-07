@@ -86,9 +86,8 @@ namespace Microsoft.AspNetCore.Sockets
                 // channel/adapter to be able to do Binary <--> Text conversion
 
                 // We only need to provide the Input channel since writing to the application is handled through /send.
-                var sse = new ServerSentEventsTransport(connection.Application.In, connection.ConnectionId, _loggerFactory);
+                var sse = new ServerSentEventsTransport(connection.Application.In, connection, _loggerFactory);
 
-                connection.Metadata["TransportCapabilities"] = TransferMode.Text;
                 await DoPersistentConnection(socketDelegate, sse, context, connection);
             }
             else if (context.WebSockets.IsWebSocketRequest)
@@ -109,7 +108,6 @@ namespace Microsoft.AspNetCore.Sockets
                     return;
                 }
 
-                connection.Metadata["TransportCapabilities"] = TransferMode.Text | TransferMode.Binary;
                 var ws = new WebSocketsTransport(options.WebSockets, connection.Application, connection, _loggerFactory);
 
                 await DoPersistentConnection(socketDelegate, ws, context, connection);
@@ -189,7 +187,6 @@ namespace Microsoft.AspNetCore.Sockets
                     context.Response.RegisterForDispose(timeoutSource);
                     context.Response.RegisterForDispose(tokenSource);
 
-                    connection.Metadata["TransportCapabilities"] = TransferMode.Text | TransferMode.Binary;
                     var longPolling = new LongPollingTransport(timeoutSource.Token, connection.Application.In, connection.ConnectionId, _loggerFactory);
 
                     // Start the transport
@@ -391,15 +388,19 @@ namespace Microsoft.AspNetCore.Sockets
 
             _logger.ReceivedBytes(connection.ConnectionId, buffer.Length);
 
-            var transferModeFeature = connection.Features.Get<ITransferModeFeature>();
-            if (transferModeFeature != null)
+            // uber uber gross - send is binary only receive is base64 encoded
+            // the issue: The first message - clients encodes but the server does not know it needs to decode
+            /*
+            // TODO: uber gross
+            if ((TransportType)connection.Metadata[ConnectionMetadataNames.Transport] == TransportType.ServerSentEvents)
             {
-                if (((TransferMode)connection.Metadata["TransportCapabilities"] | transferModeFeature.TransferMode) == 0)
+                var transferModeFeature = connection.Features.Get<ITransferModeFeature>();
+                if (transferModeFeature != null && transferModeFeature.TransferMode == TransferMode.Binary)
                 {
-                    // TODO: Implement Binary <--> Text conversion
-                    throw new NotImplementedException();
+                    buffer = Convert.FromBase64String(Encoding.UTF8.GetString(buffer));
                 }
             }
+            */
 
             while (!connection.Application.Out.TryWrite(buffer))
             {

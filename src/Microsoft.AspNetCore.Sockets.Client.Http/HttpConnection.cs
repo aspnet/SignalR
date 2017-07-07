@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using System.Net.Http;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
@@ -50,7 +51,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
         { }
 
         public HttpConnection(Uri url, TransportType transportType)
-                    : this(url, transportType, loggerFactory: null)
+            : this(url, transportType, loggerFactory: null)
         {
         }
 
@@ -292,9 +293,13 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     if (Input.TryRead(out var buffer))
                     {
                         var transferMode = GetTransferMode();
-                        if (transferMode != _transport.Mode)
+                        if (transferMode == TransferMode.Binary && _transport.Mode == TransferMode.Text)
                         {
-                            // TODO: Binary <--> Text conversion happens here
+                            buffer = Convert.FromBase64String(Encoding.UTF8.GetString(buffer));
+                        }
+                        else if (transferMode == TransferMode.Text && _transport.Mode == TransferMode.Binary)
+                        {
+                            // This should never happen with currently supported transports
                             throw new NotImplementedException();
                         }
 
@@ -344,12 +349,17 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     "Cannot send messages when the connection is not in the Connected state.");
             }
 
+            /* Gross - send as binary HttpRequest can handle that
             var transferMode = GetTransferMode();
-            if (transferMode != _transport.Mode)
+            if (transferMode == TransferMode.Binary && _transport.Mode == TransferMode.Text)
             {
-                // TODO: Binary <--> Text conversion happens here
-                throw new NotImplementedException();
+                // data = Encoding.UTF8.GetBytes(Convert.ToBase64String(data));
             }
+            else if (transferMode == TransferMode.Text && _transport.Mode == TransferMode.Binary)
+            {
+                // This should never happen with currently supported transports
+                throw new NotImplementedException();
+            }*/
 
             // TaskCreationOptions.RunContinuationsAsynchronously ensures that continuations awaiting
             // SendAsync (i.e. user's code) are not running on the same thread as the code that sets
