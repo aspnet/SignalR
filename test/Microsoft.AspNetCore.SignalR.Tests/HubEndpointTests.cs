@@ -9,6 +9,7 @@ using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.SignalR.Tests.Common;
+using Microsoft.CSharp;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Xunit;
@@ -438,7 +439,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Fact]
-        public async Task BroadcastHubMethod_SendsToAllClients()
+        public async Task BroadcastHubMethodSendsToAllClients()
         {
             var serviceProvider = CreateServiceProvider();
 
@@ -465,6 +466,40 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 }
 
                 // kill the connections
+                firstClient.Dispose();
+                secondClient.Dispose();
+
+                await Task.WhenAll(firstEndPointTask, secondEndPointTask).OrTimeout();
+            }
+        }
+
+        [Fact]
+        public async Task BroadcastDynamicHubMethodSendsToAllClients()
+        {
+            var serviceProvider = CreateServiceProvider();
+
+            var endPoint = serviceProvider.GetService<HubEndPoint<DynamicTestHub>>();
+
+            using (var firstClient = new TestClient())
+            using (var secondClient = new TestClient())
+            {
+                var firstEndPointTask = endPoint.OnConnectedAsync(firstClient.Connection);
+                var secondEndPointTask = endPoint.OnConnectedAsync(secondClient.Connection);
+
+                await Task.WhenAll(firstClient.Connected, secondClient.Connected).OrTimeout();
+
+                await firstClient.SendInvocationAsync(nameof(DynamicTestHub.BroadcastMethod), "test").OrTimeout();
+
+                foreach (var result in await Task.WhenAll(
+                    firstClient.Read(),
+                    secondClient.Read()).OrTimeout())
+                {
+                    var invocation = Assert.IsType<InvocationMessage>(result);
+                    Assert.Equal("Broadcast", invocation.Target);
+                    Assert.Equal(1, invocation.Arguments.Length);
+                    Assert.Equal("test", invocation.Arguments[0]);
+                }
+
                 firstClient.Dispose();
                 secondClient.Dispose();
 
@@ -507,6 +542,44 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 Assert.Equal("test", invocation.Arguments[0]);
 
                 // kill the connections
+                firstClient.Dispose();
+                secondClient.Dispose();
+
+                await Task.WhenAll(firstEndPointTask, secondEndPointTask).OrTimeout();
+            }
+        }
+
+        [Fact]
+        public async Task DynamicHubsCanAddAndSendToGroup()
+        {
+            var serviceProvider = CreateServiceProvider();
+
+            var endPoint = serviceProvider.GetService<HubEndPoint<DynamicTestHub>>();
+
+            using (var firstClient = new TestClient())
+            using (var secondClient = new TestClient())
+            {
+                var firstEndPointTask = endPoint.OnConnectedAsync(firstClient.Connection);
+                var secondEndPointTask = endPoint.OnConnectedAsync(secondClient.Connection);
+
+                await Task.WhenAll(firstClient.Connected, secondClient.Connected).OrTimeout();
+
+                var result = (await firstClient.InvokeAsync(nameof(DynamicTestHub.GroupSendMethod), "testGroup", "test").OrTimeout()).Result;
+
+                Assert.Null(firstClient.TryRead());
+
+                Assert.Null(secondClient.TryRead());
+
+                result = (await secondClient.InvokeAsync(nameof(DynamicTestHub.GroupAddMethod), "testGroup").OrTimeout()).Result;
+
+                await firstClient.SendInvocationAsync(nameof(DynamicTestHub.GroupSendMethod), "testGroup", "test").OrTimeout();
+
+                var hubMessage = await secondClient.Read().OrTimeout();
+                var invocation = Assert.IsType<InvocationMessage>(hubMessage);
+                Assert.Equal("Send", invocation.Target);
+                Assert.Equal(1, invocation.Arguments.Length);
+                Assert.Equal("test", invocation.Arguments[0]);
+
                 firstClient.Dispose();
                 secondClient.Dispose();
 
@@ -567,6 +640,36 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Fact]
+        public async Task DynamicHubsCanSendToUser()
+        {
+            var serviceProvider = CreateServiceProvider();
+
+            var endPoint = serviceProvider.GetService<HubEndPoint<DynamicTestHub>>();
+
+            using (var firstClient = new TestClient())
+            using (var secondClient = new TestClient())
+            {
+                var firstEndPointTask = endPoint.OnConnectedAsync(firstClient.Connection);
+                var secondEndPointTask = endPoint.OnConnectedAsync(secondClient.Connection);
+
+                await Task.WhenAll(firstClient.Connected, secondClient.Connected).OrTimeout();
+
+                await firstClient.SendInvocationAsync(nameof(DynamicTestHub.ClientSendMethod), secondClient.Connection.User.Identity.Name, "test").OrTimeout();
+
+                var hubMessage = await secondClient.Read().OrTimeout();
+                var invocation = Assert.IsType<InvocationMessage>(hubMessage);
+                Assert.Equal("Send", invocation.Target);
+                Assert.Equal(1, invocation.Arguments.Length);
+                Assert.Equal("test", invocation.Arguments[0]);
+
+                firstClient.Dispose();
+                secondClient.Dispose();
+
+                await Task.WhenAll(firstEndPointTask, secondEndPointTask).OrTimeout();
+            }
+        }
+
+        [Fact]
         public async Task HubsCanSendToConnection()
         {
             var serviceProvider = CreateServiceProvider();
@@ -591,6 +694,36 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 Assert.Equal("test", invocation.Arguments[0]);
 
                 // kill the connections
+                firstClient.Dispose();
+                secondClient.Dispose();
+
+                await Task.WhenAll(firstEndPointTask, secondEndPointTask).OrTimeout();
+            }
+        }
+
+        [Fact]
+        public async Task DynamicHubsCanSendToConnection()
+        {
+            var serviceProvider = CreateServiceProvider();
+
+            var endPoint = serviceProvider.GetService<HubEndPoint<DynamicTestHub>>();
+
+            using (var firstClient = new TestClient())
+            using (var secondClient = new TestClient())
+            {
+                var firstEndPointTask = endPoint.OnConnectedAsync(firstClient.Connection);
+                var secondEndPointTask = endPoint.OnConnectedAsync(secondClient.Connection);
+
+                await Task.WhenAll(firstClient.Connected, secondClient.Connected).OrTimeout();
+
+                await firstClient.SendInvocationAsync(nameof(DynamicTestHub.ConnectionSendMethod), secondClient.Connection.ConnectionId, "test").OrTimeout();
+
+                var hubMessage = await secondClient.Read().OrTimeout();
+                var invocation = Assert.IsType<InvocationMessage>(hubMessage);
+                Assert.Equal("Send", invocation.Target);
+                Assert.Equal(1, invocation.Arguments.Length);
+                Assert.Equal("test", invocation.Arguments[0]);
+
                 firstClient.Dispose();
                 secondClient.Dispose();
 
@@ -742,6 +875,41 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             addServices?.Invoke(services);
 
             return services.BuildServiceProvider();
+        }
+
+        private class DynamicTestHub : DynamicHub
+        {
+            public override Task OnConnectedAsync()
+            {
+                var tcs = (TaskCompletionSource<bool>)Context.Connection.Metadata["ConnectedTask"];
+                tcs?.TrySetResult(true);
+                return base.OnConnectedAsync();
+            }
+
+            public Task ClientSendMethod(string userId, string message)
+            {
+                return Clients.User(userId).Send(message);
+            }
+
+            public Task ConnectionSendMethod(string connectionId, string message)
+            {
+                return Clients.Client(connectionId).Send(message);
+            }
+
+            public Task GroupAddMethod(string groupName)
+            {
+                return Groups.AddAsync(Context.ConnectionId, groupName);
+            }
+
+            public Task GroupSendMethod(string groupName, string message)
+            {
+                return Clients.Group(groupName).Send(message);
+            }
+
+            public Task BroadcastMethod(string message)
+            {
+                return Clients.All.Broadcast(message);
+            }
         }
 
         public class StreamingHub : TestHub

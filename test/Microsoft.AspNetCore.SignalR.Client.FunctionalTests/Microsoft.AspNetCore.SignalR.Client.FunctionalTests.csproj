@@ -30,6 +30,7 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="$(XunitVersion)" />
     <PackageReference Include="xunit" Version="$(XunitVersion)" />
     <PackageReference Include="System.Reactive.Linq" Version="$(RxVersion)" />
+    <PackageReference Include="Microsoft.CSharp" Version="$(CoreFxVersion)" />
   </ItemGroup>
 
 </Project>

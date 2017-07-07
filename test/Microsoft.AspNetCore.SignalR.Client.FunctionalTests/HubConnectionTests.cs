@@ -39,18 +39,20 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         }
 
         [Theory]
-        [MemberData(nameof(HubProtocolsXTransports))]
-        public async Task CheckFixedMessage(IHubProtocol protocol, TransportType transport)
+        [MemberData(nameof(HubProtocolsXTransportsXHubPaths))]
+        public async Task CheckFixedMessage(IHubProtocol protocol, TransportType transportType, string path)
         {
-            using (StartLog(out var loggerFactory))
+            var loggerFactory = CreateLogger();
+
+            try
             {
-                var httpConnection = new HttpConnection(new Uri(_serverFixture.BaseUrl + "/hubs"), transport, loggerFactory);
+                var httpConnection = new HttpConnection(new Uri(_serverFixture.BaseUrl + "/hubs"), transportType, loggerFactory);
                 var connection = new HubConnection(httpConnection, protocol, loggerFactory);
                 try
                 {
                     await connection.StartAsync().OrTimeout();
 
-                    var result = await connection.InvokeAsync<string>(nameof(TestHub.HelloWorld)).OrTimeout();
+                    var result = await connection.InvokeAsync<string>("HelloWorld").OrTimeout();
 
                     Assert.Equal("Hello World!", result);
                 }
@@ -67,14 +69,15 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         }
 
         [Theory]
-        [MemberData(nameof(HubProtocolsXTransports))]
-        public async Task CanSendAndReceiveMessage(IHubProtocol protocol, TransportType transport)
+        [MemberData(nameof(HubProtocolsXTransportsXHubPaths))]
+        public async Task CanSendAndReceiveMessage(IHubProtocol protocol, TransportType transportType, string path)
         {
-            using (StartLog(out var loggerFactory))
+            var loggerFactory = CreateLogger();
+
+            try
             {
                 const string originalMessage = "SignalR";
-
-                var httpConnection = new HttpConnection(new Uri(_serverFixture.BaseUrl + "/hubs"), transport, loggerFactory);
+                var httpConnection = new HttpConnection(new Uri(_serverFixture.BaseUrl + "/hubs"), transportType, loggerFactory);
                 var connection = new HubConnection(httpConnection, protocol, loggerFactory);
                 try
                 {
@@ -97,38 +100,40 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         }
 
         [Theory]
-        [MemberData(nameof(HubProtocolsXTransports))]
-        public async Task MethodsAreCaseInsensitive(IHubProtocol protocol, TransportType transport)
+        [MemberData(nameof(HubProtocolsXTransportsXHubPaths))]
+        public async Task MethodsAreCaseInsensitive(IHubProtocol protocol, TransportType transportType, string path)
         {
             using (StartLog(out var loggerFactory))
             {
-                const string originalMessage = "SignalR";
-
-                var httpConnection = new HttpConnection(new Uri(_serverFixture.BaseUrl + "/hubs"), transport, loggerFactory);
-                var connection = new HubConnection(httpConnection, protocol, loggerFactory);
                 try
                 {
-                    await connection.StartAsync().OrTimeout();
+                    const string originalMessage = "SignalR";
+                    var uriString = "http://test/" + path;
+                    var httpConnection = new HttpConnection(new Uri(_serverFixture.BaseUrl + "/hubs"), transportType, loggerFactory);
+                    var connection = new HubConnection(httpConnection, protocol, loggerFactory);
+                    try
+                    {
+                        await connection.StartAsync().OrTimeout();
 
-                    var result = await connection.InvokeAsync<string>(nameof(TestHub.Echo).ToLowerInvariant(), originalMessage).OrTimeout();
+                        var result = await connection.InvokeAsync<string>(nameof(TestHub.Echo).ToLowerInvariant(), originalMessage).OrTimeout();
 
-                    Assert.Equal(originalMessage, result);
-                }
-                catch (Exception ex)
-                {
-                    loggerFactory.CreateLogger<HubConnectionTests>().LogError(ex, "Exception from test");
-                    throw;
-                }
-                finally
-                {
-                    await connection.DisposeAsync().OrTimeout();
-                }
+                        Assert.Equal(originalMessage, result);
+                    }
+                    catch (Exception ex)
+                    {
+                        loggerFactory.CreateLogger<HubConnectionTests>().LogError(ex, "Exception from test");
+                        throw;
+                    }
+                    finally
+                    {
+                        await connection.DisposeAsync().OrTimeout();
+                    }
             }
         }
 
         [Theory]
-        [MemberData(nameof(HubProtocolsXTransports))]
-        public async Task CanInvokeClientMethodFromServer(IHubProtocol protocol, TransportType transport)
+        [MemberData(nameof(HubProtocolsXTransportsXHubPaths))]
+        public async Task CanInvokeClientMethodFromServer(IHubProtocol protocol, TransportType transportType, string path)
         {
             using (StartLog(out var loggerFactory))
             {
@@ -143,7 +148,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                     var tcs = new TaskCompletionSource<string>();
                     connection.On<string>("Echo", tcs.SetResult);
 
-                    await connection.InvokeAsync(nameof(TestHub.CallEcho), originalMessage).OrTimeout();
+                    await connection.InvokeAsync("CallEcho", originalMessage).OrTimeout();
 
                     Assert.Equal(originalMessage, await tcs.Task.OrTimeout());
                 }
@@ -160,10 +165,12 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         }
 
         [Theory]
-        [MemberData(nameof(HubProtocolsXTransports))]
-        public async Task CanStreamClientMethodFromServer(IHubProtocol protocol, TransportType transport)
+        [MemberData(nameof(HubProtocolsXTransportsXHubPaths))]
+        public async Task CanStreamClientMethodFromServer(IHubProtocol protocol, TransportType transportType, string path)
         {
             using (StartLog(out var loggerFactory))
+            {
+            try
             {
                 var httpConnection = new HttpConnection(new Uri(_serverFixture.BaseUrl + "/hubs"), transport, loggerFactory);
                 var connection = new HubConnection(httpConnection, protocol, loggerFactory);
@@ -174,6 +181,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                     var tcs = new TaskCompletionSource<string>();
 
                     var results = await connection.Stream<string>(nameof(TestHub.Stream)).ReadAllAsync().OrTimeout();
+
 
                     Assert.Equal(new[] { "a", "b", "c" }, results.ToArray());
                 }
@@ -190,12 +198,12 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         }
 
         [Theory]
-        [MemberData(nameof(HubProtocolsXTransports))]
-        public async Task ServerClosesConnectionIfHubMethodCannotBeResolved(IHubProtocol hubProtocol, TransportType transport)
+        [MemberData(nameof(HubProtocolsXTransportsXHubPaths))]
+        public async Task ServerClosesConnectionIfHubMethodCannotBeResolved(IHubProtocol hubProtocol, TransportType transport, string hubPath)
         {
             using (StartLog(out var loggerFactory))
             {
-                var httpConnection = new HttpConnection(new Uri(_serverFixture.BaseUrl + "/hubs"), transport, loggerFactory);
+                var httpConnection = new HttpConnection(new Uri(_serverFixture.BaseUrl + hubPath), transport, loggerFactory);
                 var connection = new HubConnection(httpConnection, hubProtocol, loggerFactory);
                 try
                 {
@@ -218,7 +226,61 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             }
         }
 
-        public static IEnumerable<object []> HubProtocolsXTransports()
+        public static IEnumerable<object[]> HubProtocolsXTransportsXHubPaths()
+        {
+            foreach (var protocol in HubProtocols)
+            {
+                foreach (var transport in TransportTypes())
+                {
+                    foreach (var hubPath in HubPaths())
+                    {
+                        yield return new object[] { protocol, transport, hubPath };
+                    }
+                }
+            }
+        }
+
+        public static IEnumerable<string> HubPaths()
+            {
+                yield return "default";
+                yield return "dynamic";
+            }
+
+        public static IEnumerable<IHubProtocol> HubProtocols =>
+            new IHubProtocol[]
+            {
+                new JsonHubProtocol(new JsonSerializer()),
+                new MessagePackHubProtocol(),
+            };
+
+        public static IEnumerable<TransportType> TransportTypes()
+        {
+            // Disable Websocket and SSE for now I guess...
+            //if (WebsocketsSupported())
+            //{
+            //    yield return TransportType.WebSockets;
+            //}
+            //yield return TransportType.ServerSentEvents;
+
+            // Only working for longpolling atm
+            yield return TransportType.LongPolling;
+
+            //bool WebsocketsSupported()
+            //{
+            //    try
+            //    {
+            //        new System.Net.WebSockets.ClientWebSocket();
+            //    }
+            //    catch (PlatformNotSupportedException)
+            //    {
+            //        return false;
+            //    }
+
+            //    return true;
+            //}
+        }
+
+        public void Dispose()
         {
             foreach (var protocol in HubProtocols)
             {
@@ -261,6 +323,34 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 }
 
                 return true;
+            }
+        }
+
+        public class DynamicTestHub : DynamicHub
+        {
+            public string HelloWorld()
+            {
+                return "Hello World!";
+            }
+
+            public string Echo(string message)
+            {
+                return message;
+            }
+
+            public async Task CallEcho(string message)
+            {
+                await Clients.Client(Context.ConnectionId).Echo(message);
+            }
+
+            public IObservable<string> Stream()
+            {
+                return new[] { "a", "b", "c" }.ToObservable();
+            }
+
+            public Task SendMessage(string message)
+            {
+                return Clients.All.Send(message);
             }
         }
     }
