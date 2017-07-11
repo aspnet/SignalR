@@ -85,6 +85,7 @@ namespace Microsoft.AspNetCore.Sockets
                 // TODO: We need to handle conversion for binary protocols. We may need to give the transport a different
                 // channel/adapter to be able to do Binary <--> Text conversion
 
+                connection.Metadata["TransportCapabilities"] = TransferMode.Text;
                 // We only need to provide the Input channel since writing to the application is handled through /send.
                 var sse = new ServerSentEventsTransport(connection.Application.In, connection, _loggerFactory);
 
@@ -108,6 +109,7 @@ namespace Microsoft.AspNetCore.Sockets
                     return;
                 }
 
+                connection.Metadata["TransportCapabilities"] = TransferMode.Text | TransferMode.Binary;
                 var ws = new WebSocketsTransport(options.WebSockets, connection.Application, connection, _loggerFactory);
 
                 await DoPersistentConnection(socketDelegate, ws, context, connection);
@@ -426,6 +428,7 @@ namespace Microsoft.AspNetCore.Sockets
             if (transport == null)
             {
                 connection.Metadata[ConnectionMetadataNames.Transport] = transportType;
+                connection.Metadata["TransportCapabilities"] = TransferMode.Text | TransferMode.Binary;
             }
             else if (transport != transportType)
             {

@@ -49,7 +49,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     var connectionToTransport = Channel.CreateUnbounded<SendMessage>();
                     var transportToConnection = Channel.CreateUnbounded<byte[]>();
                     var channelConnection = new ChannelConnection<SendMessage, byte[]>(connectionToTransport, transportToConnection);
-                    await sseTransport.StartAsync(new Uri("http://fakeuri.org"), channelConnection).OrTimeout();
+                    await sseTransport.StartAsync(new Uri("http://fakeuri.org"), channelConnection, Sockets.TransferMode.Binary).OrTimeout();
 
                     await eventStreamTcs.Task.OrTimeout();
                     await sseTransport.StopAsync().OrTimeout();

@@ -51,14 +51,6 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                     while (_application.TryRead(out var buffer))
                     {
                         _logger.SSEWritingMessage(_connection.ConnectionId, buffer.Length);
-
-                        var transferModeFeature = _connection.Features.Get<ITransferModeFeature>();
-                        if (transferModeFeature != null && transferModeFeature.TransferMode == TransferMode.Binary)
-                        {
-                            var base64String = Convert.ToBase64String(buffer);
-                            buffer = Encoding.UTF8.GetBytes(base64String);
-                        }
-
                         ServerSentEventsMessageFormatter.WriteMessage(buffer, ms);
                     }
 

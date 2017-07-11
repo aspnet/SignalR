@@ -113,6 +113,21 @@ namespace Microsoft.AspNetCore.SignalR
                             : TransferMode.Text;
 
                         connection.Features.Set<ITransferModeFeature>(new TransferModeFeature { TransferMode = transferMode });
+
+                        IDataEncoder encoder = null;
+                        if (transferMode == TransferMode.Binary &&
+                            ((TransferMode)connection.Metadata["TransportCapabilities"] & TransferMode.Binary) == 0)
+                        {
+                            // can be cached
+                            encoder = new Base64Encoder();
+                        }
+                        else
+                        {
+                            encoder = new PassThroughEncoder();
+                        }
+
+                        connection.Features.Set<IDataEncoderFeature>(new DataEncoderFeature { Encoder = encoder });
+
                         return;
                     }
                 }
@@ -278,6 +293,10 @@ namespace Microsoft.AspNetCore.SignalR
         private async Task SendMessageAsync(HubConnectionContext connection, IHubProtocol protocol, HubMessage hubMessage)
         {
             var payload = protocol.WriteToArray(hubMessage);
+            var encoder = connection.Features.Get<IDataEncoderFeature>()?.Encoder
+                ?? throw new InvalidOperationException("Encoder not set");
+            payload = encoder.Encode(payload);
+
 
             while (await connection.Output.WaitToWriteAsync())
             {

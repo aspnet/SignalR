@@ -213,7 +213,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             {
                 builder.AddConsole();
                 builder.AddFilter<ConsoleLoggerProvider>(level => level >= (_verbose ? LogLevel.Trace : LogLevel.Error));
-                builder.AddDebug();
+                // builder.AddDebug();
             });
 
             return serviceCollection.BuildServiceProvider().GetRequiredService<ILoggerFactory>();

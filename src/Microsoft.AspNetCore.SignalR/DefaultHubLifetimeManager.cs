@@ -127,6 +127,9 @@ namespace Microsoft.AspNetCore.SignalR
         private async Task WriteAsync(HubConnectionContext connection, HubMessage hubMessage)
         {
             var payload = connection.Protocol.WriteToArray(hubMessage);
+            var encoder = connection.Features.Get<IDataEncoderFeature>()?.Encoder
+                ?? throw new InvalidOperationException("Encoder not set");
+            payload = encoder.Encode(payload);
 
             while (await connection.Output.WaitToWriteAsync())
             {
