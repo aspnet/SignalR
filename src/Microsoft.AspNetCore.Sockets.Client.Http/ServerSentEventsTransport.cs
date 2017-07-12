@@ -40,11 +40,13 @@ namespace Microsoft.AspNetCore.Sockets.Client
             _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<ServerSentEventsTransport>();
         }
 
-        public Task StartAsync(Uri url, Channel<byte[], SendMessage> application)
+        public Task StartAsync(Uri url, Channel<byte[], SendMessage> application, TransferMode requestedTransferMode)
         {
             _logger.LogInformation("Starting {transportName}", nameof(ServerSentEventsTransport));
 
             _application = application;
+            Mode = TransferMode.Text; // SSE transport supports only text mode
+
             var sendTask = SendUtils.SendMessages(url, _application, _httpClient, _transportCts, _logger);
             var receiveTask = OpenConnection(_application, url, _transportCts.Token);
 
@@ -62,6 +64,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
             return Task.CompletedTask;
         }
 
+        public TransferMode? Mode { get; private set; }
+
         private async Task OpenConnection(Channel<byte[], SendMessage> application, Uri url, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Starting receive loop");
@@ -71,6 +75,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
             var stream = await response.Content.ReadAsStreamAsync();
+
             var pipelineReader = stream.AsPipelineReader(cancellationToken);
             var readCancellationRegistration = cancellationToken.Register(
                 reader => ((IPipeReader)reader).CancelPendingRead(), pipelineReader);
@@ -78,7 +83,12 @@ namespace Microsoft.AspNetCore.Sockets.Client
             {
                 while (true)
                 {
-                    var result = await pipelineReader.ReadAsync();
+                    var result = await pipelineReader.ReadAsync(cancellationToken);
+                    if (result.IsCancelled)
+                    {
+                        break;
+                    }
+
                     var input = result.Buffer;
                     if (result.IsCancelled || (input.IsEmpty && result.IsCompleted))
                     {

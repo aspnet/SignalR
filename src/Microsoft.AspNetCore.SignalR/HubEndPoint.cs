@@ -91,7 +91,7 @@ namespace Microsoft.AspNetCore.SignalR
                 // Nothing should be writing to the HubConnectionContext
                 output.Out.TryComplete();
 
-                // This should unwind once we complete the output 
+                // This should unwind once we complete the output
                 await writingOutputTask;
             }
         }
@@ -108,6 +108,25 @@ namespace Microsoft.AspNetCore.SignalR
                         // Other components, outside the Hub, may need to know what protocol is in use
                         // for a particular connection, so we store it here.
                         connection.Protocol = _protocolResolver.GetProtocol(negotiationMessage.Protocol, connection);
+                        var transferMode = connection.Protocol.Type == ProtocolType.Binary
+                            ? TransferMode.Binary
+                            : TransferMode.Text;
+
+                        connection.Features.Set<ITransferModeFeature>(new TransferModeFeature { TransferMode = transferMode });
+
+                        IDataEncoder encoder = null;
+                        if (transferMode == TransferMode.Binary &&
+                            ((TransferMode)connection.Metadata["TransportCapabilities"] & TransferMode.Binary) == 0)
+                        {
+                            // can be cached
+                            encoder = new Base64Encoder();
+                        }
+                        else
+                        {
+                            encoder = new PassThroughEncoder();
+                        }
+
+                        connection.Features.Set<IDataEncoderFeature>(new DataEncoderFeature { Encoder = encoder });
 
                         return;
                     }
@@ -274,6 +293,10 @@ namespace Microsoft.AspNetCore.SignalR
         private async Task SendMessageAsync(HubConnectionContext connection, IHubProtocol protocol, HubMessage hubMessage)
         {
             var payload = protocol.WriteToArray(hubMessage);
+            var encoder = connection.Features.Get<IDataEncoderFeature>()?.Encoder
+                ?? throw new InvalidOperationException("Encoder not set");
+            payload = encoder.Encode(payload);
+
 
             while (await connection.Output.WaitToWriteAsync())
             {

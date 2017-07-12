@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
+using Microsoft.AspNetCore.Sockets;
 using Microsoft.AspNetCore.Sockets.Client;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -77,6 +78,11 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         public async Task StartAsync()
         {
+            var transferMode = _protocol.Type == ProtocolType.Binary
+                ? TransferMode.Binary
+                : TransferMode.Text;
+
+            _connection.Features.Set<ITransferModeFeature>(new TransferModeFeature { TransferMode = transferMode });
             await _connection.StartAsync();
 
             using (var memoryStream = new MemoryStream())

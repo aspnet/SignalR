@@ -82,8 +82,12 @@ namespace Microsoft.AspNetCore.Sockets
                     return;
                 }
 
+                // TODO: We need to handle conversion for binary protocols. We may need to give the transport a different
+                // channel/adapter to be able to do Binary <--> Text conversion
+
+                connection.Metadata["TransportCapabilities"] = TransferMode.Text;
                 // We only need to provide the Input channel since writing to the application is handled through /send.
-                var sse = new ServerSentEventsTransport(connection.Application.In, connection.ConnectionId, _loggerFactory);
+                var sse = new ServerSentEventsTransport(connection.Application.In, connection, _loggerFactory);
 
                 await DoPersistentConnection(socketDelegate, sse, context, connection);
             }
@@ -105,7 +109,8 @@ namespace Microsoft.AspNetCore.Sockets
                     return;
                 }
 
-                var ws = new WebSocketsTransport(options.WebSockets, connection.Application, connection.ConnectionId, _loggerFactory);
+                connection.Metadata["TransportCapabilities"] = TransferMode.Text | TransferMode.Binary;
+                var ws = new WebSocketsTransport(options.WebSockets, connection.Application, connection, _loggerFactory);
 
                 await DoPersistentConnection(socketDelegate, ws, context, connection);
             }
@@ -384,6 +389,21 @@ namespace Microsoft.AspNetCore.Sockets
             }
 
             _logger.ReceivedBytes(connection.ConnectionId, buffer.Length);
+
+            // uber uber gross - send is binary only receive is base64 encoded
+            // the issue: The first message - clients encodes but the server does not know it needs to decode
+            /*
+            // TODO: uber gross
+            if ((TransportType)connection.Metadata[ConnectionMetadataNames.Transport] == TransportType.ServerSentEvents)
+            {
+                var transferModeFeature = connection.Features.Get<ITransferModeFeature>();
+                if (transferModeFeature != null && transferModeFeature.TransferMode == TransferMode.Binary)
+                {
+                    buffer = Convert.FromBase64String(Encoding.UTF8.GetString(buffer));
+                }
+            }
+            */
+
             while (!connection.Application.Out.TryWrite(buffer))
             {
                 if (!await connection.Application.Out.WaitToWriteAsync())
@@ -408,6 +428,7 @@ namespace Microsoft.AspNetCore.Sockets
             if (transport == null)
             {
                 connection.Metadata[ConnectionMetadataNames.Transport] = transportType;
+                connection.Metadata["TransportCapabilities"] = TransferMode.Text | TransferMode.Binary;
             }
             else if (transport != transportType)
             {

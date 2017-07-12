@@ -17,6 +17,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
     {
         private readonly ClientWebSocket _webSocket = new ClientWebSocket();
         private Channel<byte[], SendMessage> _application;
+
         private readonly CancellationTokenSource _transportCts = new CancellationTokenSource();
         private readonly ILogger _logger;
 
@@ -32,7 +33,9 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         public Task Running { get; private set; } = Task.CompletedTask;
 
-        public async Task StartAsync(Uri url, Channel<byte[], SendMessage> application)
+        public TransferMode? Mode { get; private set; }
+
+        public async Task StartAsync(Uri url, Channel<byte[], SendMessage> application, TransferMode requestedTransferMode)
         {
             _logger.LogInformation("Starting {0}", nameof(WebSocketsTransport));
 
@@ -47,6 +50,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             }
 
             _application = application;
+            Mode = requestedTransferMode;
 
             await Connect(url);
             var sendTask = SendMessages(url);
@@ -155,7 +159,12 @@ namespace Microsoft.AspNetCore.Sockets.Client
                         {
                             _logger.LogDebug("Received message from application. Payload size: {1}", message.Payload.Length);
 
-                            await _webSocket.SendAsync(new ArraySegment<byte>(message.Payload), WebSocketMessageType.Text, true, _transportCts.Token);
+                            var messageType = Mode == TransferMode.Binary
+                                ? WebSocketMessageType.Binary
+                                : WebSocketMessageType.Text;
+
+                            await _webSocket.SendAsync(new ArraySegment<byte>(message.Payload),
+                                messageType, true, _transportCts.Token);
 
                             message.SendResult.SetResult(null);
                         }

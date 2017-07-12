@@ -4,9 +4,11 @@
 using System;
 using System.IO;
 using System.Net.Http;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Sockets.Client.Internal;
 using Microsoft.AspNetCore.Sockets.Internal;
 using Microsoft.Extensions.Logging;
@@ -34,6 +36,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         public Uri Url { get; }
 
+        public IFeatureCollection Features { get; } = new FeatureCollection();
+
         public event Func<Task> Connected;
         public event Func<byte[], Task> Received;
         public event Func<Exception, Task> Closed;
@@ -47,7 +51,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
         { }
 
         public HttpConnection(Uri url, TransportType transportType)
-                    : this(url, transportType, loggerFactory: null)
+            : this(url, transportType, loggerFactory: null)
         {
         }
 
@@ -260,7 +264,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
             // Start the transport, giving it one end of the pipeline
             try
             {
-                await _transport.StartAsync(connectUrl, applicationSide);
+                var transferMode = GetTransferMode();
+                await _transport.StartAsync(connectUrl, applicationSide, transferMode);
             }
             catch (Exception ex)
             {
@@ -287,6 +292,17 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
                     if (Input.TryRead(out var buffer))
                     {
+                        var transferMode = GetTransferMode();
+                        if (transferMode == TransferMode.Binary && _transport.Mode == TransferMode.Text)
+                        {
+                            buffer = Convert.FromBase64String(Encoding.UTF8.GetString(buffer));
+                        }
+                        else if (transferMode == TransferMode.Text && _transport.Mode == TransferMode.Binary)
+                        {
+                            // This should never happen with currently supported transports
+                            throw new NotImplementedException();
+                        }
+
                         _logger.LogDebug("Scheduling raising Received event.");
                         _ = _eventQueue.Enqueue(() =>
                         {
@@ -332,6 +348,18 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 throw new InvalidOperationException(
                     "Cannot send messages when the connection is not in the Connected state.");
             }
+
+            /* Gross - send as binary HttpRequest can handle that
+            var transferMode = GetTransferMode();
+            if (transferMode == TransferMode.Binary && _transport.Mode == TransferMode.Text)
+            {
+                // data = Encoding.UTF8.GetBytes(Convert.ToBase64String(data));
+            }
+            else if (transferMode == TransferMode.Text && _transport.Mode == TransferMode.Binary)
+            {
+                // This should never happen with currently supported transports
+                throw new NotImplementedException();
+            }*/
 
             // TaskCreationOptions.RunContinuationsAsynchronously ensures that continuations awaiting
             // SendAsync (i.e. user's code) are not running on the same thread as the code that sets
@@ -388,6 +416,18 @@ namespace Microsoft.AspNetCore.Sockets.Client
             }
 
             _httpClient.Dispose();
+        }
+
+        private TransferMode GetTransferMode()
+        {
+            var transferModeFeature = Features.Get<ITransferModeFeature>();
+            if (transferModeFeature == null)
+            {
+                // REVIEW: use TransferMode.Text as default if the feature is missing?
+                throw new InvalidOperationException("TransferModeFeature not set");
+            }
+
+            return transferModeFeature.TransferMode;
         }
 
         private class ConnectionState

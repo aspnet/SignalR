@@ -18,10 +18,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
 
         public static void WriteMessage(ReadOnlySpan<byte> payload, Stream output)
         {
-            // Calculate the length, it's the number of characters for text messages, but number of base64 characters for binary
-
             // Write the length as a string
-
             // Super inefficient...
             var lengthString = payload.Length.ToString(CultureInfo.InvariantCulture);
             var buffer = ArrayPool<byte>.Shared.Rent(Int32OverflowLength);

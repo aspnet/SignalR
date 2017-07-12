@@ -24,6 +24,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         public Task Running { get; private set; } = Task.CompletedTask;
 
+        public TransferMode? Mode { get; private set; }
+
         public LongPollingTransport(HttpClient httpClient)
             : this(httpClient, null)
         { }
@@ -34,11 +36,12 @@ namespace Microsoft.AspNetCore.Sockets.Client
             _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<LongPollingTransport>();
         }
 
-        public Task StartAsync(Uri url, Channel<byte[], SendMessage> application)
+        public Task StartAsync(Uri url, Channel<byte[], SendMessage> application, TransferMode requestedTransferMode)
         {
             _logger.LogInformation("Starting {0}", nameof(LongPollingTransport));
 
             _application = application;
+            Mode = requestedTransferMode;
 
             // Start sending and polling (ask for binary if the server supports it)
             _poller = Poll(url, _transportCts.Token);
