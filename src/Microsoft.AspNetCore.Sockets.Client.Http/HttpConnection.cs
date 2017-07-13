@@ -9,7 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.Http.Features;
-using Microsoft.AspNetCore.Sockets.Abstractions.Features;
+using Microsoft.AspNetCore.Sockets.Features;
 using Microsoft.AspNetCore.Sockets.Client.Internal;
 using Microsoft.AspNetCore.Sockets.Internal;
 using Microsoft.Extensions.Logging;
@@ -285,8 +285,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             var transferModeFeature = Features.Get<ITransferModeFeature>();
             if (transferModeFeature == null)
             {
-                // REVIEW: use TransferMode.Text as default if the feature is missing?
-                throw new InvalidOperationException("TransferModeFeature not set.");
+                return TransferMode.Text;
             }
 
             return transferModeFeature.TransferMode;
@@ -297,8 +296,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
             var transferModeFeature = Features.Get<ITransferModeFeature>();
             if (transferModeFeature == null)
             {
-                // REVIEW: no-op?
-                throw new InvalidOperationException("TransferModeFeature not set.");
+                transferModeFeature = new TransferModeFeature();
+                Features.Set(transferModeFeature);
             }
 
             transferModeFeature.TransferMode = transferMode;

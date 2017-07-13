@@ -53,7 +53,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     var connectionToTransport = Channel.CreateUnbounded<SendMessage>();
                     var transportToConnection = Channel.CreateUnbounded<byte[]>();
                     var channelConnection = new ChannelConnection<SendMessage, byte[]>(connectionToTransport, transportToConnection);
-                    await sseTransport.StartAsync(new Uri("http://fakeuri.org"), channelConnection, TransferMode.Text, connectionId: string.Empty).OrTimeout();
+                    await sseTransport.StartAsync(
+                        new Uri("http://fakeuri.org"), channelConnection, TransferMode.Text, connectionId: string.Empty).OrTimeout();
 
                     await eventStreamTcs.Task.OrTimeout();
                     await sseTransport.StopAsync().OrTimeout();
@@ -104,7 +105,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     var transportToConnection = Channel.CreateUnbounded<byte[]>();
                     var channelConnection = new ChannelConnection<SendMessage, byte[]>(connectionToTransport, transportToConnection);
                     await sseTransport.StartAsync(
-                        new Uri("http://fakeuri.org"), channelConnection, connectionId: string.Empty).OrTimeout();
+                        new Uri("http://fakeuri.org"), channelConnection, TransferMode.Text, connectionId: string.Empty).OrTimeout();
 
                     transportActiveTask = sseTransport.Running;
                     Assert.False(transportActiveTask.IsCompleted);
@@ -151,7 +152,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 var transportToConnection = Channel.CreateUnbounded<byte[]>();
                 var channelConnection = new ChannelConnection<SendMessage, byte[]>(connectionToTransport, transportToConnection);
                 await sseTransport.StartAsync(
-                    new Uri("http://fakeuri.org"), channelConnection, connectionId: string.Empty).OrTimeout();
+                    new Uri("http://fakeuri.org"), channelConnection, TransferMode.Text, connectionId: string.Empty).OrTimeout();
 
                 var exception = await Assert.ThrowsAsync<FormatException>(() => sseTransport.Running.OrTimeout());
                 Assert.Equal("Incomplete message.", exception.Message);
@@ -196,7 +197,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 var channelConnection = new ChannelConnection<SendMessage, byte[]>(connectionToTransport, transportToConnection);
 
                 await sseTransport.StartAsync(
-                    new Uri("http://fakeuri.org"), channelConnection, connectionId: string.Empty).OrTimeout();
+                    new Uri("http://fakeuri.org"), channelConnection, TransferMode.Text, connectionId: string.Empty).OrTimeout();
                 await eventStreamTcs.Task;
 
                 var sendTcs = new TaskCompletionSource<object>();
@@ -242,7 +243,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 var channelConnection = new ChannelConnection<SendMessage, byte[]>(connectionToTransport, transportToConnection);
 
                 await sseTransport.StartAsync(
-                    new Uri("http://fakeuri.org"), channelConnection, connectionId: string.Empty).OrTimeout();
+                    new Uri("http://fakeuri.org"), channelConnection, TransferMode.Text, connectionId: string.Empty).OrTimeout();
                 await eventStreamTcs.Task.OrTimeout();
 
                 connectionToTransport.Out.TryComplete(null);
@@ -271,7 +272,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 var transportToConnection = Channel.CreateUnbounded<byte[]>();
                 var channelConnection = new ChannelConnection<SendMessage, byte[]>(connectionToTransport, transportToConnection);
                 await sseTransport.StartAsync(
-                    new Uri("http://fakeuri.org"), channelConnection, connectionId: string.Empty).OrTimeout();
+                    new Uri("http://fakeuri.org"), channelConnection, TransferMode.Text, connectionId: string.Empty).OrTimeout();
 
                 var message = await transportToConnection.In.ReadAsync().AsTask().OrTimeout();
                 Assert.Equal("3:abc", Encoding.ASCII.GetString(message));

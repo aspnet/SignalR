@@ -12,7 +12,7 @@ using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.Sockets;
-using Microsoft.AspNetCore.Sockets.Abstractions.Features;
+using Microsoft.AspNetCore.Sockets.Features;
 using Microsoft.AspNetCore.Sockets.Client;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -402,6 +402,11 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 Handler = handler;
                 ParameterTypes = parameterTypes;
             }
+        }
+
+        private class TransferModeFeature : ITransferModeFeature
+        {
+            public TransferMode TransferMode { get; set; }
         }
     }
 }

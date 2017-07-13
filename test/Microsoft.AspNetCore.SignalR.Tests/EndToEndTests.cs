@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.AspNetCore.SignalR.Tests.Common;
 using Microsoft.AspNetCore.Sockets;
-using Microsoft.AspNetCore.Sockets.Abstractions.Features;
+using Microsoft.AspNetCore.Sockets.Features;
 using Microsoft.AspNetCore.Sockets.Client;
 using Microsoft.AspNetCore.Testing.xunit;
 using Microsoft.Extensions.Logging;
