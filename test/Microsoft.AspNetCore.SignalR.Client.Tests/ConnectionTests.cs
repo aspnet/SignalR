@@ -9,7 +9,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.Client.Tests;
+using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.AspNetCore.SignalR.Tests.Common;
+using Microsoft.AspNetCore.Sockets.Abstractions.Features;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Moq;
@@ -60,6 +62,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 });
 
             var connection = new HttpConnection(new Uri("http://fakeuri.org/"), TransportType.LongPolling, loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
+            connection.Features.Set<ITransferModeFeature>(new TransferModeFeature { TransferMode = TransferMode.Text });
             try
             {
                 await connection.StartAsync();
@@ -89,6 +92,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 });
 
             var connection = new HttpConnection(new Uri("http://fakeuri.org/"), TransportType.LongPolling, loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
+            connection.Features.Set<ITransferModeFeature>(new TransferModeFeature { TransferMode = TransferMode.Text });
 
             await connection.StartAsync();
             await connection.DisposeAsync();
@@ -154,7 +158,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
             releaseDisposeTcs.SetResult(null);
             await disposeTask.OrTimeout();
 
-            transport.Verify(t => t.StartAsync(It.IsAny<Uri>(), It.IsAny<Channel<byte[], SendMessage>>(), It.IsAny<string>()), Times.Never);
+            transport.Verify(t => t.StartAsync(It.IsAny<Uri>(), It.IsAny<Channel<byte[], SendMessage>>(), It.IsAny<TransferMode>(), It.IsAny<string>()), Times.Never);
         }
 
         [Fact]
@@ -182,6 +186,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
 
 
             var connection = new HttpConnection(new Uri("http://fakeuri.org/"), TransportType.LongPolling, loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
+            connection.Features.Set<ITransferModeFeature>(new TransferModeFeature { TransferMode = TransferMode.Text });
 
             await connection.StartAsync();
             await connection.DisposeAsync();
@@ -207,6 +212,8 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
 
 
             var connection = new HttpConnection(new Uri("http://fakeuri.org/"), TransportType.LongPolling, loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
+            connection.Features.Set<ITransferModeFeature>(new TransferModeFeature { TransferMode = TransferMode.Text });
+
             try
             {
                 var connectedEventRaisedTcs = new TaskCompletionSource<object>();
@@ -241,9 +248,8 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 });
 
             var mockTransport = new Mock<ITransport>();
-            mockTransport.Setup(t => t.StartAsync(It.IsAny<Uri>(), It.IsAny<Channel<byte[], SendMessage>>(), It.IsAny<string>()))
+            mockTransport.Setup(t => t.StartAsync(It.IsAny<Uri>(), It.IsAny<Channel<byte[], SendMessage>>(), It.IsAny<TransferMode>(), It.IsAny<string>()))
                 .Returns(Task.FromException(new InvalidOperationException("Transport failed to start")));
-
 
             var connection = new HttpConnection(new Uri("http://fakeuri.org/"), new TestTransportFactory(mockTransport.Object), loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
             var connectedEventRaised = false;
@@ -283,6 +289,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
 
 
             var connection = new HttpConnection(new Uri("http://fakeuri.org/"), TransportType.LongPolling, loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
+            connection.Features.Set<ITransferModeFeature>(new TransferModeFeature { TransferMode = TransferMode.Text });
 
             var closedEventTcs = new TaskCompletionSource<Exception>();
             connection.Closed += e =>
@@ -316,6 +323,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 });
 
             var connection = new HttpConnection(new Uri("http://fakeuri.org/"), TransportType.LongPolling, loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
+            connection.Features.Set<ITransferModeFeature>(new TransferModeFeature { TransferMode = TransferMode.Text });
             var closedEventTcs = new TaskCompletionSource<Exception>();
             connection.Closed += e =>
             {
@@ -350,8 +358,8 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
 
             var mockTransport = new Mock<ITransport>();
             Channel<byte[], SendMessage> channel = null;
-            mockTransport.Setup(t => t.StartAsync(It.IsAny<Uri>(), It.IsAny<Channel<byte[], SendMessage>>(), It.IsAny<string>()))
-                .Returns<Uri, Channel<byte[], SendMessage>, string>((url, c, id) =>
+            mockTransport.Setup(t => t.StartAsync(It.IsAny<Uri>(), It.IsAny<Channel<byte[], SendMessage>>(), It.IsAny<TransferMode>(), It.IsAny<string>()))
+                .Returns<Uri, Channel<byte[], SendMessage>, TransferMode, string>((url, c, transferMode, connectionId) =>
                 {
                     channel = c;
                     return Task.CompletedTask;
@@ -365,9 +373,11 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                     channel.Out.TryComplete();
                     return Task.CompletedTask;
                 });
-
+            mockTransport.SetupGet(t => t.Mode).Returns(TransferMode.Text);
 
             var connection = new HttpConnection(new Uri("http://fakeuri.org/"), new TestTransportFactory(mockTransport.Object), loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
+            connection.Features.Set<ITransferModeFeature>(new TransferModeFeature { TransferMode = TransferMode.Text });
+
             var receivedInvoked = false;
             connection.Received += m =>
             {
@@ -396,8 +406,8 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
 
             var mockTransport = new Mock<ITransport>();
             Channel<byte[], SendMessage> channel = null;
-            mockTransport.Setup(t => t.StartAsync(It.IsAny<Uri>(), It.IsAny<Channel<byte[], SendMessage>>(), It.IsAny<string>()))
-                .Returns<Uri, Channel<byte[], SendMessage>, string>((url, c, id) =>
+            mockTransport.Setup(t => t.StartAsync(It.IsAny<Uri>(), It.IsAny<Channel<byte[], SendMessage>>(), It.IsAny<TransferMode>(), It.IsAny<string>()))
+                .Returns<Uri, Channel<byte[], SendMessage>, TransferMode, string>((url, c, transferMode, connectionId) =>
                 {
                     channel = c;
                     return Task.CompletedTask;
@@ -408,12 +418,15 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                     channel.Out.TryComplete();
                     return Task.CompletedTask;
                 });
+            mockTransport.SetupGet(t => t.Mode).Returns(TransferMode.Text);
 
 
             var callbackInvokedTcs = new TaskCompletionSource<object>();
             var closedTcs = new TaskCompletionSource<object>();
 
             var connection = new HttpConnection(new Uri("http://fakeuri.org/"), new TestTransportFactory(mockTransport.Object), loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
+            connection.Features.Set<ITransferModeFeature>(new TransferModeFeature { TransferMode = TransferMode.Text });
+
             connection.Received +=
                 async m =>
                 {
@@ -471,6 +484,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
             {
                 var longPollingTransport = new LongPollingTransport(httpClient, new LoggerFactory());
                 var connection = new HttpConnection(new Uri("http://fakeuri.org/"), new TestTransportFactory(longPollingTransport), loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
+                connection.Features.Set<ITransferModeFeature>(new TransferModeFeature { TransferMode = TransferMode.Text });
 
                 try
                 {
@@ -510,6 +524,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 });
 
             var connection = new HttpConnection(new Uri("http://fakeuri.org/"), TransportType.LongPolling, loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
+            connection.Features.Set<ITransferModeFeature>(new TransferModeFeature { TransferMode = TransferMode.Text });
             try
             {
                 await connection.StartAsync();
@@ -556,6 +571,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 });
 
             var connection = new HttpConnection(new Uri("http://fakeuri.org/"), TransportType.LongPolling, loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
+            connection.Features.Set<ITransferModeFeature>(new TransferModeFeature { TransferMode = TransferMode.Text });
 
             await connection.StartAsync();
             await connection.DisposeAsync();
@@ -584,7 +600,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 });
 
             var connection = new HttpConnection(new Uri("http://fakeuri.org/"), TransportType.LongPolling, loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
-
+            connection.Features.Set<ITransferModeFeature>(new TransferModeFeature { TransferMode = TransferMode.Text });
             await connection.StartAsync();
 
             var exception = await Assert.ThrowsAsync<HttpRequestException>(
@@ -616,6 +632,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 });
 
             var connection = new HttpConnection(new Uri("http://fakeuri.org/"), TransportType.LongPolling, loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
+            connection.Features.Set<ITransferModeFeature>(new TransferModeFeature { TransferMode = TransferMode.Text });
             try
             {
                 var receiveTcs = new TaskCompletionSource<string>();
@@ -666,6 +683,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 });
 
             var connection = new HttpConnection(new Uri("http://fakeuri.org/"), TransportType.LongPolling, loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
+            connection.Features.Set<ITransferModeFeature>(new TransferModeFeature { TransferMode = TransferMode.Text });
             try
             {
                 var closeTcs = new TaskCompletionSource<Exception>();
