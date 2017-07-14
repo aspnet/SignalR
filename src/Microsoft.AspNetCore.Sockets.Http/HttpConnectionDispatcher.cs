@@ -82,6 +82,9 @@ namespace Microsoft.AspNetCore.Sockets
                     return;
                 }
 
+                // ServerSentEvents is a text protocol only
+                connection.TransportCapabilities = TransferMode.Text;
+
                 // We only need to provide the Input channel since writing to the application is handled through /send.
                 var sse = new ServerSentEventsTransport(connection.Application.In, connection.ConnectionId, _loggerFactory);
 
@@ -105,7 +108,9 @@ namespace Microsoft.AspNetCore.Sockets
                     return;
                 }
 
-                var ws = new WebSocketsTransport(options.WebSockets, connection.Application, connection.ConnectionId, _loggerFactory);
+                connection.TransportCapabilities = TransferMode.Binary | TransferMode.Text;
+
+                var ws = new WebSocketsTransport(options.WebSockets, connection.Application, connection, _loggerFactory);
 
                 await DoPersistentConnection(socketDelegate, ws, context, connection);
             }
@@ -408,6 +413,7 @@ namespace Microsoft.AspNetCore.Sockets
             if (transport == null)
             {
                 connection.Metadata[ConnectionMetadataNames.Transport] = transportType;
+                connection.TransportCapabilities = TransferMode.Binary | TransferMode.Text;
             }
             else if (transport != transportType)
             {
