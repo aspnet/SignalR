@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
@@ -144,17 +145,16 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Theory]
-        [InlineData("dynamic")]
-        [InlineData("default")]
-        public async Task HubMethodsAreCaseInsensitive(string hubType)
+        [MemberData(nameof(HubTypes))]
+        public async Task HubMethodsAreCaseInsensitive(Type hubType)
         {
             var serviceProvider = CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            dynamic endPoint = serviceProvider.GetService(GetEndPointType(hubType));
 
             using (var client = new TestClient())
             {
-                var endPointTask = endPoint.OnConnectedAsync(client.Connection);
+                Task endPointTask = endPoint.OnConnectedAsync(client.Connection);
 
                 var result = (await client.InvokeAsync("echo", "hello").OrTimeout()).Result;
 
@@ -441,21 +441,12 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Theory]
-        [InlineData("dynamic")]
-        [InlineData("default")]
-        public async Task BroadcastHubMethodSendsToAllClients(string hubType)
+        [MemberData(nameof(HubTypes))]
+        public async Task BroadcastHubMethodSendsToAllClients(Type hubType)
         {
             var serviceProvider = CreateServiceProvider();
 
-            dynamic endPoint;
-            if (hubType.Equals("dynamic"))
-            {
-                endPoint = serviceProvider.GetService<HubEndPoint<DynamicTestHub>>();
-            }
-            else
-            {
-                endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
-            }
+            dynamic endPoint = serviceProvider.GetService(GetEndPointType(hubType));
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
@@ -486,21 +477,12 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Theory]
-        [InlineData("dynamic")]
-        [InlineData("default")]
-        public async Task HubsCanAddAndSendToGroup(string hubType)
+        [MemberData(nameof(HubTypes))]
+        public async Task HubsCanAddAndSendToGroup(Type hubType)
         {
             var serviceProvider = CreateServiceProvider();
 
-            dynamic endPoint;
-            if(hubType.Equals("dynamic"))
-            {
-                endPoint = serviceProvider.GetService<HubEndPoint<DynamicTestHub>>();
-            }
-            else
-            {
-                endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
-            }
+            dynamic endPoint = serviceProvider.GetService(GetEndPointType(hubType));
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
@@ -558,21 +540,12 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Theory]
-        [InlineData("dynamic")]
-        [InlineData("default")]
-        public async Task HubsCanSendToUser(string hubType)
+        [MemberData(nameof(HubTypes))]
+        public async Task HubsCanSendToUser(Type hubType)
         {
             var serviceProvider = CreateServiceProvider();
 
-            dynamic endPoint;
-            if (hubType.Equals("dynamic"))
-            {
-                endPoint = serviceProvider.GetService<HubEndPoint<DynamicTestHub>>();
-            }
-            else
-            {
-                endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
-            }
+            dynamic endPoint = serviceProvider.GetService(GetEndPointType(hubType));
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
@@ -600,21 +573,12 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Theory]
-        [InlineData("dynamic")]
-        [InlineData("default")]
-        public async Task HubsCanSendToConnection(string hubType)
+        [MemberData(nameof(HubTypes))]
+        public async Task HubsCanSendToConnection(Type hubType)
         {
             var serviceProvider = CreateServiceProvider();
 
-            dynamic endPoint;
-            if (hubType.Equals("dynamic"))
-            {
-                endPoint = serviceProvider.GetService<HubEndPoint<DynamicTestHub>>();
-            }
-            else
-            {
-                endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
-            }
+            dynamic endPoint = serviceProvider.GetService(GetEndPointType(hubType));
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
@@ -764,6 +728,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
+        public static IEnumerable<Type[]> HubTypes()
+        {
+            yield return new Type[] { typeof(DynamicTestHub) };
+            yield return new Type[] { typeof(MethodHub) };
+
+        }
+
         private static Type GetEndPointType(Type hubType)
         {
             var endPointType = typeof(HubEndPoint<>);
@@ -794,6 +765,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var tcs = (TaskCompletionSource<bool>)Context.Connection.Metadata["ConnectedTask"];
                 tcs?.TrySetResult(true);
                 return base.OnConnectedAsync();
+            }
+
+            public string Echo(string data)
+            {
+                return data;
             }
 
             public Task ClientSendMethod(string userId, string message)
