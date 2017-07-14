@@ -732,7 +732,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             yield return new Type[] { typeof(DynamicTestHub) };
             yield return new Type[] { typeof(MethodHub) };
-
         }
 
         private static Type GetEndPointType(Type hubType)
