@@ -30,29 +30,32 @@ namespace Microsoft.AspNetCore.Sockets
 
         public async Task ExecuteAsync(HttpContext context, HttpSocketOptions options, SocketDelegate socketDelegate)
         {
-            if (!await AuthorizeHelper.AuthorizeAsync(context, options.AuthorizationData))
+            using (_logger.BeginScope(new ConnectionLogScope(context)))
             {
-                return;
-            }
+                if (!await AuthorizeHelper.AuthorizeAsync(context, options.AuthorizationData))
+                {
+                    return;
+                }
 
-            if (HttpMethods.IsOptions(context.Request.Method))
-            {
-                // OPTIONS /{path}
-                await ProcessNegotiate(context, options);
-            }
-            else if (HttpMethods.IsPost(context.Request.Method))
-            {
-                // POST /{path}
-                await ProcessSend(context);
-            }
-            else if (HttpMethods.IsGet(context.Request.Method))
-            {
-                // GET /{path}
-                await ExecuteEndpointAsync(context, socketDelegate, options);
-            }
-            else
-            {
-                context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
+                if (HttpMethods.IsOptions(context.Request.Method))
+                {
+                    // OPTIONS /{path}
+                    await ProcessNegotiate(context, options);
+                }
+                else if (HttpMethods.IsPost(context.Request.Method))
+                {
+                    // POST /{path}
+                    await ProcessSend(context);
+                }
+                else if (HttpMethods.IsGet(context.Request.Method))
+                {
+                    // GET /{path}
+                    await ExecuteEndpointAsync(context, socketDelegate, options);
+                }
+                else
+                {
+                    context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
+                }
             }
         }
 
@@ -74,13 +77,13 @@ namespace Microsoft.AspNetCore.Sockets
                     return;
                 }
 
-                _logger.EstablishedConnection(connection.ConnectionId, context.TraceIdentifier);
-
                 if (!await EnsureConnectionStateAsync(connection, context, TransportType.ServerSentEvents, supportedTransports))
                 {
                     // Bad connection state. It's already set the response status code.
                     return;
                 }
+
+                _logger.EstablishedConnection(connection.ConnectionId, context.TraceIdentifier);
 
                 // We only need to provide the Input channel since writing to the application is handled through /send.
                 var sse = new ServerSentEventsTransport(connection.Application.In, connection.ConnectionId, _loggerFactory);
@@ -97,13 +100,13 @@ namespace Microsoft.AspNetCore.Sockets
                     return;
                 }
 
-                _logger.EstablishedConnection(connection.ConnectionId, context.TraceIdentifier);
-
                 if (!await EnsureConnectionStateAsync(connection, context, TransportType.WebSockets, supportedTransports))
                 {
                     // Bad connection state. It's already set the response status code.
                     return;
                 }
+
+                _logger.EstablishedConnection(connection.ConnectionId, context.TraceIdentifier);
 
                 var ws = new WebSocketsTransport(options.WebSockets, connection.Application, connection.ConnectionId, _loggerFactory);
 
@@ -201,8 +204,7 @@ namespace Microsoft.AspNetCore.Sockets
 
                 var pollAgain = true;
 
-                // If the application ended before the transport task then we need to potentially need to end the
-                // connection
+                // If the application ended before the transport task then we potentially need to end the connection
                 if (resultTask == connection.ApplicationTask)
                 {
                     // Complete the transport (notifying it of the application error if there is one)
@@ -419,6 +421,7 @@ namespace Microsoft.AspNetCore.Sockets
 
             // Setup the connection state from the http context
             connection.User = context.User;
+            context.Items[typeof(DefaultConnectionContext)] = connection;
             connection.SetHttpContext(context);
 
             return true;
