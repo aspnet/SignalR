@@ -79,7 +79,7 @@ function getText(id) {
 
 let transportType = signalR.TransportType[getParameterByName('transport')] || signalR.TransportType.WebSockets;
 let hubRoute = getParameterByName('hubType') || "default";
-console.log("Hub Route: " + hubRoute);
+console.log('Hub Route:' + hubRoute);
 
 document.getElementById('head1').innerHTML = signalR.TransportType[transportType];
 

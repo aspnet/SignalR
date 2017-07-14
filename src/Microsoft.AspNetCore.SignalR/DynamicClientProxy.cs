@@ -7,7 +7,7 @@ namespace Microsoft.AspNetCore.SignalR
 { 
     public class DynamicClientProxy : DynamicObject
     {
-        private IClientProxy _clientProxy;
+        private readonly IClientProxy _clientProxy;
 
         public DynamicClientProxy(IClientProxy clientProxy)
         {

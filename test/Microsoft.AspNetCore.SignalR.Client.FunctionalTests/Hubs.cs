@@ -4,6 +4,7 @@
 using System;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
+using Microsoft.CSharp;
 
 namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 {

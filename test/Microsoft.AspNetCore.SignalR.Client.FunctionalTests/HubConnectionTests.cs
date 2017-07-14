@@ -224,7 +224,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             {
                 foreach (var transport in TransportTypes())
                 {
-                    foreach (var hubPath in HubPaths())
+                    foreach (var hubPath in HubPaths)
                     {
                         yield return new object[] { protocol, transport, hubPath };
                     }
@@ -232,11 +232,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             }
         }
 
-        public static IEnumerable<string> HubPaths()
-            {
-                yield return "/default";
-                yield return "/dynamic";
-            }
+        public static string[] HubPaths = new[] { "/default", "/dynamic" };
 
         public static IEnumerable<IHubProtocol> HubProtocols =>
             new IHubProtocol[]
