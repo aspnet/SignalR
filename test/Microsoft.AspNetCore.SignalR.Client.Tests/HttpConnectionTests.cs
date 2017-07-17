@@ -449,8 +449,8 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
 
             var mockTransport = new Mock<ITransport>();
             Channel<byte[], SendMessage> channel = null;
-            mockTransport.Setup(t => t.StartAsync(It.IsAny<Uri>(), It.IsAny<Channel<byte[], SendMessage>>()))
-                .Returns<Uri, Channel<byte[], SendMessage>>((url, c) =>
+            mockTransport.Setup(t => t.StartAsync(It.IsAny<Uri>(), It.IsAny<Channel<byte[], SendMessage>>(), It.IsAny<TransferMode>(), It.IsAny<string>()))
+                .Returns<Uri, Channel<byte[], SendMessage>, TransferMode, string>((url, c, transferMode, connectionId) =>
                 {
                     channel = c;
                     return Task.CompletedTask;
@@ -461,6 +461,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                     channel.Out.TryComplete();
                     return Task.CompletedTask;
                 });
+            mockTransport.SetupGet(t => t.Mode).Returns(TransferMode.Text);
 
             var blockReceiveCallbackTcs = new TaskCompletionSource<object>();
             var closedTcs = new TaskCompletionSource<object>();
@@ -501,8 +502,8 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
 
             var mockTransport = new Mock<ITransport>();
             Channel<byte[], SendMessage> channel = null;
-            mockTransport.Setup(t => t.StartAsync(It.IsAny<Uri>(), It.IsAny<Channel<byte[], SendMessage>>()))
-                .Returns<Uri, Channel<byte[], SendMessage>>((url, c) =>
+            mockTransport.Setup(t => t.StartAsync(It.IsAny<Uri>(), It.IsAny<Channel<byte[], SendMessage>>(), It.IsAny<TransferMode>(), It.IsAny<string>()))
+                .Returns<Uri, Channel<byte[], SendMessage>, TransferMode, string>((url, c, transferMode, connectionId) =>
                 {
                     channel = c;
                     return Task.CompletedTask;
@@ -513,6 +514,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                     channel.Out.TryComplete();
                     return Task.CompletedTask;
                 });
+            mockTransport.SetupGet(t => t.Mode).Returns(TransferMode.Text);
 
             var callbackInvokedTcs = new TaskCompletionSource<object>();
             var closedTcs = new TaskCompletionSource<object>();
