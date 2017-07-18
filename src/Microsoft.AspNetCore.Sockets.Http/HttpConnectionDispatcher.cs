@@ -374,10 +374,7 @@ namespace Microsoft.AspNetCore.Sockets
             return sb.ToString();
         }
 
-        private static string GetConnectionId(HttpContext context)
-        {
-            return context.Request.Query["id"];
-        }
+        private static string GetConnectionId(HttpContext context) => context.Request.Query["id"];
 
         private async Task ProcessSend(HttpContext context)
         {
