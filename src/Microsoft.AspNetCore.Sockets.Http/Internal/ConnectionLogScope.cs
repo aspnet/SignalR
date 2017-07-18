@@ -5,20 +5,18 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
-using Microsoft.AspNetCore.Http;
 
 namespace Microsoft.AspNetCore.Sockets.Internal
 {
     public class ConnectionLogScope : IReadOnlyList<KeyValuePair<string, object>>
     {
-        private string _connectionId;
-
-        private readonly HttpContext _context;
         private string _cachedToString;
 
-        public ConnectionLogScope(HttpContext context)
+        public string ConnectionId { get; set; }
+
+        public ConnectionLogScope(string connectionId)
         {
-            _context = context;
+            ConnectionId = connectionId;
         }
 
         public KeyValuePair<string, object> this[int index]
@@ -63,23 +61,6 @@ namespace Microsoft.AspNetCore.Sockets.Internal
             }
 
             return _cachedToString;
-        }
-
-        private string ConnectionId
-        {
-            get
-            {
-                if (string.IsNullOrEmpty(_connectionId))
-                {
-                    _connectionId = _context.Request.Query["id"];
-                    if (string.IsNullOrEmpty(_connectionId))
-                    {
-                        _connectionId = (_context.Items[typeof(DefaultConnectionContext)] as DefaultConnectionContext)?.ConnectionId;
-                    }
-                }
-
-                return _connectionId;
-            }
         }
     }
 }

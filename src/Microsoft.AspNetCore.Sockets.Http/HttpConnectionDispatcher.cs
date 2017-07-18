@@ -30,7 +30,8 @@ namespace Microsoft.AspNetCore.Sockets
 
         public async Task ExecuteAsync(HttpContext context, HttpSocketOptions options, SocketDelegate socketDelegate)
         {
-            using (_logger.BeginScope(new ConnectionLogScope(context)))
+            var logScope = new ConnectionLogScope(context.Request.Query["id"]);
+            using (_logger.BeginScope(logScope))
             {
                 if (!await AuthorizeHelper.AuthorizeAsync(context, options.AuthorizationData))
                 {
@@ -50,7 +51,7 @@ namespace Microsoft.AspNetCore.Sockets
                 else if (HttpMethods.IsGet(context.Request.Method))
                 {
                     // GET /{path}
-                    await ExecuteEndpointAsync(context, socketDelegate, options);
+                    await ExecuteEndpointAsync(context, socketDelegate, options, logScope);
                 }
                 else
                 {
@@ -59,7 +60,7 @@ namespace Microsoft.AspNetCore.Sockets
             }
         }
 
-        private async Task ExecuteEndpointAsync(HttpContext context, SocketDelegate socketDelegate, HttpSocketOptions options)
+        private async Task ExecuteEndpointAsync(HttpContext context, SocketDelegate socketDelegate, HttpSocketOptions options, ConnectionLogScope logScope)
         {
             var supportedTransports = options.Transports;
 
@@ -77,7 +78,7 @@ namespace Microsoft.AspNetCore.Sockets
                     return;
                 }
 
-                if (!await EnsureConnectionStateAsync(connection, context, TransportType.ServerSentEvents, supportedTransports))
+                if (!await EnsureConnectionStateAsync(connection, context, TransportType.ServerSentEvents, supportedTransports, logScope))
                 {
                     // Bad connection state. It's already set the response status code.
                     return;
@@ -100,7 +101,7 @@ namespace Microsoft.AspNetCore.Sockets
                     return;
                 }
 
-                if (!await EnsureConnectionStateAsync(connection, context, TransportType.WebSockets, supportedTransports))
+                if (!await EnsureConnectionStateAsync(connection, context, TransportType.WebSockets, supportedTransports, logScope))
                 {
                     // Bad connection state. It's already set the response status code.
                     return;
@@ -124,7 +125,7 @@ namespace Microsoft.AspNetCore.Sockets
                     return;
                 }
 
-                if (!await EnsureConnectionStateAsync(connection, context, TransportType.LongPolling, supportedTransports))
+                if (!await EnsureConnectionStateAsync(connection, context, TransportType.LongPolling, supportedTransports, logScope))
                 {
                     // Bad connection state. It's already set the response status code.
                     return;
@@ -395,7 +396,7 @@ namespace Microsoft.AspNetCore.Sockets
             }
         }
 
-        private async Task<bool> EnsureConnectionStateAsync(DefaultConnectionContext connection, HttpContext context, TransportType transportType, TransportType supportedTransports)
+        private async Task<bool> EnsureConnectionStateAsync(DefaultConnectionContext connection, HttpContext context, TransportType transportType, TransportType supportedTransports, ConnectionLogScope logScope)
         {
             if ((supportedTransports & transportType) == 0)
             {
@@ -421,8 +422,8 @@ namespace Microsoft.AspNetCore.Sockets
 
             // Setup the connection state from the http context
             connection.User = context.User;
-            context.Items[typeof(DefaultConnectionContext)] = connection;
             connection.SetHttpContext(context);
+            logScope.ConnectionId = connection.ConnectionId;
 
             return true;
         }
