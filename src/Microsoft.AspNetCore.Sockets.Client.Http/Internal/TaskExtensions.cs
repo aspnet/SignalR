@@ -15,7 +15,7 @@ namespace Microsoft.AspNetCore.Sockets.Http.Internal
         }
     }
 
-    struct NoThrowAwaiter : ICriticalNotifyCompletion
+    internal struct NoThrowAwaiter : ICriticalNotifyCompletion
     {
         private readonly Task _task;
         public NoThrowAwaiter(Task task) { _task = task; }

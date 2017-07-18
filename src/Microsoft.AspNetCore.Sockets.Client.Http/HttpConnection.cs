@@ -33,7 +33,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
         private TaskQueue _eventQueue = new TaskQueue();
         private readonly ITransportFactory _transportFactory;
         private string _connectionId;
-        private TimeSpan _timeout = TimeSpan.FromSeconds(5);
+        private readonly TimeSpan _eventQueueDrainTimeout = TimeSpan.FromSeconds(5);
 
         private ReadableChannel<byte[]> Input => _transportChannel.In;
         private WritableChannel<SendMessage> Output => _transportChannel.Out;
@@ -175,7 +175,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     _logger.DrainEvents(_connectionId);
                     await _eventQueue.Drain();
 
-                    await Task.WhenAny(_eventQueue.Drain().NoThrow(), Task.Delay(_timeout));
+                    await Task.WhenAny(_eventQueue.Drain().NoThrow(), Task.Delay(_eventQueueDrainTimeout));
                     _httpClient.Dispose();
 
                     _logger.RaiseClosed(_connectionId);
