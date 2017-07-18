@@ -30,7 +30,10 @@ namespace Microsoft.AspNetCore.Sockets
 
         public async Task ExecuteAsync(HttpContext context, HttpSocketOptions options, SocketDelegate socketDelegate)
         {
-            var logScope = new ConnectionLogScope(context.Request.Query["id"]);
+            // Create the log scope and attempt to pass the Connection ID to it so as many logs as possible contain
+            // the Connection ID metadata. If this is the negotiate request then the Connection ID for the scope will
+            // be set a little later.
+            var logScope = new ConnectionLogScope(GetConnectionId(context));
             using (_logger.BeginScope(logScope))
             {
                 if (!await AuthorizeHelper.AuthorizeAsync(context, options.AuthorizationData))
@@ -367,6 +370,11 @@ namespace Microsoft.AspNetCore.Sockets
             return sb.ToString();
         }
 
+        private static string GetConnectionId(HttpContext context)
+        {
+            return context.Request.Query["id"];
+        }
+
         private async Task ProcessSend(HttpContext context)
         {
             var connection = await GetConnectionAsync(context);
@@ -423,6 +431,9 @@ namespace Microsoft.AspNetCore.Sockets
             // Setup the connection state from the http context
             connection.User = context.User;
             connection.SetHttpContext(context);
+
+            // Set the Connection ID on the logging scope so that logs from now on will have the
+            // Connection ID metadata set.
             logScope.ConnectionId = connection.ConnectionId;
 
             return true;
@@ -430,7 +441,7 @@ namespace Microsoft.AspNetCore.Sockets
 
         private async Task<DefaultConnectionContext> GetConnectionAsync(HttpContext context)
         {
-            var connectionId = context.Request.Query["id"];
+            var connectionId = GetConnectionId(context);
 
             if (StringValues.IsNullOrEmpty(connectionId))
             {
@@ -453,7 +464,7 @@ namespace Microsoft.AspNetCore.Sockets
 
         private async Task<DefaultConnectionContext> GetOrCreateConnectionAsync(HttpContext context)
         {
-            var connectionId = context.Request.Query["id"];
+            var connectionId = GetConnectionId(context);
             DefaultConnectionContext connection;
 
             // There's no connection id so this is a brand new connection
