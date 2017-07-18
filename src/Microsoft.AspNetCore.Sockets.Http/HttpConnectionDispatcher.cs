@@ -44,7 +44,7 @@ namespace Microsoft.AspNetCore.Sockets
                 if (HttpMethods.IsOptions(context.Request.Method))
                 {
                     // OPTIONS /{path}
-                    await ProcessNegotiate(context, options);
+                    await ProcessNegotiate(context, options, logScope);
                 }
                 else if (HttpMethods.IsPost(context.Request.Method))
                 {
@@ -321,7 +321,7 @@ namespace Microsoft.AspNetCore.Sockets
             await socketDelegate(connection);
         }
 
-        private Task ProcessNegotiate(HttpContext context, HttpSocketOptions options)
+        private Task ProcessNegotiate(HttpContext context, HttpSocketOptions options, ConnectionLogScope logScope)
         {
             // Set the allowed headers for this resource
             context.Response.Headers.AppendCommaSeparatedValues("Allow", "GET", "POST", "OPTIONS");
@@ -330,6 +330,10 @@ namespace Microsoft.AspNetCore.Sockets
 
             // Establish the connection
             var connection = _manager.CreateConnection();
+            
+            // Set the Connection ID on the logging scope so that logs from now on will have the
+            // Connection ID metadata set.
+            logScope.ConnectionId = connection.ConnectionId;
 
             // Get the bytes for the connection id
             var negotiateResponseBuffer = Encoding.UTF8.GetBytes(GetNegotiatePayload(connection.ConnectionId, options));
