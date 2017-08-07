@@ -1,10 +1,14 @@
-import { IHubProtocol, MessageType, HubMessage, InvocationMessage, ResultMessage, CompletionMessage } from "./IHubProtocol";
+import { IHubProtocol, ProtocolType, MessageType, HubMessage, InvocationMessage, ResultMessage, CompletionMessage } from "./IHubProtocol";
 import { BinaryMessageFormat } from "./Formatters"
 import * as msgpack5 from "msgpack5"
 
 export class MessagePackHubProtocol implements IHubProtocol {
     name(): string {
         return "messagepack";
+    }
+
+    type(): ProtocolType {
+        return ProtocolType.Binary;
     }
 
     parseMessages(input: ArrayBuffer): HubMessage[] {

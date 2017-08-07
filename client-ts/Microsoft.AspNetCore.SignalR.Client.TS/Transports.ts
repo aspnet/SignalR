@@ -1,5 +1,6 @@
 import { DataReceived, TransportClosed } from "./Common"
 import { IHttpClient } from "./HttpClient"
+import { HttpError } from "./HttpError"
 
 export enum TransportType {
     WebSockets,
@@ -7,22 +8,34 @@ export enum TransportType {
     LongPolling
 }
 
+export const enum TransferMode {
+    Text = 1,
+    Binary
+}
+
 export interface ITransport {
-    connect(url: string): Promise<void>;
+    connect(url: string, requestedTransferMode: TransferMode): Promise<void>;
     send(data: any): Promise<void>;
     stop(): void;
     onDataReceived: DataReceived;
     onClosed: TransportClosed;
+    transferMode(): TransferMode;
 }
 
 export class WebSocketTransport implements ITransport {
     private webSocket: WebSocket;
+    private mode: TransferMode;
 
-    connect(url: string, queryString: string = ""): Promise<void> {
+    connect(url: string, requestedTransferMode: TransferMode): Promise<void> {
+        this.mode = requestedTransferMode;
+
         return new Promise<void>((resolve, reject) => {
             url = url.replace(/^http/, "ws");
 
             let webSocket = new WebSocket(url);
+            if (requestedTransferMode == TransferMode.Binary) {
+                webSocket.binaryType = "arraybuffer";
+            }
 
             webSocket.onopen = (event: Event) => {
                 console.log(`WebSocket connected to ${url}`);
@@ -73,23 +86,29 @@ export class WebSocketTransport implements ITransport {
 
     onDataReceived: DataReceived;
     onClosed: TransportClosed;
+
+    transferMode(): TransferMode {
+        return this.mode;
+    }
 }
 
 export class ServerSentEventsTransport implements ITransport {
     private eventSource: EventSource;
     private url: string;
-    private queryString: string;
     private httpClient: IHttpClient;
+    private mode: TransferMode;
 
     constructor(httpClient: IHttpClient) {
         this.httpClient = httpClient;
     }
 
-    connect(url: string): Promise<void> {
+    connect(url: string, requestedTransferMode: TransferMode): Promise<void> {
         if (typeof (EventSource) === "undefined") {
-            Promise.reject("EventSource not supported by the browser.")
+            Promise.reject("EventSource not supported by the browser.");
         }
         this.url = url;
+        // SSE is a text protocol
+        this.mode = TransferMode.Text;
 
         return new Promise<void>((resolve, reject) => {
             let eventSource = new EventSource(this.url);
@@ -143,6 +162,10 @@ export class ServerSentEventsTransport implements ITransport {
 
     onDataReceived: DataReceived;
     onClosed: TransportClosed;
+
+    transferMode(): TransferMode {
+        return this.mode;
+    }
 }
 
 export class LongPollingTransport implements ITransport {
@@ -150,13 +173,15 @@ export class LongPollingTransport implements ITransport {
     private httpClient: IHttpClient;
     private pollXhr: XMLHttpRequest;
     private shouldPoll: boolean;
+    private mode: TransferMode;
 
     constructor(httpClient: IHttpClient) {
         this.httpClient = httpClient;
     }
 
-    connect(url: string): Promise<void> {
+    connect(url: string, requestedTransferMode: TransferMode): Promise<void> {
         this.url = url;
+        this.mode = requestedTransferMode;
         this.shouldPoll = true;
         this.poll(this.url);
         return Promise.resolve();
@@ -168,6 +193,9 @@ export class LongPollingTransport implements ITransport {
         }
 
         let pollXhr = new XMLHttpRequest();
+        if (this.mode == TransferMode.Binary) {
+            pollXhr.responseType = "arraybuffer";
+        }
 
         pollXhr.onload = () => {
             if (pollXhr.status == 200) {
@@ -196,7 +224,7 @@ export class LongPollingTransport implements ITransport {
             }
             else {
                 if (this.onClosed) {
-                    this.onClosed(new Error(`Status: ${pollXhr.status}, Message: ${pollXhr.responseText}`));
+                    this.onClosed(new HttpError(pollXhr.statusText, pollXhr.status));
                 }
             }
         };
@@ -233,6 +261,10 @@ export class LongPollingTransport implements ITransport {
 
     onDataReceived: DataReceived;
     onClosed: TransportClosed;
+
+    transferMode(): TransferMode {
+        return this.mode;
+    }
 }
 
 const headers = new Map<string, string>();
