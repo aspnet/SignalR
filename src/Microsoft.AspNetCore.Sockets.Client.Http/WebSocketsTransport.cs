@@ -242,7 +242,9 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 if (_webSocket.State != WebSocketState.Closed)
                 {
                     _logger.ClosingWebSocket(_connectionId);
-                    await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
+                    await _webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
+                    // shutdown the transport after a timeout in case the server does not send close frame
+                    _transportCts.CancelAfter(TimeSpan.FromSeconds(5));
                 }
             }
             catch (Exception ex)
