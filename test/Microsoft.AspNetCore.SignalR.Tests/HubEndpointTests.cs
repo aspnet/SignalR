@@ -732,6 +732,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             yield return new Type[] { typeof(DynamicTestHub) };
             yield return new Type[] { typeof(MethodHub) };
+            yield return new Type[] { typeof(HubT) };
         }
 
         private static Type GetEndPointType(Type hubType)
@@ -758,6 +759,51 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         private class DynamicTestHub : DynamicHub
+        {
+            public override Task OnConnectedAsync()
+            {
+                var tcs = (TaskCompletionSource<bool>)Context.Connection.Metadata["ConnectedTask"];
+                tcs?.TrySetResult(true);
+                return base.OnConnectedAsync();
+            }
+
+            public string Echo(string data)
+            {
+                return data;
+            }
+
+            public Task ClientSendMethod(string userId, string message)
+            {
+                return Clients.User(userId).Send(message);
+            }
+
+            public Task ConnectionSendMethod(string connectionId, string message)
+            {
+                return Clients.Client(connectionId).Send(message);
+            }
+
+            public Task GroupAddMethod(string groupName)
+            {
+                return Groups.AddAsync(Context.ConnectionId, groupName);
+            }
+
+            public Task GroupSendMethod(string groupName, string message)
+            {
+                return Clients.Group(groupName).Send(message);
+            }
+
+            public Task BroadcastMethod(string message)
+            {
+                return Clients.All.Broadcast(message);
+            }
+        }
+        public interface Test
+        {
+            Task Send(string message);
+            Task Broadcast(string message);
+        }
+
+        public class HubT : Hub<Test>
         {
             public override Task OnConnectedAsync()
             {

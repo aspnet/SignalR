@@ -5,28 +5,28 @@ namespace Microsoft.AspNetCore.SignalR
 {
     class TypedHubClients<T> : IHubClients<T>
     {
-        private IHubClients _dynamicContext;
+        private IHubClients hubClients;
 
         public TypedHubClients(IHubClients dynamicContext)
         {
-            _dynamicContext = dynamicContext;
+            hubClients = dynamicContext;
         }
 
-        public T All => TypedClientBuilder<T>.Build(_dynamicContext.All);
+        public T All => TypedClientBuilder<T>.Build(hubClients.All);
 
         public T Client(string connectionId)
         {
-            return TypedClientBuilder<T>.Build(_dynamicContext.Client(connectionId));
+            return TypedClientBuilder<T>.Build(hubClients.Client(connectionId));
         }
 
         public T Group(string groupName)
         {
-            return TypedClientBuilder<T>.Build(_dynamicContext.Group(groupName));
+            return TypedClientBuilder<T>.Build(hubClients.Group(groupName));
         }
 
         public T User(string userId)
         {
-            return TypedClientBuilder<T>.Build(_dynamicContext.User(userId));
+            return TypedClientBuilder<T>.Build(hubClients.User(userId));
         }
     }
 }

@@ -13,22 +13,20 @@ namespace Microsoft.AspNetCore.SignalR
 {
     internal static class TypedClientBuilder<T>
     {
-        private const string ClientModuleName = "Microsoft.AspNet.SignalR.Hubs.TypedClientBuilder";
+        private const string ClientModuleName = "Microsoft.AspNetCore.SignalR.TypedClientBuilder";
 
         // There is one static instance of _builder per T
         private static Lazy<Func<IClientProxy, T>> _builder = new Lazy<Func<IClientProxy, T>>(() => GenerateClientBuilder());
 
-        [SuppressMessage("Microsoft.Design", "CA1000:DoNotDeclareStaticMembersOnGenericTypes", Justification = "This is used internally and by tests.")]
         public static T Build(IClientProxy proxy)
         {
             return _builder.Value(proxy);
         }
 
-        [SuppressMessage("Microsoft.Performance", "CA1804:RemoveUnusedLocals", MessageId = "forceEvaluation", Justification = "Give me a better way to force the evaluation of Lazy<T>")]
         public static void Validate()
         {
             // The following will throw if T is not a valid type
-            var forceEvaluation = _builder.Value;
+            _  = _builder.Value;
         }
 
         private static Func<IClientProxy, T> GenerateClientBuilder()
@@ -36,22 +34,22 @@ namespace Microsoft.AspNetCore.SignalR
             VerifyInterface(typeof(T));
 
             var assemblyName = new AssemblyName(ClientModuleName);
-            AssemblyBuilder assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
-            ModuleBuilder moduleBuilder = assemblyBuilder.DefineDynamicModule(ClientModuleName);
-            Type clientType = GenerateInterfaceImplementation(moduleBuilder);
+            var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
+            var moduleBuilder = assemblyBuilder.DefineDynamicModule(ClientModuleName);
+            var clientType = GenerateInterfaceImplementation(moduleBuilder);
 
             return proxy => (T)Activator.CreateInstance(clientType, proxy);
         }
 
         private static Type GenerateInterfaceImplementation(ModuleBuilder moduleBuilder)
         {
-            TypeBuilder type = moduleBuilder.DefineType(
+            var type = moduleBuilder.DefineType(
                 ClientModuleName + "." + typeof(T).Name + "Impl",
                 TypeAttributes.Public,
                 typeof(Object),
                 new[] { typeof(T) });
 
-            FieldBuilder proxyField = type.DefineField("_proxy", typeof(IClientProxy), FieldAttributes.Private);
+            var proxyField = type.DefineField("_proxy", typeof(IClientProxy), FieldAttributes.Private);
 
             BuildConstructor(type, proxyField);
 
@@ -81,15 +79,15 @@ namespace Microsoft.AspNetCore.SignalR
 
         private static void BuildConstructor(TypeBuilder type, FieldInfo proxyField)
         {
-            MethodBuilder method = type.DefineMethod(".ctor", System.Reflection.MethodAttributes.Public | System.Reflection.MethodAttributes.HideBySig);
+            var method = type.DefineMethod(".ctor", System.Reflection.MethodAttributes.Public | System.Reflection.MethodAttributes.HideBySig);
 
-            ConstructorInfo ctor = typeof(object).GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+            var ctor = typeof(object).GetConstructor(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
                 null, new Type[] { }, null);
 
             method.SetReturnType(typeof(void));
             method.SetParameters(typeof(IClientProxy));
 
-            ILGenerator generator = method.GetILGenerator();
+            var generator = method.GetILGenerator();
 
             // Call object constructor
             generator.Emit(OpCodes.Ldarg_0);
@@ -104,7 +102,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         private static void BuildMethod(TypeBuilder type, MethodInfo interfaceMethodInfo, FieldInfo proxyField)
         {
-            MethodAttributes methodAttributes =
+            var methodAttributes =
                   MethodAttributes.Public
                 | MethodAttributes.Virtual
                 | MethodAttributes.Final
@@ -114,9 +112,9 @@ namespace Microsoft.AspNetCore.SignalR
             ParameterInfo[] parameters = interfaceMethodInfo.GetParameters();
             Type[] paramTypes = parameters.Select(param => param.ParameterType).ToArray();
 
-            MethodBuilder methodBuilder = type.DefineMethod(interfaceMethodInfo.Name, methodAttributes);
+            var methodBuilder = type.DefineMethod(interfaceMethodInfo.Name, methodAttributes);
 
-            MethodInfo invokeMethod = typeof(IClientProxy).GetMethod(
+            var invokeMethod = typeof(IClientProxy).GetMethod(
                 "InvokeAsync", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null,
                 new Type[] { typeof(string), typeof(object[]) }, null);
 
@@ -132,7 +130,7 @@ namespace Microsoft.AspNetCore.SignalR
                 methodBuilder.DefineGenericParameters(genericTypeNames);
             }
 
-            ILGenerator generator = methodBuilder.GetILGenerator();
+            var generator = methodBuilder.GetILGenerator();
 
             // Declare local variable to store the arguments to IClientProxy.Invoke
             generator.DeclareLocal(typeof(object[]));
@@ -176,20 +174,17 @@ namespace Microsoft.AspNetCore.SignalR
         {
             if (!interfaceType.IsInterface)
             {
-                throw new InvalidOperationException("Type must be interface");
-                    //String.Format(CultureInfo.CurrentCulture, Resources.Error_TypeMustBeInterface, interfaceType.Name));
+                throw new InvalidOperationException("Type must be an interface.");
             }
 
             if (interfaceType.GetProperties().Length != 0)
             {
-                throw new InvalidOperationException("Type must not contain properties");
-                    //String.Format(CultureInfo.CurrentCulture, Resources.Error_TypeMustNotContainProperties, interfaceType.Name));
+                throw new InvalidOperationException("Type must not contain properties.");
             }
 
             if (interfaceType.GetEvents().Length != 0)
             {
-                throw new InvalidOperationException("Type can't contain events");
-                    //String.Format(CultureInfo.CurrentCulture, Resources.Error_TypeMustNotContainEvents, interfaceType.Name));
+                throw new InvalidOperationException("Type can not contain events.");
             }
 
             foreach (var method in interfaceType.GetMethods())
@@ -207,10 +202,7 @@ namespace Microsoft.AspNetCore.SignalR
         {
             if (interfaceMethod.ReturnType != typeof(void) && interfaceMethod.ReturnType != typeof(Task))
             {
-                throw new InvalidOperationException("Must return Void");
-                    //String.Format(CultureInfo.CurrentCulture, Resources.Error_MethodMustReturnVoidOrTask,
-                    //    interfaceType.Name,
-                    //    interfaceMethod.Name));
+                throw new InvalidOperationException("Method must return Void or Task.");
             }
 
             foreach (var parameter in interfaceMethod.GetParameters())
@@ -223,20 +215,12 @@ namespace Microsoft.AspNetCore.SignalR
         {
             if (parameter.IsOut)
             {
-                throw new InvalidOperationException("No out params");
-                    //String.Format(CultureInfo.CurrentCulture, Resources.Error_MethodMustNotTakeOutParameter,
-                    //    parameter.Name,
-                    //    interfaceType.Name,
-                    //    interfaceMethod.Name));
+                throw new InvalidOperationException("Method must not take out parameters.");
             }
 
             if (parameter.ParameterType.IsByRef)
             {
-                throw new InvalidOperationException("Ref parameters not allowed");
-                    //String.Format(CultureInfo.CurrentCulture, Resources.Error_MethodMustNotTakeRefParameter,
-                    //    parameter.Name,
-                    //    interfaceType.Name,
-                    //    interfaceMethod.Name));
+                throw new InvalidOperationException("Method must not take refernce parameters.");
             }
         }
     }

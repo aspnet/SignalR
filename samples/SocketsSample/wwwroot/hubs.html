@@ -89,12 +89,11 @@ var connection;
 click('connect', event => {
     connectButton.disabled = true;
     disconnectButton.disabled = false;
-    console.log(`http://${document.location.host}/interface`);
-    let http = new signalR.HttpConnection(`http://${document.location.host}/interface`, { transport: transportType });
+    console.log(`http://${document.location.host}/${hubRoute}`);
+    let http = new signalR.HttpConnection(`http://${document.location.host}/${hubRoute}`, { transport: transportType });
     connection = new signalR.HubConnection(http);
-    connection.on('JoinChat', msg => {
-        console.log("Yoooooo");
-        addLine('message-list', "Interfaces bro");
+    connection.on('Send', msg => {
+        addLine('message-list', msg);
     });
 
     connection.onClosed = e => {
