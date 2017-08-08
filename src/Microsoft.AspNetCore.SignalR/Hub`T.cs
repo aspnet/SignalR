@@ -11,15 +11,11 @@ namespace Microsoft.AspNetCore.SignalR
         {
             get
             {
-                if (_clients != null)
-                {
-                    return _clients;
-                }
-                else
+                if (_clients == null)
                 {
                     _clients = new TypedHubClients<T>(base.Clients);
-                    return _clients;
                 }
+                return _clients;
             }
             set { _clients = value; }
         }
