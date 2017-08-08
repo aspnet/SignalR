@@ -3,7 +3,7 @@
 
 namespace Microsoft.AspNetCore.SignalR
 {
-    class TypedHubClients<T> : IHubClients<T>
+    internal class TypedHubClients<T> : IHubClients<T>
     {
         private IHubClients hubClients;
 
