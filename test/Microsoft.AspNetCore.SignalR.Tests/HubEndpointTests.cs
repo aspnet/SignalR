@@ -829,6 +829,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 return Clients.All.Broadcast(message);
             }
         }
+
         public interface Test
         {
             Task Send(string message);

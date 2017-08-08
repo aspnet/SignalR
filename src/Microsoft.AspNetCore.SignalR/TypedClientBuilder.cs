@@ -144,15 +144,15 @@ namespace Microsoft.AspNetCore.SignalR
 
             // Create an new object array to hold all the parameters to this method
             generator.Emit(OpCodes.Ldc_I4, parameters.Length); // Stack: 
-            generator.Emit(OpCodes.Newarr, typeof(object));
+            generator.Emit(OpCodes.Newarr, typeof(object)); // allocate object array
             generator.Emit(OpCodes.Stloc_0);
 
             // Store each parameter in the object array
             for (int i = 0; i < paramTypes.Length; i++)
             {
                 generator.Emit(OpCodes.Ldloc_0); // Object array loaded
-                generator.Emit(OpCodes.Ldc_I4, i);
-                generator.Emit(OpCodes.Ldarg, i + 1); // 
+                generator.Emit(OpCodes.Ldc_I4, i); 
+                generator.Emit(OpCodes.Ldarg, i + 1); // i + 1 
                 generator.Emit(OpCodes.Box, paramTypes[i]);
                 generator.Emit(OpCodes.Stelem_Ref);
             }
@@ -167,7 +167,7 @@ namespace Microsoft.AspNetCore.SignalR
                 generator.Emit(OpCodes.Pop);
             }
 
-            generator.Emit(OpCodes.Ret);
+            generator.Emit(OpCodes.Ret); // Return 
         }
 
         private static void VerifyInterface(Type interfaceType)
@@ -220,7 +220,7 @@ namespace Microsoft.AspNetCore.SignalR
 
             if (parameter.ParameterType.IsByRef)
             {
-                throw new InvalidOperationException("Method must not take refernce parameters.");
+                throw new InvalidOperationException("Method must not take reference parameters.");
             }
         }
     }
