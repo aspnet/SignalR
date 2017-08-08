@@ -94,9 +94,9 @@ namespace Microsoft.AspNetCore.SignalR
             generator.Emit(OpCodes.Call, ctor);
 
             // Assign constructor argument to the proxyField
-            generator.Emit(OpCodes.Ldarg_0);
-            generator.Emit(OpCodes.Ldarg_1);
-            generator.Emit(OpCodes.Stfld, proxyField);
+            generator.Emit(OpCodes.Ldarg_0); // type
+            generator.Emit(OpCodes.Ldarg_1); // type proxyfield
+            generator.Emit(OpCodes.Stfld, proxyField); // type.proxyField = proxyField
             generator.Emit(OpCodes.Ret);
         }
 
@@ -132,32 +132,32 @@ namespace Microsoft.AspNetCore.SignalR
 
             var generator = methodBuilder.GetILGenerator();
 
-            // Declare local variable to store the arguments to IClientProxy.Invoke
+            // Declare local variable to store the arguments to IClientProxy.InvokeAsync
             generator.DeclareLocal(typeof(object[]));
 
             // Get IClientProxy
             generator.Emit(OpCodes.Ldarg_0);
             generator.Emit(OpCodes.Ldfld, proxyField);
 
-            // The first argument to IClientProxy.Invoke is this method's name
+            // The first argument to IClientProxy.InvokeAsync is this method's name
             generator.Emit(OpCodes.Ldstr, interfaceMethodInfo.Name);
 
             // Create an new object array to hold all the parameters to this method
-            generator.Emit(OpCodes.Ldc_I4, parameters.Length);
+            generator.Emit(OpCodes.Ldc_I4, parameters.Length); // Stack: 
             generator.Emit(OpCodes.Newarr, typeof(object));
             generator.Emit(OpCodes.Stloc_0);
 
             // Store each parameter in the object array
             for (int i = 0; i < paramTypes.Length; i++)
             {
-                generator.Emit(OpCodes.Ldloc_0);
+                generator.Emit(OpCodes.Ldloc_0); // Object array loaded
                 generator.Emit(OpCodes.Ldc_I4, i);
-                generator.Emit(OpCodes.Ldarg, i + 1);
+                generator.Emit(OpCodes.Ldarg, i + 1); // 
                 generator.Emit(OpCodes.Box, paramTypes[i]);
                 generator.Emit(OpCodes.Stelem_Ref);
             }
 
-            // Call IProxy.Invoke
+            // Call InvokeAsync
             generator.Emit(OpCodes.Ldloc_0);
             generator.Emit(OpCodes.Callvirt, invokeMethod);
 
