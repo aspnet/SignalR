@@ -16,13 +16,28 @@ The SignalR Protocol requires the following attributes from the underlying trans
 
 ## Overview
 
-There are two encodings of the SignalR protocol: [JSON](http://www.json.org/) and [Message Pack](http://msgpack.org/). Only one format can be used for the duration of a connection, and the format must be negotiated in advance (i.e. using a QueryString value, Header, or other indicator). However, each format shares a similar overall structure.
+There are two encodings of the SignalR protocol: [JSON](http://www.json.org/) and [Message Pack](http://msgpack.org/). Only one format can be used for the duration of a connection, and the format must be negotiated after opening the connection and before sending any other messages. However, each format shares a similar overall structure.
 
 In the SignalR protocol, the following types of messages can be sent:
 
+* `Negotiation` Message - Sent by the client to negotiate the message format
 * `Invocation` Message - Indicates a request to invoke a particular method (the Target) with provided Arguments on the remote endpoint.
 * `StreamItem` Message - Indicates individual items of streamed response data from a previous Invocation message.
 * `Completion` Message - Indicates a previous Invocation has completed, and no further `StreamItem` messages will be received. Contains an error if the invocation concluded with an error, or the result if the invocation is not a streaming invocation.
+
+After opening a connection to the server the client must send a `Negotiation` message to the server as its first message. The negotiation message is **always** a JSON message and contains the name of the format (protocol) that will be used for the duration of the connection. If the server does not support the protocol requested by the client or the first message received from the client is not a `Negotiation` message the server must close the connection.
+
+The `Negotiation` message contains the following properties:
+
+* `protocol` - the name of the protocol to be used for messages exchanged betweent the server and the client
+
+Example:
+
+```json
+{
+    "protocol": "messagepack"
+}
+```
 
 In order to perform a single invocation, Caller follows the following basic flow:
 
