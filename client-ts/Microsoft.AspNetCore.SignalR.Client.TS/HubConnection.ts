@@ -221,9 +221,18 @@ class Base64EncodedHubProtocol implements IHubProtocol {
     readonly type: ProtocolType;
 
     parseMessages(input: any): HubMessage[] {
+
+        // The format of the message is `size:message;`
+        let pos = input.indexOf(":");
+        if (pos == -1)
+        {
+            throw new Error("Invalid payload.");
+        }
+        let encodedMessage = input.substring(pos + 1, input.length - 1);
+
         // atob/btoa are browsers APIs but they can be polyfilled. If this becomes problematic we can use
         // base64-js module
-        let s = atob(input);
+        let s = atob(encodedMessage);
         let payload = new Uint8Array(s.length);
         for (let i = 0; i < payload.length; i++) {
             payload[i] = s.charCodeAt(i);
@@ -239,6 +248,8 @@ class Base64EncodedHubProtocol implements IHubProtocol {
         }
         // atob/btoa are browsers APIs but they can be polyfilled. If this becomes problematic we can use
         // base64-js module
-        return btoa(s);
+        let encodedMessage = btoa(s);
+
+        return `${encodedMessage.length.toString()}:${encodedMessage};`;
     }
 }
