@@ -39,6 +39,16 @@ Example:
 }
 ```
 
+##Communication between the Caller and the Callee
+
+There a three kinds of interactions between the Caller and the Calle:
+
+* Invocations - the Caller sends a message to the Calle and expects a message indicating that the invocation has been completed and optionally a result of the invocation
+* Non-Blocking Invocations - the Caller sends a message to the Callee and does not expect any further messages for this invocation
+* Streaming Invocations - the Caller sends a message to the Callee and expects one or more results returned by the Callee followed by a message indicating the end of invocation
+
+##Invocations
+
 In order to perform a single invocation, the Caller follows the following basic flow:
 
 1. Allocate a unique `Invocation ID` value (arbitrary string, chosen by the Caller) to represent the invocation
@@ -62,7 +72,7 @@ Invocations can be marked as "Non-Blocking" in the `Invocation` message, which i
 
 The SignalR protocol allows for multiple `StreamItem` messages to be transmitted in response to an `Invocation` message, and allows the receiver to dispatch these results as they arrive, to allow for streaming data from one endpoint to another.
 
-On the Callee side, it is up to the Callee's Binder to determine if a method call will yield multiple results. For example, in .NET certain return types may indicate multiple results, while others may indicate a single result. Even then, applications may wish for multiple results to be buffered and returned in a single `Completion` frame. It is up to the Binder to decide how to map this. The Callee's Binder must encode each result in separate `StreamItem` messages, indicating the end of results by sending a `Completion` message. Since the `Completion` message accepts an optional payload value, methods with single results can be handled with a single `Completion` message, bearing the complete results.
+On the Callee side, it is up to the Callee's Binder to determine if a method call will yield multiple results. For example, in .NET certain return types may indicate multiple results, while others may indicate a single result. Even then, applications may wish for multiple results to be buffered and returned in a single `Completion` frame. It is up to the Binder to decide how to map this. The Callee's Binder must encode each result in separate `StreamItem` messages, indicating the end of results by sending a `Completion` message.
 
 On the Caller side, the user code which performs the invocation indicates how it would like to receive the results and it is up the Caller's Binder to determine how to handle the result. If the Caller expects only a single result, but multiple results are returned, the Caller's Binder should yield an error indicating that multiple results were returned. However, if a Caller expects multiple results, but only a single result is returned, the Caller's Binder should yield that single result and indicate there are no further results.
 
@@ -471,7 +481,7 @@ is decoded as follows:
 * `0x79` - `y`
 * `0x7a` - `z`
 * `0x01` - `1` (ResultKind - Error result)
-* `0xa5` - string of lenght 5
+* `0xa5` - string of length 5
 * `0x45` - `E`
 * `0x72` - `r`
 * `0x72` - `r`
