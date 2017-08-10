@@ -249,8 +249,8 @@ describe("HubConnection", () => {
 });
 
 class TestConnection implements IConnection {
-    start(): Promise<void> {
-        return Promise.resolve();
+    start(requestedTransferMode: TransferMode): Promise<TransferMode> {
+        return Promise.resolve(requestedTransferMode);
     };
 
     send(data: any): Promise<void> {
@@ -274,10 +274,6 @@ class TestConnection implements IConnection {
     receive(data: any): void {
         let payload = JSON.stringify(data);
         this.onDataReceived(TextMessageFormat.write(payload));
-    }
-
-    transferMode(): TransferMode {
-        throw new Error("Not Implemented");
     }
 
     onDataReceived: DataReceived;

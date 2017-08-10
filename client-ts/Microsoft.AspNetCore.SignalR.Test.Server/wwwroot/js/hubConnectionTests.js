@@ -2,7 +2,7 @@ const TESTHUBENDPOINT_URL = `http://${document.location.host}/testhub`;
 
 describe('hubConnection', () => {
     eachTransportAndProtocol((transportType, protocol) => {
-        describe(`${protocol.name()} over ${signalR.TransportType[transportType]} transport`, () => {
+        describe(`${protocol.name} over ${signalR.TransportType[transportType]} transport`, () => {
             it(`can invoke server method and receive result`, done => {
                 const message = "Hi";
                 let hubConnection = new signalR.HubConnection(

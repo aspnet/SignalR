@@ -14,22 +14,19 @@ export const enum TransferMode {
 }
 
 export interface ITransport {
-    connect(url: string, requestedTransferMode: TransferMode): Promise<void>;
+    connect(url: string, requestedTransferMode: TransferMode): Promise<TransferMode>;
     send(data: any): Promise<void>;
     stop(): void;
     onDataReceived: DataReceived;
     onClosed: TransportClosed;
-    transferMode(): TransferMode;
 }
 
 export class WebSocketTransport implements ITransport {
     private webSocket: WebSocket;
-    private mode: TransferMode;
 
-    connect(url: string, requestedTransferMode: TransferMode): Promise<void> {
-        this.mode = requestedTransferMode;
+    connect(url: string, requestedTransferMode: TransferMode): Promise<TransferMode> {
 
-        return new Promise<void>((resolve, reject) => {
+        return new Promise<TransferMode>((resolve, reject) => {
             url = url.replace(/^http/, "ws");
 
             let webSocket = new WebSocket(url);
@@ -40,7 +37,7 @@ export class WebSocketTransport implements ITransport {
             webSocket.onopen = (event: Event) => {
                 console.log(`WebSocket connected to ${url}`);
                 this.webSocket = webSocket;
-                resolve();
+                resolve(requestedTransferMode);
             };
 
             webSocket.onerror = (event: Event) => {
@@ -86,31 +83,24 @@ export class WebSocketTransport implements ITransport {
 
     onDataReceived: DataReceived;
     onClosed: TransportClosed;
-
-    transferMode(): TransferMode {
-        return this.mode;
-    }
 }
 
 export class ServerSentEventsTransport implements ITransport {
     private eventSource: EventSource;
     private url: string;
     private httpClient: IHttpClient;
-    private mode: TransferMode;
 
     constructor(httpClient: IHttpClient) {
         this.httpClient = httpClient;
     }
 
-    connect(url: string, requestedTransferMode: TransferMode): Promise<void> {
+    connect(url: string, requestedTransferMode: TransferMode): Promise<TransferMode> {
         if (typeof (EventSource) === "undefined") {
             Promise.reject("EventSource not supported by the browser.");
         }
         this.url = url;
-        // SSE is a text protocol
-        this.mode = TransferMode.Text;
 
-        return new Promise<void>((resolve, reject) => {
+        return new Promise<TransferMode>((resolve, reject) => {
             let eventSource = new EventSource(this.url);
 
             try {
@@ -140,7 +130,8 @@ export class ServerSentEventsTransport implements ITransport {
                 eventSource.onopen = () => {
                     console.log(`SSE connected to ${this.url}`);
                     this.eventSource = eventSource;
-                    resolve();
+                    // SSE is a text protocol
+                    resolve(TransferMode.Text);
                 }
             }
             catch (e) {
@@ -162,10 +153,6 @@ export class ServerSentEventsTransport implements ITransport {
 
     onDataReceived: DataReceived;
     onClosed: TransportClosed;
-
-    transferMode(): TransferMode {
-        return this.mode;
-    }
 }
 
 export class LongPollingTransport implements ITransport {
@@ -173,27 +160,25 @@ export class LongPollingTransport implements ITransport {
     private httpClient: IHttpClient;
     private pollXhr: XMLHttpRequest;
     private shouldPoll: boolean;
-    private mode: TransferMode;
 
     constructor(httpClient: IHttpClient) {
         this.httpClient = httpClient;
     }
 
-    connect(url: string, requestedTransferMode: TransferMode): Promise<void> {
+    connect(url: string, requestedTransferMode: TransferMode): Promise<TransferMode> {
         this.url = url;
-        this.mode = requestedTransferMode;
         this.shouldPoll = true;
-        this.poll(this.url);
-        return Promise.resolve();
+        this.poll(this.url, requestedTransferMode);
+        return Promise.resolve(requestedTransferMode);
     }
 
-    private poll(url: string): void {
+    private poll(url: string, transferMode: TransferMode): void {
         if (!this.shouldPoll) {
             return;
         }
 
         let pollXhr = new XMLHttpRequest();
-        if (this.mode == TransferMode.Binary) {
+        if (transferMode === TransferMode.Binary) {
             pollXhr.responseType = "arraybuffer";
         }
 
@@ -215,7 +200,7 @@ export class LongPollingTransport implements ITransport {
                         return;
                     }
                 }
-                this.poll(url);
+                this.poll(url, transferMode);
             }
             else if (this.pollXhr.status == 204) {
                 if (this.onClosed) {
@@ -237,7 +222,7 @@ export class LongPollingTransport implements ITransport {
         };
 
         pollXhr.ontimeout = () => {
-            this.poll(url);
+            this.poll(url, transferMode);
         }
 
         this.pollXhr = pollXhr;
@@ -261,10 +246,6 @@ export class LongPollingTransport implements ITransport {
 
     onDataReceived: DataReceived;
     onClosed: TransportClosed;
-
-    transferMode(): TransferMode {
-        return this.mode;
-    }
 }
 
 const headers = new Map<string, string>();

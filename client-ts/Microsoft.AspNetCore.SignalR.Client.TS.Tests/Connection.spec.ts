@@ -133,9 +133,9 @@ describe("Connection", () => {
     it("preserves users connection string", async done => {
         let connectUrl: string;
         let fakeTransport: ITransport = {
-            connect(url: string): Promise<void> {
+            connect(url: string): Promise<TransferMode> {
                 connectUrl = url;
-                return Promise.reject("");
+                return Promise.reject(TransferMode.Text);
             },
             send(data: any): Promise<void> {
                 return Promise.reject("");
@@ -143,9 +143,6 @@ describe("Connection", () => {
             stop(): void { },
             onDataReceived: undefined,
             onClosed: undefined,
-            transferMode(): TransferMode {
-                return TransferMode.Text;
-            }
         }
 
         let options: IHttpConnectionOptions = {
@@ -226,10 +223,6 @@ describe("Connection", () => {
         }
     });
 
-    it("transfer mode is null when the connection is not started", () => {
-        expect(new HttpConnection("https://tempuri.org").transferMode()).toBeNull();
-    });
-
     [
         [TransferMode.Text, TransferMode.Text],
         [TransferMode.Text, TransferMode.Binary],
@@ -239,12 +232,11 @@ describe("Connection", () => {
         it(`connection returns ${transportTransferMode} transfer mode when ${requestedTransferMode} transfer mode is requested`, async () => {
             let fakeTransport = {
                 // mode: TransferMode : TransferMode.Text
-                connect(url: string, requestedTransferMode: TransferMode): Promise<void> { return Promise.resolve(); },
+                connect(url: string, requestedTransferMode: TransferMode): Promise<TransferMode> { return Promise.resolve(transportTransferMode); },
                 send(data: any): Promise<void> { return Promise.resolve(); },
                 stop(): void {},
                 onDataReceived: null,
                 onClosed: null,
-                transferMode(): TransferMode { return this.mode; },
                 mode: transportTransferMode
             } as ITransport;
 
@@ -261,8 +253,8 @@ describe("Connection", () => {
             } as IHttpConnectionOptions;
 
             let connection = new HttpConnection("https://tempuri.org", options);
-            await connection.start(requestedTransferMode);
-            expect(connection.transferMode()).toBe(transportTransferMode);
+            let actualTransferMode = await connection.start(requestedTransferMode);
+            expect(actualTransferMode).toBe(transportTransferMode);
         });
     });
 });

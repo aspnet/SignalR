@@ -94,16 +94,16 @@ export class HubConnection {
 
     async start(): Promise<void> {
         let requestedTransferMode =
-            (this.protocol.type() === ProtocolType.Binary)
+            (this.protocol.type === ProtocolType.Binary)
                 ? TransferMode.Binary
                 : TransferMode.Text;
 
-        await this.connection.start(requestedTransferMode);
+        var actualTransferMode = await this.connection.start(requestedTransferMode);
         await this.connection.send(
             TextMessageFormat.write(
-                JSON.stringify(<NegotiationMessage>{ protocol: this.protocol.name()})));
+                JSON.stringify(<NegotiationMessage>{ protocol: this.protocol.name})));
 
-        if (requestedTransferMode === TransferMode.Binary && this.connection.transferMode() === TransferMode.Text) {
+        if (requestedTransferMode === TransferMode.Binary && actualTransferMode === TransferMode.Text) {
             this.protocol = new Base64EncodedHubProtocol(this.protocol);
         }
     }
@@ -213,15 +213,12 @@ class Base64EncodedHubProtocol implements IHubProtocol {
 
     constructor(protocol: IHubProtocol) {
         this.wrappedProtocol = protocol;
+        this.name = this.wrappedProtocol.name;
+        this.type = ProtocolType.Text;
     }
 
-    name(): string {
-        return this.wrappedProtocol.name();
-    }
-
-    type(): ProtocolType {
-        return ProtocolType.Text;
-    }
+    readonly name: string;
+    readonly type: ProtocolType;
 
     parseMessages(input: any): HubMessage[] {
         // atob/btoa are browsers APIs but they can be polyfilled. If this becomes problematic we can use

@@ -3,13 +3,10 @@ import { BinaryMessageFormat } from "./Formatters"
 import * as msgpack5 from "msgpack5"
 
 export class MessagePackHubProtocol implements IHubProtocol {
-    name(): string {
-        return "messagepack";
-    }
 
-    type(): ProtocolType {
-        return ProtocolType.Binary;
-    }
+    readonly name: string = "messagepack";
+
+    readonly type: ProtocolType = ProtocolType.Binary;
 
     parseMessages(input: ArrayBuffer): HubMessage[] {
         return BinaryMessageFormat.parse(input).map(m => this.parseMessage(m));

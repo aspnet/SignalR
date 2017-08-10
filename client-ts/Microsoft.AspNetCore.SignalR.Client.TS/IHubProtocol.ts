@@ -34,8 +34,8 @@ export const enum ProtocolType {
 }
 
 export interface IHubProtocol {
-    name(): string;
-    type(): ProtocolType;
+    readonly name: string;
+    readonly type: ProtocolType;
     parseMessages(input: any): HubMessage[];
     writeMessage(message: HubMessage): any;
 }

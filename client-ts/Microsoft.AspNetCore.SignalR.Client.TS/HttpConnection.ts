@@ -23,7 +23,7 @@ export class HttpConnection implements IConnection {
     private httpClient: IHttpClient;
     private transport: ITransport;
     private options: IHttpConnectionOptions;
-    private startPromise: Promise<void>;
+    private startPromise: Promise<TransferMode>;
 
     constructor(url: string, options: IHttpConnectionOptions = {}) {
         this.url = url;
@@ -32,7 +32,7 @@ export class HttpConnection implements IConnection {
         this.options = options;
     }
 
-    async start(requestedTransferMode: TransferMode): Promise<void> {
+    async start(requestedTransferMode: TransferMode): Promise<TransferMode> {
         if (this.connectionState != ConnectionState.Initial) {
             return Promise.reject(new Error("Cannot start a connection that is not in the 'Initial' state."));
         }
@@ -43,7 +43,7 @@ export class HttpConnection implements IConnection {
         return this.startPromise;
     }
 
-    private async startInternal(requestedTransferMode: TransferMode): Promise<void> {
+    private async startInternal(requestedTransferMode: TransferMode): Promise<TransferMode> {
         try {
             let negotiatePayload = await this.httpClient.options(this.url);
             let negotiateResponse: INegotiateResponse = JSON.parse(negotiatePayload);
@@ -59,10 +59,11 @@ export class HttpConnection implements IConnection {
             this.transport = this.createTransport(this.options.transport, negotiateResponse.availableTransports);
             this.transport.onDataReceived = this.onDataReceived;
             this.transport.onClosed = e => this.stopConnection(true, e);
-            await this.transport.connect(this.url, requestedTransferMode || TransferMode.Text);
+            var actualTransferMode = await this.transport.connect(this.url, requestedTransferMode || TransferMode.Text);
             // only change the state if we were connecting to not overwrite
             // the state if the connection is already marked as Disconnected
             this.changeState(ConnectionState.Connecting, ConnectionState.Connected);
+            return actualTransferMode;
         }
         catch (e) {
             console.log("Failed to start the connection. " + e);
@@ -137,10 +138,6 @@ export class HttpConnection implements IConnection {
         if (raiseClosed && this.onClosed) {
             this.onClosed(error);
         }
-    }
-
-    transferMode(): TransferMode {
-        return (this.transport && this.transport.transferMode()) || null;
     }
 
     onDataReceived: DataReceived;
