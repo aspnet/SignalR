@@ -16,7 +16,7 @@ The SignalR Protocol requires the following attributes from the underlying trans
 
 ## Overview
 
-There are two encodings of the SignalR protocol: [JSON](http://www.json.org/) and [Message Pack](http://msgpack.org/). Only one format can be used for the duration of a connection, and the format must be negotiated after opening the connection and before sending any other messages. However, each format shares a similar overall structure.
+This document describes three encodings of the SignalR protocol: [JSON](http://www.json.org/), [MessagePack](http://msgpack.org/) and [Protocol Buffers](https://developers.google.com/protocol-buffers/). Only one format can be used for the duration of a connection, and the format must be negotiated after opening the connection and before sending any other messages. However, each format shares a similar overall structure.
 
 In the SignalR protocol, the following types of messages can be sent:
 
@@ -39,7 +39,7 @@ Example:
 }
 ```
 
-In order to perform a single invocation, Caller follows the following basic flow:
+In order to perform a single invocation, the Caller follows the following basic flow:
 
 1. Allocate a unique `Invocation ID` value (arbitrary string, chosen by the Caller) to represent the invocation
 2. Send an `Invocation` message containing the `Invocation ID`, the name of the `Target` being invoked, and the `Arguments` to provide to the method.
@@ -363,11 +363,11 @@ World;0:;
 
 Note that the final frame still ends with the `;` terminator, and that since the body may contain `;`, newlines, etc., the length is specified in order to know exactly where the body ends.
 
-## Message Pack (MsgPack) encoding
+## MessagePack (MsgPack) encoding
 
-In the MsgPack Encoding of the SignalR Protocol, each Message is represented as a single MsgPack array containing items that correspond to properties of the given hub protocol message. The array items may be primitive values, arrays (e.g. method arguments) or objects (e.g. argument value). The first item of the array contains the type of the message.
+In the MsgPack Encoding of the SignalR Protocol, each Message is represented as a single MsgPack array containing items that correspond to properties of the given hub protocol message. The array items may be primitive values, arrays (e.g. method arguments) or objects (e.g. argument value). The first item in the array is the message type.
 
-Message Pack uses different formats to encode values. Refer to the [MsgPack format spec](https://github.com/msgpack/msgpack/blob/master/spec.md#formats) for format definitions.
+MessagePack uses different formats to encode values. Refer to the [MsgPack format spec](https://github.com/msgpack/msgpack/blob/master/spec.md#formats) for format definitions.
 
 ### Invocation Message Encoding
 
@@ -513,26 +513,103 @@ is decoded as follows:
 * `0x03` - `3` (ResultKind - Non-Void result)
 * `0x2a` - `42` (Result)
 
+## Protocol Buffers (ProtoBuf) Encoding
+
+**Protobuf encoding is currently not implemented**
+
+In order to support ProtoBuf, an application must provide a [ProtoBuf service definition](https://developers.google.com/protocol-buffers/docs/proto3) for the Hub. However, implementations may automatically generate these definitions from reflection information, if the underlying platform supports this. For example, the .NET implementation will attempt to generate service definitions for methods that use only simple primitive and enumerated types. The service definition provides a description of how to encode the arguments and return value for the call. For example, consider the following C# method:
+
+```csharp
+public bool SendMessageToUser(string userName, string message) {}
+```
+
+In order to invoke this method, the application must provide a ProtoBuf schema representing the input and output values and defining the message:
+
+```protobuf
+syntax = "proto3";
+
+message SendMessageToUserRequest {
+    string userName = 1;
+    string message = 2;
+}
+
+message SendMessageToUserResponse {
+    bool result = 1;
+}
+
+service ChatService {
+    rpc SendMessageToUser (SendMessageToUserRequest) returns (SendMessageToUserResponse);
+}
+```
+
+**NOTE**: the .NET implementation will provide a way to automatically generate these definitions at runtime, to avoid needing to generate them in advance, but applications still have the option of doing so. A general guideline for mapping .NET types to ProtoBuf types is listed in the "Type Mapping" section at the end of this document. In the current plan, custom .NET classes/structs not already listed in the table below will require a complete ProtoBuf mapping to be provided by the application.
+
+## SignalR.proto
+
+SignalR provides an outer ProtoBuf schema for encoding the RPC invocation process as a whole, which is defined by the .proto file below. A SignalR frame is encoded as a single message of type `SignalRFrame`, then transmitted using the underlying transport. Since the underlying transport provides the necessary framing, we can reliably decode a message without having to know the length or format of the arguments.
+
+```protobuf
+syntax = "proto3";
+
+message Invocation {
+    string target = 1;
+    bool nonblocking = 2;
+    bytes arguments = 3;
+}
+
+message StreamItem {
+    bytes item = 1;
+}
+
+message Completion {
+    oneof payload {
+        bytes result = 1;
+        string error = 2;
+    }
+}
+
+message SignalRFrame {
+    string invocationId = 1;
+    oneof message {
+        Invocation invocation = 2;
+        StreamItem streamItem = 3;
+        Completion completion = 4;
+    }
+}
+```
+
+## Invocation Message
+
+When an invocation is issued by the Caller, we generate the necessary Request message according to the service definition, encode it into the ProtoBuf wire format, and then transmit an `Invocation` ProtoBuf message with that encoded argument data as the `arguments` field. The resulting `Invocation` message is wrapped in a `SignalRFrame` message and the `invocationId` is set. The final message is then encoded in the ProtoBuf format and transmitted to the Callee.
+
+## StreamItem Message
+
+When a result is emitted by the Callee, it is encoded using the ProtoBuf schema associated with the service and encoded into the `item` field of a `StreamItem` ProtoBuf message. If an error is emitted, the message is encoded into the error field of a StreamItem ProtoBuf message. The resulting `StreamItem` message is wrapped in a `SignalRFrame` message and the `invocationId` is set. The final message is then encoded in the ProtoBuf format and transmitted to the Callee.
+
+## Completion Message
+
+When a request completes, a `Completion` ProtoBuf message is constructed. If there is a final payload, it is encoded the same way as in the `StreamItem` message and stored in the `result` field of the message. If there is an error, it is encoded in the `error` field of the message. The resulting `Completion` message is wrapped in a `SignalRFrame` message and the `invocationId` is set. The final message is then encoded in the ProtoBuf format and transmitted to the Callee.
+
 ## Type Mappings
 
 Below are some sample type mappings between JSON types and the .NET client. This is not an exhaustive or authoritative list, just informative guidance. Official clients will provide ways for users to override the default mapping behavior for a particular method, parameter, or parameter type
 
-|                  .NET Type                      |          JSON Type           | MsgPack format family     |
-| ----------------------------------------------- | ---------------------------- |---------------------------|
-| `System.Byte`, `System.UInt16`, `System.UInt32` | `Number`                     | `positive fixint`, `uint` |
-| `System.SByte`, `System.Int16`, `System.Int32`  | `Number`                     | `fixit`, `int`            |
-| `System.UInt64`                                 | `Number`                     | `positive fixint`, `uint` |
-| `System.Int64`                                  | `Number`                     | `fixint`, `int`           |
-| `System.Single`                                 | `Number`                     | `float`                   |
-| `System.Double`                                 | `Number`                     | `float`                   |
-| `System.Boolean`                                | `true` or `false`            | `true`, `false`           |
-| `System.String`                                 | `String`                     | `fixstr`, `str`           |
-| `System.Byte`[]                                 | `String` (Base64-encoded)    | `bin`                     |
-| `IEnumerable<T>`                                | `Array`                      | `bin`                     |
-| custom `enum`                                   | `Number`                     | `fixint`, `int`           |
-| custom `struct` or `class`                      | `Object`                     | `fixmap`, `map`           |
+|                  .NET Type                      |          JSON Type           |   MsgPack format family   |    ProtoBuf Type       |
+| ----------------------------------------------- | ---------------------------- |---------------------------|------------------------|
+| `System.Byte`, `System.UInt16`, `System.UInt32` | `Number`                     | `positive fixint`, `uint` | `uint32`               |
+| `System.SByte`, `System.Int16`, `System.Int32`  | `Number`                     | `fixit`, `int`            | `int32`                |
+| `System.UInt64`                                 | `Number`                     | `positive fixint`, `uint` | `uint64`               |
+| `System.Int64`                                  | `Number`                     | `fixint`, `int`           | `int64`                |
+| `System.Single`                                 | `Number`                     | `float`                   | `float`                |
+| `System.Double`                                 | `Number`                     | `float`                   | `double`               |
+| `System.Boolean`                                | `true` or `false`            | `true`, `false`           | `bool`                 |
+| `System.String`                                 | `String`                     | `fixstr`, `str`           | `string`               |
+| `System.Byte`[]                                 | `String` (Base64-encoded)    | `bin`                     | `bytes`                |
+| `IEnumerable<T>`                                | `Array`                      | `bin`                     | `repeated`             |
+| custom `enum`                                   | `Number`                     | `fixint`, `int`           | `uint64`               |
+| custom `struct` or `class`                      | `Object`                     | `fixmap`, `map`           | Requires an explicit .proto file definition  |
 
-Message Pack payloads are wrapped in an outer message framing described below.
+MessagePack payloads are wrapped in an outer message framing described below.
 
 #### Binary encoding
 
