@@ -294,26 +294,12 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
         public static IEnumerable<object[]> TransportTypes()
         {
-            if (WebsocketsSupported())
+            if (TestHelpers.IsWebSocketsSupported())
             {
                 yield return new object[] { TransportType.WebSockets };
             }
             yield return new object[] { TransportType.ServerSentEvents };
             yield return new object[] { TransportType.LongPolling };
-        }
-
-        private static bool WebsocketsSupported()
-        {
-            try
-            {
-                new ClientWebSocket().Dispose();
-            }
-            catch (PlatformNotSupportedException)
-            {
-                return false;
-            }
-
-            return true;
         }
     }
 }
