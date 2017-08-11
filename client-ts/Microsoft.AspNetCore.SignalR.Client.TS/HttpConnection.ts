@@ -23,7 +23,9 @@ export class HttpConnection implements IConnection {
     private httpClient: IHttpClient;
     private transport: ITransport;
     private options: IHttpConnectionOptions;
-    private startPromise: Promise<TransferMode>;
+    private startPromise: Promise<void>;
+
+    readonly features: any = {};
 
     constructor(url: string, options: IHttpConnectionOptions = {}) {
         this.url = url;
@@ -32,18 +34,18 @@ export class HttpConnection implements IConnection {
         this.options = options;
     }
 
-    async start(requestedTransferMode: TransferMode): Promise<TransferMode> {
+    async start(): Promise<void> {
         if (this.connectionState != ConnectionState.Initial) {
             return Promise.reject(new Error("Cannot start a connection that is not in the 'Initial' state."));
         }
 
         this.connectionState = ConnectionState.Connecting;
 
-        this.startPromise = this.startInternal(requestedTransferMode);
+        this.startPromise = this.startInternal();
         return this.startPromise;
     }
 
-    private async startInternal(requestedTransferMode: TransferMode): Promise<TransferMode> {
+    private async startInternal(): Promise<void> {
         try {
             let negotiatePayload = await this.httpClient.options(this.url);
             let negotiateResponse: INegotiateResponse = JSON.parse(negotiatePayload);
@@ -59,11 +61,17 @@ export class HttpConnection implements IConnection {
             this.transport = this.createTransport(this.options.transport, negotiateResponse.availableTransports);
             this.transport.onDataReceived = this.onDataReceived;
             this.transport.onClosed = e => this.stopConnection(true, e);
-            var actualTransferMode = await this.transport.connect(this.url, requestedTransferMode || TransferMode.Text);
+
+            let requestedTransferMode =
+                this.features.transferMode === TransferMode.Binary
+                    ? TransferMode.Binary
+                    : TransferMode.Text;
+
+            this.features.transferMode = await this.transport.connect(this.url, requestedTransferMode);
+
             // only change the state if we were connecting to not overwrite
             // the state if the connection is already marked as Disconnected
             this.changeState(ConnectionState.Connecting, ConnectionState.Connected);
-            return actualTransferMode;
         }
         catch (e) {
             console.log("Failed to start the connection. " + e);

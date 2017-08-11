@@ -249,8 +249,10 @@ describe("HubConnection", () => {
 });
 
 class TestConnection implements IConnection {
-    start(requestedTransferMode: TransferMode): Promise<TransferMode> {
-        return Promise.resolve(requestedTransferMode);
+    readonly features: any = {};
+
+    start(): Promise<void> {
+        return Promise.resolve();
     };
 
     send(data: any): Promise<void> {

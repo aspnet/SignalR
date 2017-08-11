@@ -22,7 +22,7 @@ describe("Connection", () => {
         let connection = new HttpConnection("http://tempuri.org", options);
 
         try {
-            await connection.start(TransferMode.Text);
+            await connection.start();
             fail();
             done();
         }
@@ -36,7 +36,7 @@ describe("Connection", () => {
         let options: IHttpConnectionOptions = {
             httpClient: <IHttpClient>{
                 options(url: string): Promise<string> {
-                    connection.start(TransferMode.Text)
+                    connection.start()
                         .then(() => {
                             fail();
                             done();
@@ -57,7 +57,7 @@ describe("Connection", () => {
         let connection = new HttpConnection("http://tempuri.org", options);
 
         try {
-            await connection.start(TransferMode.Text);
+            await connection.start();
         }
         catch (e) {
             // This exception is thrown after the actual verification is completed.
@@ -81,14 +81,14 @@ describe("Connection", () => {
 
         try {
             // start will fail and transition the connection to the Disconnected state
-            await connection.start(TransferMode.Text);
+            await connection.start();
         }
         catch (e) {
             // The connection is not setup to be running so just ignore the error.
         }
 
         try {
-            await connection.start(TransferMode.Text);
+            await connection.start();
             fail();
             done();
         }
@@ -115,7 +115,7 @@ describe("Connection", () => {
         let connection = new HttpConnection("http://tempuri.org", options);
 
         try {
-            await connection.start(TransferMode.Text);
+            await connection.start();
             done();
         }
         catch (e) {
@@ -161,7 +161,7 @@ describe("Connection", () => {
         let connection = new HttpConnection("http://tempuri.org?q=myData", options);
 
         try {
-            await connection.start(TransferMode.Text);
+            await connection.start();
             fail();
             done();
         }
@@ -188,7 +188,7 @@ describe("Connection", () => {
 
             let connection = new HttpConnection("http://tempuri.org", options);
             try {
-                await connection.start(TransferMode.Text);
+                await connection.start();
                 fail();
                 done();
             }
@@ -213,7 +213,7 @@ describe("Connection", () => {
 
         let connection = new HttpConnection("http://tempuri.org", options);
         try {
-            await connection.start(TransferMode.Text);
+            await connection.start();
             fail();
             done();
         }
@@ -253,7 +253,10 @@ describe("Connection", () => {
             } as IHttpConnectionOptions;
 
             let connection = new HttpConnection("https://tempuri.org", options);
-            let actualTransferMode = await connection.start(requestedTransferMode);
+            connection.features.transferMode = requestedTransferMode;
+            await connection.start();
+            let actualTransferMode = connection.features.transferMode;
+
             expect(actualTransferMode).toBe(transportTransferMode);
         });
     });

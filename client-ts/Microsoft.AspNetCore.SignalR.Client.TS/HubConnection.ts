@@ -98,7 +98,10 @@ export class HubConnection {
                 ? TransferMode.Binary
                 : TransferMode.Text;
 
-        var actualTransferMode = await this.connection.start(requestedTransferMode);
+        this.connection.features.transferMode = requestedTransferMode
+        await this.connection.start();
+        var actualTransferMode = this.connection.features.transferMode;
+
         await this.connection.send(
             TextMessageFormat.write(
                 JSON.stringify(<NegotiationMessage>{ protocol: this.protocol.name})));
