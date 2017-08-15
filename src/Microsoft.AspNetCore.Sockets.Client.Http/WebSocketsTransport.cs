@@ -19,6 +19,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
         private readonly ClientWebSocket _webSocket = new ClientWebSocket();
         private Channel<byte[], SendMessage> _application;
         private readonly CancellationTokenSource _transportCts = new CancellationTokenSource();
+        private readonly CancellationTokenSource _receiveCts = new CancellationTokenSource();
         private readonly ILogger _logger;
         private string _connectionId;
 
@@ -91,7 +92,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                         var buffer = new ArraySegment<byte>(new byte[bufferSize]);
 
                         //Exceptions are handled above where the send and receive tasks are being run.
-                        receiveResult = await _webSocket.ReceiveAsync(buffer, _transportCts.Token);
+                        receiveResult = await _webSocket.ReceiveAsync(buffer, _receiveCts.Token);
                         if (receiveResult.MessageType == WebSocketMessageType.Close)
                         {
                             _logger.WebSocketClosed(_connectionId, receiveResult.CloseStatus);
@@ -248,7 +249,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     await _webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
 
                     // shutdown the transport after a timeout in case the server does not send close frame
-                    _transportCts.CancelAfter(TimeSpan.FromSeconds(5));
+                    _receiveCts.CancelAfter(TimeSpan.FromSeconds(5));
+                    _transportCts.Cancel();
                 }
             }
             catch (Exception ex)
