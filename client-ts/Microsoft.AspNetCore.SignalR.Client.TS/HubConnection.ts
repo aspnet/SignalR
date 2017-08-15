@@ -227,10 +227,16 @@ class Base64EncodedHubProtocol implements IHubProtocol {
 
         // The format of the message is `size:message;`
         let pos = input.indexOf(":");
-        if (pos == -1)
-        {
+        if (pos == -1 || !input.endsWith(";")) {
             throw new Error("Invalid payload.");
         }
+
+        let messageSize = parseInt(input.substring(0, pos), 10);
+        // 2 accounts for ':' after message size and trailing ';'
+        if (messageSize != input.length - pos - 2) {
+            throw new Error("Invalid message size.");
+        }
+
         let encodedMessage = input.substring(pos + 1, input.length - 1);
 
         // atob/btoa are browsers APIs but they can be polyfilled. If this becomes problematic we can use
