@@ -409,14 +409,14 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 // _startTask is returned to the user and they should handle exceptions.
             }
 
-            if (_transportChannel != null)
-            {
-                Output.TryComplete();
-            }
-
             if (_transport != null)
             {
                 await _transport.StopAsync();
+            }
+
+            if (_transportChannel != null)
+            {
+                Output.TryComplete();
             }
 
             if (_receiveLoopTask != null)
