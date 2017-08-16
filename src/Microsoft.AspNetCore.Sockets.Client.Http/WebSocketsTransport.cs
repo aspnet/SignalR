@@ -199,7 +199,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             finally
             {
                 _logger.SendStopped(_connectionId);
-                _transportCts.Cancel();
+                TriggerCancel();
             }
         }
 
@@ -249,8 +249,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     await _webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
 
                     // shutdown the transport after a timeout in case the server does not send close frame
-                    _receiveCts.CancelAfter(TimeSpan.FromSeconds(5));
-                    _transportCts.Cancel();
+                    TriggerCancel();
                 }
             }
             catch (Exception ex)
@@ -259,6 +258,13 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 // try closing the webSocket twice.
                 _logger.ClosingWebSocketFailed(_connectionId, ex);
             }
+        }
+
+        private void TriggerCancel()
+        {
+            // Give server 5 seconds to respond with a close frame for graceful close.
+            _receiveCts.CancelAfter(TimeSpan.FromSeconds(5));
+            _transportCts.Cancel();
         }
     }
 }
