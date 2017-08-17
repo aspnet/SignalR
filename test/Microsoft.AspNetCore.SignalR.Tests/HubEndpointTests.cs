@@ -501,12 +501,12 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 await firstClient.SendInvocationAsync("SendToAllExcept", "To second", excludeThirdClientId).OrTimeout();
                 await firstClient.SendInvocationAsync("SendToAllExcept", "To third", excludeSecondClientId).OrTimeout();
 
-                var secondClientResult = await secondClient.Read().OrTimeout();
+                var secondClientResult = await secondClient.ReadAsync().OrTimeout();
                 var invocation = Assert.IsType<InvocationMessage>(secondClientResult);
                 Assert.Equal("Send", invocation.Target);
                 Assert.Equal("To second", invocation.Arguments[0]);
 
-                var thirdClientResult = await thirdClient.Read().OrTimeout(); ;
+                var thirdClientResult = await thirdClient.ReadAsync().OrTimeout(); ;
                 invocation = Assert.IsType<InvocationMessage>(thirdClientResult);
                 Assert.Equal("Send", invocation.Target);
                 Assert.Equal("To third", invocation.Arguments[0]);
