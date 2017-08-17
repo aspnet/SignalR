@@ -81,7 +81,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
             try
             {
-                while (!_transportCts.Token.IsCancellationRequested)
+                while (!_receiveCts.Token.IsCancellationRequested)
                 {
                     const int bufferSize = 4096;
                     var totalBytes = 0;
@@ -130,14 +130,23 @@ namespace Microsoft.AspNetCore.Sockets.Client
                         Buffer.BlockCopy(incomingMessage[0].Array, incomingMessage[0].Offset, messageBuffer, 0, incomingMessage[0].Count);
                     }
 
-                    _logger.MessageToApp(_connectionId, messageBuffer.Length);
-                    while (await _application.Out.WaitToWriteAsync(_transportCts.Token))
+                    try
                     {
-                        if (_application.Out.TryWrite(messageBuffer))
+                        if (!_transportCts.Token.IsCancellationRequested)
                         {
-                            incomingMessage.Clear();
-                            break;
+                            _logger.MessageToApp(_connectionId, messageBuffer.Length);
+                            while (await _application.Out.WaitToWriteAsync(_transportCts.Token))
+                            {
+                                if (_application.Out.TryWrite(messageBuffer))
+                                {
+                                    incomingMessage.Clear();
+                                    break;
+                                }
+                            }
                         }
+                    }
+                    catch (OperationCanceledException)
+                    {
                     }
                 }
             }
