@@ -147,6 +147,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     }
                     catch (OperationCanceledException)
                     {
+                        _logger.CancelMessage(_connectionId);
                     }
                 }
             }
