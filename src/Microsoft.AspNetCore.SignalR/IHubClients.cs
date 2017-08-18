@@ -10,7 +10,6 @@ namespace Microsoft.AspNetCore.SignalR
         IClientProxy All { get; }
 
         IClientProxy AllExcept(IReadOnlyList<string> excludedIds);
-        //IClientProxy AllExcept(params string[] excludedIds);
 
         IClientProxy Client(string connectionId);
 

@@ -481,7 +481,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             var serviceProvider = CreateServiceProvider();
 
-            dynamic endPoint = serviceProvider.GetService(GetEndPointType(typeof(MethodHub)));
+            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
