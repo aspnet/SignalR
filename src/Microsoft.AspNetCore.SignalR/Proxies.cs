@@ -58,9 +58,9 @@ namespace Microsoft.AspNetCore.SignalR
     public class AllClientsExceptProxy<THub> : IClientProxy
     {
         private readonly HubLifetimeManager<THub> _lifetimeManager;
-        private IReadOnlyCollection<string> _excludedIds;
+        private IReadOnlyList<string> _excludedIds;
 
-        public AllClientsExceptProxy(HubLifetimeManager<THub> lifetimeManager, IReadOnlyCollection<string> excludedIds)
+        public AllClientsExceptProxy(HubLifetimeManager<THub> lifetimeManager, IReadOnlyList<string> excludedIds)
         {
             _lifetimeManager = lifetimeManager;
             _excludedIds = excludedIds;

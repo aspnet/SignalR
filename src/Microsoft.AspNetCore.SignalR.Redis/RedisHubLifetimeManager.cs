@@ -90,9 +90,9 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
                 _logger.LogTrace("Received message from redis channel {channel}", channelName);
 
-                var message = DeserializeMessage<object[]>(data);
-                var invocationMessage = (InvocationMessage)message[0];
-                var excludedIds = (IReadOnlyList<string>)message[1];
+                var message = DeserializeMessage<RedisExcludeClientMessage>(data);
+                var invocationMessage = (InvocationMessage)message.HubMessage;
+                var excludedIds = message.ExcludedIds;
                 var excludedIdsSet = new HashSet<string>(excludedIds);
 
                 //// TODO: This isn't going to work when we allow JsonSerializer customization or add Protobuf
@@ -118,11 +118,11 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             return PublishAsync(_channelNamePrefix, message);
         }
 
-        public override Task InvokeAllExceptAsync(string methodName, object[] args, IReadOnlyCollection<string> excludedIds)
+        public override Task InvokeAllExceptAsync(string methodName, object[] args, IReadOnlyList<string> excludedIds)
         {
             var message = new InvocationMessage(GetInvocationId(), nonBlocking: true, target: methodName, arguments: args);
-            var data = new object[] { message, excludedIds };
-            return PublishAsync(_channelNamePrefix + ".AllExcept", data);
+            var redisExcludeMessage = new RedisExcludeClientMessage(message, excludedIds);
+            return PublishAsync(_channelNamePrefix + ".AllExcept", redisExcludeMessage);
         }
 
         public override Task InvokeConnectionAsync(string connectionId, string methodName, object[] args)
@@ -394,6 +394,17 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             }
         }
 
+        private class RedisExcludeClientMessage
+        {
+            public HubMessage HubMessage;
+            public IReadOnlyList<string> ExcludedIds;
+
+            public RedisExcludeClientMessage(HubMessage message, IReadOnlyList<string> ids)
+            {
+                HubMessage = message;
+                ExcludedIds = ids;
+            }
+        }
         private class GroupData
         {
             public SemaphoreSlim Lock = new SemaphoreSlim(1, 1);

@@ -14,7 +14,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public abstract Task InvokeAllAsync(string methodName, object[] args);
 
-        public abstract Task InvokeAllExceptAsync(string methodName, object[] args, IReadOnlyCollection<string> excludedIds);
+        public abstract Task InvokeAllExceptAsync(string methodName, object[] args, IReadOnlyList<string> excludedIds);
 
         public abstract Task InvokeConnectionAsync(string connectionId, string methodName, object[] args);
 

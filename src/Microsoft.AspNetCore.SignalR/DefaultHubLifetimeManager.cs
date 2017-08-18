@@ -141,7 +141,7 @@ namespace Microsoft.AspNetCore.SignalR
             return invocationId.ToString();
         }
 
-        public override Task InvokeAllExceptAsync(string methodName, object[] args, IReadOnlyCollection<string> excludedIds)
+        public override Task InvokeAllExceptAsync(string methodName, object[] args, IReadOnlyList<string> excludedIds)
         {
             return InvokeAllWhere(methodName, args, connection =>
             {
