@@ -27,6 +27,7 @@ namespace Microsoft.AspNetCore.SignalR
     {
         private static readonly Base64Encoder Base64Encoder = new Base64Encoder();
         private static readonly PassThroughEncoder PassThroughEncoder = new PassThroughEncoder();
+        private static readonly TimeSpan NegotiateTimeout = TimeSpan.FromSeconds(5);
 
         private readonly Dictionary<string, HubMethodDescriptor> _methods = new Dictionary<string, HubMethodDescriptor>(StringComparer.OrdinalIgnoreCase);
 
@@ -112,7 +113,7 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 using (var cts = new CancellationTokenSource())
                 {
-                    cts.CancelAfter(TimeSpan.FromSeconds(5));
+                    cts.CancelAfter(NegotiateTimeout);
                     while (await connection.Input.WaitToReadAsync(cts.Token))
                     {
                         while (connection.Input.TryRead(out var buffer))
