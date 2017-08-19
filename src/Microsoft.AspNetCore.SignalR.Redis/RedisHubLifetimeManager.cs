@@ -93,7 +93,6 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                 var message = DeserializeMessage<RedisExcludeClientMessage>(data);
                 var invocationMessage = (InvocationMessage)message.HubMessage;
                 var excludedIds = message.ExcludedIds;
-                var excludedIdsSet = new HashSet<string>(excludedIds);
 
                 //// TODO: This isn't going to work when we allow JsonSerializer customization or add Protobuf
 
@@ -146,13 +145,13 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             return PublishAsync(_channelNamePrefix + ".user." + userId, message);
         }
 
-        private async Task PublishAsync(string channel, object args)
+        private async Task PublishAsync(string channel, HubMessage hubMessage)
         {
             byte[] payload;
             using (var stream = new MemoryStream())
             using (var writer = new JsonTextWriter(new StreamWriter(stream)))
             {
-                _serializer.Serialize(writer, args);
+                _serializer.Serialize(writer, hubMessage);
                 await writer.FlushAsync();
                 payload = stream.ToArray();
             }
@@ -394,12 +393,13 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             }
         }
 
-        private class RedisExcludeClientMessage
+        private class RedisExcludeClientMessage : HubMessage
         {
             public HubMessage HubMessage;
             public IReadOnlyList<string> ExcludedIds;
 
-            public RedisExcludeClientMessage(HubMessage message, IReadOnlyList<string> ids)
+            public RedisExcludeClientMessage(HubMessage message, IReadOnlyList<string> ids) :
+                base(message.InvocationId)
             {
                 HubMessage = message;
                 ExcludedIds = ids;
