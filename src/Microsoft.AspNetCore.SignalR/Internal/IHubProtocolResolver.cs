@@ -7,6 +7,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 {
     public interface IHubProtocolResolver
     {
-        IHubProtocol GetProtocol(string protocolName, HubConnectionContext connection, HubOptions options);
+        IHubProtocol GetProtocol(string protocolName, HubConnectionContext connection);
     }
 }

@@ -3,18 +3,26 @@
 
 using System;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 
 namespace Microsoft.AspNetCore.SignalR.Internal
 {
     public class DefaultHubProtocolResolver : IHubProtocolResolver
     {
-        public IHubProtocol GetProtocol(string protocolName, HubConnectionContext connection, HubOptions options)
+        private readonly IOptions<HubOptions> _options;
+
+        public DefaultHubProtocolResolver(IOptions<HubOptions> options)
+        {
+            _options = options;
+        }
+
+        public IHubProtocol GetProtocol(string protocolName, HubConnectionContext connection)
         {
             switch (protocolName?.ToLowerInvariant())
             {
                 case "json":
-                    return new JsonHubProtocol(JsonSerializer.Create(options.JsonSerializerSettings));
+                    return new JsonHubProtocol(JsonSerializer.Create(_options.Value.JsonSerializerSettings));
                 case "messagepack":
                     return new MessagePackHubProtocol();
                 default:
