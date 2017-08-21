@@ -506,7 +506,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 Assert.Equal("Send", invocation.Target);
                 Assert.Equal("To second", invocation.Arguments[0]);
 
-                var thirdClientResult = await thirdClient.ReadAsync().OrTimeout(); ;
+                var thirdClientResult = await thirdClient.ReadAsync().OrTimeout();
                 invocation = Assert.IsType<InvocationMessage>(thirdClientResult);
                 Assert.Equal("Send", invocation.Target);
                 Assert.Equal("To third", invocation.Arguments[0]);

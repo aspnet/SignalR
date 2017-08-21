@@ -118,7 +118,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
         public override Task InvokeAllExceptAsync(string methodName, object[] args, IReadOnlyList<string> excludedIds)
         {
-            var message = new RedisExcludeClientsMessage(GetInvocationId(), nonBlocking: true, target: methodName, excludedIds: excludedIds ,arguments: args);
+            var message = new RedisExcludeClientsMessage(GetInvocationId(), nonBlocking: true, target: methodName, excludedIds: excludedIds, arguments: args);
             return PublishAsync(_channelNamePrefix + ".AllExcept", message);
         }
 
@@ -395,7 +395,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis
         {
             public IReadOnlyList<string> ExcludedIds;
 
-            public RedisExcludeClientsMessage(string invocationId, bool nonBlocking, string target, IReadOnlyList<string> excludedIds, params object[] arguments) : base(invocationId, nonBlocking, target, arguments)
+            public RedisExcludeClientsMessage(string invocationId, bool nonBlocking, string target, IReadOnlyList<string> excludedIds, params object[] arguments)
+                : base(invocationId, nonBlocking, target, arguments)
             {
                 ExcludedIds = excludedIds;
             }
