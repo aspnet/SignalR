@@ -13,13 +13,14 @@ using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR.Features;
 using Microsoft.AspNetCore.SignalR.Internal;
+using Microsoft.AspNetCore.SignalR.Internal.Encoders;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.Sockets;
 using Microsoft.AspNetCore.Sockets.Features;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Internal;
 using Microsoft.Extensions.Logging;
-using Microsoft.AspNetCore.SignalR.Internal.Encoders;
+using Microsoft.Extensions.Options;
 
 namespace Microsoft.AspNetCore.SignalR
 {
@@ -36,16 +37,19 @@ namespace Microsoft.AspNetCore.SignalR
         private readonly ILogger<HubEndPoint<THub>> _logger;
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly IHubProtocolResolver _protocolResolver;
+        private readonly IOptions<HubOptions> _hubOptions;
 
         public HubEndPoint(HubLifetimeManager<THub> lifetimeManager,
                            IHubProtocolResolver protocolResolver,
                            IHubContext<THub> hubContext,
+                           IOptions<HubOptions> hubOptions,
                            ILogger<HubEndPoint<THub>> logger,
                            IServiceScopeFactory serviceScopeFactory)
         {
             _protocolResolver = protocolResolver;
             _lifetimeManager = lifetimeManager;
             _hubContext = hubContext;
+            _hubOptions = hubOptions;
             _logger = logger;
             _serviceScopeFactory = serviceScopeFactory;
 
@@ -120,7 +124,7 @@ namespace Microsoft.AspNetCore.SignalR
                         {
                             if (NegotiationProtocol.TryParseMessage(buffer, out var negotiationMessage))
                             {
-                                var protocol = _protocolResolver.GetProtocol(negotiationMessage.Protocol, connection);
+                                var protocol = _protocolResolver.GetProtocol(negotiationMessage.Protocol, connection, _hubOptions.Value);
 
                                 var transportCapabilities = connection.Features.Get<IConnectionTransportFeature>()?.TransportCapabilities
                                     ?? throw new InvalidOperationException("Unable to read transport capabilities.");

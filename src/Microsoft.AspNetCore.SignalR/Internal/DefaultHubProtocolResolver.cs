@@ -9,12 +9,12 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 {
     public class DefaultHubProtocolResolver : IHubProtocolResolver
     {
-        public IHubProtocol GetProtocol(string protocolName, HubConnectionContext connection)
+        public IHubProtocol GetProtocol(string protocolName, HubConnectionContext connection, HubOptions options)
         {
             switch (protocolName?.ToLowerInvariant())
             {
                 case "json":
-                    return new JsonHubProtocol(new JsonSerializer());
+                    return new JsonHubProtocol(JsonSerializer.Create(options.JsonSerializerSettings));
                 case "messagepack":
                     return new MessagePackHubProtocol();
                 default:
