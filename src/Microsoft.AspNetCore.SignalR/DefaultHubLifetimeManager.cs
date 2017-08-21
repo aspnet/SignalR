@@ -145,8 +145,7 @@ namespace Microsoft.AspNetCore.SignalR
         {
             return InvokeAllWhere(methodName, args, connection =>
             {
-                var excludedIdsSet = new HashSet<string>(excludedIds);
-                return !excludedIdsSet.Contains(connection.ConnectionId);
+                return !excludedIds.Contains(connection.ConnectionId);
             });
         }
 

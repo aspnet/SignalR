@@ -90,8 +90,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
                 _logger.LogTrace("Received message from redis channel {channel}", channelName);
 
-                var message = DeserializeMessage<RedisExcludeClientMessage>(data);
-                var invocationMessage = (InvocationMessage)message.HubMessage;
+                var message = DeserializeMessage<RedisExcludeClientsMessage>(data);
                 var excludedIds = message.ExcludedIds;
 
                 //// TODO: This isn't going to work when we allow JsonSerializer customization or add Protobuf
@@ -102,7 +101,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                 {
                     if (!excludedIds.Contains(connection.ConnectionId))
                     {
-                        tasks.Add(WriteAsync(connection, invocationMessage));
+                        tasks.Add(WriteAsync(connection, message));
                     }
                 }
 
@@ -119,9 +118,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
         public override Task InvokeAllExceptAsync(string methodName, object[] args, IReadOnlyList<string> excludedIds)
         {
-            var message = new InvocationMessage(GetInvocationId(), nonBlocking: true, target: methodName, arguments: args);
-            var redisExcludeMessage = new RedisExcludeClientMessage(message, excludedIds);
-            return PublishAsync(_channelNamePrefix + ".AllExcept", redisExcludeMessage);
+            var message = new RedisExcludeClientsMessage(GetInvocationId(), nonBlocking: true, target: methodName, excludedIds: excludedIds ,arguments: args);
+            return PublishAsync(_channelNamePrefix + ".AllExcept", message);
         }
 
         public override Task InvokeConnectionAsync(string connectionId, string methodName, object[] args)
@@ -393,18 +391,16 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             }
         }
 
-        private class RedisExcludeClientMessage : HubMessage
+        public class RedisExcludeClientsMessage : InvocationMessage
         {
-            public HubMessage HubMessage;
             public IReadOnlyList<string> ExcludedIds;
 
-            public RedisExcludeClientMessage(HubMessage message, IReadOnlyList<string> ids) :
-                base(message.InvocationId)
+            public RedisExcludeClientsMessage(string invocationId, bool nonBlocking, string target, IReadOnlyList<string> excludedIds, params object[] arguments) : base(invocationId, nonBlocking, target, arguments)
             {
-                HubMessage = message;
-                ExcludedIds = ids;
+                ExcludedIds = excludedIds;
             }
         }
+
         private class GroupData
         {
             public SemaphoreSlim Lock = new SemaphoreSlim(1, 1);
