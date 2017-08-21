@@ -83,12 +83,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 var sendTcs = new TaskCompletionSource<object>();
                 connectionToTransport.Out.TryWrite(new SendMessage(new byte[] { 0x42 }, sendTcs));
-                await sendTcs.Task;
+
                 // The echo endpoint closes the connection immediately after sending response which should stop the transport
                 await webSocketsTransport.Running.OrTimeout();
-
-                Assert.True(transportToConnection.In.TryRead(out var buffer));
-                Assert.Equal(new byte[] { 0x42 }, buffer);
             }
         }
 
