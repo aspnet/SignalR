@@ -81,7 +81,9 @@ namespace Microsoft.AspNetCore.SignalR.Client
             _connection.Closed += Shutdown;
         }
 
-        public async Task StartAsync()
+        public async Task StartAsync() => await StartAsyncCore().ForceAsync();
+
+        private async Task StartAsyncCore()
         {
             var transferModeFeature = _connection.Features.Get<ITransferModeFeature>();
             if (transferModeFeature == null)
@@ -122,7 +124,9 @@ namespace Microsoft.AspNetCore.SignalR.Client
             return new PassThroughEncoder();
         }
 
-        public async Task DisposeAsync()
+        public async Task DisposeAsync() => await DisposeAsyncCore().ForceAsync();
+
+        private async Task DisposeAsyncCore()
         {
             await _connection.DisposeAsync();
         }
@@ -141,14 +145,20 @@ namespace Microsoft.AspNetCore.SignalR.Client
             return channel;
         }
 
-        public async Task<object> InvokeAsync(string methodName, Type returnType, CancellationToken cancellationToken, params object[] args)
+        public async Task<object> InvokeAsync(string methodName, Type returnType, CancellationToken cancellationToken, params object[] args) =>
+             await InvokeAsyncCore(methodName, returnType, cancellationToken, args).ForceAsync();
+
+        private async Task<object> InvokeAsyncCore(string methodName, Type returnType, CancellationToken cancellationToken, params object[] args)
         {
             var irq = InvocationRequest.Invoke(cancellationToken, returnType, GetNextId(), _loggerFactory, out var task);
             await InvokeCore(methodName, irq, args, nonBlocking: false);
             return await task;
         }
 
-        public Task SendAsync(string methodName, CancellationToken cancellationToken, params object[] args)
+        public async Task SendAsync(string methodName, CancellationToken cancellationToken, params object[] args) =>
+            await SendAsyncCore(methodName, cancellationToken, args).ForceAsync();
+
+        private Task SendAsyncCore(string methodName, CancellationToken cancellationToken, params object[] args)
         {
             var irq = InvocationRequest.Invoke(cancellationToken, typeof(void), GetNextId(), _loggerFactory, out _);
             return InvokeCore(methodName, irq, args, nonBlocking: true);
