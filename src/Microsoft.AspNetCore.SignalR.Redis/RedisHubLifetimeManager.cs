@@ -94,7 +94,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                 var message = DeserializeMessage<RedisExcludeClientsMessage>(data);
                 var excludedIds = message.ExcludedIds;
 
-                //// TODO: This isn't going to work when we allow JsonSerializer customization or add Protobuf
+                // TODO: This isn't going to work when we allow JsonSerializer customization or add Protobuf
 
                 var tasks = new List<Task>(_connections.Count);
 
