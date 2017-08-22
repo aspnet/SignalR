@@ -28,7 +28,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         public Channel<byte[]> Application { get; }
         public Task Connected => ((TaskCompletionSource<bool>)Connection.Metadata["ConnectedTask"]).Task;
 
-        public TestClient(bool synchronousCallbacks = false)
+        public TestClient(bool synchronousCallbacks = false, bool shouldHaveId = false)
         {
             var options = new ChannelOptimizations { AllowSynchronousContinuations = synchronousCallbacks };
             var transportToApplication = Channel.CreateUnbounded<byte[]>(options);
@@ -38,7 +38,15 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             _transport = ChannelConnection.Create<byte[]>(input: transportToApplication, output: applicationToTransport);
 
             Connection = new DefaultConnectionContext(Guid.NewGuid().ToString(), _transport, Application);
-            Connection.User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, Interlocked.Increment(ref _id).ToString()) }));
+
+            string claimValue = Interlocked.Increment(ref _id).ToString();
+            List<Claim> claims = new List<Claim>{ new Claim(ClaimTypes.Name, claimValue) };
+            if (shouldHaveId)
+            {
+                claims.Add(new Claim(ClaimTypes.NameIdentifier, claimValue));
+            }
+
+            Connection.User = new ClaimsPrincipal(new ClaimsIdentity(claims));
             Connection.Metadata["ConnectedTask"] = new TaskCompletionSource<bool>();
 
             var protocol = new JsonHubProtocol(new JsonSerializer());
@@ -53,6 +61,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
+        
         public async Task<IList<HubMessage>> StreamAsync(string methodName, params object[] args)
         {
             var invocationId = await SendInvocationAsync(methodName, nonBlocking: false, args: args);
