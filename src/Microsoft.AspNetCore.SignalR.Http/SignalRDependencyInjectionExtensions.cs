@@ -10,7 +10,7 @@ namespace Microsoft.Extensions.DependencyInjection
     {
         public static ISignalRBuilder AddSignalR(this IServiceCollection services)
         {
-            return AddSignalR(services, o => { });
+            return AddSignalR(services, _ => { });
         }
 
         public static ISignalRBuilder AddSignalR(this IServiceCollection services, Action<HubOptions> configure)
