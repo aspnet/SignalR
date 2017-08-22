@@ -590,7 +590,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 await Task.WhenAll(firstClient.Connected, secondClient.Connected).OrTimeout();
 
-                await firstClient.SendInvocationAsync("ClientSendMethod", secondClient.Connection.User.FindFirst(ClaimTypes.NameIdentifier).Value, "test").OrTimeout();
+                await firstClient.SendInvocationAsync("ClientSendMethod", secondClient.Connection.User.FindFirstValue(ClaimTypes.NameIdentifier), "test").OrTimeout();
 
                 // check that 'secondConnection' has received the group send
                 var hubMessage = await secondClient.ReadAsync().OrTimeout();

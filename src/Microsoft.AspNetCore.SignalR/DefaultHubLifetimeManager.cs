@@ -104,7 +104,7 @@ namespace Microsoft.AspNetCore.SignalR
         public override Task InvokeUserAsync(string userId, string methodName, object[] args)
         {
             return InvokeAllWhere(methodName, args, connection => 
-                string.Equals(connection.User.FindFirst(ClaimTypes.NameIdentifier).Value, userId, StringComparison.Ordinal));
+                string.Equals(connection.User.FindFirstValue(ClaimTypes.NameIdentifier), userId, StringComparison.Ordinal));
         }
 
         public override Task OnConnectedAsync(HubConnectionContext connection)
