@@ -82,11 +82,12 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                 previousBroadcastTask = Task.WhenAll(tasks);
             });
 
+            var allExceptTask = Task.CompletedTask;
             channelName = _channelNamePrefix + ".AllExcept";
             _logger.LogInformation("Subscribing to channel: {channel}", channelName);
             _bus.Subscribe(channelName, async (c, data) =>
             {
-                await previousBroadcastTask;
+                await allExceptTask;
 
                 _logger.LogTrace("Received message from redis channel {channel}", channelName);
 
@@ -105,7 +106,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                     }
                 }
 
-                previousBroadcastTask = Task.WhenAll(tasks);
+                allExceptTask = Task.WhenAll(tasks);
             });
         }
 
