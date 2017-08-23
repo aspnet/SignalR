@@ -1062,19 +1062,6 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 return reader.ReadToEnd();
             }
         }
-
-        private class EmptyApplicationLifetime : IApplicationLifetime
-        {
-            public CancellationToken ApplicationStarted => CancellationToken.None;
-
-            public CancellationToken ApplicationStopping => CancellationToken.None;
-
-            public CancellationToken ApplicationStopped => CancellationToken.None;
-
-            public void StopApplication()
-            {
-            }
-        }
     }
 
     public class NerverEndingEndPoint : EndPoint

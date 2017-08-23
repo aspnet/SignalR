@@ -203,31 +203,8 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
         private static ConnectionManager CreateConnectionManager(IApplicationLifetime lifetime = null)
         {
-            lifetime = lifetime ?? new TestApplicationLifetime();
+            lifetime = lifetime ?? new EmptyApplicationLifetime();
             return new ConnectionManager(new Logger<ConnectionManager>(new LoggerFactory()), lifetime);
-        }
-
-        private class TestApplicationLifetime : IApplicationLifetime
-        {
-            private readonly CancellationTokenSource _startedSource = new CancellationTokenSource();
-            private readonly CancellationTokenSource _stoppingSource = new CancellationTokenSource();
-            private readonly CancellationTokenSource _stoppedSource = new CancellationTokenSource();
-
-            public CancellationToken ApplicationStarted => _startedSource.Token;
-
-            public CancellationToken ApplicationStopping => _stoppingSource.Token;
-
-            public CancellationToken ApplicationStopped => _stoppedSource.Token;
-
-            public void StopApplication()
-            {
-                _stoppingSource.Cancel(throwOnFirstException: false);
-            }
-
-            public void Start()
-            {
-                _startedSource.Cancel(throwOnFirstException: false);
-            }
         }
     }
 }
