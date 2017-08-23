@@ -2,7 +2,9 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.SignalR.Tests.Common;
 using Microsoft.Extensions.Logging;
 using Xunit;
@@ -185,7 +187,20 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
         private static ConnectionManager CreateConnectionManager()
         {
-            return new ConnectionManager(new Logger<ConnectionManager>(new LoggerFactory()));
+            return new ConnectionManager(new Logger<ConnectionManager>(new LoggerFactory()), new TestApplicationLifetime());
+        }
+
+        private class TestApplicationLifetime : IApplicationLifetime
+        {
+            public CancellationToken ApplicationStarted => CancellationToken.None;
+
+            public CancellationToken ApplicationStopping => CancellationToken.None;
+
+            public CancellationToken ApplicationStopped => CancellationToken.None;
+
+            public void StopApplication()
+            {
+            }
         }
     }
 }

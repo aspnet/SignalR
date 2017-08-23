@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Http.Internal;
@@ -1049,7 +1050,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
         private static ConnectionManager CreateConnectionManager()
         {
-            return new ConnectionManager(new Logger<ConnectionManager>(new LoggerFactory()));
+            return new ConnectionManager(new Logger<ConnectionManager>(new LoggerFactory()), new TestApplicationLifetime());
         }
 
         private string GetContentAsString(Stream body)
@@ -1059,6 +1060,19 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             using (var reader = new StreamReader(body))
             {
                 return reader.ReadToEnd();
+            }
+        }
+
+        private class TestApplicationLifetime : IApplicationLifetime
+        {
+            public CancellationToken ApplicationStarted => CancellationToken.None;
+
+            public CancellationToken ApplicationStopping => CancellationToken.None;
+
+            public CancellationToken ApplicationStopped => CancellationToken.None;
+
+            public void StopApplication()
+            {
             }
         }
     }
