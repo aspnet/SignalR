@@ -28,7 +28,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         public Channel<byte[]> Application { get; }
         public Task Connected => ((TaskCompletionSource<bool>)Connection.Metadata["ConnectedTask"]).Task;
 
-        public TestClient(bool synchronousCallbacks = false, bool shouldHaveId = false)
+        public TestClient(bool synchronousCallbacks = false, bool addClaimId = false)
         {
             var options = new ChannelOptimizations { AllowSynchronousContinuations = synchronousCallbacks };
             var transportToApplication = Channel.CreateUnbounded<byte[]>(options);
@@ -39,9 +39,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
             Connection = new DefaultConnectionContext(Guid.NewGuid().ToString(), _transport, Application);
 
-            string claimValue = Interlocked.Increment(ref _id).ToString();
-            List<Claim> claims = new List<Claim>{ new Claim(ClaimTypes.Name, claimValue) };
-            if (shouldHaveId)
+            var claimValue = Interlocked.Increment(ref _id).ToString();
+            var claims = new List<Claim>{ new Claim(ClaimTypes.Name, claimValue) };
+            if (addClaimId)
             {
                 claims.Add(new Claim(ClaimTypes.NameIdentifier, claimValue));
             }

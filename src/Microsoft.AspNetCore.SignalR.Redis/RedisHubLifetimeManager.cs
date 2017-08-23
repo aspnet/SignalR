@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Claims;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -154,7 +155,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
             if (connection.User.Identity.IsAuthenticated)
             {
-                var userChannel = typeof(THub).FullName + ".user." + connection.User.Identity.Name;
+                var userChannel = typeof(THub).FullName + ".user." + connection.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 redisSubscriptions.Add(userChannel);
 
                 var previousUserTask = Task.CompletedTask;
