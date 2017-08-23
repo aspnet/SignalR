@@ -1050,7 +1050,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
         private static ConnectionManager CreateConnectionManager()
         {
-            return new ConnectionManager(new Logger<ConnectionManager>(new LoggerFactory()), new TestApplicationLifetime());
+            return new ConnectionManager(new Logger<ConnectionManager>(new LoggerFactory()), new EmptyApplicationLifetime());
         }
 
         private string GetContentAsString(Stream body)
@@ -1063,7 +1063,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             }
         }
 
-        private class TestApplicationLifetime : IApplicationLifetime
+        private class EmptyApplicationLifetime : IApplicationLifetime
         {
             public CancellationToken ApplicationStarted => CancellationToken.None;
 

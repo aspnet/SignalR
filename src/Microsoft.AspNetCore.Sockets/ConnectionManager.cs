@@ -24,8 +24,10 @@ namespace Microsoft.AspNetCore.Sockets
 
         public ConnectionManager(ILogger<ConnectionManager> logger, IApplicationLifetime appLifetime)
         {
-            appLifetime.ApplicationStopping.Register(() => CloseConnections());
             _logger = logger;
+
+            appLifetime.ApplicationStarted.Register(() => Start());
+            appLifetime.ApplicationStopping.Register(() => CloseConnections());
         }
 
         public void Start()

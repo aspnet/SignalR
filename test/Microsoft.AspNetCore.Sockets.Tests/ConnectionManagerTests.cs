@@ -185,21 +185,48 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             connectionManager.Scan();
         }
 
-        private static ConnectionManager CreateConnectionManager()
+        [Fact]
+        public async Task ApplicationLifetimeIsHookedUp()
         {
-            return new ConnectionManager(new Logger<ConnectionManager>(new LoggerFactory()), new TestApplicationLifetime());
+            var appLifetime = new TestApplicationLifetime();
+            var connectionManager = CreateConnectionManager(appLifetime);
+
+            appLifetime.Start();
+
+            var connection = connectionManager.CreateConnection();
+
+            appLifetime.StopApplication();
+
+            // Connection should be disposed so this should complete immediately
+            Assert.False(await connection.Application.Out.WaitToWriteAsync().OrTimeout());
+        }
+
+        private static ConnectionManager CreateConnectionManager(IApplicationLifetime lifetime = null)
+        {
+            lifetime = lifetime ?? new TestApplicationLifetime();
+            return new ConnectionManager(new Logger<ConnectionManager>(new LoggerFactory()), lifetime);
         }
 
         private class TestApplicationLifetime : IApplicationLifetime
         {
-            public CancellationToken ApplicationStarted => CancellationToken.None;
+            private readonly CancellationTokenSource _startedSource = new CancellationTokenSource();
+            private readonly CancellationTokenSource _stoppingSource = new CancellationTokenSource();
+            private readonly CancellationTokenSource _stoppedSource = new CancellationTokenSource();
 
-            public CancellationToken ApplicationStopping => CancellationToken.None;
+            public CancellationToken ApplicationStarted => _startedSource.Token;
 
-            public CancellationToken ApplicationStopped => CancellationToken.None;
+            public CancellationToken ApplicationStopping => _stoppingSource.Token;
+
+            public CancellationToken ApplicationStopped => _stoppedSource.Token;
 
             public void StopApplication()
             {
+                _stoppingSource.Cancel(throwOnFirstException: false);
+            }
+
+            public void Start()
+            {
+                _startedSource.Cancel(throwOnFirstException: false);
             }
         }
     }
