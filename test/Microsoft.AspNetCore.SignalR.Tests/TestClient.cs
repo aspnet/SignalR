@@ -60,7 +60,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 Application.Out.TryWrite(memoryStream.ToArray());
             }
         }
-        
+
         public async Task<IList<HubMessage>> StreamAsync(string methodName, params object[] args)
         {
             var invocationId = await SendInvocationAsync(methodName, nonBlocking: false, args: args);
