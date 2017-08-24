@@ -195,6 +195,7 @@ export class LongPollingTransport implements ITransport {
         }
 
         let pollXhr = new XMLHttpRequest();
+        pollXhr.setRequestHeader("User-Agent", "Microsoft.AspNetCore.SignalR.Client/1.0.0-alpha");
         if (transferMode === TransferMode.Binary) {
             pollXhr.responseType = "arraybuffer";
         }

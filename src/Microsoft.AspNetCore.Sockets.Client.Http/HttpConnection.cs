@@ -198,10 +198,13 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 // Get a connection ID from the server
                 logger.EstablishingConnection(url);
                 using (var request = new HttpRequestMessage(HttpMethod.Options, url))
-                using (var response = await httpClient.SendAsync(request))
                 {
-                    response.EnsureSuccessStatusCode();
-                    return await ParseNegotiateResponse(response, logger);
+                    request.Headers.UserAgent.Add(SendUtils.DefaultUserAgentHeader);
+                    using (var response = await httpClient.SendAsync(request))
+                    {
+                        response.EnsureSuccessStatusCode();
+                        return await ParseNegotiateResponse(response, logger);
+                    }
                 }
             }
             catch (Exception ex)
