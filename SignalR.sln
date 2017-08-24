@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26730.0
+VisualStudioVersion = 15.0.26823.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{DA69F624-5398-4884-87E4-B816698CDE65}"
 EndProject
@@ -76,6 +76,11 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AspNetCore.Sockets.Client.Http", "src\Microsoft.AspNetCore.Sockets.Client.Http\Microsoft.AspNetCore.Sockets.Client.Http.csproj", "{B0243F99-2D3F-4CC6-AD71-E3F891B64724}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AspNetCore.Sockets.Common.Http", "src\Microsoft.AspNetCore.Sockets.Common.Http\Microsoft.AspNetCore.Sockets.Common.Http.csproj", "{E081EE41-D95F-4AD2-BC0B-4B562C0A2A47}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Common", "Common", "{8615A3A1-326D-4495-9B9A-C9CE7D4379DB}"
+	ProjectSection(SolutionItems) = preProject
+		src\Common\ForceAsyncAwaiter.cs = src\Common\ForceAsyncAwaiter.cs
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -204,6 +209,7 @@ Global
 		{9E403E93-3284-486F-9A5F-1E15FCE426A5} = {DA69F624-5398-4884-87E4-B816698CDE65}
 		{B0243F99-2D3F-4CC6-AD71-E3F891B64724} = {DA69F624-5398-4884-87E4-B816698CDE65}
 		{E081EE41-D95F-4AD2-BC0B-4B562C0A2A47} = {DA69F624-5398-4884-87E4-B816698CDE65}
+		{8615A3A1-326D-4495-9B9A-C9CE7D4379DB} = {DA69F624-5398-4884-87E4-B816698CDE65}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {7945A4E4-ACDB-4F6E-95CA-6AC6E7C2CD59}

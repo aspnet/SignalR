@@ -5,9 +5,9 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
-namespace Microsoft.AspNetCore.Sockets
+namespace Microsoft.AspNetCore.Sockets.Internal
 {
-    public static partial class TaskAwaiters
+    public static class ForceAsyncTaskExtensions
     {
         /// <summary>
         /// Returns an awaitable/awaiter that will ensure the continuation is executed
