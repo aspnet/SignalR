@@ -25,7 +25,7 @@ export class HttpClient implements IHttpClient {
 
             xhr.open(method, url, true);
             xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
-
+            xhr.setRequestHeader("User-Agent", "Microsoft.AspNetCore.SignalR.Client/1.0.0-alpha");
             if (headers) {
                 headers.forEach((value, header) => xhr.setRequestHeader(header, value));
             }
