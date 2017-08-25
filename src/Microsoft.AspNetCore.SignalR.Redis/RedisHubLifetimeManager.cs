@@ -27,6 +27,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis
         private readonly ILogger _logger;
         private readonly RedisOptions _options;
         private readonly string _channelNamePrefix = typeof(THub).FullName;
+        private readonly AckHandler _ackHandler;
+        private long _internalId;
 
         // This serializer is ONLY use to transmit the data through redis, it has no connection to the serializer used on each connection.
         private readonly JsonSerializer _serializer = new JsonSerializer
@@ -44,6 +46,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
         {
             _logger = logger;
             _options = options.Value;
+            _ackHandler = new AckHandler();
 
             var writer = new LoggerTextWriter(logger);
             _logger.LogInformation("Connecting to redis endpoints: {endpoints}", string.Join(", ", options.Value.Options.EndPoints.Select(e => EndPointCollection.ToString(e))));
@@ -108,6 +111,43 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
                 allExceptTask = Task.WhenAll(tasks);
             });
+
+            channelName = _channelNamePrefix + ".internal.group";
+            _bus.Subscribe(channelName, async (c, data) =>
+            {
+                var groupMessage = DeserializeMessage<GroupMessage>(data);
+
+                if (groupMessage.Action == GroupAction.Remove)
+                {
+                    if (!await RemoveGroupAsyncCore(groupMessage.ConnectionId, groupMessage.Group))
+                    {
+                        // user not on this server
+                        return;
+                    }
+                }
+                else if (groupMessage.Action == GroupAction.Add)
+                {
+                    if (!await AddGroupAsyncCore(groupMessage.ConnectionId, groupMessage.Group))
+                    {
+                        // user not on this server
+                        return;
+                    }
+                }
+                else if (groupMessage.Action == GroupAction.Ack)
+                {
+                    _ackHandler.TriggerAck(groupMessage.Id);
+                    return;
+                }
+
+                // Sending ack
+                await PublishAsync(channelName, new GroupMessage
+                {
+                    Action = GroupAction.Ack,
+                    ConnectionId = groupMessage.ConnectionId,
+                    Group = groupMessage.Group,
+                    Id = groupMessage.Id
+                });
+            });
         }
 
         public override Task InvokeAllAsync(string methodName, object[] args)
@@ -144,7 +184,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             return PublishAsync(_channelNamePrefix + ".user." + userId, message);
         }
 
-        private async Task PublishAsync(string channel, HubMessage hubMessage)
+        private async Task PublishAsync<TMessage>(string channel, TMessage hubMessage)
         {
             byte[] payload;
             using (var stream = new MemoryStream())
@@ -241,11 +281,22 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
         public override async Task AddGroupAsync(string connectionId, string groupName)
         {
+            if (await AddGroupAsyncCore(connectionId, groupName))
+            {
+                // short circuit if connection is on this server
+                return;
+            }
+
+            await SendGroupActionAndWaitForAck(connectionId, groupName, GroupAction.Add);
+        }
+
+        private async Task<bool> AddGroupAsyncCore(string connectionId, string groupName)
+        {
             var groupChannel = _channelNamePrefix + ".group." + groupName;
             var connection = _connections[connectionId];
             if (connection == null)
             {
-                return;
+                return false;
             }
 
             var feature = connection.Features.Get<IRedisFeature>();
@@ -266,7 +317,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                 // Subscribe once
                 if (group.Connections.Count > 1)
                 {
-                    return;
+                    return true;
                 }
 
                 var previousTask = Task.CompletedTask;
@@ -294,22 +345,35 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             {
                 group.Lock.Release();
             }
+
+            return true;
         }
 
         public override async Task RemoveGroupAsync(string connectionId, string groupName)
+        {
+            if (await RemoveGroupAsyncCore(connectionId, groupName))
+            {
+                // short circuit if connection is on this server
+                return;
+            }
+
+            await SendGroupActionAndWaitForAck(connectionId, groupName, GroupAction.Remove);
+        }
+
+        private async Task<bool> RemoveGroupAsyncCore(string connectionId, string groupName)
         {
             var groupChannel = _channelNamePrefix + ".group." + groupName;
 
             GroupData group;
             if (!_groups.TryGetValue(groupChannel, out group))
             {
-                return;
+                return false;
             }
 
             var connection = _connections[connectionId];
             if (connection == null)
             {
-                return;
+                return false;
             }
 
             var feature = connection.Features.Get<IRedisFeature>();
@@ -325,24 +389,46 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             await group.Lock.WaitAsync();
             try
             {
-                group.Connections.Remove(connection);
-
-                if (group.Connections.Count == 0)
+                if (group.Connections.Count > 0)
                 {
-                    _logger.LogInformation("Unsubscribing from group channel: {channel}", groupChannel);
-                    await _bus.UnsubscribeAsync(groupChannel);
+                    group.Connections.Remove(connection);
+
+                    if (group.Connections.Count == 0)
+                    {
+                        _logger.LogInformation("Unsubscribing from group channel: {channel}", groupChannel);
+                        await _bus.UnsubscribeAsync(groupChannel);
+                    }
                 }
             }
             finally
             {
                 group.Lock.Release();
             }
+
+            return true;
+        }
+
+        private async Task SendGroupActionAndWaitForAck(string connectionId, string groupName, GroupAction action)
+        {
+            var id = Interlocked.Increment(ref _internalId);
+            var ack = _ackHandler.CreateAck(id);
+            // Send AddGroup to other servers and wait for an ack or timeout
+            await PublishAsync(_channelNamePrefix + ".internal.group", new GroupMessage
+            {
+                Action = action,
+                ConnectionId = connectionId,
+                Group = groupName,
+                Id = id
+            });
+
+            await ack;
         }
 
         public void Dispose()
         {
             _bus.UnsubscribeAll();
             _redisServerConnection.Dispose();
+            _ackHandler.Dispose();
         }
 
         private async Task WriteAsync(HubConnectionContext connection, HubMessage hubMessage)
@@ -419,6 +505,92 @@ namespace Microsoft.AspNetCore.SignalR.Redis
         {
             public HashSet<string> Subscriptions { get; } = new HashSet<string>();
             public HashSet<string> Groups { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        private class AckHandler : IDisposable
+        {
+            private readonly ConcurrentDictionary<long, AckInfo> _acks = new ConcurrentDictionary<long, AckInfo>();
+            private readonly Timer _timer;
+            private readonly TimeSpan _ackThreshold = TimeSpan.FromSeconds(30);
+            private readonly TimeSpan _ackInterval = TimeSpan.FromSeconds(5);
+
+            public AckHandler()
+            {
+                _timer = new Timer(_ => CheckAcks(), state: null, dueTime: _ackInterval, period: _ackInterval);
+            }
+
+            public Task CreateAck(long id)
+            {
+                return _acks.GetOrAdd(id, _ => new AckInfo()).Tcs.Task;
+            }
+
+            public bool TriggerAck(long id)
+            {
+                if (_acks.TryRemove(id, out var ack))
+                {
+                    ack.Tcs.TrySetResult(null);
+                    return true;
+                }
+
+                return false;
+            }
+
+            private void CheckAcks()
+            {
+                var utcNow = DateTime.UtcNow;
+
+                foreach (var pair in _acks)
+                {
+                    var elapsed = utcNow - pair.Value.Created;
+                    if (elapsed > _ackThreshold)
+                    {
+                        if (_acks.TryRemove(pair.Key, out var ack))
+                        {
+                            ack.Tcs.TrySetCanceled();
+                        }
+                    }
+                }
+            }
+
+            public void Dispose()
+            {
+                _timer.Dispose();
+
+                foreach (var pair in _acks)
+                {
+                    if (_acks.TryRemove(pair.Key, out var ack))
+                    {
+                        ack.Tcs.TrySetCanceled();
+                    }
+                }
+            }
+        }
+
+        private class AckInfo
+        {
+            public TaskCompletionSource<object> Tcs { get; private set; }
+            public DateTime Created { get; private set; }
+
+            public AckInfo()
+            {
+                Created = DateTime.UtcNow;
+                Tcs = new TaskCompletionSource<object>();
+            }
+        }
+
+        private enum GroupAction
+        {
+            Remove,
+            Add,
+            Ack
+        }
+
+        private class GroupMessage
+        {
+            public string ConnectionId;
+            public string Group;
+            public long Id;
+            public GroupAction Action;
         }
     }
 }
