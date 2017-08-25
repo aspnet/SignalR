@@ -89,7 +89,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 while (!cancellationToken.IsCancellationRequested)
                 {
                     var request = new HttpRequestMessage(HttpMethod.Get, pollUrl);
-                    request.Headers.UserAgent.Add(SendUtils.DefaultUserAgentHeader);
+                    request.Headers.UserAgent.Add(Constants.DefaultUserAgentHeader);
 
                     var response = await _httpClient.SendAsync(request, cancellationToken);
                     response.EnsureSuccessStatusCode();

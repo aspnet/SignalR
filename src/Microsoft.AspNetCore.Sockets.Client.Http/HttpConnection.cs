@@ -199,7 +199,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 logger.EstablishingConnection(url);
                 using (var request = new HttpRequestMessage(HttpMethod.Options, url))
                 {
-                    request.Headers.UserAgent.Add(SendUtils.DefaultUserAgentHeader);
+                    request.Headers.UserAgent.Add(Constants.DefaultUserAgentHeader);
                     using (var response = await httpClient.SendAsync(request))
                     {
                         response.EnsureSuccessStatusCode();

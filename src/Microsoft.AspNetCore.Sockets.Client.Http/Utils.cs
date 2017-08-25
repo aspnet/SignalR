@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Net.Http.Headers;
 
 namespace Microsoft.AspNetCore.Sockets.Client
 {
@@ -41,5 +42,11 @@ namespace Microsoft.AspNetCore.Sockets.Client
             builder.Query = newQueryString;
             return builder.Uri;
         }
+    }
+
+    public class Constants
+    {
+        private static readonly string DefaultUserAgent = "Microsoft.AspNetCore.Http.Client/1.0.0-alpha";
+        public static readonly ProductInfoHeaderValue DefaultUserAgentHeader = ProductInfoHeaderValue.Parse(DefaultUserAgent);
     }
 }
