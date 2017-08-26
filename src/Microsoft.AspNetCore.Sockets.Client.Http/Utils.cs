@@ -43,10 +43,4 @@ namespace Microsoft.AspNetCore.Sockets.Client
             return builder.Uri;
         }
     }
-
-    public class Constants
-    {
-        private static readonly string DefaultUserAgent = "Microsoft.AspNetCore.Http.Client/1.0.0-alpha";
-        public static readonly ProductInfoHeaderValue DefaultUserAgentHeader = ProductInfoHeaderValue.Parse(DefaultUserAgent);
-    }
 }

@@ -9,8 +9,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.Http.Features;
-using Microsoft.AspNetCore.Sockets.Features;
+using Microsoft.AspNetCore.Sockets.Client.Http;
 using Microsoft.AspNetCore.Sockets.Client.Internal;
+using Microsoft.AspNetCore.Sockets.Features;
 using Microsoft.AspNetCore.Sockets.Http.Internal;
 using Microsoft.AspNetCore.Sockets.Internal;
 using Microsoft.Extensions.Logging;
@@ -199,7 +200,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 logger.EstablishingConnection(url);
                 using (var request = new HttpRequestMessage(HttpMethod.Options, url))
                 {
-                    request.Headers.UserAgent.Add(Constants.DefaultUserAgentHeader);
+                    request.Headers.UserAgent.Add(Constants.UserAgentHeader);
                     using (var response = await httpClient.SendAsync(request))
                     {
                         response.EnsureSuccessStatusCode();

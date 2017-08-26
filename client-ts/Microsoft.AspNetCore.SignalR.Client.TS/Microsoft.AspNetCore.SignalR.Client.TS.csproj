@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <Inputs Include="*.ts;" />
+    <Inputs Remove="UserAgent.ts" />
     <Outputs Include="@(Inputs -> '$(SignalRClientDistFolder)src\%(FileName).d.ts')" />
     <Outputs Include="@(Inputs -> '$(SignalRClientDistFolder)src\%(FileName).js')" />
     <Outputs Include="$(SignalRClientDistFolder)browser\signalr-client.js" />
@@ -45,12 +46,8 @@
     </PropertyGroup>
     <Exec Command="npm version $(ModuleVersion)" WorkingDirectory="$(MSBuildThisFileDirectory).." Condition="'$(VersionSuffix)' != ''" />
     <Exec Command="npm pack" WorkingDirectory="$(MSBuildThisFileDirectory).." />
-    <Exec
-      Command="git checkout HEAD -- $(MSBuildThisFileDirectory)../package.json"
-      Condition="$(IsGitRepository) AND '$(VersionSuffix)' != ''" />
-    <Exec
-      Command="git checkout HEAD -- $(MSBuildThisFileDirectory)../package-lock.json"
-      Condition="$(IsGitRepository) AND '$(VersionSuffix)' != ''" />
+    <Exec Command="git checkout HEAD -- $(MSBuildThisFileDirectory)../package.json" Condition="$(IsGitRepository) AND '$(VersionSuffix)' != ''" />
+    <Exec Command="git checkout HEAD -- $(MSBuildThisFileDirectory)../package-lock.json" Condition="$(IsGitRepository) AND '$(VersionSuffix)' != ''" />
     <ItemGroup>
       <TSClient Include="$(MSBuildThisFileDirectory)../aspnet-signalr-client*.tgz" />
     </ItemGroup>
