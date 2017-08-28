@@ -35,15 +35,12 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Internal
             }
         }
 
-        public bool TriggerAck(int id)
+        public void TriggerAck(int id)
         {
             if (_acks.TryRemove(id, out var ack))
             {
                 ack.Tcs.TrySetResult(null);
-                return true;
             }
-
-            return false;
         }
 
         private void CheckAcks()
@@ -85,17 +82,17 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Internal
                 }
             }
         }
-    }
 
-    internal class AckInfo
-    {
-        public TaskCompletionSource<object> Tcs { get; private set; }
-        public DateTime Created { get; private set; }
-
-        public AckInfo()
+        private class AckInfo
         {
-            Created = DateTime.UtcNow;
-            Tcs = new TaskCompletionSource<object>(TaskContinuationOptions.RunContinuationsAsynchronously);
+            public TaskCompletionSource<object> Tcs { get; private set; }
+            public DateTime Created { get; private set; }
+
+            public AckInfo()
+            {
+                Created = DateTime.UtcNow;
+                Tcs = new TaskCompletionSource<object>(TaskContinuationOptions.RunContinuationsAsynchronously);
+            }
         }
     }
 }
