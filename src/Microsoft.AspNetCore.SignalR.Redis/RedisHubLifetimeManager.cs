@@ -28,7 +28,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
         private readonly RedisOptions _options;
         private readonly string _channelNamePrefix = typeof(THub).FullName;
         private readonly AckHandler _ackHandler;
-        private long _internalId;
+        private int _internalId;
 
         // This serializer is ONLY use to transmit the data through redis, it has no connection to the serializer used on each connection.
         private readonly JsonSerializer _serializer = new JsonSerializer
@@ -509,7 +509,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
         private class AckHandler : IDisposable
         {
-            private readonly ConcurrentDictionary<long, AckInfo> _acks = new ConcurrentDictionary<long, AckInfo>();
+            private readonly ConcurrentDictionary<int, AckInfo> _acks = new ConcurrentDictionary<int, AckInfo>();
             private readonly Timer _timer;
             private readonly TimeSpan _ackThreshold = TimeSpan.FromSeconds(30);
             private readonly TimeSpan _ackInterval = TimeSpan.FromSeconds(5);
@@ -519,12 +519,12 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                 _timer = new Timer(_ => CheckAcks(), state: null, dueTime: _ackInterval, period: _ackInterval);
             }
 
-            public Task CreateAck(long id)
+            public Task CreateAck(int id)
             {
                 return _acks.GetOrAdd(id, _ => new AckInfo()).Tcs.Task;
             }
 
-            public bool TriggerAck(long id)
+            public bool TriggerAck(int id)
             {
                 if (_acks.TryRemove(id, out var ack))
                 {
@@ -589,7 +589,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
         {
             public string ConnectionId;
             public string Group;
-            public long Id;
+            public int Id;
             public GroupAction Action;
         }
     }
