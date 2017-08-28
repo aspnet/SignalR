@@ -422,7 +422,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
         {
             var id = Interlocked.Increment(ref _internalId);
             var ack = _ackHandler.CreateAck(id);
-            // Send AddGroup to other servers and wait for an ack or timeout
+            // Send Add/Remove Group to other servers and wait for an ack or timeout
             await PublishAsync(_channelNamePrefix + ".internal.group", new GroupMessage
             {
                 Action = action,
