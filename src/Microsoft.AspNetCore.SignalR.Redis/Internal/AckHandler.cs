@@ -1,3 +1,6 @@
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 using System;
 using System.Collections.Concurrent;
 using System.Threading;
@@ -11,6 +14,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Internal
         private readonly Timer _timer;
         private readonly TimeSpan _ackThreshold = TimeSpan.FromSeconds(30);
         private readonly TimeSpan _ackInterval = TimeSpan.FromSeconds(5);
+        private readonly object _lock = new object();
+        private bool _disposed;
 
         public AckHandler()
         {
@@ -19,7 +24,15 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Internal
 
         public Task CreateAck(int id)
         {
-            return _acks.GetOrAdd(id, _ => new AckInfo()).Tcs.Task;
+            lock (_lock)
+            {
+                if (_disposed)
+                {
+                    return Task.CompletedTask;
+                }
+
+                return _acks.GetOrAdd(id, _ => new AckInfo()).Tcs.Task;
+            }
         }
 
         public bool TriggerAck(int id)
@@ -35,6 +48,11 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Internal
 
         private void CheckAcks()
         {
+            if (_disposed)
+            {
+                return;
+            }
+
             var utcNow = DateTime.UtcNow;
 
             foreach (var pair in _acks)
@@ -52,13 +70,18 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Internal
 
         public void Dispose()
         {
-            _timer.Dispose();
-
-            foreach (var pair in _acks)
+            lock (_lock)
             {
-                if (_acks.TryRemove(pair.Key, out var ack))
+                _disposed = true;
+
+                _timer.Dispose();
+
+                foreach (var pair in _acks)
                 {
-                    ack.Tcs.TrySetCanceled();
+                    if (_acks.TryRemove(pair.Key, out var ack))
+                    {
+                        ack.Tcs.TrySetCanceled();
+                    }
                 }
             }
         }
