@@ -10,6 +10,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
+using Microsoft.AspNetCore.SignalR.Redis.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -27,6 +28,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
         private readonly ILogger _logger;
         private readonly RedisOptions _options;
         private readonly string _channelNamePrefix = typeof(THub).FullName;
+        private readonly string _serverName = Guid.NewGuid().ToString();
         private readonly AckHandler _ackHandler;
         private int _internalId;
 
@@ -125,7 +127,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                         return;
                     }
                 }
-                else if (groupMessage.Action == GroupAction.Add)
+
+                if (groupMessage.Action == GroupAction.Add)
                 {
                     if (!await AddGroupAsyncCore(groupMessage.ConnectionId, groupMessage.Group))
                     {
@@ -133,20 +136,27 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                         return;
                     }
                 }
-                else if (groupMessage.Action == GroupAction.Ack)
-                {
-                    _ackHandler.TriggerAck(groupMessage.Id);
-                    return;
-                }
 
-                // Sending ack
-                await PublishAsync(channelName, new GroupMessage
+                // Sending ack to server that sent the original add/remove
+                await PublishAsync($"{_channelNamePrefix}.internal.{groupMessage.Server}", new GroupMessage
                 {
                     Action = GroupAction.Ack,
                     ConnectionId = groupMessage.ConnectionId,
                     Group = groupMessage.Group,
                     Id = groupMessage.Id
                 });
+            });
+
+            // Create server specific channel in order to send an ack to a single server
+            var serverChannel = $"{_channelNamePrefix}.internal.{_serverName}";
+            _bus.Subscribe(serverChannel, (c, data) =>
+            {
+                var groupMessage = DeserializeMessage<GroupMessage>(data);
+
+                if (groupMessage.Action == GroupAction.Ack)
+                {
+                    _ackHandler.TriggerAck(groupMessage.Id);
+                }
             });
         }
 
@@ -292,7 +302,6 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
         private async Task<bool> AddGroupAsyncCore(string connectionId, string groupName)
         {
-            var groupChannel = _channelNamePrefix + ".group." + groupName;
             var connection = _connections[connectionId];
             if (connection == null)
             {
@@ -307,6 +316,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                 groupNames.Add(groupName);
             }
 
+            var groupChannel = _channelNamePrefix + ".group." + groupName;
             var group = _groups.GetOrAdd(groupChannel, _ => new GroupData());
 
             await group.Lock.WaitAsync();
@@ -418,7 +428,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                 Action = action,
                 ConnectionId = connectionId,
                 Group = groupName,
-                Id = id
+                Id = id,
+                Server = _serverName
             });
 
             await ack;
@@ -507,90 +518,13 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             public HashSet<string> Groups { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         }
 
-        private class AckHandler : IDisposable
-        {
-            private readonly ConcurrentDictionary<int, AckInfo> _acks = new ConcurrentDictionary<int, AckInfo>();
-            private readonly Timer _timer;
-            private readonly TimeSpan _ackThreshold = TimeSpan.FromSeconds(30);
-            private readonly TimeSpan _ackInterval = TimeSpan.FromSeconds(5);
-
-            public AckHandler()
-            {
-                _timer = new Timer(_ => CheckAcks(), state: null, dueTime: _ackInterval, period: _ackInterval);
-            }
-
-            public Task CreateAck(int id)
-            {
-                return _acks.GetOrAdd(id, _ => new AckInfo()).Tcs.Task;
-            }
-
-            public bool TriggerAck(int id)
-            {
-                if (_acks.TryRemove(id, out var ack))
-                {
-                    ack.Tcs.TrySetResult(null);
-                    return true;
-                }
-
-                return false;
-            }
-
-            private void CheckAcks()
-            {
-                var utcNow = DateTime.UtcNow;
-
-                foreach (var pair in _acks)
-                {
-                    var elapsed = utcNow - pair.Value.Created;
-                    if (elapsed > _ackThreshold)
-                    {
-                        if (_acks.TryRemove(pair.Key, out var ack))
-                        {
-                            ack.Tcs.TrySetCanceled();
-                        }
-                    }
-                }
-            }
-
-            public void Dispose()
-            {
-                _timer.Dispose();
-
-                foreach (var pair in _acks)
-                {
-                    if (_acks.TryRemove(pair.Key, out var ack))
-                    {
-                        ack.Tcs.TrySetCanceled();
-                    }
-                }
-            }
-        }
-
-        private class AckInfo
-        {
-            public TaskCompletionSource<object> Tcs { get; private set; }
-            public DateTime Created { get; private set; }
-
-            public AckInfo()
-            {
-                Created = DateTime.UtcNow;
-                Tcs = new TaskCompletionSource<object>();
-            }
-        }
-
-        private enum GroupAction
-        {
-            Remove,
-            Add,
-            Ack
-        }
-
         private class GroupMessage
         {
             public string ConnectionId;
             public string Group;
             public int Id;
             public GroupAction Action;
+            public string Server;
         }
     }
 }
