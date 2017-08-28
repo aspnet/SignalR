@@ -518,6 +518,13 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             public HashSet<string> Groups { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         }
 
+        private enum GroupAction
+        {
+            Remove,
+            Add,
+            Ack
+        }
+
         private class GroupMessage
         {
             public string ConnectionId;

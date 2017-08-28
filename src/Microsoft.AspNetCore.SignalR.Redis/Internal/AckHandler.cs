@@ -98,11 +98,4 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Internal
             Tcs = new TaskCompletionSource<object>(TaskContinuationOptions.RunContinuationsAsynchronously);
         }
     }
-
-    internal enum GroupAction
-    {
-        Remove,
-        Add,
-        Ack
-    }
 }
