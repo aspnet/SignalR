@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.SignalR.Internal;
@@ -100,7 +101,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         {
             var connection = new TestConnection();
             var hubConnection = new HubConnection(connection, new LoggerFactory());
-
             await hubConnection.StartAsync();
             await hubConnection.DisposeAsync();
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(
@@ -158,6 +158,22 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
             mockConnection.Raise(c => c.Received += null, new object[] { new byte[] { } });
             Assert.Equal(1, mockProtocol.ParseCalls);
+        }
+
+        [Fact]
+        public async Task CheckSyncContext()
+        {
+            SynchronizationContext.SetSynchronizationContext(new SynchronizationContext());
+            var connection = new TestConnection();
+            var hubConnection = new HubConnection(connection, new LoggerFactory());
+            Assert.NotNull(SynchronizationContext.Current);
+            await hubConnection.StartAsync();
+            Assert.Null(SynchronizationContext.Current);
+            await hubConnection.DisposeAsync();
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+                async () => await hubConnection.InvokeAsync<int>("test"));
+
+            Assert.Equal("Connection has been terminated.", exception.Message);
         }
 
         // Moq really doesn't handle out parameters well, so to make these tests work I added a manual mock -anurse
