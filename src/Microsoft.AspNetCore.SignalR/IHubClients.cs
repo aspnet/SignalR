@@ -13,6 +13,8 @@ namespace Microsoft.AspNetCore.SignalR
 
         IClientProxy Client(string connectionId);
 
+        IClientProxy Others(string connectionId);
+
         IClientProxy Group(string groupName);
 
         IClientProxy User(string userId);

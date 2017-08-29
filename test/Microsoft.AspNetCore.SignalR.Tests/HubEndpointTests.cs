@@ -556,6 +556,54 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
+        [Fact]
+        public async Task SendToOthers()
+        {
+            var serviceProvider = CreateServiceProvider();
+
+            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+
+            using (var firstClient = new TestClient())
+            using (var secondClient = new TestClient())
+            using (var thirdClient = new TestClient())
+            {
+                Task firstEndPointTask = endPoint.OnConnectedAsync(firstClient.Connection);
+                Task secondEndPointTask = endPoint.OnConnectedAsync(secondClient.Connection);
+                Task thirdEndPointTask = endPoint.OnConnectedAsync(thirdClient.Connection);
+
+                await Task.WhenAll(firstClient.Connected, secondClient.Connected, thirdClient.Connected).OrTimeout();
+
+
+                await firstClient.SendInvocationAsync("SendToOthers", "To Others").OrTimeout();
+                await secondClient.SendInvocationAsync("ConnectionSendMethod", firstClient.Connection.ConnectionId, "To First").OrTimeout();
+
+                var firstClientResult = await firstClient.ReadAsync().OrTimeout();
+                var invocation = Assert.IsType<CompletionMessage>(firstClientResult);
+
+                firstClientResult = await firstClient.ReadAsync().OrTimeout();
+                invocation = Assert.IsType<InvocationMessage>(firstClientResult);
+                Assert.Equal("Send", invocation.Target);
+                Assert.Equal("To First", invocation.Arguments[0]);
+
+                var secondClientResult = await secondClient.ReadAsync().OrTimeout();
+                invocation = Assert.IsType<InvocationMessage>(secondClientResult);
+                Assert.Equal("Send", invocation.Target);
+                Assert.Equal("To Others", invocation.Arguments[0]);
+
+                var thirdClientResult = await thirdClient.ReadAsync().OrTimeout();
+                invocation = Assert.IsType<InvocationMessage>(thirdClientResult);
+                Assert.Equal("Send", invocation.Target);
+                Assert.Equal("To Others", invocation.Arguments[0]);
+
+                // kill the connections
+                firstClient.Dispose();
+                secondClient.Dispose();
+                thirdClient.Dispose();
+
+                await Task.WhenAll(firstEndPointTask, secondEndPointTask, thirdEndPointTask).OrTimeout();
+            }
+        }
+
         [Theory]
         [MemberData(nameof(HubTypes))]
         public async Task HubsCanAddAndSendToGroup(Type hubType)
@@ -1154,6 +1202,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             public Task SendToAllExcept(string message, IReadOnlyList<string> excludedIds)
             {
                 return Clients.AllExcept(excludedIds).InvokeAsync("Send", message);
+            }
+
+            public Task SendToOthers(string message)
+            {
+                return Clients.Others(Context.ConnectionId).InvokeAsync("Send", message);
             }
         }
 
