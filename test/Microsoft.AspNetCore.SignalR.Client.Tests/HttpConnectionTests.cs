@@ -224,6 +224,131 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
         }
 
         [Fact]
+        public async Task CheckSyncContextOnConnected()
+        {
+            var mockHttpHandler = new Mock<HttpMessageHandler>();
+            mockHttpHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+                .Returns<HttpRequestMessage, CancellationToken>(async (request, cancellationToken) =>
+                {
+                    await Task.Yield();
+                    return request.Method == HttpMethod.Options
+                        ? ResponseUtils.CreateResponse(HttpStatusCode.OK, ResponseUtils.CreateNegotiationResponse())
+                        : ResponseUtils.CreateResponse(HttpStatusCode.OK);
+                });
+
+            SynchronizationContext.SetSynchronizationContext(new SynchronizationContext());
+            var connection = new HttpConnection(new Uri("http://fakeuri.org/"), TransportType.LongPolling, loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
+
+            try
+            {
+                var connectedEventRaisedTcs = new TaskCompletionSource<object>();
+                connection.Connected += async () =>
+                {
+                    // We need an await to trigger the ForceAsyncAwaiter
+                    await Task.Yield();
+                    Assert.Null(SynchronizationContext.Current);
+                    connectedEventRaisedTcs.SetResult(null);
+                    await Task.CompletedTask;
+                };
+
+                await connection.StartAsync();
+                await connectedEventRaisedTcs.Task.OrTimeout();
+            }
+            finally
+            {
+                await connection.DisposeAsync();
+            }
+        }
+
+        [Fact]
+        public async Task CheckSyncContextOnStart()
+        {
+            var mockHttpHandler = new Mock<HttpMessageHandler>();
+            mockHttpHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+                .Returns<HttpRequestMessage, CancellationToken>(async (request, cancellationToken) =>
+                {
+                    await Task.Yield();
+                    return request.Method == HttpMethod.Options
+                        ? ResponseUtils.CreateResponse(HttpStatusCode.OK, ResponseUtils.CreateNegotiationResponse())
+                        : ResponseUtils.CreateResponse(HttpStatusCode.OK);
+                });
+
+            var mockTransport = new Mock<ITransport>();
+            Channel<byte[], SendMessage> channel = null;
+            mockTransport.Setup(t => t.StartAsync(It.IsAny<Uri>(), It.IsAny<Channel<byte[], SendMessage>>(), It.IsAny<TransferMode>(), It.IsAny<string>()))
+                .Returns<Uri, Channel<byte[], SendMessage>, TransferMode, string>((url, c, transferMode, connectionId) =>
+                {
+                    channel = c;
+                    return Task.CompletedTask;
+                });
+            mockTransport.Setup(t => t.StopAsync())
+                .Returns(() =>
+                {
+                    // The connection is now in the Disconnected state so the Received event for
+                    // this message should not be raised
+                    channel.Out.TryWrite(Array.Empty<byte>());
+                    channel.Out.TryComplete();
+                    return Task.CompletedTask;
+                });
+            mockTransport.SetupGet(t => t.Mode).Returns(TransferMode.Text);
+
+            SynchronizationContext.SetSynchronizationContext(new SynchronizationContext());
+            var connection = new HttpConnection(new Uri("http://fakeuri.org/"), new TestTransportFactory(mockTransport.Object), loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
+
+            var callbackInvokedTcs = new TaskCompletionSource<object>();
+            connection.Received += async m =>
+            {
+                await Task.Yield();
+                Assert.Null(SynchronizationContext.Current);
+                callbackInvokedTcs.SetResult(null);
+                await Task.CompletedTask;
+            };
+
+            await connection.StartAsync();
+            channel.Out.TryWrite(Array.Empty<byte>());
+
+            // Ensure that the Received callback has been called before attempting the second write
+            await callbackInvokedTcs.Task.OrTimeout();
+
+            await connection.DisposeAsync();
+        }
+
+        [Fact]
+        public async Task CheckSyncContextOnClosed()
+        {
+            var mockHttpHandler = new Mock<HttpMessageHandler>();
+            mockHttpHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+                .Returns<HttpRequestMessage, CancellationToken>(async (request, cancellationToken) =>
+                {
+                    await Task.Yield();
+                    return request.Method == HttpMethod.Options
+                        ? ResponseUtils.CreateResponse(HttpStatusCode.OK, ResponseUtils.CreateNegotiationResponse())
+                        : ResponseUtils.CreateResponse(HttpStatusCode.OK);
+                });
+
+            SynchronizationContext.SetSynchronizationContext(new SynchronizationContext());
+            var connection = new HttpConnection(new Uri("http://fakeuri.org/"), TransportType.LongPolling, loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
+
+            var closedEventTcs = new TaskCompletionSource<Exception>();
+            connection.Closed += e =>
+            {
+                Assert.Null(SynchronizationContext.Current);
+                closedEventTcs.SetResult(e);
+                return Task.CompletedTask;
+            };
+
+            await connection.StartAsync();
+            await connection.DisposeAsync();
+            Assert.Null(await closedEventTcs.Task.OrTimeout());
+
+            // in case of clean disconnect error should be null
+            Assert.Null(await closedEventTcs.Task.OrTimeout());
+        }
+
+        [Fact]
         public async Task ConnectedEventNotRaisedWhenTransportFailsToStart()
         {
             var mockHttpHandler = new Mock<HttpMessageHandler>();
