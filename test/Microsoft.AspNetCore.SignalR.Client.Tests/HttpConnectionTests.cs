@@ -299,7 +299,6 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
             var callbackInvokedTcs = new TaskCompletionSource<object>();
             connection.Received += async m =>
             {
-                await Task.Yield();
                 Assert.Null(SynchronizationContext.Current);
                 callbackInvokedTcs.SetResult(null);
                 await Task.CompletedTask;

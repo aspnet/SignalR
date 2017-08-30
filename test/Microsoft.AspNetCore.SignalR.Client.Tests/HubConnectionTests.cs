@@ -160,6 +160,50 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             Assert.Equal(1, mockProtocol.ParseCalls);
         }
 
+        [Fact]
+        public async Task CheckSyncContextOnConnectedEvent()
+        {
+            var connection = new TestConnection();
+            var hubConnection = new HubConnection(connection);
+            try
+            {
+                var connectedEventRaisedTcs = new TaskCompletionSource<object>();
+                Assert.NotNull(SynchronizationContext.Current);
+                hubConnection.Connected += async () =>
+                {
+                    await Task.Yield();
+                    Assert.Null(SynchronizationContext.Current);
+                    await Task.CompletedTask;
+                };
+
+                await hubConnection.StartAsync();
+                Assert.NotNull(SynchronizationContext.Current);
+            }
+            finally
+            {
+                await hubConnection.DisposeAsync();
+            }
+        }
+
+        [Fact]
+        public async Task CheckSyncContextOnClosed()
+        {
+            var hubConnection = new HubConnection(new TestConnection());
+            var closedEventTcs = new TaskCompletionSource<Exception>();
+            hubConnection.Closed += async e =>
+            {
+                await Task.Yield();
+                Assert.Null(SynchronizationContext.Current);
+                await Task.CompletedTask;
+            };
+
+            Assert.NotNull(SynchronizationContext.Current);
+            await hubConnection.StartAsync();
+            await hubConnection.DisposeAsync();
+
+            Assert.NotNull(SynchronizationContext.Current);
+        }
+
         // Moq really doesn't handle out parameters well, so to make these tests work I added a manual mock -anurse
         private class MockHubProtocol : IHubProtocol
         {
