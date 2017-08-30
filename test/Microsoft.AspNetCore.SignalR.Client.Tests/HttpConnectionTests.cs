@@ -237,7 +237,6 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                         : ResponseUtils.CreateResponse(HttpStatusCode.OK);
                 });
 
-            SynchronizationContext.SetSynchronizationContext(new SynchronizationContext());
             var connection = new HttpConnection(new Uri("http://fakeuri.org/"), TransportType.LongPolling, loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
 
             try
@@ -254,6 +253,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
 
                 await connection.StartAsync();
                 await connectedEventRaisedTcs.Task.OrTimeout();
+                Assert.NotNull(SynchronizationContext.Current);
             }
             finally
             {
@@ -294,7 +294,6 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 });
             mockTransport.SetupGet(t => t.Mode).Returns(TransferMode.Text);
 
-            SynchronizationContext.SetSynchronizationContext(new SynchronizationContext());
             var connection = new HttpConnection(new Uri("http://fakeuri.org/"), new TestTransportFactory(mockTransport.Object), loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
 
             var callbackInvokedTcs = new TaskCompletionSource<object>();
@@ -308,7 +307,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
 
             await connection.StartAsync();
             channel.Out.TryWrite(Array.Empty<byte>());
-
+            Assert.NotNull(SynchronizationContext.Current);
             // Ensure that the Received callback has been called before attempting the second write
             await callbackInvokedTcs.Task.OrTimeout();
 
@@ -329,7 +328,6 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                         : ResponseUtils.CreateResponse(HttpStatusCode.OK);
                 });
 
-            SynchronizationContext.SetSynchronizationContext(new SynchronizationContext());
             var connection = new HttpConnection(new Uri("http://fakeuri.org/"), TransportType.LongPolling, loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
 
             var closedEventTcs = new TaskCompletionSource<Exception>();
