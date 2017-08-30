@@ -81,11 +81,10 @@ namespace Microsoft.AspNetCore.SignalR.Client
             _connection.Closed += Shutdown;
         }
 
-        public async Task StartAsync() => await StartAsyncCore();
+        public async Task StartAsync() => await StartAsyncCore().ForceAsync();
 
         private async Task StartAsyncCore()
         {
-            await Task.Delay(1);
             var transferModeFeature = _connection.Features.Get<ITransferModeFeature>();
             if (transferModeFeature == null)
             {
