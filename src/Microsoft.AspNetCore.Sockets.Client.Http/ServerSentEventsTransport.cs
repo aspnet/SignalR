@@ -136,6 +136,11 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 readCancellationRegistration.Dispose();
                 _transportCts.Cancel();
 
+                if (System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription.StartsWith(".NET Framework"))
+                {
+                    stream.Dispose();
+                }
+
                 await writeTask;
                 _logger.ReceiveStopped(_connectionId);
             }
