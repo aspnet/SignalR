@@ -1,4 +1,7 @@
-const gulp       = require('gulp');
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
+const gulp = require('gulp');
 const browserify = require('browserify');
 const ts         = require('gulp-typescript');
 const source     = require('vinyl-source-stream');
