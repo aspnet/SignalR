@@ -1,4 +1,4 @@
-const gulp = require('gulp');
+const gulp       = require('gulp');
 const browserify = require('browserify');
 const ts         = require('gulp-typescript');
 const source     = require('vinyl-source-stream');
