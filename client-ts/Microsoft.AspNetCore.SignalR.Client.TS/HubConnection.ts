@@ -1,3 +1,6 @@
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 import { ConnectionClosed } from "./Common"
 import { IConnection } from "./IConnection"
 import { TransportType, TransferMode } from "./Transports"
@@ -7,13 +10,14 @@ import { JsonHubProtocol } from "./JsonHubProtocol";
 import { TextMessageFormat } from "./Formatters"
 import { Base64EncodedHubProtocol } from "./Base64EncodedHubProtocol"
 import { ILogger, LogLevel } from "./ILogger"
-import { NullLogger } from "./Loggers"
+import { ConsoleLogger, NullLogger, LoggerFactory } from "./Loggers"
+import { IHubConnectionOptions } from "./IHubConnectionOptions"
 
 export { TransportType } from "./Transports"
 export { HttpConnection } from "./HttpConnection"
 export { JsonHubProtocol } from "./JsonHubProtocol"
-export { LogLevel } from "./ILogger"
-export { ConsoleLogger } from "./Loggers"
+export { LogLevel, ILogger } from "./ILogger"
+export { ConsoleLogger, NullLogger } from "./Loggers"
 
 export class HubConnection {
     private readonly connection: IConnection;
@@ -24,10 +28,12 @@ export class HubConnection {
     private id: number;
     private connectionClosedCallback: ConnectionClosed;
 
-    constructor(connection: IConnection, logger: ILogger = new NullLogger(), protocol: IHubProtocol = new JsonHubProtocol()) {
+    constructor(connection: IConnection, options: IHubConnectionOptions = {}) {
         this.connection = connection;
-        this.logger = logger || new NullLogger();
-        this.protocol = protocol || new JsonHubProtocol();
+        options = options || {};
+        this.logger = LoggerFactory.createLogger(options.logging);
+
+        this.protocol = options.protocol || new JsonHubProtocol();
         this.connection.onDataReceived = data => {
             this.onDataReceived(data);
         };
@@ -55,11 +61,10 @@ export class HubConnection {
                 case MessageType.Completion:
                     let callback = this.callbacks.get(message.invocationId);
                     if (callback != null) {
-                        callback(message);
-
                         if (message.type == MessageType.Completion) {
                             this.callbacks.delete(message.invocationId);
                         }
+                        callback(message);
                     }
                     break;
                 default:

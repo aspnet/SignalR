@@ -1,26 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
-  <Import Project="..\..\build\common.props" />
-
   <PropertyGroup>
-    <Description>Real-time communication framework for ASP.NET Core.</Description>
+    <Description>Components for providing real-time bi-directional communication across the Web.</Description>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <PackageTags>aspnetcore;signalr</PackageTags>
-    <EnableApiCheck>false</EnableApiCheck>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Microsoft.AspNetCore.Sockets.Abstractions\Microsoft.AspNetCore.Sockets.Abstractions.csproj" />
-    <ProjectReference Include="..\Microsoft.AspNetCore.SignalR.Common\Microsoft.AspNetCore.SignalR.Common.csproj" />
-    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="$(AspNetCoreVersion)" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(AspNetCoreVersion)" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="$(AspNetCoreVersion)" />
-    <PackageReference Include="Microsoft.Extensions.ClosedGenericMatcher.Sources" Version="$(AspNetCoreVersion)" PrivateAssets="All" />
-    <PackageReference Include="Microsoft.Extensions.ObjectMethodExecutor.Sources" Version="$(AspNetCoreVersion)" PrivateAssets="All" />
-    <PackageReference Include="System.Reflection.Emit" Version="$(SystemReflectionEmitVersion)" />
-    <PackageReference Include="Newtonsoft.Json" Version="$(JsonNetVersion)" />
+    <ProjectReference Include="..\Microsoft.AspNetCore.SignalR.Core\Microsoft.AspNetCore.SignalR.Core.csproj" />
+    <ProjectReference Include="..\Microsoft.AspNetCore.Sockets.Http\Microsoft.AspNetCore.Sockets.Http.csproj" />
   </ItemGroup>
 
 </Project>

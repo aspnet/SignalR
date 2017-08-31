@@ -1,4 +1,6 @@
-﻿
+﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 export namespace TextMessageFormat {
 
     const RecordSeparator = String.fromCharCode(0x1e);
@@ -8,7 +10,7 @@ export namespace TextMessageFormat {
     }
 
     export function parse(input: string): string[] {
-        if (!input.endsWith(RecordSeparator)) {
+        if (input[input.length - 1] != RecordSeparator) {
             throw new Error("Message is incomplete.");
         }
 
@@ -57,7 +59,10 @@ export namespace BinaryMessageFormat {
             }
 
             if (uint8Array.byteLength >= (offset + 8 + size)) {
-                result.push(uint8Array.slice(offset + 8, offset + 8 + size))
+                // IE does not support .slice() so use subarray
+                result.push(uint8Array.slice
+                    ? uint8Array.slice(offset + 8, offset + 8 + size)
+                    : uint8Array.subarray(offset + 8, offset + 8 + size));
             }
             else {
                 throw new Error("Incomplete message");

@@ -1,10 +1,13 @@
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 import { DataReceived, ConnectionClosed } from "./Common"
 import { IConnection } from "./IConnection"
 import { ITransport, TransferMode, TransportType, WebSocketTransport, ServerSentEventsTransport, LongPollingTransport } from "./Transports"
 import { IHttpClient, HttpClient } from "./HttpClient"
 import { IHttpConnectionOptions } from "./IHttpConnectionOptions"
 import { ILogger, LogLevel } from "./ILogger"
-import { NullLogger } from "./Loggers"
+import { LoggerFactory } from "./Loggers"
 
 const enum ConnectionState {
     Initial,
@@ -32,8 +35,9 @@ export class HttpConnection implements IConnection {
 
     constructor(url: string, options: IHttpConnectionOptions = {}) {
         this.url = url;
+        options = options || {};
         this.httpClient = options.httpClient || new HttpClient();
-        this.logger = options.logger || new NullLogger();
+        this.logger = LoggerFactory.createLogger(options.logging);
         this.connectionState = ConnectionState.Initial;
         this.options = options;
     }

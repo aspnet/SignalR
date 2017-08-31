@@ -1,3 +1,6 @@
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 import { DataReceived, TransportClosed } from "./Common"
 import { IHttpClient } from "./HttpClient"
 import { HttpError } from "./HttpError"
@@ -195,9 +198,6 @@ export class LongPollingTransport implements ITransport {
         }
 
         let pollXhr = new XMLHttpRequest();
-        if (transferMode === TransferMode.Binary) {
-            pollXhr.responseType = "arraybuffer";
-        }
 
         pollXhr.onload = () => {
             if (pollXhr.status == 200) {
@@ -248,6 +248,11 @@ export class LongPollingTransport implements ITransport {
 
         this.pollXhr = pollXhr;
         this.pollXhr.open("GET", url, true);
+        if (transferMode === TransferMode.Binary) {
+            this.pollXhr.responseType = "arraybuffer";
+        }
+        // IE caches xhr requests
+        this.pollXhr.setRequestHeader("Cache-Control", "no-cache");
         // TODO: consider making timeout configurable
         this.pollXhr.timeout = 120000;
         this.pollXhr.send();

@@ -1,6 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
-  <Import Project="..\..\build\dependencies.props" />
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>netcoreapp2.0;net461</TargetFrameworks>
@@ -11,7 +9,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Microsoft.AspNetCore.SignalR.Client\Microsoft.AspNetCore.SignalR.Client.csproj" />
-    <ProjectReference Include="..\..\src\Microsoft.AspNetCore.Sockets.Client.Http\Microsoft.AspNetCore.Sockets.Client.Http.csproj" />
   </ItemGroup>
 
   <ItemGroup>
