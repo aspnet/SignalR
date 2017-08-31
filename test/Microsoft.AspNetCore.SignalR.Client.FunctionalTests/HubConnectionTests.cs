@@ -96,6 +96,34 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
         [Theory]
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
+        public async Task CheckFixedMessage_HttHubConnection(IHubProtocol protocol, TransportType transportType, string path)
+        {
+            using (StartLog(out var loggerFactory))
+            {
+                var connection = HubConnectionFactory.Create(new Uri(_serverFixture.BaseUrl + path), transportType, protocol, loggerFactory);
+                try
+                {
+                    await connection.StartAsync().OrTimeout();
+
+                    var result = await connection.InvokeAsync<string>("HelloWorld").OrTimeout();
+
+                    Assert.Equal("Hello World!", result);
+                }
+                catch (Exception ex)
+                {
+                    loggerFactory.CreateLogger<HubConnectionTests>().LogError(ex, "Exception from test");
+                    throw;
+                }
+                finally
+                {
+                    await connection.DisposeAsync().OrTimeout();
+                }
+            }
+        }
+
+
+        [Theory]
+        [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
         public async Task CheckFixedMessage_HubConnectionBuilder(IHubProtocol protocol, TransportType transportType, string path)
         {
             using (StartLog(out var loggerFactory))
