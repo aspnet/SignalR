@@ -53,11 +53,12 @@ namespace ClientSample
 
                 connection.Closed += e =>
                 {
+                    Console.WriteLine("Connection closed.");
                     cts.Cancel();
                     return Task.CompletedTask;
                 };
 
-                var ctsTask = Task.Run(() => cts.Token.WaitHandle.WaitOne());
+                var ctsTask = Task.Delay(-1, cts.Token);
 
                 while (!cts.Token.IsCancellationRequested)
                 {
