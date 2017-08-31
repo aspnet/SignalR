@@ -22,6 +22,13 @@ namespace Microsoft.AspNetCore.SignalR
 
         public virtual IGroupManager Groups { get; }
 
+        public virtual IClientProxy Others(string connectionId)
+        {
+            var excludedIds = new List<string>();
+            excludedIds.Add(connectionId);
+            return new AllClientsExceptProxy<THub>(_lifetimeManager, excludedIds);
+        }
+
         public IClientProxy AllExcept(IReadOnlyList<string> excludedIds)
         {
             return new AllClientsExceptProxy<THub>(_lifetimeManager, excludedIds);
