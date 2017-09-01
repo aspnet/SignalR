@@ -21,6 +21,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
         private readonly ILogger _logger;
         private readonly CancellationTokenSource _transportCts = new CancellationTokenSource();
         private readonly ServerSentEventsMessageParser _parser = new ServerSentEventsMessageParser();
+        private readonly PipeFactory _pipelineFactory = new PipeFactory();
         private string _connectionId;
 
         private Channel<byte[], SendMessage> _application;
@@ -80,7 +81,11 @@ namespace Microsoft.AspNetCore.Sockets.Client
             var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
             var stream = await response.Content.ReadAsStreamAsync();
-            var pipelineReader = stream.AsPipelineReader(cancellationToken);
+            var pipe = _pipelineFactory.Create();
+
+            var writeTask = stream.CopyToEndAsync(pipe.Writer, cancellationToken);
+
+            var pipelineReader = pipe.Reader;
             var readCancellationRegistration = cancellationToken.Register(
                 reader => ((IPipeReader)reader).CancelPendingRead(), pipelineReader);
             try
@@ -130,7 +135,13 @@ namespace Microsoft.AspNetCore.Sockets.Client
             {
                 readCancellationRegistration.Dispose();
                 _transportCts.Cancel();
-                stream.Dispose();
+
+                if (System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription.StartsWith(".NET Framework"))
+                {
+                    stream.Dispose();
+                }
+
+                await writeTask;
                 _logger.ReceiveStopped(_connectionId);
             }
         }
@@ -149,6 +160,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             {
                 // exceptions have been handled in the Running task continuation by closing the channel with the exception
             }
+            _pipelineFactory.Dispose();
         }
     }
 }
