@@ -804,6 +804,66 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
         }
 
         [Fact]
+        public async Task CanReceiveDataEvenIfUserThrowsSynchronouslyInConnectedEvent()
+        {
+            var mockHttpHandler = new Mock<HttpMessageHandler>();
+            mockHttpHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+                .Returns<HttpRequestMessage, CancellationToken>(async (request, cancellationToken) =>
+                {
+                    await Task.Yield();
+
+                    var content = string.Empty;
+
+                    if (request.Method == HttpMethod.Get)
+                    {
+                        content = "42";
+                    }
+
+                    return request.Method == HttpMethod.Options
+                        ? ResponseUtils.CreateResponse(HttpStatusCode.OK, ResponseUtils.CreateNegotiationResponse())
+                        : ResponseUtils.CreateResponse(HttpStatusCode.OK, content);
+                });
+
+            var connection = new HttpConnection(new Uri("http://fakeuri.org/"), TransportType.LongPolling, loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
+            try
+            {
+                connection.Connected += () =>
+                {
+                    throw new InvalidOperationException();
+                };
+
+                var receiveTcs = new TaskCompletionSource<string>();
+                connection.Received += data =>
+                {
+                    receiveTcs.TrySetResult(Encoding.UTF8.GetString(data));
+                    return Task.CompletedTask;
+                };
+
+                connection.Closed += e =>
+                {
+                    if (e != null)
+                    {
+                        receiveTcs.TrySetException(e);
+                    }
+                    else
+                    {
+                        receiveTcs.TrySetCanceled();
+                    }
+                    return Task.CompletedTask;
+                };
+
+                await connection.StartAsync();
+
+                Assert.Equal("42", await receiveTcs.Task.OrTimeout());
+            }
+            finally
+            {
+                await connection.DisposeAsync();
+            }
+        }
+
+        [Fact]
         public async Task CanReceiveDataEvenIfExceptionThrownFromPreviousReceivedEvent()
         {
             var mockHttpHandler = new Mock<HttpMessageHandler>();
@@ -828,7 +888,6 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
             var connection = new HttpConnection(new Uri("http://fakeuri.org/"), TransportType.LongPolling, loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
             try
             {
-
                 var receiveTcs = new TaskCompletionSource<string>();
 
                 var receivedRaised = false;
@@ -867,6 +926,68 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
             }
         }
 
+        [Fact]
+        public async Task CanReceiveDataEvenIfExceptionThrownSynchronouslyFromPreviousReceivedEvent()
+        {
+            var mockHttpHandler = new Mock<HttpMessageHandler>();
+            mockHttpHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+                .Returns<HttpRequestMessage, CancellationToken>(async (request, cancellationToken) =>
+                {
+                    await Task.Yield();
+
+                    var content = string.Empty;
+
+                    if (request.Method == HttpMethod.Get)
+                    {
+                        content = "42";
+                    }
+
+                    return request.Method == HttpMethod.Options
+                        ? ResponseUtils.CreateResponse(HttpStatusCode.OK, ResponseUtils.CreateNegotiationResponse())
+                        : ResponseUtils.CreateResponse(HttpStatusCode.OK, content);
+                });
+
+            var connection = new HttpConnection(new Uri("http://fakeuri.org/"), TransportType.LongPolling, loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
+            try
+            {
+                var receiveTcs = new TaskCompletionSource<string>();
+
+                var receivedRaised = false;
+                connection.Received += data =>
+                {
+                    if (!receivedRaised)
+                    {
+                        receivedRaised = true;
+                        throw new InvalidOperationException();
+                    }
+
+                    receiveTcs.TrySetResult(Encoding.UTF8.GetString(data));
+                    return Task.CompletedTask;
+                };
+
+                connection.Closed += e =>
+                {
+                    if (e != null)
+                    {
+                        receiveTcs.TrySetException(e);
+                    }
+                    else
+                    {
+                        receiveTcs.TrySetCanceled();
+                    }
+                    return Task.CompletedTask;
+                };
+
+                await connection.StartAsync();
+
+                Assert.Equal("42", await receiveTcs.Task.OrTimeout());
+            }
+            finally
+            {
+                await connection.DisposeAsync();
+            }
+        }
 
         [Fact]
         public async Task CannotSendAfterReceiveThrewException()
