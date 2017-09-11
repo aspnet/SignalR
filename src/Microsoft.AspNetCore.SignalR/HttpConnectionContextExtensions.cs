@@ -10,7 +10,7 @@ namespace Microsoft.AspNetCore.SignalR
     {
         public static HttpContext GetHttpContext(this HubConnectionContext connection)
         {
-            return connection.Features.Get<IHttpContextFeature>().HttpContext;
+            return connection.Features.Get<IHttpContextFeature>()?.HttpContext;
         }
     }
 }
