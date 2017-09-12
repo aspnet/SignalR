@@ -23,10 +23,10 @@ namespace Microsoft.AspNetCore.SignalR.Client.Internal
             LoggerMessage.Define<string, string, string, string>(LogLevel.Trace, 3, "Issuing Invocation '{invocationId}': {returnType} {methodName}({args}).");
 
         private static readonly Action<ILogger, string, Exception> _sendInvocation =
-            LoggerMessage.Define<string>(LogLevel.Information, 4, "Sending Invocation '{invocationId}'.");
+            LoggerMessage.Define<string>(LogLevel.Debug, 4, "Sending Invocation '{invocationId}'.");
 
         private static readonly Action<ILogger, string, Exception> _sendInvocationCompleted =
-            LoggerMessage.Define<string>(LogLevel.Information, 5, "Sending Invocation '{invocationId}' completed.");
+            LoggerMessage.Define<string>(LogLevel.Debug, 5, "Sending Invocation '{invocationId}' completed.");
 
         private static readonly Action<ILogger, string, Exception> _sendInvocationFailed =
             LoggerMessage.Define<string>(LogLevel.Error, 6, "Sending Invocation '{invocationId}' failed.");
