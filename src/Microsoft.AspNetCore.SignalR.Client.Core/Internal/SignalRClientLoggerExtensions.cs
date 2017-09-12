@@ -76,6 +76,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.Internal
         private static readonly Action<ILogger, string, Exception> _receivedUnexpectedResponse =
             LoggerMessage.Define<string>(LogLevel.Error, 21, "Unsolicited response received for invocation '{invocationId}'.");
 
+        private static readonly Action<ILogger, string, Exception> _hubProtocol =
+            LoggerMessage.Define<string>(LogLevel.Information, 22, "Using HubProtocol '{protocol}'.");
+
         // Category: Streaming and NonStreaming
         private static readonly Action<ILogger, string, Exception> _invocationCreated =
             LoggerMessage.Define<string>(LogLevel.Trace, 0, "Invocation {invocationId} created.");
@@ -216,6 +219,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Internal
         public static void ReceivedUnexpectedResponse(this ILogger logger, string invocationId)
         {
             _receivedUnexpectedResponse(logger, invocationId, null);
+        }
+
+        public static void HubProtocol(this ILogger logger, string hubProtocol)
+        {
+            _hubProtocol(logger, hubProtocol, null);
         }
 
         public static void InvocationCreated(this ILogger logger, string invocationId)
