@@ -20,7 +20,7 @@ namespace Microsoft.AspNetCore.SignalR.Core.Internal
             LoggerMessage.Define(LogLevel.Error, 2, "Error when processing requests.");
 
         private static readonly Action<ILogger, string, Exception> _errorInvokingHubMethod =
-            LoggerMessage.Define<string>(LogLevel.Error, 3, "Error when invoking {hubMethod} on hub.");
+            LoggerMessage.Define<string>(LogLevel.Error, 3, "Error when invoking '{hubMethod}' on hub.");
 
         private static readonly Action<ILogger, InvocationMessage, Exception> _receivedHubInvocation =
             LoggerMessage.Define<InvocationMessage>(LogLevel.Debug, 4, "Received hub invocation: {invocationMessage}.");
@@ -35,13 +35,13 @@ namespace Microsoft.AspNetCore.SignalR.Core.Internal
             LoggerMessage.Define(LogLevel.Warning, 7, "Outbound channel was closed while trying to write hub message.");
 
         private static readonly Action<ILogger, string, Exception> _hubMethodNotAuthorized =
-            LoggerMessage.Define<string>(LogLevel.Debug, 8, "Failed to invoke {hubMethod} because user is unauthorized.");
+            LoggerMessage.Define<string>(LogLevel.Debug, 8, "Failed to invoke '{hubMethod}' because user is unauthorized.");
 
         private static readonly Action<ILogger, string, string, Exception> _streamingResult =
-            LoggerMessage.Define<string, string>(LogLevel.Trace, 9, "{invocationId}: Streaming result of type {resultType}.");
+            LoggerMessage.Define<string, string>(LogLevel.Trace, 9, "{invocationId}: Streaming result of type '{resultType}'.");
 
         private static readonly Action<ILogger, string, string, Exception> _sendingResult =
-            LoggerMessage.Define<string, string>(LogLevel.Trace, 10, "{invocationId}: Sending result of type {resultType}.");
+            LoggerMessage.Define<string, string>(LogLevel.Trace, 10, "{invocationId}: Sending result of type '{resultType}'.");
 
         private static readonly Action<ILogger, string, Exception> _failedInvokingHubMethod =
             LoggerMessage.Define<string>(LogLevel.Error, 11, "Failed to invoke hub method '{hubMethod}'.");
