@@ -534,7 +534,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 var excludeSecondClientId = new HashSet<string>();
                 excludeSecondClientId.Add(secondClient.Connection.ConnectionId);
-                var excludeThirdClientId =  new HashSet<string>();
+                var excludeThirdClientId = new HashSet<string>();
                 excludeThirdClientId.Add(thirdClient.Connection.ConnectionId);
 
                 await firstClient.SendInvocationAsync("SendToAllExcept", "To second", excludeThirdClientId).OrTimeout();
@@ -748,6 +748,34 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 await endPointLifetime.OrTimeout();
             }
+        }
+
+        [Fact]
+        public async Task ObservableSubscribersAreCleanedUpInStreamingMethodsOnConnectionClose()
+        {
+            var observable = new ObserveDisposeObservable();
+
+            var serviceProvider = CreateServiceProvider(services =>
+            {
+                services.AddSingleton(observable);
+            });
+
+            var endPoint = serviceProvider.GetService<HubEndPoint<InfiniteStreamingHub>>();
+
+            using (var client = new TestClient())
+            {
+                var endPointLifetime = endPoint.OnConnectedAsync(client.Connection);
+
+                await client.Connected.OrTimeout();
+
+                var streamTask = client.StreamAsync(nameof(InfiniteStreamingHub.CustomStreamMethod));
+
+                client.Dispose();
+
+                await endPointLifetime.OrTimeout();
+            }
+
+            Assert.True(observable.Subscribers[0].CancellationTokenSource.Token.WaitHandle.WaitOne(TimeSpan.FromSeconds(5)));
         }
 
         [Fact]
@@ -1101,6 +1129,55 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     });
 
                     return new CancellationDisposable(cts);
+                }
+            }
+        }
+
+        public class InfiniteStreamingHub : TestHub
+        {
+            private ObserveDisposeObservable _observable;
+
+            public InfiniteStreamingHub(ObserveDisposeObservable observable)
+            {
+                _observable = observable;
+            }
+
+            public ObserveDisposeObservable CustomStreamMethod()
+            {
+                return _observable;
+            }
+        }
+
+        public class ObserveDisposeObservable : IObservable<int>
+        {
+            public List<Disposable> Subscribers { get; } = new List<Disposable>();
+
+            public IDisposable Subscribe(IObserver<int> observer)
+            {
+                var disposable = new Disposable();
+                Subscribers.Add(disposable);
+
+                Task.Run(async () =>
+                {
+                    while (!disposable.CancellationTokenSource.Token.IsCancellationRequested)
+                    {
+                        // In real-world scenario there will be natural latency forcing async
+                        // In a test not so much, so we need to force async
+                        await Task.Yield();
+                        observer.OnNext(1);
+                    }
+                });
+
+                return disposable;
+            }
+
+            public class Disposable : IDisposable
+            {
+                public CancellationTokenSource CancellationTokenSource { get; } = new CancellationTokenSource();
+
+                public void Dispose()
+                {
+                    CancellationTokenSource.Cancel();
                 }
             }
         }
