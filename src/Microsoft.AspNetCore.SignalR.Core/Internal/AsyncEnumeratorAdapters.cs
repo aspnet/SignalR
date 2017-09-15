@@ -23,22 +23,22 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         private static readonly object[] _getAsyncEnumeratorArgs = new object[] { CancellationToken.None };
 
-        public static IAsyncEnumerator<object> FromObservable(object observable, Type observableInterface)
+        public static (IAsyncEnumerator<object>, IDisposable) FromObservable(object observable, Type observableInterface)
         {
             // TODO: Cache expressions by observable.GetType()?
-            return (IAsyncEnumerator<object>)_fromObservableMethod
+            return ((IAsyncEnumerator<object>, IDisposable))_fromObservableMethod
                 .MakeGenericMethod(observableInterface.GetGenericArguments())
                 .Invoke(null, new[] { observable });
         }
 
-        public static IAsyncEnumerator<object> FromObservable<T>(IObservable<T> observable)
+        public static (IAsyncEnumerator<object>, IDisposable) FromObservable<T>(IObservable<T> observable)
         {
             // TODO: Allow bounding and optimizations?
             var channel = Channel.CreateUnbounded<object>();
 
             var subscription = observable.Subscribe(new ChannelObserver<T>(channel.Out, CancellationToken.None));
 
-            return channel.In.GetAsyncEnumerator();
+            return (channel.In.GetAsyncEnumerator(), subscription);
         }
 
         public static IAsyncEnumerator<object> FromChannel(object readableChannelOfT, Type payloadType)

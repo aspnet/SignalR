@@ -370,10 +370,10 @@ namespace Microsoft.AspNetCore.SignalR
                         result = methodExecutor.Execute(hub, invocationMessage.Arguments);
                     }
 
-                    if (IsStreamed(methodExecutor, result, methodExecutor.MethodReturnType, out var enumerator))
+                    if (IsStreamed(methodExecutor, result, methodExecutor.MethodReturnType, out var enumerator, out var subscription))
                     {
                         _logger.LogTrace("[{connectionId}/{invocationId}] Streaming result of type {resultType}", connection.ConnectionId, invocationMessage.InvocationId, methodExecutor.MethodReturnType.FullName);
-                        await StreamResultsAsync(invocationMessage.InvocationId, connection, enumerator);
+                        await StreamResultsAsync(invocationMessage.InvocationId, connection, enumerator, subscription);
                     }
                     else if (!invocationMessage.NonBlocking)
                     {
@@ -426,7 +426,7 @@ namespace Microsoft.AspNetCore.SignalR
             }
         }
 
-        private async Task StreamResultsAsync(string invocationId, HubConnectionContext connection,IAsyncEnumerator<object> enumerator)
+        private async Task StreamResultsAsync(string invocationId, HubConnectionContext connection, IAsyncEnumerator<object> enumerator, IDisposable subscription)
         {
             // TODO: Cancellation? See https://github.com/aspnet/SignalR/issues/481
             try
@@ -443,13 +443,19 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 await SendMessageAsync(connection, CompletionMessage.WithError(invocationId, ex.Message));
             }
+            finally
+            {
+                // Dispose subscription, removes subscriber from IObservable
+                subscription?.Dispose();
+            }
         }
 
-        private bool IsStreamed(ObjectMethodExecutor methodExecutor, object result, Type resultType, out IAsyncEnumerator<object> enumerator)
+        private bool IsStreamed(ObjectMethodExecutor methodExecutor, object result, Type resultType, out IAsyncEnumerator<object> enumerator, out IDisposable subscription)
         {
             if (result == null)
             {
                 enumerator = null;
+                subscription = null;
                 return false;
             }
 
@@ -458,18 +464,20 @@ namespace Microsoft.AspNetCore.SignalR
                 resultType.GetInterfaces().FirstOrDefault(IsIObservable);
             if (observableInterface != null)
             {
-                enumerator = AsyncEnumeratorAdapters.FromObservable(result, observableInterface);
+                (enumerator, subscription) = AsyncEnumeratorAdapters.FromObservable(result, observableInterface);
                 return true;
             }
             else if (IsChannel(resultType, out var payloadType))
             {
                 enumerator = AsyncEnumeratorAdapters.FromChannel(result, payloadType);
+                subscription = null;
                 return true;
             }
             else
             {
                 // Not streamed
                 enumerator = null;
+                subscription = null;
                 return false;
             }
         }
