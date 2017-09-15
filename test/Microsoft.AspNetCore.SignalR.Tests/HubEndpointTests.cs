@@ -75,6 +75,19 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
+
+        [Fact]
+        public async Task TypedHubCanInvoke()
+        {
+            var serviceProvider = CreateServiceProvider();
+            var endPoint = serviceProvider.GetService<HubEndPoint<SimpleTypedHub>>();
+
+            using (var client = new TestClient())
+            {
+                await endPoint.OnConnectedAsync(client.Connection);
+            }
+        }
+
         [Fact]
         public async Task LifetimeManagerOnDisconnectedAsyncCalledIfLifetimeManagerOnConnectedAsyncThrows()
         {
@@ -1238,6 +1251,20 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             public override async Task OnConnectedAsync()
             {
                 await Clients.All.InvokeAsync("Send", $"{Context.ConnectionId} joined");
+                await base.OnConnectedAsync();
+            }
+        }
+
+        public interface ITypedHubClient
+        {
+            Task Send(string message);
+        }
+
+        public class SimpleTypedHub : Hub<ITypedHubClient>
+        {
+            public override async Task OnConnectedAsync()
+            {
+                await Clients.All.Send($"{Context.ConnectionId} joined");
                 await base.OnConnectedAsync();
             }
         }
