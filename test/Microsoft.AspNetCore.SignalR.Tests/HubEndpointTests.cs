@@ -15,6 +15,7 @@ using Moq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using Xunit;
+using Microsoft.AspNetCore.Hosting;
 
 namespace Microsoft.AspNetCore.SignalR.Tests
 {
@@ -75,17 +76,20 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
-
         [Fact]
-        public async Task TypedHubCanInvoke()
+        public async Task CanLoadHubContext()
         {
             var serviceProvider = CreateServiceProvider();
-            var endPoint = serviceProvider.GetService<HubEndPoint<SimpleTypedHub>>();
+            var context = serviceProvider.GetRequiredService<IHubContext<SimpleHub>>();
+            await context.Clients.All.InvokeAsync("Send", "test");
+        }
 
-            using (var client = new TestClient())
-            {
-                await endPoint.OnConnectedAsync(client.Connection);
-            }
+        [Fact]
+        public async Task CanLoadTypedHubContext()
+        {
+            var serviceProvider = CreateServiceProvider();
+            var context = serviceProvider.GetRequiredService<IHubContext<SimpleTypedHub, ITypedHubClient>>();
+            await context.Clients.All.Send("test");
         }
 
         [Fact]
