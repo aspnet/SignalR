@@ -133,10 +133,10 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         public async Task<ReadableChannel<object>> StreamAsync(string methodName, Type returnType, CancellationToken cancellationToken, params object[] args)
         {
-            return await StreamCore(methodName, returnType, cancellationToken).ForceAsync();
+            return await StreamAsyncCore(methodName, returnType, cancellationToken).ForceAsync();
         }
 
-        private async Task<ReadableChannel<object>> StreamCore(string methodName, Type returnType, CancellationToken cancellationToken, params object[] args)
+        private async Task<ReadableChannel<object>> StreamAsyncCore(string methodName, Type returnType, CancellationToken cancellationToken, params object[] args)
         {
             var irq = InvocationRequest.Stream(cancellationToken, returnType, GetNextId(), _loggerFactory, out var channel);
             await InvokeCore(methodName, irq, args, nonBlocking: false);
