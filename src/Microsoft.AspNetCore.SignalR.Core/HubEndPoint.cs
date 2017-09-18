@@ -210,8 +210,15 @@ namespace Microsoft.AspNetCore.SignalR
                 // We wait on abort to complete, this is so that we can guarantee that all callbacks have fired
                 // before OnDisconnectedAsync
 
-                // Ensure the connection is aborted before firing disconnect
-                await connection.AbortAsync();
+                try
+                {
+                    // Ensure the connection is aborted before firing disconnect
+                    await connection.AbortAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogTrace(0, ex, "Abort callback failed");
+                }
 
                 using (var scope = _serviceScopeFactory.CreateScope())
                 {

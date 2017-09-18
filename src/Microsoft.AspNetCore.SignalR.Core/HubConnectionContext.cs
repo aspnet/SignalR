@@ -86,16 +86,15 @@ namespace Microsoft.AspNetCore.SignalR
             try
             {
                 connection._connectionAbortedTokenSource.Cancel();
+
+                // Communicate the fact that we're finished triggering abort callbacks
+                connection._abortCompletedTcs.TrySetResult(null);
             }
-            catch
+            catch (Exception ex)
             {
                 // TODO: Should we log if the cancellation callback fails? This is more preventative to make sure
                 // we don't end up with an unobserved task
-            }
-            finally
-            {
-                // Communicate the fact that we're finished triggering abort callbacks
-                connection._abortCompletedTcs.TrySetResult(null);
+                connection._abortCompletedTcs.TrySetException(ex);
             }
         }
     }
