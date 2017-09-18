@@ -57,7 +57,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 // kill the connection
                 client.Dispose();
 
-                await endPointTask;
+                await endPointTask.OrTimeout();
 
                 Assert.True(state.TokenCallbackTriggered);
                 Assert.False(state.TokenStateInConnected);
@@ -77,7 +77,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 await client.InvokeAsync(nameof(AbortHub.Kill));
 
-                await endPointTask;
+                await endPointTask.OrTimeout();
             }
         }
 
@@ -120,7 +120,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 var subscribeTask = client.StreamAsync(nameof(ObservableHub.Subscribe));
 
-                await waitForSubscribe.Task;
+                await waitForSubscribe.Task.OrTimeout();
 
                 Assert.Single(observable.Observers);
 
@@ -130,18 +130,18 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 // We don't care if this throws, we just expect it to complete
                 try
                 {
-                    await subscribeTask;
+                    await subscribeTask.OrTimeout();
                 }
                 catch
                 {
 
                 }
 
-                await waitForDispose.Task;
+                await waitForDispose.Task.OrTimeout();
 
                 Assert.Empty(observable.Observers);
 
-                await endPointTask;
+                await endPointTask.OrTimeout();
             }
         }
 
@@ -184,7 +184,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 var subscribeTask = Subscribe();
 
-                await waitForSubscribe.Task;
+                await waitForSubscribe.Task.OrTimeout();
 
                 Assert.Single(observable.Observers);
 
@@ -192,15 +192,15 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 observable.Complete();
 
-                await subscribeTask;
+                await subscribeTask.OrTimeout();
 
                 client.Dispose();
 
-                await waitForDispose.Task;
+                await waitForDispose.Task.OrTimeout();
 
                 Assert.Empty(observable.Observers);
 
-                await endPointTask;
+                await endPointTask.OrTimeout();
             }
         }
 

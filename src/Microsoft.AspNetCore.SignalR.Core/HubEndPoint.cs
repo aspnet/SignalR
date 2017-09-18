@@ -267,7 +267,7 @@ namespace Microsoft.AspNetCore.SignalR
 
                                         // Don't wait on the result of execution, continue processing other
                                         // incoming messages on this connection.
-                                        var ignore = ProcessInvocation(connection, invocationMessage);
+                                        _ = ProcessInvocation(connection, invocationMessage);
                                         break;
 
                                     // Other kind of message we weren't expecting
