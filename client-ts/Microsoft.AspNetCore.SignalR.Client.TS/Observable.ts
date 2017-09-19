@@ -8,7 +8,6 @@ export interface Observer<T> {
     next: (value: T) => void;
     error: (err: any) => void;
     complete: () => void;
-    isCompleted?: boolean;
 }
 
 export interface Observable<T> {
@@ -26,17 +25,16 @@ export class Subject<T> implements Observable<T> {
     public next(item: T): void {
         // loop backwards because array.splice can happen
         // and a backwards loop avoids missing items
-        for (let i = this.observers.length - 1; i >= 0; i--) {
-            let observer = this.observers[i];
+        for (let i: number = this.observers.length - 1; i >= 0; i--) {
+            let observer: Observer<T> = this.observers[i];
             if (observer.closed === true) {
                 continue;
-            }
-            else {
+            } else {
                 observer.next(item);
             }
 
-            if (observer.closed === true) {
-                this.unsubscribe(observer);
+            if (observer.closed === <boolean>true) {
+                this.unsubscribe(this.observers, observer);
             }
         }
     }
@@ -44,32 +42,31 @@ export class Subject<T> implements Observable<T> {
     public error(err: any): void {
         // loop backwards because array.splice can happen
         // and a backwards loop avoids missing items
-        for (let i = this.observers.length - 1; i >= 0; i--) {
+        for (let i: number = this.observers.length - 1; i >= 0; i--) {
             this.observers[i].error(err);
         }
     }
 
     public complete(): void {
+        let observers: Observer<T>[] = this.observers;
+        this.observers = [];
         // loop backwards because array.splice can happen
         // and a backwards loop avoids missing items
-        for (let i = this.observers.length - 1; i >= 0; i--) {
-            this.unsubscribe(this.observers[i]);
+        for (let i: number = observers.length - 1; i >= 0; i--) {
+            this.unsubscribe(observers, observers[i]);
         }
+        // TODO: send some kind of completion to let server know to stop streaming
     }
 
     public subscribe(observer: Observer<T>): void {
         this.observers.push(observer);
     }
 
-    public unsubscribe(observer: Observer<T>): void {
-        if (observer.isCompleted !== true) {
-            observer.isCompleted = true;
-            let index = this.observers.indexOf(observer);
-            if (index !== -1) {
-                this.observers.splice(index, 1);
-                // TODO: send some kind of completion to let server know
-                observer.complete();
-            }
+    private unsubscribe(observers: Observer<T>[], observer: Observer<T>): void {
+        let index: number = observers.indexOf(observer);
+        if (index !== -1) {
+            observers.splice(index, 1);
+            observer.complete();
         }
     }
 }
