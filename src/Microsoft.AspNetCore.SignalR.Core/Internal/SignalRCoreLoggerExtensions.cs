@@ -47,7 +47,7 @@ namespace Microsoft.AspNetCore.SignalR.Core.Internal
             LoggerMessage.Define<string>(LogLevel.Error, 11, "Failed to invoke hub method '{hubMethod}'.");
 
         private static readonly Action<ILogger, string, Exception> _hubMethodBound =
-            LoggerMessage.Define<string>(LogLevel.Debug, 12, "Hub method '{hubMethod}' is bound.");
+            LoggerMessage.Define<string>(LogLevel.Trace, 12, "Hub method '{hubMethod}' is bound.");
 
         public static void UsingHubProtocol(this ILogger logger, string hubProtocol)
         {
