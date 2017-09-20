@@ -13,13 +13,16 @@ export interface Observer<T> {
 export interface Observable<T> {
     // TODO: Return a Subscription so the caller can unsubscribe? IDisposable in System.IObservable
     subscribe(observer: Observer<T>): void;
+    complete(): void;
 }
 
 export class Subject<T> implements Observable<T> {
     observers: Observer<T>[];
+    completed: boolean;
 
     constructor() {
         this.observers = [];
+        this.completed = false;
     }
 
     public next(item: T): void {
@@ -48,6 +51,7 @@ export class Subject<T> implements Observable<T> {
     }
 
     public complete(): void {
+        this.completed = true;
         let observers: Observer<T>[] = this.observers;
         this.observers = [];
         // loop backwards because array.splice can happen
@@ -59,7 +63,9 @@ export class Subject<T> implements Observable<T> {
     }
 
     public subscribe(observer: Observer<T>): void {
-        this.observers.push(observer);
+        if (this.completed === false) {
+            this.observers.push(observer);
+        }
     }
 
     private unsubscribe(observers: Observer<T>[], observer: Observer<T>): void {
