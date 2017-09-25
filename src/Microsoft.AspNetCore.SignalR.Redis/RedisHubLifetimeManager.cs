@@ -301,6 +301,16 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
         public override async Task AddGroupAsync(string connectionId, string groupName)
         {
+            if (connectionId == null)
+            {
+                throw new ArgumentNullException(nameof(connectionId));
+            }
+
+            if (groupName == null)
+            {
+                throw new ArgumentNullException(nameof(groupName));
+            }
+
             if (await AddGroupAsyncCore(connectionId, groupName))
             {
                 // short circuit if connection is on this server
@@ -312,16 +322,6 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
         private async Task<bool> AddGroupAsyncCore(string connectionId, string groupName)
         {
-            if (connectionId == null)
-            {
-                throw new ArgumentNullException(nameof(connectionId));
-            }
-
-            if (groupName == null)
-            {
-                throw new ArgumentNullException(nameof(groupName));
-            }
-
             var connection = _connections[connectionId];
             if (connection == null)
             {
