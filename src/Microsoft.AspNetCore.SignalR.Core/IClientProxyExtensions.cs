@@ -165,7 +165,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <param name="arg7">The seventh argument</param>
         /// <param name="arg8">The eigth argument</param>
         /// <param name="arg9">The ninth argument</param>
-        /// <param name="arg10">The ninth argument</param>
+        /// <param name="arg10">The tenth argument</param>
         /// <returns>A task that represents when the data has been sent to the client.</returns>
         public static Task InvokeAsync(this IClientProxy clientProxy, string method, object arg1, object arg2, object arg3, object arg4, object arg5, object arg6, object arg7, object arg8, object arg9, object arg10)
         {
