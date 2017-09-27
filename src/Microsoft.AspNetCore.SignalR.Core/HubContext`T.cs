@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace Microsoft.AspNetCore.SignalR
 {
-	public class HubContext<THub, T> : IHubContext<THub, T>, IHubClients<T>
+    public class HubContext<THub, T> : IHubContext<THub, T>, IHubClients<T>
         where THub : Hub<T>
         where T : class
     {
@@ -39,9 +39,9 @@ namespace Microsoft.AspNetCore.SignalR
             return TypedClientBuilder<T>.Build(new GroupProxy<THub>(_lifetimeManager, groupName));
         }
 
-        public virtual T User(string userId)
+        public virtual T User(string userId, IReadOnlyList<string> excludedConnectionIds)
         {
-            return TypedClientBuilder<T>.Build(new UserProxy<THub>(_lifetimeManager, userId));
+            return TypedClientBuilder<T>.Build(new UserProxy<THub>(_lifetimeManager, userId, excludedConnectionIds));
         }
     }
 }

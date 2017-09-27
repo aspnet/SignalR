@@ -197,13 +197,12 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             return PublishAsync(_channelNamePrefix + ".group." + groupName, message);
         }
 
-        public override Task InvokeUserAsync(string userId, string methodName, object[] args)
+        public override Task InvokeUserAsync(string userId, IReadOnlyList<string> excludedConnectionIds, string methodName, object[] args)
         {
             var message = new InvocationMessage(GetInvocationId(), nonBlocking: true, target: methodName, arguments: args);
 
             return PublishAsync(_channelNamePrefix + ".user." + userId, message);
         }
-
         private async Task PublishAsync<TMessage>(string channel, TMessage hubMessage)
         {
             byte[] payload;
