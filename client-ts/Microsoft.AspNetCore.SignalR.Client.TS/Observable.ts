@@ -1,23 +1,28 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-// TODO: Seamless RxJs integration
-// From RxJs: https://github.com/ReactiveX/rxjs/blob/master/src/Observer.ts
-export interface Observer<T> {
-    closed?: boolean;
-    next: (value: T) => void;
-    error: (err: any) => void;
-    complete: () => void;
+
+export declare module Rx {
+    // From RxJs: https://github.com/ReactiveX/rxjs/blob/master/src/Observer.ts
+    export interface Observer<T> {
+        closed?: boolean;
+        next: (value: T) => void;
+        error: (err: any) => void;
+        complete: () => void;
+    }
+
+    export class Observable<T> {
+        public _isScalar: boolean;
+        // TODO: Return a Subscription so the caller can unsubscribe? IDisposable in System.IObservable
+        subscribe(observer: Observer<T>): void;
+        // complete(): void;
+    }
 }
 
-export interface Observable<T> {
-    // TODO: Return a Subscription so the caller can unsubscribe? IDisposable in System.IObservable
-    subscribe(observer: Observer<T>): void;
-    complete(): void;
-}
+export class Subject<T> implements Rx.Observable<T> {
+    public _isScalar: boolean = false;
 
-export class Subject<T> implements Observable<T> {
-    observers: Observer<T>[];
+    observers: Rx.Observer<T>[];
     completed: boolean;
 
     constructor() {
@@ -29,7 +34,7 @@ export class Subject<T> implements Observable<T> {
         // loop backwards because array.splice can happen
         // and a backwards loop avoids missing items
         for (let i: number = this.observers.length - 1; i >= 0; i--) {
-            let observer: Observer<T> = this.observers[i];
+            let observer: Rx.Observer<T> = this.observers[i];
             if (observer.closed === true) {
                 continue;
             } else {
@@ -52,7 +57,7 @@ export class Subject<T> implements Observable<T> {
 
     public complete(): void {
         this.completed = true;
-        let observers: Observer<T>[] = this.observers;
+        let observers: Rx.Observer<T>[] = this.observers;
         this.observers = [];
         // loop backwards because array.splice can happen
         // and a backwards loop avoids missing items
@@ -62,13 +67,13 @@ export class Subject<T> implements Observable<T> {
         // TODO: send some kind of completion to let server know to stop streaming
     }
 
-    public subscribe(observer: Observer<T>): void {
+    public subscribe(observer: Rx.Observer<T>): void {
         if (this.completed === false) {
             this.observers.push(observer);
         }
     }
 
-    private unsubscribe(observers: Observer<T>[], observer: Observer<T>): void {
+    private unsubscribe(observers: Rx.Observer<T>[], observer: Rx.Observer<T>): void {
         let index: number = observers.indexOf(observer);
         if (index !== -1) {
             observers.splice(index, 1);
