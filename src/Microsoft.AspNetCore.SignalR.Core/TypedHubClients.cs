@@ -28,9 +28,9 @@ namespace Microsoft.AspNetCore.SignalR
             return TypedClientBuilder<T>.Build(hubClients.Group(groupName));
         }
 
-        public T User(string userId)
+        public T User(string userId, IReadOnlyList<string> excludedConnectionIds = null)
         {
-            return TypedClientBuilder<T>.Build(hubClients.User(userId));
+            return TypedClientBuilder<T>.Build(hubClients.User(userId, excludedConnectionIds));
         }
     }
 }

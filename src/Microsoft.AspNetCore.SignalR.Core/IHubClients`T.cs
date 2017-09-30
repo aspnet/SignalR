@@ -17,6 +17,6 @@ namespace Microsoft.AspNetCore.SignalR
 
         T Group(string groupName);
 
-        T User(string userId);
+        T User(string userId, IReadOnlyList<string> excludedConnectionIds = null);
     }
 }

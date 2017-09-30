@@ -10,16 +10,18 @@ namespace Microsoft.AspNetCore.SignalR
     {
         private readonly string _userId;
         private readonly HubLifetimeManager<THub> _lifetimeManager;
+        private readonly IReadOnlyList<string> _excludedConnectionIds;
 
-        public UserProxy(HubLifetimeManager<THub> lifetimeManager, string userId)
+        public UserProxy(HubLifetimeManager<THub> lifetimeManager, string userId, IReadOnlyList<string> excludedConnectionIds)
         {
             _lifetimeManager = lifetimeManager;
             _userId = userId;
+            _excludedConnectionIds = excludedConnectionIds;
         }
 
         public Task InvokeAsync(string method, params object[] args)
         {
-            return _lifetimeManager.InvokeUserAsync(_userId, method, args);
+            return _lifetimeManager.InvokeUserAsync(_userId, _excludedConnectionIds, method, args);
         }
     }
 

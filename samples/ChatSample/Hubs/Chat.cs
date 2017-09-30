@@ -4,6 +4,7 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using System.Collections.Generic;
 
 namespace ChatSample.Hubs
 {
@@ -18,7 +19,6 @@ namespace ChatSample.Hubs
         public override async Task OnConnectedAsync()
         {
             await Clients.Client(Context.ConnectionId).InvokeAsync("SetUsersOnline", await GetUsersOnline());
-
             await base.OnConnectedAsync();
         }
 
@@ -32,9 +32,11 @@ namespace ChatSample.Hubs
             return Clients.Client(Context.ConnectionId).InvokeAsync("UsersLeft", users);
         }
 
+        [AllowAnonymous]
         public async Task Send(string message)
         {
             await Clients.All.InvokeAsync("Send", Context.User.Identity.Name, message);
+            await Clients.User(Context.Connection.User.Identity.Name, new List<string>() { Context.ConnectionId }).InvokeAsync("Send", Context.User.Identity.Name, message);
         }
     }
 }

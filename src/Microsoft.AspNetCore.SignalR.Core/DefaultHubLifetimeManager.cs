@@ -136,11 +136,11 @@ namespace Microsoft.AspNetCore.SignalR
             });
         }
 
-        public override Task InvokeUserAsync(string userId, string methodName, object[] args)
+        public override Task InvokeUserAsync(string userId, IReadOnlyList<string> excludedConnectionIds, string methodName, object[] args)
         {
             return InvokeAllWhere(methodName, args, connection =>
             {
-                return string.Equals(connection.User.Identity.Name, userId, StringComparison.Ordinal);
+                return string.Equals(connection.User.Identity.Name, userId, StringComparison.Ordinal) && (!excludedConnectionIds?.Contains(connection.ConnectionId) ?? true);
             });
         }
 
