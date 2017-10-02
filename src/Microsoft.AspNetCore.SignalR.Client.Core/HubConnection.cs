@@ -138,7 +138,17 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private async Task<ReadableChannel<object>> StreamAsyncCore(string methodName, Type returnType, object[] args, CancellationToken cancellationToken)
         {
-            var irq = InvocationRequest.Stream(cancellationToken, returnType, GetNextId(), _loggerFactory, out var channel);
+            var irq = InvocationRequest.Stream(CancellationToken.None, returnType, GetNextId(), _loggerFactory, out var channel);
+            if (cancellationToken.CanBeCanceled)
+            {
+                cancellationToken.Register(async s =>
+                {
+                    if (!_connectionActive.IsCancellationRequested)
+                    {
+                        await SendInvocation(new CancelInvocationMessage(irq.InvocationId), irq);
+                    }
+                }, this);
+            }
             await InvokeCore(methodName, irq, args, nonBlocking: false);
             return channel;
         }
@@ -193,7 +203,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             return SendInvocation(invocationMessage, irq);
         }
 
-        private async Task SendInvocation(InvocationMessage invocationMessage, InvocationRequest irq)
+        private async Task SendInvocation(HubMessage invocationMessage, InvocationRequest irq)
         {
             try
             {

@@ -42,4 +42,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             return $"Invocation {{ {nameof(InvocationId)}: \"{InvocationId}\", {nameof(NonBlocking)}: {NonBlocking}, {nameof(Target)}: \"{Target}\", {nameof(Arguments)}: [ {string.Join(", ", Arguments.Select(a => a?.ToString()))} ] }}";
         }
     }
+
+    public class CancelInvocationMessage : HubMessage
+    {
+        public CancelInvocationMessage(string invocationId) : base(invocationId)
+        {
+        }
+    }
 }

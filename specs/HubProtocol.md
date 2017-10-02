@@ -20,10 +20,11 @@ This document describes three encodings of the SignalR protocol: [JSON](http://w
 
 In the SignalR protocol, the following types of messages can be sent:
 
-* `Negotiation` Message - Sent by the client to negotiate the message format
+* `Negotiation` Message - Sent by the client to negotiate the message format.
 * `Invocation` Message - Indicates a request to invoke a particular method (the Target) with provided Arguments on the remote endpoint.
 * `StreamItem` Message - Indicates individual items of streamed response data from a previous Invocation message.
 * `Completion` Message - Indicates a previous Invocation has completed, and no further `StreamItem` messages will be received. Contains an error if the invocation concluded with an error, or the result if the invocation is not a streaming invocation.
+* `CancelInvocation` Message - Sent by the client to cancel a streaming invocation on the server.
 
 After opening a connection to the server the client must send a `Negotiation` message to the server as its first message. The negotiation message is **always** a JSON message and contains the name of the format (protocol) that will be used for the duration of the connection. If the server does not support the protocol requested by the client or the first message received from the client is not a `Negotiation` message the server must close the connection.
 
@@ -41,9 +42,9 @@ Example:
 
 ## Communication between the Caller and the Callee
 
-There a three kinds of interactions between the Caller and the Calle:
+There a three kinds of interactions between the Caller and the Callee:
 
-* Invocations - the Caller sends a message to the Calle and expects a message indicating that the invocation has been completed and optionally a result of the invocation
+* Invocations - the Caller sends a message to the Callee and expects a message indicating that the invocation has been completed and optionally a result of the invocation
 * Non-Blocking Invocations - the Caller sends a message to the Callee and does not expect any further messages for this invocation
 * Streaming Invocations - the Caller sends a message to the Callee and expects one or more results returned by the Callee followed by a message indicating the end of invocation
 
@@ -74,7 +75,7 @@ The SignalR protocol allows for multiple `StreamItem` messages to be transmitted
 
 On the Callee side, it is up to the Callee's Binder to determine if a method call will yield multiple results. For example, in .NET certain return types may indicate multiple results, while others may indicate a single result. Even then, applications may wish for multiple results to be buffered and returned in a single `Completion` frame. It is up to the Binder to decide how to map this. The Callee's Binder must encode each result in separate `StreamItem` messages, indicating the end of results by sending a `Completion` message.
 
-On the Caller side, the user code which performs the invocation indicates how it would like to receive the results and it is up the Caller's Binder to determine how to handle the result. If the Caller expects only a single result, but multiple results are returned, the Caller's Binder should yield an error indicating that multiple results were returned. However, if a Caller expects multiple results, but only a single result is returned, the Caller's Binder should yield that single result and indicate there are no further results.
+On the Caller side, the user code which performs the invocation indicates how it would like to receive the results and it is up the Caller's Binder to determine how to handle the result. If the Caller expects only a single result, but multiple results are returned, the Caller's Binder should yield an error indicating that multiple results were returned. However, if a Caller expects multiple results, but only a single result is returned, the Caller's Binder should yield that single result and indicate there are no further results. If the Caller wants to stop receiving `StreamItem` messages before the Callee sends a `Completion` message, the Caller can send a `CancelInvocation` message with the same `Invocation ID` used for the `Invocation` message that started the stream. It is possible to receive `StreamItem` messages or a `Completion` message after a `CancelInvocation` message has been sent, these can be ignored.
 
 ## Completion and results
 
@@ -221,6 +222,16 @@ S->C: StreamItem { Id = 42, Item = 4 }
 S->C: Completion { Id = 42, Error = "Ran out of data!" }
 ```
 
+### Streamed Result closed early (`Stream` example above)
+
+```
+C->S: Invocation { Id = 42, Target = "Stream", Arguments = [ 5 ] }
+S->C: StreamItem { Id = 42, Item = 0 }
+S->C: StreamItem { Id = 42, Item = 1 }
+C->S: CancelInvocation { Id = 42 }
+S->C: StreamItem { Id = 42, Item = 2} // This can be ignored
+```
+
 This should manifest to the Calling code as a sequence which emits `0`, `1`, `2`, `3`, `4`, but then fails with the error `Ran out of data!`.
 
 ### Non-Blocking Call (`NonBlocking` example above)
@@ -337,6 +348,20 @@ Example - The following `Completion` message is a protocol error because it has 
     "invocationId": 123,
     "result": 42,
     "error": "It didn't work!"
+}
+```
+
+### CancelInvocation Message Encoding
+A `CancelInvocation` message is a JSON object with the following properties
+
+* `type` - A `Number` with the literal value `4`, indicationg that this is a `CancelInvocation`.
+* `invocationId` - A `String` encoding the `Invocation ID` for a message.
+
+Example
+```json
+{
+    "type": 4,
+	"invocationId": 123
 }
 ```
 

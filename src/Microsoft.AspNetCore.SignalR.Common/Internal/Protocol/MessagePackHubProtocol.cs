@@ -15,6 +15,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         private const int InvocationMessageType = 1;
         private const int StreamItemMessageType = 2;
         private const int CompletionMessageType = 3;
+        private const int CancelInvocationMessageType = 4;
 
         private const int ErrorResult = 1;
         private const int VoidResult = 2;
@@ -64,6 +65,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                     return CreateStreamItemMessage(unpacker, binder);
                 case CompletionMessageType:
                     return CreateCompletionMessage(unpacker, binder);
+                case CancelInvocationMessageType:
+                    return CreateCancelInvocationMessage(unpacker, binder);
                 default:
                     throw new FormatException($"Invalid message type: {messageType}.");
             }
@@ -129,6 +132,12 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             return new CompletionMessage(invocationId, error, result, hasResult);
         }
 
+        private static CancelInvocationMessage CreateCancelInvocationMessage(Unpacker unpacker, IInvocationBinder binder)
+        {
+            var invocationId = ReadInvocationId(unpacker);
+            return new CancelInvocationMessage(invocationId);
+        }
+
         public void WriteMessage(HubMessage message, Stream output)
         {
             using (var memoryStream = new MemoryStream())
@@ -144,20 +153,23 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             switch (message)
             {
                 case InvocationMessage invocationMessage:
-                    WriteInvocationMessage(invocationMessage, packer, output);
+                    WriteInvocationMessage(invocationMessage, packer);
                     break;
                 case StreamItemMessage streamItemMessage:
-                    WriteStreamingItemMessage(streamItemMessage, packer, output);
+                    WriteStreamingItemMessage(streamItemMessage, packer);
                     break;
                 case CompletionMessage completionMessage:
-                    WriteCompletionMessage(completionMessage, packer, output);
+                    WriteCompletionMessage(completionMessage, packer);
+                    break;
+                case CancelInvocationMessage cancelInvocationMessage:
+                    WriteCancelInvocationMessage(cancelInvocationMessage, packer);
                     break;
                 default:
                     throw new FormatException($"Unexpected message type: {message.GetType().Name}");
             }
         }
 
-        private void WriteInvocationMessage(InvocationMessage invocationMessage, Packer packer, Stream output)
+        private void WriteInvocationMessage(InvocationMessage invocationMessage, Packer packer)
         {
             packer.PackArrayHeader(5);
             packer.Pack(InvocationMessageType);
@@ -167,7 +179,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             packer.PackObject(invocationMessage.Arguments, _serializationContext);
         }
 
-        private void WriteStreamingItemMessage(StreamItemMessage streamItemMessage, Packer packer, Stream output)
+        private void WriteStreamingItemMessage(StreamItemMessage streamItemMessage, Packer packer)
         {
             packer.PackArrayHeader(3);
             packer.Pack(StreamItemMessageType);
@@ -175,7 +187,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             packer.PackObject(streamItemMessage.Item, _serializationContext);
         }
 
-        private void WriteCompletionMessage(CompletionMessage completionMessage, Packer packer, Stream output)
+        private void WriteCompletionMessage(CompletionMessage completionMessage, Packer packer)
         {
             var resultKind =
                 completionMessage.Error != null ? ErrorResult :
@@ -195,6 +207,13 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                     packer.PackObject(completionMessage.Result, _serializationContext);
                     break;
             }
+        }
+
+        private void WriteCancelInvocationMessage(CancelInvocationMessage cancelInvocationMessage, Packer packer)
+        {
+            packer.PackArrayHeader(2);
+            packer.Pack(CancelInvocationMessageType);
+            packer.PackString(cancelInvocationMessage.InvocationId);
         }
 
         private static string ReadInvocationId(Unpacker unpacker)

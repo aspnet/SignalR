@@ -275,6 +275,20 @@ namespace Microsoft.AspNetCore.SignalR
                                         _ = ProcessInvocation(connection, invocationMessage);
                                         break;
 
+                                    case CancelInvocationMessage cancelInvocationMessage:
+                                        //log
+                                        // check and cancel stream
+                                        if (connection.ActiveRequests.TryRemove(cancelInvocationMessage.InvocationId, out var cts))
+                                        {
+                                            cts.Cancel();
+                                        }
+                                        else
+                                        {
+                                            // stream can be canceled on the server while client is canceling stream
+                                            _logger.LogDebug("CancelInvocationMessage received unexpectedly.");
+                                        }
+                                        break;
+
                                     // Other kind of message we weren't expecting
                                     default:
                                         _logger.UnsupportedMessageReceived(hubMessage.GetType().FullName);
@@ -378,7 +392,7 @@ namespace Microsoft.AspNetCore.SignalR
                         result = methodExecutor.Execute(hub, invocationMessage.Arguments);
                     }
 
-                    if (IsStreamed(connection, methodExecutor, result, methodExecutor.MethodReturnType, out var enumerator))
+                    if (IsStreamed(connection, invocationMessage.InvocationId, methodExecutor, result, methodExecutor.MethodReturnType, out var enumerator))
                     {
                         _logger.StreamingResult(invocationMessage.InvocationId, methodExecutor.MethodReturnType.FullName);
                         await StreamResultsAsync(invocationMessage.InvocationId, connection, enumerator);
@@ -438,8 +452,23 @@ namespace Microsoft.AspNetCore.SignalR
         {
             try
             {
-                while (await enumerator.MoveNextAsync())
+                bool hasItem;
+                while (true)
                 {
+                    try
+                    {
+                        hasItem = await enumerator.MoveNextAsync();
+                    } catch (Exception)
+                    {
+                        // stream has closed
+                        hasItem = false;
+                    }
+
+                    if (!hasItem)
+                    {
+                        break;
+                    }
+
                     // Send the stream item
                     await SendMessageAsync(connection, new StreamItemMessage(invocationId, enumerator.Current));
                 }
@@ -450,9 +479,16 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 await SendMessageAsync(connection, CompletionMessage.WithError(invocationId, ex.Message));
             }
+            finally
+            {
+                if (connection.ActiveRequests.TryRemove(invocationId, out var cts))
+                {
+                    cts.Dispose();
+                }
+            }
         }
 
-        private bool IsStreamed(HubConnectionContext connection, ObjectMethodExecutor methodExecutor, object result, Type resultType, out IAsyncEnumerator<object> enumerator)
+        private bool IsStreamed(HubConnectionContext connection, string invocationId, ObjectMethodExecutor methodExecutor, object result, Type resultType, out IAsyncEnumerator<object> enumerator)
         {
             if (result == null)
             {
@@ -468,12 +504,18 @@ namespace Microsoft.AspNetCore.SignalR
                 resultType.GetInterfaces().FirstOrDefault(IsIObservable);
             if (observableInterface != null)
             {
-                enumerator = AsyncEnumeratorAdapters.FromObservable(result, observableInterface, connection.ConnectionAbortedToken);
+                var streamCts = new CancellationTokenSource();
+                connection.ActiveRequests.TryAdd(invocationId, streamCts);
+                var streamCancellationToken = CancellationTokenSource.CreateLinkedTokenSource(connection.ConnectionAbortedToken, streamCts.Token);
+                enumerator = AsyncEnumeratorAdapters.FromObservable(result, observableInterface, streamCancellationToken.Token);
                 return true;
             }
             else if (IsChannel(resultType, out var payloadType))
             {
-                enumerator = AsyncEnumeratorAdapters.FromChannel(result, payloadType, connection.ConnectionAbortedToken);
+                var streamCts = new CancellationTokenSource();
+                connection.ActiveRequests.TryAdd(invocationId, streamCts);
+                var streamCancellationToken = CancellationTokenSource.CreateLinkedTokenSource(connection.ConnectionAbortedToken, streamCts.Token);
+                enumerator = AsyncEnumeratorAdapters.FromChannel(result, payloadType, streamCancellationToken.Token);
                 return true;
             }
             else
