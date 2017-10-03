@@ -113,7 +113,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                         case CompletionMessageType:
                             return BindCompletionMessage(json, binder);
                         case CancelInvocationMessageType:
-                            return BindCancelInvocationMessage(json, binder);
+                            return BindCancelInvocationMessage(json);
                         default:
                             throw new FormatException($"Unknown message type: {type}");
                     }
@@ -273,7 +273,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             }
         }
 
-        private CancelInvocationMessage BindCancelInvocationMessage(JObject json, IInvocationBinder binder)
+        private CancelInvocationMessage BindCancelInvocationMessage(JObject json)
         {
             var invocationId = JsonUtils.GetRequiredProperty<string>(json, InvocationIdPropertyName, JTokenType.String);
             return new CancelInvocationMessage(invocationId);

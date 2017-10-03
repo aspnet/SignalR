@@ -141,13 +141,13 @@ namespace Microsoft.AspNetCore.SignalR.Client
             var irq = InvocationRequest.Stream(CancellationToken.None, returnType, GetNextId(), _loggerFactory, out var channel);
             if (cancellationToken.CanBeCanceled)
             {
-                cancellationToken.Register(async s =>
+                cancellationToken.Register(async () =>
                 {
                     if (!_connectionActive.IsCancellationRequested)
                     {
                         await SendInvocation(new CancelInvocationMessage(irq.InvocationId), irq);
                     }
-                }, this);
+                });
             }
             await InvokeCore(methodName, irq, args, nonBlocking: false);
             return channel;

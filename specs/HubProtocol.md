@@ -222,6 +222,8 @@ S->C: StreamItem { Id = 42, Item = 4 }
 S->C: Completion { Id = 42, Error = "Ran out of data!" }
 ```
 
+This should manifest to the Calling code as a sequence which emits `0`, `1`, `2`, `3`, `4`, but then fails with the error `Ran out of data!`.
+
 ### Streamed Result closed early (`Stream` example above)
 
 ```
@@ -231,8 +233,6 @@ S->C: StreamItem { Id = 42, Item = 1 }
 C->S: CancelInvocation { Id = 42 }
 S->C: StreamItem { Id = 42, Item = 2} // This can be ignored
 ```
-
-This should manifest to the Calling code as a sequence which emits `0`, `1`, `2`, `3`, `4`, but then fails with the error `Ran out of data!`.
 
 ### Non-Blocking Call (`NonBlocking` example above)
 
@@ -259,7 +259,7 @@ Example:
 ```json
 {
     "type": 1,
-    "invocationId": 123,
+    "invocationId": "123",
     "target": "Send",
     "arguments": [
         42,
@@ -272,7 +272,7 @@ Example (Non-Blocking):
 ```json
 {
     "type": 1,
-    "invocationId": 123,
+    "invocationId": "123",
     "nonblocking": true,
     "target": "Send",
     "arguments": [
@@ -295,7 +295,7 @@ Example
 ```json
 {
     "type": 2,
-    "invocationId": 123,
+    "invocationId": "123",
     "item": 42
 }
 ```
@@ -316,7 +316,7 @@ Example - A `Completion` message with no result or error
 ```json
 {
     "type": 3,
-    "invocationId": 123
+    "invocationId": "123"
 }
 ```
 
@@ -325,7 +325,7 @@ Example - A `Completion` message with a result
 ```json
 {
     "type": 3,
-    "invocationId": 123,
+    "invocationId": "123",
     "result": 42
 }
 ```
@@ -335,7 +335,7 @@ Example - A `Completion` message with an error
 ```json
 {
     "type": 3,
-    "invocationId": 123,
+    "invocationId": "123",
     "error": "It didn't work!"
 }
 ```
@@ -345,7 +345,7 @@ Example - The following `Completion` message is a protocol error because it has 
 ```json
 {
     "type": 3,
-    "invocationId": 123,
+    "invocationId": "123",
     "result": 42,
     "error": "It didn't work!"
 }
@@ -361,7 +361,7 @@ Example
 ```json
 {
     "type": 4,
-	"invocationId": 123
+    "invocationId": "123"
 }
 ```
 

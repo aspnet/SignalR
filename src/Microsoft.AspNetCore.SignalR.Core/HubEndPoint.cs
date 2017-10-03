@@ -496,26 +496,17 @@ namespace Microsoft.AspNetCore.SignalR
                 return false;
             }
 
-
-            // TODO: We need to support cancelling the stream without a client disconnect as well.
-
             var observableInterface = IsIObservable(resultType) ?
                 resultType :
                 resultType.GetInterfaces().FirstOrDefault(IsIObservable);
             if (observableInterface != null)
             {
-                var streamCts = new CancellationTokenSource();
-                connection.ActiveRequests.TryAdd(invocationId, streamCts);
-                var streamCancellationToken = CancellationTokenSource.CreateLinkedTokenSource(connection.ConnectionAbortedToken, streamCts.Token);
-                enumerator = AsyncEnumeratorAdapters.FromObservable(result, observableInterface, streamCancellationToken.Token);
+                enumerator = AsyncEnumeratorAdapters.FromObservable(result, observableInterface, CreateCancellation());
                 return true;
             }
             else if (IsChannel(resultType, out var payloadType))
             {
-                var streamCts = new CancellationTokenSource();
-                connection.ActiveRequests.TryAdd(invocationId, streamCts);
-                var streamCancellationToken = CancellationTokenSource.CreateLinkedTokenSource(connection.ConnectionAbortedToken, streamCts.Token);
-                enumerator = AsyncEnumeratorAdapters.FromChannel(result, payloadType, streamCancellationToken.Token);
+                enumerator = AsyncEnumeratorAdapters.FromChannel(result, payloadType, CreateCancellation());
                 return true;
             }
             else
@@ -523,6 +514,13 @@ namespace Microsoft.AspNetCore.SignalR
                 // Not streamed
                 enumerator = null;
                 return false;
+            }
+
+            CancellationToken CreateCancellation()
+            {
+                var streamCts = new CancellationTokenSource();
+                connection.ActiveRequests.TryAdd(invocationId, streamCts);
+                return CancellationTokenSource.CreateLinkedTokenSource(connection.ConnectionAbortedToken, streamCts.Token).Token;
             }
         }
 

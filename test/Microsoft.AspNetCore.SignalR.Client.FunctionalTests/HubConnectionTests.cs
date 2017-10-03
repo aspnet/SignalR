@@ -176,7 +176,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 {
                     await connection.StartAsync().OrTimeout();
 
-                    var channel = await connection.StreamAsync<int>("Stream", 5);
+                    var channel = await connection.StreamAsync<int>("Stream", 5).OrTimeout();
                     var results = await channel.ReadAllAsync().OrTimeout();
 
                     Assert.Equal(new[] { 0, 1, 2, 3, 4 }, results.ToArray());
@@ -207,9 +207,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
                     var cts = new CancellationTokenSource();
 
-                    var channel = await connection.StreamAsync<int>("Stream", 1000, cts.Token);
-                    await Task.Delay(250);
+                    var channel = await connection.StreamAsync<int>("Stream", 1000, cts.Token).OrTimeout();
+
+                    await channel.WaitToReadAsync().OrTimeout();
                     cts.Cancel();
+
                     var results = await channel.ReadAllAsync().OrTimeout();
 
                     Assert.True(results.Count > 0 && results.Count < 1000);

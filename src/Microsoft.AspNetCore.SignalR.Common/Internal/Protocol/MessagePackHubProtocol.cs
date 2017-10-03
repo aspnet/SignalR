@@ -66,7 +66,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 case CompletionMessageType:
                     return CreateCompletionMessage(unpacker, binder);
                 case CancelInvocationMessageType:
-                    return CreateCancelInvocationMessage(unpacker, binder);
+                    return CreateCancelInvocationMessage(unpacker);
                 default:
                     throw new FormatException($"Invalid message type: {messageType}.");
             }
@@ -132,7 +132,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             return new CompletionMessage(invocationId, error, result, hasResult);
         }
 
-        private static CancelInvocationMessage CreateCancelInvocationMessage(Unpacker unpacker, IInvocationBinder binder)
+        private static CancelInvocationMessage CreateCancelInvocationMessage(Unpacker unpacker)
         {
             var invocationId = ReadInvocationId(unpacker);
             return new CancelInvocationMessage(invocationId);
