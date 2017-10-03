@@ -544,7 +544,7 @@ The following payload:
 is decoded as follows:
 
 * `0x92` - 2-element array
-* `0x04` - `5` (Message Type `CancelInvocation` message)
+* `0x05` - `5` (Message Type `CancelInvocation` message)
 * `0xa3` - string of length 3 (InvocationId)
 * `0x78` - `x`
 * `0x79` - `y`
