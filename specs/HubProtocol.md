@@ -42,7 +42,7 @@ Example:
 
 ## Communication between the Caller and the Callee
 
-There a three kinds of interactions between the Caller and the Callee:
+There are three kinds of interactions between the Caller and the Callee:
 
 * Invocations - the Caller sends a message to the Callee and expects a message indicating that the invocation has been completed and optionally a result of the invocation
 * Non-Blocking Invocations - the Caller sends a message to the Callee and does not expect any further messages for this invocation
@@ -531,7 +531,7 @@ is decoded as follows:
 [5, InvocationId]
 ```
 
-* `5` - Message Type - `4` indicates this is a `CancelInvocation` message
+* `5` - Message Type - `5` indicates this is a `CancelInvocation` message
 * InvocationId - A `String` encoding the Invocation ID for the message
 
 Example:
