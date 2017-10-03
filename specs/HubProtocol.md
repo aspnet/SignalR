@@ -403,7 +403,7 @@ is decoded as follows:
 
 * `0x95` - 5-element array
 * `0x01` - `1` (Message Type - `Invocation` message)
-* `0xa3` - string of length 3 (Target)
+* `0xa3` - string of length 3 (InvocationId)
 * `0x78` - `x`
 * `0x79` - `y`
 * `0x7a` - `z`
@@ -422,7 +422,9 @@ is decoded as follows:
 
 `StreamItem` messages have the following structure:
 
+```
 [2, InvocationId, Item]
+```
 
 * `2` - Message Type - `2` indicates this is a `StreamItem` message
 * InvocationId - A `String` encoding the Invocation ID for the message
@@ -439,7 +441,7 @@ is decoded as follows:
 
 * `0x93` - 3-element array
 * `0x02` - `2` (Message Type - `StreamItem` message)
-* `0xa3` - string of length 3 (Target)
+* `0xa3` - string of length 3 (InvocationId)
 * `0x78` - `x`
 * `0x79` - `y`
 * `0x7a` - `z`
@@ -474,7 +476,7 @@ is decoded as follows:
 
 * `0x94` - 4-element array
 * `0x03` - `3` (Message Type - `Result` message)
-* `0xa3` - string of length 3 (Target)
+* `0xa3` - string of length 3 (InvocationId)
 * `0x78` - `x`
 * `0x79` - `y`
 * `0x7a` - `z`
@@ -497,7 +499,7 @@ is decoded as follows:
 
 * `0x93` - 3-element array
 * `0x03` - `3` (Message Type - `Result` message)
-* `0xa3` - string of length 3 (Target)
+* `0xa3` - string of length 3 (InvocationId)
 * `0x78` - `x`
 * `0x79` - `y`
 * `0x7a` - `z`
@@ -514,12 +516,39 @@ is decoded as follows:
 
 * `0x94` - 4-element array
 * `0x03` - `3` (Message Type - `Result` message)
-* `0xa3` - string of length 3 (Target)
+* `0xa3` - string of length 3 (InvocationId)
 * `0x78` - `x`
 * `0x79` - `y`
 * `0x7a` - `z`
 * `0x03` - `3` (ResultKind - Non-Void result)
 * `0x2a` - `42` (Result)
+
+### CancelInvocation Message Encoding
+
+`CancelInvocation` messages have the following structure
+
+```
+[4, InvocationId]
+```
+
+* `4` - Message Type - `4` indicates this is a `CancelInvocation` message
+* InvocationId - A `String` encoding the Invocation ID for the message
+
+Example:
+
+The following payload:
+```
+0x92 0x04 0xa3 0x78 0x79 0x7a
+```
+
+is decoded as follows:
+
+* `0x92` - 2-element array
+* `0x04` - `4` (Message Type `CancelInvocation` message)
+* `0xa3` - string of length 3 (InvocationId)
+* `0x78` - `x`
+* `0x79` - `y`
+* `0x7a` - `z`
 
 ## Protocol Buffers (ProtoBuf) Encoding
 
