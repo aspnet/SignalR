@@ -354,13 +354,13 @@ Example - The following `Completion` message is a protocol error because it has 
 ### CancelInvocation Message Encoding
 A `CancelInvocation` message is a JSON object with the following properties
 
-* `type` - A `Number` with the literal value `4`, indicationg that this is a `CancelInvocation`.
+* `type` - A `Number` with the literal value `5`, indicationg that this is a `CancelInvocation`.
 * `invocationId` - A `String` encoding the `Invocation ID` for a message.
 
 Example
 ```json
 {
-    "type": 4,
+    "type": 5,
     "invocationId": "123"
 }
 ```
@@ -528,23 +528,23 @@ is decoded as follows:
 `CancelInvocation` messages have the following structure
 
 ```
-[4, InvocationId]
+[5, InvocationId]
 ```
 
-* `4` - Message Type - `4` indicates this is a `CancelInvocation` message
+* `5` - Message Type - `4` indicates this is a `CancelInvocation` message
 * InvocationId - A `String` encoding the Invocation ID for the message
 
 Example:
 
 The following payload:
 ```
-0x92 0x04 0xa3 0x78 0x79 0x7a
+0x92 0x05 0xa3 0x78 0x79 0x7a
 ```
 
 is decoded as follows:
 
 * `0x92` - 2-element array
-* `0x04` - `4` (Message Type `CancelInvocation` message)
+* `0x04` - `5` (Message Type `CancelInvocation` message)
 * `0xa3` - string of length 3 (InvocationId)
 * `0x78` - `x`
 * `0x79` - `y`

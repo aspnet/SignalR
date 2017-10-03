@@ -56,7 +56,7 @@ namespace Microsoft.AspNetCore.SignalR
         public virtual WritableChannel<HubMessage> Output => _output;
 
         // Currently used only for streaming methods
-        internal ConcurrentDictionary<string, CancellationTokenSource> ActiveRequests { get; } = new ConcurrentDictionary<string, CancellationTokenSource>();
+        internal ConcurrentDictionary<string, CancellationTokenSource> ActiveRequestCancellationSources { get; } = new ConcurrentDictionary<string, CancellationTokenSource>();
 
         public virtual void Abort()
         {

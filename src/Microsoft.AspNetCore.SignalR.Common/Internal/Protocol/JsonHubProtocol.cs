@@ -25,7 +25,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         private const int InvocationMessageType = 1;
         private const int ResultMessageType = 2;
         private const int CompletionMessageType = 3;
-        private const int CancelInvocationMessageType = 4;
+        private const int CancelInvocationMessageType = 5;
 
         // ONLY to be used for application payloads (args, return values, etc.)
         private JsonSerializer _payloadSerializer;

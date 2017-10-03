@@ -15,7 +15,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         private const int InvocationMessageType = 1;
         private const int StreamItemMessageType = 2;
         private const int CompletionMessageType = 3;
-        private const int CancelInvocationMessageType = 4;
+        private const int CancelInvocationMessageType = 5;
 
         private const int ErrorResult = 1;
         private const int VoidResult = 2;

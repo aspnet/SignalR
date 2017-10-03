@@ -139,15 +139,26 @@ namespace Microsoft.AspNetCore.SignalR.Client
         private async Task<ReadableChannel<object>> StreamAsyncCore(string methodName, Type returnType, object[] args, CancellationToken cancellationToken)
         {
             var irq = InvocationRequest.Stream(CancellationToken.None, returnType, GetNextId(), _loggerFactory, out var channel);
+
             if (cancellationToken.CanBeCanceled)
             {
-                cancellationToken.Register(async () =>
+                cancellationToken.Register(state =>
                 {
-                    if (!_connectionActive.IsCancellationRequested)
+                    var connection = (HubConnection)state;
+                    if (!connection._connectionActive.IsCancellationRequested)
                     {
-                        await SendInvocation(new CancelInvocationMessage(irq.InvocationId), irq);
+                        // something about not caring about the result, maybe "observe" exception and log?
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+                        connection.SendHubMessage(new CancelInvocationMessage(irq.InvocationId), irq);
+#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+                        if (connection.TryRemoveInvocation(irq.InvocationId, out _))
+                        {
+                            irq.Complete(null);
+                        }
+
+                        irq.Dispose();
                     }
-                });
+                }, this);
             }
             await InvokeCore(methodName, irq, args, nonBlocking: false);
             return channel;
@@ -200,24 +211,24 @@ namespace Microsoft.AspNetCore.SignalR.Client
             _logger.IssueInvocation(invocationMessage.InvocationId, irq.ResultType.FullName, methodName, args);
 
             // We don't need to wait for this to complete. It will signal back to the invocation request.
-            return SendInvocation(invocationMessage, irq);
+            return SendHubMessage(invocationMessage, irq);
         }
 
-        private async Task SendInvocation(HubMessage invocationMessage, InvocationRequest irq)
+        private async Task SendHubMessage(HubMessage hubMessage, InvocationRequest irq)
         {
             try
             {
-                var payload = _protocolReaderWriter.WriteMessage(invocationMessage);
-                _logger.SendInvocation(invocationMessage.InvocationId);
+                var payload = _protocolReaderWriter.WriteMessage(hubMessage);
+                _logger.SendInvocation(hubMessage.InvocationId);
 
                 await _connection.SendAsync(payload, irq.CancellationToken);
-                _logger.SendInvocationCompleted(invocationMessage.InvocationId);
+                _logger.SendInvocationCompleted(hubMessage.InvocationId);
             }
             catch (Exception ex)
             {
-                _logger.SendInvocationFailed(invocationMessage.InvocationId, ex);
+                _logger.SendInvocationFailed(hubMessage.InvocationId, ex);
                 irq.Fail(ex);
-                TryRemoveInvocation(invocationMessage.InvocationId, out _);
+                TryRemoveInvocation(hubMessage.InvocationId, out _);
             }
         }
 

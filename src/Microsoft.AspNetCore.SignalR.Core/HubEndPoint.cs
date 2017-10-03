@@ -278,9 +278,10 @@ namespace Microsoft.AspNetCore.SignalR
                                     case CancelInvocationMessage cancelInvocationMessage:
                                         //log
                                         // check and cancel stream
-                                        if (connection.ActiveRequests.TryRemove(cancelInvocationMessage.InvocationId, out var cts))
+                                        if (connection.ActiveRequestCancellationSources.TryRemove(cancelInvocationMessage.InvocationId, out var cts))
                                         {
                                             cts.Cancel();
+                                            cts.Dispose();
                                         }
                                         else
                                         {
@@ -452,13 +453,14 @@ namespace Microsoft.AspNetCore.SignalR
         {
             try
             {
-                bool hasItem;
                 while (true)
                 {
+                    bool hasItem;
                     try
                     {
                         hasItem = await enumerator.MoveNextAsync();
-                    } catch (Exception)
+                    }
+                    catch (Exception)
                     {
                         // stream has closed
                         hasItem = false;
@@ -481,7 +483,7 @@ namespace Microsoft.AspNetCore.SignalR
             }
             finally
             {
-                if (connection.ActiveRequests.TryRemove(invocationId, out var cts))
+                if (connection.ActiveRequestCancellationSources.TryRemove(invocationId, out var cts))
                 {
                     cts.Dispose();
                 }
@@ -519,7 +521,7 @@ namespace Microsoft.AspNetCore.SignalR
             CancellationToken CreateCancellation()
             {
                 var streamCts = new CancellationTokenSource();
-                connection.ActiveRequests.TryAdd(invocationId, streamCts);
+                connection.ActiveRequestCancellationSources.TryAdd(invocationId, streamCts);
                 return CancellationTokenSource.CreateLinkedTokenSource(connection.ConnectionAbortedToken, streamCts.Token).Token;
             }
         }
