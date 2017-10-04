@@ -27,7 +27,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 {
                     // Grab as many messages as we can from the channel
                     messages = new List<SendMessage>();
-                    while (application.In.TryRead(out SendMessage message))
+                    while (!transportCts.IsCancellationRequested && application.In.TryRead(out SendMessage message))
                     {
                         messages.Add(message);
                     }

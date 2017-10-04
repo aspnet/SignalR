@@ -148,9 +148,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     if (!connection._connectionActive.IsCancellationRequested)
                     {
                         // something about not caring about the result, maybe "observe" exception and log?
-#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-                        connection.SendHubMessage(new CancelInvocationMessage(irq.InvocationId), irq);
-#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+                        _ = connection.SendHubMessage(new CancelInvocationMessage(irq.InvocationId), irq);
+
                         if (connection.TryRemoveInvocation(irq.InvocationId, out _))
                         {
                             irq.Complete(null);

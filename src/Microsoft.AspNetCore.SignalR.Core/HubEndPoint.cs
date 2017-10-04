@@ -281,7 +281,6 @@ namespace Microsoft.AspNetCore.SignalR
                                         if (connection.ActiveRequestCancellationSources.TryRemove(cancelInvocationMessage.InvocationId, out var cts))
                                         {
                                             cts.Cancel();
-                                            cts.Dispose();
                                         }
                                         else
                                         {
@@ -453,24 +452,8 @@ namespace Microsoft.AspNetCore.SignalR
         {
             try
             {
-                while (true)
+                while (await enumerator.MoveNextAsync())
                 {
-                    bool hasItem;
-                    try
-                    {
-                        hasItem = await enumerator.MoveNextAsync();
-                    }
-                    catch (Exception)
-                    {
-                        // stream has closed
-                        hasItem = false;
-                    }
-
-                    if (!hasItem)
-                    {
-                        break;
-                    }
-
                     // Send the stream item
                     await SendMessageAsync(connection, new StreamItemMessage(invocationId, enumerator.Current));
                 }
