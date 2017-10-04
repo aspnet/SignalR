@@ -138,7 +138,14 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private async Task<ReadableChannel<object>> StreamAsyncCore(string methodName, Type returnType, object[] args, CancellationToken cancellationToken)
         {
-            var irq = InvocationRequest.Stream(CancellationToken.None, returnType, GetNextId(), _loggerFactory, out var channel);
+            var invokeCts = new CancellationTokenSource();
+            var irq = InvocationRequest.Stream(invokeCts.Token, returnType, GetNextId(), _loggerFactory, out var channel);
+            // After InvokeCore we don't want the irq cancellation token to be triggered.
+            // The stream invocation will be canceled by the CancelInvocationMessage, connection closing, or channel finishing.
+            using (cancellationToken.Register(token => ((CancellationTokenSource)token).Cancel(), invokeCts))
+            {
+                await InvokeCore(methodName, irq, args, nonBlocking: false);
+            }
 
             if (cancellationToken.CanBeCanceled)
             {
@@ -147,7 +154,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     var connection = (HubConnection)state;
                     if (!connection._connectionActive.IsCancellationRequested)
                     {
-                        // something about not caring about the result, maybe "observe" exception and log?
+                        // Fire and forget, if it fails that means we aren't connected anymore.
                         _ = connection.SendHubMessage(new CancelInvocationMessage(irq.InvocationId), irq);
 
                         if (connection.TryRemoveInvocation(irq.InvocationId, out _))
@@ -159,7 +166,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     }
                 }, this);
             }
-            await InvokeCore(methodName, irq, args, nonBlocking: false);
+
             return channel;
         }
 

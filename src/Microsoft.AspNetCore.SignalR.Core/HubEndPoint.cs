@@ -276,16 +276,16 @@ namespace Microsoft.AspNetCore.SignalR
                                         break;
 
                                     case CancelInvocationMessage cancelInvocationMessage:
-                                        //log
-                                        // check and cancel stream
+                                        // Check if there is an associated active stream and cancel it if it exists.
                                         if (connection.ActiveRequestCancellationSources.TryRemove(cancelInvocationMessage.InvocationId, out var cts))
                                         {
+                                            _logger.CancelStream(cancelInvocationMessage.InvocationId);
                                             cts.Cancel();
                                         }
                                         else
                                         {
-                                            // stream can be canceled on the server while client is canceling stream
-                                            _logger.LogDebug("CancelInvocationMessage received unexpectedly.");
+                                            // Stream can be canceled on the server while client is canceling stream.
+                                            _logger.UnexpectedCancel();
                                         }
                                         break;
 
