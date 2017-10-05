@@ -10,6 +10,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.SignalR.Core;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.SignalR.Redis.Internal;
 using Microsoft.Extensions.Logging;
@@ -43,13 +44,15 @@ namespace Microsoft.AspNetCore.SignalR.Redis
         };
 
         private long _nextInvocationId = 0;
+        private readonly IUserIdProvider _userIdProvider;
 
         public RedisHubLifetimeManager(ILogger<RedisHubLifetimeManager<THub>> logger,
-                                       IOptions<RedisOptions> options)
+                                       IOptions<RedisOptions> options, IUserIdProvider userIdProvider)
         {
             _logger = logger;
             _options = options.Value;
             _ackHandler = new AckHandler();
+            _userIdProvider = userIdProvider;
 
             var writer = new LoggerTextWriter(logger);
             _logger.LogInformation("Connecting to redis endpoints: {endpoints}", string.Join(", ", options.Value.Options.EndPoints.Select(e => EndPointCollection.ToString(e))));
@@ -246,9 +249,9 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                 previousConnectionTask = WriteAsync(connection, message);
             });
 
-            if (connection.User.Identity.IsAuthenticated)
+            if (connection.User.Identity.IsAuthenticated && _userIdProvider.GetUserId(connection) != null)
             {
-                var userChannel = _channelNamePrefix + ".user." + connection.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userChannel = _channelNamePrefix + ".user." + _userIdProvider.GetUserId(connection);
                 redisSubscriptions.Add(userChannel);
 
                 var previousUserTask = Task.CompletedTask;

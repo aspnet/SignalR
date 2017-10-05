@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
+using Microsoft.AspNetCore.SignalR.Core;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Xunit;
 
@@ -16,7 +17,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var output1 = Channel.CreateUnbounded<HubMessage>();
                 var output2 = Channel.CreateUnbounded<HubMessage>();
 
-                var manager = new DefaultHubLifetimeManager<MyHub>();
+                var manager = new DefaultHubLifetimeManager<MyHub>(new DefaultUserIdProvider());
                 var connection1 = new HubConnectionContext(output1, client1.Connection);
                 var connection2 = new HubConnectionContext(output2, client2.Connection);
 
@@ -50,7 +51,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var output1 = Channel.CreateUnbounded<HubMessage>();
                 var output2 = Channel.CreateUnbounded<HubMessage>();
 
-                var manager = new DefaultHubLifetimeManager<MyHub>();
+                var manager = new DefaultHubLifetimeManager<MyHub>(new DefaultUserIdProvider());
                 var connection1 = new HubConnectionContext(output1, client1.Connection);
                 var connection2 = new HubConnectionContext(output2, client2.Connection);
 
@@ -81,7 +82,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var output1 = Channel.CreateUnbounded<HubMessage>();
                 var output2 = Channel.CreateUnbounded<HubMessage>();
 
-                var manager = new DefaultHubLifetimeManager<MyHub>();
+                var manager = new DefaultHubLifetimeManager<MyHub>(new DefaultUserIdProvider());
                 var connection1 = new HubConnectionContext(output1, client1.Connection);
                 var connection2 = new HubConnectionContext(output2, client2.Connection);
 
@@ -109,7 +110,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             using (var client = new TestClient())
             {
                 var output = Channel.CreateUnbounded<HubMessage>();
-                var manager = new DefaultHubLifetimeManager<MyHub>();
+                var manager = new DefaultHubLifetimeManager<MyHub>(new DefaultUserIdProvider());
                 var connection = new HubConnectionContext(output, client.Connection);
 
                 await manager.OnConnectedAsync(connection);
@@ -128,21 +129,21 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task InvokeConnectionAsyncOnNonExistentConnectionNoops()
         {
-            var manager = new DefaultHubLifetimeManager<MyHub>();
+            var manager = new DefaultHubLifetimeManager<MyHub>(new DefaultUserIdProvider());
             await manager.InvokeConnectionAsync("NotARealConnectionId", "Hello", new object[] { "World" });
         }
 
         [Fact]
         public async Task AddGroupOnNonExistentConnectionNoops()
         {
-            var manager = new DefaultHubLifetimeManager<MyHub>();
+            var manager = new DefaultHubLifetimeManager<MyHub>(new DefaultUserIdProvider());
             await manager.AddGroupAsync("NotARealConnectionId", "MyGroup");
         }
 
         [Fact]
         public async Task RemoveGroupOnNonExistentConnectionNoops()
         {
-            var manager = new DefaultHubLifetimeManager<MyHub>();
+            var manager = new DefaultHubLifetimeManager<MyHub>(new DefaultUserIdProvider());
             await manager.RemoveGroupAsync("NotARealConnectionId", "MyGroup");
         }
 
