@@ -139,7 +139,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         private async Task<ReadableChannel<object>> StreamAsyncCore(string methodName, Type returnType, object[] args, CancellationToken cancellationToken)
         {
             var invokeCts = new CancellationTokenSource();
-            var irq = InvocationRequest.Stream(invokeCts.Token, returnType, GetNextId(), _loggerFactory, out var channel);
+            var irq = InvocationRequest.Stream(invokeCts.Token, returnType, GetNextId(), _loggerFactory, this, out var channel);
             // After InvokeCore we don't want the irq cancellation token to be triggered.
             // The stream invocation will be canceled by the CancelInvocationMessage, connection closing, or channel finishing.
             using (cancellationToken.Register(token => ((CancellationTokenSource)token).Cancel(), invokeCts))
@@ -151,20 +151,20 @@ namespace Microsoft.AspNetCore.SignalR.Client
             {
                 cancellationToken.Register(state =>
                 {
-                    var connection = (HubConnection)state;
-                    if (!connection._connectionActive.IsCancellationRequested)
+                    var invocationReq = (InvocationRequest)state;
+                    if (!invocationReq.HubConnection._connectionActive.IsCancellationRequested)
                     {
                         // Fire and forget, if it fails that means we aren't connected anymore.
-                        _ = connection.SendHubMessage(new CancelInvocationMessage(irq.InvocationId), irq);
+                        _ = invocationReq.HubConnection.SendHubMessage(new CancelInvocationMessage(invocationReq.InvocationId), invocationReq);
 
-                        if (connection.TryRemoveInvocation(irq.InvocationId, out _))
+                        if (invocationReq.HubConnection.TryRemoveInvocation(invocationReq.InvocationId, out _))
                         {
-                            irq.Complete(null);
+                            invocationReq.Complete(null);
                         }
 
-                        irq.Dispose();
+                        invocationReq.Dispose();
                     }
-                }, this);
+                }, irq);
             }
 
             return channel;
@@ -175,7 +175,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private async Task<object> InvokeAsyncCore(string methodName, Type returnType, object[] args, CancellationToken cancellationToken)
         {
-            var irq = InvocationRequest.Invoke(cancellationToken, returnType, GetNextId(), _loggerFactory, out var task);
+            var irq = InvocationRequest.Invoke(cancellationToken, returnType, GetNextId(), _loggerFactory, this, out var task);
             await InvokeCore(methodName, irq, args, nonBlocking: false);
             return await task;
         }
@@ -185,7 +185,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private Task SendAsyncCore(string methodName, object[] args, CancellationToken cancellationToken)
         {
-            var irq = InvocationRequest.Invoke(cancellationToken, typeof(void), GetNextId(), _loggerFactory, out _);
+            var irq = InvocationRequest.Invoke(cancellationToken, typeof(void), GetNextId(), _loggerFactory, this, out _);
             return InvokeCore(methodName, irq, args, nonBlocking: true);
         }
 

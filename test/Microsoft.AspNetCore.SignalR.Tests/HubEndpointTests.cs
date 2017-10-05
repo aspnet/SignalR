@@ -233,17 +233,17 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 var endPointTask = endPoint.OnConnectedAsync(client.Connection);
 
-                var invocationId = await client.SendInvocationAsync(nameof(ObservableHub.Subscribe), nonBlocking: false);
+                var invocationId = await client.SendInvocationAsync(nameof(ObservableHub.Subscribe), nonBlocking: false).OrTimeout();
 
                 await waitForSubscribe.Task.OrTimeout();
 
                 observable.OnNext(1);
 
-                await client.SendHubMessageAsync(new CancelInvocationMessage(invocationId));
+                await client.SendHubMessageAsync(new CancelInvocationMessage(invocationId)).OrTimeout();
 
                 await waitForDispose.Task.OrTimeout();
 
-                Assert.Equal(1L, ((StreamItemMessage)await client.ReadAsync()).Item);
+                Assert.Equal(1L, ((StreamItemMessage)await client.ReadAsync().OrTimeout()).Item);
 
                 client.Dispose();
 
