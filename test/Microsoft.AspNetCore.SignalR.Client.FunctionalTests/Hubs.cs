@@ -24,7 +24,15 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             await Clients.Client(Context.ConnectionId).InvokeAsync("Echo", message);
         }
 
+        public async Task CallHandlerThatDoesntExist()
+        {
+            await Clients.Client(Context.ConnectionId).InvokeAsync("NoClientHandler");
+        }
+
+        public void NoClientHandler() { }
+
         public IObservable<int> Stream(int count)
+
         {
             return Observable.Interval(TimeSpan.FromMilliseconds(1))
                              .Select((_, index) => index)
@@ -60,6 +68,13 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         {
             return Clients.All.Send(message);
         }
+
+        public async Task CallHandlerThatDoesntExist()
+        {
+            await Clients.Client(Context.ConnectionId).NoClientHandler();
+        }
+
+        public void NoClientHandler() { }
     }
 
     public class TestHubT : Hub<ITestHub>
@@ -90,12 +105,20 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         {
             return Clients.All.Send(message);
         }
+
+        public async Task CallHandlerThatDoesntExist()
+        {
+            await Clients.Client(Context.ConnectionId).NoClientHandler();
+        }
+
+        public void NoClientHandler() { }
     }
 
     public interface ITestHub
     {
         Task Echo(string message);
         Task Send(string message);
+        Task NoClientHandler();
     }
 
 }

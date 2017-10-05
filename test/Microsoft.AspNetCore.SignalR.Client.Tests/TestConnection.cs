@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -30,13 +31,14 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         private TransferMode? _transferMode;
 
         public event Func<Task> Connected;
-        public event Func<byte[], Task> Received;
         public event Func<Exception, Task> Closed;
 
         public Task Started => _started.Task;
         public Task Disposed => _disposed.Task;
         public ReadableChannel<byte[]> SentMessages => _sentMessages.In;
         public WritableChannel<byte[]> ReceivedMessages => _receivedMessages.Out;
+
+        private List<ReceiveCallBack> _callbacks = new List<ReceiveCallBack>();
 
         public IFeatureCollection Features { get; } = new FeatureCollection();
 
@@ -120,7 +122,10 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     {
                         while (_receivedMessages.In.TryRead(out var message))
                         {
-                            await Received?.Invoke(message);
+                            foreach (var callback in _callbacks)
+                            {
+                                await callback.InvokeAsync(message);
+                            }
                         }
                     }
                 }
@@ -134,6 +139,49 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             catch (Exception ex)
             {
                 Closed?.Invoke(ex);
+            }
+        }
+
+        public IDisposable OnReceived(Func<byte[], object, Task> callback, object state)
+        {
+            var receiveCallBack = new ReceiveCallBack(callback, state);
+            _callbacks.Add(receiveCallBack);
+            return new Subscription(receiveCallBack, _callbacks);
+        }
+
+        private class ReceiveCallBack
+        {
+            public readonly Func<byte[], object, Task> CallBack;
+            private readonly object State;
+
+            public ReceiveCallBack(Func<byte[], object, Task> callBack, object state)
+            {
+                CallBack = callBack;
+                State = state;
+            }
+
+            public Task InvokeAsync(byte[] data)
+            {
+                return CallBack(data, State);
+            }
+        }
+
+        private class Subscription : IDisposable
+        {
+            private readonly ReceiveCallBack _callback;
+            private readonly List<ReceiveCallBack> _callbacks;
+            public Subscription(ReceiveCallBack callback, List<ReceiveCallBack> callbacks)
+            {
+                _callback = callback;
+                _callbacks = callbacks;
+            }
+
+            public void Dispose()
+            {
+                lock (_callbacks)
+                {
+                    _callbacks.Remove(_callback);
+                }
             }
         }
     }
