@@ -3,16 +3,26 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.Serialization;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.SignalR.Tests.Common;
-using Microsoft.CSharp;
+using Microsoft.AspNetCore.Sockets;
+using Microsoft.AspNetCore.Sockets.Features;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using MsgPack;
+using MsgPack.Serialization;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Serialization;
 using Xunit;
 
 namespace Microsoft.AspNetCore.SignalR.Tests
@@ -36,6 +46,167 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 await endPointTask;
 
                 Assert.Equal(2, trackDispose.DisposeCount);
+            }
+        }
+
+        [Fact]
+        public async Task ConnectionAbortedTokenTriggers()
+        {
+            var state = new ConnectionLifetimeState();
+            var serviceProvider = CreateServiceProvider(s => s.AddSingleton(state));
+            var endPoint = serviceProvider.GetService<HubEndPoint<ConnectionLifetimeHub>>();
+
+            using (var client = new TestClient())
+            {
+                var endPointTask = endPoint.OnConnectedAsync(client.Connection);
+
+                // kill the connection
+                client.Dispose();
+
+                await endPointTask.OrTimeout();
+
+                Assert.True(state.TokenCallbackTriggered);
+                Assert.False(state.TokenStateInConnected);
+                Assert.True(state.TokenStateInDisconnected);
+            }
+        }
+
+        [Fact]
+        public async Task AbortFromHubMethodForcesClientDisconnect()
+        {
+            var serviceProvider = CreateServiceProvider();
+            var endPoint = serviceProvider.GetService<HubEndPoint<AbortHub>>();
+
+            using (var client = new TestClient())
+            {
+                var endPointTask = endPoint.OnConnectedAsync(client.Connection);
+
+                await client.InvokeAsync(nameof(AbortHub.Kill));
+
+                await endPointTask.OrTimeout();
+            }
+        }
+
+        [Fact]
+        public async Task ObservableHubRemovesSubscriptionsWithInfiniteStreams()
+        {
+            var observable = new Observable<int>();
+            var serviceProvider = CreateServiceProvider(s => s.AddSingleton(observable));
+            var endPoint = serviceProvider.GetService<HubEndPoint<ObservableHub>>();
+
+            var waitForSubscribe = new TaskCompletionSource<object>();
+            observable.OnSubscribe = o =>
+            {
+                waitForSubscribe.TrySetResult(null);
+            };
+
+            var waitForDispose = new TaskCompletionSource<object>();
+            observable.OnDispose = o =>
+            {
+                waitForDispose.TrySetResult(null);
+            };
+
+            using (var client = new TestClient())
+            {
+                var endPointTask = endPoint.OnConnectedAsync(client.Connection);
+
+                async Task Produce()
+                {
+                    int i = 0;
+                    while (true)
+                    {
+                        observable.OnNext(i++);
+                        await Task.Delay(100);
+                    }
+                }
+
+                _ = Produce();
+
+                Assert.Empty(observable.Observers);
+
+                var subscribeTask = client.StreamAsync(nameof(ObservableHub.Subscribe));
+
+                await waitForSubscribe.Task.OrTimeout();
+
+                Assert.Single(observable.Observers);
+
+                client.Dispose();
+
+
+                // We don't care if this throws, we just expect it to complete
+                try
+                {
+                    await subscribeTask.OrTimeout();
+                }
+                catch
+                {
+
+                }
+
+                await waitForDispose.Task.OrTimeout();
+
+                Assert.Empty(observable.Observers);
+
+                await endPointTask.OrTimeout();
+            }
+        }
+
+        [Fact]
+        public async Task ObservableHubRemovesSubscriptions()
+        {
+            var observable = new Observable<int>();
+            var serviceProvider = CreateServiceProvider(s => s.AddSingleton(observable));
+            var endPoint = serviceProvider.GetService<HubEndPoint<ObservableHub>>();
+
+            var waitForSubscribe = new TaskCompletionSource<object>();
+            observable.OnSubscribe = o =>
+            {
+                waitForSubscribe.TrySetResult(null);
+            };
+
+            var waitForDispose = new TaskCompletionSource<object>();
+            observable.OnDispose = o =>
+            {
+                waitForDispose.TrySetResult(null);
+            };
+
+            using (var client = new TestClient())
+            {
+                var endPointTask = endPoint.OnConnectedAsync(client.Connection);
+
+                async Task Subscribe()
+                {
+                    var results = await client.StreamAsync(nameof(ObservableHub.Subscribe));
+
+                    var items = results.OfType<StreamItemMessage>().ToList();
+
+                    Assert.Single(items);
+                    Assert.Equal(2, (long)items[0].Item);
+                }
+
+                observable.OnNext(1);
+
+                Assert.Empty(observable.Observers);
+
+                var subscribeTask = Subscribe();
+
+                await waitForSubscribe.Task.OrTimeout();
+
+                Assert.Single(observable.Observers);
+
+                observable.OnNext(2);
+
+                observable.Complete();
+
+                await subscribeTask.OrTimeout();
+
+                client.Dispose();
+
+                await waitForDispose.Task.OrTimeout();
+
+                Assert.Empty(observable.Observers);
+
+                await endPointTask.OrTimeout();
             }
         }
 
@@ -72,6 +243,22 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 await endPoint.OnConnectedAsync(client.Connection).OrTimeout(TimeSpan.FromSeconds(10));
             }
+        }
+
+        [Fact]
+        public async Task CanLoadHubContext()
+        {
+            var serviceProvider = CreateServiceProvider();
+            var context = serviceProvider.GetRequiredService<IHubContext<SimpleHub>>();
+            await context.Clients.All.InvokeAsync("Send", "test");
+        }
+
+        [Fact]
+        public async Task CanLoadTypedHubContext()
+        {
+            var serviceProvider = CreateServiceProvider();
+            var context = serviceProvider.GetRequiredService<IHubContext<SimpleTypedHub, ITypedHubClient>>();
+            await context.Clients.All.Send("test");
         }
 
         [Fact]
@@ -491,7 +678,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 await Task.WhenAll(firstClient.Connected, secondClient.Connected).OrTimeout();
 
-                await firstClient.SendInvocationAsync("BroadcastMethod", "test").OrTimeout();
+                await firstClient.SendInvocationAsync(nameof(MethodHub.BroadcastMethod), "test").OrTimeout();
 
                 foreach (var result in await Task.WhenAll(
                     firstClient.ReadAsync(),
@@ -499,7 +686,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 {
                     var invocation = Assert.IsType<InvocationMessage>(result);
                     Assert.Equal("Broadcast", invocation.Target);
-                    Assert.Equal(1, invocation.Arguments.Length);
+                    Assert.Single(invocation.Arguments);
                     Assert.Equal("test", invocation.Arguments[0]);
                 }
 
@@ -512,11 +699,48 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Fact]
-        public async Task SendToAllExcept()
+        public async Task SendArraySendsArrayToAllClients()
         {
             var serviceProvider = CreateServiceProvider();
 
             var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+
+            using (var firstClient = new TestClient())
+            using (var secondClient = new TestClient())
+            {
+                Task firstEndPointTask = endPoint.OnConnectedAsync(firstClient.Connection);
+                Task secondEndPointTask = endPoint.OnConnectedAsync(secondClient.Connection);
+
+                await Task.WhenAll(firstClient.Connected, secondClient.Connected).OrTimeout();
+
+                await firstClient.SendInvocationAsync(nameof(MethodHub.SendArray)).OrTimeout();
+
+                foreach (var result in await Task.WhenAll(
+                    firstClient.ReadAsync(),
+                    secondClient.ReadAsync()).OrTimeout())
+                {
+                    var invocation = Assert.IsType<InvocationMessage>(result);
+                    Assert.Equal("Array", invocation.Target);
+                    Assert.Single(invocation.Arguments);
+                    var values = ((JArray)invocation.Arguments[0]).Select(t => t.Value<int>()).ToArray();
+                    Assert.Equal(new int[] { 1, 2, 3 }, values);
+                }
+
+                // kill the connections
+                firstClient.Dispose();
+                secondClient.Dispose();
+
+                await Task.WhenAll(firstEndPointTask, secondEndPointTask).OrTimeout();
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(HubTypes))]
+        public async Task SendToAllExcept(Type hubType)
+        {
+            var serviceProvider = CreateServiceProvider();
+
+            dynamic endPoint = serviceProvider.GetService(GetEndPointType(hubType));
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
@@ -530,7 +754,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 var excludeSecondClientId = new HashSet<string>();
                 excludeSecondClientId.Add(secondClient.Connection.ConnectionId);
-                var excludeThirdClientId =  new HashSet<string>();
+                var excludeThirdClientId = new HashSet<string>();
                 excludeThirdClientId.Add(thirdClient.Connection.ConnectionId);
 
                 await firstClient.SendInvocationAsync("SendToAllExcept", "To second", excludeThirdClientId).OrTimeout();
@@ -587,7 +811,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var hubMessage = await secondClient.ReadAsync().OrTimeout();
                 var invocation = Assert.IsType<InvocationMessage>(hubMessage);
                 Assert.Equal("Send", invocation.Target);
-                Assert.Equal(1, invocation.Arguments.Length);
+                Assert.Single(invocation.Arguments);
                 Assert.Equal("test", invocation.Arguments[0]);
 
                 // kill the connections
@@ -640,7 +864,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var hubMessage = await secondClient.ReadAsync().OrTimeout();
                 var invocation = Assert.IsType<InvocationMessage>(hubMessage);
                 Assert.Equal("Send", invocation.Target);
-                Assert.Equal(1, invocation.Arguments.Length);
+                Assert.Single(invocation.Arguments);
                 Assert.Equal("test", invocation.Arguments[0]);
 
                 // kill the connections
@@ -673,7 +897,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var hubMessage = await secondClient.ReadAsync().OrTimeout();
                 var invocation = Assert.IsType<InvocationMessage>(hubMessage);
                 Assert.Equal("Send", invocation.Target);
-                Assert.Equal(1, invocation.Arguments.Length);
+                Assert.Single(invocation.Arguments);
                 Assert.Equal("test", invocation.Arguments[0]);
 
                 // kill the connections
@@ -705,7 +929,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var hubMessage = await secondClient.ReadAsync().OrTimeout();
                 var invocation = Assert.IsType<InvocationMessage>(hubMessage);
                 Assert.Equal("Send", invocation.Target);
-                Assert.Equal(1, invocation.Arguments.Length);
+                Assert.Single(invocation.Arguments);
                 Assert.Equal("test", invocation.Arguments[0]);
 
                 // kill the connections
@@ -813,6 +1037,182 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
+        [Fact]
+        public async Task HubOptionsCanUseCustomJsonSerializerSettings()
+        {
+            var serviceProvider = CreateServiceProvider(services =>
+            {
+                services.AddSignalR(o =>
+                {
+                    o.JsonSerializerSettings = new JsonSerializerSettings
+                    {
+                        ContractResolver = new DefaultContractResolver()
+                    };
+                });
+            });
+
+            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+
+            using (var client = new TestClient())
+            {
+                var endPointLifetime = endPoint.OnConnectedAsync(client.Connection);
+
+                await client.Connected.OrTimeout();
+
+                await client.SendInvocationAsync(nameof(MethodHub.BroadcastItem)).OrTimeout();
+
+                var message = (InvocationMessage)await client.ReadAsync().OrTimeout();
+
+                var customItem = message.Arguments[0].ToString();
+                // by default properties serialized by JsonHubProtocol are using camelCasing
+                Assert.Contains("Message", customItem);
+                Assert.Contains("paramName", customItem);
+
+                client.Dispose();
+
+                await endPointLifetime.OrTimeout();
+            }
+        }
+
+        [Fact]
+        public async Task JsonHubProtocolUsesCamelCasingByDefault()
+        {
+            var serviceProvider = CreateServiceProvider();
+            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+
+            using (var client = new TestClient())
+            {
+                var endPointLifetime = endPoint.OnConnectedAsync(client.Connection);
+
+                await client.Connected.OrTimeout();
+
+                await client.SendInvocationAsync(nameof(MethodHub.BroadcastItem)).OrTimeout();
+
+                var message = (InvocationMessage)await client.ReadAsync().OrTimeout();
+
+                var customItem = message.Arguments[0].ToString();
+                // originally Message, paramName
+                Assert.Contains("message", customItem);
+                Assert.Contains("paramName", customItem);
+
+                client.Dispose();
+
+                await endPointLifetime.OrTimeout();
+            }
+        }
+
+        [Fact]
+        public async Task HubOptionsCanUseCustomMessagePackSettings()
+        {
+            var serializationContext = MessagePackHubProtocol.CreateDefaultSerializationContext();
+            serializationContext.SerializationMethod = SerializationMethod.Array;
+
+            var serviceProvider = CreateServiceProvider(services =>
+            {
+                services.AddSignalR(options =>
+                {
+                    options.MessagePackSerializationContext = serializationContext;
+                });
+            });
+
+            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+
+            using (var client = new TestClient(synchronousCallbacks: false, protocol: new MessagePackHubProtocol(serializationContext)))
+            {
+                var transportFeature = new Mock<IConnectionTransportFeature>();
+                transportFeature.SetupGet(f => f.TransportCapabilities).Returns(TransferMode.Binary);
+                client.Connection.Features.Set(transportFeature.Object);
+                var endPointLifetime = endPoint.OnConnectedAsync(client.Connection);
+
+                await client.Connected.OrTimeout();
+
+                await client.SendInvocationAsync(nameof(MethodHub.BroadcastItem)).OrTimeout();
+
+                var message = await client.ReadAsync().OrTimeout() as InvocationMessage;
+
+                var msgPackObject = Assert.IsType<MessagePackObject>(message.Arguments[0]);
+                // Custom serialization - object was serialized as an array and not a map
+                Assert.True(msgPackObject.IsArray);
+                Assert.Equal(new[] { "test", "param" }, ((MessagePackObject[])msgPackObject.ToObject()).Select(o => o.AsString()));
+
+                client.Dispose();
+
+                await endPointLifetime.OrTimeout();
+            }
+        }
+
+        [Fact]
+        public async Task CanGetHttpContextFromHubConnectionContext()
+        {
+            var serviceProvider = CreateServiceProvider();
+
+            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+
+            using (var client = new TestClient())
+            {
+                var httpContext = new DefaultHttpContext();
+                client.Connection.SetHttpContext(httpContext);
+                var endPointLifetime = endPoint.OnConnectedAsync(client.Connection);
+
+                await client.Connected.OrTimeout();
+
+                var result = (await client.InvokeAsync(nameof(MethodHub.HasHttpContext)).OrTimeout()).Result;
+                Assert.True((bool)result);
+
+                client.Dispose();
+
+                await endPointLifetime.OrTimeout();
+            }
+        }
+
+        [Fact]
+        public async Task GetHttpContextFromHubConnectionContextHandlesNull()
+        {
+            var serviceProvider = CreateServiceProvider();
+
+            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+
+            using (var client = new TestClient())
+            {
+                var endPointLifetime = endPoint.OnConnectedAsync(client.Connection);
+
+                await client.Connected.OrTimeout();
+
+                var result = (await client.InvokeAsync(nameof(MethodHub.HasHttpContext)).OrTimeout()).Result;
+                Assert.False((bool)result);
+
+                client.Dispose();
+
+                await endPointLifetime.OrTimeout();
+            }
+        }
+
+        [Fact]
+        public async Task ConnectionClosedIfWritingToTransportFails()
+        {
+            // MessagePack does not support serializing objects or private types (including anonymous types)
+            // and throws. In this test we make sure that this exception closes the connection and bubbles up.
+
+            var serviceProvider = CreateServiceProvider();
+
+            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+
+            using (var client = new TestClient(false, new MessagePackHubProtocol()))
+            {
+                var transportFeature = new Mock<IConnectionTransportFeature>();
+                transportFeature.SetupGet(f => f.TransportCapabilities).Returns(TransferMode.Binary);
+                client.Connection.Features.Set(transportFeature.Object);
+
+                var endPointLifetime = endPoint.OnConnectedAsync(client.Connection);
+
+                await client.Connected.OrTimeout();
+
+                await client.SendInvocationAsync(nameof(MethodHub.SendAnonymousObject)).OrTimeout();
+
+                await Assert.ThrowsAsync<SerializationException>(() => endPointLifetime.OrTimeout());
+            }
+        }
+
         private static void AssertHubMessage(HubMessage expected, HubMessage actual)
         {
             // We aren't testing InvocationIds here
@@ -907,12 +1307,140 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 return Clients.All.Broadcast(message);
             }
+
+            public Task SendToAllExcept(string message, IReadOnlyList<string> excludedIds)
+            {
+                return Clients.AllExcept(excludedIds).Send(message);
+            }
         }
 
         public interface Test
         {
             Task Send(string message);
             Task Broadcast(string message);
+        }
+
+        public class Observable<T> : IObservable<T>
+        {
+            public List<IObserver<T>> Observers = new List<IObserver<T>>();
+
+            public Action<IObserver<T>> OnSubscribe;
+
+            public Action<IObserver<T>> OnDispose;
+
+            public IDisposable Subscribe(IObserver<T> observer)
+            {
+                lock (Observers)
+                {
+                    Observers.Add(observer);
+                }
+
+                OnSubscribe?.Invoke(observer);
+
+                return new DisposableAction(() =>
+                {
+                    lock (Observers)
+                    {
+                        Observers.Remove(observer);
+                    }
+
+                    OnDispose?.Invoke(observer);
+                });
+            }
+
+            public void OnNext(T value)
+            {
+                lock (Observers)
+                {
+                    foreach (var observer in Observers)
+                    {
+                        observer.OnNext(value);
+                    }
+                }
+            }
+
+            public void Complete()
+            {
+                lock (Observers)
+                {
+                    foreach (var observer in Observers)
+                    {
+                        observer.OnCompleted();
+                    }
+                }
+            }
+
+            private class DisposableAction : IDisposable
+            {
+                private readonly Action _action;
+                public DisposableAction(Action action)
+                {
+                    _action = action;
+                }
+
+                public void Dispose()
+                {
+                    _action();
+                }
+            }
+        }
+
+        public class ObservableHub : Hub
+        {
+            private readonly Observable<int> _numbers;
+
+            public ObservableHub(Observable<int> numbers)
+            {
+                _numbers = numbers;
+            }
+
+            public IObservable<int> Subscribe() => _numbers;
+        }
+
+        public class AbortHub : Hub
+        {
+            public void Kill()
+            {
+                Context.Connection.Abort();
+            }
+        }
+
+        public class ConnectionLifetimeState
+        {
+            public bool TokenCallbackTriggered { get; set; }
+
+            public bool TokenStateInConnected { get; set; }
+
+            public bool TokenStateInDisconnected { get; set; }
+        }
+
+        public class ConnectionLifetimeHub : Hub
+        {
+            private ConnectionLifetimeState _state;
+
+            public ConnectionLifetimeHub(ConnectionLifetimeState state)
+            {
+                _state = state;
+            }
+
+            public override Task OnConnectedAsync()
+            {
+                _state.TokenStateInConnected = Context.Connection.ConnectionAbortedToken.IsCancellationRequested;
+
+                Context.Connection.ConnectionAbortedToken.Register(() =>
+                {
+                    _state.TokenCallbackTriggered = true;
+                });
+
+                return base.OnConnectedAsync();
+            }
+
+            public override Task OnDisconnectedAsync(Exception exception)
+            {
+                _state.TokenStateInDisconnected = Context.Connection.ConnectionAbortedToken.IsCancellationRequested;
+
+                return base.OnDisconnectedAsync(exception);
+            }
         }
 
         public class HubT : Hub<Test>
@@ -956,6 +1484,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             public Task BroadcastMethod(string message)
             {
                 return Clients.All.Broadcast(message);
+            }
+
+            public Task SendToAllExcept(string message, IReadOnlyList<string> excludedIds)
+            {
+                return Clients.AllExcept(excludedIds).Send(message);
             }
         }
 
@@ -1028,6 +1561,15 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
+        public class Result
+        {
+            public string Message { get; set; }
+#pragma warning disable IDE1006 // Naming Styles
+            // testing casing
+            public string paramName { get; set; }
+#pragma warning restore IDE1006 // Naming Styles
+        }
+
         private class MethodHub : TestHub
         {
             public Task GroupRemoveMethod(string groupName)
@@ -1060,6 +1602,16 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 return Clients.All.InvokeAsync("Broadcast", message);
             }
 
+            public Task BroadcastItem()
+            {
+                return Clients.All.InvokeAsync("Broadcast", new Result { Message = "test", paramName = "param" });
+            }
+
+            public Task SendArray()
+            {
+                return Clients.All.InvokeAsync("Array", new int[] { 1, 2, 3 });
+            }
+
             public Task<int> TaskValueMethod()
             {
                 return Task.FromResult(42);
@@ -1082,6 +1634,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             public string ConcatString(byte b, int i, char c, string s)
             {
                 return $"{b}, {i}, {c}, {s}";
+            }
+
+            public Task SendAnonymousObject()
+            {
+                return Clients.Client(Context.ConnectionId).InvokeAsync("Send", new { });
             }
 
             public override Task OnDisconnectedAsync(Exception e)
@@ -1111,6 +1668,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             public Task SendToAllExcept(string message, IReadOnlyList<string> excludedIds)
             {
                 return Clients.AllExcept(excludedIds).InvokeAsync("Send", message);
+            }
+
+            public bool HasHttpContext()
+            {
+                return Context.Connection.GetHttpContext() != null;
             }
         }
 
@@ -1184,6 +1746,20 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             public override async Task OnConnectedAsync()
             {
                 await Clients.All.InvokeAsync("Send", $"{Context.ConnectionId} joined");
+                await base.OnConnectedAsync();
+            }
+        }
+
+        public interface ITypedHubClient
+        {
+            Task Send(string message);
+        }
+
+        public class SimpleTypedHub : Hub<ITypedHubClient>
+        {
+            public override async Task OnConnectedAsync()
+            {
+                await Clients.All.Send($"{Context.ConnectionId} joined");
                 await base.OnConnectedAsync();
             }
         }

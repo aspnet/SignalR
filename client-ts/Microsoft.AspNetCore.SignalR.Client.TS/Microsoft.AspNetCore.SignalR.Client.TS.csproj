@@ -1,7 +1,5 @@
 ﻿<Project>
   <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
-  <Import Project="..\..\build\common.props" />
-
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <IsPackable>false</IsPackable>
@@ -16,14 +14,16 @@
     <Outputs Include="@(Inputs -> '$(SignalRClientDistFolder)src\%(FileName).d.ts')" />
     <Outputs Include="@(Inputs -> '$(SignalRClientDistFolder)src\%(FileName).js')" />
     <Outputs Include="$(SignalRClientDistFolder)browser\signalr-client.js" />
+    <Outputs Include="$(SignalRClientDistFolder)\third-party-notices.txt" />
   </ItemGroup>
+
   <ItemGroup>
     <None Include="tsconfig.json" />
   </ItemGroup>
 
   <!-- this target relies on npm packages being restored manually or when running full build -->
   <Target Name="BuildTSClient" Inputs="@(Inputs)" Outputs="@(Outputs)" BeforeTargets="Build">
-    <Exec Command="npm run gulp -- --gulpfile $(MSBuildThisFileDirectory)gulpfile.js build-ts-client" />
+    <Exec Command='npm run gulp -- --gulpfile "$(MSBuildThisFileDirectory)gulpfile.js" build-ts-client' />
   </Target>
 
   <Target Name="CleanTSClient" AfterTargets="Clean">
@@ -46,13 +46,13 @@
     <Exec Command="npm version $(ModuleVersion)" WorkingDirectory="$(MSBuildThisFileDirectory).." Condition="'$(VersionSuffix)' != ''" />
     <Exec Command="npm pack" WorkingDirectory="$(MSBuildThisFileDirectory).." />
     <Exec
-      Command="git checkout HEAD -- $(MSBuildThisFileDirectory)../package.json"
+      Command='git checkout HEAD -- "$(MSBuildThisFileDirectory)../package.json"'
       Condition="$(IsGitRepository) AND '$(VersionSuffix)' != ''" />
     <Exec
-      Command="git checkout HEAD -- $(MSBuildThisFileDirectory)../package-lock.json"
+      Command='git checkout HEAD -- "$(MSBuildThisFileDirectory)../package-lock.json"'
       Condition="$(IsGitRepository) AND '$(VersionSuffix)' != ''" />
     <ItemGroup>
-      <TSClient Include="$(MSBuildThisFileDirectory)../signalr-client*.tgz" />
+      <TSClient Include="$(MSBuildThisFileDirectory)../aspnet-signalr-client*.tgz" />
     </ItemGroup>
     <Move SourceFiles="@(TSClient)" DestinationFolder="$(PackageOutputPath)" />
   </Target>

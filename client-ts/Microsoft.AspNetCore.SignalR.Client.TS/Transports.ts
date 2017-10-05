@@ -1,6 +1,10 @@
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 import { DataReceived, TransportClosed } from "./Common"
 import { IHttpClient } from "./HttpClient"
 import { HttpError } from "./HttpError"
+import { ILogger, LogLevel } from "./ILogger"
 
 export enum TransportType {
     WebSockets,
@@ -17,12 +21,17 @@ export interface ITransport {
     connect(url: string, requestedTransferMode: TransferMode): Promise<TransferMode>;
     send(data: any): Promise<void>;
     stop(): void;
-    onDataReceived: DataReceived;
-    onClosed: TransportClosed;
+    onreceive: DataReceived;
+    onclose: TransportClosed;
 }
 
 export class WebSocketTransport implements ITransport {
+    private readonly logger: ILogger;
     private webSocket: WebSocket;
+
+    constructor(logger: ILogger) {
+        this.logger = logger;
+    }
 
     connect(url: string, requestedTransferMode: TransferMode): Promise<TransferMode> {
 
@@ -35,7 +44,7 @@ export class WebSocketTransport implements ITransport {
             }
 
             webSocket.onopen = (event: Event) => {
-                console.log(`WebSocket connected to ${url}`);
+                this.logger.log(LogLevel.Information, `WebSocket connected to ${url}`);
                 this.webSocket = webSocket;
                 resolve(requestedTransferMode);
             };
@@ -45,20 +54,20 @@ export class WebSocketTransport implements ITransport {
             };
 
             webSocket.onmessage = (message: MessageEvent) => {
-                console.log(`(WebSockets transport) data received: ${message.data}`);
-                if (this.onDataReceived) {
-                    this.onDataReceived(message.data);
+                this.logger.log(LogLevel.Trace, `(WebSockets transport) data received: ${message.data}`);
+                if (this.onreceive) {
+                    this.onreceive(message.data);
                 }
             }
 
             webSocket.onclose = (event: CloseEvent) => {
                 // webSocket will be null if the transport did not start successfully
-                if (this.onClosed && this.webSocket) {
+                if (this.onclose && this.webSocket) {
                     if (event.wasClean === false || event.code !== 1000) {
-                        this.onClosed(new Error(`Websocket closed with status code: ${event.code} (${event.reason})`));
+                        this.onclose(new Error(`Websocket closed with status code: ${event.code} (${event.reason})`));
                     }
                     else {
-                        this.onClosed();
+                        this.onclose();
                     }
                 }
             }
@@ -81,17 +90,19 @@ export class WebSocketTransport implements ITransport {
         }
     }
 
-    onDataReceived: DataReceived;
-    onClosed: TransportClosed;
+    onreceive: DataReceived;
+    onclose: TransportClosed;
 }
 
 export class ServerSentEventsTransport implements ITransport {
+    private readonly httpClient: IHttpClient;
+    private readonly logger: ILogger;
     private eventSource: EventSource;
     private url: string;
-    private httpClient: IHttpClient;
 
-    constructor(httpClient: IHttpClient) {
+    constructor(httpClient: IHttpClient, logger: ILogger) {
         this.httpClient = httpClient;
+        this.logger = logger;
     }
 
     connect(url: string, requestedTransferMode: TransferMode): Promise<TransferMode> {
@@ -105,13 +116,13 @@ export class ServerSentEventsTransport implements ITransport {
 
             try {
                 eventSource.onmessage = (e: MessageEvent) => {
-                    if (this.onDataReceived) {
+                    if (this.onreceive) {
                         try {
-                            console.log(`(SSE transport) data received: ${e.data}`);
-                            this.onDataReceived(e.data);
+                            this.logger.log(LogLevel.Trace, `(SSE transport) data received: ${e.data}`);
+                            this.onreceive(e.data);
                         } catch (error) {
-                            if (this.onClosed) {
-                                this.onClosed(error);
+                            if (this.onclose) {
+                                this.onclose(error);
                             }
                             return;
                         }
@@ -122,13 +133,13 @@ export class ServerSentEventsTransport implements ITransport {
                     reject();
 
                     // don't report an error if the transport did not start successfully
-                    if (this.eventSource && this.onClosed) {
-                        this.onClosed(new Error(e.message || "Error occurred"));
+                    if (this.eventSource && this.onclose) {
+                        this.onclose(new Error(e.message || "Error occurred"));
                     }
                 }
 
                 eventSource.onopen = () => {
-                    console.log(`SSE connected to ${this.url}`);
+                    this.logger.log(LogLevel.Information, `SSE connected to ${this.url}`);
                     this.eventSource = eventSource;
                     // SSE is a text protocol
                     resolve(TransferMode.Text);
@@ -151,23 +162,32 @@ export class ServerSentEventsTransport implements ITransport {
         }
     }
 
-    onDataReceived: DataReceived;
-    onClosed: TransportClosed;
+    onreceive: DataReceived;
+    onclose: TransportClosed;
 }
 
 export class LongPollingTransport implements ITransport {
+    private readonly httpClient: IHttpClient;
+    private readonly logger: ILogger;
+
     private url: string;
-    private httpClient: IHttpClient;
     private pollXhr: XMLHttpRequest;
     private shouldPoll: boolean;
 
-    constructor(httpClient: IHttpClient) {
+    constructor(httpClient: IHttpClient, logger: ILogger) {
         this.httpClient = httpClient;
+        this.logger = logger;
     }
 
     connect(url: string, requestedTransferMode: TransferMode): Promise<TransferMode> {
         this.url = url;
         this.shouldPoll = true;
+
+        if (requestedTransferMode === TransferMode.Binary && (typeof new XMLHttpRequest().responseType !== "string")) {
+            // This will work if we fix: https://github.com/aspnet/SignalR/issues/742
+            throw new Error("Binary protocols over XmlHttpRequest not implementing advanced features are not supported.");
+        }
+
         this.poll(this.url, requestedTransferMode);
         return Promise.resolve(requestedTransferMode);
     }
@@ -178,24 +198,25 @@ export class LongPollingTransport implements ITransport {
         }
 
         let pollXhr = new XMLHttpRequest();
-        if (transferMode === TransferMode.Binary) {
-            pollXhr.responseType = "arraybuffer";
-        }
 
         pollXhr.onload = () => {
             if (pollXhr.status == 200) {
-                if (this.onDataReceived) {
+                if (this.onreceive) {
                     try {
-                        if (pollXhr.response) {
-                            console.log(`(LongPolling transport) data received: ${pollXhr.response}`);
-                            this.onDataReceived(pollXhr.response);
+                        let response = transferMode === TransferMode.Text
+                            ? pollXhr.responseText
+                            : pollXhr.response;
+
+                        if (response) {
+                            this.logger.log(LogLevel.Trace, `(LongPolling transport) data received: ${response}`);
+                            this.onreceive(response);
                         }
                         else {
-                            console.log(`(LongPolling transport) timed out`);
+                            this.logger.log(LogLevel.Information, "(LongPolling transport) timed out");
                         }
                     } catch (error) {
-                        if (this.onClosed) {
-                            this.onClosed(error);
+                        if (this.onclose) {
+                            this.onclose(error);
                         }
                         return;
                     }
@@ -203,21 +224,21 @@ export class LongPollingTransport implements ITransport {
                 this.poll(url, transferMode);
             }
             else if (this.pollXhr.status == 204) {
-                if (this.onClosed) {
-                    this.onClosed();
+                if (this.onclose) {
+                    this.onclose();
                 }
             }
             else {
-                if (this.onClosed) {
-                    this.onClosed(new HttpError(pollXhr.statusText, pollXhr.status));
+                if (this.onclose) {
+                    this.onclose(new HttpError(pollXhr.statusText, pollXhr.status));
                 }
             }
         };
 
         pollXhr.onerror = () => {
-            if (this.onClosed) {
+            if (this.onclose) {
                 // network related error or denied cross domain request
-                this.onClosed(new Error("Sending HTTP request failed."));
+                this.onclose(new Error("Sending HTTP request failed."));
             }
         };
 
@@ -226,7 +247,12 @@ export class LongPollingTransport implements ITransport {
         }
 
         this.pollXhr = pollXhr;
-        this.pollXhr.open("GET", url, true);
+
+        this.pollXhr.open("GET", `${url}&_=${Date.now()}`, true);
+        if (transferMode === TransferMode.Binary) {
+            this.pollXhr.responseType = "arraybuffer";
+        }
+
         // TODO: consider making timeout configurable
         this.pollXhr.timeout = 120000;
         this.pollXhr.send();
@@ -244,8 +270,8 @@ export class LongPollingTransport implements ITransport {
         }
     }
 
-    onDataReceived: DataReceived;
-    onClosed: TransportClosed;
+    onreceive: DataReceived;
+    onclose: TransportClosed;
 }
 
 const headers = new Map<string, string>();

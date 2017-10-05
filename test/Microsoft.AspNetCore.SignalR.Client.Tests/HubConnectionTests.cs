@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.SignalR.Tests.Common;
 using Microsoft.AspNetCore.Sockets.Client;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Newtonsoft.Json;
 using Xunit;
 
 namespace Microsoft.AspNetCore.SignalR.Client.Tests
@@ -24,7 +25,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             var connection = new Mock<IConnection>();
             connection.SetupGet(p => p.Features).Returns(new FeatureCollection());
             connection.Setup(m => m.StartAsync()).Returns(Task.CompletedTask).Verifiable();
-            var hubConnection = new HubConnection(connection.Object);
+            var hubConnection = new HubConnection(connection.Object, Mock.Of<IHubProtocol>(), null);
             await hubConnection.StartAsync();
 
             connection.Verify(c => c.StartAsync(), Times.Once());
@@ -35,7 +36,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         {
             var connection = new Mock<IConnection>();
             connection.Setup(m => m.StartAsync()).Verifiable();
-            var hubConnection = new HubConnection(connection.Object);
+            var hubConnection = new HubConnection(connection.Object, Mock.Of<IHubProtocol>(), null);
             await hubConnection.DisposeAsync();
 
             connection.Verify(c => c.DisposeAsync(), Times.Once());
@@ -55,33 +56,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         }
 
         [Fact]
-        public async Task HubConnectionConnectedEventRaisedWhenTheClientIsConnected()
-        {
-            var connection = new TestConnection();
-            var hubConnection = new HubConnection(connection);
-            try
-            {
-                var connectedEventRaisedTcs = new TaskCompletionSource<object>();
-                hubConnection.Connected += () =>
-                {
-                    connectedEventRaisedTcs.SetResult(null);
-                    return Task.CompletedTask;
-                };
-
-                await hubConnection.StartAsync();
-
-                await connectedEventRaisedTcs.Task.OrTimeout();
-            }
-            finally
-            {
-                await hubConnection.DisposeAsync();
-            }
-        }
-
-        [Fact]
         public async Task ClosedEventRaisedWhenTheClientIsStopped()
         {
-            var hubConnection = new HubConnection(new TestConnection());
+            var hubConnection = new HubConnection(new TestConnection(), Mock.Of<IHubProtocol>(), null);
             var closedEventTcs = new TaskCompletionSource<Exception>();
             hubConnection.Closed += e =>
             {
@@ -99,7 +76,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public async Task CannotCallInvokeOnClosedHubConnection()
         {
             var connection = new TestConnection();
-            var hubConnection = new HubConnection(connection, new LoggerFactory());
+            var hubConnection = new HubConnection(connection, new JsonHubProtocol(), new LoggerFactory());
 
             await hubConnection.StartAsync();
             await hubConnection.DisposeAsync();
@@ -113,7 +90,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public async Task PendingInvocationsAreCancelledWhenConnectionClosesCleanly()
         {
             var connection = new TestConnection();
-            var hubConnection = new HubConnection(connection, new LoggerFactory());
+            var hubConnection = new HubConnection(connection, new JsonHubProtocol(), new LoggerFactory());
 
             await hubConnection.StartAsync();
             var invokeTask = hubConnection.InvokeAsync<int>("testMethod");
@@ -133,7 +110,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 .Callback(() => mockConnection.Raise(c => c.Closed += null, exception))
                 .Returns(Task.FromResult<object>(null));
 
-            var hubConnection = new HubConnection(mockConnection.Object, new LoggerFactory());
+            var hubConnection = new HubConnection(mockConnection.Object, Mock.Of<IHubProtocol>(), new LoggerFactory());
 
             await hubConnection.StartAsync();
             var invokeTask = hubConnection.InvokeAsync<int>("testMethod");

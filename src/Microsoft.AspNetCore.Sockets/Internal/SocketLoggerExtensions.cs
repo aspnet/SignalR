@@ -1,4 +1,4 @@
-﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
@@ -10,13 +10,16 @@ namespace Microsoft.AspNetCore.Sockets.Internal
     {
         // Category: ConnectionManager
         private static readonly Action<ILogger, DateTime, string, Exception> _createdNewConnection =
-            LoggerMessage.Define<DateTime, string>(LogLevel.Debug, 0, "{time}: ConnectionId {connectionId}: New connection created.");
+            LoggerMessage.Define<DateTime, string>(LogLevel.Debug, new EventId(0, nameof(CreatedNewConnection)), "{time}: ConnectionId {connectionId}: New connection created.");
 
         private static readonly Action<ILogger, DateTime, string, Exception> _removedConnection =
-            LoggerMessage.Define<DateTime, string>(LogLevel.Debug, 1, "{time}: ConnectionId {connectionId}: Removing connection from the list of connections.");
+            LoggerMessage.Define<DateTime, string>(LogLevel.Debug, new EventId(1, nameof(RemovedConnection)), "{time}: ConnectionId {connectionId}: Removing connection from the list of connections.");
 
         private static readonly Action<ILogger, DateTime, string, Exception> _failedDispose =
-            LoggerMessage.Define<DateTime, string>(LogLevel.Error, 2, "{time}: ConnectionId {connectionId}: Failed disposing connection.");
+            LoggerMessage.Define<DateTime, string>(LogLevel.Error, new EventId(2, nameof(FailedDispose)), "{time}: ConnectionId {connectionId}: Failed disposing connection.");
+
+        private static readonly Action<ILogger, DateTime, string, Exception> _connectionReset =
+            LoggerMessage.Define<DateTime, string>(LogLevel.Trace, new EventId(3, nameof(ConnectionReset)), "{time}: ConnectionId {connectionId}: Connection was reset.");
 
         public static void CreatedNewConnection(this ILogger logger, string connectionId)
         {
@@ -39,6 +42,14 @@ namespace Microsoft.AspNetCore.Sockets.Internal
             if (logger.IsEnabled(LogLevel.Error))
             {
                 _failedDispose(logger, DateTime.Now, connectionId, exception);
+            }
+        }
+
+        public static void ConnectionReset(this ILogger logger, string connectionId, Exception exception)
+        {
+            if (logger.IsEnabled(LogLevel.Trace))
+            {
+                _connectionReset(logger, DateTime.Now, connectionId, exception);
             }
         }
     }

@@ -1,3 +1,6 @@
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 import { HttpError } from "./HttpError"
 
 export interface IHttpClient {
@@ -25,7 +28,6 @@ export class HttpClient implements IHttpClient {
 
             xhr.open(method, url, true);
             xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
-
             if (headers) {
                 headers.forEach((value, header) => xhr.setRequestHeader(header, value));
             }
@@ -33,7 +35,7 @@ export class HttpClient implements IHttpClient {
             xhr.send(content);
             xhr.onload = () => {
                 if (xhr.status >= 200 && xhr.status < 300) {
-                    resolve(xhr.response);
+                    resolve(xhr.response || xhr.responseText);
                 }
                 else {
                     reject(new HttpError(xhr.statusText, xhr.status));

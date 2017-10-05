@@ -5,9 +5,12 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Sockets.Internal;
 using Microsoft.Extensions.Logging;
 
@@ -21,9 +24,12 @@ namespace Microsoft.AspNetCore.Sockets
         private object _executionLock = new object();
         private bool _disposed;
 
-        public ConnectionManager(ILogger<ConnectionManager> logger)
+        public ConnectionManager(ILogger<ConnectionManager> logger, IApplicationLifetime appLifetime)
         {
             _logger = logger;
+
+            appLifetime.ApplicationStarted.Register(() => Start());
+            appLifetime.ApplicationStopping.Register(() => CloseConnections());
         }
 
         public void Start()
@@ -173,6 +179,14 @@ namespace Microsoft.AspNetCore.Sockets
             try
             {
                 await connection.DisposeAsync();
+            }
+            catch (IOException ex)
+            {
+                _logger.ConnectionReset(connection.ConnectionId, ex);
+            }
+            catch (WebSocketException ex) when (ex.InnerException is IOException)
+            {
+                _logger.ConnectionReset(connection.ConnectionId, ex);
             }
             catch (Exception ex)
             {

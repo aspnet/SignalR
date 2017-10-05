@@ -9,8 +9,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.Http.Features;
-using Microsoft.AspNetCore.Sockets.Features;
+using Microsoft.AspNetCore.Sockets.Client.Http;
 using Microsoft.AspNetCore.Sockets.Client.Internal;
+using Microsoft.AspNetCore.Sockets.Features;
 using Microsoft.AspNetCore.Sockets.Http.Internal;
 using Microsoft.AspNetCore.Sockets.Internal;
 using Microsoft.Extensions.Logging;
@@ -21,6 +22,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
 {
     public class HttpConnection : IConnection
     {
+        private static readonly TimeSpan HttpClientTimeout = TimeSpan.FromSeconds(120);
+
         private readonly ILoggerFactory _loggerFactory;
         private readonly ILogger _logger;
 
@@ -42,7 +45,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         public IFeatureCollection Features { get; } = new FeatureCollection();
 
-        public event Func<Task> Connected;
         public event Func<byte[], Task> Received;
         public event Func<Exception, Task> Closed;
 
@@ -76,6 +78,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
             _logger = _loggerFactory.CreateLogger<HttpConnection>();
             _httpClient = httpMessageHandler == null ? new HttpClient() : new HttpClient(httpMessageHandler);
+            _httpClient.Timeout = HttpClientTimeout;
             _transportFactory = new DefaultTransportFactory(transportType, _loggerFactory, _httpClient);
         }
 
@@ -85,10 +88,13 @@ namespace Microsoft.AspNetCore.Sockets.Client
             _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
             _logger = _loggerFactory.CreateLogger<HttpConnection>();
             _httpClient = httpMessageHandler == null ? new HttpClient() : new HttpClient(httpMessageHandler);
+            _httpClient.Timeout = HttpClientTimeout;
             _transportFactory = transportFactory ?? throw new ArgumentNullException(nameof(transportFactory));
         }
 
-        public Task StartAsync()
+        public async Task StartAsync() => await StartAsyncCore().ForceAsync();
+
+        private Task StartAsyncCore()
         {
             if (Interlocked.CompareExchange(ref _connectionState, ConnectionState.Connecting, ConnectionState.Initial)
                 != ConnectionState.Initial)
@@ -149,16 +155,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             if (Interlocked.CompareExchange(ref _connectionState, ConnectionState.Connected, ConnectionState.Connecting)
                 == ConnectionState.Connecting)
             {
-                var ignore = _eventQueue.Enqueue(() =>
-                {
-                    _logger.RaiseConnected(_connectionId);
-
-                    Connected?.Invoke();
-
-                    return Task.CompletedTask;
-                });
-
-                ignore = Input.Completion.ContinueWith(async t =>
+                _ = Input.Completion.ContinueWith(async t =>
                 {
                     Interlocked.Exchange(ref _connectionState, ConnectionState.Disconnected);
 
@@ -180,9 +177,18 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
                     _logger.RaiseClosed(_connectionId);
 
-                    Closed?.Invoke(t.IsFaulted ? t.Exception.InnerException : null);
-
-                    return Task.CompletedTask;
+                    var closedEventHandler = Closed;
+                    if (closedEventHandler != null)
+                    {
+                        try
+                        {
+                            await closedEventHandler.Invoke(t.IsFaulted ? t.Exception.InnerException : null);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.ExceptionThrownFromHandler(_connectionId, nameof(Closed), ex);
+                        }
+                    }
                 });
 
                 // start receive loop only after the Connected event was raised to
@@ -198,10 +204,13 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 // Get a connection ID from the server
                 logger.EstablishingConnection(url);
                 using (var request = new HttpRequestMessage(HttpMethod.Options, url))
-                using (var response = await httpClient.SendAsync(request))
                 {
-                    response.EnsureSuccessStatusCode();
-                    return await ParseNegotiateResponse(response, logger);
+                    request.Headers.UserAgent.Add(Constants.UserAgentHeader);
+                    using (var response = await httpClient.SendAsync(request))
+                    {
+                        response.EnsureSuccessStatusCode();
+                        return await ParseNegotiateResponse(response, logger);
+                    }
                 }
             }
             catch (Exception ex)
@@ -325,19 +334,22 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     if (Input.TryRead(out var buffer))
                     {
                         _logger.ScheduleReceiveEvent(_connectionId);
-                        _ = _eventQueue.Enqueue(() =>
+                        _ = _eventQueue.Enqueue(async () =>
                         {
                             _logger.RaiseReceiveEvent(_connectionId);
 
-                            // Making a copy of the Received handler to ensure that its not null
-                            // Can't use the ? operator because we specifically want to check if the handler is null
                             var receivedHandler = Received;
                             if (receivedHandler != null)
                             {
-                                return receivedHandler(buffer);
+                                try
+                                {
+                                    await receivedHandler(buffer);
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.ExceptionThrownFromHandler(_connectionId, nameof(Received), ex);
+                                }
                             }
-
-                            return Task.CompletedTask;
                         });
                     }
                     else
@@ -357,7 +369,10 @@ namespace Microsoft.AspNetCore.Sockets.Client
             _logger.EndReceive(_connectionId);
         }
 
-        public async Task SendAsync(byte[] data, CancellationToken cancellationToken = default(CancellationToken))
+        public async Task SendAsync(byte[] data, CancellationToken cancellationToken = default(CancellationToken)) =>
+            await SendAsyncCore(data, cancellationToken).ForceAsync();
+
+        private async Task SendAsyncCore(byte[] data, CancellationToken cancellationToken)
         {
             if (data == null)
             {
@@ -389,7 +404,9 @@ namespace Microsoft.AspNetCore.Sockets.Client
             }
         }
 
-        public async Task DisposeAsync()
+        public async Task DisposeAsync() => await DisposeAsyncCore().ForceAsync();
+
+        private async Task DisposeAsyncCore()
         {
             _logger.StoppingClient(_connectionId);
 

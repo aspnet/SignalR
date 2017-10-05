@@ -1,40 +1,56 @@
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 import { ConnectionClosed } from "./Common"
 import { IConnection } from "./IConnection"
+import { HttpConnection} from "./HttpConnection"
 import { TransportType, TransferMode } from "./Transports"
 import { Subject, Observable } from "./Observable"
 import { IHubProtocol, ProtocolType, MessageType, HubMessage, CompletionMessage, ResultMessage, InvocationMessage, NegotiationMessage } from "./IHubProtocol";
 import { JsonHubProtocol } from "./JsonHubProtocol";
 import { TextMessageFormat } from "./Formatters"
 import { Base64EncodedHubProtocol } from "./Base64EncodedHubProtocol"
+import { ILogger, LogLevel } from "./ILogger"
+import { ConsoleLogger, NullLogger, LoggerFactory } from "./Loggers"
+import { IHubConnectionOptions } from "./IHubConnectionOptions"
 
 export { TransportType } from "./Transports"
 export { HttpConnection } from "./HttpConnection"
 export { JsonHubProtocol } from "./JsonHubProtocol"
+export { LogLevel, ILogger } from "./ILogger"
+export { ConsoleLogger, NullLogger } from "./Loggers"
 
 export class HubConnection {
-    private connection: IConnection;
-    private callbacks: Map<string, (invocationUpdate: CompletionMessage | ResultMessage) => void>;
-    private methods: Map<string, (...args: any[]) => void>;
-    private id: number;
-    private connectionClosedCallback: ConnectionClosed;
+    private readonly connection: IConnection;
+    private readonly logger: ILogger;
     private protocol: IHubProtocol;
+    private callbacks: Map<string, (invocationUpdate: CompletionMessage | ResultMessage) => void>;
+    private methods: Map<string, ((...args: any[]) => void)[]>;
+    private id: number;
+    private closedCallbacks: ConnectionClosed[];
 
-    constructor(connection: IConnection, protocol: IHubProtocol = new JsonHubProtocol()) {
-        this.connection = connection;
-        this.protocol = protocol || new JsonHubProtocol();
-        this.connection.onDataReceived = data => {
-            this.onDataReceived(data);
-        };
-        this.connection.onClosed = (error: Error) => {
-            this.onConnectionClosed(error);
+    constructor(urlOrConnection: string | IConnection, options: IHubConnectionOptions = {}) {
+        options = options || {};
+        if (typeof urlOrConnection === "string") {
+            this.connection = new HttpConnection(urlOrConnection, options);
+        }
+        else {
+            this.connection = urlOrConnection;
         }
 
+        this.logger = LoggerFactory.createLogger(options.logging);
+
+        this.protocol = options.protocol || new JsonHubProtocol();
+        this.connection.onreceive = (data: any) => this.processIncomingData(data);
+        this.connection.onclose = (error?: Error) => this.connectionClosed(error);
+
         this.callbacks = new Map<string, (invocationEvent: CompletionMessage | ResultMessage) => void>();
-        this.methods = new Map<string, (...args: any[]) => void>();
+        this.methods = new Map<string, ((...args: any[]) => void)[]>();
+        this.closedCallbacks = [];
         this.id = 0;
     }
 
-    private onDataReceived(data: any) {
+    private processIncomingData(data: any) {
         // Parse the messages
         let messages = this.protocol.parseMessages(data);
 
@@ -49,34 +65,33 @@ export class HubConnection {
                 case MessageType.Completion:
                     let callback = this.callbacks.get(message.invocationId);
                     if (callback != null) {
-                        callback(message);
-
                         if (message.type == MessageType.Completion) {
                             this.callbacks.delete(message.invocationId);
                         }
+                        callback(message);
                     }
                     break;
                 default:
-                    console.log("Invalid message type: " + data);
+                    this.logger.log(LogLevel.Warning, "Invalid message type: " + data);
                     break;
             }
         }
     }
 
     private invokeClientMethod(invocationMessage: InvocationMessage) {
-        let method = this.methods.get(invocationMessage.target);
-        if (method) {
-            method.apply(this, invocationMessage.arguments);
+        let methods = this.methods.get(invocationMessage.target.toLowerCase());
+        if (methods) {
+            methods.forEach(m => m.apply(this, invocationMessage.arguments));
             if (!invocationMessage.nonblocking) {
                 // TODO: send result back to the server?
             }
         }
         else {
-            console.log(`No client method with the name '${invocationMessage.target}' found.`);
+            this.logger.log(LogLevel.Warning, `No client method with the name '${invocationMessage.target}' found.`);
         }
     }
 
-    private onConnectionClosed(error: Error) {
+    private connectionClosed(error?: Error) {
         let errorCompletionMessage = <CompletionMessage>{
             type: MessageType.Completion,
             invocationId: "-1",
@@ -88,9 +103,7 @@ export class HubConnection {
         });
         this.callbacks.clear();
 
-        if (this.connectionClosedCallback) {
-            this.connectionClosedCallback(error);
-        }
+        this.closedCallbacks.forEach(c => c.apply(this, [error]));
     }
 
     async start(): Promise<void> {
@@ -105,7 +118,9 @@ export class HubConnection {
 
         await this.connection.send(
             TextMessageFormat.write(
-                JSON.stringify(<NegotiationMessage>{ protocol: this.protocol.name})));
+                JSON.stringify(<NegotiationMessage>{ protocol: this.protocol.name })));
+
+        this.logger.log(LogLevel.Information, `Using HubProtocol '${this.protocol.name}'.`);
 
         if (requestedTransferMode === TransferMode.Binary && actualTransferMode === TransferMode.Text) {
             this.protocol = new Base64EncodedHubProtocol(this.protocol);
@@ -191,11 +206,38 @@ export class HubConnection {
     }
 
     on(methodName: string, method: (...args: any[]) => void) {
-        this.methods.set(methodName, method);
+        if (!methodName || !method) {
+            return;
+        }
+
+        methodName = methodName.toLowerCase();
+        if (!this.methods.has(methodName)) {
+            this.methods.set(methodName, []);
+        }
+
+        this.methods.get(methodName).push(method);
     }
 
-    set onClosed(callback: ConnectionClosed) {
-        this.connectionClosedCallback = callback;
+    off(methodName: string, method: (...args: any[]) => void) {
+        if (!methodName || !method) {
+            return;
+        }
+
+        methodName = methodName.toLowerCase();
+        let handlers = this.methods.get(methodName);
+        if (!handlers) {
+            return;
+        }
+        var removeIdx = handlers.indexOf(method);
+        if (removeIdx != -1) {
+            handlers.splice(removeIdx, 1);
+        }
+    }
+
+    onclose(callback: ConnectionClosed) {
+        if (callback) {
+            this.closedCallbacks.push(callback);
+        }
     }
 
     private createInvocation(methodName: string, args: any[], nonblocking: boolean): InvocationMessage {

@@ -23,10 +23,23 @@
     <ul id="resultsList"></ul>
 
     <ul id="messages"></ul>
-    <script src="lib/signalr-client/signalr-client.js"></script>
+    <script type="text/javascript">
+        if (typeof Promise === 'undefined')
+        {
+            document.write(
+                '<script type="text/javascript" src="lib/signalr-client/signalr-clientES5.js"><\/script>' +
+                '<script type="text/javascript" src="lib/signalr-client/signalr-msgpackprotocolES5.js"><\/script>');
+        }
+        else
+        {
+            document.write(
+                '<script type="text/javascript" src="lib/signalr-client/signalr-client.js"><\/script>' +
+                '<script type="text/javascript" src="lib/signalr-client/signalr-msgpackprotocol.js"><\/script>');
+        }
+    </script>
     <script src="utils.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', function() {
             let resultsList = document.getElementById('resultsList');
             let channelButton = document.getElementById('channelButton');
             let observableButton = document.getElementById('observableButton');
@@ -35,13 +48,12 @@
             let connectButton = document.getElementById('connectButton');
             let disconnectButton = document.getElementById('disconnectButton');
 
+            let logger = new signalR.ConsoleLogger(signalR.LogLevel.Information);
             let transportType = signalR.TransportType[getParameterByName('transport')] || signalR.TransportType.WebSockets;
 
             let invocationCounter = 0;
 
             document.getElementById('transportName').innerHTML = signalR.TransportType[transportType];
-
-            let url = `http://${document.location.host}/streaming`
             let connection = null;
 
             click('clearButton', function () {
@@ -53,17 +65,16 @@
             });
 
             click('connectButton', function () {
-                let http = new signalR.HttpConnection(url, { transport: transportType });
-                connection = new signalR.HubConnection(http);
+                connection = new signalR.HubConnection('/streaming', { transport: transportType, logger: logger });
 
-                connection.onClosed = function () {
+                connection.onclose(function () {
                     channelButton.disabled = true;
                     observableButton.disabled = true;
                     connectButton.disabled = false;
                     disconnectButton.disabled = true;
 
                     addLine('resultsList', 'disconnected', 'green');
-                };
+                });
 
                 connection.start()
                     .then(function () {
@@ -86,17 +97,17 @@
             function run(method) {
                 let id = invocationCounter;
                 invocationCounter += 1;
-                addLine('resultsList', `running ${method}(${id}) ...`);
+                addLine('resultsList', 'running ' + method + '(' + id + ') ...');
                 connection.stream(method, 10, (Math.random() * 5) * 200).subscribe({
                     closed: false,
                     next: function (item) {
-                        addLine('resultsList', `${method}(${id}): ${item}`);
+                        addLine('resultsList', method + '(' + id + '): ' + item);
                     },
                     error: function (err) {
-                        addLine('resultsList', `${method}(${id}): ${err}`, 'red');
+                        addLine('resultsList', method + '(' + id + '):' + err, 'red');
                     },
                     complete: function () {
-                        addLine('resultsList', `${method}(${id}): complete`, 'green');
+                        addLine('resultsList', method + '(' +  id + '): complete', 'green');
                     }
                 });
             }

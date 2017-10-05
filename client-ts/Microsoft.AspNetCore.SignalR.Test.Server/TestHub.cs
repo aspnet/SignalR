@@ -8,6 +8,13 @@ using System.Threading.Tasks;
 
 namespace Microsoft.AspNetCore.SignalR.Test.Server
 {
+    public class CustomObject
+    {
+        public string Name { get; set; }
+
+        public int Value { get; set; }
+    }
+
     public class TestHub : Hub
     {
         public string Echo(string message)
@@ -25,9 +32,19 @@ namespace Microsoft.AspNetCore.SignalR.Test.Server
             return Clients.Client(Context.Connection.ConnectionId).InvokeAsync("Message", message);
         }
 
+        public Task SendCustomObject(CustomObject customObject)
+        {
+            return Clients.Client(Context.ConnectionId).InvokeAsync("CustomObject", customObject);
+        }
+
         public IObservable<string> Stream()
         {
             return new string[] { "a", "b", "c" }.ToObservable();
+        }
+
+        public ComplexObject EchoComplexObject(ComplexObject complexObject)
+        {
+            return complexObject;
         }
     }
 }

@@ -1,10 +1,7 @@
-<Project>
-  <ItemGroup>
-    <ExcludeFromTest Include="$(RepositoryRoot)test\Microsoft.AspNetCore.SignalR.Test.Server\*.csproj" />
-    <ExcludeFromTest Include="$(RepositoryRoot)test\WebSocketsTestApp\*.csproj" />
-    <ExcludeFromTest Include="$(RepositoryRoot)test\Microsoft.AspNetCore.SignalR.Microbenchmarks\*.csproj" />
-  </ItemGroup>
+﻿<Project>
   <ItemGroup>
     <ProjectsToPack Include="$(RepositoryRoot)client-ts\Microsoft.AspNetCore.SignalR.Client.TS\*.csproj" />
+    <PackageLineup Include="Internal.AspNetCore.Universe.Lineup" Version="2.1.0-*" />
+    <PackageLineup Include="Internal.AspNetCore.Partners.Lineup" Version="2.1.0-*" />
   </ItemGroup>
 </Project>

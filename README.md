@@ -11,8 +11,32 @@ You can watch an introductory presentation here - [Introducing ASP.NET Core Sock
 
 This project is part of ASP.NET Core. You can find samples, documentation and getting started instructions for ASP.NET Core at the [Home](https://github.com/aspnet/home) repo.
 
-**Note** To build the project locally at this time you will need the [TypeScript Compiler](https://www.typescriptlang.org/#download-links) on your path.
+## Packages
 
-The JavaScript client is being published to our dev npm registry. The module contains a browserfied version of the client. You can install the module using the following command:
+You can install the latest released JavaScript client from npm with the following command:
 
-`npm install signalr-client --registry https://dotnet.myget.org/f/aspnetcore-ci-dev/npm/`
+```bash
+npm install @aspnet/signalr-client
+```
+
+The CI build publishes the latest dev version of the JavaScript client to our dev npm registry as @aspnet/signalr-client. You can install the module as follows:
+
+- Create an .npmrc file with the following line:
+  `@aspnet:registry=https://dotnet.myget.org/f/aspnetcore-ci-dev/npm/`
+- Run:
+  `npm install @aspnet/signalr-client`
+
+Alternatively, if you don't want to create the .npmrc file run the following commands:
+```
+npm install msgpack5
+npm install @aspnet/signalr-client --registry https://dotnet.myget.org/f/aspnetcore-ci-dev/npm/
+```
+
+## Building from source
+
+To run a complete build on command line only, execute `build.cmd` or `build.sh` without arguments. The build requires NodeJS (6.11 or newer) and npm to be installed on the machine.
+
+Before opening this project in Visual Studio or VS Code, execute `build.cmd /t:Restore` (Windows) or `./build.sh /t:Restore` (Linux/macOS).
+This will execute only the part of the build script that downloads and initializes a few required build tools and packages.
+
+See [developer documentation](https://github.com/aspnet/Home/wiki) for more details.

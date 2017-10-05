@@ -1,3 +1,6 @@
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 import { IHttpClient } from "../Microsoft.AspNetCore.SignalR.Client.TS/HttpClient"
 import { HttpConnection } from "../Microsoft.AspNetCore.SignalR.Client.TS/HttpConnection"
 import { IHttpConnectionOptions } from "../Microsoft.AspNetCore.SignalR.Client.TS/IHttpConnectionOptions"
@@ -6,6 +9,17 @@ import { ITransport, TransportType, TransferMode } from "../Microsoft.AspNetCore
 import { eachTransport } from "./Common";
 
 describe("Connection", () => {
+    it("cannot be created with relative url if document object is not present", () => {
+        expect(() => new HttpConnection("/test"))
+            .toThrow(new Error("Cannot resolve '/test'."));
+    });
+
+    it("cannot be created with relative url if window object is not present", () => {
+        (<any>global).window = {};
+        expect(() => new HttpConnection("/test"))
+            .toThrow(new Error("Cannot resolve '/test'."));
+        delete (<any>global).window;
+    });
 
     it("starting connection fails if getting id fails", async (done) => {
         let options: IHttpConnectionOptions = {
@@ -16,7 +30,8 @@ describe("Connection", () => {
                 get(url: string): Promise<string> {
                     return Promise.resolve("");
                 }
-            }
+            },
+            logging: null
         } as IHttpConnectionOptions;
 
         let connection = new HttpConnection("http://tempuri.org", options);
@@ -51,7 +66,8 @@ describe("Connection", () => {
                 get(url: string): Promise<string> {
                     return Promise.resolve("");
                 }
-            }
+            },
+            logging: null
         } as IHttpConnectionOptions;
 
         let connection = new HttpConnection("http://tempuri.org", options);
@@ -74,7 +90,8 @@ describe("Connection", () => {
                 get(url: string): Promise<string> {
                     return Promise.resolve("");
                 }
-            }
+            },
+            logging: null
         } as IHttpConnectionOptions;
 
         let connection = new HttpConnection("http://tempuri.org", options);
@@ -109,7 +126,8 @@ describe("Connection", () => {
                     connection.stop();
                     return Promise.resolve("");
                 }
-            }
+            },
+            logging: null
         } as IHttpConnectionOptions;
 
         let connection = new HttpConnection("http://tempuri.org", options);
@@ -141,8 +159,8 @@ describe("Connection", () => {
                 return Promise.reject("");
             },
             stop(): void { },
-            onDataReceived: undefined,
-            onClosed: undefined,
+            onreceive: undefined,
+            onclose: undefined,
         }
 
         let options: IHttpConnectionOptions = {
@@ -154,7 +172,8 @@ describe("Connection", () => {
                     return Promise.resolve("");
                 }
             },
-            transport: fakeTransport
+            transport: fakeTransport,
+            logging: null
         } as IHttpConnectionOptions;
 
 
@@ -183,7 +202,8 @@ describe("Connection", () => {
                         return Promise.resolve("");
                     }
                 },
-                transport: requestedTransport
+                transport: requestedTransport,
+                logging: null
             } as IHttpConnectionOptions;
 
             let connection = new HttpConnection("http://tempuri.org", options);
@@ -208,7 +228,8 @@ describe("Connection", () => {
                 get(url: string): Promise<string> {
                     return Promise.resolve("");
                 }
-            }
+            },
+            logging: null
         } as IHttpConnectionOptions;
 
         let connection = new HttpConnection("http://tempuri.org", options);
@@ -235,8 +256,8 @@ describe("Connection", () => {
                 connect(url: string, requestedTransferMode: TransferMode): Promise<TransferMode> { return Promise.resolve(transportTransferMode); },
                 send(data: any): Promise<void> { return Promise.resolve(); },
                 stop(): void {},
-                onDataReceived: null,
-                onClosed: null,
+                onreceive: null,
+                onclose: null,
                 mode: transportTransferMode
             } as ITransport;
 
@@ -249,7 +270,8 @@ describe("Connection", () => {
                         return Promise.resolve("");
                     }
                 },
-                transport: fakeTransport
+                transport: fakeTransport,
+                logging: null
             } as IHttpConnectionOptions;
 
             let connection = new HttpConnection("https://tempuri.org", options);

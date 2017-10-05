@@ -39,7 +39,7 @@ Example:
 }
 ```
 
-##Communication between the Caller and the Callee
+## Communication between the Caller and the Callee
 
 There a three kinds of interactions between the Caller and the Calle:
 
@@ -47,7 +47,7 @@ There a three kinds of interactions between the Caller and the Calle:
 * Non-Blocking Invocations - the Caller sends a message to the Callee and does not expect any further messages for this invocation
 * Streaming Invocations - the Caller sends a message to the Callee and expects one or more results returned by the Callee followed by a message indicating the end of invocation
 
-##Invocations
+## Invocations
 
 In order to perform a single invocation, the Caller follows the following basic flow:
 
@@ -344,34 +344,7 @@ Example - The following `Completion` message is a protocol error because it has 
 
 Items in the arguments array within the `Invocation` message type, as well as the `item` value of the `StreamItem` message and the `result` value of the `Completion` message, encode values which have meaning to each particular Binder. A general guideline for encoding/decoding these values is provided in the "Type Mapping" section at the end of this document, but Binders should provide configuration to applications to allow them to customize these mappings. These mappings need not be self-describing, because when decoding the value, the Binder is expected to know the destination type (by looking up the definition of the method indicated by the Target).
 
-JSON payloads are wrapped in an outer message framing to support batching over various transports and to ease the parsing.
-
-#### Text-based encoding
-
-The body will be formatted as below and encoded in UTF-8. Identifiers in square brackets `[]` indicate fields defined below, and parenthesis `()` indicate grouping.
-
-```
-([Length]:[Body];)([Length]:[Body];)... continues until end of the connection ...
-```
-
-* `[Length]` - Length of the `[Body]` field in bytes, specified as UTF-8 digits (`0`-`9`, terminated by `:`). If the body is a binary frame, this length indicates the number of Base64-encoded characters, not the number of bytes in the final decoded message!
-* `[Body]` - The body of the message, the content of which depends upon the value of `[Type]`
-
-Note: If there is no `[Body]` for a frame, there does still need to be a `:` and `;` delimiting the body. So, for example, the following is an encoding of a single text frame `A`: `1:A;`
-
-For example, when sending the following frames (`\n` indicates the actual Line Feed character, not an escape sequence):
-
-* "Hello\nWorld"
-* `<<no body>>`
-
-The encoding will be as follows
-
-```
-11:Hello
-World;0:;
-```
-
-Note that the final frame still ends with the `;` terminator, and that since the body may contain `;`, newlines, etc., the length is specified in order to know exactly where the body ends.
+JSON payloads are separated with the record separator (0x1e) to ease the parsing.
 
 ## MessagePack (MsgPack) encoding
 
@@ -627,8 +600,19 @@ MessagePack payloads are wrapped in an outer message framing described below.
 ([Length][Body])([Length][Body])... continues until end of the connection ...
 ```
 
-* `[Length]` - A 64-bit integer in Network Byte Order (Big-endian) representing the length of the body in bytes
+* `[Length]` - A 32-bit unsigned integer encoded as VarInt. Variable size - 1-5 bytes.
 * `[Body]` - The body of the message, exactly `[Length]` bytes in length.
+
+
+##### VarInt
+
+VarInt encodes the most significant bit as a marker indicating whether the byte is the last byte of the VarInt or if it spans to the next byte. Bytes appear in the reverse order - i.e. the first byte contains the least significant bits of the value.
+
+Examples:
+ * VarInt: `0x35` (`%00110101`) - the most significant bit is 0 so the value is %x0110101 i.e. 0x35 (53)
+ * VarInt: `0x80 0x25` (`%10000000 %00101001`) - the most significant bit of the first byte is 1 so the remaining bits (%x0000000) are the lowest bits of the value. The most significant bit of the second byte is 0 meaning this is last byte of the VarInt. The actual value bits (%x0101001) need to be prepended to the bits we already read so the values is %01010010000000 i.e. 0x1480 (5248)
+
+The biggest supported payloads are 2GB in size so the biggest number we need to support is 0x7fffffff which when encoded as VarInt is 0xFF 0xFF 0xFF 0xFF 0x7F - hence the maximum size of the length prefix is 5 bytes.
 
 For example, when sending the following frames (`\n` indicates the actual Line Feed character, not an escape sequence):
 
@@ -637,8 +621,32 @@ For example, when sending the following frames (`\n` indicates the actual Line F
 
 The encoding will be as follows, as a list of binary digits in hex (text in parentheses `()` are comments). Whitespace and newlines are irrelevant and for illustration only.
 ```
-0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x0B                (start of frame; 64-bit integer value: 11)
+0x0B                                                   (start of frame; VarInt value: 11)
 0x68 0x65 0x6C 0x6C 0x6F 0x0A 0x77 0x6F 0x72 0x6C 0x64 (UTF-8 encoding of 'Hello\nWorld')
-0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x02                (start of frame; 64-bit integer value: 2)
+0x02                                                   (start of frame; VarInt value: 2)
 0x01 0x02                                              (body)
 ```
+
+#### Binary encoding over text protocols
+
+In case of sending messages using binary encoding over text transports (e.g. ServerSentEvents transport) messages should be Base64 encoded and use the following format:
+
+```
+([Length]:[Body];)([Length]:[Body];)... continues until end of the connection ...
+```
+* `[Length]` - Length of the `[Body]` field in bytes, specified as UTF-8 digits (`0`-`9`, terminated by `:`). indicating the number of Base64-encoded characters (not the number of bytes in the final decoded message).
+* `[Body]` - Base64-encoded message
+
+For example the following MsgPack payload (note: the payload consists of the length prefix and the MsgPack message):
+
+```
+0x10 0x95 0x01 0xa1 0x31 0xc3 0xa8 0x4d 0x79 0x4d 0x65 0x74 0x68 0x6f 0x64 0x91 0x2a
+```
+
+will look like this:
+
+```
+24:EJUBoTHDqE15TWV0aG9kkSo=;
+```
+
+when sending over a text transport.

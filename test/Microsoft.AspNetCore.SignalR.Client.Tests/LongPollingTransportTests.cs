@@ -316,7 +316,7 @@ namespace Microsoft.AspNetCore.Client.Tests
                     Assert.Equal(2, sentRequests.Count);
 
                     // Check the messages received
-                    Assert.Equal(1, messages.Count);
+                    Assert.Single(messages);
                     Assert.Equal(message1Payload, messages[0]);
                 }
                 finally
@@ -369,7 +369,7 @@ namespace Microsoft.AspNetCore.Client.Tests
                     await longPollingTransport.Running.OrTimeout();
                     await connectionToTransport.In.Completion.OrTimeout();
 
-                    Assert.Equal(1, sentRequests.Count);
+                    Assert.Single(sentRequests);
                     Assert.Equal(new byte[] { (byte)'H', (byte)'e', (byte)'l', (byte)'l', (byte)'o', (byte)'W', (byte)'o', (byte)'r', (byte)'l', (byte)'d'
                     }, sentRequests[0]);
                 }
@@ -435,6 +435,49 @@ namespace Microsoft.AspNetCore.Client.Tests
 
                 Assert.Contains("Invalid transfer mode.", exception.Message);
                 Assert.Equal("requestedTransferMode", exception.ParamName);
+            }
+        }
+
+        [Fact]
+        public async Task LongPollingTransportRePollsIfRequestCancelled()
+        {
+            var numPolls = 0;
+            var completionTcs = new TaskCompletionSource<object>();
+
+            var mockHttpHandler = new Mock<HttpMessageHandler>();
+            mockHttpHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+                .Returns<HttpRequestMessage, CancellationToken>(async (request, cancellationToken) =>
+                {
+                    await Task.Yield();
+
+                    if (Interlocked.Increment(ref numPolls) < 3)
+                    {
+                        throw new OperationCanceledException();
+                    }
+
+                    completionTcs.SetResult(null);
+                    return ResponseUtils.CreateResponse(HttpStatusCode.OK);
+                });
+
+            using (var httpClient = new HttpClient(mockHttpHandler.Object))
+            {
+                var longPollingTransport = new LongPollingTransport(httpClient);
+
+                try
+                {
+                    var connectionToTransport = Channel.CreateUnbounded<SendMessage>();
+                    var transportToConnection = Channel.CreateUnbounded<byte[]>();
+                    var channelConnection = new ChannelConnection<SendMessage, byte[]>(connectionToTransport, transportToConnection);
+                    await longPollingTransport.StartAsync(new Uri("http://fakeuri.org"), channelConnection, TransferMode.Binary, connectionId: string.Empty);
+
+                    var completedTask = await Task.WhenAny(completionTcs.Task, longPollingTransport.Running).OrTimeout();
+                    Assert.Equal(completionTcs.Task, completedTask);
+                }
+                finally
+                {
+                    await longPollingTransport.StopAsync();
+                }
             }
         }
     }

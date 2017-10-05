@@ -28,17 +28,14 @@ namespace ClientSample
 
         public static async Task<int> ExecuteAsync(string baseUrl)
         {
-            baseUrl = string.IsNullOrEmpty(baseUrl) ? "http://localhost:5000/hubs" : baseUrl;
-
-            var loggerFactory = new LoggerFactory();
+            baseUrl = string.IsNullOrEmpty(baseUrl) ? "http://localhost:5000/default" : baseUrl;
 
             Console.WriteLine("Connecting to {0}", baseUrl);
-            var httpConnection = new HttpConnection(new Uri(baseUrl));
-            var connection = new HubConnection(httpConnection, loggerFactory);
+            HubConnection connection = await ConnectAsync(baseUrl);
+            Console.WriteLine("Connected to {0}", baseUrl);
+
             try
             {
-                await connection.StartAsync();
-                Console.WriteLine("Connected to {0}", baseUrl);
 
                 var cts = new CancellationTokenSource();
                 Console.CancelKeyPress += (sender, a) =>
@@ -51,9 +48,24 @@ namespace ClientSample
                 // Set up handler
                 connection.On<string>("Send", Console.WriteLine);
 
+                connection.Closed += e =>
+                {
+                    Console.WriteLine("Connection closed.");
+                    cts.Cancel();
+                    return Task.CompletedTask;
+                };
+
+                var ctsTask = Task.Delay(-1, cts.Token);
+
                 while (!cts.Token.IsCancellationRequested)
                 {
-                    var line = await Task.Run(() => Console.ReadLine(), cts.Token);
+                    var completedTask = await Task.WhenAny(Task.Run(() => Console.ReadLine(), cts.Token), ctsTask);
+                    if (completedTask == ctsTask)
+                    {
+                        break;
+                    }
+
+                    var line = await (Task<string>)completedTask;
 
                     if (line == null)
                     {
@@ -74,6 +86,27 @@ namespace ClientSample
                 await connection.DisposeAsync();
             }
             return 0;
+        }
+
+        private static async Task<HubConnection> ConnectAsync(string baseUrl)
+        {
+            // Keep trying to until we can start
+            while (true)
+            {
+                var connection = new HubConnectionBuilder()
+                                .WithUrl(baseUrl)
+                                .WithConsoleLogger(LogLevel.Trace)
+                                .Build();
+                try
+                {
+                    await connection.StartAsync();
+                    return connection;
+                }
+                catch (Exception)
+                {
+                    await Task.Delay(1000);
+                }
+            }
         }
     }
 }

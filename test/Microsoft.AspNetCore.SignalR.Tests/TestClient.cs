@@ -28,7 +28,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         public Channel<byte[]> Application { get; }
         public Task Connected => ((TaskCompletionSource<bool>)Connection.Metadata["ConnectedTask"]).Task;
 
-        public TestClient(bool synchronousCallbacks = false, bool addClaimId = false)
+        public TestClient(bool synchronousCallbacks = false, IHubProtocol protocol = null, bool addClaimId = false)
         {
             var options = new ChannelOptimizations { AllowSynchronousContinuations = synchronousCallbacks };
             var transportToApplication = Channel.CreateUnbounded<byte[]>(options);
@@ -49,7 +49,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             Connection.User = new ClaimsPrincipal(new ClaimsIdentity(claims));
             Connection.Metadata["ConnectedTask"] = new TaskCompletionSource<bool>();
 
-            var protocol = new JsonHubProtocol(new JsonSerializer());
+            protocol = protocol ?? new JsonHubProtocol();
             _protocolReaderWriter = new HubProtocolReaderWriter(protocol, new PassThroughEncoder());
 
             _cts = new CancellationTokenSource();

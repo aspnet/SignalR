@@ -1,167 +1,242 @@
-const TESTHUBENDPOINT_URL = `http://${document.location.host}/testhub`;
+﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-describe('hubConnection', () => {
-    eachTransportAndProtocol((transportType, protocol) => {
-        describe(`${protocol.name} over ${signalR.TransportType[transportType]} transport`, () => {
-            it(`can invoke server method and receive result`, done => {
-                const message = "你好，世界！";
-                let hubConnection = new signalR.HubConnection(
-                    new signalR.HttpConnection(TESTHUBENDPOINT_URL, { transport: transportType }), protocol);
-                hubConnection.onClosed = error => {
+'use strict';
+
+var TESTHUBENDPOINT_URL = '/testhub';
+
+describe('hubConnection', function () {
+    eachTransportAndProtocol(function (transportType, protocol) {
+        describe(protocol.name + ' over ' + signalR.TransportType[transportType] + ' transport', function () {
+
+            it('can invoke server method and receive result', function (done) {
+                var message = "你好，世界！";
+
+                var options = {
+                    transport: transportType,
+                    protocol: protocol,
+                    logging: signalR.LogLevel.Trace
+                };
+                var hubConnection = new signalR.HubConnection(TESTHUBENDPOINT_URL, options);
+                hubConnection.onclose(function (error) {
                     expect(error).toBe(undefined);
                     done();
-                }
-
-                hubConnection.start()
-                    .then(() => {
-                        hubConnection.invoke('Echo', message)
-                            .then(result => {
-                                expect(result).toBe(message);
-                            })
-                            .catch(e => {
-                                fail(e);
-                            })
-                            .then(() => {
-                                hubConnection.stop();
-                            })
-                    })
-                    .catch(e => {
-                        fail(e);
-                        done();
-                    });
-            });
-
-            it(`can stream server method and receive result`, done => {
-                let hubConnection = new signalR.HubConnection(
-                    new signalR.HttpConnection(TESTHUBENDPOINT_URL, { transport: transportType }), protocol);
-                hubConnection.onClosed = error => {
-                    expect(error).toBe(undefined);
-                    done();
-                }
-
-                let received = [];
-                hubConnection.start()
-                    .then(() => {
-                        hubConnection.stream('Stream')
-                            .subscribe({
-                                next: (item) => {
-                                    received.push(item);
-                                },
-                                error: (err) => {
-                                    fail(err);
-                                    hubConnection.stop();
-                                },
-                                complete: () => {
-                                    expect(received).toEqual(["a", "b", "c"]);
-                                    hubConnection.stop();
-                                }
-                            });
-                    })
-                    .catch(e => {
-                        fail(e);
-                        done();
-                    });
-            });
-
-            it(`rethrows an exception from the server when invoking`, done => {
-                const errorMessage = "An error occurred.";
-                let hubConnection = new signalR.HubConnection(
-                    new signalR.HttpConnection(TESTHUBENDPOINT_URL, { transport: transportType }), protocol);
-
-                hubConnection.start()
-                    .then(() => {
-                        hubConnection.invoke('ThrowException', errorMessage)
-                            .then(() => {
-                                // exception expected but none thrown
-                                fail();
-                            })
-                            .catch(e => {
-                                expect(e.message).toBe(errorMessage);
-                            })
-                            .then(() => {
-                                return hubConnection.stop();
-                            })
-                            .then(() => {
-                                done();
-                            });
-                    })
-                    .catch(e => {
-                        fail(e);
-                        done();
-                    });
-            });
-
-            it(`rethrows an exception from the server when streaming`, done => {
-                const errorMessage = "An error occurred.";
-                let hubConnection = new signalR.HubConnection(
-                    new signalR.HttpConnection(TESTHUBENDPOINT_URL, { transport: transportType }), protocol);
-
-                hubConnection.start()
-                    .then(() => {
-                        hubConnection.stream('ThrowException', errorMessage)
-                            .subscribe({
-                                next: (item) => {
-                                    fail();
-                                },
-                                error: (err) => {
-                                    expect(err.message).toEqual("An error occurred.");
-                                    done();
-                                },
-                                complete: () => {
-                                    fail();
-                                }
-                            });
-
-                    })
-                    .catch(e => {
-                        fail(e);
-                        done();
-                    });
-            });
-
-            it(`can receive server calls`, done => {
-                let client = new signalR.HubConnection(
-                    new signalR.HttpConnection(TESTHUBENDPOINT_URL, { transport: transportType }), protocol);
-                const message = "你好 SignalR！";
-
-                let callbackPromise = new Promise((resolve, reject) => {
-                    client.on("Message", msg => {
-                        expect(msg).toBe(message);
-                        resolve();
-                    });
                 });
 
-                client.start()
-                    .then(() => {
-                        return Promise.all([client.invoke('InvokeWithString', message), callbackPromise]);
-                    })
-                    .then(() => {
-                        return stop();
-                    })
-                    .then(() => {
-                        done();
-                    })
-                    .catch(e => {
+                hubConnection.start().then(function () {
+                    hubConnection.invoke('Echo', message).then(function (result) {
+                        expect(result).toBe(message);
+                    }).catch(function (e) {
                         fail(e);
-                        done();
+                    }).then(function () {
+                        hubConnection.stop();
                     });
+                }).catch(function (e) {
+                    fail(e);
+                    done();
+                });
             });
 
-            it(`closed with error if hub cannot be created`, done => {
-                let errorRegex = {
-                    WebSockets: "1011", // Message is browser specific (e.g. 'Websocket closed with status code: 1011')
+            it('can invoke server method structural object and receive structural result', function (done) {
+                var options = {
+                    transport: transportType,
+                    protocol: protocol,
+                    logging: signalR.LogLevel.Trace
+                };
+                var hubConnection = new signalR.HubConnection(TESTHUBENDPOINT_URL, options);
+
+                hubConnection.on('CustomObject', function (customObject) {
+                    expect(customObject.Name).toBe('test');
+                    expect(customObject.Value).toBe(42);
+                    hubConnection.stop();
+                });
+
+                hubConnection.onclose(function (error) {
+                    expect(error).toBe(undefined);
+                    done();
+                });
+
+                hubConnection.start().then(function () {
+                    hubConnection.send('SendCustomObject', { Name: "test", Value: 42});
+                }).catch(function (e) {
+                    fail(e);
+                    done();
+                });
+            });
+
+            it('can stream server method and receive result', function (done) {
+
+                var options = {
+                    transport: transportType,
+                    protocol: protocol,
+                    logging: signalR.LogLevel.Trace
+                };
+                var hubConnection = new signalR.HubConnection(TESTHUBENDPOINT_URL, options);
+
+                hubConnection.onclose(function (error) {
+                    expect(error).toBe(undefined);
+                    done();
+                });
+
+                var received = [];
+                hubConnection.start().then(function () {
+                    hubConnection.stream('Stream').subscribe({
+                        next: function next(item) {
+                            received.push(item);
+                        },
+                        error: function error(err) {
+                            fail(err);
+                            hubConnection.stop();
+                        },
+                        complete: function complete() {
+                            expect(received).toEqual(["a", "b", "c"]);
+                            hubConnection.stop();
+                        }
+                    });
+                }).catch(function (e) {
+                    fail(e);
+                    done();
+                });
+            });
+
+            it('rethrows an exception from the server when invoking', function (done) {
+                var errorMessage = "An error occurred.";
+                var options = {
+                    transport: transportType,
+                    protocol: protocol,
+                    logging: signalR.LogLevel.Trace
+                };
+                var hubConnection = new signalR.HubConnection(TESTHUBENDPOINT_URL, options);
+
+                hubConnection.start().then(function () {
+                    hubConnection.invoke('ThrowException', errorMessage).then(function () {
+                        // exception expected but none thrown
+                        fail();
+                    }).catch(function (e) {
+                        expect(e.message).toBe(errorMessage);
+                    }).then(function () {
+                        return hubConnection.stop();
+                    }).then(function () {
+                        done();
+                    });
+                }).catch(function (e) {
+                    fail(e);
+                    done();
+                });
+            });
+
+            it('rethrows an exception from the server when streaming', function (done) {
+                var errorMessage = "An error occurred.";
+                var options = {
+                    transport: transportType,
+                    protocol: protocol,
+                    logging: signalR.LogLevel.Trace
+                };
+                var hubConnection = new signalR.HubConnection(TESTHUBENDPOINT_URL, options);
+
+                hubConnection.start().then(function () {
+                    hubConnection.stream('ThrowException', errorMessage).subscribe({
+                        next: function next(item) {
+                            fail();
+                        },
+                        error: function error(err) {
+                            expect(err.message).toEqual("An error occurred.");
+                            done();
+                        },
+                        complete: function complete() {
+                            fail();
+                        }
+                    });
+                }).catch(function (e) {
+                    fail(e);
+                    done();
+                });
+            });
+
+            it('can receive server calls', function (done) {
+                var options = {
+                    transport: transportType,
+                    protocol: protocol,
+                    logging: signalR.LogLevel.Trace
+                };
+                var hubConnection = new signalR.HubConnection(TESTHUBENDPOINT_URL, options);
+
+                var message = "你好 SignalR！";
+
+                // client side method names are case insensitive
+                var methodName = 'message';
+                var idx = Math.floor(Math.random() * (methodName.length - 1));
+                methodName = methodName.substr(0, idx) + methodName[idx].toUpperCase() + methodName.substr(idx + 1);
+
+                hubConnection.on(methodName, function (msg) {
+                    expect(msg).toBe(message);
+                    done();
+                });
+
+                hubConnection.start().then(function () {
+                    return hubConnection.invoke('InvokeWithString', message);
+                })
+                .then(function() {
+                    return hubConnection.stop();
+                })
+                .catch(function (e) {
+                    fail(e);
+                    done();
+                });
+            });
+
+            it('closed with error if hub cannot be created', function (done) {
+                var errorRegex = {
+                    WebSockets: "1011|1005", // Message is browser specific (e.g. 'Websocket closed with status code: 1011'), Edge and IE report 1005 even though the server sent 1011
                     LongPolling: "Internal Server Error",
                     ServerSentEvents: "Error occurred"
                 };
 
-                let hubConnection = new signalR.HubConnection(
-                    new signalR.HttpConnection(`http://${document.location.host}/uncreatable`, { transport: transportType }), protocol);
+                var options = {
+                    transport: transportType,
+                    protocol: protocol,
+                    logging: signalR.LogLevel.Trace
+                };
+                var hubConnection = new signalR.HubConnection('http://' + document.location.host + '/uncreatable', options);
 
-                hubConnection.onClosed = error => {
+                hubConnection.onclose(function (error) {
                     expect(error.message).toMatch(errorRegex[signalR.TransportType[transportType]]);
                     done();
-                }
+                });
                 hubConnection.start();
+            });
+
+            it('can handle different types', function (done) {
+                var options = {
+                    transport: transportType,
+                    protocol: protocol,
+                    logging: signalR.LogLevel.Trace
+                };
+
+                var hubConnection = new signalR.HubConnection(TESTHUBENDPOINT_URL, options);
+                hubConnection.onclose(function (error) {
+                    expect(error).toBe(undefined);
+                    done();
+                });
+
+                var complexObject = {
+                    String: 'Hello, World!',
+                    IntArray: [0x01, 0x02, 0x03, 0xff]
+                };
+
+                hubConnection.start().then(function () {
+                    return hubConnection.invoke('EchoComplexObject', complexObject);
+                })
+                .then(function(value) {
+                    expect(value).toEqual(complexObject);
+                })
+                .then(function () {
+                    hubConnection.stop();
+                })
+                .catch(function (e) {
+                    fail(e);
+                    done();
+                });
             });
         });
     });

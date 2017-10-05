@@ -47,13 +47,19 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
         {
             Debug.Assert(context.WebSockets.IsWebSocketRequest, "Not a websocket request");
 
-            using (var ws = await context.WebSockets.AcceptWebSocketAsync())
+            using (var ws = await context.WebSockets.AcceptWebSocketAsync(_options.SubProtocol))
             {
                 _logger.SocketOpened(_connection.ConnectionId);
 
-                await ProcessSocketAsync(ws);
+                try
+                {
+                    await ProcessSocketAsync(ws);
+                }
+                finally
+                {
+                    _logger.SocketClosed(_connection.ConnectionId);
+                }
             }
-            _logger.SocketClosed(_connection.ConnectionId);
         }
 
         public async Task ProcessSocketAsync(WebSocket socket)

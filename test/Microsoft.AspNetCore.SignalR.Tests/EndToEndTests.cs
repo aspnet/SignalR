@@ -157,7 +157,18 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     }
 
                     logger.LogInformation("Sending {length} byte message", bytes.Length);
-                    await connection.SendAsync(bytes).OrTimeout();
+                    try
+                    {
+                        await connection.SendAsync(bytes).OrTimeout();
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // Because the server and client are run in the same process there is a race where websocket.SendAsync
+                        // can send a message but before returning be suspended allowing the server to run the EchoEndpoint and
+                        // send a close frame which triggers a cancellation token on the client and cancels the websocket.SendAsync.
+                        // Our solution to this is to just catch OperationCanceledException from the sent message if the race happens
+                        // because we know the send went through, and its safe to check the response.
+                    }
                     logger.LogInformation("Sent message", bytes.Length);
 
                     logger.LogInformation("Receiving message");
@@ -179,11 +190,12 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 }
             }
 
-            bool IsBase64Encoded(TransferMode transferMode, IConnection connection)
-            {
-                return requestedTransferMode == TransferMode.Binary &&
-                    connection.Features.Get<ITransferModeFeature>().TransferMode == TransferMode.Text;
-            }
+        }
+
+        private bool IsBase64Encoded(TransferMode transferMode, IConnection connection)
+        {
+            return transferMode == TransferMode.Binary &&
+                connection.Features.Get<ITransferModeFeature>().TransferMode == TransferMode.Text;
         }
 
         public static IEnumerable<object[]> MessageSizesData
@@ -272,7 +284,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 var url = _serverFixture.BaseUrl + "/uncreatable";
 
-                var connection = new HubConnection(new HttpConnection(new Uri(url), transportType, loggerFactory), loggerFactory);
+                var connection = new HubConnectionBuilder()
+                        .WithUrl(new Uri(url))
+                        .WithTransport(transportType)
+                        .WithLoggerFactory(loggerFactory)
+                        .Build();
                 try
                 {
                     var closeTcs = new TaskCompletionSource<object>();

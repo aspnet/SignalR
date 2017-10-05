@@ -44,8 +44,13 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         {
             using (StartLog(out var loggerFactory))
             {
-                var httpConnection = new HttpConnection(new Uri(_serverFixture.BaseUrl + path), transportType, loggerFactory);
-                var connection = new HubConnection(httpConnection, protocol, loggerFactory);
+                var connection = new HubConnectionBuilder()
+                    .WithUrl(_serverFixture.BaseUrl + path)
+                    .WithTransport(transportType)
+                    .WithLoggerFactory(loggerFactory)
+                    .WithHubProtocol(protocol)
+                    .Build();
+
                 try
                 {
                     await connection.StartAsync().OrTimeout();
@@ -172,7 +177,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
                     var tcs = new TaskCompletionSource<string>();
 
-                    var results = await connection.Stream<string>("Stream").ReadAllAsync().OrTimeout();
+                    var channel = await connection.StreamAsync<string>("Stream");
+                    var results = await channel.ReadAllAsync().OrTimeout();
 
                     Assert.Equal(new[] { "a", "b", "c" }, results.ToArray());
                 }
@@ -234,12 +240,12 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             }
         }
 
-        public static string[] HubPaths = new[] { "/default", "/dynamic" };
+        public static string[] HubPaths = new[] { "/default", "/dynamic", "/hubT" };
 
         public static IEnumerable<IHubProtocol> HubProtocols =>
             new IHubProtocol[]
             {
-                new JsonHubProtocol(new JsonSerializer()),
+                new JsonHubProtocol(),
                 new MessagePackHubProtocol(),
             };
 

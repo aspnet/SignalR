@@ -1,30 +1,37 @@
-describe('WebSockets', function () {
-    it('can be used to connect to SignalR', done => {
-        const message = "message";
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-        let webSocket = new WebSocket(ECHOENDPOINT_URL.replace(/^http/, "ws"));
+'use strict';
 
-        webSocket.onopen = () => {
-            webSocket.send(message);
-        };
+if (typeof WebSocket !== 'undefined') {
+    describe('WebSockets', function () {
+        it('can be used to connect to SignalR', function (done) {
+            var message = "message";
 
-        var received = "";
-        webSocket.onmessage = event => {
-            received += event.data;
-            if (received === message) {
-                webSocket.close();
-            }
-        };
+            var webSocket = new WebSocket(ECHOENDPOINT_URL.replace(/^http/, "ws"));
 
-        webSocket.onclose = event => {
-            if (!event.wasClean) {
-                fail("connection closed with unexpected status code: " + event.code + " " + event.reason);
-            }
+            webSocket.onopen = function () {
+                webSocket.send(message);
+            };
 
-            // Jasmine doesn't like tests without expectations
-            expect(event.wasClean).toBe(true);
+            var received = "";
+            webSocket.onmessage = function (event) {
+                received += event.data;
+                if (received === message) {
+                    webSocket.close();
+                }
+            };
 
-            done();
-        };
+            webSocket.onclose = function (event) {
+                if (!event.wasClean) {
+                    fail("connection closed with unexpected status code: " + event.code + " " + event.reason);
+                }
+
+                // Jasmine doesn't like tests without expectations
+                expect(event.wasClean).toBe(true);
+
+                done();
+            };
+        });
     });
-});
+}

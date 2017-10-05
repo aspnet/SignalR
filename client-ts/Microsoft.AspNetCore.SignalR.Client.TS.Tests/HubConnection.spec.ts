@@ -1,17 +1,22 @@
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 import { IConnection } from "../Microsoft.AspNetCore.SignalR.Client.TS/IConnection"
 import { HubConnection } from "../Microsoft.AspNetCore.SignalR.Client.TS/HubConnection"
 import { DataReceived, ConnectionClosed } from "../Microsoft.AspNetCore.SignalR.Client.TS/Common"
 import { TransportType, ITransport, TransferMode } from "../Microsoft.AspNetCore.SignalR.Client.TS/Transports"
 import { Observer } from "../Microsoft.AspNetCore.SignalR.Client.TS/Observable"
 import { TextMessageFormat } from "../Microsoft.AspNetCore.SignalR.Client.TS/Formatters"
+import { ILogger, LogLevel } from "../Microsoft.AspNetCore.SignalR.Client.TS/ILogger"
 
 import { asyncit as it, captureException } from './JasmineUtils';
 
 describe("HubConnection", () => {
+
     describe("start", () => {
         it("sends negotiation message", async () => {
             let connection = new TestConnection();
-            let hubConnection = new HubConnection(connection);
+            let hubConnection = new HubConnection(connection, { logging: null });
             await hubConnection.start();
             expect(connection.sentData.length).toBe(1)
             expect(JSON.parse(connection.sentData[0])).toEqual({
@@ -112,7 +117,7 @@ describe("HubConnection", () => {
             let hubConnection = new HubConnection(connection);
             let invokePromise = hubConnection.invoke("testMethod");
             // Typically this would be called by the transport
-            connection.onClosed(new Error("Connection lost"));
+            connection.onclose(new Error("Connection lost"));
 
             let ex = await captureException(async () => await invokePromise);
             expect(ex.message).toBe("Connection lost");
@@ -125,10 +130,150 @@ describe("HubConnection", () => {
             let invokePromise = hubConnection.invoke("testMethod");
 
             connection.receive({ type: 2, invocationId: connection.lastInvocationId, item: null });
-            connection.onClosed();
+            connection.onclose();
 
             let ex = await captureException(async () => await invokePromise);
             expect(ex.message).toBe("Streaming methods must be invoked using HubConnection.stream");
+        });
+    });
+
+    describe("on", () => {
+        it("invocations ignored in callbacks not registered", async () => {
+            let warnings: string[] = [];
+            let logger = <ILogger>{
+                log: function(logLevel: LogLevel, message: string) {
+                    if (logLevel === LogLevel.Warning) {
+                        warnings.push(message);
+                    }
+                }
+            };
+            let connection = new TestConnection();
+            let hubConnection = new HubConnection(connection, { logging: logger });
+
+            connection.receive({
+                type: 1,
+                invocationId: 0,
+                target: "message",
+                arguments: ["test"],
+                nonblocking: true
+            });
+
+            expect(warnings).toEqual(["No client method with the name 'message' found."]);
+        });
+
+        it("callback invoked when servers invokes a method on the client", async () => {
+            let connection = new TestConnection();
+            let hubConnection = new HubConnection(connection);
+            let value = 0;
+            hubConnection.on("message", v => value = v);
+
+            connection.receive({
+                type: 1,
+                invocationId: 0,
+                target: "message",
+                arguments: ["test"],
+                nonblocking: true
+            });
+
+            expect(value).toBe("test");
+        });
+
+        it("can have multiple callbacks", async () => {
+            let connection = new TestConnection();
+            let hubConnection = new HubConnection(connection);
+            let numInvocations1 = 0;
+            let numInvocations2 = 0;
+            hubConnection.on("message", () => numInvocations1++);
+            hubConnection.on("message", () => numInvocations2++);
+
+            connection.receive({
+                type: 1,
+                invocationId: 0,
+                target: "message",
+                arguments: [],
+                nonblocking: true
+            });
+
+            expect(numInvocations1).toBe(1);
+            expect(numInvocations2).toBe(1);
+        });
+
+        it("can unsubscribe from on", async () => {
+            let connection = new TestConnection();
+            let hubConnection = new HubConnection(connection);
+
+            var numInvocations = 0;
+            var callback = () => numInvocations++;
+            hubConnection.on("message", callback);
+
+            connection.receive({
+                type: 1,
+                invocationId: 0,
+                target: "message",
+                arguments: [],
+                nonblocking: true
+            });
+
+            hubConnection.off("message", callback);
+
+            connection.receive({
+                type: 1,
+                invocationId: 0,
+                target: "message",
+                arguments: [],
+                nonblocking: true
+            });
+
+            expect(numInvocations).toBe(1);
+        });
+
+        it("unsubscribing from non-existing callbacks no-ops", async () => {
+            let connection = new TestConnection();
+            let hubConnection = new HubConnection(connection);
+
+            hubConnection.off("_", () => {});
+            hubConnection.on("message", t => {});
+            hubConnection.on("message", () => {});
+        });
+
+        it("using null/undefined for methodName or method no-ops", async () => {
+            let warnings: string[] = [];
+            let logger = <ILogger>{
+                log: function(logLevel: LogLevel, message: string) {
+                    if (logLevel === LogLevel.Warning) {
+                        warnings.push(message);
+                    }
+
+                }
+            };
+
+            let connection = new TestConnection();
+            let hubConnection = new HubConnection(connection, { logging: logger });
+
+            hubConnection.on(null, undefined);
+            hubConnection.on(undefined, null);
+            hubConnection.on("message", null);
+            hubConnection.on("message", undefined);
+            hubConnection.on(null, () => {});
+            hubConnection.on(undefined, () => {});
+
+            // invoke a method to make sure we are not trying to use null/undefined
+            connection.receive({
+                type: 1,
+                invocationId: 0,
+                target: "message",
+                arguments: [],
+                nonblocking: true
+            });
+
+            expect(warnings).toEqual(["No client method with the name 'message' found."]);
+
+            hubConnection.off(null, undefined);
+            hubConnection.off(undefined, null);
+            hubConnection.off("message", null);
+            hubConnection.off("message", undefined);
+            hubConnection.off(null, () => {});
+            hubConnection.off(undefined, () => {});
         });
     });
 
@@ -205,7 +350,7 @@ describe("HubConnection", () => {
                 .subscribe(observer);
 
             // Typically this would be called by the transport
-            connection.onClosed(new Error("Connection lost"));
+            connection.onclose(new Error("Connection lost"));
 
             let ex = await captureException(async () => await observer.completed);
             expect(ex.message).toEqual("Error: Connection lost");
@@ -246,6 +391,40 @@ describe("HubConnection", () => {
             expect(await observer.completed).toEqual([1, 2, 3]);
         });
     });
+
+    describe("onClose", () => {
+        it("it can have multiple callbacks", async () => {
+            let connection = new TestConnection();
+            let hubConnection = new HubConnection(connection);
+            let invocations = 0;
+            hubConnection.onclose(e => invocations++);
+            hubConnection.onclose(e => invocations++);
+            // Typically this would be called by the transport
+            connection.onclose();
+            expect(invocations).toBe(2);
+        });
+
+        it("callbacks receive error", async () => {
+            let connection = new TestConnection();
+            let hubConnection = new HubConnection(connection);
+            let error: Error;
+            hubConnection.onclose(e => error = e);
+
+            // Typically this would be called by the transport
+            connection.onclose(new Error("Test error."));
+            expect(error.message).toBe("Test error.");
+        });
+
+        it("ignores null callbacks", async () => {
+            let connection = new TestConnection();
+            let hubConnection = new HubConnection(connection);
+            hubConnection.onclose(null);
+            hubConnection.onclose(undefined);
+            // Typically this would be called by the transport
+            connection.onclose();
+            // expect no errors
+        });
+    });
 });
 
 class TestConnection implements IConnection {
@@ -268,18 +447,18 @@ class TestConnection implements IConnection {
     };
 
     stop(): void {
-        if (this.onClosed) {
-            this.onClosed();
+        if (this.onclose) {
+            this.onclose();
         }
     };
 
     receive(data: any): void {
         let payload = JSON.stringify(data);
-        this.onDataReceived(TextMessageFormat.write(payload));
+        this.onreceive(TextMessageFormat.write(payload));
     }
 
-    onDataReceived: DataReceived;
-    onClosed: ConnectionClosed;
+    onreceive: DataReceived;
+    onclose: ConnectionClosed;
     sentData: [any];
     lastInvocationId: string;
 };

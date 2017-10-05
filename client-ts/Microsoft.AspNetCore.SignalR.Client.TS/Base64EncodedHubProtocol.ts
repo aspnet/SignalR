@@ -1,3 +1,6 @@
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 import { IHubProtocol, HubMessage, ProtocolType } from "./IHubProtocol"
 
 export class Base64EncodedHubProtocol implements IHubProtocol {
@@ -15,7 +18,7 @@ export class Base64EncodedHubProtocol implements IHubProtocol {
     parseMessages(input: any): HubMessage[] {
         // The format of the message is `size:message;`
         let pos = input.indexOf(":");
-        if (pos == -1 || !input.endsWith(";")) {
+        if (pos == -1 || input[input.length - 1] != ';') {
             throw new Error("Invalid payload.");
         }
 

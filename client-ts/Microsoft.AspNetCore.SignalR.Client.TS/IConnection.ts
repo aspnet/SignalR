@@ -1,3 +1,6 @@
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 import { DataReceived, ConnectionClosed } from "./Common"
 import { TransportType, TransferMode, ITransport } from  "./Transports"
 
@@ -8,6 +11,6 @@ export interface IConnection {
     send(data: any): Promise<void>;
     stop(): void;
 
-    onDataReceived: DataReceived;
-    onClosed: ConnectionClosed;
+    onreceive: DataReceived;
+    onclose: ConnectionClosed;
 }
