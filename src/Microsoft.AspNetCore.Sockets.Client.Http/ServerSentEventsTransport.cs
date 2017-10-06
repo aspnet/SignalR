@@ -19,7 +19,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
     {
         private readonly HttpClient _httpClient;
         private readonly ILogger _logger;
-        private readonly CancellationTokenSource _transportCts = new CancellationTokenSource();
+        private CancellationTokenSource _transportCts = new CancellationTokenSource();
         private readonly ServerSentEventsMessageParser _parser = new ServerSentEventsMessageParser();
         private string _connectionId;
 
@@ -44,7 +44,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<ServerSentEventsTransport>();
         }
 
-        public Task StartAsync(Uri url, Channel<byte[], SendMessage> application, TransferMode requestedTransferMode, string connectionId)
+        public Task StartAsync(Uri url, Channel<byte[], SendMessage> application, TransferMode requestedTransferMode, string connectionId, CancellationToken cancellationToken = default)
         {
             if (requestedTransferMode != TransferMode.Binary && requestedTransferMode != TransferMode.Text)
             {
@@ -56,6 +56,11 @@ namespace Microsoft.AspNetCore.Sockets.Client
             _connectionId = connectionId;
 
             _logger.StartTransport(_connectionId, Mode.Value);
+
+            if (cancellationToken.CanBeCanceled)
+            {
+                _transportCts = CancellationTokenSource.CreateLinkedTokenSource(_transportCts.Token, cancellationToken);
+            }
 
             var sendTask = SendUtils.SendMessages(url, _application, _httpClient, _transportCts, _logger, _connectionId);
             var receiveTask = OpenConnection(_application, url, _transportCts.Token);

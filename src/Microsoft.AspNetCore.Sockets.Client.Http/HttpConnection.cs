@@ -99,9 +99,9 @@ namespace Microsoft.AspNetCore.Sockets.Client
             _transportFactory = transportFactory ?? throw new ArgumentNullException(nameof(transportFactory));
         }
 
-        public async Task StartAsync() => await StartAsyncCore().ForceAsync();
+        public async Task StartAsync(CancellationToken cancellationToken = default) => await StartAsyncCore(cancellationToken).ForceAsync();
 
-        private Task StartAsyncCore()
+        private Task StartAsyncCore(CancellationToken cancellationToken)
         {
             if (Interlocked.CompareExchange(ref _connectionState, ConnectionState.Connecting, ConnectionState.Initial)
                 != ConnectionState.Initial)
@@ -110,7 +110,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     new InvalidOperationException("Cannot start a connection that is not in the Initial state."));
             }
 
-            StartAsyncInternal()
+            StartAsyncInternal(cancellationToken)
                 .ContinueWith(t =>
                 {
                     if (t.IsFaulted)
@@ -130,10 +130,9 @@ namespace Microsoft.AspNetCore.Sockets.Client
             return _startTcs.Task;
         }
 
-        private async Task StartAsyncInternal()
+        private async Task StartAsyncInternal(CancellationToken cancellationToken)
         {
             _logger.HttpConnectionStarting();
-
             try
             {
                 var connectUrl = Url;
@@ -143,7 +142,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 }
                 else
                 {
-                    var negotiationResponse = await Negotiate(Url, _httpClient, _logger);
+                    var negotiationResponse = await Negotiate(Url, _httpClient, _logger, cancellationToken);
+
                     _connectionId = negotiationResponse.ConnectionId;
 
                     // Connection is being stopped while start was in progress
@@ -158,7 +158,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 }
 
                 _logger.StartingTransport(_connectionId, _transport.GetType().Name, connectUrl);
-                await StartTransport(connectUrl);
+                await StartTransport(connectUrl, cancellationToken);
             }
             catch
             {
@@ -212,7 +212,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             }
         }
 
-        private async static Task<NegotiationResponse> Negotiate(Uri url, HttpClient httpClient, ILogger logger)
+        private async static Task<NegotiationResponse> Negotiate(Uri url, HttpClient httpClient, ILogger logger, CancellationToken cancellationToken)
         {
             try
             {
@@ -221,7 +221,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 using (var request = new HttpRequestMessage(HttpMethod.Options, url))
                 {
                     request.Headers.UserAgent.Add(Constants.UserAgentHeader);
-                    using (var response = await httpClient.SendAsync(request))
+                    using (var response = await httpClient.SendAsync(request, cancellationToken))
                     {
                         response.EnsureSuccessStatusCode();
                         return await ParseNegotiateResponse(response, logger);
@@ -284,7 +284,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             return Utils.AppendQueryString(url, "id=" + negotiationResponse.ConnectionId);
         }
 
-        private async Task StartTransport(Uri connectUrl)
+        private async Task StartTransport(Uri connectUrl, CancellationToken cancellationToken)
         {
             var applicationToTransport = Channel.CreateUnbounded<SendMessage>();
             var transportToApplication = Channel.CreateUnbounded<byte[]>();
@@ -294,7 +294,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             // Start the transport, giving it one end of the pipeline
             try
             {
-                await _transport.StartAsync(connectUrl, applicationSide, requestedTransferMode: GetTransferMode(), connectionId: _connectionId);
+                await _transport.StartAsync(connectUrl, applicationSide, requestedTransferMode: GetTransferMode(), connectionId: _connectionId, cancellationToken: cancellationToken);
 
                 // actual transfer mode can differ from the one that was requested so set it on the feature
                 Debug.Assert(_transport.Mode.HasValue, "transfer mode not set after transport started");
@@ -426,9 +426,9 @@ namespace Microsoft.AspNetCore.Sockets.Client
             }
         }
 
-        public async Task DisposeAsync() => await DisposeAsyncCore().ForceAsync();
+        public async Task DisposeAsync(CancellationToken cancellationToken = default) => await DisposeAsyncCore(cancellationToken).ForceAsync();
 
-        private async Task DisposeAsyncCore()
+        private async Task DisposeAsyncCore(CancellationToken cancellationToken)
         {
             _logger.StoppingClient(_connectionId);
 

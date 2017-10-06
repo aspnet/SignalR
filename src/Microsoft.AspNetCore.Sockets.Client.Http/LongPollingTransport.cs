@@ -23,7 +23,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
         private Task _poller;
         private string _connectionId;
 
-        private readonly CancellationTokenSource _transportCts = new CancellationTokenSource();
+        private CancellationTokenSource _transportCts = new CancellationTokenSource();
 
         public Task Running { get; private set; } = Task.CompletedTask;
 
@@ -39,7 +39,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<LongPollingTransport>();
         }
 
-        public Task StartAsync(Uri url, Channel<byte[], SendMessage> application, TransferMode requestedTransferMode, string connectionId)
+        public Task StartAsync(Uri url, Channel<byte[], SendMessage> application, TransferMode requestedTransferMode, string connectionId, CancellationToken cancellationToken = default)
         {
             if (requestedTransferMode != TransferMode.Binary && requestedTransferMode != TransferMode.Text)
             {
@@ -49,6 +49,11 @@ namespace Microsoft.AspNetCore.Sockets.Client
             _application = application;
             Mode = requestedTransferMode;
             _connectionId = connectionId;
+
+            if (cancellationToken.CanBeCanceled)
+            {
+                _transportCts = CancellationTokenSource.CreateLinkedTokenSource(_transportCts.Token, cancellationToken);
+            }
 
             _logger.StartTransport(_connectionId, Mode.Value);
 

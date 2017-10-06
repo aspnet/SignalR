@@ -66,11 +66,11 @@ namespace Microsoft.AspNetCore.SignalR.Client
             _connection.Closed += Shutdown;
         }
 
-        public async Task StartAsync()
+        public async Task StartAsync(CancellationToken cancellationToken = default)
         {
             try
             {
-                await StartAsyncCore().ForceAsync();
+                await StartAsyncCore(cancellationToken).ForceAsync();
             }
             finally
             {
@@ -78,7 +78,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
         }
 
-        private async Task StartAsyncCore()
+        private async Task StartAsyncCore(CancellationToken cancellationToken)
         {
             var transferModeFeature = _connection.Features.Get<ITransferModeFeature>();
             if (transferModeFeature == null)
@@ -93,7 +93,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     : TransferMode.Text;
 
             transferModeFeature.TransferMode = requestedTransferMode;
-            await _connection.StartAsync();
+            await _connection.StartAsync(cancellationToken);
             var actualTransferMode = transferModeFeature.TransferMode;
 
             _protocolReaderWriter = new HubProtocolReaderWriter(_protocol, GetDataEncoder(requestedTransferMode, actualTransferMode));
@@ -103,7 +103,15 @@ namespace Microsoft.AspNetCore.SignalR.Client
             using (var memoryStream = new MemoryStream())
             {
                 NegotiationProtocol.WriteMessage(new NegotiationMessage(_protocol.Name), memoryStream);
-                await _connection.SendAsync(memoryStream.ToArray(), _connectionActive.Token);
+                if (cancellationToken.CanBeCanceled)
+                {
+                    cancellationToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _connectionActive.Token).Token;
+                }
+                else
+                {
+                    cancellationToken = _connectionActive.Token;
+                }
+                await _connection.SendAsync(memoryStream.ToArray(), cancellationToken);
             }
         }
 
@@ -121,11 +129,11 @@ namespace Microsoft.AspNetCore.SignalR.Client
             return new PassThroughEncoder();
         }
 
-        public async Task DisposeAsync() => await DisposeAsyncCore().ForceAsync();
+        public async Task DisposeAsync(CancellationToken cancellationToken = default) => await DisposeAsyncCore(cancellationToken).ForceAsync();
 
-        private async Task DisposeAsyncCore()
+        private async Task DisposeAsyncCore(CancellationToken cancellationToken)
         {
-            await _connection.DisposeAsync();
+            await _connection.DisposeAsync(cancellationToken);
         }
 
         // TODO: Client return values/tasks?
@@ -157,6 +165,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 throw new InvalidOperationException($"The '{nameof(StreamAsync)}' method cannot be called before the connection has been started.");
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             var invokeCts = new CancellationTokenSource();
             var irq = InvocationRequest.Stream(invokeCts.Token, returnType, GetNextId(), _loggerFactory, this, out var channel);
             // After InvokeCore we don't want the irq cancellation token to be triggered.
@@ -185,7 +194,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     }
                 }, irq);
             }
-
             return channel;
         }
 
@@ -199,6 +207,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 throw new InvalidOperationException($"The '{nameof(InvokeAsync)}' method cannot be called before the connection has been started.");
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             var irq = InvocationRequest.Invoke(cancellationToken, returnType, GetNextId(), _loggerFactory, this, out var task);
             await InvokeCore(methodName, irq, args);
             return await task;

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.SignalR.Tests.Common;
@@ -39,10 +40,12 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var connectionToTransport = Channel.CreateUnbounded<SendMessage>();
                 var transportToConnection = Channel.CreateUnbounded<byte[]>();
                 var channelConnection = new ChannelConnection<SendMessage, byte[]>(connectionToTransport, transportToConnection);
+                var tcs = new CancellationTokenSource();
+
 
                 var webSocketsTransport = new WebSocketsTransport(loggerFactory);
                 await webSocketsTransport.StartAsync(new Uri(_serverFixture.WebSocketsUrl + "/echo"), channelConnection,
-                    TransferMode.Binary, connectionId: string.Empty).OrTimeout();
+                    TransferMode.Binary, connectionId: string.Empty, cancellationToken: tcs.Token).OrTimeout();
                 await webSocketsTransport.StopAsync().OrTimeout();
                 await webSocketsTransport.Running.OrTimeout();
             }
@@ -57,10 +60,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var connectionToTransport = Channel.CreateUnbounded<SendMessage>();
                 var transportToConnection = Channel.CreateUnbounded<byte[]>();
                 var channelConnection = new ChannelConnection<SendMessage, byte[]>(connectionToTransport, transportToConnection);
+                var tcs = new CancellationTokenSource();
 
                 var webSocketsTransport = new WebSocketsTransport(loggerFactory);
                 await webSocketsTransport.StartAsync(new Uri(_serverFixture.WebSocketsUrl + "/echo"), channelConnection,
-                    TransferMode.Binary, connectionId: string.Empty);
+                    TransferMode.Binary, connectionId: string.Empty, cancellationToken: tcs.Token);
                 connectionToTransport.Out.TryComplete();
                 await webSocketsTransport.Running.OrTimeout(TimeSpan.FromSeconds(10));
             }
@@ -77,9 +81,10 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var connectionToTransport = Channel.CreateUnbounded<SendMessage>();
                 var transportToConnection = Channel.CreateUnbounded<byte[]>();
                 var channelConnection = new ChannelConnection<SendMessage, byte[]>(connectionToTransport, transportToConnection);
+                var tcs = new CancellationTokenSource();
 
                 var webSocketsTransport = new WebSocketsTransport(loggerFactory);
-                await webSocketsTransport.StartAsync(new Uri(_serverFixture.WebSocketsUrl + "/echo"), channelConnection, transferMode, connectionId: string.Empty);
+                await webSocketsTransport.StartAsync(new Uri(_serverFixture.WebSocketsUrl + "/echo"), channelConnection, transferMode, connectionId: string.Empty, cancellationToken: tcs.Token);
 
                 var sendTcs = new TaskCompletionSource<object>();
                 connectionToTransport.Out.TryWrite(new SendMessage(new byte[] { 0x42 }, sendTcs));
@@ -115,12 +120,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var connectionToTransport = Channel.CreateUnbounded<SendMessage>();
                 var transportToConnection = Channel.CreateUnbounded<byte[]>();
                 var channelConnection = new ChannelConnection<SendMessage, byte[]>(connectionToTransport, transportToConnection);
+                var tcs = new CancellationTokenSource();
 
                 var webSocketsTransport = new WebSocketsTransport(loggerFactory);
 
                 Assert.Null(webSocketsTransport.Mode);
                 await webSocketsTransport.StartAsync(new Uri(_serverFixture.WebSocketsUrl + "/echo"), channelConnection,
-                    transferMode, connectionId: string.Empty).OrTimeout();
+                    transferMode, connectionId: string.Empty, cancellationToken: tcs.Token).OrTimeout();
                 Assert.Equal(transferMode, webSocketsTransport.Mode);
 
                 await webSocketsTransport.StopAsync().OrTimeout();
@@ -137,10 +143,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var connectionToTransport = Channel.CreateUnbounded<SendMessage>();
                 var transportToConnection = Channel.CreateUnbounded<byte[]>();
                 var channelConnection = new ChannelConnection<SendMessage, byte[]>(connectionToTransport, transportToConnection);
+                var tcs = new CancellationTokenSource();
 
                 var webSocketsTransport = new WebSocketsTransport(loggerFactory);
                 var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
-                    webSocketsTransport.StartAsync(new Uri("http://fakeuri.org"), channelConnection, TransferMode.Text | TransferMode.Binary, connectionId: string.Empty));
+                    webSocketsTransport.StartAsync(new Uri("http://fakeuri.org"), channelConnection, TransferMode.Text | TransferMode.Binary, connectionId: string.Empty, cancellationToken: tcs.Token));
 
                 Assert.Contains("Invalid transfer mode.", exception.Message);
                 Assert.Equal("requestedTransferMode", exception.ParamName);

@@ -10,9 +10,9 @@ namespace Microsoft.AspNetCore.Sockets.Client
 {
     public interface IConnection
     {
-        Task StartAsync();
+        Task StartAsync(CancellationToken cancellationToken);
         Task SendAsync(byte[] data, CancellationToken cancellationToken);
-        Task DisposeAsync();
+        Task DisposeAsync(CancellationToken cancellationToken);
 
         IDisposable OnReceived(Func<byte[], object, Task> callback, object state);
 
