@@ -42,6 +42,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     mockStream
                         .Setup(s => s.CopyToAsync(It.IsAny<Stream>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
                         .Returns(copyToAsyncTcs.Task);
+                    mockStream.Setup(s => s.CanRead).Returns(true);
                     return new HttpResponseMessage { Content = new StreamContent(mockStream.Object) };
                 });
 
@@ -83,12 +84,14 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                         .Setup(s => s.CopyToAsync(It.IsAny<Stream>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
                         .Returns<Stream, int, CancellationToken>(async (stream, bufferSize, t) =>
                             {
+                                await Task.Yield();
                                 var buffer = Encoding.ASCII.GetBytes("data: 3:abc\r\n\r\n");
                                 while (!eventStreamCts.IsCancellationRequested)
                                 {
                                     await stream.WriteAsync(buffer, 0, buffer.Length);
                                 }
                             });
+                    mockStream.Setup(s => s.CanRead).Returns(true);
 
                     return new HttpResponseMessage { Content = new StreamContent(mockStream.Object) };
                 });
@@ -140,6 +143,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                             var buffer = Encoding.ASCII.GetBytes("data: 3:a");
                             await stream.WriteAsync(buffer, 0, buffer.Length);
                         });
+                    mockStream.Setup(s => s.CanRead).Returns(true);
 
                     return new HttpResponseMessage { Content = new StreamContent(mockStream.Object) };
                 });
@@ -182,6 +186,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                         mockStream
                             .Setup(s => s.CopyToAsync(It.IsAny<Stream>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
                             .Returns(copyToAsyncTcs.Task);
+                        mockStream.Setup(s => s.CanRead).Returns(true);
                         return new HttpResponseMessage { Content = new StreamContent(mockStream.Object) };
                     }
 
@@ -231,6 +236,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     mockStream
                         .Setup(s => s.CopyToAsync(It.IsAny<Stream>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
                         .Returns(copyToAsyncTcs.Task);
+                    mockStream.Setup(s => s.CanRead).Returns(true);
                     return new HttpResponseMessage { Content = new StreamContent(mockStream.Object) };
                 });
 

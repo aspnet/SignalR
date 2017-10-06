@@ -24,13 +24,12 @@ namespace Microsoft.AspNetCore.Sockets.Internal
         public Channel<T> Input { get; }
         public Channel<T> Output { get; }
 
-        public override ReadableChannel<T> In => Input;
-
-        public override WritableChannel<T> Out => Output;
-
         public ChannelConnection(Channel<T> input, Channel<T> output)
         {
+            In = input;
             Input = input;
+
+            Out = output;
             Output = output;
         }
 
@@ -46,13 +45,12 @@ namespace Microsoft.AspNetCore.Sockets.Internal
         public Channel<TIn> Input { get; }
         public Channel<TOut> Output { get; }
 
-        public override ReadableChannel<TIn> In => Input;
-
-        public override WritableChannel<TOut> Out => Output;
-
         public ChannelConnection(Channel<TIn> input, Channel<TOut> output)
         {
+            In = input;
             Input = input;
+
+            Out = output;
             Output = output;
         }
 

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Buffers;
 using System.IO.Pipelines;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -80,7 +81,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
             var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
             var stream = await response.Content.ReadAsStreamAsync();
-            var pipelineReader = stream.AsPipelineReader(cancellationToken);
+            var memoryPool = new MemoryPool();
+            var pipelineReader = StreamPipeConnection.CreateReader(new PipeOptions(memoryPool), stream);
             var readCancellationRegistration = cancellationToken.Register(
                 reader => ((IPipeReader)reader).CancelPendingRead(), pipelineReader);
             try
@@ -132,6 +134,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 _transportCts.Cancel();
                 stream.Dispose();
                 _logger.ReceiveStopped(_connectionId);
+                memoryPool.Dispose();
             }
         }
 

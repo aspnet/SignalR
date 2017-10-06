@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO.Pipelines;
 using System.Text;
@@ -106,37 +107,34 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         [InlineData(new[] { "data: Hello, World\r\n", ":comment\r\n", "\r\n" }, "Hello, World")]
         public async Task ParseMessageAcrossMultipleReadsSuccess(string[] messageParts, string expectedMessage)
         {
-            using (var pipeFactory = new PipeFactory())
-            {
-                var parser = new ServerSentEventsMessageParser();
-                var pipe = pipeFactory.Create();
+            var parser = new ServerSentEventsMessageParser();
+            var pipe = new Pipe(new PipeOptions(new MemoryPool()));
 
                 byte[] message = null;
                 ReadCursor consumed = default, examined = default;
 
-                for (var i = 0; i < messageParts.Length; i++)
-                {
-                    var messagePart = messageParts[i];
-                    await pipe.Writer.WriteAsync(Encoding.UTF8.GetBytes(messagePart));
-                    var result = await pipe.Reader.ReadAsync();
+            for (var i = 0; i < messageParts.Length; i++)
+            {
+                var messagePart = messageParts[i];
+                await pipe.Writer.WriteAsync(Encoding.UTF8.GetBytes(messagePart));
+                var result = await pipe.Reader.ReadAsync();
 
-                    var parseResult = parser.ParseMessage(result.Buffer, out consumed, out examined, out message);
-                    pipe.Reader.Advance(consumed, examined);
+                var parseResult = parser.ParseMessage(result.Buffer, out consumed, out examined, out message);
+                pipe.Reader.Advance(consumed, examined);
 
-                    // parse result should be complete only after we parsed the last message part
-                    var expectedResult =
-                        i == messageParts.Length - 1
-                            ? ServerSentEventsMessageParser.ParseResult.Completed
-                            : ServerSentEventsMessageParser.ParseResult.Incomplete;
+                // parse result should be complete only after we parsed the last message part
+                var expectedResult =
+                    i == messageParts.Length - 1
+                        ? ServerSentEventsMessageParser.ParseResult.Completed
+                        : ServerSentEventsMessageParser.ParseResult.Incomplete;
 
-                    Assert.Equal(expectedResult, parseResult);
-                }
-
-                Assert.Equal(consumed, examined);
-
-                var resultMessage = Encoding.UTF8.GetString(message);
-                Assert.Equal(expectedMessage, resultMessage);
+                Assert.Equal(expectedResult, parseResult);
             }
+
+            Assert.Equal(consumed, examined);
+
+            var resultMessage = Encoding.UTF8.GetString(message);
+            Assert.Equal(expectedMessage, resultMessage);
         }
 
         [Theory]
@@ -152,60 +150,53 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         [InlineData("data: B\r\ndata: SGVs", "bG8sIFdvcmxk\r\n\n\n", "There was an error in the frame format")]
         public async Task ParseMessageAcrossMultipleReadsFailure(string encodedMessagePart1, string encodedMessagePart2, string expectedMessage)
         {
-            using (var pipeFactory = new PipeFactory())
-            {
-                var pipe = pipeFactory.Create();
+            var pipe = new Pipe(new PipeOptions(new MemoryPool()));
 
-                // Read the first part of the message
-                await pipe.Writer.WriteAsync(Encoding.UTF8.GetBytes(encodedMessagePart1));
+            // Read the first part of the message
+            await pipe.Writer.WriteAsync(Encoding.UTF8.GetBytes(encodedMessagePart1));
 
-                var result = await pipe.Reader.ReadAsync();
-                var parser = new ServerSentEventsMessageParser();
+            var result = await pipe.Reader.ReadAsync();
+            var parser = new ServerSentEventsMessageParser();
 
-                var parseResult = parser.ParseMessage(result.Buffer, out var consumed, out var examined, out var buffer);
-                Assert.Equal(ServerSentEventsMessageParser.ParseResult.Incomplete, parseResult);
+            var parseResult = parser.ParseMessage(result.Buffer, out var consumed, out var examined, out var buffer);
+            Assert.Equal(ServerSentEventsMessageParser.ParseResult.Incomplete, parseResult);
 
-                pipe.Reader.Advance(consumed, examined);
+            pipe.Reader.Advance(consumed, examined);
 
-                // Send the rest of the data and parse the complete message
-                await pipe.Writer.WriteAsync(Encoding.UTF8.GetBytes(encodedMessagePart2));
-                result = await pipe.Reader.ReadAsync();
+            // Send the rest of the data and parse the complete message
+            await pipe.Writer.WriteAsync(Encoding.UTF8.GetBytes(encodedMessagePart2));
+            result = await pipe.Reader.ReadAsync();
 
-                var ex = Assert.Throws<FormatException>(() => parser.ParseMessage(result.Buffer, out consumed, out examined, out buffer));
-                Assert.Equal(expectedMessage, ex.Message);
-
-            }
+            var ex = Assert.Throws<FormatException>(() => parser.ParseMessage(result.Buffer, out consumed, out examined, out buffer));
+            Assert.Equal(expectedMessage, ex.Message);
         }
 
         [Theory]
         [InlineData("data: foo\r\n\r\n", "data: bar\r\n\r\n")]
         public async Task ParseMultipleMessagesText(string message1, string message2)
         {
-            using (var pipeFactory = new PipeFactory())
-            {
-                var pipe = pipeFactory.Create();
+            var pipe = new Pipe(new PipeOptions(new MemoryPool()));
 
-                // Read the first part of the message
-                await pipe.Writer.WriteAsync(Encoding.UTF8.GetBytes(message1 + message2));
+            // Read the first part of the message
+            await pipe.Writer.WriteAsync(Encoding.UTF8.GetBytes(message1 + message2));
 
-                var result = await pipe.Reader.ReadAsync();
-                var parser = new ServerSentEventsMessageParser();
+            var result = await pipe.Reader.ReadAsync();
+            var parser = new ServerSentEventsMessageParser();
 
-                var parseResult = parser.ParseMessage(result.Buffer, out var consumed, out var examined, out var message);
-                Assert.Equal(ServerSentEventsMessageParser.ParseResult.Completed, parseResult);
-                Assert.Equal("foo", Encoding.UTF8.GetString(message));
-                Assert.Equal(consumed, result.Buffer.Move(result.Buffer.Start, message1.Length));
-                pipe.Reader.Advance(consumed, examined);
-                Assert.Equal(consumed, examined);
+            var parseResult = parser.ParseMessage(result.Buffer, out var consumed, out var examined, out var message);
+            Assert.Equal(ServerSentEventsMessageParser.ParseResult.Completed, parseResult);
+            Assert.Equal("foo", Encoding.UTF8.GetString(message));
+            Assert.Equal(consumed, result.Buffer.Move(result.Buffer.Start, message1.Length));
+            pipe.Reader.Advance(consumed, examined);
+            Assert.Equal(consumed, examined);
 
-                parser.Reset();
+            parser.Reset();
 
-                result = await pipe.Reader.ReadAsync();
-                parseResult = parser.ParseMessage(result.Buffer, out consumed, out examined, out message);
-                Assert.Equal(ServerSentEventsMessageParser.ParseResult.Completed, parseResult);
-                Assert.Equal("bar", Encoding.UTF8.GetString(message));
-                pipe.Reader.Advance(consumed, examined);
-            }
+            result = await pipe.Reader.ReadAsync();
+            parseResult = parser.ParseMessage(result.Buffer, out consumed, out examined, out message);
+            Assert.Equal(ServerSentEventsMessageParser.ParseResult.Completed, parseResult);
+            Assert.Equal("bar", Encoding.UTF8.GetString(message));
+            pipe.Reader.Advance(consumed, examined);
         }
 
         public static IEnumerable<object[]> MultilineMessages
