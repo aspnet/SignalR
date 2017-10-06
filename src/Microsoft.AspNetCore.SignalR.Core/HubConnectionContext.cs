@@ -9,7 +9,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.Http.Features;
-using Microsoft.AspNetCore.SignalR.Core;
 using Microsoft.AspNetCore.SignalR.Features;
 using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
@@ -26,15 +25,12 @@ namespace Microsoft.AspNetCore.SignalR
         private readonly ConnectionContext _connectionContext;
         private readonly CancellationTokenSource _connectionAbortedTokenSource = new CancellationTokenSource();
         private readonly TaskCompletionSource<object> _abortCompletedTcs = new TaskCompletionSource<object>();
-        private readonly IUserIdProvider _userIdProvider;
-        private string _userIdCache = null;
 
-        public HubConnectionContext(WritableChannel<HubMessage> output, ConnectionContext connectionContext, IUserIdProvider userIdProvider)
+        public HubConnectionContext(WritableChannel<HubMessage> output, ConnectionContext connectionContext)
         {
             _output = output;
             _connectionContext = connectionContext;
             ConnectionAbortedToken = _connectionAbortedTokenSource.Token;
-            _userIdProvider = userIdProvider;
         }
 
         private IHubFeature HubFeature => Features.Get<IHubFeature>();
@@ -71,17 +67,7 @@ namespace Microsoft.AspNetCore.SignalR
             Task.Factory.StartNew(_abortedCallback, this);
         }
 
-        public string UserIdentifier
-        {
-            get
-            {
-                if (String.IsNullOrEmpty(_userIdCache))
-                {
-                    _userIdCache = _userIdProvider.GetUserId(this);
-                }
-                return _userIdCache;
-            }
-        }
+        public string UserIdentifier { get; internal set; }
 
         internal void Abort(Exception exception)
         {

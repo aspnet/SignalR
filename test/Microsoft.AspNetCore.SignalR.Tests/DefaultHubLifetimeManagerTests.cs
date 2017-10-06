@@ -18,8 +18,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var output2 = Channel.CreateUnbounded<HubMessage>();
 
                 var manager = new DefaultHubLifetimeManager<MyHub>();
-                var connection1 = new HubConnectionContext(output1, client1.Connection, new DefaultUserIdProvider());
-                var connection2 = new HubConnectionContext(output2, client2.Connection, new DefaultUserIdProvider());
+                var connection1 = new HubConnectionContext(output1, client1.Connection);
+                var connection2 = new HubConnectionContext(output2, client2.Connection);
 
                 await manager.OnConnectedAsync(connection1);
                 await manager.OnConnectedAsync(connection2);
@@ -52,8 +52,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var output2 = Channel.CreateUnbounded<HubMessage>();
 
                 var manager = new DefaultHubLifetimeManager<MyHub>();
-                var connection1 = new HubConnectionContext(output1, client1.Connection, new DefaultUserIdProvider());
-                var connection2 = new HubConnectionContext(output2, client2.Connection, new DefaultUserIdProvider());
+                var connection1 = new HubConnectionContext(output1, client1.Connection);
+                var connection2 = new HubConnectionContext(output2, client2.Connection);
 
                 await manager.OnConnectedAsync(connection1);
                 await manager.OnConnectedAsync(connection2);
@@ -83,8 +83,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var output2 = Channel.CreateUnbounded<HubMessage>();
 
                 var manager = new DefaultHubLifetimeManager<MyHub>();
-                var connection1 = new HubConnectionContext(output1, client1.Connection, new DefaultUserIdProvider());
-                var connection2 = new HubConnectionContext(output2, client2.Connection, new DefaultUserIdProvider());
+                var connection1 = new HubConnectionContext(output1, client1.Connection);
+                var connection2 = new HubConnectionContext(output2, client2.Connection);
 
                 await manager.OnConnectedAsync(connection1);
                 await manager.OnConnectedAsync(connection2);
@@ -111,7 +111,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 var output = Channel.CreateUnbounded<HubMessage>();
                 var manager = new DefaultHubLifetimeManager<MyHub>();
-                var connection = new HubConnectionContext(output, client.Connection, new DefaultUserIdProvider());
+                var connection = new HubConnectionContext(output, client.Connection);
 
                 await manager.OnConnectedAsync(connection);
 

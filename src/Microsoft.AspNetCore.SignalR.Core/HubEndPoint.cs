@@ -69,12 +69,14 @@ namespace Microsoft.AspNetCore.SignalR
             // all the relevant state for a SignalR Hub connection.
             connection.Features.Set<IHubFeature>(new HubFeature());
 
-            var connectionContext = new HubConnectionContext(output, connection, _userIdProvider);
+            var connectionContext = new HubConnectionContext(output, connection);
 
             if (!await ProcessNegotiate(connectionContext))
             {
                 return;
             }
+
+            connectionContext.UserIdentifier = _userIdProvider.GetUserId(connectionContext);
 
             // Hubs support multiple producers so we set up this loop to copy
             // data written to the HubConnectionContext's channel to the transport channel
