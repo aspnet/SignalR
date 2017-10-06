@@ -1,6 +1,6 @@
 # Transport Protocols
 
-This document describes the protocols used by the three ASP.NET Endpoint Transports: WebSockets, Server-Sent Events, Long Polling and HTTP Post
+This document describes the protocols used by the four ASP.NET Endpoint Transports: WebSockets, Server-Sent Events, Long Polling and HTTP Post
 
 ## Transport Requirements
 
