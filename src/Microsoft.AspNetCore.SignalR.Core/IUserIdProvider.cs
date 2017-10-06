@@ -5,6 +5,6 @@ namespace Microsoft.AspNetCore.SignalR.Core
 {
     public interface IUserIdProvider
     {
-        string GetUserId(HubConnectionContext conn);
+        string GetUserId(HubConnectionContext connection);
     }
 }

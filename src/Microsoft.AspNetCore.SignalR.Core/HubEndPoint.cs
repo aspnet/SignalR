@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR.Core;
 using Microsoft.AspNetCore.SignalR.Core.Internal;
 using Microsoft.AspNetCore.SignalR.Features;
 using Microsoft.AspNetCore.SignalR.Internal;
@@ -39,13 +40,15 @@ namespace Microsoft.AspNetCore.SignalR
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly IHubProtocolResolver _protocolResolver;
         private readonly IOptions<HubOptions> _hubOptions;
+        private readonly IUserIdProvider _userIdProvider;
 
         public HubEndPoint(HubLifetimeManager<THub> lifetimeManager,
                            IHubProtocolResolver protocolResolver,
                            IHubContext<THub> hubContext,
                            IOptions<HubOptions> hubOptions,
                            ILogger<HubEndPoint<THub>> logger,
-                           IServiceScopeFactory serviceScopeFactory)
+                           IServiceScopeFactory serviceScopeFactory, 
+                           IUserIdProvider userIdProvider)
         {
             _protocolResolver = protocolResolver;
             _lifetimeManager = lifetimeManager;
@@ -53,6 +56,7 @@ namespace Microsoft.AspNetCore.SignalR
             _hubOptions = hubOptions;
             _logger = logger;
             _serviceScopeFactory = serviceScopeFactory;
+            _userIdProvider = userIdProvider;
 
             DiscoverHubMethods();
         }
@@ -65,7 +69,7 @@ namespace Microsoft.AspNetCore.SignalR
             // all the relevant state for a SignalR Hub connection.
             connection.Features.Set<IHubFeature>(new HubFeature());
 
-            var connectionContext = new HubConnectionContext(output, connection);
+            var connectionContext = new HubConnectionContext(output, connection, _userIdProvider);
 
             if (!await ProcessNegotiate(connectionContext))
             {

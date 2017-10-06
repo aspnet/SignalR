@@ -3,11 +3,9 @@
 
 using System;
 using System.Collections.Generic;
-using System.Security.Claims;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.SignalR.Core;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 
 namespace Microsoft.AspNetCore.SignalR
@@ -16,13 +14,7 @@ namespace Microsoft.AspNetCore.SignalR
     {
         private long _nextInvocationId = 0;
         private readonly HubConnectionList _connections = new HubConnectionList();
-        private readonly IUserIdProvider _userIdProvider;
-
-        public DefaultHubLifetimeManager(IUserIdProvider userIdProvider)
-        {
-            _userIdProvider = userIdProvider;
-        }
-
+        
         public override Task AddGroupAsync(string connectionId, string groupName)
         {
             if (connectionId == null)
@@ -147,14 +139,13 @@ namespace Microsoft.AspNetCore.SignalR
         public override Task InvokeUserAsync(string userId, string methodName, object[] args)
         {
             return InvokeAllWhere(methodName, args, connection => 
-                string.Equals(_userIdProvider.GetUserId(connection), userId, StringComparison.Ordinal));
+                string.Equals(connection.UserIdentifier, userId, StringComparison.Ordinal));
         }
 
         public override Task OnConnectedAsync(HubConnectionContext connection)
         {
             // Set the hub groups feature
             connection.Features.Set<IHubGroupsFeature>(new HubGroupsFeature());
-
             _connections.Add(connection);
             return Task.CompletedTask;
         }
@@ -172,7 +163,7 @@ namespace Microsoft.AspNetCore.SignalR
                 if (connection.Output.TryWrite(hubMessage))
                 {
                     break;
-                }
+                } 
             }
         }
 
