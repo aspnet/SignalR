@@ -163,7 +163,7 @@ namespace Microsoft.AspNetCore.SignalR
                 if (connection.Output.TryWrite(hubMessage))
                 {
                     break;
-                } 
+                }
             }
         }
 
