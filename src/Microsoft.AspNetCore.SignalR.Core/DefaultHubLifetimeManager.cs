@@ -14,7 +14,7 @@ namespace Microsoft.AspNetCore.SignalR
     {
         private long _nextInvocationId = 0;
         private readonly HubConnectionList _connections = new HubConnectionList();
-        
+
         public override Task AddGroupAsync(string connectionId, string groupName)
         {
             if (connectionId == null)
