@@ -28,7 +28,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         public Channel<byte[]> Application { get; }
         public Task Connected => ((TaskCompletionSource<bool>)Connection.Metadata["ConnectedTask"]).Task;
 
-        public TestClient(bool synchronousCallbacks = false, IHubProtocol protocol = null)
+        public TestClient(bool synchronousCallbacks = false, IHubProtocol protocol = null, bool addClaimId = false)
         {
             var options = new ChannelOptimizations { AllowSynchronousContinuations = synchronousCallbacks };
             var transportToApplication = Channel.CreateUnbounded<byte[]>(options);
@@ -38,7 +38,15 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             _transport = ChannelConnection.Create<byte[]>(input: transportToApplication, output: applicationToTransport);
 
             Connection = new DefaultConnectionContext(Guid.NewGuid().ToString(), _transport, Application);
-            Connection.User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, Interlocked.Increment(ref _id).ToString()) }));
+
+            var claimValue = Interlocked.Increment(ref _id).ToString();
+            var claims = new List<Claim>{ new Claim(ClaimTypes.Name, claimValue) };
+            if (addClaimId)
+            {
+                claims.Add(new Claim(ClaimTypes.NameIdentifier, claimValue));
+            }
+
+            Connection.User = new ClaimsPrincipal(new ClaimsIdentity(claims));
             Connection.Metadata["ConnectedTask"] = new TaskCompletionSource<bool>();
 
             protocol = protocol ?? new JsonHubProtocol();
@@ -121,13 +129,17 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             return SendInvocationAsync(methodName, nonBlocking: false, args: args);
         }
 
-        public async Task<string> SendInvocationAsync(string methodName, bool nonBlocking, params object[] args)
+        public Task<string> SendInvocationAsync(string methodName, bool nonBlocking, params object[] args)
         {
             var invocationId = GetInvocationId();
-            var payload = _protocolReaderWriter.WriteMessage(new InvocationMessage(invocationId, nonBlocking, methodName, args));
-            await Application.Out.WriteAsync(payload);
+            return SendHubMessageAsync(new InvocationMessage(invocationId, nonBlocking, methodName, args));
+        }
 
-            return invocationId;
+        public async Task<string> SendHubMessageAsync(HubMessage message)
+        {
+            var payload = _protocolReaderWriter.WriteMessage(message);
+            await Application.Out.WriteAsync(payload);
+            return message.InvocationId;
         }
 
         public async Task<HubMessage> ReadAsync()

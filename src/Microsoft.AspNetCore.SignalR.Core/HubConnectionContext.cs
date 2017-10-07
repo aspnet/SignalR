@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Runtime.ExceptionServices;
 using System.Security.Claims;
@@ -54,6 +55,9 @@ namespace Microsoft.AspNetCore.SignalR
 
         public virtual WritableChannel<HubMessage> Output => _output;
 
+        // Currently used only for streaming methods
+        internal ConcurrentDictionary<string, CancellationTokenSource> ActiveRequestCancellationSources { get; } = new ConcurrentDictionary<string, CancellationTokenSource>();
+
         public virtual void Abort()
         {
             // If we already triggered the token then noop, this isn't thread safe but it's good enough
@@ -66,6 +70,8 @@ namespace Microsoft.AspNetCore.SignalR
             // We fire and forget since this can trigger user code to run
             Task.Factory.StartNew(_abortedCallback, this);
         }
+
+        public string UserIdentifier { get; internal set; }
 
         internal void Abort(Exception exception)
         {

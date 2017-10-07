@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR.Core;
 using Microsoft.AspNetCore.SignalR.Core.Internal;
 using Microsoft.AspNetCore.SignalR.Features;
 using Microsoft.AspNetCore.SignalR.Internal;
@@ -39,13 +40,15 @@ namespace Microsoft.AspNetCore.SignalR
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly IHubProtocolResolver _protocolResolver;
         private readonly IOptions<HubOptions> _hubOptions;
+        private readonly IUserIdProvider _userIdProvider;
 
         public HubEndPoint(HubLifetimeManager<THub> lifetimeManager,
                            IHubProtocolResolver protocolResolver,
                            IHubContext<THub> hubContext,
                            IOptions<HubOptions> hubOptions,
                            ILogger<HubEndPoint<THub>> logger,
-                           IServiceScopeFactory serviceScopeFactory)
+                           IServiceScopeFactory serviceScopeFactory, 
+                           IUserIdProvider userIdProvider)
         {
             _protocolResolver = protocolResolver;
             _lifetimeManager = lifetimeManager;
@@ -53,6 +56,7 @@ namespace Microsoft.AspNetCore.SignalR
             _hubOptions = hubOptions;
             _logger = logger;
             _serviceScopeFactory = serviceScopeFactory;
+            _userIdProvider = userIdProvider;
 
             DiscoverHubMethods();
         }
@@ -71,6 +75,8 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 return;
             }
+
+            connectionContext.UserIdentifier = _userIdProvider.GetUserId(connectionContext);
 
             // Hubs support multiple producers so we set up this loop to copy
             // data written to the HubConnectionContext's channel to the transport channel
@@ -275,6 +281,20 @@ namespace Microsoft.AspNetCore.SignalR
                                         _ = ProcessInvocation(connection, invocationMessage);
                                         break;
 
+                                    case CancelInvocationMessage cancelInvocationMessage:
+                                        // Check if there is an associated active stream and cancel it if it exists.
+                                        if (connection.ActiveRequestCancellationSources.TryRemove(cancelInvocationMessage.InvocationId, out var cts))
+                                        {
+                                            _logger.CancelStream(cancelInvocationMessage.InvocationId);
+                                            cts.Cancel();
+                                        }
+                                        else
+                                        {
+                                            // Stream can be canceled on the server while client is canceling stream.
+                                            _logger.UnexpectedCancel();
+                                        }
+                                        break;
+
                                     // Other kind of message we weren't expecting
                                     default:
                                         _logger.UnsupportedMessageReceived(hubMessage.GetType().FullName);
@@ -378,7 +398,7 @@ namespace Microsoft.AspNetCore.SignalR
                         result = methodExecutor.Execute(hub, invocationMessage.Arguments);
                     }
 
-                    if (IsStreamed(connection, methodExecutor, result, methodExecutor.MethodReturnType, out var enumerator))
+                    if (IsStreamed(connection, invocationMessage.InvocationId, methodExecutor, result, methodExecutor.MethodReturnType, out var enumerator))
                     {
                         _logger.StreamingResult(invocationMessage.InvocationId, methodExecutor.MethodReturnType.FullName);
                         await StreamResultsAsync(invocationMessage.InvocationId, connection, enumerator);
@@ -450,9 +470,16 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 await SendMessageAsync(connection, CompletionMessage.WithError(invocationId, ex.Message));
             }
+            finally
+            {
+                if (connection.ActiveRequestCancellationSources.TryRemove(invocationId, out var cts))
+                {
+                    cts.Dispose();
+                }
+            }
         }
 
-        private bool IsStreamed(HubConnectionContext connection, ObjectMethodExecutor methodExecutor, object result, Type resultType, out IAsyncEnumerator<object> enumerator)
+        private bool IsStreamed(HubConnectionContext connection, string invocationId, ObjectMethodExecutor methodExecutor, object result, Type resultType, out IAsyncEnumerator<object> enumerator)
         {
             if (result == null)
             {
@@ -460,20 +487,17 @@ namespace Microsoft.AspNetCore.SignalR
                 return false;
             }
 
-
-            // TODO: We need to support cancelling the stream without a client disconnect as well.
-
             var observableInterface = IsIObservable(resultType) ?
                 resultType :
                 resultType.GetInterfaces().FirstOrDefault(IsIObservable);
             if (observableInterface != null)
             {
-                enumerator = AsyncEnumeratorAdapters.FromObservable(result, observableInterface, connection.ConnectionAbortedToken);
+                enumerator = AsyncEnumeratorAdapters.FromObservable(result, observableInterface, CreateCancellation());
                 return true;
             }
             else if (IsChannel(resultType, out var payloadType))
             {
-                enumerator = AsyncEnumeratorAdapters.FromChannel(result, payloadType, connection.ConnectionAbortedToken);
+                enumerator = AsyncEnumeratorAdapters.FromChannel(result, payloadType, CreateCancellation());
                 return true;
             }
             else
@@ -481,6 +505,13 @@ namespace Microsoft.AspNetCore.SignalR
                 // Not streamed
                 enumerator = null;
                 return false;
+            }
+
+            CancellationToken CreateCancellation()
+            {
+                var streamCts = new CancellationTokenSource();
+                connection.ActiveRequestCancellationSources.TryAdd(invocationId, streamCts);
+                return CancellationTokenSource.CreateLinkedTokenSource(connection.ConnectionAbortedToken, streamCts.Token).Token;
             }
         }
 
