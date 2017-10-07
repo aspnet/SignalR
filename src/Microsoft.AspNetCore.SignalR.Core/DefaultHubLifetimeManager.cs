@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
+using System.Collections.Concurrent;
 
 namespace Microsoft.AspNetCore.SignalR
 {
@@ -14,6 +15,7 @@ namespace Microsoft.AspNetCore.SignalR
     {
         private long _nextInvocationId = 0;
         private readonly HubConnectionList _connections = new HubConnectionList();
+        private readonly HubGroupList _groups = new HubGroupList();
 
         public override Task AddGroupAsync(string connectionId, string groupName)
         {
@@ -33,13 +35,7 @@ namespace Microsoft.AspNetCore.SignalR
                 return Task.CompletedTask;
             }
 
-            var feature = connection.Features.Get<IHubGroupsFeature>();
-            var groups = feature.Groups;
-
-            lock (groups)
-            {
-                groups.Add(groupName);
-            }
+            _groups.Add(connection, groupName);
 
             return Task.CompletedTask;
         }
@@ -62,13 +58,7 @@ namespace Microsoft.AspNetCore.SignalR
                 return Task.CompletedTask;
             }
 
-            var feature = connection.Features.Get<IHubGroupsFeature>();
-            var groups = feature.Groups;
-
-            lock (groups)
-            {
-                groups.Remove(groupName);
-            }
+            _groups.Remove(connectionId, groupName);
 
             return Task.CompletedTask;
         }
@@ -81,7 +71,7 @@ namespace Microsoft.AspNetCore.SignalR
         private Task InvokeAllWhere(string methodName, object[] args, Func<HubConnectionContext, bool> include)
         {
             var tasks = new List<Task>(_connections.Count);
-            var message = new InvocationMessage(GetInvocationId(), nonBlocking: true, target: methodName, arguments: args);
+            var message = CreateInvocationMessage(methodName, args);
 
             // TODO: serialize once per format by providing a different stream?
             foreach (var connection in _connections)
@@ -111,7 +101,7 @@ namespace Microsoft.AspNetCore.SignalR
                 return Task.CompletedTask;
             }
 
-            var message = new InvocationMessage(GetInvocationId(), nonBlocking: true, target: methodName, arguments: args);
+            var message = CreateInvocationMessage(methodName, args);
 
             return WriteAsync(connection, message);
         }
@@ -123,17 +113,20 @@ namespace Microsoft.AspNetCore.SignalR
                 throw new ArgumentNullException(nameof(groupName));
             }
 
-            return InvokeAllWhere(methodName, args, connection =>
+            List<Task> tasks = new List<Task>();
+            InvocationMessage message = CreateInvocationMessage(methodName, args);
+            var group = _groups[groupName];
+            if (group != null)
             {
-                var feature = connection.Features.Get<IHubGroupsFeature>();
-                var groups = feature.Groups;
+                tasks = group.Values.Select(c => WriteAsync(c, message)).ToList();
+            }
 
-                // PERF: ...
-                lock (groups)
-                {
-                    return groups.Contains(groupName) == true;
-                }
-            });
+            return Task.WhenAll(tasks);
+        }
+
+        private InvocationMessage CreateInvocationMessage(string methodName, object[] args)
+        {
+            return new InvocationMessage(GetInvocationId(), nonBlocking: true, target: methodName, arguments: args);
         }
 
         public override Task InvokeUserAsync(string userId, string methodName, object[] args)
@@ -146,9 +139,6 @@ namespace Microsoft.AspNetCore.SignalR
 
         public override Task OnConnectedAsync(HubConnectionContext connection)
         {
-            // Set the hub groups feature
-            connection.Features.Set<IHubGroupsFeature>(new HubGroupsFeature());
-
             _connections.Add(connection);
             return Task.CompletedTask;
         }
@@ -182,16 +172,6 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 return !excludedIds.Contains(connection.ConnectionId);
             });
-        }
-
-        private interface IHubGroupsFeature
-        {
-            HashSet<string> Groups { get; }
-        }
-
-        private class HubGroupsFeature : IHubGroupsFeature
-        {
-            public HashSet<string> Groups { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         }
     }
 }
