@@ -965,5 +965,56 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
             Assert.NotNull(transferModeFeature);
             Assert.Equal(TransferMode.Binary, transferModeFeature.TransferMode);
         }
+
+        [Fact]
+        public async Task HttpClientIsDisposedOnConnectionDispose()
+        {
+            var httpMessageHandler = new TestHttpMessageHandler();
+            var connection = new HttpConnection(new Uri("http://fakeuri.org/"), TransportType.LongPolling, loggerFactory: null, httpMessageHandler: httpMessageHandler);
+            await connection.StartAsync().OrTimeout();
+            await connection.DisposeAsync().OrTimeout();
+
+            Assert.True(httpMessageHandler.IsDisposed);
+        }
+
+        [Fact]
+        public async Task HttpClientIsDisposedWhenConnectionClosesAbnormally()
+        {
+            var httpMessageHandler = new TestHttpMessageHandler();
+            using (var httpClient = new HttpClient(httpMessageHandler))
+            {
+                var longPollingTransport = new LongPollingTransport(httpClient, new LoggerFactory());
+                var connection = new HttpConnection(new Uri("http://fakeuri.org/"), new TestTransportFactory(longPollingTransport), loggerFactory: null, httpMessageHandler: httpMessageHandler);
+
+                var closedEventTcs = new TaskCompletionSource<Exception>();
+                connection.Closed += e =>
+                {
+                    closedEventTcs.SetResult(e);
+                    return Task.CompletedTask;
+                };
+
+                await connection.StartAsync().OrTimeout();
+                await longPollingTransport.StopAsync().OrTimeout();
+                await closedEventTcs.Task.OrTimeout();
+
+                Assert.True(httpMessageHandler.IsDisposed);
+            }
+        }
+
+        private class TestHttpMessageHandler : HttpMessageHandler
+        {
+            public bool IsDisposed { get; private set; }
+            protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            {
+                await Task.Yield();
+                return ResponseUtils.CreateResponse(HttpStatusCode.OK,
+                    ResponseUtils.CreateNegotiationResponse());
+            }
+
+            protected override void Dispose(bool disposing)
+            {
+                IsDisposed = true;
+            }
+        }
     }
 }

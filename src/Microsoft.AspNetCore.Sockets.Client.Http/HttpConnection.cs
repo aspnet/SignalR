@@ -173,7 +173,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     await _eventQueue.Drain();
 
                     await Task.WhenAny(_eventQueue.Drain().NoThrow(), Task.Delay(_eventQueueDrainTimeout));
-                    _httpClient.Dispose();
 
                     _logger.RaiseClosed(_connectionId);
 
@@ -365,6 +364,10 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 Output.TryComplete(ex);
                 _logger.ErrorReceiving(_connectionId, ex);
             }
+            finally
+            {
+                _httpClient.Dispose();
+            }
 
             _logger.EndReceive(_connectionId);
         }
@@ -440,8 +443,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
             {
                 await _receiveLoopTask;
             }
-
-            _httpClient.Dispose();
         }
 
         private class ConnectionState
