@@ -5,7 +5,7 @@ import { ConnectionClosed } from "./Common"
 import { IConnection } from "./IConnection"
 import { HttpConnection} from "./HttpConnection"
 import { TransportType, TransferMode } from "./Transports"
-import { Subject, Observable } from "./Observable"
+import { Subject, Rx } from "./Observable"
 import { IHubProtocol, ProtocolType, MessageType, HubMessage, CompletionMessage, ResultMessage, InvocationMessage, NegotiationMessage } from "./IHubProtocol";
 import { JsonHubProtocol } from "./JsonHubProtocol";
 import { TextMessageFormat } from "./Formatters"
@@ -131,7 +131,7 @@ export class HubConnection {
         return this.connection.stop();
     }
 
-    stream<T>(methodName: string, ...args: any[]): Observable<T> {
+    stream<T>(methodName: string, ...args: any[]): Rx.Observable<T> {
         let invocationDescriptor = this.createInvocation(methodName, args, false);
 
         let subject = new Subject<T>();

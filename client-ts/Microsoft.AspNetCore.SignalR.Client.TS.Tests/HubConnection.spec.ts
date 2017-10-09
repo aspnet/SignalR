@@ -390,6 +390,47 @@ describe("HubConnection", () => {
             connection.receive({ type: 3, invocationId: connection.lastInvocationId });
             expect(await observer.completed).toEqual([1, 2, 3]);
         });
+
+        it("can complete all subscriptions", async () => {
+            let connection = new TestConnection();
+
+            let hubConnection = new HubConnection(connection);
+            let observer1 = new TestObserver();
+            let observer2 = new TestObserver();
+            let stream = hubConnection.stream<any>("testMethod");
+            stream.subscribe(observer1);
+            stream.subscribe(observer2);
+
+            connection.receive({ type: 2, invocationId: connection.lastInvocationId, item: 1 });
+            expect(observer1.itemsReceived).toEqual([1]);
+            expect(observer2.itemsReceived).toEqual([1]);
+
+            stream.complete();
+
+            connection.receive({ type: 2, invocationId: connection.lastInvocationId, item: 2 });
+            expect(await observer1.completed).toEqual([1]);
+            expect(await observer2.completed).toEqual([1]);
+        });
+
+        it("does not allow subscriptions after completing", async () => {
+            let connection = new TestConnection();
+
+            let hubConnection = new HubConnection(connection);
+            let observer1 = new TestObserver();
+            let observer2 = new TestObserver();
+            let stream = hubConnection.stream<any>("testMethod");
+            stream.subscribe(observer1);
+
+            connection.receive({ type: 2, invocationId: connection.lastInvocationId, item: 1 });
+            expect(observer1.itemsReceived).toEqual([1]);
+
+            stream.complete();
+            stream.subscribe(observer2);
+
+            connection.receive({ type: 2, invocationId: connection.lastInvocationId, item: 2 });
+            expect(await observer1.completed).toEqual([1]);
+            expect(observer2.itemsReceived).toEqual([]);
+        });
     });
 
     describe("onClose", () => {
