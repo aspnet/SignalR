@@ -391,25 +391,25 @@ describe("HubConnection", () => {
             expect(await observer.completed).toEqual([1, 2, 3]);
         });
 
-        it("does not require error function registered", (): Promise<any> => {
-            let connection = new TestConnection();
-
-            let hubConnection = new HubConnection(connection);
-            let observer = hubConnection.stream("testMethod").subscribe({
-                next: val => { }
-            });
-
-            // Typically this would be called by the transport
-            // triggers observer.error()
+        it("does not require error function registered", async () => {
             try {
+                let connection = new TestConnection();
+
+                let hubConnection = new HubConnection(connection);
+                let observer = hubConnection.stream("testMethod").subscribe({
+                    next: val => { }
+                });
+
+                // Typically this would be called by the transport
+                // triggers observer.error()
                 connection.onclose(new Error("Connection lost"));
-            } catch (err) {
-                return Promise.reject(err);
+                await Promise.resolve();
+            } catch (e) {
+                await Promise.reject(e);
             }
-            return Promise.resolve();
         });
 
-        it("does not require complete function registered", (): Promise<any> => {
+        it("does not require complete function registered", async () => {
             let connection = new TestConnection();
 
             let hubConnection = new HubConnection(connection);
@@ -418,12 +418,8 @@ describe("HubConnection", () => {
             });
 
             // Send completion to trigger observer.complete()
-            try {
-                connection.receive({ type: 3, invocationId: connection.lastInvocationId });
-            } catch (err) {
-                return Promise.reject(err);
-            }
-            return Promise.resolve();
+            // Expectation is connection.receive will not to throw
+            connection.receive({ type: 3, invocationId: connection.lastInvocationId });
         });
     });
 
