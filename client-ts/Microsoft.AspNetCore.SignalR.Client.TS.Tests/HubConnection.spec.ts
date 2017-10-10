@@ -392,21 +392,16 @@ describe("HubConnection", () => {
         });
 
         it("does not require error function registered", async () => {
-            try {
-                let connection = new TestConnection();
+            let connection = new TestConnection();
 
-                let hubConnection = new HubConnection(connection);
-                let observer = hubConnection.stream("testMethod").subscribe({
-                    next: val => { }
-                });
+            let hubConnection = new HubConnection(connection);
+            let observer = hubConnection.stream("testMethod").subscribe({
+                next: val => { }
+            });
 
-                // Typically this would be called by the transport
-                // triggers observer.error()
-                connection.onclose(new Error("Connection lost"));
-                await Promise.resolve();
-            } catch (e) {
-                await Promise.reject(e);
-            }
+            // Typically this would be called by the transport
+            // triggers observer.error()
+            connection.onclose(new Error("Connection lost"));
         });
 
         it("does not require complete function registered", async () => {
