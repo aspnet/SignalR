@@ -18,6 +18,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 {
     public class ServerSentEventsTransport : ITransport
     {
+        private static readonly MemoryPool _memoryPool = new MemoryPool();
         private readonly HttpClient _httpClient;
         private readonly ILogger _logger;
         private readonly CancellationTokenSource _transportCts = new CancellationTokenSource();
@@ -81,8 +82,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
             var stream = await response.Content.ReadAsStreamAsync();
-            var memoryPool = new MemoryPool();
-            var pipelineReader = StreamPipeConnection.CreateReader(new PipeOptions(memoryPool), stream);
+            var pipelineReader = StreamPipeConnection.CreateReader(new PipeOptions(_memoryPool), stream);
             var readCancellationRegistration = cancellationToken.Register(
                 reader => ((IPipeReader)reader).CancelPendingRead(), pipelineReader);
             try
@@ -134,7 +134,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 _transportCts.Cancel();
                 stream.Dispose();
                 _logger.ReceiveStopped(_connectionId);
-                memoryPool.Dispose();
             }
         }
 
