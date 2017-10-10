@@ -148,6 +148,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             catch
             {
                 Interlocked.Exchange(ref _connectionState, ConnectionState.Disconnected);
+                _httpClient.Dispose();
                 throw;
             }
 
@@ -415,7 +416,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
             if (Interlocked.Exchange(ref _connectionState, ConnectionState.Disconnected) == ConnectionState.Initial)
             {
-                // the connection was never started so there is nothing to clean up
+                _httpClient.Dispose();
+                // The connection was never started.
                 return;
             }
 

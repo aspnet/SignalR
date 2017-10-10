@@ -1001,14 +1001,46 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
             }
         }
 
+        [Fact]
+        public async Task HttpClientIsDisposedWhenConnectionDisposedBeforeStarting()
+        {
+            var httpMessageHandler = new TestHttpMessageHandler();
+            var connection = new HttpConnection(new Uri("http://fakeuri.org/"), TransportType.LongPolling, loggerFactory: null, httpMessageHandler: httpMessageHandler);
+
+            await connection.DisposeAsync().OrTimeout();
+
+            Assert.True(httpMessageHandler.IsDisposed);
+        }
+
+        [Fact]
+        public async Task HttpClientIsDisposedWhenConnectionFailsNegotiate()
+        {
+            var httpMessageHandler = new TestHttpMessageHandler(failNegotiate: true);
+            var connection = new HttpConnection(new Uri("http://fakeuri.org/"), TransportType.LongPolling, loggerFactory: null, httpMessageHandler: httpMessageHandler);
+
+            await Assert.ThrowsAnyAsync<Exception>(() => connection.StartAsync()).OrTimeout();
+
+            Assert.True(httpMessageHandler.IsDisposed);
+        }
+
         private class TestHttpMessageHandler : HttpMessageHandler
         {
+            private bool _failNegotiate;
+            public TestHttpMessageHandler(bool failNegotiate = false)
+            {
+                _failNegotiate = failNegotiate;
+            }
+
             public bool IsDisposed { get; private set; }
             protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             {
                 await Task.Yield();
-                return ResponseUtils.CreateResponse(HttpStatusCode.OK,
-                    ResponseUtils.CreateNegotiationResponse());
+                var response = string.Empty;
+                if (!_failNegotiate)
+                {
+                    response = ResponseUtils.CreateNegotiationResponse();
+                }
+                return ResponseUtils.CreateResponse(HttpStatusCode.OK, response);
             }
 
             protected override void Dispose(bool disposing)
