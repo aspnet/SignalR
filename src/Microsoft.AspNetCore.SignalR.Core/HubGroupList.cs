@@ -18,11 +18,8 @@ namespace Microsoft.AspNetCore.SignalR
         {
             get
             {
-                if (_groups.TryGetValue(groupName, out var group))
-                {
-                    return group;
-                }
-                return null;
+                _groups.TryGetValue(groupName, out var group);
+                return group;
             }
         }
 
@@ -52,10 +49,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public IEnumerator<ConcurrentDictionary<string, HubConnectionContext>> GetEnumerator()
         {
-            foreach (var item in _groups)
-            {
-                yield return item.Value;
-            }
+            return _groups.Values.GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -74,7 +68,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         private ConcurrentDictionary<string, HubConnectionContext> AddConnectionToGroup(HubConnectionContext connection, ConcurrentDictionary<string, HubConnectionContext> group)
         {
-            group.AddOrUpdate(connection.ConnectionId, connection, (key, oldValue) => connection);
+            group.AddOrUpdate(connection.ConnectionId, connection, (key, _) => connection);
             return group;
         }
     }
