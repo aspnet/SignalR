@@ -18,6 +18,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
         event Func<byte[], Task> Received;
         event Func<Exception, Task> Closed;
 
-         IFeatureCollection Features { get; }
+        IFeatureCollection Features { get; }
     }
 }

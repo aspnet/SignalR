@@ -714,8 +714,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 await Task.WhenAll(firstClient.Connected, secondClient.Connected, thirdClient.Connected).OrTimeout();
 
-                await firstClient.SendInvocationAsync("SendToAllExcept", "To second", thirdClient.Connection.ConnectionId).OrTimeout();
-                await firstClient.SendInvocationAsync("SendToAllExcept", "To third", secondClient.Connection.ConnectionId).OrTimeout();
+                await firstClient.SendInvocationAsync("SendToAllExcept", "To second", new string[] { thirdClient.Connection.ConnectionId }).OrTimeout();
+                await firstClient.SendInvocationAsync("SendToAllExcept", "To third", new string[] { secondClient.Connection.ConnectionId }).OrTimeout();
 
                 var secondClientResult = await secondClient.ReadAsync().OrTimeout();
                 var invocation = Assert.IsType<InvocationMessage>(secondClientResult);
@@ -1239,7 +1239,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 return Clients.All.Broadcast(message);
             }
 
-            public Task SendToAllExcept(string message, params string[] excludedIds)
+            public Task SendToAllExcept(string message, string[] excludedIds)
             {
                 return Clients.AllExcept(excludedIds).Send(message);
             }
@@ -1417,7 +1417,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 return Clients.All.Broadcast(message);
             }
 
-            public Task SendToAllExcept(string message, params string[] excludedIds)
+            public Task SendToAllExcept(string message, string[] excludedIds)
             {
                 return Clients.AllExcept(excludedIds).Send(message);
             }
@@ -1586,7 +1586,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
             }
 
-            public Task SendToAllExcept(string message, params string[] excludedIds)
+            public Task SendToAllExcept(string message, string[] excludedIds)
             {
                 return Clients.AllExcept(excludedIds).InvokeAsync("Send", message);
             }
