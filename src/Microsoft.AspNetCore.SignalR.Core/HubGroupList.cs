@@ -1,11 +1,10 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Text;
+using System.Linq;
 
 namespace Microsoft.AspNetCore.SignalR
 {
@@ -45,6 +44,15 @@ namespace Microsoft.AspNetCore.SignalR
             }
         }
 
+        public void RemoveDisconnectedConnection(string connectionId)
+        {
+            var groupNames = _groups.Where(x => x.Value.Keys.Contains(connectionId)).Select(x => x.Key);
+            foreach (var groupName in groupNames)
+            {
+                Remove(connectionId, groupName);
+            }
+        }
+
         public int Count => _groups.Count;
 
         public IEnumerator<ConcurrentDictionary<string, HubConnectionContext>> GetEnumerator()
@@ -59,14 +67,17 @@ namespace Microsoft.AspNetCore.SignalR
 
         private void CreateOrUpdateGroupWithConnection(string groupName, HubConnectionContext connection)
         {
-            _groups.AddOrUpdate(groupName, AddConnectionToGroup(connection, new ConcurrentDictionary<string, HubConnectionContext>()), (key, oldCollection) =>
-            {
-                AddConnectionToGroup(connection, oldCollection);
-                return oldCollection;
-            });
+            _groups.AddOrUpdate(groupName,
+                AddConnectionToGroup(connection, new ConcurrentDictionary<string, HubConnectionContext>()),
+                (key, oldCollection) =>
+                {
+                    AddConnectionToGroup(connection, oldCollection);
+                    return oldCollection;
+                });
         }
 
-        private static ConcurrentDictionary<string, HubConnectionContext> AddConnectionToGroup(HubConnectionContext connection, ConcurrentDictionary<string, HubConnectionContext> group)
+        private static ConcurrentDictionary<string, HubConnectionContext> AddConnectionToGroup(
+            HubConnectionContext connection, ConcurrentDictionary<string, HubConnectionContext> group)
         {
             group.AddOrUpdate(connection.ConnectionId, connection, (key, _) => connection);
             return group;

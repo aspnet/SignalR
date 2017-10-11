@@ -143,6 +143,7 @@ namespace Microsoft.AspNetCore.SignalR
         public override Task OnDisconnectedAsync(HubConnectionContext connection)
         {
             _connections.Remove(connection);
+            _groups.RemoveDisconnectedConnection(connection.ConnectionId);
             return Task.CompletedTask;
         }
 
