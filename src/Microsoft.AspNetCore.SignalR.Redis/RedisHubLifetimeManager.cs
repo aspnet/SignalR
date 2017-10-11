@@ -122,7 +122,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                 if (groupMessage.Action == GroupAction.Remove)
                 {
                     var connection = _connections[groupMessage.ConnectionId];
-                    if (connection != null && !await RemoveGroupAsyncCore(connection, groupMessage.Group))
+                    if (connection == null || !await RemoveGroupAsyncCore(connection, groupMessage.Group))
                     {
                         // user not on this server
                         return;
