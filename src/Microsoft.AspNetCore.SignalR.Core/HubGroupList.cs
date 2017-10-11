@@ -66,7 +66,7 @@ namespace Microsoft.AspNetCore.SignalR
             });
         }
 
-        private ConcurrentDictionary<string, HubConnectionContext> AddConnectionToGroup(HubConnectionContext connection, ConcurrentDictionary<string, HubConnectionContext> group)
+        private static ConcurrentDictionary<string, HubConnectionContext> AddConnectionToGroup(HubConnectionContext connection, ConcurrentDictionary<string, HubConnectionContext> group)
         {
             group.AddOrUpdate(connection.ConnectionId, connection, (key, _) => connection);
             return group;

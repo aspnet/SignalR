@@ -115,8 +115,8 @@ namespace Microsoft.AspNetCore.SignalR
             var group = _groups[groupName];
             if (group != null)
             {
-                InvocationMessage message = CreateInvocationMessage(methodName, args);
-                var tasks = group.Values.Select(c => WriteAsync(c, message)).ToList();
+                var message = CreateInvocationMessage(methodName, args);
+                var tasks = group.Values.Select(c => WriteAsync(c, message));
                 return Task.WhenAll(tasks);
             }
 
