@@ -148,6 +148,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             catch
             {
                 Interlocked.Exchange(ref _connectionState, ConnectionState.Disconnected);
+                // HttpConnection is now in a non-usable state, disposing HttpClient to cleanup resources.
                 _httpClient.Dispose();
                 throw;
             }
@@ -367,6 +368,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
             }
             finally
             {
+                // When connection has been started cleanly this will cleanup
+                // HttpClient on normal or abnormal connection termination.
                 _httpClient.Dispose();
             }
 
@@ -416,8 +419,9 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
             if (Interlocked.Exchange(ref _connectionState, ConnectionState.Disconnected) == ConnectionState.Initial)
             {
-                _httpClient.Dispose();
                 // The connection was never started.
+                // Connection is now unusable, so cleanup resources.
+                _httpClient.Dispose();
                 return;
             }
 
