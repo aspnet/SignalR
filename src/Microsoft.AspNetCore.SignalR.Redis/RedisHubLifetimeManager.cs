@@ -167,7 +167,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             return PublishAsync(_channelNamePrefix, message);
         }
 
-        public override Task InvokeAllExceptAsync(string methodName, object[] args, IReadOnlyList<string> excludedIds)
+        public override Task InvokeAllExceptAsync(string methodName, object[] args, params string[] excludedIds)
         {
             var message = new RedisExcludeClientsMessage(GetInvocationId(), nonBlocking: true, target: methodName, excludedIds: excludedIds, arguments: args);
             return PublishAsync(_channelNamePrefix + ".AllExcept", message);

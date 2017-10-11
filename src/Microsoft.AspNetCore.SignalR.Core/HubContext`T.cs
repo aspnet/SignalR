@@ -24,7 +24,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public virtual IGroupManager Groups { get; }
 
-        public T AllExcept(IReadOnlyList<string> excludedIds)
+        public T AllExcept(params string[] excludedIds)
         {
             return TypedClientBuilder<T>.Build(new AllClientsExceptProxy<THub>(_lifetimeManager, excludedIds));
         }
