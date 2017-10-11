@@ -7,7 +7,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
-using System.Collections.Concurrent;
 
 namespace Microsoft.AspNetCore.SignalR
 {
@@ -113,15 +112,15 @@ namespace Microsoft.AspNetCore.SignalR
                 throw new ArgumentNullException(nameof(groupName));
             }
 
-            List<Task> tasks = new List<Task>();
-            InvocationMessage message = CreateInvocationMessage(methodName, args);
             var group = _groups[groupName];
             if (group != null)
             {
-                tasks = group.Values.Select(c => WriteAsync(c, message)).ToList();
+                InvocationMessage message = CreateInvocationMessage(methodName, args);
+                var tasks = group.Values.Select(c => WriteAsync(c, message)).ToList();
+                return Task.WhenAll(tasks);
             }
 
-            return Task.WhenAll(tasks);
+            return Task.CompletedTask;
         }
 
         private InvocationMessage CreateInvocationMessage(string methodName, object[] args)
@@ -131,7 +130,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public override Task InvokeUserAsync(string userId, string methodName, object[] args)
         {
-            return InvokeAllWhere(methodName, args, connection => 
+            return InvokeAllWhere(methodName, args, connection =>
                 string.Equals(connection.UserIdentifier, userId, StringComparison.Ordinal));
         }
 
