@@ -38,7 +38,7 @@ namespace Microsoft.AspNetCore.SignalR
         private readonly ILogger<HubEndPoint<THub>> _logger;
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly IHubProtocolResolver _protocolResolver;
-        private readonly IOptions<HubOptions> _hubOptions;
+        private readonly HubOptions _hubOptions;
         private readonly IUserIdProvider _userIdProvider;
 
         public HubEndPoint(HubLifetimeManager<THub> lifetimeManager,
@@ -52,7 +52,7 @@ namespace Microsoft.AspNetCore.SignalR
             _protocolResolver = protocolResolver;
             _lifetimeManager = lifetimeManager;
             _hubContext = hubContext;
-            _hubOptions = hubOptions;
+            _hubOptions = hubOptions.Value;
             _logger = logger;
             _serviceScopeFactory = serviceScopeFactory;
             _userIdProvider = userIdProvider;
@@ -130,7 +130,7 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 using (var cts = new CancellationTokenSource())
                 {
-                    cts.CancelAfter(_hubOptions.Value.NegotiateTimeout);
+                    cts.CancelAfter(_hubOptions.NegotiateTimeout);
                     while (await connection.Input.WaitToReadAsync(cts.Token))
                     {
                         while (connection.Input.TryRead(out var buffer))
