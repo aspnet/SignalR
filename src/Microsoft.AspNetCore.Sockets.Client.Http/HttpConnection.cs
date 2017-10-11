@@ -148,6 +148,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
             catch
             {
                 Interlocked.Exchange(ref _connectionState, ConnectionState.Disconnected);
+                // HttpConnection is now in a non-usable state, disposing HttpClient to cleanup resources.
+                _httpClient.Dispose();
                 throw;
             }
 
@@ -173,7 +175,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     await _eventQueue.Drain();
 
                     await Task.WhenAny(_eventQueue.Drain().NoThrow(), Task.Delay(_eventQueueDrainTimeout));
-                    _httpClient.Dispose();
 
                     _logger.RaiseClosed(_connectionId);
 
@@ -365,6 +366,12 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 Output.TryComplete(ex);
                 _logger.ErrorReceiving(_connectionId, ex);
             }
+            finally
+            {
+                // When connection has been started cleanly this will cleanup
+                // HttpClient on normal or abnormal connection termination.
+                _httpClient.Dispose();
+            }
 
             _logger.EndReceive(_connectionId);
         }
@@ -412,7 +419,9 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
             if (Interlocked.Exchange(ref _connectionState, ConnectionState.Disconnected) == ConnectionState.Initial)
             {
-                // the connection was never started so there is nothing to clean up
+                // The connection was never started.
+                // Connection is now unusable, so cleanup resources.
+                _httpClient.Dispose();
                 return;
             }
 
@@ -440,8 +449,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
             {
                 await _receiveLoopTask;
             }
-
-            _httpClient.Dispose();
         }
 
         private class ConnectionState
