@@ -121,7 +121,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
                 if (groupMessage.Action == GroupAction.Remove)
                 {
-                    if (!await RemoveGroupAsyncCore(groupMessage.ConnectionId, groupMessage.Group))
+                    var connection = _connections[groupMessage.ConnectionId];
+                    if (connection != null && !await RemoveGroupAsyncCore(connection, groupMessage.Group))
                     {
                         // user not on this server
                         return;
@@ -274,7 +275,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             return Task.WhenAll(connectionTask, userTask);
         }
 
-        public override Task OnDisconnectedAsync(HubConnectionContext connection)
+        public override async Task OnDisconnectedAsync(HubConnectionContext connection)
         {
             _connections.Remove(connection);
 
@@ -300,11 +301,13 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                 // in RemoveGroupAsync
                 foreach (var group in groupNames.ToArray())
                 {
-                    tasks.Add(RemoveGroupAsync(connection.ConnectionId, group));
+                    // Use RemoveGroupAsyncCore because the connection is local and we don't want to
+                    // accidentally go to other servers with our remove request.
+                    tasks.Add(RemoveGroupAsyncCore(connection, group));
                 }
             }
 
-            return Task.WhenAll(tasks);
+            await Task.WhenAll(tasks);
         }
 
         public override async Task AddGroupAsync(string connectionId, string groupName)
@@ -399,7 +402,9 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                 throw new ArgumentNullException(nameof(groupName));
             }
 
-            if (await RemoveGroupAsyncCore(connectionId, groupName))
+
+            var connection = _connections[connectionId];
+            if (connection != null && await RemoveGroupAsyncCore(connection, groupName))
             {
                 // short circuit if connection is on this server
                 return;
@@ -408,18 +413,16 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             await SendGroupActionAndWaitForAck(connectionId, groupName, GroupAction.Remove);
         }
 
-        private async Task<bool> RemoveGroupAsyncCore(string connectionId, string groupName)
+        /// <summary>
+        /// This takes <see cref="HubConnectionContext"/> because we want to remove the connection from the
+        /// _connections list in OnDisconnectedAsync and still be able to remove groups with this method.
+        /// </summary>
+        private async Task<bool> RemoveGroupAsyncCore(HubConnectionContext connection, string groupName)
         {
             var groupChannel = _channelNamePrefix + ".group." + groupName;
 
             GroupData group;
             if (!_groups.TryGetValue(groupChannel, out group))
-            {
-                return false;
-            }
-
-            var connection = _connections[connectionId];
-            if (connection == null)
             {
                 return false;
             }
@@ -501,7 +504,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
         {
             using (var reader = new JsonTextReader(new StreamReader(new MemoryStream(data))))
             {
-                return (T)_serializer.Deserialize(reader);
+                return _serializer.Deserialize<T>(reader);
             }
         }
 
