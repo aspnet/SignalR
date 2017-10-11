@@ -275,7 +275,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             return Task.WhenAll(connectionTask, userTask);
         }
 
-        public override async Task OnDisconnectedAsync(HubConnectionContext connection)
+        public override Task OnDisconnectedAsync(HubConnectionContext connection)
         {
             _connections.Remove(connection);
 
@@ -307,7 +307,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                 }
             }
 
-            await Task.WhenAll(tasks);
+            return Task.WhenAll(tasks);
         }
 
         public override async Task AddGroupAsync(string connectionId, string groupName)
