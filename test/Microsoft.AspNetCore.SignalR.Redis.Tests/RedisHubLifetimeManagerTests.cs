@@ -127,26 +127,6 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             await manager.InvokeConnectionAsync("NotARealConnectionId", "Hello", new object[] { "World" });
         }
 
-        //[Fact]
-        //public async Task AddGroupOnNonExistentConnectionNoops()
-        //{
-        //    var manager = new RedisHubLifetimeManager<MyHub>(new LoggerFactory().CreateLogger<RedisHubLifetimeManager<MyHub>>(), Options.Create(new RedisOptions()
-        //    {
-        //        Factory = t => new TestConnectionMultiplexer()
-        //    }));
-        //    await manager.AddGroupAsync("NotARealConnectionId", "MyGroup");
-        //}
-
-        //[Fact]
-        //public async Task RemoveGroupOnNonExistentConnectionNoops()
-        //{
-        //    var manager = new RedisHubLifetimeManager<MyHub>(new LoggerFactory().CreateLogger<RedisHubLifetimeManager<MyHub>>(), Options.Create(new RedisOptions()
-        //    {
-        //        Factory = t => new TestConnectionMultiplexer()
-        //    }));
-        //    await manager.RemoveGroupAsync("NotARealConnectionId", "MyGroup");
-        //}
-
         [Fact]
         public async Task InvokeAllAsyncWithMultipleServersWritesToAllConnectionsOutput()
         {

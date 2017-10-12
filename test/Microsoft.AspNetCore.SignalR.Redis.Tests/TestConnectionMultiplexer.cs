@@ -28,6 +28,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
         public bool IncludeDetailInExceptions { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
         public int StormLogThreshold { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
+        // The event '---' is never used
+#pragma warning disable CS0067
         public event EventHandler<RedisErrorEventArgs> ErrorMessage;
         public event EventHandler<ConnectionFailedEventArgs> ConnectionFailed;
         public event EventHandler<InternalErrorEventArgs> InternalError;
@@ -35,18 +37,12 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
         public event EventHandler<EndPointEventArgs> ConfigurationChanged;
         public event EventHandler<EndPointEventArgs> ConfigurationChangedBroadcast;
         public event EventHandler<HashSlotMovedEventArgs> HashSlotMoved;
+#pragma warning restore CS0067
 
         private ISubscriber _subscriber = new TestSubscriber();
 
         public void BeginProfiling(object forContext)
         {
-            ErrorMessage.Invoke(null, null);
-            ConnectionFailed.Invoke(null, null);
-            InternalError.Invoke(null, null);
-            ConnectionRestored.Invoke(null, null);
-            ConfigurationChanged.Invoke(null, null);
-            ConfigurationChangedBroadcast.Invoke(null, null);
-            HashSlotMoved.Invoke(null, null);
             throw new NotImplementedException();
         }
 
