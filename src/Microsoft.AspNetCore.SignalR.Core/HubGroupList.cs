@@ -10,8 +10,10 @@ namespace Microsoft.AspNetCore.SignalR
 {
     public class HubGroupList : IReadOnlyCollection<ConcurrentDictionary<string, HubConnectionContext>>
     {
-        private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, HubConnectionContext>> _groups =
-            new ConcurrentDictionary<string, ConcurrentDictionary<string, HubConnectionContext>>();
+        private readonly ConcurrentDictionary<string, GroupConnectionList> _groups =
+            new ConcurrentDictionary<string, GroupConnectionList>();
+
+        private static readonly GroupConnectionList EmptyGroupConnectionList = new GroupConnectionList();
 
         public ConcurrentDictionary<string, HubConnectionContext> this[string groupName]
         {
@@ -29,19 +31,12 @@ namespace Microsoft.AspNetCore.SignalR
 
         public void Remove(string connectionId, string groupName)
         {
-            if (_groups.TryGetValue(groupName, out var connections))
-            {
-                if (connections.TryRemove(connectionId, out var _) && connections.Count == 0)
-                {
-                    if (_groups.TryRemove(groupName, out var newlyAddedConnections) && newlyAddedConnections != null)
-                    {
-                        foreach (var c in newlyAddedConnections)
-                        {
-                            CreateOrUpdateGroupWithConnection(groupName, c.Value);
-                        }
-                    }
-                }
-            }
+            if (!_groups.TryGetValue(groupName, out var connections)) return;
+            ICollection<KeyValuePair<string, GroupConnectionList>> col = _groups;
+            if (!connections.TryRemove(connectionId, out var _) || !connections.IsEmpty) return;
+            var groupToRemove =
+                new KeyValuePair<string, GroupConnectionList>(groupName, EmptyGroupConnectionList);
+            col.Remove(groupToRemove);
         }
 
         public void RemoveDisconnectedConnection(string connectionId)
@@ -68,7 +63,7 @@ namespace Microsoft.AspNetCore.SignalR
         private void CreateOrUpdateGroupWithConnection(string groupName, HubConnectionContext connection)
         {
             _groups.AddOrUpdate(groupName,
-                AddConnectionToGroup(connection, new ConcurrentDictionary<string, HubConnectionContext>()),
+                AddConnectionToGroup(connection, new GroupConnectionList()),
                 (key, oldCollection) =>
                 {
                     AddConnectionToGroup(connection, oldCollection);
@@ -76,11 +71,26 @@ namespace Microsoft.AspNetCore.SignalR
                 });
         }
 
-        private static ConcurrentDictionary<string, HubConnectionContext> AddConnectionToGroup(
-            HubConnectionContext connection, ConcurrentDictionary<string, HubConnectionContext> group)
+        private static GroupConnectionList AddConnectionToGroup(
+            HubConnectionContext connection, GroupConnectionList group)
         {
             group.AddOrUpdate(connection.ConnectionId, connection, (key, _) => connection);
             return group;
+        }
+    }
+
+    internal class GroupConnectionList : ConcurrentDictionary<string, HubConnectionContext>
+    {
+        public override bool Equals(object obj)
+        {
+            if (obj is ConcurrentDictionary<string, HubConnectionContext> list)
+                return list.Count == Count;
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
         }
     }
 }
