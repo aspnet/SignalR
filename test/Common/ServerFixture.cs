@@ -63,6 +63,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests.Common
                 _logger.LogInformation("Test server shut down");
                 _logToken.Dispose();
             });
+
+            t.Wait();
         }
 
         public void Dispose()
