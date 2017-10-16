@@ -67,8 +67,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         private void CreateOrUpdateGroupWithConnection(string groupName, HubConnectionContext connection)
         {
-            _groups.AddOrUpdate(groupName,
-                AddConnectionToGroup(connection, new GroupConnectionList()),
+            _groups.AddOrUpdate(groupName, _ => AddConnectionToGroup(connection, new GroupConnectionList()),
                 (key, oldCollection) =>
                 {
                     AddConnectionToGroup(connection, oldCollection);
