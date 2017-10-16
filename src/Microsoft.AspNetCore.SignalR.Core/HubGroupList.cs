@@ -31,12 +31,17 @@ namespace Microsoft.AspNetCore.SignalR
 
         public void Remove(string connectionId, string groupName)
         {
-            if (!_groups.TryGetValue(groupName, out var connections)) return;
-            ICollection<KeyValuePair<string, GroupConnectionList>> col = _groups;
-            if (!connections.TryRemove(connectionId, out var _) || !connections.IsEmpty) return;
-            var groupToRemove =
-                new KeyValuePair<string, GroupConnectionList>(groupName, EmptyGroupConnectionList);
-            col.Remove(groupToRemove);
+            if (_groups.TryGetValue(groupName, out var connections))
+            {
+                if (connections.TryRemove(connectionId, out var _) && connections.IsEmpty)
+                {
+                    // If group is empty after connection remove, don't need empty group in dictionary.
+                    // Why this way? Because ICollection.Remove implementation of dictionary checks for key and value. When we remove empty group,
+                    // it checks if no connection added from another thread.
+                    var groupToRemove = new KeyValuePair<string, GroupConnectionList>(groupName, EmptyGroupConnectionList);
+                    ((ICollection<KeyValuePair<string, GroupConnectionList>>)(_groups)).Remove(groupToRemove);
+                }
+            }
         }
 
         public void RemoveDisconnectedConnection(string connectionId)
@@ -74,7 +79,7 @@ namespace Microsoft.AspNetCore.SignalR
         private static GroupConnectionList AddConnectionToGroup(
             HubConnectionContext connection, GroupConnectionList group)
         {
-            group.AddOrUpdate(connection.ConnectionId, connection, (key, _) => connection);
+            group.AddOrUpdate(connection.ConnectionId, connection, (_, __) => connection);
             return group;
         }
     }
@@ -84,7 +89,10 @@ namespace Microsoft.AspNetCore.SignalR
         public override bool Equals(object obj)
         {
             if (obj is ConcurrentDictionary<string, HubConnectionContext> list)
+            {
                 return list.Count == Count;
+            }
+
             return false;
         }
 
