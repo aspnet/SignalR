@@ -170,8 +170,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         {
             using (StartLog(out var loggerFactory))
             {
-                var exceptionThrown = false;
-
                 var httpConnection = new HttpConnection(new Uri(_serverFixture.BaseUrl + path), transportType, loggerFactory);
                 var connection = new HubConnection(httpConnection, protocol, loggerFactory);
                 try
@@ -183,13 +181,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 }
                 catch (Exception ex)
                 {
-                    exceptionThrown = true;
                     loggerFactory.CreateLogger<HubConnectionTests>().LogError(ex, "Exception from test");
                     throw;
                 }
                 finally
                 {
-                    Assert.False(exceptionThrown);
                     await connection.DisposeAsync().OrTimeout();
                 }
             }
