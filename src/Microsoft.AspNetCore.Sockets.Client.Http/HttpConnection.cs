@@ -187,7 +187,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                         }
                         catch (Exception ex)
                         {
-                            _logger.ExceptionThrownFromCallback(_connectionId, nameof(Closed), ex);
+                            _logger.ExceptionThrownFromCallback(_connectionId, nameof(OnReceived), ex);
                         }
                     }
                 });

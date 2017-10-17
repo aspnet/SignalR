@@ -325,7 +325,14 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
             foreach (var handler in copiedHandlers)
             {
-                await handler.InvokeAsync(invocation.Arguments);
+                try
+                {
+                    await handler.InvokeAsync(invocation.Arguments);
+                }
+                catch (Exception ex)
+                {
+                    _logger.ExceptionThrownFromCallback(nameof(On), ex);
+                }
             }
         }
 

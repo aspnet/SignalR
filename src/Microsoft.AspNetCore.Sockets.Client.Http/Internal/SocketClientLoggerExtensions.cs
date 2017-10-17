@@ -151,7 +151,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Internal
             LoggerMessage.Define<DateTime, string>(LogLevel.Information, new EventId(18, nameof(StoppingClient)), "{time}: Connection Id {connectionId}: Stopping client.");
 
         private static readonly Action<ILogger, DateTime, string, string, Exception> _exceptionThrownFromCallback =
-            LoggerMessage.Define<DateTime, string, string>(LogLevel.Error, new EventId(19, nameof(ExceptionThrownFromCallback)), "{time}: Connection Id {connectionId}: An exception was thrown from the '{OnReceivedCallback}' callback");
+            LoggerMessage.Define<DateTime, string, string>(LogLevel.Error, new EventId(19, nameof(ExceptionThrownFromCallback)), "{time}: Connection Id {connectionId}: An exception was thrown from the '{callback}' callback");
 
 
         public static void StartTransport(this ILogger logger, string connectionId, TransferMode transferMode)
