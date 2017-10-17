@@ -492,9 +492,9 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 _state = state;
             }
 
-            public async Task InvokeAsync(object[] parameters)
+            public Task InvokeAsync(object[] parameters)
             {
-                await _callback(parameters, _state);
+                return _callback(parameters, _state);
             }
         }
 

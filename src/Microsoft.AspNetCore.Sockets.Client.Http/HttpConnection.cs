@@ -41,7 +41,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
         private readonly TimeSpan _eventQueueDrainTimeout = TimeSpan.FromSeconds(5);
         private ReadableChannel<byte[]> Input => _transportChannel.In;
         private WritableChannel<SendMessage> Output => _transportChannel.Out;
-        private List<ReceiveCallBack> _callbacks = new List<ReceiveCallBack>();
+        private List<ReceiveCallback> _callbacks = new List<ReceiveCallback>();
 
         public Uri Url { get; }
 
@@ -187,7 +187,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                         }
                         catch (Exception ex)
                         {
-                            _logger.ExceptionThrownFromHandler(_connectionId, nameof(Closed), ex);
+                            _logger.ExceptionThrownFromCallback(_connectionId, nameof(Closed), ex);
                         }
                     }
                 });
@@ -340,22 +340,22 @@ namespace Microsoft.AspNetCore.Sockets.Client
                             _logger.RaiseReceiveEvent(_connectionId);
 
                             // Copying the callbacks to avoid concurrency issues
-                            ReceiveCallBack[] callBackCopies;
+                            ReceiveCallback[] callbackCopies;
                             lock (_callbacks)
                             {
-                                callBackCopies = new ReceiveCallBack[_callbacks.Count];
-                                _callbacks.CopyTo(callBackCopies);
+                                callbackCopies = new ReceiveCallback[_callbacks.Count];
+                                _callbacks.CopyTo(callbackCopies);
                             }
 
-                            foreach (var callBackObject in callBackCopies)
+                            foreach (var callbackObject in callbackCopies)
                             {
                                 try
                                 {
-                                    await callBackObject.InvokeAsync(buffer);
+                                    await callbackObject.InvokeAsync(buffer);
                                 }
                                 catch (Exception ex)
                                 {
-                                    _logger.ExceptionThrownFromHandler(_connectionId, nameof(callBackObject), ex);
+                                    _logger.ExceptionThrownFromCallback(_connectionId, "OnReceived", ex);
                                 }
                             }
                         });
@@ -454,7 +454,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         public IDisposable OnReceived(Func<byte[], object, Task> callback, object state)
         {
-            var callBack = new ReceiveCallBack(callback, state);
+            var callBack = new ReceiveCallback(callback, state);
             lock (_callbacks)
             {
                 _callbacks.Add(callBack);
@@ -462,12 +462,12 @@ namespace Microsoft.AspNetCore.Sockets.Client
             return new Subscription(callBack, _callbacks);
         }
 
-        private class ReceiveCallBack
+        private class ReceiveCallback
         {
             private readonly Func<byte[], object, Task> _callback;
             private readonly object _state;
 
-            public ReceiveCallBack(Func<byte[], object, Task> callBack, object state)
+            public ReceiveCallback(Func<byte[], object, Task> callBack, object state)
             {
                 _callback = callBack;
                 _state = state;
@@ -481,9 +481,9 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         private class Subscription : IDisposable
         {
-            private readonly ReceiveCallBack _callback;
-            private readonly List<ReceiveCallBack> _callbacks;
-            public Subscription(ReceiveCallBack callback, List<ReceiveCallBack> callbacks)
+            private readonly ReceiveCallback _callback;
+            private readonly List<ReceiveCallback> _callbacks;
+            public Subscription(ReceiveCallback callback, List<ReceiveCallback> callbacks)
             {
                 _callback = callback;
                 _callbacks = callbacks;
