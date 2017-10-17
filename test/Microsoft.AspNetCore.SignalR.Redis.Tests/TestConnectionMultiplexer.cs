@@ -174,6 +174,9 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 
     public class TestSubscriber : ISubscriber
     {
+        // _globalSubscriptions represents the Redis Server you are connected to.
+        // So when publishing from a TestSubscriber you fake sending through the server by grabbing the callbacks
+        // from the _globalSubscriptions and inoking them inplace.
         private static ConcurrentDictionary<RedisChannel, List<Action<RedisChannel, RedisValue>>> _globalSubscriptions =
             new ConcurrentDictionary<RedisChannel, List<Action<RedisChannel, RedisValue>>>();
 
@@ -217,7 +220,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
                 }
             }
 
-            return 0;
+            return handlers != null ? handlers.Count : 0;
         }
 
         public async Task<long> PublishAsync(RedisChannel channel, RedisValue message, CommandFlags flags = CommandFlags.None)
@@ -228,7 +231,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 
         public void Subscribe(RedisChannel channel, Action<RedisChannel, RedisValue> handler, CommandFlags flags = CommandFlags.None)
         {
-            _globalSubscriptions.AddOrUpdate(channel, new List<Action<RedisChannel, RedisValue>> { handler }, (_, list) =>
+            _globalSubscriptions.AddOrUpdate(channel, _ => new List<Action<RedisChannel, RedisValue>> { handler }, (_, list) =>
             {
                 list.Add(handler);
                 return list;
@@ -236,10 +239,10 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             _subscriptions.AddOrUpdate(channel, handler, (_, __) => handler);
         }
 
-        public async Task SubscribeAsync(RedisChannel channel, Action<RedisChannel, RedisValue> handler, CommandFlags flags = CommandFlags.None)
+        public Task SubscribeAsync(RedisChannel channel, Action<RedisChannel, RedisValue> handler, CommandFlags flags = CommandFlags.None)
         {
-            await Task.Yield();
             Subscribe(channel, handler, flags);
+            return Task.CompletedTask;
         }
 
         public EndPoint SubscribedEndpoint(RedisChannel channel)
@@ -271,10 +274,10 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             throw new NotImplementedException();
         }
 
-        public async Task UnsubscribeAsync(RedisChannel channel, Action<RedisChannel, RedisValue> handler = null, CommandFlags flags = CommandFlags.None)
+        public Task UnsubscribeAsync(RedisChannel channel, Action<RedisChannel, RedisValue> handler = null, CommandFlags flags = CommandFlags.None)
         {
-            await Task.Yield();
             Unsubscribe(channel, handler, flags);
+            return Task.CompletedTask;
         }
 
         public void Wait(Task task)

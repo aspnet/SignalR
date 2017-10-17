@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <Compile Include="..\Common\TestClient.cs" Link="TestClient.cs" />
+    <Compile Include="..\Common\TaskExtensions.cs" Link="TaskExtensions.cs" />
   </ItemGroup>
 
   <ItemGroup>
