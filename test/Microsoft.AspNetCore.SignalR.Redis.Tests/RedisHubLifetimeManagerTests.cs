@@ -260,6 +260,80 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             }
         }
 
+        [Fact]
+        public async Task DisconnectConnectionRemovesConnectionFromGroup()
+        {
+            var manager = new RedisHubLifetimeManager<MyHub>(new LoggerFactory().CreateLogger<RedisHubLifetimeManager<MyHub>>(),
+            Options.Create(new RedisOptions()
+            {
+                Factory = t => new TestConnectionMultiplexer()
+            }));
+
+            using (var client = new TestClient())
+            {
+                var output = Channel.CreateUnbounded<HubMessage>();
+
+                var connection = new HubConnectionContext(output, client.Connection);
+
+                await manager.OnConnectedAsync(connection).OrTimeout();
+
+                await manager.AddGroupAsync(connection.ConnectionId, "name").OrTimeout();
+
+                await manager.OnDisconnectedAsync(connection).OrTimeout();
+
+                await manager.InvokeGroupAsync("name", "Hello", new object[] { "World" }).OrTimeout();
+
+                Assert.False(output.In.TryRead(out var item));
+            }
+        }
+
+        [Fact]
+        public async Task RemoveGroupFromLocalConnectionNotInGroupDoesNothing()
+        {
+            var manager = new RedisHubLifetimeManager<MyHub>(new LoggerFactory().CreateLogger<RedisHubLifetimeManager<MyHub>>(),
+            Options.Create(new RedisOptions()
+            {
+                Factory = t => new TestConnectionMultiplexer()
+            }));
+
+            using (var client = new TestClient())
+            {
+                var output = Channel.CreateUnbounded<HubMessage>();
+
+                var connection = new HubConnectionContext(output, client.Connection);
+
+                await manager.OnConnectedAsync(connection).OrTimeout();
+
+                await manager.RemoveGroupAsync(connection.ConnectionId, "name").OrTimeout();
+            }
+        }
+
+        [Fact]
+        public async Task RemoveGroupFromConnectionOnDifferentServerNotInGroupDoesNothing()
+        {
+            var manager1 = new RedisHubLifetimeManager<MyHub>(new LoggerFactory().CreateLogger<RedisHubLifetimeManager<MyHub>>(),
+            Options.Create(new RedisOptions()
+            {
+                Factory = t => new TestConnectionMultiplexer()
+            }));
+            var manager2 = new RedisHubLifetimeManager<MyHub>(new LoggerFactory().CreateLogger<RedisHubLifetimeManager<MyHub>>(),
+            Options.Create(new RedisOptions()
+            {
+                Factory = t => new TestConnectionMultiplexer()
+            }));
+
+            using (var client = new TestClient())
+            {
+                var output = Channel.CreateUnbounded<HubMessage>();
+
+                var connection = new HubConnectionContext(output, client.Connection);
+
+                await manager1.OnConnectedAsync(connection).OrTimeout();
+
+                await manager2.RemoveGroupAsync(connection.ConnectionId, "name").OrTimeout();
+            }
+        }
+
         private void AssertMessage(Channel<HubMessage> channel)
         {
             Assert.True(channel.In.TryRead(out var item));

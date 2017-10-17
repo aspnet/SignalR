@@ -28,16 +28,47 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
         public bool IncludeDetailInExceptions { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
         public int StormLogThreshold { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
-        // The event '---' is never used
-#pragma warning disable CS0067
-        public event EventHandler<RedisErrorEventArgs> ErrorMessage;
-        public event EventHandler<ConnectionFailedEventArgs> ConnectionFailed;
-        public event EventHandler<InternalErrorEventArgs> InternalError;
-        public event EventHandler<ConnectionFailedEventArgs> ConnectionRestored;
-        public event EventHandler<EndPointEventArgs> ConfigurationChanged;
-        public event EventHandler<EndPointEventArgs> ConfigurationChangedBroadcast;
-        public event EventHandler<HashSlotMovedEventArgs> HashSlotMoved;
-#pragma warning restore CS0067
+        public event EventHandler<RedisErrorEventArgs> ErrorMessage
+        {
+            add { }
+            remove { }
+        }
+
+        public event EventHandler<ConnectionFailedEventArgs> ConnectionFailed
+        {
+            add { }
+            remove { }
+        }
+
+        public event EventHandler<InternalErrorEventArgs> InternalError
+        {
+            add { }
+            remove { }
+        }
+
+        public event EventHandler<ConnectionFailedEventArgs> ConnectionRestored
+        {
+            add { }
+            remove { }
+        }
+
+        public event EventHandler<EndPointEventArgs> ConfigurationChanged
+        {
+            add { }
+            remove { }
+        }
+
+        public event EventHandler<EndPointEventArgs> ConfigurationChangedBroadcast
+        {
+            add { }
+            remove { }
+        }
+
+        public event EventHandler<HashSlotMovedEventArgs> HashSlotMoved
+        {
+            add { }
+            remove { }
+        }
 
         private ISubscriber _subscriber = new TestSubscriber();
 
