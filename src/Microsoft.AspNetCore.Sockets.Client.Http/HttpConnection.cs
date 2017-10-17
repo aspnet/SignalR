@@ -462,15 +462,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
             return new Subscription(callBack, _callbacks);
         }
 
-        public IDisposable OnReceived(Func<byte[], Task> callback)
-        {
-            return OnReceived((data, state) => 
-            {
-                var currentCallback = (Func<byte[], Task>)state;
-                return currentCallback(data);
-            }, callback);
-        }
-
         private class ReceiveCallBack
         {
             private readonly Func<byte[], object, Task> _callback;
