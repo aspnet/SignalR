@@ -29,8 +29,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             await Clients.Client(Context.ConnectionId).InvokeAsync("NoClientHandler");
         }
 
-        public void NoClientHandler() { }
-
         public IObservable<int> Stream(int count)
 
         {
@@ -74,7 +72,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             await Clients.Client(Context.ConnectionId).NoClientHandler();
         }
 
-        public void NoClientHandler() { }
     }
 
     public class TestHubT : Hub<ITestHub>
@@ -110,8 +107,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         {
             await Clients.Client(Context.ConnectionId).NoClientHandler();
         }
-
-        public void NoClientHandler() { }
     }
 
     public interface ITestHub
