@@ -43,7 +43,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             new object[] { new[] { new StreamItemMessage("xyz", new CustomObject()) } },
             new object[] { new[] { new StreamItemMessage("xyz", new[] { new CustomObject(), new CustomObject() }) } },
 
-            new object[] { new[] { new CancelInvocationMessage("xyz ") } },
+            new object[] { new[] { new CancelInvocationMessage("xyz") } },
 
             new object[]
             {
