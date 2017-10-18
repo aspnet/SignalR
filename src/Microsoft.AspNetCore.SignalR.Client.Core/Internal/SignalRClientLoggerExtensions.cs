@@ -104,8 +104,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Internal
             LoggerMessage.Define<string>(LogLevel.Error, new EventId(4, nameof(StreamItemOnNonStreamInvocation)), "Invocation {invocationId} received stream item but was invoked as a non-streamed invocation.");
 
         private static readonly Action<ILogger, string, Exception> _exceptionThrownFromCallback =
-           LoggerMessage.Define<string>(LogLevel.Error, new EventId(23, nameof(ExceptionThrownFromCallback)), "An exception was thrown from the '{callback}' callback");
-
+           LoggerMessage.Define<string>(LogLevel.Error, new EventId(5, nameof(ExceptionThrownFromCallback)), "An exception was thrown from the '{callback}' callback");
 
         public static void PreparingNonBlockingInvocation(this ILogger logger, string invocationId, string target, int count)
         {
@@ -267,7 +266,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Internal
 
         public static void ExceptionThrownFromCallback(this ILogger logger, string callbackName, Exception exception)
         {
-                _exceptionThrownFromCallback(logger, callbackName, exception);
+             _exceptionThrownFromCallback(logger, callbackName, exception);
         }
     }
 }
