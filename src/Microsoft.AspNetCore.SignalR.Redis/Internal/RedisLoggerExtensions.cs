@@ -10,19 +10,19 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Internal
     {
         // Category: RedisHubLifetimeManager<THub>
         private static readonly Action<ILogger, string, Exception> _connectingToEndpoints =
-            LoggerMessage.Define<string>(LogLevel.Information, new EventId(0, nameof(ConnectingToEndpoints)), "Connecting to redis endpoints: {endpoints}.");
+            LoggerMessage.Define<string>(LogLevel.Information, new EventId(0, nameof(ConnectingToEndpoints)), "Connecting to Redis endpoints: {endpoints}.");
 
         private static readonly Action<ILogger, Exception> _connected =
-            LoggerMessage.Define(LogLevel.Information, new EventId(1, nameof(Connected)), "Connected to redis.");
+            LoggerMessage.Define(LogLevel.Information, new EventId(1, nameof(Connected)), "Connected to Redis.");
 
         private static readonly Action<ILogger, string, Exception> _subscribing =
             LoggerMessage.Define<string>(LogLevel.Trace, new EventId(2, nameof(Subscribing)), "Subscribing to channel: {channel}.");
 
         private static readonly Action<ILogger, string, Exception> _receivedFromChannel =
-            LoggerMessage.Define<string>(LogLevel.Trace, new EventId(3, nameof(ReceivedFromChannel)), "Received message from redis channel {channel}.");
+            LoggerMessage.Define<string>(LogLevel.Trace, new EventId(3, nameof(ReceivedFromChannel)), "Received message from Redis channel {channel}.");
 
         private static readonly Action<ILogger, string, Exception> _publishToChannel =
-            LoggerMessage.Define<string>(LogLevel.Trace, new EventId(4, nameof(PublishToChannel)), "Publishing message to redis channel {channel}.");
+            LoggerMessage.Define<string>(LogLevel.Trace, new EventId(4, nameof(PublishToChannel)), "Publishing message to Redis channel {channel}.");
 
         private static readonly Action<ILogger, string, Exception> _unsubscribe =
             LoggerMessage.Define<string>(LogLevel.Trace, new EventId(5, nameof(Unsubscribe)), "Unsubscribing from channel: {channel}.");
