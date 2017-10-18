@@ -30,7 +30,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         }
 
         public IObservable<int> Stream(int count)
-
         {
             return Observable.Interval(TimeSpan.FromMilliseconds(1))
                              .Select((_, index) => index)
