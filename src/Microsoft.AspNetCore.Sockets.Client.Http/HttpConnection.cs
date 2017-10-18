@@ -41,7 +41,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
         private readonly TimeSpan _eventQueueDrainTimeout = TimeSpan.FromSeconds(5);
         private ReadableChannel<byte[]> Input => _transportChannel.In;
         private WritableChannel<SendMessage> Output => _transportChannel.Out;
-        private List<ReceiveCallback> _callbacks = new List<ReceiveCallback>();
+        private readonly List<ReceiveCallback> _callbacks = new List<ReceiveCallback>();
 
         public Uri Url { get; }
 
@@ -454,12 +454,12 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         public IDisposable OnReceived(Func<byte[], object, Task> callback, object state)
         {
-            var callBack = new ReceiveCallback(callback, state);
+            var receiveCallback = new ReceiveCallback(callback, state);
             lock (_callbacks)
             {
-                _callbacks.Add(callBack);
+                _callbacks.Add(receiveCallback);
             }
-            return new Subscription(callBack, _callbacks);
+            return new Subscription(receiveCallback, _callbacks);
         }
 
         private class ReceiveCallback
@@ -467,9 +467,9 @@ namespace Microsoft.AspNetCore.Sockets.Client
             private readonly Func<byte[], object, Task> _callback;
             private readonly object _state;
 
-            public ReceiveCallback(Func<byte[], object, Task> callBack, object state)
+            public ReceiveCallback(Func<byte[], object, Task> callback, object state)
             {
-                _callback = callBack;
+                _callback = callback;
                 _state = state;
             }
 
@@ -481,11 +481,11 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         private class Subscription : IDisposable
         {
-            private readonly ReceiveCallback _callback;
+            private readonly ReceiveCallback _receiveCallback;
             private readonly List<ReceiveCallback> _callbacks;
             public Subscription(ReceiveCallback callback, List<ReceiveCallback> callbacks)
             {
-                _callback = callback;
+                _receiveCallback = callback;
                 _callbacks = callbacks;
             }
 
@@ -493,7 +493,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             {
                 lock (_callbacks)
                 {
-                    _callbacks.Remove(_callback);
+                    _callbacks.Remove(_receiveCallback);
                 }
             }
         }

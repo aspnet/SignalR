@@ -139,7 +139,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
 
             var transport = new Mock<ITransport>();
             transport.Setup(t => t.StopAsync()).Returns(async () => { await releaseDisposeTcs.Task; });
-            var connection = new HttpConnection(new Uri("http://fakeuri.org/"), transportFactory: new TestTransportFactory(transport.Object), loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
+            var connection = new HttpConnection(new Uri("http://fakeuri.org/"), new TestTransportFactory(transport.Object), loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
 
             var startTask = connection.StartAsync();
             await allowDisposeTcs.Task;
@@ -255,7 +255,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
         }
 
         [Fact]
-        public async Task ReceivedCallBackNotRaisedAfterConnectionIsDisposed()
+        public async Task ReceivedCallbackNotRaisedAfterConnectionIsDisposed()
         {
             var mockHttpHandler = new Mock<HttpMessageHandler>();
             mockHttpHandler.Protected()
@@ -336,10 +336,10 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
 
             var connection = new HttpConnection(new Uri("http://fakeuri.org/"), new TestTransportFactory(mockTransport.Object), loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
 
-            connection.OnReceived(async _ =>
+            connection.OnReceived(_ =>
                 {
                     callbackInvokedTcs.SetResult(null);
-                    await closedTcs.Task;
+                    return closedTcs.Task;
                 });
 
             await connection.StartAsync();
@@ -391,10 +391,8 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
             var closedTcs = new TaskCompletionSource<object>();
 
             var connection = new HttpConnection(new Uri("http://fakeuri.org/"), new TestTransportFactory(mockTransport.Object), loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
-            connection.OnReceived(async _ =>
-                {
-                    await blockReceiveCallbackTcs.Task;
-                });
+            connection.OnReceived(_ => blockReceiveCallbackTcs.Task);
+
             connection.Closed += _ => {
                 closedTcs.SetResult(null);
                 return Task.CompletedTask;
@@ -762,14 +760,14 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 var receivedRaised = false;
                 connection.OnReceived((data) =>
                 {
-                   if (!receivedRaised)
-                   {
-                       receivedRaised = true;
-                       throw new InvalidOperationException();
-                   }
+                    if (!receivedRaised)
+                    {
+                        receivedRaised = true;
+                        throw new InvalidOperationException();
+                    }
 
-                   receiveTcs.TrySetResult(Encoding.UTF8.GetString(data));
-                   return Task.CompletedTask;
+                    receiveTcs.TrySetResult(Encoding.UTF8.GetString(data));
+                    return Task.CompletedTask;
                 });
 
                 connection.Closed += e =>

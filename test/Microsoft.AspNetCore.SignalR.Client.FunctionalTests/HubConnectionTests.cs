@@ -172,10 +172,18 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             {
                 var httpConnection = new HttpConnection(new Uri(_serverFixture.BaseUrl + path), transportType, loggerFactory);
                 var connection = new HubConnection(httpConnection, protocol, loggerFactory);
+                var closedException = false;
                 try
                 {
                     await connection.StartAsync().OrTimeout();
-
+                    connection.Closed += ex =>
+                    {
+                        if (ex != null)
+                        {
+                            closedException = true;
+                        }
+                        return Task.CompletedTask;
+                    };
                     await connection.InvokeAsync("CallHandlerThatDoesntExist").OrTimeout();
 
                 }
@@ -186,6 +194,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 }
                 finally
                 {
+                    Assert.False(closedException);
                     await connection.DisposeAsync().OrTimeout();
                 }
             }

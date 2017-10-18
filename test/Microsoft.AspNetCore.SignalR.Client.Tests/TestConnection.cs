@@ -38,7 +38,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public ReadableChannel<byte[]> SentMessages => _sentMessages.In;
         public WritableChannel<byte[]> ReceivedMessages => _receivedMessages.Out;
 
-        private List<ReceiveCallBack> _callbacks = new List<ReceiveCallBack>();
+        private readonly List<ReceiveCallback> _callbacks = new List<ReceiveCallback>();
 
         public IFeatureCollection Features { get; } = new FeatureCollection();
 
@@ -122,7 +122,14 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     {
                         while (_receivedMessages.In.TryRead(out var message))
                         {
-                            foreach (var callback in _callbacks)
+                            ReceiveCallback[] callbackCopies;
+                            lock (_callbacks)
+                            {
+                                callbackCopies = new ReceiveCallback[_callbacks.Count];
+                                _callbacks.CopyTo(callbackCopies);
+                            }
+
+                            foreach (var callback in callbackCopies)
                             {
                                 await callback.InvokeAsync(message);
                             }
@@ -144,33 +151,36 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
         public IDisposable OnReceived(Func<byte[], object, Task> callback, object state)
         {
-            var receiveCallBack = new ReceiveCallBack(callback, state);
-            _callbacks.Add(receiveCallBack);
+            var receiveCallBack = new ReceiveCallback(callback, state);
+            lock (_callbacks)
+            {
+                _callbacks.Add(receiveCallBack);
+            }
             return new Subscription(receiveCallBack, _callbacks);
         }
 
-        private class ReceiveCallBack
+        private class ReceiveCallback
         {
-            public readonly Func<byte[], object, Task> CallBack;
-            private readonly object State;
+            private readonly Func<byte[], object, Task> _callback;
+            private readonly object _state;
 
-            public ReceiveCallBack(Func<byte[], object, Task> callBack, object state)
+            public ReceiveCallback(Func<byte[], object, Task> callback, object state)
             {
-                CallBack = callBack;
-                State = state;
+                _callback = callback;
+                _state = state;
             }
 
             public Task InvokeAsync(byte[] data)
             {
-                return CallBack(data, State);
+                return _callback(data, _state);
             }
         }
 
         private class Subscription : IDisposable
         {
-            private readonly ReceiveCallBack _callback;
-            private readonly List<ReceiveCallBack> _callbacks;
-            public Subscription(ReceiveCallBack callback, List<ReceiveCallBack> callbacks)
+            private readonly ReceiveCallback _callback;
+            private readonly List<ReceiveCallback> _callbacks;
+            public Subscription(ReceiveCallback callback, List<ReceiveCallback> callbacks)
             {
                 _callback = callback;
                 _callbacks = callbacks;

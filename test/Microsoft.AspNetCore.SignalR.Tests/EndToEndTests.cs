@@ -124,10 +124,10 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                         {
                             data = Convert.FromBase64String(Encoding.UTF8.GetString(data));
                         }
-
-                        receiveTcs.TrySetResult(Encoding.UTF8.GetString(data));
+                        var tcs = (TaskCompletionSource<string>)state;
+                        tcs.TrySetResult(Encoding.UTF8.GetString(data));
                         return Task.CompletedTask;
-                    }, null);
+                    }, receiveTcs);
 
                     connection.Closed += e =>
                     {
@@ -228,9 +228,10 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     connection.OnReceived((data, state) =>
                     {
                         logger.LogInformation("Received {length} byte message", data.Length);
-                        receiveTcs.TrySetResult(data);
+                        var tcs = (TaskCompletionSource<byte[]>)state;
+                        tcs.TrySetResult(data);
                         return Task.CompletedTask;
-                    }, null);
+                    }, receiveTcs);
 
                     logger.LogInformation("Starting connection to {url}", url);
                     await connection.StartAsync().OrTimeout();

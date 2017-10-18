@@ -125,7 +125,10 @@ namespace Microsoft.AspNetCore.SignalR.Client
             var invocationList = _handlers.AddOrUpdate(methodName,  _ =>  new List<InvocationHandler> { invocationHandler }, 
                 (_, invocations) =>
                 {
-                    invocations.Add(invocationHandler);
+                    lock (invocations)
+                    {
+                        invocations.Add(invocationHandler);
+                    }
                     return invocations;
                 });
 
@@ -323,6 +326,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 copiedHandlers = new InvocationHandler[handlers.Count];
                 handlers.CopyTo(copiedHandlers);
             }
+
             foreach (var handler in copiedHandlers)
             {
                 try
@@ -488,8 +492,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private struct InvocationHandler
         {
-            private Func<object[], object, Task> _callback;
             public Type[] ParameterTypes { get; }
+            private readonly Func<object[], object, Task> _callback;
             private readonly object _state;
 
             public InvocationHandler(Type[] parameterTypes, Func<object[], object, Task> callback, object state)
