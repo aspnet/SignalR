@@ -12,7 +12,6 @@ using Microsoft.AspNetCore.Sockets;
 using Microsoft.AspNetCore.Sockets.Client;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
-using Newtonsoft.Json;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -172,29 +171,28 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             {
                 var httpConnection = new HttpConnection(new Uri(_serverFixture.BaseUrl + path), transportType, loggerFactory);
                 var connection = new HubConnection(httpConnection, protocol, loggerFactory);
-                var closedException = false;
                 try
                 {
                     await connection.StartAsync().OrTimeout();
+                    var closeTcs = new TaskCompletionSource<object>();
                     connection.Closed += ex =>
                     {
                         if (ex != null)
                         {
-                            closedException = true;
+                            closeTcs.SetException(ex);
+                        }
+                        else
+                        {
+                            closeTcs.SetResult(null);
                         }
                         return Task.CompletedTask;
                     };
                     await connection.InvokeAsync("CallHandlerThatDoesntExist").OrTimeout();
-
-                }
-                catch (Exception ex)
-                {
-                    loggerFactory.CreateLogger<HubConnectionTests>().LogError(ex, "Exception from test");
-                    throw;
+                    await connection.DisposeAsync().OrTimeout();
+                    await closeTcs.Task.OrTimeout();
                 }
                 finally
                 {
-                    Assert.False(closedException);
                     await connection.DisposeAsync().OrTimeout();
                 }
             }

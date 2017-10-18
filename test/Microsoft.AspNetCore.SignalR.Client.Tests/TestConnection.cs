@@ -125,8 +125,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                             ReceiveCallback[] callbackCopies;
                             lock (_callbacks)
                             {
-                                callbackCopies = new ReceiveCallback[_callbacks.Count];
-                                _callbacks.CopyTo(callbackCopies);
+                                callbackCopies = _callbacks.ToArray();
                             }
 
                             foreach (var callback in callbackCopies)
