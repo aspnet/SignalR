@@ -3,9 +3,8 @@
 
 using System;
 using System.IO;
-using System.Threading.Tasks;
+using System.Threading;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 
@@ -18,7 +17,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests.Common
         private ILoggerFactory _loggerFactory;
         private ILogger _logger;
         private IWebHost _host;
-        private IApplicationLifetime _lifetime;
         private readonly IDisposable _logToken;
 
         public string BaseUrl => "http://localhost:3000";
@@ -44,25 +42,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests.Common
                 .UseContentRoot(Directory.GetCurrentDirectory())
                 .Build();
 
-            var t = Task.Run(() => _host.Start());
             _logger.LogInformation("Starting test server...");
-            _lifetime = _host.Services.GetRequiredService<IApplicationLifetime>();
-            if (!_lifetime.ApplicationStarted.WaitHandle.WaitOne(TimeSpan.FromSeconds(5)))
+            using (var cts = new CancellationTokenSource())
             {
-                // t probably faulted
-                if (t.IsFaulted)
-                {
-                    throw t.Exception.InnerException;
-                }
-                throw new TimeoutException("Timed out waiting for application to start.");
+                cts.CancelAfter(TimeSpan.FromSeconds(30));
+                _host.StartAsync(cts.Token).GetAwaiter().GetResult();
+                _logger.LogInformation("Test Server started");
             }
-            _logger.LogInformation("Test Server started");
-
-            _lifetime.ApplicationStopped.Register(() =>
-            {
-                _logger.LogInformation("Test server shut down");
-                _logToken.Dispose();
-            });
         }
 
         public void Dispose()
@@ -70,6 +56,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests.Common
             _logger.LogInformation("Shutting down test server");
             _host.Dispose();
             _loggerFactory.Dispose();
+            _logToken.Dispose();
+            _logger.LogInformation("Test server shut down");
         }
 
         private class ForwardingLoggerProvider : ILoggerProvider
