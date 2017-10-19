@@ -32,6 +32,12 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Internal
         private static readonly Action<ILogger, Exception> _notConnected =
             LoggerMessage.Define(LogLevel.Warning, new EventId(6, nameof(Connected)), "Not connected to Redis.");
 
+        private static readonly Action<ILogger, Exception> _connectionRestored =
+            LoggerMessage.Define(LogLevel.Information, new EventId(7, nameof(ConnectionRestored)), "Connection to Redis restored.");
+
+        private static readonly Action<ILogger, Exception> _connectionFailed =
+            LoggerMessage.Define(LogLevel.Warning, new EventId(8, nameof(ConnectionFailed)), "Connection to Redis failed.");
+
         public static void ConnectingToEndpoints(this ILogger logger, EndPointCollection endpoints)
         {
             if (logger.IsEnabled(LogLevel.Information))
@@ -68,6 +74,16 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Internal
         public static void NotConnected(this ILogger logger)
         {
             _notConnected(logger, null);
+        }
+
+        public static void ConnectionRestored(this ILogger logger)
+        {
+            _connectionRestored(logger, null);
+        }
+
+        public static void ConnectionFailed(this ILogger logger, Exception exception)
+        {
+            _connectionFailed(logger, exception);
         }
     }
 }

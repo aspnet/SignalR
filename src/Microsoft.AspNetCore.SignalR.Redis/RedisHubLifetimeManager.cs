@@ -31,6 +31,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis
         private readonly string _serverName = Guid.NewGuid().ToString();
         private readonly AckHandler _ackHandler;
         private int _internalId;
+        private State _connectionState;
+        private readonly SemaphoreSlim _redisConnectionEventLock = new SemaphoreSlim(1, 1);
 
         // This serializer is ONLY use to transmit the data through redis, it has no connection to the serializer used on each connection.
         private readonly JsonSerializer _serializer = new JsonSerializer
@@ -56,14 +58,42 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
             _redisServerConnection.ConnectionRestored += (_, e) =>
             {
-                // TODO: handle double fire
-                _logger.LogInformation("Connection to Redis restored.");
+                try
+                {
+                    _redisConnectionEventLock.Wait();
+                    if (_connectionState == State.Connected)
+                    {
+                        return;
+                    }
+
+                    _logger.ConnectionRestored();
+
+                    _connectionState = State.Connected;
+                }
+                finally
+                {
+                    _redisConnectionEventLock.Release();
+                }
             };
 
             _redisServerConnection.ConnectionFailed += (_, e) =>
             {
-                // TODO: handle double fire
-                _logger.LogWarning(0, e.Exception, "Connection to Redis failed.");
+                try
+                {
+                    _redisConnectionEventLock.Wait();
+                    if (_connectionState == State.Closed)
+                    {
+                        return;
+                    }
+
+                    _logger.ConnectionFailed(e.Exception);
+
+                    _connectionState = State.Closed;
+                }
+                finally
+                {
+                    _redisConnectionEventLock.Release();
+                }
             };
 
             if (_redisServerConnection.IsConnected)
@@ -578,6 +608,12 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             public int Id;
             public GroupAction Action;
             public string Server;
+        }
+
+        private enum State
+        {
+            Closed = 0,
+            Connected = 1
         }
     }
 }
