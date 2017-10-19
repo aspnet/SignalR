@@ -7,6 +7,7 @@ namespace Microsoft.AspNetCore.SignalR.Test.Server
     {
         public string String { get; set; }
         public int[] IntArray { get; set; }
+        public byte[] ByteArray { get; set; }
         // TODO: byte[] currently doesn't roundtrip for msgpack. See: https://github.com/aspnet/SignalR/issues/945#issuecomment-333260762
     }
 }

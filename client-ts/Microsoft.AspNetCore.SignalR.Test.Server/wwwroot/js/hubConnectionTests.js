@@ -220,6 +220,7 @@ describe('hubConnection', function () {
                 });
 
                 var complexObject = {
+                    ByteArray: new Uint8Array([0x00, 0x01, 0xff]),
                     String: 'Hello, World!',
                     IntArray: [0x01, 0x02, 0x03, 0xff]
                 };
