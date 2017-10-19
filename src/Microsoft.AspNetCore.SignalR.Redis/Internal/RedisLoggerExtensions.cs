@@ -2,7 +2,9 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Linq;
 using Microsoft.Extensions.Logging;
+using StackExchange.Redis;
 
 namespace Microsoft.AspNetCore.SignalR.Redis.Internal
 {
@@ -27,9 +29,15 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Internal
         private static readonly Action<ILogger, string, Exception> _unsubscribe =
             LoggerMessage.Define<string>(LogLevel.Trace, new EventId(5, nameof(Unsubscribe)), "Unsubscribing from channel: {channel}.");
 
-        public static void ConnectingToEndpoints(this ILogger logger, string endpoints)
+        private static readonly Action<ILogger, Exception> _notConnected =
+            LoggerMessage.Define(LogLevel.Warning, new EventId(6, nameof(Connected)), "Not connected to Redis.");
+
+        public static void ConnectingToEndpoints(this ILogger logger, EndPointCollection endpoints)
         {
-            _connectingToEndpoints(logger, endpoints, null);
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                _connectingToEndpoints(logger, string.Join(", ", endpoints.Select(e => EndPointCollection.ToString(e))), null);
+            }
         }
 
         public static void Connected(this ILogger logger)
@@ -55,6 +63,11 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Internal
         public static void Unsubscribe(this ILogger logger, string channelName)
         {
             _unsubscribe(logger, channelName, null);
+        }
+
+        public static void NotConnected(this ILogger logger)
+        {
+            _notConnected(logger, null);
         }
     }
 }

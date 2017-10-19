@@ -51,7 +51,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             _ackHandler = new AckHandler();
 
             var writer = new LoggerTextWriter(logger);
-            _logger.ConnectingToEndpoints(string.Join(", ", options.Value.Options.EndPoints.Select(e => EndPointCollection.ToString(e))));
+            _logger.ConnectingToEndpoints(options.Value.Options.EndPoints);
             _redisServerConnection = _options.Connect(writer);
 
             _redisServerConnection.ConnectionRestored += (_, e) =>
@@ -72,7 +72,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             }
             else
             {
-                _logger.LogWarning("Not connected to redis.");
+                _logger.NotConnected();
             }
             _bus = _redisServerConnection.GetSubscriber();
 
