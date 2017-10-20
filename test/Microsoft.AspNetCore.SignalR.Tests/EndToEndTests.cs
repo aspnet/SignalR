@@ -11,15 +11,15 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.AspNetCore.SignalR.Tests.Common;
 using Microsoft.AspNetCore.Sockets;
-using Microsoft.AspNetCore.Sockets.Features;
 using Microsoft.AspNetCore.Sockets.Client;
+using Microsoft.AspNetCore.Sockets.Features;
 using Microsoft.AspNetCore.Testing.xunit;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
-using Xunit;
-using Xunit.Abstractions;
 using Moq;
 using Moq.Protected;
+using Xunit;
+using Xunit.Abstractions;
 
 namespace Microsoft.AspNetCore.SignalR.Tests
 {
@@ -103,7 +103,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [OSSkipCondition(OperatingSystems.Windows, WindowsVersions.Win7, WindowsVersions.Win2008R2, SkipReason = "No WebSockets Client for this platform")]
         public async Task HTTPRequestsNotSentWhenWebSocketsTransportRequested()
         {
-            using (StartLog(out var loggerFactory, testName: $"HTTPRequestsNotSentWhenWebSocketsTransportRequested"))
+            using (StartLog(out var loggerFactory, testName: nameof(HTTPRequestsNotSentWhenWebSocketsTransportRequested)))
             {
                 var logger = loggerFactory.CreateLogger<EndToEndTests>();
                 var url = _serverFixture.BaseUrl + "/echo";
