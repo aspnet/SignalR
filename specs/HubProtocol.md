@@ -186,7 +186,7 @@ S->C: StreamItem { Id = 42, Item = 1 }
 S->C: StreamItem { Id = 42, Item = 2 }
 S->C: StreamItem { Id = 42, Item = 3 }
 S->C: StreamItem { Id = 42, Item = 4 }
-S->C: StreamCompletion { }
+S->C: StreamCompletion { Id = 42 }
 ```
 
 **NOTE:** The following is **NOT** an acceptable encoding of this invocation:
@@ -552,7 +552,7 @@ is decoded as follows:
 
 * `4` - Message Type - `4` indicates this is a `StreamCompletion` message
 * InvocationId - A `String` encoding the Invocation ID for the message
-* Error - An optional string containing an error message if the invocation failed. Absent if the invocation completed without error
+* Error - An optional string containing an error message if the invocation failed. Absent if the invocation completed without error.
 
 Examples:
 
@@ -565,8 +565,8 @@ The following payload:
 
 is decoded as follows:
 
-* `0x93` - 2-element array
-* `0x04` - `4` (Message Type - `Result` message)
+* `0x92` - 2-element array
+* `0x04` - `4` (Message Type - `StreamCompletion` message)
 * `0xa3` - string of length 3 (InvocationId)
 * `0x78` - `x`
 * `0x79` - `y`
@@ -582,7 +582,7 @@ The following payload:
 is decoded as follows:
 
 * `0x93` - 3-element array
-* `0x04` - `4` (Message Type - `Result` message)
+* `0x04` - `4` (Message Type - `StreamCompletion` message)
 * `0xa3` - string of length 3 (InvocationId)
 * `0x78` - `x`
 * `0x79` - `y`
