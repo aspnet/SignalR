@@ -32,7 +32,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
         private readonly AckHandler _ackHandler;
         private int _internalId;
         private State _connectionState;
-        private readonly SemaphoreSlim _redisConnectionEventLock = new SemaphoreSlim(1, 1);
+        private readonly object _redisConnectionEventLock = new object();
 
         // This serializer is ONLY use to transmit the data through redis, it has no connection to the serializer used on each connection.
         private readonly JsonSerializer _serializer = new JsonSerializer
@@ -58,9 +58,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
             _redisServerConnection.ConnectionRestored += (_, e) =>
             {
-                try
+                lock(_redisConnectionEventLock)
                 {
-                    _redisConnectionEventLock.Wait();
                     if (_connectionState == State.Connected)
                     {
                         return;
@@ -70,17 +69,12 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
                     _connectionState = State.Connected;
                 }
-                finally
-                {
-                    _redisConnectionEventLock.Release();
-                }
             };
 
             _redisServerConnection.ConnectionFailed += (_, e) =>
             {
-                try
+                lock (_redisConnectionEventLock)
                 {
-                    _redisConnectionEventLock.Wait();
                     if (_connectionState == State.Closed)
                     {
                         return;
@@ -89,10 +83,6 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                     _logger.ConnectionFailed(e.Exception);
 
                     _connectionState = State.Closed;
-                }
-                finally
-                {
-                    _redisConnectionEventLock.Release();
                 }
             };
 

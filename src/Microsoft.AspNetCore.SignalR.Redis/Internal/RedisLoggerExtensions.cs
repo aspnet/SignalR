@@ -42,7 +42,10 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Internal
         {
             if (logger.IsEnabled(LogLevel.Information))
             {
-                _connectingToEndpoints(logger, string.Join(", ", endpoints.Select(e => EndPointCollection.ToString(e))), null);
+                if (endpoints.Count > 0)
+                {
+                    _connectingToEndpoints(logger, string.Join(", ", endpoints.Select(e => EndPointCollection.ToString(e))), null);
+                }
             }
         }
 
