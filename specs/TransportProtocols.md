@@ -43,9 +43,9 @@ HTTP Post is a half-transport, it is only able to send messages from the Client 
 
 This transport requires that a connection be established using the `OPTIONS [endpoint-base]` request.
 
-The HTTP POST request is made to the URL `[endpoint-base]`. The **mandatory** `connectionId` query string value is used to identify the connection to send to. If there is no `connectionId` query string value, a `400 Bad Request` response is returned. Upon receipt of the **entire** payload, the server will process the payload and responds with `200 OK` if the payload was successfully processed. If a client makes another request to `/` while an existing one is outstanding, the new request is immediately terminated by the server with the `409 Conflict` status code.
+The HTTP POST request is made to the URL `[endpoint-base]`. The **mandatory** `connectionId` query string value is used to identify the connection to send to. If there is no `connectionId` query string value, a `400 Bad Request` response is returned. Upon receipt of the **entire** payload, the server will process the payload and responds with `200 OK` if the payload was successfully processed. If a client makes another request to `/` while an existing request is outstanding, the new request is immediately terminated by the server with the `409 Conflict` status code.
 
-If a client receives either a `409 Conflict` request, the connection remains open. Any other response indicates that the connection has been terminated due to an error.
+If a client receives a `409 Conflict` request, the connection remains open. Any other response indicates that the connection has been terminated due to an error.
 
 If the relevant connection has been terminated, a `404 Not Found` status code is returned. If there is an error instantiating an EndPoint or dispatching the message, a `500 Server Error` status code is returned.
 
