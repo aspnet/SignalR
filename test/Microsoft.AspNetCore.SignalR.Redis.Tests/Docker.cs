@@ -47,53 +47,33 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
         public int Start(ILogger logger)
         {
             logger.LogInformation("Starting docker container");
-            var process = new Process()
-            {
-                StartInfo = new ProcessStartInfo()
-                {
-                    FileName = _path,
-                    // create and run docker container, remove automatically when stopped, map 6379 from the container to 6379 localhost
-                    // use static name 'redisTestContainer' so if the container doesn't get removed we don't keep adding more
-                    // use redis base docker image
-                    Arguments = $"run --rm -p 6379:6379 --name {_dockerContainerName} -d redis",
-                    UseShellExecute = false,
-                    RedirectStandardError = true,
-                    RedirectStandardOutput = true
-                },
-                EnableRaisingEvents = true
-            };
 
-            var exitCode = 0;
-            process.Exited += (_, __) => exitCode = process.ExitCode;
-            process.OutputDataReceived += (_, a) => LogIfNotNull(logger.LogInformation, "stdout: {0}", a.Data);
-            process.ErrorDataReceived += (_, a) => LogIfNotNull(logger.LogError, "stderr: {0}", a.Data);
-
-            process.Start();
-
-            process.BeginErrorReadLine();
-            process.BeginOutputReadLine();
-
-            process.WaitForExit(5000);
-
-            return exitCode;
+            // create and run docker container, remove automatically when stopped, map 6379 from the container to 6379 localhost
+            // use static name 'redisTestContainer' so if the container doesn't get removed we don't keep adding more
+            // use redis base docker image
+            return RunProcess(_path, $"run --rm -p 6379:6379 --name {_dockerContainerName} -d redis", logger);
         }
 
         public int Stop(ILogger logger)
         {
             logger.LogInformation("Stopping docker container");
+            return RunProcess(_path, $"stop {_dockerContainerName}", logger);
+        }
+
+        private static int RunProcess(string fileName, string arugments, ILogger logger)
+        {
             var process = new Process()
             {
                 StartInfo = new ProcessStartInfo()
                 {
-                    FileName = _path,
-                    Arguments = $"stop {_dockerContainerName}",
+                    FileName = fileName,
+                    Arguments = arugments,
                     UseShellExecute = false,
                     RedirectStandardError = true,
                     RedirectStandardOutput = true
                 },
                 EnableRaisingEvents = true
             };
-
 
             var exitCode = 0;
             process.Exited += (_, __) => exitCode = process.ExitCode;
@@ -110,7 +90,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             return exitCode;
         }
 
-        private void LogIfNotNull(Action<string, object[]> logger, string message, string data)
+        private static void LogIfNotNull(Action<string, object[]> logger, string message, string data)
         {
             if (!string.IsNullOrEmpty(data))
             {
