@@ -44,7 +44,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
         [MemberData(nameof(TransportTypesAndTransferModes))]
         public async Task HubConnectionCanSendAndReceiveMessages(TransportType transportType, TransferMode requestedTransferMode)
         {
-            using (StartLog(out var loggerFactory))
+            using (StartLog(out var loggerFactory, testName:
+                $"{nameof(HubConnectionCanSendAndReceiveMessages)}_{transportType.ToString()}_{requestedTransferMode.ToString()}"))
             {
                 var logger = loggerFactory.CreateLogger<RedisEndToEndTests>();
                 var httpConnection = new HttpConnection(new Uri(_serverFixture.BaseUrl + "/echo"), transportType, loggerFactory);
