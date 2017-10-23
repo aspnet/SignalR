@@ -14,7 +14,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             services.AddSockets();
             services.AddSignalR()
                 .AddRedis();
-            services.AddEndPoint<EchoEndPoint>();
+            //services.AddEndPoint<EchoEndPoint>();
         }
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
