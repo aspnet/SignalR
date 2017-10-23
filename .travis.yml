@@ -1,6 +1,8 @@
 language: csharp
 sudo: false
 dist: trusty
+services:
+  - docker
 env:
   global:
     - DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true

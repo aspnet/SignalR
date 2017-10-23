@@ -60,7 +60,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             else
             {
                 // TODO: We could support reconnecting, like old SignalR does.
-                throw new InvalidOperationException("Connection to redis failed.");
+                //throw new InvalidOperationException("Connection to redis failed.");
             }
             _bus = _redisServerConnection.GetSubscriber();
 

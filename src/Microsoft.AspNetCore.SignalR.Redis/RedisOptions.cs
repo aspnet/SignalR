@@ -10,7 +10,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 {
     public class RedisOptions
     {
-        public ConfigurationOptions Options { get; set; } = new ConfigurationOptions();
+        public ConfigurationOptions Options { get; set; } = new ConfigurationOptions() { AbortOnConnectFail = false };
 
         public Func<TextWriter, IConnectionMultiplexer> Factory { get; set; }
 
