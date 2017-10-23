@@ -1,4 +1,4 @@
-image: Visual Studio 2015
+image: Visual Studio 2017
 init:
   - git config --global core.autocrlf true
 branches:
@@ -12,6 +12,7 @@ build_script:
   - ps: .\run.ps1 default-build
 install:
   - ps: Install-Product node 8
+  - docker 
 clone_depth: 1
 environment:
   global:
