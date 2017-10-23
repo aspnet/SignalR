@@ -42,7 +42,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
         [ConditionalTheory]
         [SkipIfDockerNotPresent]
         [MemberData(nameof(TransportTypesAndTransferModes))]
-        public async Task Do(TransportType transportType, TransferMode requestedTransferMode)
+        public async Task HubConnectionCanSendAndReceiveMessages(TransportType transportType, TransferMode requestedTransferMode)
         {
             using (StartLog(out var loggerFactory))
             {

@@ -4,12 +4,15 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 {
     public class Docker
     {
+        private static readonly string _exeSuffix = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".exe" : string.Empty;
+
         private static string _dockerContainerName = "redisTestContainer";
         private static Lazy<Docker> _instance = new Lazy<Docker>(Create);
 
@@ -31,7 +34,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
         {
             foreach (var dir in Environment.GetEnvironmentVariable("PATH").Split(Path.PathSeparator))
             {
-                var candidate = Path.Combine(dir, "docker");
+                var candidate = Path.Combine(dir, "docker" + _exeSuffix);
                 if (File.Exists(candidate))
                 {
                     return candidate;

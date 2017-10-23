@@ -14,13 +14,10 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             services.AddSockets();
             services.AddSignalR()
                 .AddRedis();
-            //services.AddEndPoint<EchoEndPoint>();
         }
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
-            //app.UseSockets(options => options.MapEndPoint<EchoEndPoint>("echo"));
-            //app.UseSignalR(options => options.MapHub<UncreatableHub>("uncreatable"));
             app.UseSignalR(options => options.MapHub<EchoHub>("echo"));
         }
     }
