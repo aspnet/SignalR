@@ -13,7 +13,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
     {
         private static readonly string _exeSuffix = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".exe" : string.Empty;
 
-        private static string _dockerContainerName = "redisTestContainer";
+        private static readonly string _dockerContainerName = "redisTestContainer";
         private static Lazy<Docker> _instance = new Lazy<Docker>(Create);
 
         public static Docker Default => _instance.Value;
@@ -105,7 +105,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             process.BeginErrorReadLine();
             process.BeginOutputReadLine();
 
-            process.WaitForExit();
+            process.WaitForExit(5000);
 
             return exitCode;
         }
