@@ -1,5 +1,5 @@
 language: csharp
-sudo: false
+sudo: required
 dist: trusty
 services:
   - docker
@@ -26,6 +26,6 @@ branches:
     - /^(.*\/)?ci-.*$/
     - /^rel\/.*/
 before_install:
-  - if test "$TRAVIS_OS_NAME" == "linux"; then nvm install $TRAVIS_NODE_VERSION; fi
+  - if test "$TRAVIS_OS_NAME" == "linux"; then nvm install $TRAVIS_NODE_VERSION; docker run --rm -p 6379:6379 --name redis-test -d redis; docker stop redis-test; fi
 script:
   - ./build.sh
