@@ -26,6 +26,6 @@ branches:
     - /^(.*\/)?ci-.*$/
     - /^rel\/.*/
 before_install:
-  - if test "$TRAVIS_OS_NAME" == "linux"; then nvm install $TRAVIS_NODE_VERSION; fi
+  - if test "$TRAVIS_OS_NAME" == "linux"; then nvm install $TRAVIS_NODE_VERSION; docker pull redis; fi
 script:
   - ./build.sh
