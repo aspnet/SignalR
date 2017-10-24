@@ -85,7 +85,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             process.BeginErrorReadLine();
             process.BeginOutputReadLine();
 
-            process.WaitForExit(5000);
+            // Need to give time for a clean machine to download the redis docker image
+            process.WaitForExit(10000);
 
             return exitCode;
         }
