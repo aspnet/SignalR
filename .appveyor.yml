@@ -9,6 +9,8 @@ branches:
     - /^(.*\/)?ci-.*$/
     - /^rel\/.*/
 build_script:
+  - docker --version
+  - docker info
   - ps: docker pull redis
   - ps: .\run.ps1 default-build
 install:
