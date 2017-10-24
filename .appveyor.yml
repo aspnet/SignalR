@@ -9,7 +9,7 @@ branches:
     - /^(.*\/)?ci-.*$/
     - /^rel\/.*/
 build_script:
-  - ps: docker run --rm -p 6379:6379 --name redis-test -d redis-test
+  - ps: docker run --rm -p 6379:6379 --name redis-test -d redis
   - ps: docker stop redis-test
   - ps: .\run.ps1 default-build
 install:
