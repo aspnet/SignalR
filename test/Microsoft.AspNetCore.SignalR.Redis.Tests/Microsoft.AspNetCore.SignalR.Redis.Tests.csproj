@@ -6,17 +6,25 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\Common\ServerFixture.cs" Link="ServerFixture.cs" />
     <Compile Include="..\Common\TestClient.cs" Link="TestClient.cs" />
+    <Compile Include="..\Common\TestHelpers.cs" Link="TestHelpers.cs" />
     <Compile Include="..\Common\TaskExtensions.cs" Link="TaskExtensions.cs" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Microsoft.AspNetCore.SignalR.Redis\Microsoft.AspNetCore.SignalR.Redis.csproj" />
     <ProjectReference Include="..\..\src\Microsoft.AspNetCore.Sockets\Microsoft.AspNetCore.Sockets.csproj" />
+    <ProjectReference Include="..\..\src\Microsoft.AspNetCore.SignalR\Microsoft.AspNetCore.SignalR.csproj" />
+    <ProjectReference Include="..\..\src\Microsoft.AspNetCore.SignalR.Client\Microsoft.AspNetCore.SignalR.Client.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Hosting" />
+    <PackageReference Include="Microsoft.AspNetCore.Server.Kestrel" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.Extensions.Logging" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Testing" />
   </ItemGroup>
 
 </Project>

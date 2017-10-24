@@ -1,4 +1,4 @@
-image: Visual Studio 2015
+image: Visual Studio 2017
 init:
   - git config --global core.autocrlf true
 branches:
@@ -9,6 +9,9 @@ branches:
     - /^(.*\/)?ci-.*$/
     - /^rel\/.*/
 build_script:
+  - docker --version
+  - docker info
+  - ps: docker pull redis
   - ps: .\run.ps1 default-build
 install:
   - ps: Install-Product node 8
