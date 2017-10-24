@@ -31,8 +31,6 @@ namespace Microsoft.AspNetCore.SignalR.Redis
         private readonly string _serverName = Guid.NewGuid().ToString();
         private readonly AckHandler _ackHandler;
         private int _internalId;
-        private State _connectionState;
-        private readonly object _redisConnectionEventLock = new object();
 
         // This serializer is ONLY use to transmit the data through redis, it has no connection to the serializer used on each connection.
         private readonly JsonSerializer _serializer = new JsonSerializer
@@ -58,32 +56,26 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
             _redisServerConnection.ConnectionRestored += (_, e) =>
             {
-                lock(_redisConnectionEventLock)
+                // We use the subscription connection type
+                // Ignore messages from the interactive connection (avoids duplicates)
+                if (e.ConnectionType == ConnectionType.Interactive)
                 {
-                    if (_connectionState == State.Connected)
-                    {
-                        return;
-                    }
-
-                    _logger.ConnectionRestored();
-
-                    _connectionState = State.Connected;
+                    return;
                 }
+
+                _logger.ConnectionRestored();
             };
 
             _redisServerConnection.ConnectionFailed += (_, e) =>
             {
-                lock (_redisConnectionEventLock)
+                // We use the subscription connection type
+                // Ignore messages from the interactive connection (avoids duplicates)
+                if (e.ConnectionType == ConnectionType.Interactive)
                 {
-                    if (_connectionState == State.Closed)
-                    {
-                        return;
-                    }
-
-                    _logger.ConnectionFailed(e.Exception);
-
-                    _connectionState = State.Closed;
+                    return;
                 }
+
+                _logger.ConnectionFailed(e.Exception);
             };
 
             if (_redisServerConnection.IsConnected)
@@ -598,12 +590,6 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             public int Id;
             public GroupAction Action;
             public string Server;
-        }
-
-        private enum State
-        {
-            Closed = 0,
-            Connected = 1
         }
     }
 }
