@@ -11,7 +11,6 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
     {
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddSockets();
             services.AddSignalR()
                 .AddRedis();
         }

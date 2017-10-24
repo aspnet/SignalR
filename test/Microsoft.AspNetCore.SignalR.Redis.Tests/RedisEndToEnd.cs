@@ -47,11 +47,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             using (StartLog(out var loggerFactory, testName:
                 $"{nameof(HubConnectionCanSendAndReceiveMessages)}_{transportType.ToString()}_{requestedTransferMode.ToString()}"))
             {
-                var logger = loggerFactory.CreateLogger<RedisEndToEndTests>();
-                var httpConnection = new HttpConnection(new Uri(_serverFixture.BaseUrl + "/echo"), transportType, loggerFactory);
-                httpConnection.Features.Set<ITransferModeFeature>(
-                    new TransferModeFeature { TransferMode = requestedTransferMode });
-                var connection = new HubConnection(httpConnection, new JsonHubProtocol(), loggerFactory);
+                var connection = CreateConnection(_serverFixture.BaseUrl + "/echo", transportType, requestedTransferMode, loggerFactory);
 
                 await connection.StartAsync();
                 var str = await connection.InvokeAsync<string>("Echo", "Hello world");
@@ -59,6 +55,45 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 
                 Assert.Equal("Hello world", str);
             }
+        }
+
+        [ConditionalTheory]
+        [SkipIfDockerNotPresent]
+        [MemberData(nameof(TransportTypesAndTransferModes))]
+        public async Task HubConnectionCanSendAndReceiveGroupMessages(TransportType transportType, TransferMode requestedTransferMode)
+        {
+            using (StartLog(out var loggerFactory, testName:
+                $"{nameof(HubConnectionCanSendAndReceiveGroupMessages)}_{transportType.ToString()}_{requestedTransferMode.ToString()}"))
+            {
+                var connection = CreateConnection(_serverFixture.BaseUrl + "/echo", transportType, requestedTransferMode, loggerFactory);
+
+                var tcs = new TaskCompletionSource<string>();
+                connection.On<string>("Echo", message => tcs.TrySetResult(message));
+
+                await connection.StartAsync();
+                await connection.InvokeAsync("EchoGroup", "Test", "Hello world");
+                await connection.DisposeAsync();
+
+                Assert.Equal("Hello world", await tcs.Task);
+            }
+        }
+
+        private static HubConnection CreateConnection(string url, TransportType transportType, TransferMode transferMode, ILoggerFactory loggerFactory)
+        {
+            var builder = new HubConnectionBuilder()
+                .WithUrl(url)
+                .WithTransport(transportType)
+                .WithLoggerFactory(loggerFactory);
+            if (transferMode == TransferMode.Binary)
+            {
+                builder.WithMessagePackProtocol();
+            }
+            else if (transferMode == TransferMode.Text)
+            {
+                builder.WithJsonProtocol();
+            }
+
+            return builder.Build();
         }
 
         public static IEnumerable<object[]> TransportTypes
