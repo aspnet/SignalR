@@ -119,7 +119,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             }
             catch (Exception ex)
             {
-                throw new FormatException("Error binding arguments. Make sure that types of the provided values match the types of the hub method being invoked.", ex);
+                throw new FormatException("Error binding arguments. Make sure that the types of the provided values match the types of the hub method being invoked.", ex);
             }
         }
 

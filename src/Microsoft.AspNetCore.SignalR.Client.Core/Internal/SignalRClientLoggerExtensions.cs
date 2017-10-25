@@ -137,7 +137,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Internal
         {
             if (logger.IsEnabled(LogLevel.Trace))
             {
-                var argsList = string.Join(", ", args.Select(a => a?.GetType().FullName?? "(null)"));
+                var argsList = args == null ? string.Empty : string.Join(", ", args.Select(a => a?.GetType().FullName ?? "(null)"));
                 _issueInvocation(logger, invocationId, returnType, methodName, argsList, null);
             }
         }

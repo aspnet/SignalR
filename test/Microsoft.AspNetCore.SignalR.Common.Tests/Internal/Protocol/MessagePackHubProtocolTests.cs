@@ -134,10 +134,10 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         {
             new object[] { new byte[] { 0x95, 0x01, 0xa3, 0x78, 0x79, 0x7a, 0xc2, 0xa1, 0x78 }, "Reading array length for 'arguments' failed." }, // array is missing
             new object[] { new byte[] { 0x95, 0x01, 0xa3, 0x78, 0x79, 0x7a, 0xc2, 0xa1, 0x78, 0x00 }, "Reading array length for 'arguments' failed." }, // 0x00 is not array marker
-            new object[] { new byte[] { 0x95, 0x01, 0xa3, 0x78, 0x79, 0x7a, 0xc2, 0xa1, 0x78, 0x91 }, "Error binding arguments. Make sure that types of the provided values match the types of the hub method being invoked." }, // array is missing elements
-            new object[] { new byte[] { 0x95, 0x01, 0xa3, 0x78, 0x79, 0x7a, 0xc2, 0xa1, 0x78, 0x91, 0xa2, 0x78 }, "Error binding arguments. Make sure that types of the provided values match the types of the hub method being invoked." }, // array element is cut
+            new object[] { new byte[] { 0x95, 0x01, 0xa3, 0x78, 0x79, 0x7a, 0xc2, 0xa1, 0x78, 0x91 }, "Error binding arguments. Make sure that the types of the provided values match the types of the hub method being invoked." }, // array is missing elements
+            new object[] { new byte[] { 0x95, 0x01, 0xa3, 0x78, 0x79, 0x7a, 0xc2, 0xa1, 0x78, 0x91, 0xa2, 0x78 }, "Error binding arguments. Make sure that the types of the provided values match the types of the hub method being invoked." }, // array element is cut
             new object[] { new byte[] { 0x95, 0x01, 0xa3, 0x78, 0x79, 0x7a, 0xc2, 0xa1, 0x78, 0x92, 0xa0, 0x00 }, "Invocation provides 2 argument(s) but target expects 1." }, // argument count does not match binder argument count
-            new object[] { new byte[] { 0x95, 0x01, 0xa3, 0x78, 0x79, 0x7a, 0xc2, 0xa1, 0x78, 0x91, 0x00 }, "Error binding arguments. Make sure that types of the provided values match the types of the hub method being invoked." }, // argument type mismatch
+            new object[] { new byte[] { 0x95, 0x01, 0xa3, 0x78, 0x79, 0x7a, 0xc2, 0xa1, 0x78, 0x91, 0x00 }, "Error binding arguments. Make sure that the types of the provided values match the types of the hub method being invoked." }, // argument type mismatch
         };
 
         [Theory]

@@ -556,7 +556,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             public IReadOnlyList<string> ExcludedIds;
 
             public RedisExcludeClientsMessage(string invocationId, bool nonBlocking, string target, IReadOnlyList<string> excludedIds, params object[] arguments)
-                : base(invocationId, nonBlocking, target, null, arguments)
+                : base(invocationId, nonBlocking, target, argumentBindingException: null, arguments: arguments)
             {
                 ExcludedIds = excludedIds;
             }

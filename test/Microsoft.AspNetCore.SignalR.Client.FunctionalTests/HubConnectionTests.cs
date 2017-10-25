@@ -388,7 +388,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                     await connection.StartAsync().OrTimeout();
 
                     var ex = await Assert.ThrowsAsync<HubException>(() => connection.InvokeAsync("Echo", new int[] { 42 })).OrTimeout();
-                    Assert.StartsWith("Error binding arguments. Make sure that types of the provided values match the types of the hub method being invoked.", ex.Message);
+                    Assert.StartsWith("Error binding arguments. Make sure that the types of the provided values match the types of the hub method being invoked.", ex.Message);
                 }
                 catch (Exception ex)
                 {
@@ -473,7 +473,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
                     var channel = await connection.StreamAsync<int>("Stream", "xyz");
                     var ex = await Assert.ThrowsAsync<HubException>(() => channel.ReadAllAsync().OrTimeout());
-                    Assert.StartsWith("Error binding arguments. Make sure that types of the provided values match the types of the hub method being invoked.", ex.Message);
+                    Assert.StartsWith("Error binding arguments. Make sure that the types of the provided values match the types of the hub method being invoked.", ex.Message);
                 }
                 catch (Exception ex)
                 {
