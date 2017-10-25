@@ -429,14 +429,7 @@ namespace Microsoft.AspNetCore.SignalR
         {
             if (!invocationMessage.NonBlocking)
             {
-                if (IsIObservable(returnType) || IsChannel(returnType, out _))
-                {
-                    await SendMessageAsync(connection, new StreamCompletionMessage(invocationMessage.InvocationId, ex.Message));
-                }
-                else
-                {
-                    await SendMessageAsync(connection, CompletionMessage.WithError(invocationMessage.InvocationId, ex.Message));
-                }
+                await SendMessageAsync(connection, CompletionMessage.WithError(invocationMessage.InvocationId, ex.Message));
             }
         }
 
@@ -472,11 +465,11 @@ namespace Microsoft.AspNetCore.SignalR
                     await SendMessageAsync(connection, new StreamItemMessage(invocationId, enumerator.Current));
                 }
 
-                await SendMessageAsync(connection, new StreamCompletionMessage(invocationId, error: null));
+                await SendMessageAsync(connection, CompletionMessage.Empty(invocationId));
             }
             catch (Exception ex)
             {
-                await SendMessageAsync(connection, new StreamCompletionMessage(invocationId, error: ex.Message));
+                await SendMessageAsync(connection, CompletionMessage.WithError(invocationId, error: ex.Message));
             }
             finally
             {

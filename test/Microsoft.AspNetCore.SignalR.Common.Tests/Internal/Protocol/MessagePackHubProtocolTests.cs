@@ -35,9 +35,6 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             new object[] { new[] { new CompletionMessage("xyz", error: null, result: new CustomObject(), hasResult: true) } },
             new object[] { new[] { new CompletionMessage("xyz", error: null, result: new[] { new CustomObject(), new CustomObject() }, hasResult: true) } },
 
-            new object[] { new[] { new StreamCompletionMessage("xyz", error: null) } },
-            new object[] { new[] { new StreamCompletionMessage("xyz", error: "Error not found!") } },
-
             new object[] { new[] { new StreamItemMessage("xyz", null) } },
             new object[] { new[] { new StreamItemMessage("xyz", 42) } },
             new object[] { new[] { new StreamItemMessage("xyz", 42.0f) } },
@@ -55,8 +52,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                     new InvocationMessage("xyz", /*nonBlocking*/ true, "method", null, 42, "string", new CustomObject()),
                     new CompletionMessage("xyz", error: null, result: 42, hasResult: true),
                     new StreamItemMessage("xyz", null),
-                    new CompletionMessage("xyz", error: null, result: new CustomObject(), hasResult: true),
-                    new StreamCompletionMessage("xyz", error: null),
+                    new CompletionMessage("xyz", error: null, result: new CustomObject(), hasResult: true)
                 }
             }
         };

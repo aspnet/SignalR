@@ -162,7 +162,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
                         if (invocationReq.HubConnection.TryRemoveInvocation(invocationReq.InvocationId, out _))
                         {
-                            invocationReq.Complete(new StreamCompletionMessage(irq.InvocationId, error: null));
+                            invocationReq.Complete(CompletionMessage.Empty(irq.InvocationId));
                         }
 
                         invocationReq.Dispose();
@@ -274,15 +274,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
                             }
                             DispatchInvocationStreamItemAsync(streamItem, irq);
                             break;
-                        case StreamCompletionMessage streamCompletion:
-                            if (!TryRemoveInvocation(streamCompletion.InvocationId, out irq))
-                            {
-                                _logger.DropStreamCompletionMessage(streamCompletion.InvocationId);
-                                return;
-                            }
-                            DispatchStreamCompletion(streamCompletion, irq);
-                            irq.Dispose();
-                            break;
                         default:
                             throw new InvalidOperationException($"Unknown message type: {message.GetType().FullName}");
                     }
@@ -373,20 +364,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
             if (irq.CancellationToken.IsCancellationRequested)
             {
                 _logger.CancelingInvocationCompletion(irq.InvocationId);
-            }
-            else
-            {
-                irq.Complete(completion);
-            }
-        }
-
-        private void DispatchStreamCompletion(StreamCompletionMessage completion, InvocationRequest irq)
-        {
-            _logger.ReceivedStreamCompletion(completion.InvocationId);
-
-            if (irq.CancellationToken.IsCancellationRequested)
-            {
-                _logger.CancelingStreamCompletion(irq.InvocationId);
             }
             else
             {

@@ -89,7 +89,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                         messages.Add(message);
                         break;
                     case CompletionMessage _:
-                    case StreamCompletionMessage _:
                         messages.Add(message);
                         return messages;
                     default:

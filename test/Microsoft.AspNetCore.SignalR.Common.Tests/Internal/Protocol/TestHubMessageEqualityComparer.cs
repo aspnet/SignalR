@@ -22,7 +22,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             }
 
             return InvocationMessagesEqual(x, y) || StreamItemMessagesEqual(x, y) || CompletionMessagesEqual(x, y)
-                || StreamCompletionMessagesEqual(x, y) || CancelInvocationMessagesEqual(x, y);
+                || CancelInvocationMessagesEqual(x, y);
         }
 
         private bool CompletionMessagesEqual(HubMessage x, HubMessage y)
@@ -31,12 +31,6 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                 string.Equals(left.Error, right.Error, StringComparison.Ordinal) &&
                 left.HasResult == right.HasResult &&
                 (Equals(left.Result, right.Result) || SequenceEqual(left.Result, right.Result));
-        }
-
-        private bool StreamCompletionMessagesEqual(HubMessage x, HubMessage y)
-        {
-            return x is StreamCompletionMessage left && y is StreamCompletionMessage right &&
-                string.Equals(left.Error, right.Error, StringComparison.Ordinal);
         }
 
         private bool StreamItemMessagesEqual(HubMessage x, HubMessage y)

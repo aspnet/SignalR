@@ -1016,7 +1016,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 AssertHubMessage(new StreamItemMessage(string.Empty, "1"), messages[1]);
                 AssertHubMessage(new StreamItemMessage(string.Empty, "2"), messages[2]);
                 AssertHubMessage(new StreamItemMessage(string.Empty, "3"), messages[3]);
-                AssertHubMessage(new StreamCompletionMessage(string.Empty, error: null), messages[4]);
+                AssertHubMessage(CompletionMessage.Empty(string.Empty), messages[4]);
 
                 client.Dispose();
 
@@ -1291,10 +1291,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     Assert.Equal(expectedCompletion.Error, actualCompletion.Error);
                     Assert.Equal(expectedCompletion.HasResult, actualCompletion.HasResult);
                     Assert.Equal(expectedCompletion.Result, actualCompletion.Result);
-                    break;
-                case StreamCompletionMessage expectedStreamCompletion:
-                    var actualStreamCompletion = Assert.IsType<StreamCompletionMessage>(actual);
-                    Assert.Equal(expectedStreamCompletion.Error, actualStreamCompletion.Error);
                     break;
                 case StreamItemMessage expectedStreamItem:
                     var actualStreamItem = Assert.IsType<StreamItemMessage>(actual);

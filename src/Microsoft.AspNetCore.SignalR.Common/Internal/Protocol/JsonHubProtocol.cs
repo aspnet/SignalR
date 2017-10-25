@@ -26,7 +26,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         private const int InvocationMessageType = 1;
         private const int ResultMessageType = 2;
         private const int CompletionMessageType = 3;
-        private const int StreamCompletionMessageType = 4;
         private const int CancelInvocationMessageType = 5;
 
         // ONLY to be used for application payloads (args, return values, etc.)
@@ -114,8 +113,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                             return BindResultMessage(json, binder);
                         case CompletionMessageType:
                             return BindCompletionMessage(json, binder);
-                        case StreamCompletionMessageType:
-                            return BindStreamCompletionMessage(json);
                         case CancelInvocationMessageType:
                             return BindCancelInvocationMessage(json);
                         default:
@@ -144,9 +141,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                     case CompletionMessage m:
                         WriteCompletionMessage(m, writer);
                         break;
-                    case StreamCompletionMessage m:
-                        WriteStreamCompletionMessage(m, writer);
-                        break;
                     case CancelInvocationMessage m:
                         WriteCancelInvocationMessage(m, writer);
                         break;
@@ -169,18 +163,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             {
                 writer.WritePropertyName(ResultPropertyName);
                 _payloadSerializer.Serialize(writer, message.Result);
-            }
-            writer.WriteEndObject();
-        }
-
-        private void WriteStreamCompletionMessage(StreamCompletionMessage message, JsonTextWriter writer)
-        {
-            writer.WriteStartObject();
-            WriteHubMessageCommon(message, writer, StreamCompletionMessageType);
-            if (!string.IsNullOrEmpty(message.Error))
-            {
-                writer.WritePropertyName(ErrorPropertyName);
-                writer.WriteValue(message.Error);
             }
             writer.WriteEndObject();
         }
@@ -306,13 +288,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             var returnType = binder.GetReturnType(invocationId);
             var payload = resultProp.Value?.ToObject(returnType, _payloadSerializer);
             return new CompletionMessage(invocationId, error, result: payload, hasResult: true);
-        }
-
-        private StreamCompletionMessage BindStreamCompletionMessage(JObject json)
-        {
-            var invocationId = JsonUtils.GetRequiredProperty<string>(json, InvocationIdPropertyName, JTokenType.String);
-            var error = JsonUtils.GetOptionalProperty<string>(json, ErrorPropertyName, JTokenType.String);
-            return new StreamCompletionMessage(invocationId, error);
         }
 
         private CancelInvocationMessage BindCancelInvocationMessage(JObject json)
