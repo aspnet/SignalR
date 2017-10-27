@@ -1,7 +1,10 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.SignalR.Core;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
+using Moq;
 using Xunit;
 
 namespace Microsoft.AspNetCore.SignalR.Tests
@@ -123,6 +126,24 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 Assert.Equal("Hello", message.Target);
                 Assert.Single(message.Arguments);
                 Assert.Equal("World", (string)message.Arguments[0]);
+            }
+        }
+
+        [Fact]
+        public async Task InvokeConnectionAsyncThrowsIfConnectionFailsToWrite()
+        {
+            using (var client = new TestClient())
+            {
+                // Force an exception when writing to connection
+                var output = new Mock<Channel<HubMessage>>();
+                output.Setup(o => o.Out.WaitToWriteAsync(It.IsAny<CancellationToken>())).Throws(new Exception());
+
+                var manager = new DefaultHubLifetimeManager<MyHub>();
+                var connection = new HubConnectionContext(output.Object, client.Connection);
+
+                await manager.OnConnectedAsync(connection);
+
+                await Assert.ThrowsAsync<Exception>(() => manager.InvokeConnectionAsync(connection.ConnectionId, "Hello", new object[] { "World" }));
             }
         }
 

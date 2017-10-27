@@ -1,13 +1,17 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using System;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Channels;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.SignalR.Tests;
 using Microsoft.AspNetCore.SignalR.Tests.Common;
+using Microsoft.AspNetCore.Sockets;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Moq;
 using Xunit;
 
 namespace Microsoft.AspNetCore.SignalR.Redis.Tests
@@ -478,6 +482,88 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 
                 AssertMessage(output);
                 Assert.False(output.In.TryRead(out var item));
+            }
+        }
+
+        [Fact]
+        public async Task WritingToRemoteConnectionThatFailsDoesNotThrow()
+        {
+            var manager1 = new RedisHubLifetimeManager<MyHub>(new LoggerFactory().CreateLogger<RedisHubLifetimeManager<MyHub>>(), Options.Create(new RedisOptions()
+            {
+                Factory = t => new TestConnectionMultiplexer()
+            }));
+            var manager2 = new RedisHubLifetimeManager<MyHub>(new LoggerFactory().CreateLogger<RedisHubLifetimeManager<MyHub>>(), Options.Create(new RedisOptions()
+            {
+                Factory = t => new TestConnectionMultiplexer()
+            }));
+
+            using (var client = new TestClient())
+            {
+                // Force an exception when writing to connection
+                var output = new Mock<Channel<HubMessage>>();
+                output.Setup(o => o.Out.WaitToWriteAsync(It.IsAny<CancellationToken>())).Throws(new Exception());
+
+                var connection = new HubConnectionContext(output.Object, client.Connection);
+
+                await manager2.OnConnectedAsync(connection).OrTimeout();
+
+                await manager1.InvokeConnectionAsync(connection.ConnectionId, "Hello", new object[] { "World" }).OrTimeout();
+            }
+        }
+
+        [Fact]
+        public async Task WritingToLocalConnectionThatFailsThrowsException()
+        {
+            var manager = new RedisHubLifetimeManager<MyHub>(new LoggerFactory().CreateLogger<RedisHubLifetimeManager<MyHub>>(), Options.Create(new RedisOptions()
+            {
+                Factory = t => new TestConnectionMultiplexer()
+            }));
+
+            using (var client = new TestClient())
+            {
+                // Force an exception when writing to connection
+                var output = new Mock<Channel<HubMessage>>();
+                output.Setup(o => o.Out.WaitToWriteAsync(It.IsAny<CancellationToken>())).Throws(new Exception());
+
+                var connection = new HubConnectionContext(output.Object, client.Connection);
+
+                await manager.OnConnectedAsync(connection).OrTimeout();
+
+                await Assert.ThrowsAsync<Exception>(() => manager.InvokeConnectionAsync(connection.ConnectionId, "Hello", new object[] { "World" }).OrTimeout());
+            }
+        }
+
+        [Fact]
+        public async Task WritingToGroupWithOneConnectionFailingSecondConnectionStillReceivesMessage()
+        {
+            var manager = new RedisHubLifetimeManager<MyHub>(new LoggerFactory().CreateLogger<RedisHubLifetimeManager<MyHub>>(), Options.Create(new RedisOptions()
+            {
+                Factory = t => new TestConnectionMultiplexer()
+            }));
+
+            using (var client1 = new TestClient())
+            using (var client2 = new TestClient())
+            {
+                var output2 = Channel.CreateUnbounded<HubMessage>();
+
+                // Force an exception when writing to connection
+                var output = new Mock<Channel<HubMessage>>();
+                output.Setup(o => o.Out.WaitToWriteAsync(It.IsAny<CancellationToken>())).Throws(new Exception());
+
+                var connection1 = new HubConnectionContext(output.Object, client1.Connection);
+                var connection2 = new HubConnectionContext(output2, client2.Connection);
+
+                await manager.OnConnectedAsync(connection1).OrTimeout();
+                await manager.AddGroupAsync(connection1.ConnectionId, "group");
+                await manager.OnConnectedAsync(connection2).OrTimeout();
+                await manager.AddGroupAsync(connection2.ConnectionId, "group");
+
+                await manager.InvokeGroupAsync("group", "Hello", new object[] { "World" }).OrTimeout();
+                AssertMessage(output2);
+
+                // Repeat to check that group can still be sent to
+                await manager.InvokeGroupAsync("group", "Hello", new object[] { "World" }).OrTimeout();
+                AssertMessage(output2);
             }
         }
 
