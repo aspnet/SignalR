@@ -38,6 +38,9 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Internal
         private static readonly Action<ILogger, Exception> _connectionFailed =
             LoggerMessage.Define(LogLevel.Warning, new EventId(8, nameof(ConnectionFailed)), "Connection to Redis failed.");
 
+        private static readonly Action<ILogger, Exception> _failedWritingMessage =
+            LoggerMessage.Define(LogLevel.Warning, new EventId(9, nameof(FailedWritingMessage)), "Failed writing message.");
+
         public static void ConnectingToEndpoints(this ILogger logger, EndPointCollection endpoints)
         {
             if (logger.IsEnabled(LogLevel.Information))
@@ -87,6 +90,11 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Internal
         public static void ConnectionFailed(this ILogger logger, Exception exception)
         {
             _connectionFailed(logger, exception);
+        }
+
+        public static void FailedWritingMessage(this ILogger logger, Exception exception)
+        {
+            _failedWritingMessage(logger, exception);
         }
     }
 }

@@ -109,7 +109,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Failed writing message.");
+                    _logger.FailedWritingMessage(ex);
                 }
             });
 
@@ -138,7 +138,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Failed writing message.");
+                    _logger.FailedWritingMessage(ex);
                 }
             });
 
@@ -279,7 +279,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Failed writing message.");
+                    _logger.FailedWritingMessage(ex);
                 }
             });
 
@@ -299,7 +299,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, "Failed writing message.");
+                        _logger.FailedWritingMessage(ex);
                     }
                 });
             }
@@ -410,7 +410,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, "Failed writing message.");
+                        _logger.FailedWritingMessage(ex);
                     }
                 });
             }
