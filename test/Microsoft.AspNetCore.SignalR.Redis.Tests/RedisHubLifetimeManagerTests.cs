@@ -481,6 +481,26 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             }
         }
 
+        [Fact]
+        public async Task AddGroupOnNonExistentConnectionWithSingleServerDoesNotWaitForAck()
+        {
+            var manager = new RedisHubLifetimeManager<MyHub>(new LoggerFactory().CreateLogger<RedisHubLifetimeManager<MyHub>>(), Options.Create(new RedisOptions()
+            {
+                Factory = t => new TestConnectionMultiplexer()
+            }));
+
+            using (var client = new TestClient())
+            {
+                var output = Channel.CreateUnbounded<HubMessage>();
+
+                var connection = new HubConnectionContext(output, client.Connection);
+
+                await manager.OnConnectedAsync(connection).OrTimeout();
+                // This would timeout if the ack was being waited on
+                await manager.AddGroupAsync("NotARealConnectionId", "MyGroup").OrTimeout();
+            }
+        }
+
         private void AssertMessage(Channel<HubMessage> channel)
         {
             Assert.True(channel.In.TryRead(out var item));
