@@ -145,33 +145,40 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             channelName = _channelNamePrefix + ".internal.group";
             _bus.Subscribe(channelName, async (c, data) =>
             {
-                var groupMessage = DeserializeMessage<GroupMessage>(data);
-
-                var connection = _connections[groupMessage.ConnectionId];
-                if (connection == null)
+                try
                 {
-                    // user not on this server
-                    return;
+                    var groupMessage = DeserializeMessage<GroupMessage>(data);
+
+                    var connection = _connections[groupMessage.ConnectionId];
+                    if (connection == null)
+                    {
+                        // user not on this server
+                        return;
+                    }
+
+                    if (groupMessage.Action == GroupAction.Remove)
+                    {
+                        await RemoveGroupAsyncCore(connection, groupMessage.Group);
+                    }
+
+                    if (groupMessage.Action == GroupAction.Add)
+                    {
+                        await AddGroupAsyncCore(connection, groupMessage.Group);
+                    }
+
+                    // Sending ack to server that sent the original add/remove
+                    await PublishAsync($"{_channelNamePrefix}.internal.{groupMessage.Server}", new GroupMessage
+                    {
+                        Action = GroupAction.Ack,
+                        ConnectionId = groupMessage.ConnectionId,
+                        Group = groupMessage.Group,
+                        Id = groupMessage.Id
+                    });
                 }
-
-                if (groupMessage.Action == GroupAction.Remove)
+                catch (Exception ex)
                 {
-                    await RemoveGroupAsyncCore(connection, groupMessage.Group);
+                    _logger.InternalMessageFailed(ex);
                 }
-
-                if (groupMessage.Action == GroupAction.Add)
-                {
-                    await AddGroupAsyncCore(connection, groupMessage.Group);
-                }
-
-                // Sending ack to server that sent the original add/remove
-                await PublishAsync($"{_channelNamePrefix}.internal.{groupMessage.Server}", new GroupMessage
-                {
-                    Action = GroupAction.Ack,
-                    ConnectionId = groupMessage.ConnectionId,
-                    Group = groupMessage.Group,
-                    Id = groupMessage.Id
-                });
             });
 
             // Create server specific channel in order to send an ack to a single server
