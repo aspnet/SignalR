@@ -38,10 +38,10 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private int _nextId = 0;
 
-        public event Func<Exception, Task> Closed
+        public Task Closed
         {
-            add { _connection.Closed += value; }
-            remove { _connection.Closed -= value; }
+            get { return _connection.Closed; }
+            set { _connection.Closed = value; }
         }
 
         public HubConnection(IConnection connection, IHubProtocol protocol, ILoggerFactory loggerFactory)
@@ -62,7 +62,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
             _logger = _loggerFactory.CreateLogger<HubConnection>();
             _connection.OnReceived((data, state) => ((HubConnection)state).OnDataReceivedAsync(data), this);
-            _connection.Closed += Shutdown;
+            _connection.Closed.ContinueWith((task) => Shutdown(task.Exception));
         }
 
         public async Task StartAsync() => await StartAsyncCore().ForceAsync();

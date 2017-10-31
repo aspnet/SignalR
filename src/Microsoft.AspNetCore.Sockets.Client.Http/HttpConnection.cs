@@ -42,12 +42,27 @@ namespace Microsoft.AspNetCore.Sockets.Client
         private WritableChannel<SendMessage> Output => _transportChannel.Out;
         private readonly List<ReceiveCallback> _callbacks = new List<ReceiveCallback>();
         private readonly TransportType _requestedTransportType = TransportType.All;
+        private TaskCompletionSource<object> _closedTcs;
 
         public Uri Url { get; }
 
         public IFeatureCollection Features { get; } = new FeatureCollection();
+        private Task _t;
+        public Task Closed
+        {
+            get
+            {
+                if (_t == null)
+                {
+                    _closedTcs = new TaskCompletionSource<object>();
+                    _t = _closedTcs.Task;
+                    return _t;
+                }
+                return _t;
+            }
+            set { _t = value; }
+        }
 
-        public event Func<Exception, Task> Closed;
 
         public HttpConnection(Uri url)
             : this(url, TransportType.All)
@@ -192,17 +207,13 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
                     _logger.RaiseClosed(_connectionId);
 
-                    var closedEventHandler = Closed;
-                    if (closedEventHandler != null)
+                    if (Closed != null)
                     {
-                        try
+                        if (_closedTcs.Task.IsFaulted)
                         {
-                            await closedEventHandler.Invoke(t.IsFaulted ? t.Exception.InnerException : null);
+                            _closedTcs?.SetException(t.Exception.InnerException);
                         }
-                        catch (Exception ex)
-                        {
-                            _logger.ExceptionThrownFromCallback(_connectionId, nameof(Closed), ex);
-                        }
+                        await Closed;
                     }
                 });
 
@@ -463,6 +474,10 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 await _receiveLoopTask;
             }
 
+            if (!Closed.IsCompleted)
+            {
+                _closedTcs?.SetResult(null);
+            }
             _httpClient?.Dispose();
         }
 

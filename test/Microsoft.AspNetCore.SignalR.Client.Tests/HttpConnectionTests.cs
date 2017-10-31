@@ -189,7 +189,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
         }
 
         [Fact]
-        public async Task ClosedEventRaisedWhenTheClientIsBeingStopped()
+        public async Task ClosedTaskRunWhenTheClientIsBeingStopped()
         {
             var mockHttpHandler = new Mock<HttpMessageHandler>();
             mockHttpHandler.Protected()
@@ -205,11 +205,12 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
             var connection = new HttpConnection(new Uri("http://fakeuri.org/"), TransportType.LongPolling, loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
 
             var closedEventTcs = new TaskCompletionSource<Exception>();
-            connection.Closed += e =>
+            _ = connection.Closed.ContinueWith((task, state) =>
             {
-                closedEventTcs.SetResult(e);
+                var tcs = (TaskCompletionSource<Exception>)state;
+                tcs.SetResult(task.Exception);
                 return Task.CompletedTask;
-            };
+            }, closedEventTcs);
 
             await connection.StartAsync();
             await connection.DisposeAsync();
@@ -236,17 +237,18 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 });
 
             var connection = new HttpConnection(new Uri("http://fakeuri.org/"), TransportType.LongPolling, loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
-            var closedEventTcs = new TaskCompletionSource<Exception>();
-            connection.Closed += e =>
+            var closedTcs = new TaskCompletionSource<Exception>();
+            _ = connection.Closed.ContinueWith((task, state) =>
             {
-                closedEventTcs.TrySetResult(e);
+                var tcs = (TaskCompletionSource<Exception>)state;
+                tcs.TrySetResult(task.Exception);
                 return Task.CompletedTask;
-            };
+            }, closedTcs);
 
             try
             {
                 await connection.StartAsync();
-                Assert.IsType<HttpRequestException>(await closedEventTcs.Task.OrTimeout());
+                Assert.IsType<HttpRequestException>(await closedTcs.Task.OrTimeout());
             }
             finally
             {
@@ -392,11 +394,14 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
 
             var connection = new HttpConnection(new Uri("http://fakeuri.org/"), new TestTransportFactory(mockTransport.Object), loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
             connection.OnReceived(_ => blockReceiveCallbackTcs.Task);
-
-            connection.Closed += _ => {
-                closedTcs.SetResult(null);
+            var r = new TaskCompletionSource<object>();
+            connection.Closed = r.Task;
+            var closedTask = connection.Closed.ContinueWith((task, state) => 
+            {
+                var tcs = (TaskCompletionSource<object>)state;
+                tcs.SetResult(null);
                 return Task.CompletedTask;
-            };
+            }, closedTcs);
 
             await connection.StartAsync();
             channel.Out.TryWrite(Array.Empty<byte>());
@@ -405,6 +410,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
             Assert.False(channel.In.TryRead(out var message));
 
             await connection.DisposeAsync();
+            r.SetResult(null);
         }
 
         [Fact]
@@ -456,19 +462,20 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
         }
 
         [Fact]
-        public async Task ClosedEventNotRaisedWhenTheClientIsStoppedButWasNeverStarted()
+        public async Task ClosedTaskNotRunWhenTheClientIsStoppedButWasNeverStarted()
         {
             var connection = new HttpConnection(new Uri("http://fakeuri.org/"));
 
-            bool closedEventRaised = false;
-            connection.Closed += e =>
+            var closedTaskRun = false;
+            _ = connection.Closed.ContinueWith((_, state) =>
             {
-                closedEventRaised = true;
+                var run = (bool)state;
+                run = true;
                 return Task.CompletedTask;
-            };
+            }, closedTaskRun);
 
             await connection.DisposeAsync();
-            Assert.False(closedEventRaised);
+            Assert.False(closedTaskRun);
         }
 
         [Fact]
@@ -644,18 +651,19 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                     return Task.CompletedTask;
                 }, receiveTcs);
 
-                connection.Closed += e =>
+                _ = connection.Closed.ContinueWith((task, state) =>
                     {
-                        if (e != null)
+                        var tcs = (TaskCompletionSource<string>)state;
+                        if (task.Exception != null)
                         {
-                            receiveTcs.TrySetException(e);
+                            tcs.TrySetException(task.Exception);
                         }
                         else
                         {
-                            receiveTcs.TrySetCanceled();
+                            tcs.TrySetCanceled();
                         }
                         return Task.CompletedTask;
-                    };
+                    }, receiveTcs);
 
                 await connection.StartAsync();
 
@@ -707,18 +715,19 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                     return Task.CompletedTask;
                 });
 
-                connection.Closed += e =>
+                _ = connection.Closed.ContinueWith((task, state) =>
                 {
-                    if (e != null)
+                    var tcs = (TaskCompletionSource<string>)state;
+                    if (task.Exception != null)
                     {
-                        receiveTcs.TrySetException(e);
+                        tcs.TrySetException(task.Exception);
                     }
                     else
                     {
-                        receiveTcs.TrySetCanceled();
+                        tcs.TrySetCanceled();
                     }
                     return Task.CompletedTask;
-                };
+                }, receiveTcs);
 
                 await connection.StartAsync();
 
@@ -770,18 +779,19 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                     return Task.CompletedTask;
                 });
 
-                connection.Closed += e =>
+                _ = connection.Closed.ContinueWith((task, state) =>
                 {
-                    if (e != null)
+                    var tcs = (TaskCompletionSource<string>)state;
+                    if (task.Exception != null)
                     {
-                        receiveTcs.TrySetException(e);
+                        tcs.TrySetException(task.Exception);
                     }
                     else
                     {
-                        receiveTcs.TrySetCanceled();
+                        tcs.TrySetCanceled();
                     }
                     return Task.CompletedTask;
-                };
+                }, receiveTcs);
 
                 await connection.StartAsync();
 
@@ -814,16 +824,16 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
             try
             {
                 var closeTcs = new TaskCompletionSource<Exception>();
-                connection.Closed += e =>
+                _ = connection.Closed.ContinueWith((task, state) =>
                 {
-                    closeTcs.TrySetResult(e);
+                    var tcs = (TaskCompletionSource<Exception>)state;
+                    tcs.TrySetResult(task.Exception);
                     return Task.CompletedTask;
-                };
+                }, closeTcs);
 
                 await connection.StartAsync();
-
                 // Exception in send should shutdown the connection
-                await closeTcs.Task.OrTimeout();
+                await Assert.ThrowsAsync<TaskCanceledException>(async () => await closeTcs.Task.OrTimeout());
 
                 var exception = await Assert.ThrowsAsync<InvalidOperationException>(
                     async () => await connection.SendAsync(new byte[0]));

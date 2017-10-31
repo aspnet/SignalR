@@ -179,13 +179,14 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                         return Task.CompletedTask;
                     }, receiveTcs);
 
-                    connection.Closed += e =>
+                    connection.Closed = receiveTcs.Task;
+                    _ = connection.Closed.ContinueWith((task) =>
                     {
                         logger.LogInformation("Connection closed");
-                        if (e != null)
+                        if (task.Exception != null)
                         {
-                            receiveTcs.TrySetException(e);
-                            closeTcs.TrySetException(e);
+                            receiveTcs.TrySetException(task.Exception);
+                            closeTcs.TrySetException(task.Exception);
                         }
                         else
                         {
@@ -193,7 +194,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                             closeTcs.TrySetResult(null);
                         }
                         return Task.CompletedTask;
-                    };
+                    });
 
                     logger.LogInformation("Starting connection to {url}", url);
                     await connection.StartAsync().OrTimeout();
@@ -344,19 +345,19 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 {
                     var closeTcs = new TaskCompletionSource<object>();
 
-                    connection.Closed += e =>
+                    _ = connection.Closed.ContinueWith((task) =>
                     {
                         logger.LogInformation("Connection closed");
-                        if (e != null)
+                        if (task.Exception != null)
                         {
-                            closeTcs.TrySetException(e);
+                            closeTcs.TrySetException(task.Exception);
                         }
                         else
                         {
                             closeTcs.TrySetResult(null);
                         }
                         return Task.CompletedTask;
-                    };
+                    });
 
                     logger.LogInformation("Starting connection to {url}", url);
                     await connection.StartAsync().OrTimeout();
