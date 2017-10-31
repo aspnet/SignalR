@@ -235,7 +235,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             return PublishAsync(_channelNamePrefix + ".user." + userId, message);
         }
 
-        private async Task PublishAsync<TMessage>(string channel, TMessage hubMessage)
+        private async Task<long> PublishAsync<TMessage>(string channel, TMessage hubMessage)
         {
             byte[] payload;
             using (var stream = new MemoryStream())
@@ -247,7 +247,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             }
 
             _logger.PublishToChannel(channel);
-            await _bus.PublishAsync(channel, payload);
+            var connectionsSentTo = await _bus.PublishAsync(channel, payload);
+            return connectionsSentTo;
         }
 
         public override Task OnConnectedAsync(HubConnectionContext connection)
@@ -485,7 +486,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             var id = Interlocked.Increment(ref _internalId);
             var ack = _ackHandler.CreateAck(id);
             // Send Add/Remove Group to other servers and wait for an ack or timeout
-            await PublishAsync(_channelNamePrefix + ".internal.group", new GroupMessage
+            var connectionsSentTo = await PublishAsync(_channelNamePrefix + ".internal.group", new GroupMessage
             {
                 Action = action,
                 ConnectionId = connectionId,
@@ -493,6 +494,13 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                 Id = id,
                 Server = _serverName
             });
+
+            // Only local server received message
+            if (connectionsSentTo == 1)
+            {
+                _ackHandler.TriggerAck(id);
+                return;
+            }
 
             await ack;
         }
