@@ -20,8 +20,6 @@
     <PackageReference Include="System.IO.Pipelines" />
     <PackageReference Include="System.IO.Pipelines.Extensions" />
     <PackageReference Include="System.Memory" />
-    <PackageReference Include="System.Numerics.Vectors" />
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" />
     <PackageReference Include="System.Threading.Tasks.Channels" />
   </ItemGroup>
 
