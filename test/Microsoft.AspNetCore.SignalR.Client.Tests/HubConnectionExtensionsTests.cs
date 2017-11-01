@@ -128,6 +128,20 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             var connection = new TestConnection();
             var hubConnection = new HubConnection(connection, new JsonHubProtocol(new JsonSerializer()), new LoggerFactory());
             var receiveTcs = new TaskCompletionSource<int>();
+            var closeTcs = new TaskCompletionSource<Exception>();
+            _ = hubConnection.Closed.ContinueWith((task, state) =>
+            {
+                var tcs = (TaskCompletionSource<Exception>)state;
+                if (task.Exception == null)
+                {
+                    tcs.TrySetResult(null);
+                }
+                else
+                {
+                    tcs.TrySetException(task.Exception);
+                }
+                return Task.CompletedTask;
+            }, closeTcs);
 
             try
             {
@@ -166,7 +180,20 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             var connection = new TestConnection();
             var hubConnection = new HubConnection(connection, new JsonHubProtocol(), new LoggerFactory());
             var receiveTcs = new TaskCompletionSource<int>();
-
+            var closeTcs = new TaskCompletionSource<Exception>();
+            _ = hubConnection.Closed.ContinueWith((task, state) =>
+            {
+                var tcs = (TaskCompletionSource<Exception>)state;
+                if (task.Exception == null)
+                {
+                    tcs.TrySetResult(null);
+                }
+                else
+                {
+                    tcs.TrySetException(task.Exception);
+                }
+                return Task.CompletedTask;
+            }, closeTcs);
             try
             {
                 hubConnection.On<int>("Foo", r => { receiveTcs.SetResult(r); });

@@ -175,21 +175,23 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 {
                     await connection.StartAsync().OrTimeout();
                     var closeTcs = new TaskCompletionSource<object>();
-                    connection.Closed += ex =>
+                    var closeTask = connection.Closed.ContinueWith((task, state) =>
                     {
-                        if (ex != null)
+                        var tcs = (TaskCompletionSource<object>)state;
+                        if (task.Exception!= null)
                         {
-                            closeTcs.SetException(ex);
+                            tcs.SetException(task.Exception);
                         }
                         else
                         {
-                            closeTcs.SetResult(null);
+                            tcs.SetResult(null);
                         }
                         return Task.CompletedTask;
-                    };
+                    }, closeTcs);
+
                     await connection.InvokeAsync("CallHandlerThatDoesntExist").OrTimeout();
                     await connection.DisposeAsync().OrTimeout();
-                    await closeTcs.Task.OrTimeout();
+                    await closeTask.OrTimeout();
                 }
                 finally
                 {

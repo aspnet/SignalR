@@ -41,11 +41,12 @@ namespace ClientSample
             {
                 var cts = new CancellationTokenSource();
                 connection.OnReceived(data => Console.Out.WriteLineAsync($"{Encoding.UTF8.GetString(data)}"));
-                connection.Closed += e =>
+                _ = connection.Closed.ContinueWith((task, state) =>
                 {
-                    cts.Cancel();
+                    var cancellationTokenSource = (CancellationTokenSource)state;
+                    cancellationTokenSource.Cancel();
                     return Task.CompletedTask;
-                };
+                }, cts);
 
                 await connection.StartAsync();
 
