@@ -47,20 +47,20 @@ namespace Microsoft.AspNetCore.Sockets.Client
         public Uri Url { get; }
 
         public IFeatureCollection Features { get; } = new FeatureCollection();
-        private Task _t;
+        private Task _internalTask;
         public Task Closed
         {
             get
             {
-                if (_t == null)
+                if (_internalTask == null)
                 {
                     _closedTcs = new TaskCompletionSource<object>();
-                    _t = _closedTcs.Task;
-                    return _t;
+                    _internalTask = _closedTcs.Task;
+                    return _internalTask;
                 }
-                return _t;
+                return _internalTask;
             }
-            set { _t = value; }
+            set { _internalTask = value; }
         }
 
 

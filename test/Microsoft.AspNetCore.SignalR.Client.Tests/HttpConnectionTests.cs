@@ -394,8 +394,6 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
 
             var connection = new HttpConnection(new Uri("http://fakeuri.org/"), new TestTransportFactory(mockTransport.Object), loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
             connection.OnReceived(_ => blockReceiveCallbackTcs.Task);
-            var r = new TaskCompletionSource<object>();
-            connection.Closed = r.Task;
             var closedTask = connection.Closed.ContinueWith((task, state) => 
             {
                 var tcs = (TaskCompletionSource<object>)state;
@@ -410,7 +408,6 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
             Assert.False(channel.In.TryRead(out var message));
 
             await connection.DisposeAsync();
-            r.SetResult(null);
         }
 
         [Fact]
