@@ -506,6 +506,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 
                 await manager2.OnConnectedAsync(connection).OrTimeout();
 
+                // This doesn't throw because there is no connection.ConnectionId on this server so it has to publish to redis.
+                // And once that happens there is no way to know if the invocation was successful or not.
                 await manager1.InvokeConnectionAsync(connection.ConnectionId, "Hello", new object[] { "World" }).OrTimeout();
             }
         }
@@ -522,13 +524,14 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             {
                 // Force an exception when writing to connection
                 var output = new Mock<Channel<HubMessage>>();
-                output.Setup(o => o.Out.WaitToWriteAsync(It.IsAny<CancellationToken>())).Throws(new Exception());
+                output.Setup(o => o.Out.WaitToWriteAsync(It.IsAny<CancellationToken>())).Throws(new Exception("Message"));
 
                 var connection = new HubConnectionContext(output.Object, client.Connection);
 
                 await manager.OnConnectedAsync(connection).OrTimeout();
 
-                await Assert.ThrowsAsync<Exception>(() => manager.InvokeConnectionAsync(connection.ConnectionId, "Hello", new object[] { "World" }).OrTimeout());
+                var exception = await Assert.ThrowsAsync<Exception>(() => manager.InvokeConnectionAsync(connection.ConnectionId, "Hello", new object[] { "World" }).OrTimeout());
+                Assert.Equal("Message", exception.Message);
             }
         }
 
@@ -558,6 +561,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
                 await manager.AddGroupAsync(connection2.ConnectionId, "group");
 
                 await manager.InvokeGroupAsync("group", "Hello", new object[] { "World" }).OrTimeout();
+                // connection1 will throw when receiving a group message, we are making sure other connections
+                // are not affected by another connection throwing
                 AssertMessage(output2);
 
                 // Repeat to check that group can still be sent to
