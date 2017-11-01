@@ -126,11 +126,19 @@ namespace Microsoft.AspNetCore.Sockets.Client
             }
 
             StartAsyncInternal()
-                .ContinueWith(t =>
+                .ContinueWith(async t =>
                 {
                     if (t.IsFaulted)
                     {
                         _startTcs.SetException(t.Exception.InnerException);
+                        if (Closed != null)
+                        {
+                            if (_closedTcs.Task.IsFaulted)
+                            {
+                                _closedTcs?.SetException(t.Exception.InnerException);
+                            }
+                            await Closed;
+                        }
                     }
                     else if (t.IsCanceled)
                     {
@@ -209,7 +217,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
                     if (Closed != null)
                     {
-                        if (_closedTcs.Task.IsFaulted)
+                        if (t.IsFaulted)
                         {
                             _closedTcs?.SetException(t.Exception.InnerException);
                         }

@@ -241,7 +241,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
             _ = connection.Closed.ContinueWith((task, state) =>
             {
                 var tcs = (TaskCompletionSource<Exception>)state;
-                tcs.TrySetResult(task.Exception);
+                tcs.TrySetResult(task.Exception.InnerException);
                 return Task.CompletedTask;
             }, closedTcs);
 
@@ -833,7 +833,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
 
                 await connection.StartAsync();
                 // Exception in send should shutdown the connection
-                await Assert.ThrowsAsync<TaskCanceledException>(async () => await closeTcs.Task.OrTimeout());
+                await closeTcs.Task.OrTimeout();
 
                 var exception = await Assert.ThrowsAsync<InvalidOperationException>(
                     async () => await connection.SendAsync(new byte[0]));

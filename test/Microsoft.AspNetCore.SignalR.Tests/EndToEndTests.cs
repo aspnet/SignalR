@@ -350,7 +350,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                         logger.LogInformation("Connection closed");
                         if (task.Exception != null)
                         {
-                            closeTcs.TrySetException(task.Exception);
+                            closeTcs.TrySetException(task.Exception.InnerException);
                         }
                         else
                         {
@@ -367,7 +367,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 catch (Exception ex)
                 {
                     logger.LogInformation(ex, "Test threw exception");
-                    throw;
+                    throw ex;
                 }
                 finally
                 {
