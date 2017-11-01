@@ -140,7 +140,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             object result = null;
             var hasResult = false;
 
-            switch(resultKind)
+            switch (resultKind)
             {
                 case ErrorResult:
                     error = ReadString(unpacker, "error");
