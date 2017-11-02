@@ -88,7 +88,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             }
             _bus = _redisServerConnection.GetSubscriber();
 
-            SubscribeToBroadcast();
+            SubscribeToHub();
             SubscribeToAllExcept();
             SubscribeToInternalGroup();
             SubscribeToInternalServerName();
@@ -395,7 +395,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             }
         }
 
-        private void SubscribeToBroadcast()
+        private void SubscribeToHub()
         {
             _logger.Subscribing(_channelNamePrefix);
             _bus.Subscribe(_channelNamePrefix, async (c, data) =>
