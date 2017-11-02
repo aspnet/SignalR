@@ -48,12 +48,13 @@ namespace ClientSample
                 // Set up handler
                 connection.On<string>("Send", Console.WriteLine);
 
-                connection.Closed += e =>
+                _ = connection.Closed.ContinueWith((task, state) =>
                 {
+                    var cancellationTokenSource = (CancellationTokenSource)state;
                     Console.WriteLine("Connection closed.");
-                    cts.Cancel();
+                    cancellationTokenSource.Cancel();
                     return Task.CompletedTask;
-                };
+                }, cts);
 
                 var ctsTask = Task.Delay(-1, cts.Token);
 

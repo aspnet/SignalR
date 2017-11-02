@@ -46,8 +46,13 @@ namespace Microsoft.AspNetCore.Sockets.Client
         public Uri Url { get; }
 
         public IFeatureCollection Features { get; } = new FeatureCollection();
+        private readonly TaskCompletionSource<object> _closedTcs = new TaskCompletionSource<object>();
 
-        public event Func<Exception, Task> Closed;
+        public Task Closed
+        {
+            get { return _closedTcs.Task; }
+        }
+        
 
         public HttpConnection(Uri url)
             : this(url, TransportType.All)
@@ -116,6 +121,10 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     if (t.IsFaulted)
                     {
                         _startTcs.SetException(t.Exception.InnerException);
+                        if (_closedTcs.Task.IsFaulted)
+                        {
+                            _closedTcs.TrySetException(t.Exception.InnerException);
+                        }
                     }
                     else if (t.IsCanceled)
                     {
@@ -192,18 +201,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
                     _logger.RaiseClosed(_connectionId);
 
-                    var closedEventHandler = Closed;
-                    if (closedEventHandler != null)
-                    {
-                        try
-                        {
-                            await closedEventHandler.Invoke(t.IsFaulted ? t.Exception.InnerException : null);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.ExceptionThrownFromCallback(_connectionId, nameof(Closed), ex);
-                        }
-                    }
+                   _closedTcs.TrySetException(t.IsFaulted ? t.Exception.InnerException : null);
                 });
 
                 // start receive loop only after the Connected event was raised to
@@ -463,6 +461,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 await _receiveLoopTask;
             }
 
+            _closedTcs.TrySetResult(null);
             _httpClient?.Dispose();
         }
 
