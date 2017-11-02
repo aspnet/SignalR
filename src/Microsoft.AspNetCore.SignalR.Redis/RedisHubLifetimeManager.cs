@@ -94,6 +94,62 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             SubscribeToInternalServerName();
         }
 
+        public override Task OnConnectedAsync(HubConnectionContext connection)
+        {
+            var feature = new RedisFeature();
+            connection.Features.Set<IRedisFeature>(feature);
+
+            var redisSubscriptions = feature.Subscriptions;
+            var connectionTask = Task.CompletedTask;
+            var userTask = Task.CompletedTask;
+
+            _connections.Add(connection);
+
+            connectionTask = SubscribeToConnection(connection, redisSubscriptions);
+
+            if (!string.IsNullOrEmpty(connection.UserIdentifier))
+            {
+                userTask = SubscribeToUser(connection, redisSubscriptions);
+            }
+
+            return Task.WhenAll(connectionTask, userTask);
+        }
+
+        public override Task OnDisconnectedAsync(HubConnectionContext connection)
+        {
+            _connections.Remove(connection);
+
+            var tasks = new List<Task>();
+
+            var feature = connection.Features.Get<IRedisFeature>();
+
+            var redisSubscriptions = feature.Subscriptions;
+            if (redisSubscriptions != null)
+            {
+                foreach (var subscription in redisSubscriptions)
+                {
+                    _logger.Unsubscribe(subscription);
+                    tasks.Add(_bus.UnsubscribeAsync(subscription));
+                }
+            }
+
+            var groupNames = feature.Groups;
+
+            if (groupNames != null)
+            {
+                // Copy the groups to an array here because they get removed from this collection
+                // in RemoveGroupAsync
+                foreach (var group in groupNames.ToArray())
+                {
+                    // Use RemoveGroupAsyncCore because the connection is local and we don't want to
+                    // accidentally go to other servers with our remove request.
+                    tasks.Add(RemoveGroupAsyncCore(connection, group));
+                }
+            }
+
+            return Task.WhenAll(tasks);
+        }
+
         public override Task InvokeAllAsync(string methodName, object[] args)
         {
             var message = new InvocationMessage(GetInvocationId(), nonBlocking: true, target: methodName, argumentBindingException: null, arguments: args);
@@ -159,62 +215,6 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
             _logger.PublishToChannel(channel);
             await _bus.PublishAsync(channel, payload);
-        }
-
-        public override Task OnConnectedAsync(HubConnectionContext connection)
-        {
-            var feature = new RedisFeature();
-            connection.Features.Set<IRedisFeature>(feature);
-
-            var redisSubscriptions = feature.Subscriptions;
-            var connectionTask = Task.CompletedTask;
-            var userTask = Task.CompletedTask;
-
-            _connections.Add(connection);
-
-            connectionTask = SubscribeToConnection(connection, redisSubscriptions);
-
-            if (!string.IsNullOrEmpty(connection.UserIdentifier))
-            {
-                userTask = SubscribeToUser(connection, redisSubscriptions);
-            }
-
-            return Task.WhenAll(connectionTask, userTask);
-        }
-
-        public override Task OnDisconnectedAsync(HubConnectionContext connection)
-        {
-            _connections.Remove(connection);
-
-            var tasks = new List<Task>();
-
-            var feature = connection.Features.Get<IRedisFeature>();
-
-            var redisSubscriptions = feature.Subscriptions;
-            if (redisSubscriptions != null)
-            {
-                foreach (var subscription in redisSubscriptions)
-                {
-                    _logger.Unsubscribe(subscription);
-                    tasks.Add(_bus.UnsubscribeAsync(subscription));
-                }
-            }
-
-            var groupNames = feature.Groups;
-
-            if (groupNames != null)
-            {
-                // Copy the groups to an array here because they get removed from this collection
-                // in RemoveGroupAsync
-                foreach (var group in groupNames.ToArray())
-                {
-                    // Use RemoveGroupAsyncCore because the connection is local and we don't want to
-                    // accidentally go to other servers with our remove request.
-                    tasks.Add(RemoveGroupAsyncCore(connection, group));
-                }
-            }
-
-            return Task.WhenAll(tasks);
         }
 
         public override async Task AddGroupAsync(string connectionId, string groupName)
@@ -370,7 +370,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             _ackHandler.Dispose();
         }
 
-        private async Task WriteAsync(HubConnectionContext connection, HubMessage hubMessage)
+        private static async Task WriteAsync(HubConnectionContext connection, HubMessage hubMessage)
         {
             while (await connection.Output.WaitToWriteAsync())
             {
