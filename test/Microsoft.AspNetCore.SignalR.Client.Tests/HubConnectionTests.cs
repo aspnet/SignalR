@@ -93,7 +93,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(
                 () => hubConnection.InvokeAsync<int>("test"));
 
-            Assert.Equal("The 'InvokeAsync' method cannot be call before the connection has been started.", exception.Message);
+            Assert.Equal("The 'InvokeAsync' method cannot be called before the connection has been started.", exception.Message);
         }
 
         [Fact]
@@ -119,7 +119,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(
                 () => hubConnection.SendAsync("test"));
 
-            Assert.Equal("The 'SendAsync' method cannot be call before the connection has been started.", exception.Message);
+            Assert.Equal("The 'SendAsync' method cannot be called before the connection has been started.", exception.Message);
         }
 
         [Fact]
@@ -158,7 +158,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(
                 () => hubConnection.StreamAsync<int>("test"));
 
-            Assert.Equal("The 'StreamAsync' method cannot be call before the connection has been started.", exception.Message);
+            Assert.Equal("The 'StreamAsync' method cannot be called before the connection has been started.", exception.Message);
         }
 
         [Fact]

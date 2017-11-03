@@ -154,7 +154,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         {
             if (!_startCalled)
             {
-                throw new InvalidOperationException($"The '{nameof(StreamAsync)}' method cannot be call before the connection has been started.");
+                throw new InvalidOperationException($"The '{nameof(StreamAsync)}' method cannot be called before the connection has been started.");
             }
 
             var invokeCts = new CancellationTokenSource();
@@ -196,7 +196,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         {
             if (!_startCalled)
             {
-                throw new InvalidOperationException($"The '{nameof(InvokeAsync)}' method cannot be call before the connection has been started.");
+                throw new InvalidOperationException($"The '{nameof(InvokeAsync)}' method cannot be called before the connection has been started.");
             }
 
             var irq = InvocationRequest.Invoke(cancellationToken, returnType, GetNextId(), _loggerFactory, this, out var task);
@@ -249,7 +249,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         {
             if (!_startCalled)
             {
-                throw new InvalidOperationException($"The '{nameof(SendAsync)}' method cannot be call before the connection has been started.");
+                throw new InvalidOperationException($"The '{nameof(SendAsync)}' method cannot be called before the connection has been started.");
             }
 
             var invocationMessage = new InvocationMessage(GetNextId(), nonBlocking: true, target: methodName,
