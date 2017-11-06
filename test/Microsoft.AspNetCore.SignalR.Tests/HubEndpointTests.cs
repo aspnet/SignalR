@@ -513,7 +513,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
             var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
 
-            using (var client = new TestClient(synchronousCallbacks: true))
+            using (var client = new TestClient(new TestClientOptions { SynchronousCallbacks = true}))
             {
                 var endPointTask = endPoint.OnConnectedAsync(client.Connection);
 
@@ -896,8 +896,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
             dynamic endPoint = serviceProvider.GetService(GetEndPointType(hubType));
 
-            using (var firstClient = new TestClient(addClaimId: true))
-            using (var secondClient = new TestClient(addClaimId: true))
+            var options = new TestClientOptions { AddClaimId = true };
+            using (var firstClient = new TestClient(options))
+            using (var secondClient = new TestClient(options))
             {
                 Task firstEndPointTask = endPoint.OnConnectedAsync(firstClient.Connection);
                 Task secondEndPointTask = endPoint.OnConnectedAsync(secondClient.Connection);
@@ -997,13 +998,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             var invocationBinder = new Mock<IInvocationBinder>();
             invocationBinder.Setup(b => b.GetReturnType(It.IsAny<string>())).Returns(typeof(string));
 
-            using (var client = new TestClient(synchronousCallbacks: false, protocol: protocol, invocationBinder: invocationBinder.Object))
+            using (var client = new TestClient(new TestClientOptions { HubProtocol = protocol, InvocationBinder = invocationBinder.Object }))
             {
-                var transportFeature = new Mock<IConnectionTransportFeature>();
-                transportFeature.SetupGet(f => f.TransportCapabilities)
-                    .Returns(protocol.Type == ProtocolType.Binary ? TransferMode.Binary : TransferMode.Text);
-                client.Connection.Features.Set(transportFeature.Object);
-
                 var endPointLifetime = endPoint.OnConnectedAsync(client.Connection);
 
                 await client.Connected.OrTimeout();
@@ -1055,13 +1051,20 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 foreach (var method in new[] { nameof(StreamingHub.CounterChannel), nameof(StreamingHub.CounterObservable) })
                 {
-                    foreach (var protocol in new IHubProtocol[] { new JsonHubProtocol(), new MessagePackHubProtocol() })
+                    foreach (var protocol in HubProtocols.SelectMany(p => p))
                     {
                         yield return new object[] { method, protocol };
                     }
                 }
             }
         }
+
+        public static IEnumerable<object[]> HubProtocols =>
+            new object[][]
+            {
+                new object[] { new JsonHubProtocol() },
+                new object[] { new MessagePackHubProtocol() }
+            };
 
         [Fact]
         public async Task UnauthorizedConnectionCannotInvokeHubMethodWithAuthorization()
@@ -1210,11 +1213,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
             var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
 
-            using (var client = new TestClient(synchronousCallbacks: false, protocol: new MessagePackHubProtocol(serializationContext)))
+            using (var client = new TestClient(new TestClientOptions { HubProtocol = new MessagePackHubProtocol(serializationContext)}))
             {
-                var transportFeature = new Mock<IConnectionTransportFeature>();
-                transportFeature.SetupGet(f => f.TransportCapabilities).Returns(TransferMode.Binary);
-                client.Connection.Features.Set(transportFeature.Object);
                 var endPointLifetime = endPoint.OnConnectedAsync(client.Connection);
 
                 await client.Connected.OrTimeout();
@@ -1230,6 +1230,42 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 client.Dispose();
 
+                await endPointLifetime.OrTimeout();
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(HubProtocols))]
+        public async Task CanStartConnectionWithoutNegotiation(IHubProtocol protocol)
+        {
+            var serviceProvider = CreateServiceProvider(services =>
+            {
+                services.AddSignalR(hubOptions =>
+                {
+                    hubOptions.Protocol = protocol;
+                });
+            });
+
+            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+
+            var invocationBinder = new Mock<IInvocationBinder>();
+            invocationBinder.Setup(b => b.GetReturnType(It.IsAny<string>())).Returns(typeof(string));
+
+            var options = new TestClientOptions {
+                HubProtocol = protocol,
+                SkipNegotiate = true,
+                InvocationBinder = invocationBinder.Object
+            };
+
+            using (var client = new TestClient(options))
+            {
+                var endPointLifetime = endPoint.OnConnectedAsync(client.Connection);
+
+                await client.Connected.OrTimeout();
+
+                var result = await client.InvokeAsync(nameof(MethodHub.Echo), "test").OrTimeout();
+                Assert.Equal("test", result.Result);
+                client.Dispose();
                 await endPointLifetime.OrTimeout();
             }
         }
@@ -1290,12 +1326,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
             var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
 
-            using (var client = new TestClient(false, new MessagePackHubProtocol()))
+            using (var client = new TestClient(new TestClientOptions { HubProtocol = new MessagePackHubProtocol() }))
             {
-                var transportFeature = new Mock<IConnectionTransportFeature>();
-                transportFeature.SetupGet(f => f.TransportCapabilities).Returns(TransferMode.Binary);
-                client.Connection.Features.Set(transportFeature.Object);
-
                 var endPointLifetime = endPoint.OnConnectedAsync(client.Connection);
 
                 await client.Connected.OrTimeout();

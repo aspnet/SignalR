@@ -29,6 +29,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         private readonly IConnection _connection;
         private readonly IHubProtocol _protocol;
         private readonly HubBinder _binder;
+        private readonly bool _skipNegotiate;
         private HubProtocolReaderWriter _protocolReaderWriter;
 
         private readonly object _pendingCallsLock = new object();
@@ -46,6 +47,11 @@ namespace Microsoft.AspNetCore.SignalR.Client
         }
 
         public HubConnection(IConnection connection, IHubProtocol protocol, ILoggerFactory loggerFactory)
+            : this(connection, protocol, loggerFactory, skipNegotiate: false)
+        {
+        }
+
+        public HubConnection(IConnection connection, IHubProtocol protocol, ILoggerFactory loggerFactory, bool skipNegotiate)
         {
             if (connection == null)
             {
@@ -62,6 +68,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             _protocol = protocol;
             _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
             _logger = _loggerFactory.CreateLogger<HubConnection>();
+            _skipNegotiate = skipNegotiate;
             _connection.OnReceived((data, state) => ((HubConnection)state).OnDataReceivedAsync(data), this);
             _connection.Closed += Shutdown;
         }
@@ -100,10 +107,13 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             _logger.HubProtocol(_protocol.Name);
 
-            using (var memoryStream = new MemoryStream())
+            if (!_skipNegotiate)
             {
-                NegotiationProtocol.WriteMessage(new NegotiationMessage(_protocol.Name), memoryStream);
-                await _connection.SendAsync(memoryStream.ToArray(), _connectionActive.Token);
+                using (var memoryStream = new MemoryStream())
+                {
+                    NegotiationProtocol.WriteMessage(new NegotiationMessage(_protocol.Name), memoryStream);
+                    await _connection.SendAsync(memoryStream.ToArray(), _connectionActive.Token);
+                }
             }
         }
 

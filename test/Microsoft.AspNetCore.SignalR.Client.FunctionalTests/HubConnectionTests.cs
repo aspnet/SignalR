@@ -18,13 +18,13 @@ using Xunit.Abstractions;
 namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 {
     [CollectionDefinition(Name)]
-    public class HubConnectionTestsCollection : ICollectionFixture<ServerFixture<Startup>>
+    public class HubConnectionTestsCollection
     {
         public const string Name = "EndToEndTests";
     }
 
     [Collection(HubConnectionTestsCollection.Name)]
-    public class HubConnectionTests : LoggedTest
+    public class HubConnectionTests : LoggedTest, IClassFixture<ServerFixture<Startup>>
     {
         private readonly ServerFixture<Startup> _serverFixture;
         public HubConnectionTests(ServerFixture<Startup> serverFixture, ITestOutputHelper output)

@@ -70,9 +70,16 @@ namespace Microsoft.AspNetCore.SignalR
 
             var connectionContext = new HubConnectionContext(output, connection);
 
-            if (!await ProcessNegotiate(connectionContext))
+            if (_hubOptions.Protocol != null)
             {
-                return;
+                InitializeProtocol(connectionContext, _hubOptions.Protocol);
+            }
+            else
+            {
+                if (!await ProcessNegotiate(connectionContext))
+                {
+                    return;
+                }
             }
 
             connectionContext.UserIdentifier = _userIdProvider.GetUserId(connectionContext);
@@ -138,26 +145,7 @@ namespace Microsoft.AspNetCore.SignalR
                             if (NegotiationProtocol.TryParseMessage(buffer, out var negotiationMessage))
                             {
                                 var protocol = _protocolResolver.GetProtocol(negotiationMessage.Protocol, connection);
-
-                                var transportCapabilities = connection.Features.Get<IConnectionTransportFeature>()?.TransportCapabilities
-                                    ?? throw new InvalidOperationException("Unable to read transport capabilities.");
-
-                                var dataEncoder = (protocol.Type == ProtocolType.Binary && (transportCapabilities & TransferMode.Binary) == 0)
-                                    ? (IDataEncoder)Base64Encoder
-                                    : PassThroughEncoder;
-
-                                var transferModeFeature = connection.Features.Get<ITransferModeFeature>() ??
-                                    throw new InvalidOperationException("Unable to read transfer mode.");
-
-                                transferModeFeature.TransferMode =
-                                    (protocol.Type == ProtocolType.Binary && (transportCapabilities & TransferMode.Binary) != 0)
-                                        ? TransferMode.Binary
-                                        : TransferMode.Text;
-
-                                connection.ProtocolReaderWriter = new HubProtocolReaderWriter(protocol, dataEncoder);
-
-                                _logger.UsingHubProtocol(protocol.Name);
-
+                                InitializeProtocol(connection, protocol);
                                 return true;
                             }
                         }
@@ -170,6 +158,28 @@ namespace Microsoft.AspNetCore.SignalR
             }
 
             return false;
+        }
+
+        private void InitializeProtocol(HubConnectionContext connection, IHubProtocol protocol)
+        {
+            var transportCapabilities = connection.Features.Get<IConnectionTransportFeature>()?.TransportCapabilities
+                ?? throw new InvalidOperationException("Unable to read transport capabilities.");
+
+            var dataEncoder = (protocol.Type == ProtocolType.Binary && (transportCapabilities & TransferMode.Binary) == 0)
+                ? (IDataEncoder)Base64Encoder
+                : PassThroughEncoder;
+
+            var transferModeFeature = connection.Features.Get<ITransferModeFeature>() ??
+                throw new InvalidOperationException("Unable to read transfer mode.");
+
+            transferModeFeature.TransferMode =
+                (protocol.Type == ProtocolType.Binary && (transportCapabilities & TransferMode.Binary) != 0)
+                    ? TransferMode.Binary
+                    : TransferMode.Text;
+
+            connection.ProtocolReaderWriter = new HubProtocolReaderWriter(protocol, dataEncoder);
+
+            _logger.UsingHubProtocol(protocol.Name);
         }
 
         private async Task RunHubAsync(HubConnectionContext connection)
