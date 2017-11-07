@@ -11,7 +11,7 @@ namespace Microsoft.AspNetCore.SignalR
     {
         T All { get; }
 
-        T AllExcept(IReadOnlyList<string> excludedIds);
+        T AllExcept(params string[] excludedIds);
 
         T Client(string connectionId);
 

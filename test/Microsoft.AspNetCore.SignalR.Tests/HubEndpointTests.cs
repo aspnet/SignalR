@@ -798,13 +798,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 await Task.WhenAll(firstClient.Connected, secondClient.Connected, thirdClient.Connected).OrTimeout();
 
-                var excludeSecondClientId = new HashSet<string>();
-                excludeSecondClientId.Add(secondClient.Connection.ConnectionId);
-                var excludeThirdClientId = new HashSet<string>();
-                excludeThirdClientId.Add(thirdClient.Connection.ConnectionId);
-
-                await firstClient.SendInvocationAsync("SendToAllExcept", "To second", excludeThirdClientId).OrTimeout();
-                await firstClient.SendInvocationAsync("SendToAllExcept", "To third", excludeSecondClientId).OrTimeout();
+                await firstClient.SendInvocationAsync("SendToAllExcept", "To second", new string[] { thirdClient.Connection.ConnectionId }).OrTimeout();
+                await firstClient.SendInvocationAsync("SendToAllExcept", "To third", new string[] { secondClient.Connection.ConnectionId }).OrTimeout();
 
                 var secondClientResult = await secondClient.ReadAsync().OrTimeout();
                 var invocation = Assert.IsType<InvocationMessage>(secondClientResult);
@@ -1405,7 +1400,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 return Clients.All.Broadcast(message);
             }
 
-            public Task SendToAllExcept(string message, IReadOnlyList<string> excludedIds)
+            public Task SendToAllExcept(string message, string[] excludedIds)
             {
                 return Clients.AllExcept(excludedIds).Send(message);
             }
@@ -1583,7 +1578,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 return Clients.All.Broadcast(message);
             }
 
-            public Task SendToAllExcept(string message, IReadOnlyList<string> excludedIds)
+            public Task SendToAllExcept(string message, string[] excludedIds)
             {
                 return Clients.AllExcept(excludedIds).Send(message);
             }
@@ -1767,7 +1762,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
             }
 
-            public Task SendToAllExcept(string message, IReadOnlyList<string> excludedIds)
+            public Task SendToAllExcept(string message, string[] excludedIds)
             {
                 return Clients.AllExcept(excludedIds).InvokeAsync("Send", message);
             }

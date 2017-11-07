@@ -16,7 +16,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public T All => TypedClientBuilder<T>.Build(hubClients.All);
 
-        public T AllExcept(IReadOnlyList<string> excludedIds) => TypedClientBuilder<T>.Build(hubClients.AllExcept(excludedIds));
+        public T AllExcept(params string[] excludedIds) => TypedClientBuilder<T>.Build(hubClients.AllExcept(excludedIds));
 
         public T Client(string connectionId)
         {
