@@ -92,26 +92,26 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             await Assert.ThrowsAsync<TaskCanceledException>(async () => await invokeTask);
         }
 
-        //[Fact]
-        //public async Task PendingInvocationsAreTerminatedWithExceptionWhenConnectionClosesDueToError()
-        //{
-        //    var exception = new InvalidOperationException();
-        //    var mockConnection = new Mock<IConnection>();
-        //    mockConnection.SetupGet(p => p.Features).Returns(new FeatureCollection());
-        //    mockConnection
-        //        .Setup(m => m.DisposeAsync())
-        //        .Callback(() => mockConnection.Raise(c => c.Closed += null, exception))
-        //        .Returns(Task.FromResult<object>(null));
+        [Fact(Skip = "Will un-skip this")]
+        public async Task PendingInvocationsAreTerminatedWithExceptionWhenConnectionClosesDueToError()
+        {
+            var exception = new InvalidOperationException();
+            var mockConnection = new Mock<IConnection>();
+            mockConnection.SetupGet(p => p.Features).Returns(new FeatureCollection());
+            mockConnection
+                .Setup(m => m.DisposeAsync())
+                //.Callback(() => mockConnection.Raise(c => c.Closed += null, exception))
+                .Returns(Task.FromResult<object>(null));
 
-        //    var hubConnection = new HubConnection(mockConnection.Object, Mock.Of<IHubProtocol>(), new LoggerFactory());
+            var hubConnection = new HubConnection(mockConnection.Object, Mock.Of<IHubProtocol>(), new LoggerFactory());
 
-        //    await hubConnection.StartAsync();
-        //    var invokeTask = hubConnection.InvokeAsync<int>("testMethod");
-        //    await hubConnection.DisposeAsync();
+            await hubConnection.StartAsync();
+            var invokeTask = hubConnection.InvokeAsync<int>("testMethod");
+            await hubConnection.DisposeAsync();
 
-        //    var thrown = await Assert.ThrowsAsync(exception.GetType(), async () => await invokeTask);
-        //    Assert.Same(exception, thrown);
-        //}
+            var thrown = await Assert.ThrowsAsync(exception.GetType(), async () => await invokeTask);
+            Assert.Same(exception, thrown);
+        }
 
         // Moq really doesn't handle out parameters well, so to make these tests work I added a manual mock -anurse
         private class MockHubProtocol : IHubProtocol

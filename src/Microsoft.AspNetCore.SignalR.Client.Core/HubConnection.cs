@@ -37,11 +37,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
         private readonly ConcurrentDictionary<string, List<InvocationHandler>> _handlers = new ConcurrentDictionary<string, List<InvocationHandler>>();
 
         private int _nextId = 0;
-
-        public Task Closed 
-        {
-            get { return _connection.Closed; }
-        }
+        private Task _internalTask;
+        public Task Closed => _internalTask;
 
         public HubConnection(IConnection connection, IHubProtocol protocol, ILoggerFactory loggerFactory)
         {
@@ -61,7 +58,11 @@ namespace Microsoft.AspNetCore.SignalR.Client
             _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
             _logger = _loggerFactory.CreateLogger<HubConnection>();
             _connection.OnReceived((data, state) => ((HubConnection)state).OnDataReceivedAsync(data), this);
-            _connection.Closed.ContinueWith((task) => Shutdown(task.Exception));
+            _internalTask = _connection.Closed.ContinueWith(task =>
+            {
+                Shutdown(task.Exception);
+                return task;
+            }).Unwrap();
         }
 
         public async Task StartAsync() => await StartAsyncCore().ForceAsync();

@@ -48,11 +48,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
         public IFeatureCollection Features { get; } = new FeatureCollection();
         private readonly TaskCompletionSource<object> _closedTcs = new TaskCompletionSource<object>();
 
-        public Task Closed
-        {
-            get { return _closedTcs.Task; }
-        }
-        
+        public Task Closed => _closedTcs.Task;
 
         public HttpConnection(Uri url)
             : this(url, TransportType.All)
@@ -121,14 +117,12 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     if (t.IsFaulted)
                     {
                         _startTcs.SetException(t.Exception.InnerException);
-                        if (_closedTcs.Task.IsFaulted)
-                        {
-                            _closedTcs.TrySetException(t.Exception.InnerException);
-                        }
+                        _closedTcs.TrySetException(t.Exception.InnerException);
                     }
                     else if (t.IsCanceled)
                     {
                         _startTcs.SetCanceled();
+                        _closedTcs.SetCanceled();
                     }
                     else
                     {
@@ -200,8 +194,14 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     _httpClient?.Dispose();
 
                     _logger.RaiseClosed(_connectionId);
-
-                   _closedTcs.TrySetException(t.IsFaulted ? t.Exception.InnerException : null);
+                    if (t.IsFaulted)
+                    {
+                        _closedTcs.TrySetException(t.Exception.InnerException);
+                    }
+                    else
+                    {
+                        _closedTcs.TrySetResult(null);
+                    }
                 });
 
                 // start receive loop only after the Connected event was raised to

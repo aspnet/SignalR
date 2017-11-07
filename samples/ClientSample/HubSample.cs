@@ -37,31 +37,21 @@ namespace ClientSample
             try
             {
 
-                var cts = new CancellationTokenSource();
-                Console.CancelKeyPress += (sender, a) =>
+                Console.CancelKeyPress += async (sender, a) =>
                 {
                     a.Cancel = true;
                     Console.WriteLine("Stopping loops...");
-                    cts.Cancel();
+                    await connection.DisposeAsync();
                 };
 
                 // Set up handler
                 connection.On<string>("Send", Console.WriteLine);
+                var cts = new CancellationTokenSource();
 
-                _ = connection.Closed.ContinueWith((task, state) =>
+                while (!connection.Closed.IsCompleted)
                 {
-                    var cancellationTokenSource = (CancellationTokenSource)state;
-                    Console.WriteLine("Connection closed.");
-                    cancellationTokenSource.Cancel();
-                    return Task.CompletedTask;
-                }, cts);
-
-                var ctsTask = Task.Delay(-1, cts.Token);
-
-                while (!cts.Token.IsCancellationRequested)
-                {
-                    var completedTask = await Task.WhenAny(Task.Run(() => Console.ReadLine(), cts.Token), ctsTask);
-                    if (completedTask == ctsTask)
+                    var completedTask = await Task.WhenAny(Task.Run(() => Console.ReadLine()), connection.Closed);
+                    if (completedTask == connection.Closed)
                     {
                         break;
                     }
