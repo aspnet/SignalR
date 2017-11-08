@@ -1,8 +1,8 @@
-﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
-using System.Threading.Tasks.Channels;
+using System.Threading.Channels;
 
 namespace Microsoft.AspNetCore.Sockets.Internal
 {
@@ -26,17 +26,17 @@ namespace Microsoft.AspNetCore.Sockets.Internal
 
         public ChannelConnection(Channel<T> input, Channel<T> output)
         {
-            In = input;
+            Writer = input.Writer;
             Input = input;
 
-            Out = output;
+            Reader = output.Reader;
             Output = output;
         }
 
         public void Dispose()
         {
-            Input.Out.TryComplete();
-            Output.Out.TryComplete();
+            Input.Writer.TryComplete();
+            Output.Writer.TryComplete();
         }
     }
 
@@ -47,17 +47,17 @@ namespace Microsoft.AspNetCore.Sockets.Internal
 
         public ChannelConnection(Channel<TIn> input, Channel<TOut> output)
         {
-            In = input;
+            Reader = input.Reader;
             Input = input;
 
-            Out = output;
+            Writer = output.Writer;
             Output = output;
         }
 
         public void Dispose()
         {
-            Input.Out.TryComplete();
-            Output.Out.TryComplete();
+            Input.Writer.TryComplete();
+            Output.Writer.TryComplete();
         }
     }
 }

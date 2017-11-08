@@ -6,7 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Threading.Tasks.Channels;
+using System.Threading.Channels;
 
 namespace Microsoft.AspNetCore.SignalR.Internal
 {
@@ -38,12 +38,12 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             // TODO: Allow bounding and optimizations?
             var channel = Channel.CreateUnbounded<object>();
 
-            var subscription = observable.Subscribe(new ChannelObserver<T>(channel.Out, cancellationToken));
+            var subscription = observable.Subscribe(new ChannelObserver<T>(channel.Writer, cancellationToken));
 
             // Dispose the subscription when the token is cancelled
             cancellationToken.Register(state => ((IDisposable)state).Dispose(), subscription);
 
-            return GetAsyncEnumerator(channel.In, cancellationToken);
+            return GetAsyncEnumerator(channel.Reader, cancellationToken);
         }
 
         public static IAsyncEnumerator<object> FromChannel(object readableChannelOfT, Type payloadType, CancellationToken cancellationToken)
@@ -71,10 +71,10 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         private class ChannelObserver<T> : IObserver<T>
         {
-            private WritableChannel<object> _output;
+            private ChannelWriter<object> _output;
             private CancellationToken _cancellationToken;
 
-            public ChannelObserver(WritableChannel<object> output, CancellationToken cancellationToken)
+            public ChannelObserver(ChannelWriter<object> output, CancellationToken cancellationToken)
             {
                 _output = output;
                 _cancellationToken = cancellationToken;
@@ -129,7 +129,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             public Task<bool> MoveNextAsync() => _input.MoveNextAsync();
         }
 
-        public static IAsyncEnumerator<T> GetAsyncEnumerator<T>(ReadableChannel<T> channel, CancellationToken cancellationToken = default(CancellationToken))
+        public static IAsyncEnumerator<T> GetAsyncEnumerator<T>(ChannelReader<T> channel, CancellationToken cancellationToken = default(CancellationToken))
         {
             return new AsyncEnumerator<T>(channel, cancellationToken);
         }
@@ -138,13 +138,13 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         internal class AsyncEnumerator<T> : IAsyncEnumerator<T>
         {
             /// <summary>The channel being enumerated.</summary>
-            private readonly ReadableChannel<T> _channel;
+            private readonly ChannelReader<T> _channel;
             /// <summary>Cancellation token used to cancel the enumeration.</summary>
             private readonly CancellationToken _cancellationToken;
             /// <summary>The current element of the enumeration.</summary>
             private T _current;
 
-            internal AsyncEnumerator(ReadableChannel<T> channel, CancellationToken cancellationToken)
+            internal AsyncEnumerator(ChannelReader<T> channel, CancellationToken cancellationToken)
             {
                 _channel = channel;
                 _cancellationToken = cancellationToken;
@@ -165,7 +165,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 return result.AsTask().ContinueWith((t, s) =>
                 {
                     var thisRef = (AsyncEnumerator<T>)s;
-                    if (t.IsFaulted && t.Exception.InnerException is ClosedChannelException cce && cce.InnerException == null)
+                    if (t.IsFaulted && t.Exception.InnerException is ChannelClosedException cce && cce.InnerException == null)
                     {
                         return false;
                     }
@@ -182,7 +182,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
     {
         /// <summary>Asynchronously move the enumerator to the next element.</summary>
         /// <returns>
-        /// A task that returns true if the enumerator was successfully advanced to the next item, 
+        /// A task that returns true if the enumerator was successfully advanced to the next item,
         /// or false if no more data was available in the collection.
         /// </returns>
         Task<bool> MoveNextAsync();

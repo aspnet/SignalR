@@ -1,4 +1,4 @@
-﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
@@ -6,7 +6,8 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Threading.Tasks.Channels;
+using System.Threading.Channels;
+using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Tests.Common;
 using Microsoft.AspNetCore.Sockets.Internal;
 using Microsoft.AspNetCore.Sockets.Internal.Transports;
@@ -46,10 +47,10 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                     cancellationToken: CancellationToken.None);
                 await feature.Client.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
 
-                var buffer = await applicationSide.In.ReadAsync();
+                var buffer = await applicationSide.Reader.ReadAsync();
                 Assert.Equal("Hello", Encoding.UTF8.GetString(buffer));
 
-                Assert.True(applicationSide.Out.TryComplete());
+                Assert.True(applicationSide.Writer.TryComplete());
 
                 // The transport should finish now
                 await transport;
@@ -84,8 +85,8 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 var client = feature.Client.ExecuteAndCaptureFramesAsync();
 
                 // Write to the output channel, and then complete it
-                await applicationSide.Out.WriteAsync(Encoding.UTF8.GetBytes("Hello"));
-                Assert.True(applicationSide.Out.TryComplete());
+                await applicationSide.Writer.WriteAsync(Encoding.UTF8.GetBytes("Hello"));
+                Assert.True(applicationSide.Writer.TryComplete());
 
                 // The client should finish now, as should the server
                 var clientSummary = await client;
@@ -112,10 +113,10 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 async Task CompleteApplicationAfterTransportCompletes()
                 {
                     // Wait until the transport completes so that we can end the application
-                    await applicationSide.In.WaitToReadAsync();
+                    await applicationSide.Reader.WaitToReadAsync();
 
                     // Complete the application so that the connection unwinds without aborting
-                    applicationSide.Out.TryComplete();
+                    applicationSide.Writer.TryComplete();
                 }
 
                 var connectionContext = new DefaultConnectionContext(string.Empty, null, null);
@@ -162,7 +163,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 var client = feature.Client.ExecuteAndCaptureFramesAsync();
 
                 // Fail in the app
-                Assert.True(applicationSide.Out.TryComplete(new InvalidOperationException("Catastrophic failure.")));
+                Assert.True(applicationSide.Writer.TryComplete(new InvalidOperationException("Catastrophic failure.")));
                 var clientSummary = await client.OrTimeout();
                 Assert.Equal(WebSocketCloseStatus.InternalServerError, clientSummary.CloseResult.CloseStatus);
 
@@ -234,7 +235,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 var client = feature.Client.ExecuteAndCaptureFramesAsync();
 
                 // fail the client to server channel
-                applicationToTransport.Out.TryComplete(new Exception());
+                applicationToTransport.Writer.TryComplete(new Exception());
 
                 await Assert.ThrowsAsync<Exception>(() => transport).OrTimeout();
 
@@ -269,7 +270,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 var client = feature.Client.ExecuteAndCaptureFramesAsync();
 
                 // close the client to server channel
-                applicationToTransport.Out.TryComplete();
+                applicationToTransport.Writer.TryComplete();
 
                 _ = await client.OrTimeout();
 
@@ -309,7 +310,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 await feature.Client.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None).OrTimeout();
 
                 // close the client to server channel
-                applicationToTransport.Out.TryComplete();
+                applicationToTransport.Writer.TryComplete();
 
                 _ = await client.OrTimeout();
 

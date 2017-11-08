@@ -1,4 +1,4 @@
-﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
@@ -8,8 +8,9 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Threading.Tasks.Channels;
+using System.Threading.Channels;
 using Microsoft.AspNetCore.Client.Tests;
+using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Tests.Common;
 using Microsoft.AspNetCore.Sockets;
 using Microsoft.AspNetCore.Sockets.Client;
@@ -112,7 +113,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
                     transportActiveTask = sseTransport.Running;
                     Assert.False(transportActiveTask.IsCompleted);
-                    var message = await transportToConnection.In.ReadAsync().AsTask().OrTimeout();
+                    var message = await transportToConnection.Reader.ReadAsync().AsTask().OrTimeout();
                     Assert.Equal("3:abc", Encoding.ASCII.GetString(message));
                 }
                 finally
@@ -206,7 +207,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 await eventStreamTcs.Task;
 
                 var sendTcs = new TaskCompletionSource<object>();
-                Assert.True(connectionToTransport.Out.TryWrite(new SendMessage(new byte[] { 0x42 }, sendTcs)));
+                Assert.True(connectionToTransport.Writer.TryWrite(new SendMessage(new byte[] { 0x42 }, sendTcs)));
 
                 var exception = await Assert.ThrowsAsync<HttpRequestException>(() => sendTcs.Task.OrTimeout());
                 Assert.Contains("500", exception.Message);
@@ -252,7 +253,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     new Uri("http://fakeuri.org"), channelConnection, TransferMode.Text, connectionId: string.Empty).OrTimeout();
                 await eventStreamTcs.Task.OrTimeout();
 
-                connectionToTransport.Out.TryComplete(null);
+                connectionToTransport.Writer.TryComplete(null);
 
                 await sseTransport.Running.OrTimeout();
             }
@@ -280,7 +281,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 await sseTransport.StartAsync(
                     new Uri("http://fakeuri.org"), channelConnection, TransferMode.Text, connectionId: string.Empty).OrTimeout();
 
-                var message = await transportToConnection.In.ReadAsync().AsTask().OrTimeout();
+                var message = await transportToConnection.Reader.ReadAsync().AsTask().OrTimeout();
                 Assert.Equal("3:abc", Encoding.ASCII.GetString(message));
 
                 await sseTransport.Running.OrTimeout();
