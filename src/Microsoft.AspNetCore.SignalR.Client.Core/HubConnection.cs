@@ -37,8 +37,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         private readonly ConcurrentDictionary<string, List<InvocationHandler>> _handlers = new ConcurrentDictionary<string, List<InvocationHandler>>();
 
         private int _nextId = 0;
-        private Task _internalTask;
-        public Task Closed => _internalTask;
+        public Task Closed { get; }
 
         private volatile bool _startCalled;
 
@@ -60,7 +59,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
             _logger = _loggerFactory.CreateLogger<HubConnection>();
             _connection.OnReceived((data, state) => ((HubConnection)state).OnDataReceivedAsync(data), this);
-            _internalTask = _connection.Closed.ContinueWith(task =>
+            Closed = _connection.Closed.ContinueWith(task =>
             {
                 Shutdown(task.Exception);
                 return task;
