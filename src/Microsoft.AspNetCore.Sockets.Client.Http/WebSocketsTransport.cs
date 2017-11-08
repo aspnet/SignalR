@@ -70,8 +70,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
             {
                 _webSocket.Dispose();
                 _logger.TransportStopped(_connectionId, t.Exception?.InnerException);
-               _application.Writer.TryComplete(t.IsFaulted ? t.Exception.InnerException : null);
-               return t;
+                _application.Writer.TryComplete(t.IsFaulted ? t.Exception.InnerException : null);
+                return t;
             }).Unwrap();
         }
 

@@ -13,12 +13,21 @@ using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.SignalR.Tests.Common;
 using Microsoft.AspNetCore.Testing.xunit;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Microsoft.AspNetCore.Sockets.Tests
 {
     public class MapEndPointTests
     {
+        private ITestOutputHelper _output;
+
+        public MapEndPointTests(ITestOutputHelper output)
+        {
+            _output = output;
+        }
+
         [Fact]
         public void MapEndPointFindsAuthAttributeOnEndPoint()
         {
@@ -39,6 +48,10 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                             authCount += httpSocketOptions.AuthorizationData.Count;
                         });
                     });
+                })
+                .ConfigureLogging(factory =>
+                {
+                    factory.AddXunit(_output, LogLevel.Trace);
                 })
                 .Build();
 
@@ -66,6 +79,10 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                         });
                     });
                 })
+                .ConfigureLogging(factory =>
+                {
+                    factory.AddXunit(_output, LogLevel.Trace);
+                })
                 .Build();
 
             Assert.Equal(1, authCount);
@@ -92,6 +109,10 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                         });
                     });
                 })
+                .ConfigureLogging(factory =>
+                {
+                    factory.AddXunit(_output, LogLevel.Trace);
+                })
                 .Build();
 
             Assert.Equal(2, authCount);
@@ -102,24 +123,28 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         public async Task MapEndPointWithWebSocketSubProtocolSetsProtocol()
         {
             var host = new WebHostBuilder()
-                .UseUrls("http://127.0.0.1:0")
-                .UseKestrel()
-                .ConfigureServices(services =>
+            .UseUrls("http://127.0.0.1:0")
+            .UseKestrel()
+            .ConfigureServices(services =>
+            {
+                services.AddSockets();
+                services.AddEndPoint<MyEndPoint>();
+            })
+            .Configure(app =>
+            {
+                app.UseSockets(routes =>
                 {
-                    services.AddSockets();
-                    services.AddEndPoint<MyEndPoint>();
-                })
-                .Configure(app =>
-                {
-                    app.UseSockets(routes =>
+                    routes.MapEndPoint<MyEndPoint>("socket", httpSocketOptions =>
                     {
-                        routes.MapEndPoint<MyEndPoint>("socket", httpSocketOptions =>
-                        {
-                            httpSocketOptions.WebSockets.SubProtocol = "protocol1";
-                        });
+                        httpSocketOptions.WebSockets.SubProtocol = "protocol1";
                     });
-                })
-                .Build();
+                });
+            })
+            .ConfigureLogging(factory =>
+            {
+                factory.AddXunit(_output, LogLevel.Trace);
+            })
+            .Build();
 
             await host.StartAsync();
 

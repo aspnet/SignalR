@@ -1,3 +1,6 @@
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 using System;
 using System.Threading;
 using System.Threading.Channels;
@@ -16,9 +19,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             try
             {
                 return
-                    cancellationToken.IsCancellationRequested ? new ValueTask<T>(Task.FromCanceled<T>(cancellationToken)) :
-                    channel.TryRead(out T item) ? new ValueTask<T>(item) :
-                    ReadAsyncCore(cancellationToken);
+                    cancellationToken.IsCancellationRequested
+                        ? new ValueTask<T>(Task.FromCanceled<T>(cancellationToken))
+                        : channel.TryRead(out T item)
+                            ? new ValueTask<T>(item)
+                            : ReadAsyncCore(cancellationToken);
             }
             catch (Exception e)
             {

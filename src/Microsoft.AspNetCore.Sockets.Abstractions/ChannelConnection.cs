@@ -26,10 +26,10 @@ namespace Microsoft.AspNetCore.Sockets.Internal
 
         public ChannelConnection(Channel<T> input, Channel<T> output)
         {
-            Writer = input.Writer;
+            Reader = input.Reader;
             Input = input;
 
-            Reader = output.Reader;
+            Writer = output.Writer;
             Output = output;
         }
 
