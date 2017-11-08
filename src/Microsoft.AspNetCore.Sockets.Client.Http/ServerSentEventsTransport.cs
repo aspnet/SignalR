@@ -57,11 +57,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
             _logger.StartTransport(_connectionId, Mode.Value);
 
-            if (cancellationToken.CanBeCanceled)
-            {
-                _transportCts = CancellationTokenSource.CreateLinkedTokenSource(_transportCts.Token, cancellationToken);
-            }
-
             var sendTask = SendUtils.SendMessages(url, _application, _httpClient, _transportCts, _logger, _connectionId);
             var receiveTask = OpenConnection(_application, url, _transportCts.Token);
 

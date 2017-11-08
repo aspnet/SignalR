@@ -50,11 +50,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
             Mode = requestedTransferMode;
             _connectionId = connectionId;
 
-            if (cancellationToken.CanBeCanceled)
-            {
-                _transportCts = CancellationTokenSource.CreateLinkedTokenSource(_transportCts.Token, cancellationToken);
-            }
-
             _logger.StartTransport(_connectionId, Mode.Value);
 
             // Start sending and polling (ask for binary if the server supports it)
