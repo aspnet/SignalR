@@ -168,15 +168,13 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             await Assert.ThrowsAsync<TaskCanceledException>(async () => await invokeTask);
         }
 
-        [Fact(Skip = "Will un-skip this")]
+        [Fact]
         public async Task PendingInvocationsAreTerminatedWithExceptionWhenConnectionClosesDueToError()
         {
-            var exception = new InvalidOperationException();
             var mockConnection = new Mock<IConnection>();
             mockConnection.SetupGet(p => p.Features).Returns(new FeatureCollection());
             mockConnection
                 .Setup(m => m.DisposeAsync())
-                //.Callback(() => mockConnection.Raise(c => c.Closed += null, exception))
                 .Returns(Task.FromResult<object>(null));
 
             var hubConnection = new HubConnection(mockConnection.Object, Mock.Of<IHubProtocol>(), new LoggerFactory());
@@ -185,8 +183,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             var invokeTask = hubConnection.InvokeAsync<int>("testMethod");
             await hubConnection.DisposeAsync();
 
-            var thrown = await Assert.ThrowsAsync(exception.GetType(), async () => await invokeTask);
-            Assert.Same(exception, thrown);
+            await Assert.ThrowsAsync<InvalidOperationException>(async () => await invokeTask);
         }
 
         // Moq really doesn't handle out parameters well, so to make these tests work I added a manual mock -anurse

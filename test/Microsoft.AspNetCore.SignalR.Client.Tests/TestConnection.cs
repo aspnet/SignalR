@@ -30,8 +30,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
         private TransferMode? _transferMode;
         private readonly TaskCompletionSource<object> _closeTcs = new TaskCompletionSource<object>();
-        public Task Closed => _closeTcs.Task;
 
+        public Task Closed => _closeTcs.Task;
         public Task Started => _started.Task;
         public Task Disposed => _disposed.Task;
         public ReadableChannel<byte[]> SentMessages => _sentMessages.In;

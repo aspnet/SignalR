@@ -37,9 +37,9 @@ namespace Microsoft.AspNetCore.SignalR.Client
         private readonly ConcurrentDictionary<string, List<InvocationHandler>> _handlers = new ConcurrentDictionary<string, List<InvocationHandler>>();
 
         private int _nextId = 0;
-        public Task Closed { get; }
-
         private volatile bool _startCalled;
+
+        public Task Closed { get; }
 
         public HubConnection(IConnection connection, IHubProtocol protocol, ILoggerFactory loggerFactory)
         {

@@ -208,6 +208,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     logger.LogInformation("Receiving message");
                     Assert.Equal(message, await receiveTcs.Task.OrTimeout());
                     logger.LogInformation("Completed receive");
+                    await connection.Closed.OrTimeout();
                 }
                 catch (Exception ex)
                 {

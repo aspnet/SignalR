@@ -630,7 +630,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                     return Task.CompletedTask;
                 });
 
-                await connection.StartAsync();
+                await connection.StartAsync().OrTimeout();
                 Assert.Equal("42", await receiveTcs.Task.OrTimeout());
             }
             finally
@@ -789,7 +789,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 await connection.StartAsync().OrTimeout();
 
                 // Exception in send should shutdown the connection
-                var ex = await Assert.ThrowsAsync<HttpRequestException>(() => connection.Closed.OrTimeout());
+                await Assert.ThrowsAsync<HttpRequestException>(() => connection.Closed.OrTimeout());
 
                 var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => connection.SendAsync(new byte[0]));
 

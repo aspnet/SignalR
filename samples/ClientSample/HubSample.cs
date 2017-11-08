@@ -36,17 +36,18 @@ namespace ClientSample
 
             try
             {
+                var sendCts = new CancellationTokenSource();
 
                 Console.CancelKeyPress += async (sender, a) =>
                 {
                     a.Cancel = true;
                     Console.WriteLine("Stopping loops...");
+                    sendCts.Cancel();
                     await connection.DisposeAsync();
                 };
 
                 // Set up handler
                 connection.On<string>("Send", Console.WriteLine);
-                var cts = new CancellationTokenSource();
 
                 while (!connection.Closed.IsCompleted)
                 {
@@ -63,7 +64,7 @@ namespace ClientSample
                         break;
                     }
 
-                    await connection.InvokeAsync<object>("Send", line, cts.Token);
+                    await connection.InvokeAsync<object>("Send", line, sendCts.Token);
                 }
             }
             catch (AggregateException aex) when (aex.InnerExceptions.All(e => e is OperationCanceledException))

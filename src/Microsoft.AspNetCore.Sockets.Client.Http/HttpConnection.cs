@@ -34,6 +34,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
         private volatile ITransport _transport;
         private volatile Task _receiveLoopTask;
         private TaskCompletionSource<object> _startTcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource<object> _closedTcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
         private TaskQueue _eventQueue = new TaskQueue();
         private readonly ITransportFactory _transportFactory;
         private string _connectionId;
@@ -46,7 +47,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
         public Uri Url { get; }
 
         public IFeatureCollection Features { get; } = new FeatureCollection();
-        private readonly TaskCompletionSource<object> _closedTcs = new TaskCompletionSource<object>();
 
         public Task Closed => _closedTcs.Task;
 
@@ -121,8 +121,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     }
                     else if (t.IsCanceled)
                     {
-                        _startTcs.SetCanceled();
-                        _closedTcs.SetCanceled();
+                        _startTcs.TrySetCanceled();
+                        _closedTcs.TrySetCanceled();
                     }
                     else
                     {
@@ -193,10 +193,14 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     await Task.WhenAny(_eventQueue.Drain().NoThrow(), Task.Delay(_eventQueueDrainTimeout));
                     _httpClient?.Dispose();
 
-                    _logger.RaiseClosed(_connectionId);
+                    _logger.CompleteClosed(_connectionId);
                     if (t.IsFaulted)
                     {
                         _closedTcs.TrySetException(t.Exception.InnerException);
+                    }
+                    if (t.IsCanceled)
+                    {
+                        _closedTcs.TrySetCanceled();
                     }
                     else
                     {
