@@ -499,10 +499,10 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             using (var client = new TestClient())
             {
                 // Force an exception when writing to connection
-                var output = new Mock<Channel<HubMessage>>();
-                output.Setup(o => o.Writer.WaitToWriteAsync(It.IsAny<CancellationToken>())).Throws(new Exception());
+                var writer = new Mock<ChannelWriter<HubMessage>>();
+                writer.Setup(o => o.WaitToWriteAsync(It.IsAny<CancellationToken>())).Throws(new Exception());
 
-                var connection = new HubConnectionContext(output.Object, client.Connection);
+                var connection = new HubConnectionContext(new MockChannel(writer.Object), client.Connection);
 
                 await manager2.OnConnectedAsync(connection).OrTimeout();
 
@@ -523,10 +523,10 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             using (var client = new TestClient())
             {
                 // Force an exception when writing to connection
-                var output = new Mock<Channel<HubMessage>>();
-                output.Setup(o => o.Writer.WaitToWriteAsync(It.IsAny<CancellationToken>())).Throws(new Exception("Message"));
+                var writer = new Mock<ChannelWriter<HubMessage>>();
+                writer.Setup(o => o.WaitToWriteAsync(It.IsAny<CancellationToken>())).Throws(new Exception("Message"));
 
-                var connection = new HubConnectionContext(output.Object, client.Connection);
+                var connection = new HubConnectionContext(new MockChannel(writer.Object), client.Connection);
 
                 await manager.OnConnectedAsync(connection).OrTimeout();
 
@@ -549,10 +549,10 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
                 var output2 = Channel.CreateUnbounded<HubMessage>();
 
                 // Force an exception when writing to connection
-                var output = new Mock<Channel<HubMessage>>();
-                output.Setup(o => o.Writer.WaitToWriteAsync(It.IsAny<CancellationToken>())).Throws(new Exception());
+                var writer = new Mock<ChannelWriter<HubMessage>>();
+                writer.Setup(o => o.WaitToWriteAsync(It.IsAny<CancellationToken>())).Throws(new Exception());
 
-                var connection1 = new HubConnectionContext(output.Object, client1.Connection);
+                var connection1 = new HubConnectionContext(new MockChannel(writer.Object), client1.Connection);
                 var connection2 = new HubConnectionContext(output2, client2.Connection);
 
                 await manager.OnConnectedAsync(connection1).OrTimeout();
@@ -582,6 +582,15 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 
         private class MyHub : Hub
         {
+        }
+
+        private class MockChannel: Channel<HubMessage>
+        {
+
+            public MockChannel(ChannelWriter<HubMessage> writer = null)
+            {
+                Writer = writer;
+            }
         }
     }
 }

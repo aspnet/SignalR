@@ -130,11 +130,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             using (var client = new TestClient())
             {
                 // Force an exception when writing to connection
-                var output = new Mock<Channel<HubMessage>>();
-                output.Setup(o => o.Writer.WaitToWriteAsync(It.IsAny<CancellationToken>())).Throws(new Exception("Message"));
+                var writer = new Mock<ChannelWriter<HubMessage>>();
+                writer.Setup(o => o.WaitToWriteAsync(It.IsAny<CancellationToken>())).Throws(new Exception("Message"));
 
                 var manager = new DefaultHubLifetimeManager<MyHub>();
-                var connection = new HubConnectionContext(output.Object, client.Connection);
+                var connection = new HubConnectionContext(new MockChannel(writer.Object), client.Connection);
 
                 await manager.OnConnectedAsync(connection).OrTimeout();
 
@@ -167,6 +167,15 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         private class MyHub : Hub
         {
 
+        }
+
+        private class MockChannel: Channel<HubMessage>
+        {
+
+            public MockChannel(ChannelWriter<HubMessage> writer = null)
+            {
+                Writer = writer;
+            }
         }
     }
 }
