@@ -277,9 +277,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                     var cts = new CancellationTokenSource();
                     cts.Cancel();
 
-                    var channel = await connection.StreamAsync<int>("Stream", 5, cts.Token).OrTimeout();
+                    var canceledStreamTask = connection.StreamAsync<int>("Stream", 5, cts.Token).OrTimeout();
 
-                    await Assert.ThrowsAnyAsync<OperationCanceledException>(() => channel.WaitToReadAsync().OrTimeout());
+                    await Assert.ThrowsAnyAsync<OperationCanceledException>(() => canceledStreamTask.OrTimeout());
                 }
                 catch (Exception ex)
                 {

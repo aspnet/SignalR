@@ -37,7 +37,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<WebSocketsTransport>();
         }
 
-        public async Task StartAsync(Uri url, Channel<byte[], SendMessage> application, TransferMode requestedTransferMode, string connectionId)
+        public async Task StartAsync(Uri url, Channel<byte[], SendMessage> application, TransferMode requestedTransferMode, string connectionId, CancellationToken cancellationToken = default)
         {
             if (url == null)
             {
@@ -54,13 +54,22 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 throw new ArgumentException("Invalid transfer mode.", nameof(requestedTransferMode));
             }
 
+            if (cancellationToken.CanBeCanceled)
+            {
+                cancellationToken = CancellationTokenSource.CreateLinkedTokenSource(_transportCts.Token, cancellationToken).Token;
+            }
+            else
+            {
+                cancellationToken = _transportCts.Token;
+            }
+
             _application = application;
             Mode = requestedTransferMode;
             _connectionId = connectionId;
 
             _logger.StartTransport(_connectionId, Mode.Value);
 
-            await Connect(url);
+            await Connect(url, cancellationToken);
             var sendTask = SendMessages(url);
             var receiveTask = ReceiveMessages(url);
 
@@ -213,7 +222,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             }
         }
 
-        private async Task Connect(Uri url)
+        private async Task Connect(Uri url, CancellationToken cancellationToken)
         {
             var uriBuilder = new UriBuilder(url);
             if (url.Scheme == "http")
@@ -225,7 +234,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 uriBuilder.Scheme = "wss";
             }
 
-            await _webSocket.ConnectAsync(uriBuilder.Uri, CancellationToken.None);
+            await _webSocket.ConnectAsync(uriBuilder.Uri, cancellationToken);
         }
 
         public async Task StopAsync()

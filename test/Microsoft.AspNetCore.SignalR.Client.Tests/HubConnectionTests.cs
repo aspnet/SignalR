@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.SignalR.Internal;
@@ -23,22 +24,22 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         {
             var connection = new Mock<IConnection>();
             connection.SetupGet(p => p.Features).Returns(new FeatureCollection());
-            connection.Setup(m => m.StartAsync()).Returns(Task.CompletedTask).Verifiable();
+            connection.Setup(m => m.StartAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask).Verifiable();
             var hubConnection = new HubConnection(connection.Object, Mock.Of<IHubProtocol>(), null);
             await hubConnection.StartAsync();
 
-            connection.Verify(c => c.StartAsync(), Times.Once());
+            connection.Verify(c => c.StartAsync(It.IsAny<CancellationToken>()), Times.Once());
         }
 
         [Fact]
         public async Task DisposeAsyncCallsConnectionStart()
         {
             var connection = new Mock<IConnection>();
-            connection.Setup(m => m.StartAsync()).Verifiable();
+            connection.Setup(m => m.StartAsync(It.IsAny<CancellationToken>())).Verifiable();
             var hubConnection = new HubConnection(connection.Object, Mock.Of<IHubProtocol>(), null);
             await hubConnection.DisposeAsync();
 
-            connection.Verify(c => c.DisposeAsync(), Times.Once());
+            connection.Verify(c => c.DisposeAsync(It.IsAny<CancellationToken>()), Times.Once());
         }
 
         [Fact]
@@ -162,7 +163,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         }
 
         [Fact]
-        public async Task PendingInvocationsAreCancelledWhenConnectionClosesCleanly()
+        public async Task PendingInvocationsAreCanceledWhenConnectionClosesCleanly()
         {
             var connection = new TestConnection();
             var hubConnection = new HubConnection(connection, new JsonHubProtocol(), new LoggerFactory());
@@ -175,13 +176,70 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         }
 
         [Fact]
+        public async Task CancelStartAsync()
+        {
+            var connection = new TestConnection();
+            var hubConnection = new HubConnection(connection, new JsonHubProtocol(), new LoggerFactory());
+
+            var tcs = new CancellationTokenSource();
+            tcs.Cancel();
+            var startTask = hubConnection.StartAsync(tcs.Token);
+
+            await Assert.ThrowsAsync<TaskCanceledException>(async () => await startTask);
+
+            await hubConnection.DisposeAsync();
+        }
+
+        [Fact]
+        public async Task CancelInvokeAsync()
+        {
+            var connection = new TestConnection();
+            var hubConnection = new HubConnection(connection, new JsonHubProtocol(), new LoggerFactory());
+
+            var tcs = new CancellationTokenSource();
+            tcs.Cancel();
+            await hubConnection.StartAsync();
+            var invokeTask = hubConnection.InvokeAsync<int>("testMethod", tcs.Token);
+
+            await Assert.ThrowsAsync<OperationCanceledException>(async () => await invokeTask);
+        }
+
+        [Fact]
+        public async Task CancelSendAsync()
+        {
+            var connection = new TestConnection();
+            var hubConnection = new HubConnection(connection, new JsonHubProtocol(), new LoggerFactory());
+
+            var tcs = new CancellationTokenSource();
+            tcs.Cancel();
+            await hubConnection.StartAsync();
+            var canceledsendTask = hubConnection.SendAsync("testMethod", tcs.Token);
+
+            await Assert.ThrowsAsync<TaskCanceledException>(async () => await canceledsendTask);
+        }
+
+        [Fact]
+        public async Task CancelStreamAsync()
+        {
+            var connection = new TestConnection();
+            var hubConnection = new HubConnection(connection, new JsonHubProtocol(), new LoggerFactory());
+
+            var tcs = new CancellationTokenSource();
+            tcs.Cancel();
+            await hubConnection.StartAsync();
+            var canceledStreamTask = hubConnection.StreamAsync("test", typeof(string), new object[] { }, tcs.Token);
+
+            await Assert.ThrowsAsync<OperationCanceledException>(async () => await canceledStreamTask);
+        }
+
+        [Fact]
         public async Task PendingInvocationsAreTerminatedWithExceptionWhenConnectionClosesDueToError()
         {
             var exception = new InvalidOperationException();
             var mockConnection = new Mock<IConnection>();
             mockConnection.SetupGet(p => p.Features).Returns(new FeatureCollection());
             mockConnection
-                .Setup(m => m.DisposeAsync())
+                .Setup(m => m.DisposeAsync(It.IsAny<CancellationToken>()))
                 .Callback(() => mockConnection.Raise(c => c.Closed += null, exception))
                 .Returns(Task.FromResult<object>(null));
 
