@@ -121,8 +121,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     }
                     else if (t.IsCanceled)
                     {
-                        _startTcs.TrySetCanceled();
-                        _closedTcs.TrySetCanceled();
+                        _startTcs.SetCanceled();
+                        _closedTcs.SetCanceled();
                     }
                     else
                     {
