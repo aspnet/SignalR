@@ -12,11 +12,20 @@ using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Encoders;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.Sockets;
+using Microsoft.AspNetCore.Sockets.Features;
 using Microsoft.AspNetCore.Sockets.Internal;
-using Newtonsoft.Json;
 
 namespace Microsoft.AspNetCore.SignalR.Tests
 {
+    public class TestClientOptions
+    {
+        public bool SynchronousCallbacks { get; set; }
+        public IHubProtocol HubProtocol { get; set; }
+        public IInvocationBinder InvocationBinder { get; set; }
+        public bool AddClaimId { get; set; }
+        public bool SkipNegotiate { get; set; }
+    }
+
     public class TestClient : IDisposable
     {
         private static int _id;
@@ -30,11 +39,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         public Channel<byte[]> Application { get; }
         public Task Connected => ((TaskCompletionSource<bool>)Connection.Metadata["ConnectedTask"]).Task;
 
-        public TestClient(bool synchronousCallbacks = false, IHubProtocol protocol = null, IInvocationBinder invocationBinder = null, bool addClaimId = false)
+        public TestClient(TestClientOptions options = null)
         {
-            var options = new ChannelOptimizations { AllowSynchronousContinuations = synchronousCallbacks };
-            var transportToApplication = Channel.CreateUnbounded<byte[]>(options);
-            var applicationToTransport = Channel.CreateUnbounded<byte[]>(options);
+            var channelOptions = new ChannelOptimizations { AllowSynchronousContinuations = options?.SynchronousCallbacks ?? false};
+            var transportToApplication = Channel.CreateUnbounded<byte[]>(channelOptions);
+            var applicationToTransport = Channel.CreateUnbounded<byte[]>(channelOptions);
 
             Application = ChannelConnection.Create<byte[]>(input: applicationToTransport, output: transportToApplication);
             _transport = ChannelConnection.Create<byte[]>(input: transportToApplication, output: applicationToTransport);
@@ -43,7 +52,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
             var claimValue = Interlocked.Increment(ref _id).ToString();
             var claims = new List<Claim>{ new Claim(ClaimTypes.Name, claimValue) };
-            if (addClaimId)
+            if (options?.AddClaimId == true)
             {
                 claims.Add(new Claim(ClaimTypes.NameIdentifier, claimValue));
             }
@@ -51,16 +60,22 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             Connection.User = new ClaimsPrincipal(new ClaimsIdentity(claims));
             Connection.Metadata["ConnectedTask"] = new TaskCompletionSource<bool>();
 
-            protocol = protocol ?? new JsonHubProtocol();
+            var protocol = options?.HubProtocol ?? new JsonHubProtocol();
             _protocolReaderWriter = new HubProtocolReaderWriter(protocol, new PassThroughEncoder());
-            _invocationBinder = invocationBinder ?? new DefaultInvocationBinder();
+            _invocationBinder = options?.InvocationBinder ?? new DefaultInvocationBinder();
+
+            Connection.Features.Set<IConnectionTransportFeature>(
+                new ConnectionTransportFeature { TransportCapabilities = TransferMode.Binary });
 
             _cts = new CancellationTokenSource();
 
-            using (var memoryStream = new MemoryStream())
+            if (options?.SkipNegotiate != true)
             {
-                NegotiationProtocol.WriteMessage(new NegotiationMessage(protocol.Name), memoryStream);
-                Application.Out.TryWrite(memoryStream.ToArray());
+                using (var memoryStream = new MemoryStream())
+                {
+                    NegotiationProtocol.WriteMessage(new NegotiationMessage(protocol.Name), memoryStream);
+                    Application.Out.TryWrite(memoryStream.ToArray());
+                }
             }
         }
 
@@ -200,6 +215,12 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 return typeof(object);
             }
+        }
+
+        private class ConnectionTransportFeature : IConnectionTransportFeature
+        {
+            public Channel<byte[]> Transport { get; set; }
+            public TransferMode TransportCapabilities { get; set; }
         }
     }
 }

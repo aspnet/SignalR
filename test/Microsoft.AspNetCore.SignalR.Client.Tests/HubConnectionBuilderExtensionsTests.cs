@@ -77,5 +77,19 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             connectionBuilder.WithTransport(transportType);
             Assert.Equal(transportType, connectionBuilder.GetTransport());
         }
+
+        [Fact]
+        public void SkipNegotiateFalseByDefault()
+        {
+            Assert.False(new HubConnectionBuilder().GetNoProtocolNegotiation());
+        }
+
+        [Fact]
+        public void WithNoProtocolNegotiationRegistersGiveValue()
+        {
+            var connectionBuilder = new HubConnectionBuilder();
+            connectionBuilder.WithNoProtocolNegotiation();
+            Assert.True(connectionBuilder.GetNoProtocolNegotiation());
+        }
     }
 }

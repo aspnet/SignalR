@@ -61,6 +61,12 @@ namespace Microsoft.AspNetCore.SignalR.Client
             return hubConnectionBuilder.WithLoggerFactory(loggerFactory);
         }
 
+        public static IHubConnectionBuilder WithNoProtocolNegotiation(this IHubConnectionBuilder hubConnectionBuilder)
+        {
+            hubConnectionBuilder.AddSetting(HubConnectionBuilderDefaults.SkipNegotiateKey, true);
+            return hubConnectionBuilder;
+        }
+
         public static ILoggerFactory GetLoggerFactory(this IHubConnectionBuilder hubConnectionBuilder)
         {
             hubConnectionBuilder.TryGetSetting<ILoggerFactory>(HubConnectionBuilderDefaults.LoggerFactoryKey, out var loggerFactory);
@@ -71,6 +77,11 @@ namespace Microsoft.AspNetCore.SignalR.Client
         {
             hubConnectionBuilder.TryGetSetting<IHubProtocol>(HubConnectionBuilderDefaults.HubProtocolKey, out var hubProtocol);
             return hubProtocol;
+        }
+
+        public static bool GetNoProtocolNegotiation(this IHubConnectionBuilder hubConnectionBuilder)
+        {
+            return hubConnectionBuilder.TryGetSetting<bool>(HubConnectionBuilderDefaults.SkipNegotiateKey, out var skipNegotiate) && skipNegotiate;
         }
     }
 }

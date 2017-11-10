@@ -23,6 +23,7 @@ export { ConsoleLogger, NullLogger } from "./Loggers"
 export class HubConnection {
     private readonly connection: IConnection;
     private readonly logger: ILogger;
+    private readonly skipProtocolNegotiation: boolean;
     private protocol: IHubProtocol;
     private callbacks: Map<string, (invocationEvent: HubMessage, error?: Error) => void>;
     private methods: Map<string, ((...args: any[]) => void)[]>;
@@ -41,6 +42,7 @@ export class HubConnection {
         this.logger = LoggerFactory.createLogger(options.logging);
 
         this.protocol = options.protocol || new JsonHubProtocol();
+        this.skipProtocolNegotiation = options.skipProtocolNegotiation === true;
         this.connection.onreceive = (data: any) => this.processIncomingData(data);
         this.connection.onclose = (error?: Error) => this.connectionClosed(error);
 
@@ -111,9 +113,11 @@ export class HubConnection {
         await this.connection.start();
         var actualTransferMode = this.connection.features.transferMode;
 
-        await this.connection.send(
-            TextMessageFormat.write(
-                JSON.stringify(<NegotiationMessage>{ protocol: this.protocol.name })));
+        if (!this.skipProtocolNegotiation) {
+            await this.connection.send(
+                TextMessageFormat.write(
+                    JSON.stringify(<NegotiationMessage>{ protocol: this.protocol.name })));
+        }
 
         this.logger.log(LogLevel.Information, `Using HubProtocol '${this.protocol.name}'.`);
 

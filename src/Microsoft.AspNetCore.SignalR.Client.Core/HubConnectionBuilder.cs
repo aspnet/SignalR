@@ -43,10 +43,13 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
 
             var connection = _connectionFactoryDelegate();
-            var loggerFactory = ((IHubConnectionBuilder)this).GetLoggerFactory();
-            var hubProtocol = ((IHubConnectionBuilder)this).GetHubProtocol();
 
-            return new HubConnection(connection, hubProtocol ?? new JsonHubProtocol(), loggerFactory);
+            IHubConnectionBuilder hubConnectionBuilder = this;
+            var loggerFactory = hubConnectionBuilder.GetLoggerFactory();
+            var hubProtocol = hubConnectionBuilder.GetHubProtocol();
+            var skipNegotiate = hubConnectionBuilder.GetNoProtocolNegotiation();
+
+            return new HubConnection(connection, hubProtocol ?? new JsonHubProtocol(), loggerFactory, skipNegotiate);
         }
 
         [EditorBrowsable(EditorBrowsableState.Never)]

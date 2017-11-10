@@ -7,5 +7,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
     {
         public static readonly string LoggerFactoryKey = "LoggerFactory";
         public static readonly string HubProtocolKey = "HubProtocol";
+        public static readonly string SkipNegotiateKey = "SkipNegotiate";
     }
 }

@@ -15,7 +15,7 @@ import { asyncit as it, captureException } from './JasmineUtils';
 describe("HubConnection", () => {
 
     describe("start", () => {
-        it("sends negotiation message", async () => {
+        it("sends negotiation message by default", async () => {
             let connection = new TestConnection();
             let hubConnection = new HubConnection(connection, { logging: null });
             await hubConnection.start();
@@ -23,6 +23,16 @@ describe("HubConnection", () => {
             expect(JSON.parse(connection.sentData[0])).toEqual({
                 protocol: "json"
             });
+            await hubConnection.stop();
+        });
+    });
+
+    describe("start", () => {
+        it("won't send negotiation message if configured", async () => {
+            let connection = new TestConnection();
+            let hubConnection = new HubConnection(connection, { logging: null, skipProtocolNegotiation: true });
+            await hubConnection.start();
+            expect(connection.sentData.length).toBe(0)
             await hubConnection.stop();
         });
     });
@@ -433,7 +443,7 @@ describe("HubConnection", () => {
     });
 
     describe("onClose", () => {
-        it("it can have multiple callbacks", async () => {
+        it("can have multiple callbacks", async () => {
             let connection = new TestConnection();
             let hubConnection = new HubConnection(connection);
             let invocations = 0;
@@ -477,12 +487,7 @@ class TestConnection implements IConnection {
     send(data: any): Promise<void> {
         let invocation = TextMessageFormat.parse(data)[0];
         this.lastInvocationId = JSON.parse(invocation).invocationId;
-        if (this.sentData) {
-            this.sentData.push(invocation);
-        }
-        else {
-            this.sentData = [invocation];
-        }
+        this.sentData.push(invocation);
         return Promise.resolve();
     };
 
@@ -499,7 +504,7 @@ class TestConnection implements IConnection {
 
     onreceive: DataReceived;
     onclose: ConnectionClosed;
-    sentData: [any];
+    sentData: any[] = [];
     lastInvocationId: string;
 };
 

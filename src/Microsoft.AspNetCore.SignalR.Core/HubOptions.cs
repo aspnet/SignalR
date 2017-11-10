@@ -13,5 +13,6 @@ namespace Microsoft.AspNetCore.SignalR
         public JsonSerializerSettings JsonSerializerSettings { get; set; } = JsonHubProtocol.CreateDefaultSerializerSettings();
         public SerializationContext MessagePackSerializationContext { get; set; } = MessagePackHubProtocol.CreateDefaultSerializationContext();
         public TimeSpan NegotiateTimeout { get; set; } = TimeSpan.FromSeconds(5);
+        public IHubProtocol Protocol { get; set; }
     }
 }
