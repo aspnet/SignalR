@@ -83,7 +83,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 if (completionMessage.Result != null)
                 {
                     Logger.ReceivedUnexpectedComplete(InvocationId);
-                    _channel.Out.TryComplete(new InvalidOperationException("Server provided a result in a completion response to a streamed invocation."));
+                    _channel.Writer.TryComplete(new InvalidOperationException("Server provided a result in a completion response to a streamed invocation."));
                 }
 
                 if (!string.IsNullOrEmpty(completionMessage.Error))

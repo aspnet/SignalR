@@ -19,7 +19,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
         public ChannelReader<int> StreamException() => TestHubMethodsImpl.StreamException();
 
-        public ReadableChannel<string> StreamBroken() => TestHubMethodsImpl.StreamBroken();
+        public ChannelReader<string> StreamBroken() => TestHubMethodsImpl.StreamBroken();
 
         public async Task CallEcho(string message)
         {
@@ -42,7 +42,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
         public ChannelReader<int> StreamException() => TestHubMethodsImpl.StreamException();
 
-        public ReadableChannel<string> StreamBroken() => TestHubMethodsImpl.StreamBroken();
+        public ChannelReader<string> StreamBroken() => TestHubMethodsImpl.StreamBroken();
 
         public async Task CallEcho(string message)
         {
@@ -65,7 +65,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
         public ChannelReader<int> StreamException() => TestHubMethodsImpl.StreamException();
 
-        public ReadableChannel<string> StreamBroken() => TestHubMethodsImpl.StreamBroken();
+        public ChannelReader<string> StreamBroken() => TestHubMethodsImpl.StreamBroken();
 
         public async Task CallEcho(string message)
         {
@@ -102,7 +102,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             throw new InvalidOperationException("Error occurred while streaming.");
         }
 
-        public static ReadableChannel<string> StreamBroken() => null;
+        public static ChannelReader<string> StreamBroken() => null;
     }
 
     public interface ITestHub
