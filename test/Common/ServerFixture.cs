@@ -95,7 +95,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests.Common
         }
 
         // Copied from https://github.com/aspnet/KestrelHttpServer/blob/47f1db20e063c2da75d9d89653fad4eafe24446c/test/Microsoft.AspNetCore.Server.Kestrel.FunctionalTests/AddressRegistrationTests.cs#L508
-        public static int GetNextPort()
         private static int GetNextPort()
         {
             using (var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
