@@ -584,9 +584,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
         {
         }
 
-        private class MockChannel: Channel<HubMessage>
+        private class MockChannel : Channel<HubMessage>
         {
-
             public MockChannel(ChannelWriter<HubMessage> writer = null)
             {
                 Writer = writer;

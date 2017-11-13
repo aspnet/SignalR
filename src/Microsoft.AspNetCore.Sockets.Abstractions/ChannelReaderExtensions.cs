@@ -14,7 +14,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         /// <param name="channel">The channel</param>
         /// <param name="cancellationToken">A <see cref="CancellationToken"/> used to cancel the read operation.</param>
         /// <returns>A <see cref="ValueTask{TResult}"/> that represents the asynchronous read operation.</returns>
-        public static ValueTask<T> ReadAsync<T>(this ChannelReader<T> channel,CancellationToken cancellationToken = default(CancellationToken))
+        public static ValueTask<T> ReadAsync<T>(this ChannelReader<T> channel, CancellationToken cancellationToken = default)
         {
             try
             {
