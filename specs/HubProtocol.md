@@ -82,7 +82,7 @@ On the Caller side, the user code which performs the invocation indicates how it
 
 An Invocation is only considered completed when the `Completion` message is received. Receiving **any** message using the same `Invocation ID` after a `Completion` message has been received for that invocation is considered a protocol error and the recipient may immediately terminate the connection.
 
-If a Callee is going to stream results, it **MUST** send each individual result in a separate `StreamItem` message, and complete the invocation with a `Completion`. If the Callee is going to return a single result, it **MUST** not send any `StreamItem` messages, and **MUST** send the single result in a `Completion` message. If the Callee receives an `Invocation` message for a method that would yield multiple results or the Callee receives a `StreamInvocationMessage` for a method that would return single result it **MUST** complete the invocation with a `Completion` message containing an error.
+If a Callee is going to stream results, it **MUST** send each individual result in a separate `StreamItem` message, and complete the invocation with a `Completion`. If the Callee is going to return a single result, it **MUST** not send any `StreamItem` messages, and **MUST** send the single result in a `Completion` message. If the Callee receives an `Invocation` message for a method that would yield multiple results or the Callee receives a `StreamInvocationMessage` for a method that would return a single result it **MUST** complete the invocation with a `Completion` message containing an error.
 
 ## Errors
 
@@ -281,14 +281,14 @@ A `StreamInvocation` message is a JSON object with the following properties:
 
 * `type` - A `Number` with the literal value 4, indicating that this message is a StreamInvocation.
 * `invocationId` - A `String` encoding the `Invocation ID` for a message.
-* `target` - A `String` encoding the `Target` name, as expected by the Callee's Binder
-* `arguments` - An `Array` containing arguments to apply to the method referred to in Target. This is a sequence of JSON `Token`s, encoded as indicated below in the "JSON Payload Encoding" section
+* `target` - A `String` encoding the `Target` name, as expected by the Callee's Binder.
+* `arguments` - An `Array` containing arguments to apply to the method referred to in Target. This is a sequence of JSON `Token`s, encoded as indicated below in the "JSON Payload Encoding" section.
 
 Example:
 
 ```json
 {
-    "type": 1,
+    "type": 4,
     "invocationId": "123",
     "target": "Send",
     "arguments": [
@@ -401,10 +401,10 @@ MessagePack uses different formats to encode values. Refer to the [MsgPack forma
 [1, InvocationId, NonBlocking, Target, [Arguments]]
 ```
 
-* `1` - Message Type - `1` indicates this is an `Invocation` message
-* InvocationId - A `String` encoding the Invocation ID for the message
-* NonBlocking - A `Boolean` indicating if the invocation is Non-Blocking (see "Non-Blocking Invocations" above)
-* Target - A `String` encoding the Target name, as expected by the Callee's Binder
+* `1` - Message Type - `1` indicates this is an `Invocation` message.
+* InvocationId - A `String` encoding the Invocation ID for the message.
+* NonBlocking - A `Boolean` indicating if the invocation is Non-Blocking (see "Non-Blocking Invocations" above).
+* Target - A `String` encoding the Target name, as expected by the Callee's Binder.
 * Arguments - An Array containing arguments to apply to the method referred to in Target.
 
 Example:
@@ -442,9 +442,9 @@ is decoded as follows:
 [4, InvocationId, Target, [Arguments]]
 ```
 
-* `4` - Message Type - `4` indicates this is a `StreamInvocation` message
-* InvocationId - A `String` encoding the Invocation ID for the message
-* Target - A `String` encoding the Target name, as expected by the Callee's Binder
+* `4` - Message Type - `4` indicates this is a `StreamInvocation` message.
+* InvocationId - A `String` encoding the Invocation ID for the message.
+* Target - A `String` encoding the Target name, as expected by the Callee's Binder.
 * Arguments - An Array containing arguments to apply to the method referred to in Target.
 
 Example:
@@ -452,18 +452,17 @@ Example:
 The following payload
 
 ```
-0x95 0x04 0xa3 0x78 0x79 0x7a 0xa6 0x6d 0x65 0x74 0x68 0x6f 0x64 0x91 0x2a
+0x94 0x04 0xa3 0x78 0x79 0x7a 0xa6 0x6d 0x65 0x74 0x68 0x6f 0x64 0x91 0x2a
 ```
 
 is decoded as follows:
 
-* `0x94` - 5-element array
+* `0x94` - 4-element array
 * `0x04` - `4` (Message Type - `StreamInvocation` message)
 * `0xa3` - string of length 3 (InvocationId)
 * `0x78` - `x`
 * `0x79` - `y`
 * `0x7a` - `z`
-* `0xc3` - `true` (NonBlocking)
 * `0xa6` - string of length 6 (Target)
 * `0x6d` - `m`
 * `0x65` - `e`
