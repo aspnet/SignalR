@@ -22,12 +22,12 @@ namespace Microsoft.AspNetCore.SignalR
     {
         private static Action<object> _abortedCallback = AbortConnection;
 
-        private readonly ChannelWriter<HubMessage> _output;
+        private readonly ChannelWriter<HubInvocationMessage> _output;
         private readonly ConnectionContext _connectionContext;
         private readonly CancellationTokenSource _connectionAbortedTokenSource = new CancellationTokenSource();
         private readonly TaskCompletionSource<object> _abortCompletedTcs = new TaskCompletionSource<object>();
 
-        public HubConnectionContext(ChannelWriter<HubMessage> output, ConnectionContext connectionContext)
+        public HubConnectionContext(ChannelWriter<HubInvocationMessage> output, ConnectionContext connectionContext)
         {
             _output = output;
             _connectionContext = connectionContext;
@@ -53,7 +53,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public virtual HubProtocolReaderWriter ProtocolReaderWriter { get; set; }
 
-        public virtual ChannelWriter<HubMessage> Output => _output;
+        public virtual ChannelWriter<HubInvocationMessage> Output => _output;
 
         // Currently used only for streaming methods
         internal ConcurrentDictionary<string, CancellationTokenSource> ActiveRequestCancellationSources { get; } = new ConcurrentDictionary<string, CancellationTokenSource>();

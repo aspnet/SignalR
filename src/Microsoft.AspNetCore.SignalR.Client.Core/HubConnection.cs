@@ -246,7 +246,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             return SendHubMessage(invocationMessage, irq);
         }
 
-        private async Task SendHubMessage(HubMessage hubMessage, InvocationRequest irq)
+        private async Task SendHubMessage(HubInvocationMessage hubMessage, InvocationRequest irq)
         {
             try
             {

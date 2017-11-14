@@ -1309,7 +1309,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
-        private static void AssertHubMessage(HubMessage expected, HubMessage actual)
+        private static void AssertHubMessage(HubInvocationMessage expected, HubInvocationMessage actual)
         {
             // We aren't testing InvocationIds here
             switch (expected)

@@ -1,4 +1,4 @@
-﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
@@ -54,7 +54,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
 
             new object[]
             {
-                new HubMessage[]
+                new HubInvocationMessage[]
                 {
                     new InvocationMessage("xyz", /*nonBlocking*/ true, "method", null, 42, "string", new CustomObject()),
                     new CompletionMessage("xyz", error: null, result: 42, hasResult: true),
@@ -278,7 +278,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
 
         [Theory]
         [MemberData(nameof(MessageAndPayload))]
-        public void UserObjectAreSerializedAsMaps(HubMessage message, byte[] expectedPayload)
+        public void UserObjectAreSerializedAsMaps(HubInvocationMessage message, byte[] expectedPayload)
         {
             using (var memoryStream = new MemoryStream())
             {

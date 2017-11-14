@@ -1,8 +1,9 @@
-﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.ExceptionServices;
 using Microsoft.AspNetCore.SignalR.Internal.Formatters;
@@ -18,6 +19,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         private const int CompletionMessageType = 3;
         private const int StreamInvocationMessageType = 4;
         private const int CancelInvocationMessageType = 5;
+        private const int PingMessageType = 6;
+        private const int PongMessageType = 7;
 
         private const int ErrorResult = 1;
         private const int VoidResult = 2;
@@ -72,6 +75,10 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                         return CreateCompletionMessage(unpacker, binder);
                     case CancelInvocationMessageType:
                         return CreateCancelInvocationMessage(unpacker);
+                    case PingMessageType:
+                        return CreatePingMessage(unpacker);
+                    case PongMessageType:
+                        return CreatePongMessage(unpacker);
                     default:
                         throw new FormatException($"Invalid message type: {messageType}.");
                 }
@@ -181,6 +188,18 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             return new CancelInvocationMessage(invocationId);
         }
 
+        private static HubMessage CreatePongMessage(Unpacker unpacker)
+        {
+            var payload = ReadString(unpacker, "payload");
+            return new PongMessage(payload);
+        }
+
+        private static HubMessage CreatePingMessage(Unpacker unpacker)
+        {
+            var payload = ReadString(unpacker, "payload");
+            return new PingMessage(payload);
+        }
+
         public void WriteMessage(HubMessage message, Stream output)
         {
             using (var memoryStream = new MemoryStream())
@@ -211,6 +230,12 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                     break;
                 case CancelInvocationMessage cancelInvocationMessage:
                     WriteCancelInvocationMessage(cancelInvocationMessage, packer);
+                    break;
+                case PingMessage pingMessage:
+                    WritePingMessage(pingMessage, packer);
+                    break;
+                case PongMessage pingMessage:
+                    WritePongMessage(pingMessage, packer);
                     break;
                 default:
                     throw new FormatException($"Unexpected message type: {message.GetType().Name}");
@@ -272,6 +297,20 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             packer.PackArrayHeader(2);
             packer.Pack(CancelInvocationMessageType);
             packer.PackString(cancelInvocationMessage.InvocationId);
+        }
+
+        private void WritePongMessage(PongMessage pingMessage, Packer packer)
+        {
+            packer.PackArrayHeader(2);
+            packer.Pack(PongMessageType);
+            packer.PackString(pingMessage.Payload);
+        }
+
+        private void WritePingMessage(PingMessage pingMessage, Packer packer)
+        {
+            packer.PackArrayHeader(2);
+            packer.Pack(PingMessageType);
+            packer.PackString(pingMessage.Payload);
         }
 
         private static string ReadInvocationId(Unpacker unpacker)

@@ -17,8 +17,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             using (var client1 = new TestClient())
             using (var client2 = new TestClient())
             {
-                var output1 = Channel.CreateUnbounded<HubMessage>();
-                var output2 = Channel.CreateUnbounded<HubMessage>();
+                var output1 = Channel.CreateUnbounded<HubInvocationMessage>();
+                var output2 = Channel.CreateUnbounded<HubInvocationMessage>();
 
                 var manager = new DefaultHubLifetimeManager<MyHub>();
                 var connection1 = new HubConnectionContext(output1, client1.Connection);
@@ -49,8 +49,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             using (var client1 = new TestClient())
             using (var client2 = new TestClient())
             {
-                var output1 = Channel.CreateUnbounded<HubMessage>();
-                var output2 = Channel.CreateUnbounded<HubMessage>();
+                var output1 = Channel.CreateUnbounded<HubInvocationMessage>();
+                var output2 = Channel.CreateUnbounded<HubInvocationMessage>();
 
                 var manager = new DefaultHubLifetimeManager<MyHub>();
                 var connection1 = new HubConnectionContext(output1, client1.Connection);
@@ -79,8 +79,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             using (var client1 = new TestClient())
             using (var client2 = new TestClient())
             {
-                var output1 = Channel.CreateUnbounded<HubMessage>();
-                var output2 = Channel.CreateUnbounded<HubMessage>();
+                var output1 = Channel.CreateUnbounded<HubInvocationMessage>();
+                var output2 = Channel.CreateUnbounded<HubInvocationMessage>();
 
                 var manager = new DefaultHubLifetimeManager<MyHub>();
                 var connection1 = new HubConnectionContext(output1, client1.Connection);
@@ -108,7 +108,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             using (var client = new TestClient())
             {
-                var output = Channel.CreateUnbounded<HubMessage>();
+                var output = Channel.CreateUnbounded<HubInvocationMessage>();
                 var manager = new DefaultHubLifetimeManager<MyHub>();
                 var connection = new HubConnectionContext(output, client.Connection);
 
@@ -130,7 +130,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             using (var client = new TestClient())
             {
                 // Force an exception when writing to connection
-                var writer = new Mock<ChannelWriter<HubMessage>>();
+                var writer = new Mock<ChannelWriter<HubInvocationMessage>>();
                 writer.Setup(o => o.WaitToWriteAsync(It.IsAny<CancellationToken>())).Throws(new Exception("Message"));
 
                 var manager = new DefaultHubLifetimeManager<MyHub>();
@@ -169,10 +169,10 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
         }
 
-        private class MockChannel: Channel<HubMessage>
+        private class MockChannel: Channel<HubInvocationMessage>
         {
 
-            public MockChannel(ChannelWriter<HubMessage> writer = null)
+            public MockChannel(ChannelWriter<HubInvocationMessage> writer = null)
             {
                 Writer = writer;
             }

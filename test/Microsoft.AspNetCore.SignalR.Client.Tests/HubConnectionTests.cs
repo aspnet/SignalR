@@ -189,13 +189,13 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         // Moq really doesn't handle out parameters well, so to make these tests work I added a manual mock -anurse
         private class MockHubProtocol : IHubProtocol
         {
-            private HubMessage _parsed;
+            private HubInvocationMessage _parsed;
             private Exception _error;
 
             public int ParseCalls { get; private set; } = 0;
             public int WriteCalls { get; private set; } = 0;
 
-            public static MockHubProtocol ReturnOnParse(HubMessage parsed)
+            public static MockHubProtocol ReturnOnParse(HubInvocationMessage parsed)
             {
                 return new MockHubProtocol
                 {
@@ -215,9 +215,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
             public ProtocolType Type => ProtocolType.Binary;
 
-            public bool TryParseMessages(ReadOnlyMemory<byte> input, IInvocationBinder binder, out IList<HubMessage> messages)
+            public bool TryParseMessages(ReadOnlyMemory<byte> input, IInvocationBinder binder, out IList<HubInvocationMessage> messages)
             {
-                messages = new List<HubMessage>();
+                messages = new List<HubInvocationMessage>();
 
                 ParseCalls += 1;
                 if (_error != null)
@@ -233,7 +233,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 throw new InvalidOperationException("No Parsed Message provided");
             }
 
-            public void WriteMessage(HubMessage message, Stream output)
+            public void WriteMessage(HubInvocationMessage message, Stream output)
             {
                 WriteCalls += 1;
 

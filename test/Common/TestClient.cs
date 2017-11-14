@@ -64,11 +64,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
-        public async Task<IList<HubMessage>> StreamAsync(string methodName, params object[] args)
+        public async Task<IList<HubInvocationMessage>> StreamAsync(string methodName, params object[] args)
         {
             var invocationId = await SendStreamInvocationAsync(methodName, args);
 
-            var messages = new List<HubMessage>();
+            var messages = new List<HubInvocationMessage>();
             while (true)
             {
                 var message = await ReadAsync();
@@ -146,14 +146,14 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 argumentBindingException: null, arguments: args));
         }
 
-        public async Task<string> SendHubMessageAsync(HubMessage message)
+        public async Task<string> SendHubMessageAsync(HubInvocationMessage message)
         {
             var payload = _protocolReaderWriter.WriteMessage(message);
             await Application.Writer.WriteAsync(payload);
             return message.InvocationId;
         }
 
-        public async Task<HubMessage> ReadAsync()
+        public async Task<HubInvocationMessage> ReadAsync()
         {
             while (true)
             {
@@ -173,7 +173,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
-        public HubMessage TryRead()
+        public HubInvocationMessage TryRead()
         {
             if (Application.Reader.TryRead(out var buffer) &&
                 _protocolReaderWriter.ReadMessages(buffer, _invocationBinder, out var messages))

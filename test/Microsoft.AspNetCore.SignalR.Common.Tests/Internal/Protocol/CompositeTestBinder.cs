@@ -9,10 +9,10 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
 {
     public class CompositeTestBinder : IInvocationBinder
     {
-        private readonly HubMessage[] _hubMessages;
+        private readonly HubInvocationMessage[] _hubMessages;
         private int index = 0;
 
-        public CompositeTestBinder(HubMessage[] hubMessages)
+        public CompositeTestBinder(HubInvocationMessage[] hubMessages)
         {
             _hubMessages = hubMessages;
         }
