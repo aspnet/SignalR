@@ -103,7 +103,7 @@ If either endpoint commits a Protocol Error (see examples below), the other endp
 
 The SignalR Hub protocol supports "Keep Alive" messages used to ensure that the underlying transport connection remains active. These messages help ensure:
 
-1. During idle times (when few messages are being sent), Proxies don't close the underlying connection
+1. Proxies don't close the underlying connection during idle times (when few messages are being sent)
 1. If the underlying connection is dropped without being terminated gracefully, the application is informed as quickly as possible.
 
 A single Keep Alive exchange starts when one party sends a `Ping` frame with a payload. In response, the other party is expected to send a `Pong` frame with the same payload (see Examples below). The payload is arbitrary and can be any string the endpoint chooses to use.
