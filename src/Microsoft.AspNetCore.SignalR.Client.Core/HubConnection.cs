@@ -133,7 +133,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         public IDisposable On(string methodName, Type[] parameterTypes, Func<object[], object, Task> handler, object state)
         {
             var invocationHandler = new InvocationHandler(parameterTypes, handler, state);
-            var invocationList = _handlers.AddOrUpdate(methodName,  _ => new List<InvocationHandler> { invocationHandler },
+            var invocationList = _handlers.AddOrUpdate(methodName, _ => new List<InvocationHandler> { invocationHandler },
                 (_, invocations) =>
                 {
                     lock (invocations)
@@ -327,6 +327,14 @@ namespace Microsoft.AspNetCore.SignalR.Client
                                 return;
                             }
                             DispatchInvocationStreamItemAsync(streamItem, irq);
+                            break;
+                        case PingMessage pingMessage:
+                            // Echo back in a Pong message
+                            var payload = _protocolReaderWriter.WriteMessage(new PongMessage(pingMessage.Payload));
+                            await _connection.SendAsync(payload, _connectionActive.Token);
+                            break;
+                        case PongMessage _:
+                            // Nothing to do on receipt of a pong.
                             break;
                         default:
                             throw new InvalidOperationException($"Unexpected message type: {message.GetType().FullName}");

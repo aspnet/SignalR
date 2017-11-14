@@ -311,7 +311,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
 
         [Theory]
         [MemberData(nameof(MessageAndPayload))]
-        public void SerializeMessageTest(HubInvocationMessage message, byte[] expectedPayload)
+        public void SerializeMessageTest(HubMessage message, byte[] expectedPayload)
         {
             using (var memoryStream = new MemoryStream())
             {

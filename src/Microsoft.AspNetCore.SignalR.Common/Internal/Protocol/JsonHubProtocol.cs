@@ -24,14 +24,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         private const string ArgumentsPropertyName = "arguments";
         private const string PayloadPropertyName = "payload";
 
-        private const int InvocationMessageType = 1;
-        private const int ResultMessageType = 2;
-        private const int CompletionMessageType = 3;
-        private const int StreamInvocationMessageType = 4;
-        private const int CancelInvocationMessageType = 5;
-        private const int PingMessageType = 6;
-        private const int PongMessageType = 7;
-
         // ONLY to be used for application payloads (args, return values, etc.)
         private JsonSerializer _payloadSerializer;
 
@@ -111,19 +103,19 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                     var type = JsonUtils.GetRequiredProperty<int>(json, TypePropertyName, JTokenType.Integer);
                     switch (type)
                     {
-                        case InvocationMessageType:
+                        case HubProtocolConstants.InvocationMessageType:
                             return BindInvocationMessage(json, binder);
-                        case StreamInvocationMessageType:
+                        case HubProtocolConstants.StreamInvocationMessageType:
                             return BindStreamInvocationMessage(json, binder);
-                        case ResultMessageType:
-                            return BindResultMessage(json, binder);
-                        case CompletionMessageType:
+                        case HubProtocolConstants.StreamItemMessageType:
+                            return BindStreamItemMessage(json, binder);
+                        case HubProtocolConstants.CompletionMessageType:
                             return BindCompletionMessage(json, binder);
-                        case CancelInvocationMessageType:
+                        case HubProtocolConstants.CancelInvocationMessageType:
                             return BindCancelInvocationMessage(json);
-                        case PingMessageType:
+                        case HubProtocolConstants.PingMessageType:
                             return BindPingMessage(json);
-                        case PongMessageType:
+                        case HubProtocolConstants.PongMessageType:
                             return BindPongMessage(json);
                         default:
                             throw new FormatException($"Unknown message type: {type}");
@@ -172,7 +164,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         private void WriteCompletionMessage(CompletionMessage message, JsonTextWriter writer)
         {
             writer.WriteStartObject();
-            WriteHubInvocationMessageCommon(message, writer, CompletionMessageType);
+            WriteHubInvocationMessageCommon(message, writer, HubProtocolConstants.CompletionMessageType);
             if (!string.IsNullOrEmpty(message.Error))
             {
                 writer.WritePropertyName(ErrorPropertyName);
@@ -189,14 +181,14 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         private void WriteCancelInvocationMessage(CancelInvocationMessage message, JsonTextWriter writer)
         {
             writer.WriteStartObject();
-            WriteHubInvocationMessageCommon(message, writer, CancelInvocationMessageType);
+            WriteHubInvocationMessageCommon(message, writer, HubProtocolConstants.CancelInvocationMessageType);
             writer.WriteEndObject();
         }
 
         private void WriteStreamItemMessage(StreamItemMessage message, JsonTextWriter writer)
         {
             writer.WriteStartObject();
-            WriteHubInvocationMessageCommon(message, writer, ResultMessageType);
+            WriteHubInvocationMessageCommon(message, writer, HubProtocolConstants.StreamItemMessageType);
             writer.WritePropertyName(ItemPropertyName);
             _payloadSerializer.Serialize(writer, message.Item);
             writer.WriteEndObject();
@@ -205,7 +197,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         private void WriteInvocationMessage(InvocationMessage message, JsonTextWriter writer)
         {
             writer.WriteStartObject();
-            WriteHubInvocationMessageCommon(message, writer, InvocationMessageType);
+            WriteHubInvocationMessageCommon(message, writer, HubProtocolConstants.InvocationMessageType);
             writer.WritePropertyName(TargetPropertyName);
             writer.WriteValue(message.Target);
 
@@ -223,7 +215,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         private void WriteStreamInvocationMessage(StreamInvocationMessage message, JsonTextWriter writer)
         {
             writer.WriteStartObject();
-            WriteHubInvocationMessageCommon(message, writer, StreamInvocationMessageType);
+            WriteHubInvocationMessageCommon(message, writer, HubProtocolConstants.StreamInvocationMessageType);
             writer.WritePropertyName(TargetPropertyName);
             writer.WriteValue(message.Target);
 
@@ -246,7 +238,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         private void WritePingMessage(PingMessage m, JsonTextWriter writer)
         {
             writer.WriteStartObject();
-            WriteMessageType(writer, PingMessageType);
+            WriteMessageType(writer, HubProtocolConstants.PingMessageType);
             writer.WritePropertyName(PayloadPropertyName);
             writer.WriteValue(m.Payload);
             writer.WriteEndObject();
@@ -255,7 +247,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         private void WritePongMessage(PongMessage m, JsonTextWriter writer)
         {
             writer.WriteStartObject();
-            WriteMessageType(writer, PongMessageType);
+            WriteMessageType(writer, HubProtocolConstants.PongMessageType);
             writer.WritePropertyName(PayloadPropertyName);
             writer.WriteValue(m.Payload);
             writer.WriteEndObject();
@@ -339,7 +331,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             }
         }
 
-        private StreamItemMessage BindResultMessage(JObject json, IInvocationBinder binder)
+        private StreamItemMessage BindStreamItemMessage(JObject json, IInvocationBinder binder)
         {
             var invocationId = JsonUtils.GetRequiredProperty<string>(json, InvocationIdPropertyName, JTokenType.String);
             var result = JsonUtils.GetRequiredProperty<JToken>(json, ItemPropertyName);

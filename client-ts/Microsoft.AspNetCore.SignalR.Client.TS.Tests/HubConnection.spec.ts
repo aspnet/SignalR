@@ -351,13 +351,13 @@ describe("HubConnection", () => {
             hubConnection.stream<any>("testMethod")
                 .subscribe(observer);
 
-            connection.receive({ type: MessageType.Result, invocationId: connection.lastInvocationId, item: 1 });
+            connection.receive({ type: MessageType.StreamItem, invocationId: connection.lastInvocationId, item: 1 });
             expect(observer.itemsReceived).toEqual([1]);
 
-            connection.receive({ type: MessageType.Result, invocationId: connection.lastInvocationId, item: 2 });
+            connection.receive({ type: MessageType.StreamItem, invocationId: connection.lastInvocationId, item: 2 });
             expect(observer.itemsReceived).toEqual([1, 2]);
 
-            connection.receive({ type: MessageType.Result, invocationId: connection.lastInvocationId, item: 3 });
+            connection.receive({ type: MessageType.StreamItem, invocationId: connection.lastInvocationId, item: 3 });
             expect(observer.itemsReceived).toEqual([1, 2, 3]);
 
             connection.receive({ type: MessageType.Completion, invocationId: connection.lastInvocationId });
@@ -392,7 +392,7 @@ describe("HubConnection", () => {
     });
 
     describe("onClose", () => {
-        it("it can have multiple callbacks", async () => {
+        it("can have multiple callbacks", async () => {
             let connection = new TestConnection();
             let hubConnection = new HubConnection(connection);
             let invocations = 0;
@@ -424,6 +424,37 @@ describe("HubConnection", () => {
             // expect no errors
         });
     });
+
+    describe("keepAlive", () => {
+        it("can receive pong messages", async () => {
+            // Receive the pong mid-invocation so we can see that the rest of the flow works fine
+
+            let connection = new TestConnection();
+            let hubConnection = new HubConnection(connection);
+            let invokePromise = hubConnection.invoke("testMethod", "arg", 42);
+
+            connection.receive({ type: MessageType.Pong, payload: "pong payload" });
+            connection.receive({ type: MessageType.Completion, invocationId: connection.lastInvocationId, result: "foo" });
+
+            expect(await invokePromise).toBe("foo");
+        })
+
+        it("responds to ping messages", async () => {
+            // Receive the pong mid-invocation so we can see that the rest of the flow works fine
+
+            let connection = new TestConnection();
+            let hubConnection = new HubConnection(connection);
+            let invokePromise = hubConnection.invoke("testMethod", "arg", 42);
+
+            connection.receive({ type: MessageType.Ping, payload: "ping payload" });
+            expect(connection.sentData.pop()).toEqual(JSON.stringify({ type: MessageType.Pong, payload: "ping payload"}));
+
+            console.log("waiting for " + connection.lastInvocationId);
+            connection.receive({ type: MessageType.Completion, invocationId: connection.lastInvocationId, result: "foo" });
+
+            expect(await invokePromise).toBe("foo");
+        })
+    })
 });
 
 class TestConnection implements IConnection {

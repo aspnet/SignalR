@@ -14,14 +14,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 {
     public class MessagePackHubProtocol : IHubProtocol
     {
-        private const int InvocationMessageType = 1;
-        private const int StreamItemMessageType = 2;
-        private const int CompletionMessageType = 3;
-        private const int StreamInvocationMessageType = 4;
-        private const int CancelInvocationMessageType = 5;
-        private const int PingMessageType = 6;
-        private const int PongMessageType = 7;
-
         private const int ErrorResult = 1;
         private const int VoidResult = 2;
         private const int NonVoidResult = 3;
@@ -65,19 +57,19 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
                 switch (messageType)
                 {
-                    case InvocationMessageType:
+                    case HubProtocolConstants.InvocationMessageType:
                         return CreateInvocationMessage(unpacker, binder);
-                    case StreamInvocationMessageType:
+                    case HubProtocolConstants.StreamInvocationMessageType:
                         return CreateStreamInvocationMessage(unpacker, binder);
-                    case StreamItemMessageType:
+                    case HubProtocolConstants.StreamItemMessageType:
                         return CreateStreamItemMessage(unpacker, binder);
-                    case CompletionMessageType:
+                    case HubProtocolConstants.CompletionMessageType:
                         return CreateCompletionMessage(unpacker, binder);
-                    case CancelInvocationMessageType:
+                    case HubProtocolConstants.CancelInvocationMessageType:
                         return CreateCancelInvocationMessage(unpacker);
-                    case PingMessageType:
+                    case HubProtocolConstants.PingMessageType:
                         return CreatePingMessage(unpacker);
-                    case PongMessageType:
+                    case HubProtocolConstants.PongMessageType:
                         return CreatePongMessage(unpacker);
                     default:
                         throw new FormatException($"Invalid message type: {messageType}.");

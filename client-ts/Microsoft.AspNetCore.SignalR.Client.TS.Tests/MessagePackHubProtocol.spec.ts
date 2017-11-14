@@ -50,7 +50,7 @@ describe("MessageHubProtocol", () => {
     ([
         [ [ 0x07, 0x93, 0x02, 0xa3, 0x61, 0x62, 0x63, 0x08 ],
             {
-                type: MessageType.Result,
+                type: MessageType.StreamItem,
                 invocationId: "abc",
                 item: 8
             } as ResultMessage ]
@@ -85,7 +85,7 @@ describe("MessageHubProtocol", () => {
         let messages = new MessagePackHubProtocol().parseMessages(new Uint8Array(payload).buffer);
         expect(messages).toEqual([
             {
-                type: MessageType.Result,
+                type: MessageType.StreamItem,
                 invocationId: "abc",
                 item: 8
             } as ResultMessage,

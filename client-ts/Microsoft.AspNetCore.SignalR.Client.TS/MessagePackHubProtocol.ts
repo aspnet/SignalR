@@ -30,7 +30,7 @@ export class MessagePackHubProtocol implements IHubProtocol {
         switch (messageType) {
             case MessageType.Invocation:
                 return this.createInvocationMessage(properties);
-            case MessageType.Result:
+            case MessageType.StreamItem:
                 return this.createStreamItemMessage(properties);
             case MessageType.Completion:
                 return this.createCompletionMessage(properties);
@@ -59,7 +59,7 @@ export class MessagePackHubProtocol implements IHubProtocol {
         }
 
         return {
-            type: MessageType.Result,
+            type: MessageType.StreamItem,
             invocationId: properties[1],
             item: properties[2]
         } as ResultMessage;
@@ -106,7 +106,7 @@ export class MessagePackHubProtocol implements IHubProtocol {
                 return this.writeInvocation(message as InvocationMessage);
             case MessageType.StreamInvocation:
                 return this.writeStreamInvocation(message as StreamInvocationMessage);
-            case MessageType.Result:
+            case MessageType.StreamItem:
             case MessageType.Completion:
                 throw new Error(`Writing messages of type '${message.type}' is not supported.`);
             default:
