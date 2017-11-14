@@ -64,11 +64,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
-        public async Task<IList<HubInvocationMessage>> StreamAsync(string methodName, params object[] args)
+        public async Task<IList<HubMessage>> StreamAsync(string methodName, params object[] args)
         {
             var invocationId = await SendStreamInvocationAsync(methodName, args);
 
-            var messages = new List<HubInvocationMessage>();
+            var messages = new List<HubMessage>();
             while (true)
             {
                 var message = await ReadAsync();
@@ -78,7 +78,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     throw new InvalidOperationException("Connection aborted!");
                 }
 
-                if (!string.Equals(message.InvocationId, invocationId))
+                if (message is HubInvocationMessage hubInvocationMessage && !string.Equals(hubInvocationMessage.InvocationId, invocationId))
                 {
                     throw new NotSupportedException("TestClient does not support multiple outgoing invocations!");
                 }
@@ -110,7 +110,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     throw new InvalidOperationException("Connection aborted!");
                 }
 
-                if (!string.Equals(message.InvocationId, invocationId))
+                if (message is HubInvocationMessage hubInvocationMessage && !string.Equals(hubInvocationMessage.InvocationId, invocationId))
                 {
                     throw new NotSupportedException("TestClient does not support multiple outgoing invocations!");
                 }
@@ -153,7 +153,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             return message.InvocationId;
         }
 
-        public async Task<HubInvocationMessage> ReadAsync()
+        public async Task<HubMessage> ReadAsync()
         {
             while (true)
             {
@@ -173,7 +173,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
-        public HubInvocationMessage TryRead()
+        public HubMessage TryRead()
         {
             if (Application.Reader.TryRead(out var buffer) &&
                 _protocolReaderWriter.ReadMessages(buffer, _invocationBinder, out var messages))

@@ -51,16 +51,21 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             new object[] { new[] { new StreamInvocationMessage("xyz", "method", null, new[] { new CustomObject(), new CustomObject() }) } },
 
             new object[] { new[] { new CancelInvocationMessage("xyz") } },
+            
+            new object[] { new[] { new PingMessage("this is a ping payload") } },
+            new object[] { new[] { new PongMessage("this is a pong payload") } },
 
             new object[]
             {
-                new HubInvocationMessage[]
+                new HubMessage[]
                 {
                     new InvocationMessage("xyz", /*nonBlocking*/ true, "method", null, 42, "string", new CustomObject()),
                     new CompletionMessage("xyz", error: null, result: 42, hasResult: true),
                     new StreamItemMessage("xyz", null),
+                    new PingMessage("this is a ping payload"),
                     new StreamInvocationMessage("xyz", "method", null, 42, "string", new CustomObject()),
-                    new CompletionMessage("xyz", error: null, result: new CustomObject(), hasResult: true)
+                    new CompletionMessage("xyz", error: null, result: new CustomObject(), hasResult: true),
+                    new PongMessage("this is a pong payload"),
                 }
             }
         };
@@ -121,6 +126,12 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             new object[] { new byte[] { 0x95, 0x04, 0xa3, 0x78, 0x79, 0x7a }, "Reading 'target' as String failed." }, // target missing
             new object[] { new byte[] { 0x95, 0x04, 0xa3, 0x78, 0x79, 0x7a, 0x00 }, "Reading 'target' as String failed." }, // 0x00 is Int
             new object[] { new byte[] { 0x95, 0x04, 0xa3, 0x78, 0x79, 0x7a, 0xa1 }, "Reading 'target' as String failed." }, // string is cut
+
+            // PingMessage
+            new object[] { new byte[] { 0x92, 0x06 }, "Reading 'payload' as String failed." },
+
+            // PongMessage
+            new object[] { new byte[] { 0x92, 0x07 }, "Reading 'payload' as String failed." },
         };
 
         [Theory]

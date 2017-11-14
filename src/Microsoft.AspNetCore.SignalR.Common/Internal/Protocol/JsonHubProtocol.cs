@@ -246,6 +246,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         private void WritePingMessage(PingMessage m, JsonTextWriter writer)
         {
             writer.WriteStartObject();
+            WriteMessageType(writer, PingMessageType);
             writer.WritePropertyName(PayloadPropertyName);
             writer.WriteValue(m.Payload);
             writer.WriteEndObject();
@@ -254,6 +255,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         private void WritePongMessage(PongMessage m, JsonTextWriter writer)
         {
             writer.WriteStartObject();
+            WriteMessageType(writer, PongMessageType);
             writer.WritePropertyName(PayloadPropertyName);
             writer.WriteValue(m.Payload);
             writer.WriteEndObject();
@@ -263,6 +265,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         {
             writer.WritePropertyName(InvocationIdPropertyName);
             writer.WriteValue(message.InvocationId);
+            WriteMessageType(writer, type);
+        }
+
+        private static void WriteMessageType(JsonTextWriter writer, int type)
+        {
             writer.WritePropertyName(TypePropertyName);
             writer.WriteValue(type);
         }
