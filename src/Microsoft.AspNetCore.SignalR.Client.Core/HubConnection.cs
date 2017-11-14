@@ -126,6 +126,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         private async Task DisposeAsyncCore()
         {
             await _connection.DisposeAsync();
+            await Closed;
         }
 
         // TODO: Client return values/tasks?
