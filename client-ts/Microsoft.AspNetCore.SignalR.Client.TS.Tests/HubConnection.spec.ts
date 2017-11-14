@@ -449,7 +449,6 @@ describe("HubConnection", () => {
             connection.receive({ type: MessageType.Ping, payload: "ping payload" });
             expect(connection.sentData.pop()).toEqual(JSON.stringify({ type: MessageType.Pong, payload: "ping payload"}));
 
-            console.log("waiting for " + connection.lastInvocationId);
             connection.receive({ type: MessageType.Completion, invocationId: connection.lastInvocationId, result: "foo" });
 
             expect(await invokePromise).toBe("foo");
@@ -466,7 +465,10 @@ class TestConnection implements IConnection {
 
     send(data: any): Promise<void> {
         let invocation = TextMessageFormat.parse(data)[0];
-        this.lastInvocationId = JSON.parse(invocation).invocationId;
+        let invocationId = JSON.parse(invocation).invocationId;
+        if (invocationId) {
+            this.lastInvocationId = invocationId;
+        }
         if (this.sentData) {
             this.sentData.push(invocation);
         }
