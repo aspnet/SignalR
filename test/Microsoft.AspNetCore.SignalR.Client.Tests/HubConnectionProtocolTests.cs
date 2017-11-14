@@ -441,6 +441,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 // Send an invocation
                 var invokeTask = hubConnection.InvokeAsync("Foo");
 
+                // Ignore invocation message
+                await connection.ReadSentTextMessageAsync().OrTimeout();
+
                 // Receive a ping first
                 await connection.ReceiveJsonMessage(new { type = 6, payload = "this is a ping message" }).OrTimeout();
 
