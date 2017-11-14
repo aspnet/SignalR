@@ -26,6 +26,8 @@ In the SignalR protocol, the following types of messages can be sent:
 * `StreamItem` Message - Indicates individual items of streamed response data from a previous Invocation message.
 * `Completion` Message - Indicates a previous Invocation or StreamInvocation has completed. Contains an error if the invocation concluded with an error or the result of a non-streaming method invocation. The result will be absent for `void` methods. In case of streaming invocations no further `StreamItem` messages will be received
 * `CancelInvocation` Message - Sent by the client to cancel a streaming invocation on the server.
+* `Ping` Message - Sent by either party to check if the connection is active.
+* `Pong` Message - Sent by either party in response to a `Ping` message.
 
 After opening a connection to the server the client must send a `Negotiation` message to the server as its first message. The negotiation message is **always** a JSON message and contains the name of the format (protocol) that will be used for the duration of the connection. If the server does not support the protocol requested by the client or the first message received from the client is not a `Negotiation` message the server must close the connection.
 
@@ -97,7 +99,18 @@ If either endpoint commits a Protocol Error (see examples below), the other endp
 * It is a protocol error for a Caller to send a `Completion` message carrying both a result and an error.
 * It is a protocol error for an `Invocation` or `StreamInvocation` message to have an `Invocation ID` that has already been used by *that* endpoint. However, it is **not an error** for one endpoint to use an `Invocation ID` that was previously used by the other endpoint (allowing each endpoint to track it's own IDs).
 
-## Examples
+## Ping/Pong (aka "Keep Alive")
+
+The SignalR Hub protocol supports "Keep Alive" messages used to ensure that the underlying transport connection remains active. These messages help ensure:
+
+1. During idle times (when few messages are being sent), Proxies don't close the underlying connection
+1. If the underlying connection is dropped without being terminated gracefully, the application is informed as quickly as possible.
+
+A single Keep Alive exchange starts when one party sends a `Ping` frame with a payload. In response, the other party is expected to send a `Pong` frame with the same payload (see Examples below). The payload is arbitrary and can be any string the endpoint chooses to use.
+
+The only required behavior for a SignalR endpoint is that it respond to `Ping` frames by sending a `Pong` frame. It is up to the implementation and configuration of the endpoint whether or not to send `Ping` frames. For example, if the underlying transport has sufficient Keep Alive functionality (i.e. WebSockets), an endpoint may choose never to send `Ping` frames.
+
+## Example
 
 Consider the following C# methods
 
@@ -231,6 +244,13 @@ S->C: Completion { Id = 42 } // This can be ignored
 
 ```
 C->S: Invocation { Id = 42, Target = "NonBlocking", Arguments = [ "foo" ], NonBlocking = true }
+```
+
+### Ping/Pong
+
+```
+C->S: Ping { Payload = "Hello" }
+S->C: Pong { Payload = "Hello" }
 ```
 
 ## JSON Encoding
@@ -378,6 +398,20 @@ Example
 {
     "type": 5,
     "invocationId": "123"
+}
+```
+
+### Ping/Pong Message Encoding
+A `Ping` or `Pong` message is a JSON object with the following properties:
+
+* `type` - A `Number` with the literal value `6` for `Ping` messages or `7` for `Pong` messages.
+* `payload` - A `String` with an arbitrary payload to be echoed from the other party.
+
+Example
+```json
+{
+    "type": 6,
+    "payload": "Hello"
 }
 ```
 

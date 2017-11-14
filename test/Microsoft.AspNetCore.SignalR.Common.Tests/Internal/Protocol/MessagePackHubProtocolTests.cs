@@ -284,12 +284,34 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                 {
                     0x04, 0x92, 0x05, 0xa1, 0x30
                 }
+            },
+            new object[]
+            {
+                new PingMessage("hello"),
+                new byte[]
+                {
+                    0x08,
+                    0x92, // message array length = 2 (fixarray)
+                    0x06, // type = 6 = Ping (fixnum)
+                    0xa5, (byte)'h', (byte)'e', (byte)'l', (byte)'l', (byte)'o', // payload (fixstr)
+                }
+            },
+            new object[]
+            {
+                new PongMessage("hello"),
+                new byte[]
+                {
+                    0x08,
+                    0x92, // message array length = 2 (fixarray)
+                    0x07, // type = 7 = Ping (fixnum)
+                    0xa5, (byte)'h', (byte)'e', (byte)'l', (byte)'l', (byte)'o', // payload (fixstr)
+                }
             }
         };
 
         [Theory]
         [MemberData(nameof(MessageAndPayload))]
-        public void UserObjectAreSerializedAsMaps(HubInvocationMessage message, byte[] expectedPayload)
+        public void SerializeMessageTest(HubInvocationMessage message, byte[] expectedPayload)
         {
             using (var memoryStream = new MemoryStream())
             {

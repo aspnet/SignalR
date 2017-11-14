@@ -23,8 +23,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             using (var client1 = new TestClient())
             using (var client2 = new TestClient())
             {
-                var output1 = Channel.CreateUnbounded<HubInvocationMessage>();
-                var output2 = Channel.CreateUnbounded<HubInvocationMessage>();
+                var output1 = Channel.CreateUnbounded<HubMessage>();
+                var output2 = Channel.CreateUnbounded<HubMessage>();
 
                 var manager = new RedisHubLifetimeManager<MyHub>(new LoggerFactory().CreateLogger<RedisHubLifetimeManager<MyHub>>(),
                 Options.Create(new RedisOptions()
@@ -50,8 +50,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             using (var client1 = new TestClient())
             using (var client2 = new TestClient())
             {
-                var output1 = Channel.CreateUnbounded<HubInvocationMessage>();
-                var output2 = Channel.CreateUnbounded<HubInvocationMessage>();
+                var output1 = Channel.CreateUnbounded<HubMessage>();
+                var output2 = Channel.CreateUnbounded<HubMessage>();
 
                 var manager = new RedisHubLifetimeManager<MyHub>(new LoggerFactory().CreateLogger<RedisHubLifetimeManager<MyHub>>(),
                 Options.Create(new RedisOptions()
@@ -80,8 +80,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             using (var client1 = new TestClient())
             using (var client2 = new TestClient())
             {
-                var output1 = Channel.CreateUnbounded<HubInvocationMessage>();
-                var output2 = Channel.CreateUnbounded<HubInvocationMessage>();
+                var output1 = Channel.CreateUnbounded<HubMessage>();
+                var output2 = Channel.CreateUnbounded<HubMessage>();
 
                 var manager = new RedisHubLifetimeManager<MyHub>(new LoggerFactory().CreateLogger<RedisHubLifetimeManager<MyHub>>(),
                 Options.Create(new RedisOptions()
@@ -109,7 +109,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
         {
             using (var client = new TestClient())
             {
-                var output = Channel.CreateUnbounded<HubInvocationMessage>();
+                var output = Channel.CreateUnbounded<HubMessage>();
                 var manager = new RedisHubLifetimeManager<MyHub>(new LoggerFactory().CreateLogger<RedisHubLifetimeManager<MyHub>>(),
                 Options.Create(new RedisOptions()
                 {
@@ -153,8 +153,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             using (var client1 = new TestClient())
             using (var client2 = new TestClient())
             {
-                var output1 = Channel.CreateUnbounded<HubInvocationMessage>();
-                var output2 = Channel.CreateUnbounded<HubInvocationMessage>();
+                var output1 = Channel.CreateUnbounded<HubMessage>();
+                var output2 = Channel.CreateUnbounded<HubMessage>();
 
                 var connection1 = new HubConnectionContext(output1, client1.Connection);
                 var connection2 = new HubConnectionContext(output2, client2.Connection);
@@ -186,8 +186,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             using (var client1 = new TestClient())
             using (var client2 = new TestClient())
             {
-                var output1 = Channel.CreateUnbounded<HubInvocationMessage>();
-                var output2 = Channel.CreateUnbounded<HubInvocationMessage>();
+                var output1 = Channel.CreateUnbounded<HubMessage>();
+                var output2 = Channel.CreateUnbounded<HubMessage>();
 
                 var connection1 = new HubConnectionContext(output1, client1.Connection);
                 var connection2 = new HubConnectionContext(output2, client2.Connection);
@@ -221,7 +221,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 
             using (var client = new TestClient())
             {
-                var output = Channel.CreateUnbounded<HubInvocationMessage>();
+                var output = Channel.CreateUnbounded<HubMessage>();
 
                 var connection = new HubConnectionContext(output, client.Connection);
 
@@ -249,7 +249,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 
             using (var client = new TestClient())
             {
-                var output = Channel.CreateUnbounded<HubInvocationMessage>();
+                var output = Channel.CreateUnbounded<HubMessage>();
 
                 var connection = new HubConnectionContext(output, client.Connection);
 
@@ -274,7 +274,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 
             using (var client = new TestClient())
             {
-                var output = Channel.CreateUnbounded<HubInvocationMessage>();
+                var output = Channel.CreateUnbounded<HubMessage>();
 
                 var connection = new HubConnectionContext(output, client.Connection);
 
@@ -301,7 +301,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 
             using (var client = new TestClient())
             {
-                var output = Channel.CreateUnbounded<HubInvocationMessage>();
+                var output = Channel.CreateUnbounded<HubMessage>();
 
                 var connection = new HubConnectionContext(output, client.Connection);
 
@@ -327,7 +327,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 
             using (var client = new TestClient())
             {
-                var output = Channel.CreateUnbounded<HubInvocationMessage>();
+                var output = Channel.CreateUnbounded<HubMessage>();
 
                 var connection = new HubConnectionContext(output, client.Connection);
 
@@ -351,7 +351,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 
             using (var client = new TestClient())
             {
-                var output = Channel.CreateUnbounded<HubInvocationMessage>();
+                var output = Channel.CreateUnbounded<HubMessage>();
 
                 var connection = new HubConnectionContext(output, client.Connection);
 
@@ -375,7 +375,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 
             using (var client = new TestClient())
             {
-                var output = Channel.CreateUnbounded<HubInvocationMessage>();
+                var output = Channel.CreateUnbounded<HubMessage>();
 
                 var connection = new HubConnectionContext(output, client.Connection);
 
@@ -405,7 +405,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 
             using (var client = new TestClient())
             {
-                var output = Channel.CreateUnbounded<HubInvocationMessage>();
+                var output = Channel.CreateUnbounded<HubMessage>();
 
                 var connection = new HubConnectionContext(output, client.Connection);
 
@@ -435,7 +435,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 
             using (var client = new TestClient())
             {
-                var output = Channel.CreateUnbounded<HubInvocationMessage>();
+                var output = Channel.CreateUnbounded<HubMessage>();
 
                 var connection = new HubConnectionContext(output, client.Connection);
 
@@ -469,7 +469,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 
             using (var client = new TestClient())
             {
-                var output = Channel.CreateUnbounded<HubInvocationMessage>();
+                var output = Channel.CreateUnbounded<HubMessage>();
 
                 var connection = new HubConnectionContext(output, client.Connection);
 
@@ -499,7 +499,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             using (var client = new TestClient())
             {
                 // Force an exception when writing to connection
-                var writer = new Mock<ChannelWriter<HubInvocationMessage>>();
+                var writer = new Mock<ChannelWriter<HubMessage>>();
                 writer.Setup(o => o.WaitToWriteAsync(It.IsAny<CancellationToken>())).Throws(new Exception());
 
                 var connection = new HubConnectionContext(new MockChannel(writer.Object), client.Connection);
@@ -523,7 +523,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             using (var client = new TestClient())
             {
                 // Force an exception when writing to connection
-                var writer = new Mock<ChannelWriter<HubInvocationMessage>>();
+                var writer = new Mock<ChannelWriter<HubMessage>>();
                 writer.Setup(o => o.WaitToWriteAsync(It.IsAny<CancellationToken>())).Throws(new Exception("Message"));
 
                 var connection = new HubConnectionContext(new MockChannel(writer.Object), client.Connection);
@@ -546,10 +546,10 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             using (var client1 = new TestClient())
             using (var client2 = new TestClient())
             {
-                var output2 = Channel.CreateUnbounded<HubInvocationMessage>();
+                var output2 = Channel.CreateUnbounded<HubMessage>();
 
                 // Force an exception when writing to connection
-                var writer = new Mock<ChannelWriter<HubInvocationMessage>>();
+                var writer = new Mock<ChannelWriter<HubMessage>>();
                 writer.Setup(o => o.WaitToWriteAsync(It.IsAny<CancellationToken>())).Throws(new Exception());
 
                 var connection1 = new HubConnectionContext(new MockChannel(writer.Object), client1.Connection);
@@ -571,7 +571,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             }
         }
 
-        private void AssertMessage(Channel<HubInvocationMessage> channel)
+        private void AssertMessage(Channel<HubMessage> channel)
         {
             Assert.True(channel.Reader.TryRead(out var item));
             var message = Assert.IsType<InvocationMessage>(item);
@@ -584,9 +584,9 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
         {
         }
 
-        private class MockChannel : Channel<HubInvocationMessage>
+        private class MockChannel : Channel<HubMessage>
         {
-            public MockChannel(ChannelWriter<HubInvocationMessage> writer = null)
+            public MockChannel(ChannelWriter<HubMessage> writer = null)
             {
                 Writer = writer;
             }

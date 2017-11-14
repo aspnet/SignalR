@@ -146,11 +146,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 argumentBindingException: null, arguments: args));
         }
 
-        public async Task<string> SendHubMessageAsync(HubInvocationMessage message)
+        public async Task<string> SendHubMessageAsync(HubMessage message)
         {
             var payload = _protocolReaderWriter.WriteMessage(message);
             await Application.Writer.WriteAsync(payload);
-            return message.InvocationId;
+            return message is HubInvocationMessage hubMessage ? hubMessage.InvocationId : null;
         }
 
         public async Task<HubMessage> ReadAsync()
