@@ -97,4 +97,36 @@ describe("MessageHubProtocol", () => {
             } as CompletionMessage
         ]);
     });
+
+    it("can read ping message", () => {
+        let payload = [
+            0x08,
+            0x92, // message array length = 2 (fixarray)
+            0x06, // type = 6 = Ping (fixnum)
+            0xa5, 'h'.charCodeAt(0), 'e'.charCodeAt(0), 'l'.charCodeAt(0), 'l'.charCodeAt(0), 'o'.charCodeAt(0), // payload (fixstr)
+        ];
+        let messages = new MessagePackHubProtocol().parseMessages(new Uint8Array(payload).buffer);
+        expect(messages).toEqual([
+            {
+                type: MessageType.Ping,
+                payload: "hello"
+            }
+        ])
+    })
+
+    it("can read pong message", () => {
+        let payload = [
+            0x08,
+            0x92, // message array length = 2 (fixarray)
+            0x07, // type = 7 = Pong (fixnum)
+            0xa5, 'h'.charCodeAt(0), 'e'.charCodeAt(0), 'l'.charCodeAt(0), 'l'.charCodeAt(0), 'o'.charCodeAt(0), // payload (fixstr)
+        ];
+        let messages = new MessagePackHubProtocol().parseMessages(new Uint8Array(payload).buffer);
+        expect(messages).toEqual([
+            {
+                type: MessageType.Pong,
+                payload: "hello"
+            }
+        ])
+    })
 });

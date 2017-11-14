@@ -639,6 +639,57 @@ is decoded as follows:
 * `0x79` - `y`
 * `0x7a` - `z`
 
+### Ping/Pong Message Encoding
+
+`Ping` messages have the following structure
+
+```
+[6, Payload]
+```
+
+`Pong` messages have the following structure:
+
+```
+[7, Payload]
+```
+
+* `6` or `7` - Message Type - `6` indicates this is a `Ping` message, and `7` indicates this is a `Pong` message.
+* Payload - A `String` encoding the payload for the message
+
+Examples:
+
+#### Ping message
+
+The following payload:
+```
+0x92 0x06 0xa3 0x78 0x79 0x7a
+```
+
+is decoded as follows:
+
+* `0x92` - 2-element array
+* `0x06` - `6` (Message Type - `Ping` message)
+* `0xa3` - string of length 3 (Payload)
+* `0x78` - `x`
+* `0x79` - `y`
+* `0x7a` - `z`
+
+#### Pong message
+
+The following payload:
+```
+0x92 0x07 0xa3 0x78 0x79 0x7a
+```
+
+is decoded as follows:
+
+* `0x92` - 2-element array
+* `0x07` - `7` (Message Type - `Pong` message)
+* `0xa3` - string of length 3 (Payload)
+* `0x78` - `x`
+* `0x79` - `y`
+* `0x7a` - `z`
+
 ## Protocol Buffers (ProtoBuf) Encoding
 
 **Protobuf encoding is currently not implemented**

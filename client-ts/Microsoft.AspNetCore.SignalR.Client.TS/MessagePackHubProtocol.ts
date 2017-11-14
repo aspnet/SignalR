@@ -1,7 +1,7 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-import { IHubProtocol, ProtocolType, MessageType, HubMessage, InvocationMessage, ResultMessage, CompletionMessage, StreamInvocationMessage } from "./IHubProtocol";
+import { IHubProtocol, ProtocolType, MessageType, HubMessage, InvocationMessage, ResultMessage, CompletionMessage, StreamInvocationMessage, PingOrPongMessage } from "./IHubProtocol";
 import { BinaryMessageFormat } from "./Formatters"
 import * as msgpack5 from "msgpack5"
 
@@ -34,9 +34,23 @@ export class MessagePackHubProtocol implements IHubProtocol {
                 return this.createStreamItemMessage(properties);
             case MessageType.Completion:
                 return this.createCompletionMessage(properties);
+            case MessageType.Ping:
+            case MessageType.Pong:
+                return this.createPingPongMessage(properties);
             default:
                 throw new Error("Invalid message type.");
         }
+    }
+
+    private createPingPongMessage(properties: any[]): PingOrPongMessage {
+        if (properties.length != 2) {
+            throw new Error("Invalid payload for Ping/Pong message.");
+        }
+
+        return {
+            type: properties[0],
+            payload: properties[1]
+        } as PingOrPongMessage;
     }
 
     private createInvocationMessage(properties: any[]): InvocationMessage {
