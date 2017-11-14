@@ -98,6 +98,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
             await hubConnection.StartAsync();
             await hubConnection.DisposeAsync();
+            await hubConnection.Closed.OrTimeout();
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(
                 () => hubConnection.InvokeAsync<int>("test"));
 
@@ -124,6 +125,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
             await hubConnection.StartAsync();
             await hubConnection.DisposeAsync();
+            await hubConnection.Closed.OrTimeout();
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => hubConnection.SendAsync("test"));
 
             Assert.Equal("Connection has been terminated.", exception.Message);
