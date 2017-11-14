@@ -138,7 +138,7 @@ describe('hubConnection', function () {
                         // exception expected but none thrown
                         fail();
                     }).catch(function (e) {
-                        expect(e.message).toBe('Streaming methods must be invoked using the \'HubConnection.stream()\' method.');
+                        expect(e.message).toBe('The client attempted to invoke the streaming \'EmptyStream\' method in a non-streaming fashion.');
                     }).then(function () {
                         return hubConnection.stop();
                     }).then(function () {
@@ -163,7 +163,7 @@ describe('hubConnection', function () {
                         // exception expected but none thrown
                         fail();
                     }).catch(function (e) {
-                        expect(e.message).toBe('Streaming methods must be invoked using the \'HubConnection.stream()\' method.');
+                        expect(e.message).toBe('The client attempted to invoke the streaming \'Stream\' method in a non-streaming fashion.');
                     }).then(function () {
                         return hubConnection.stop();
                     }).then(function () {
@@ -217,7 +217,7 @@ describe('hubConnection', function () {
                             fail();
                         },
                         error: function error(err) {
-                            expect(err.message).toEqual('Hub methods must be invoked using the \'HubConnection.invoke()\' method.');
+                            expect(err.message).toEqual('The client attempted to invoke the non-streaming \'Echo\' method in a streaming fashion.');
                             done();
                         },
                         complete: function complete() {
