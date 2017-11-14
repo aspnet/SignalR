@@ -24,7 +24,7 @@ describe("Connection", () => {
     it("starting connection fails if getting id fails", async (done) => {
         let options: IHttpConnectionOptions = {
             httpClient: <IHttpClient>{
-                options(url: string): Promise<string> {
+                post(url: string): Promise<string> {
                     return Promise.reject("error");
                 },
                 get(url: string): Promise<string> {
@@ -50,7 +50,7 @@ describe("Connection", () => {
     it("cannot start a running connection", async (done) => {
         let options: IHttpConnectionOptions = {
             httpClient: <IHttpClient>{
-                options(url: string): Promise<string> {
+                post(url: string): Promise<string> {
                     connection.start()
                         .then(() => {
                             fail();
@@ -84,7 +84,7 @@ describe("Connection", () => {
     it("cannot start a stopped connection", async (done) => {
         let options: IHttpConnectionOptions = {
             httpClient: <IHttpClient>{
-                options(url: string): Promise<string> {
+                post(url: string): Promise<string> {
                     return Promise.reject("error");
                 },
                 get(url: string): Promise<string> {
@@ -118,7 +118,7 @@ describe("Connection", () => {
     it("can stop a starting connection", async (done) => {
         let options: IHttpConnectionOptions = {
             httpClient: <IHttpClient>{
-                options(url: string): Promise<string> {
+                post(url: string): Promise<string> {
                     connection.stop();
                     return Promise.resolve("{}");
                 },
@@ -165,7 +165,7 @@ describe("Connection", () => {
 
         let options: IHttpConnectionOptions = {
             httpClient: <IHttpClient>{
-                options(url: string): Promise<string> {
+                post(url: string): Promise<string> {
                     return Promise.resolve("{ \"connectionId\": \"42\" }");
                 },
                 get(url: string): Promise<string> {
@@ -199,7 +199,7 @@ describe("Connection", () => {
         it(`cannot be started if requested ${TransportType[requestedTransport]} transport not available on server`, async done => {
             let options: IHttpConnectionOptions = {
                 httpClient: <IHttpClient>{
-                    options(url: string): Promise<string> {
+                    post(url: string): Promise<string> {
                         return Promise.resolve("{ \"connectionId\": \"42\", \"availableTransports\": [] }");
                     },
                     get(url: string): Promise<string> {
@@ -226,7 +226,7 @@ describe("Connection", () => {
     it("cannot be started if no transport available on server and no transport requested", async done => {
         let options: IHttpConnectionOptions = {
             httpClient: <IHttpClient>{
-                options(url: string): Promise<string> {
+                post(url: string): Promise<string> {
                     return Promise.resolve("{ \"connectionId\": \"42\", \"availableTransports\": [] }");
                 },
                 get(url: string): Promise<string> {
@@ -251,7 +251,7 @@ describe("Connection", () => {
     it('does not send OPTIONS request if WebSockets transport requested explicitly', async done => {
         let options: IHttpConnectionOptions = {
             httpClient: <IHttpClient>{
-                options(url: string): Promise<string> {
+                post(url: string): Promise<string> {
                     return Promise.reject("Should not be called");
                 },
                 get(url: string): Promise<string> {
@@ -295,7 +295,7 @@ describe("Connection", () => {
 
             let options: IHttpConnectionOptions = {
                 httpClient: <IHttpClient>{
-                    options(url: string): Promise<string> {
+                    post(url: string): Promise<string> {
                         return Promise.resolve("{ \"connectionId\": \"42\", \"availableTransports\": [] }");
                     },
                     get(url: string): Promise<string> {

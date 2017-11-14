@@ -59,7 +59,7 @@ export class HttpConnection implements IConnection {
                 this.transport = this.createTransport(this.options.transport, [TransportType[TransportType.WebSockets]]);
             }
             else {
-                let negotiatePayload = await this.httpClient.options(this.url);
+                let negotiatePayload = await this.httpClient.post(this.resolveNegotiateUrl(this.url), "");
                 let negotiateResponse: INegotiateResponse = JSON.parse(negotiatePayload);
                 this.connectionId = negotiateResponse.connectionId;
 
@@ -187,6 +187,17 @@ export class HttpConnection implements IConnection {
         let normalizedUrl = baseUrl + url;
         this.logger.log(LogLevel.Information, `Normalizing '${url}' to '${normalizedUrl}'`);
         return normalizedUrl;
+    }
+
+    private resolveNegotiateUrl(url: string): string {
+        let index = url.indexOf("?");
+        let negotiateUrl = this.url.substring(0, index == -1 ? url.length : index);
+        if (!negotiateUrl.endsWith('/')) {
+            negotiateUrl += '/';
+        }
+        negotiateUrl += "negotiate";
+        negotiateUrl += index == -1 ? "" : url.substring(index);
+        return negotiateUrl;
     }
 
     onreceive: DataReceived;

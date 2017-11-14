@@ -41,12 +41,7 @@ namespace Microsoft.AspNetCore.Sockets
                     return;
                 }
 
-                if (HttpMethods.IsOptions(context.Request.Method))
-                {
-                    // OPTIONS /{path}
-                    await ProcessNegotiate(context, options, logScope);
-                }
-                else if (HttpMethods.IsPost(context.Request.Method))
+                if (HttpMethods.IsPost(context.Request.Method))
                 {
                     // POST /{path}
                     await ProcessSend(context);
@@ -55,6 +50,31 @@ namespace Microsoft.AspNetCore.Sockets
                 {
                     // GET /{path}
                     await ExecuteEndpointAsync(context, socketDelegate, options, logScope);
+                }
+                else
+                {
+                    context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
+                }
+            }
+        }
+
+        public async Task ExecuteNegotiateAsync(HttpContext context, HttpSocketOptions options)
+        {
+            // Create the log scope and attempt to pass the Connection ID to it so as many logs as possible contain
+            // the Connection ID metadata. If this is the negotiate request then the Connection ID for the scope will
+            // be set a little later.
+            var logScope = new ConnectionLogScope(GetConnectionId(context));
+            using (_logger.BeginScope(logScope))
+            {
+                if (!await AuthorizeHelper.AuthorizeAsync(context, options.AuthorizationData))
+                {
+                    return;
+                }
+
+                if (HttpMethods.IsPost(context.Request.Method))
+                {
+                    // POST /{path}/negotiate
+                    await ProcessNegotiate(context, options, logScope);
                 }
                 else
                 {
