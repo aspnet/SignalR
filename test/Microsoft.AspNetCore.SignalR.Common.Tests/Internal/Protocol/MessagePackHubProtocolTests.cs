@@ -303,7 +303,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                 {
                     0x08,
                     0x92, // message array length = 2 (fixarray)
-                    0x07, // type = 7 = Ping (fixnum)
+                    0x07, // type = 7 = Pong (fixnum)
                     0xa5, (byte)'h', (byte)'e', (byte)'l', (byte)'l', (byte)'o', // payload (fixstr)
                 }
             }
