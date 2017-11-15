@@ -8,7 +8,6 @@ var TESTHUBENDPOINT_URL = '/testhub';
 describe('hubConnection', function () {
     eachTransportAndProtocol(function (transportType, protocol) {
         describe(protocol.name + ' over ' + signalR.TransportType[transportType] + ' transport', function () {
-
             it('can invoke server method and receive result', function (done) {
                 var message = '你好，世界！';
 

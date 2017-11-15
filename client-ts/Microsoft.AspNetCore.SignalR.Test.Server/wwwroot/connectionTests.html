@@ -22,15 +22,15 @@
             return decodeURIComponent(results[2].replace(/\+/g, " "));
         }
 
+        var minified = getParameterByName('debug') !== 'true' ? '.min' : '';
         if (typeof Promise === 'undefined')
         {
             document.write(
-                '<script type="text/javascript" src="lib/signalr/signalr-clientES5.min.js"><\/script>' +
-                '<script type="text/javascript" src="lib/signalr/signalr-msgpackprotocolES5.min.js"><\/script>');
+                '<script type="text/javascript" src="lib/signalr/signalr-clientES5' + minified + '.js"><\/script>' +
+                '<script type="text/javascript" src="lib/signalr/signalr-msgpackprotocolES5' + minified + '.js"><\/script>');
         }
         else
         {
-            var minified = getParameterByName('debug') !== 'true' ? '.min' : '';
             document.write(
                 '<script type="text/javascript" src="lib/signalr/signalr-client' + minified + '.js"><\/script>' +
                 '<script type="text/javascript" src="lib/signalr/signalr-msgpackprotocol' + minified + '.js"><\/script>');
