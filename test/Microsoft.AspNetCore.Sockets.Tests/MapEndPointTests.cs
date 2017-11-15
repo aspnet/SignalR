@@ -32,28 +32,8 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         public void MapEndPointFindsAuthAttributeOnEndPoint()
         {
             var authCount = 0;
-            using (var builder = new WebHostBuilder()
-                .UseKestrel()
-                .ConfigureServices(services =>
-                {
-                    services.AddSockets();
-                    services.AddEndPoint<AuthEndPoint>();
-                })
-                .Configure(app =>
-                {
-                    app.UseSockets(routes =>
-                    {
-                        routes.MapEndPoint<AuthEndPoint>("auth", httpSocketOptions =>
-                        {
-                            authCount += httpSocketOptions.AuthorizationData.Count;
-                        });
-                    });
-                })
-                .ConfigureLogging(factory =>
-                {
-                    factory.AddXunit(_output, LogLevel.Trace);
-                })
-                .Build())
+            using (var builder = BuildWebHost<AuthEndPoint>("auth",
+                options => authCount += options.AuthorizationData.Count))
             {
                 builder.Start();
             }
@@ -65,28 +45,8 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         public void MapEndPointFindsAuthAttributeOnInheritedEndPoint()
         {
             var authCount = 0;
-            using (var builder = new WebHostBuilder()
-                .UseKestrel()
-                .ConfigureServices(services =>
-                {
-                    services.AddSockets();
-                    services.AddEndPoint<InheritedAuthEndPoint>();
-                })
-                .Configure(app =>
-                {
-                    app.UseSockets(routes =>
-                    {
-                        routes.MapEndPoint<InheritedAuthEndPoint>("auth", httpSocketOptions =>
-                        {
-                            authCount += httpSocketOptions.AuthorizationData.Count;
-                        });
-                    });
-                })
-                .ConfigureLogging(factory =>
-                {
-                    factory.AddXunit(_output, LogLevel.Trace);
-                })
-                .Build())
+            using (var builder = BuildWebHost<InheritedAuthEndPoint>("auth",
+                options => authCount += options.AuthorizationData.Count))
             {
                 builder.Start();
             }
@@ -98,28 +58,8 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         public void MapEndPointFindsAuthAttributesOnDoubleAuthEndPoint()
         {
             var authCount = 0;
-            using (var builder = new WebHostBuilder()
-                .UseKestrel()
-                .ConfigureServices(services =>
-                {
-                    services.AddSockets();
-                    services.AddEndPoint<DoubleAuthEndPoint>();
-                })
-                .Configure(app =>
-                {
-                    app.UseSockets(routes =>
-                    {
-                        routes.MapEndPoint<DoubleAuthEndPoint>("auth", httpSocketOptions =>
-                        {
-                            authCount += httpSocketOptions.AuthorizationData.Count;
-                        });
-                    });
-                })
-                .ConfigureLogging(factory =>
-                {
-                    factory.AddXunit(_output, LogLevel.Trace);
-                })
-                .Build())
+            using (var builder = BuildWebHost<DoubleAuthEndPoint>("auth",
+                options => authCount += options.AuthorizationData.Count))
             {
                 builder.Start();
             }
@@ -131,29 +71,8 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [OSSkipCondition(OperatingSystems.Windows, WindowsVersions.Win7, WindowsVersions.Win2008R2, SkipReason = "No WebSockets Client for this platform")]
         public async Task MapEndPointWithWebSocketSubProtocolSetsProtocol()
         {
-            var host = new WebHostBuilder()
-            .UseUrls("http://127.0.0.1:0")
-            .UseKestrel()
-            .ConfigureServices(services =>
-            {
-                services.AddSockets();
-                services.AddEndPoint<MyEndPoint>();
-            })
-            .Configure(app =>
-            {
-                app.UseSockets(routes =>
-                {
-                    routes.MapEndPoint<MyEndPoint>("socket", httpSocketOptions =>
-                    {
-                        httpSocketOptions.WebSockets.SubProtocol = "protocol1";
-                    });
-                });
-            })
-            .ConfigureLogging(factory =>
-            {
-                factory.AddXunit(_output, LogLevel.Trace);
-            })
-            .Build();
+            var host = BuildWebHost<MyEndPoint>("socket",
+                options => options.WebSockets.SubProtocol = "protocol1");
 
             await host.StartAsync();
 
@@ -201,6 +120,31 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             {
                 throw new NotImplementedException();
             }
+        }
+
+        private IWebHost BuildWebHost<TEndPoint>(string path, Action<HttpSocketOptions> configure) where TEndPoint : EndPoint
+        {
+            return new WebHostBuilder()
+                .UseUrls("http://127.0.0.1:0")
+                .UseKestrel()
+                .ConfigureServices(services =>
+                {
+                    services.AddSockets();
+                    services.AddEndPoint<TEndPoint>();
+                })
+                .Configure(app =>
+                {
+                    app.UseSockets(routes =>
+                    {
+                        routes.MapEndPoint<TEndPoint>(path,
+                            httpSocketOptions => configure(httpSocketOptions));
+                    });
+                })
+                .ConfigureLogging(factory =>
+                {
+                    factory.AddXunit(_output, LogLevel.Trace);
+                })
+                .Build();
         }
     }
 }
