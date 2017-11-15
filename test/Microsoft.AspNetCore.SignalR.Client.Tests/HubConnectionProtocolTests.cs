@@ -5,13 +5,12 @@ using System;
 using System.Globalization;
 using System.IO;
 using System.Text;
-using System.Threading.Tasks;
 using System.Threading.Channels;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.SignalR.Tests.Common;
 using Microsoft.AspNetCore.Sockets;
 using Microsoft.Extensions.Logging;
-using Moq;
 using Newtonsoft.Json;
 using Xunit;
 

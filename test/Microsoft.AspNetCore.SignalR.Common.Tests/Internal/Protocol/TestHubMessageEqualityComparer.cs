@@ -17,12 +17,13 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         public bool Equals(HubMessage x, HubMessage y)
         {
             // Types should be equal
-            if(!Equals(x.GetType(), y.GetType()))
+            if (!Equals(x.GetType(), y.GetType()))
             {
                 return false;
             }
 
-            switch (x) {
+            switch (x)
+            {
                 case InvocationMessage invocationMessage:
                     return InvocationMessagesEqual(invocationMessage, (InvocationMessage)y);
                 case StreamItemMessage streamItemMessage:

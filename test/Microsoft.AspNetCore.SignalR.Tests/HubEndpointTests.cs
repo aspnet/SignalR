@@ -7,8 +7,8 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Security.Claims;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Threading.Channels;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR.Internal;
@@ -1315,7 +1315,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             var serviceProvider = CreateServiceProvider();
             var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
 
-            using(var client = new TestClient(false, new JsonHubProtocol()))
+            using (var client = new TestClient(false, new JsonHubProtocol()))
             {
                 var endPointLifetime = endPoint.OnConnectedAsync(client.Connection).OrTimeout();
                 await client.Connected.OrTimeout();
