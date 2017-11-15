@@ -15,16 +15,16 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             var ex = Assert.Throws<NotSupportedException>(() =>
             {
                 using (var builder = new WebHostBuilder()
-                        .UseKestrel()
-                        .ConfigureServices(services =>
-                        {
-                            services.AddSignalR();
-                        })
-                        .Configure(app =>
-                        {
-                            app.UseSignalR(options => options.MapHub<InvalidHub>("overloads"));
-                        })
-                        .Build())
+                    .UseKestrel()
+                    .ConfigureServices(services =>
+                    {
+                        services.AddSignalR();
+                    })
+                    .Configure(app =>
+                    {
+                        app.UseSignalR(options => options.MapHub<InvalidHub>("overloads"));
+                    })
+                    .Build())
                 {
                     builder.Start();
                 }
@@ -105,7 +105,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 builder.Start();
             }
 
-                Assert.Equal(2, authCount);
+            Assert.Equal(2, authCount);
         }
 
         private class InvalidHub : Hub

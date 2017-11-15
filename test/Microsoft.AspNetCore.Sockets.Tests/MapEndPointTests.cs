@@ -32,7 +32,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         public void MapEndPointFindsAuthAttributeOnEndPoint()
         {
             var authCount = 0;
-            var builder = new WebHostBuilder()
+            using (var builder = new WebHostBuilder()
                 .UseKestrel()
                 .ConfigureServices(services =>
                 {
@@ -53,7 +53,10 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 {
                     factory.AddXunit(_output, LogLevel.Trace);
                 })
-                .Build();
+                .Build())
+            {
+                builder.Start();
+            }
 
             Assert.Equal(1, authCount);
         }
@@ -62,7 +65,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         public void MapEndPointFindsAuthAttributeOnInheritedEndPoint()
         {
             var authCount = 0;
-            var builder = new WebHostBuilder()
+            using (var builder = new WebHostBuilder()
                 .UseKestrel()
                 .ConfigureServices(services =>
                 {
@@ -83,7 +86,10 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 {
                     factory.AddXunit(_output, LogLevel.Trace);
                 })
-                .Build();
+                .Build())
+            {
+                builder.Start();
+            }
 
             Assert.Equal(1, authCount);
         }
@@ -92,7 +98,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         public void MapEndPointFindsAuthAttributesOnDoubleAuthEndPoint()
         {
             var authCount = 0;
-            var builder = new WebHostBuilder()
+            using (var builder = new WebHostBuilder()
                 .UseKestrel()
                 .ConfigureServices(services =>
                 {
@@ -113,7 +119,10 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 {
                     factory.AddXunit(_output, LogLevel.Trace);
                 })
-                .Build();
+                .Build())
+            {
+                builder.Start();
+            }
 
             Assert.Equal(2, authCount);
         }
