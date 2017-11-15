@@ -187,13 +187,16 @@ describe('hubConnection', function () {
                 hubConnection.start().then(function () {
                     hubConnection.stream('StreamThrowException', errorMessage).subscribe({
                         next: function next(item) {
+                            hubConnection.stop();
                             fail();
                         },
                         error: function error(err) {
                             expect(err.message).toEqual('An error occurred.');
+                            hubConnection.stop();
                             done();
                         },
                         complete: function complete() {
+                            hubConnection.stop();
                             fail();
                         }
                     });
@@ -214,13 +217,16 @@ describe('hubConnection', function () {
                 hubConnection.start().then(function () {
                     hubConnection.stream('Echo', '42').subscribe({
                         next: function next(item) {
+                            hubConnection.stop();
                             fail();
                         },
                         error: function error(err) {
                             expect(err.message).toEqual('The client attempted to invoke the non-streaming \'Echo\' method in a streaming fashion.');
+                            hubConnection.stop();
                             done();
                         },
                         complete: function complete() {
+                            hubConnection.stop();
                             fail();
                         }
                     });

@@ -10,6 +10,18 @@
     <script type="text/javascript" src="lib/jasmine/jasmine-html.js"></script>
     <script type="text/javascript" src="lib/jasmine/boot.js"></script>
     <script type="text/javascript">
+        function getParameterByName(name, url) {
+            if (!url) {
+                url = window.location.href;
+            }
+            name = name.replace(/[\[\]]/g, "\\$&");
+            var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+                results = regex.exec(url);
+            if (!results) return null;
+            if (!results[2]) return '';
+            return decodeURIComponent(results[2].replace(/\+/g, " "));
+        }
+
         if (typeof Promise === 'undefined')
         {
             document.write(
@@ -18,9 +30,10 @@
         }
         else
         {
+            var minified = getParameterByName('debug') !== 'true' ? '.min' : '';
             document.write(
-                '<script type="text/javascript" src="lib/signalr/signalr-client.min.js"><\/script>' +
-                '<script type="text/javascript" src="lib/signalr/signalr-msgpackprotocol.min.js"><\/script>');
+                '<script type="text/javascript" src="lib/signalr/signalr-client' + minified + '.js"><\/script>' +
+                '<script type="text/javascript" src="lib/signalr/signalr-msgpackprotocol' + minified + '.js"><\/script>');
         }
     </script>
 
