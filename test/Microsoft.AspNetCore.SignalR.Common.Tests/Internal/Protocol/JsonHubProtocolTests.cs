@@ -58,8 +58,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
 
             new object[] { new CancelInvocationMessage("123"), true, NullValueHandling.Ignore, "{\"invocationId\":\"123\",\"type\":5}" },
 
-            new object[] { new PingMessage("this is a ping message"), true, NullValueHandling.Ignore, "{\"type\":6,\"payload\":\"this is a ping message\"}" },
-            new object[] { new PongMessage("this is a pong message"), true, NullValueHandling.Ignore, "{\"type\":7,\"payload\":\"this is a pong message\"}" },
+            new object[] { PingMessage.Instance, true, NullValueHandling.Ignore, "{\"type\":6}" },
         };
 
         [Theory]

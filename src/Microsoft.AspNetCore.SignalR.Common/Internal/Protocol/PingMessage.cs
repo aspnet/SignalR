@@ -2,11 +2,10 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 {
     public class PingMessage : HubMessage
     {
-        public string Payload { get; }
+        public static readonly PingMessage Instance = new PingMessage();
 
-        public PingMessage(string payload)
+        private PingMessage()
         {
-            Payload = payload;
         }
     }
 }

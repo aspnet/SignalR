@@ -8,7 +8,6 @@ export const enum MessageType {
     StreamInvocation = 4,
     CancelInvocation = 5,
     Ping = 6,
-    Pong = 7,
 }
 
 export interface HubMessage {
@@ -17,10 +16,6 @@ export interface HubMessage {
 
 export interface HubInvocationMessage extends HubMessage {
     readonly invocationId: string;
-}
-
-export interface PingOrPongMessage extends HubMessage {
-    readonly payload: string;
 }
 
 export interface InvocationMessage extends HubInvocationMessage {

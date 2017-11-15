@@ -393,42 +393,12 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         }
 
         [Fact]
-        public async Task AcceptsPongMessages()
-        {
-            var connection = new TestConnection(TransferMode.Text);
-            var hubConnection = new HubConnection(connection,
-                new MessagePackHubProtocol(), new LoggerFactory());
-
-            try
-            {
-                // Receive the pong mid-invocation so we can see that the rest of the flow works fine
-
-                await hubConnection.StartAsync().OrTimeout();
-
-                // Ignore negotiate message
-                await connection.ReadSentTextMessageAsync().OrTimeout();
-
-                // Receive a pong
-                await connection.ReceiveJsonMessage(new { type = 7, payload = "this is a pong message" }).OrTimeout();
-
-                // Send an invocation
-                var invokeTask = hubConnection.InvokeAsync("Foo");
-            }
-            finally
-            {
-                await hubConnection.DisposeAsync().OrTimeout();
-                await connection.DisposeAsync().OrTimeout();
-            }
-        }
-
-        [Fact]
-        public async Task SendsPongInResponseToReceivedPingMessage()
+        public async Task AcceptsPingMessages()
         {
             var connection = new TestConnection(TransferMode.Text);
             var hubConnection = new HubConnection(connection,
                 new JsonHubProtocol(), new LoggerFactory());
 
-            var invocationTcs = new TaskCompletionSource<int>();
             try
             {
                 // Receive the ping mid-invocation so we can see that the rest of the flow works fine
@@ -438,22 +408,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 // Ignore negotiate message
                 await connection.ReadSentTextMessageAsync().OrTimeout();
 
+                // Receive a ping
+                await connection.ReceiveJsonMessage(new { type = 6 }).OrTimeout();
+
                 // Send an invocation
                 var invokeTask = hubConnection.InvokeAsync("Foo");
-
-                // Ignore invocation message
-                await connection.ReadSentTextMessageAsync().OrTimeout();
-
-                // Receive a ping first
-                await connection.ReceiveJsonMessage(new { type = 6, payload = "this is a ping message" }).OrTimeout();
-
-                var sent = await connection.ReadSentTextMessageAsync().OrTimeout();
-                Assert.Equal("{\"type\":7,\"payload\":\"this is a ping message\"}\u001e", sent);
-
-                // Then receive the response
-                await connection.ReceiveJsonMessage(new { invocationId = "1", type = 3 }).OrTimeout();
-
-                await invokeTask.OrTimeout();
             }
             finally
             {

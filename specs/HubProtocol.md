@@ -27,7 +27,6 @@ In the SignalR protocol, the following types of messages can be sent:
 * `Completion` Message - Indicates a previous Invocation or StreamInvocation has completed. Contains an error if the invocation concluded with an error or the result of a non-streaming method invocation. The result will be absent for `void` methods. In case of streaming invocations no further `StreamItem` messages will be received
 * `CancelInvocation` Message - Sent by the client to cancel a streaming invocation on the server.
 * `Ping` Message - Sent by either party to check if the connection is active.
-* `Pong` Message - Sent by either party in response to a `Ping` message.
 
 After opening a connection to the server the client must send a `Negotiation` message to the server as its first message. The negotiation message is **always** a JSON message and contains the name of the format (protocol) that will be used for the duration of the connection. If the server does not support the protocol requested by the client or the first message received from the client is not a `Negotiation` message the server must close the connection.
 
@@ -99,16 +98,16 @@ If either endpoint commits a Protocol Error (see examples below), the other endp
 * It is a protocol error for a Caller to send a `Completion` message carrying both a result and an error.
 * It is a protocol error for an `Invocation` or `StreamInvocation` message to have an `Invocation ID` that has already been used by *that* endpoint. However, it is **not an error** for one endpoint to use an `Invocation ID` that was previously used by the other endpoint (allowing each endpoint to track it's own IDs).
 
-## Ping/Pong (aka "Keep Alive")
+## Ping (aka "Keep Alive")
 
 The SignalR Hub protocol supports "Keep Alive" messages used to ensure that the underlying transport connection remains active. These messages help ensure:
 
 1. Proxies don't close the underlying connection during idle times (when few messages are being sent)
 1. If the underlying connection is dropped without being terminated gracefully, the application is informed as quickly as possible.
 
-A single Keep Alive exchange starts when one party sends a `Ping` frame with a payload. In response, the other party is expected to send a `Pong` frame with the same payload (see Examples below). The payload is arbitrary and can be any string the endpoint chooses to use.
+Keep alive behavior is achieved via the `Ping` message type. **Either endpoint** may send a `Ping` message at any time. The receiving endpoint is expected to simply ignore the message. No response is expected.
 
-The only required behavior for a SignalR endpoint is that it respond to `Ping` frames by sending a `Pong` frame. It is up to the implementation and configuration of the endpoint whether or not to send `Ping` frames. For example, if the underlying transport has sufficient Keep Alive functionality (i.e. WebSockets), an endpoint may choose never to send `Ping` frames.
+Ping messages do not have any payload, they are completely empty messages (aside from the encoding necessary to identify the message as a `Ping` message).
 
 ## Example
 
@@ -246,11 +245,10 @@ S->C: Completion { Id = 42 } // This can be ignored
 C->S: Invocation { Id = 42, Target = "NonBlocking", Arguments = [ "foo" ], NonBlocking = true }
 ```
 
-### Ping/Pong
+### Ping
 
 ```
-C->S: Ping { Payload = "Hello" }
-S->C: Pong { Payload = "Hello" }
+C->S: Ping
 ```
 
 ## JSON Encoding
@@ -401,17 +399,15 @@ Example
 }
 ```
 
-### Ping/Pong Message Encoding
-A `Ping` or `Pong` message is a JSON object with the following properties:
+### Ping Message Encoding
+A `Ping` message is a JSON object with the following properties:
 
-* `type` - A `Number` with the literal value `6` for `Ping` messages or `7` for `Pong` messages.
-* `payload` - A `String` with an arbitrary payload to be echoed from the other party.
+* `type` - A `Number` with the literal value `6`, indicating that this is a `Ping`.
 
 Example
 ```json
 {
-    "type": 6,
-    "payload": "Hello"
+    "type": 6
 }
 ```
 
@@ -644,17 +640,10 @@ is decoded as follows:
 `Ping` messages have the following structure
 
 ```
-[6, Payload]
+[6]
 ```
 
-`Pong` messages have the following structure:
-
-```
-[7, Payload]
-```
-
-* `6` or `7` - Message Type - `6` indicates this is a `Ping` message, and `7` indicates this is a `Pong` message.
-* Payload - A `String` encoding the payload for the message
+* `6` - Message Type - `6` indicates this is a `Ping` message.
 
 Examples:
 
@@ -662,17 +651,13 @@ Examples:
 
 The following payload:
 ```
-0x92 0x06 0xa3 0x78 0x79 0x7a
+0x91 0x06
 ```
 
 is decoded as follows:
 
-* `0x92` - 2-element array
+* `0x91` - 1-element array
 * `0x06` - `6` (Message Type - `Ping` message)
-* `0xa3` - string of length 3 (Payload)
-* `0x78` - `x`
-* `0x79` - `y`
-* `0x7a` - `z`
 
 #### Pong message
 

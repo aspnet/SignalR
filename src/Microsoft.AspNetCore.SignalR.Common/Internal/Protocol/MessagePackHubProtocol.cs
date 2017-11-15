@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Runtime.ExceptionServices;
 using Microsoft.AspNetCore.SignalR.Internal.Formatters;
@@ -68,9 +67,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                     case HubProtocolConstants.CancelInvocationMessageType:
                         return CreateCancelInvocationMessage(unpacker);
                     case HubProtocolConstants.PingMessageType:
-                        return CreatePingMessage(unpacker);
-                    case HubProtocolConstants.PongMessageType:
-                        return CreatePongMessage(unpacker);
+                        return PingMessage.Instance;
                     default:
                         throw new FormatException($"Invalid message type: {messageType}.");
                 }
@@ -180,18 +177,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             return new CancelInvocationMessage(invocationId);
         }
 
-        private static HubMessage CreatePongMessage(Unpacker unpacker)
-        {
-            var payload = ReadString(unpacker, "payload");
-            return new PongMessage(payload);
-        }
-
-        private static HubMessage CreatePingMessage(Unpacker unpacker)
-        {
-            var payload = ReadString(unpacker, "payload");
-            return new PingMessage(payload);
-        }
-
         public void WriteMessage(HubMessage message, Stream output)
         {
             using (var memoryStream = new MemoryStream())
@@ -225,9 +210,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                     break;
                 case PingMessage pingMessage:
                     WritePingMessage(pingMessage, packer);
-                    break;
-                case PongMessage pingMessage:
-                    WritePongMessage(pingMessage, packer);
                     break;
                 default:
                     throw new FormatException($"Unexpected message type: {message.GetType().Name}");
@@ -291,18 +273,10 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             packer.PackString(cancelInvocationMessage.InvocationId);
         }
 
-        private void WritePongMessage(PongMessage pingMessage, Packer packer)
-        {
-            packer.PackArrayHeader(2);
-            packer.Pack(HubProtocolConstants.PongMessageType);
-            packer.PackString(pingMessage.Payload);
-        }
-
         private void WritePingMessage(PingMessage pingMessage, Packer packer)
         {
-            packer.PackArrayHeader(2);
+            packer.PackArrayHeader(1);
             packer.Pack(HubProtocolConstants.PingMessageType);
-            packer.PackString(pingMessage.Payload);
         }
 
         private static string ReadInvocationId(Unpacker unpacker)

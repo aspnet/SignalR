@@ -304,12 +304,7 @@ namespace Microsoft.AspNetCore.SignalR
                                         break;
 
                                     case PingMessage pingMessage:
-                                        // Send a pong back
-                                        await SendMessageAsync(connection, new PongMessage(pingMessage.Payload));
-                                        break;
-
-                                    case PongMessage pongMessage:
-                                        // We don't care about pongs
+                                        // We don't care about pings
                                         break;
 
                                     // Other kind of message we weren't expecting

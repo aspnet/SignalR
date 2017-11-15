@@ -114,9 +114,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                         case HubProtocolConstants.CancelInvocationMessageType:
                             return BindCancelInvocationMessage(json);
                         case HubProtocolConstants.PingMessageType:
-                            return BindPingMessage(json);
-                        case HubProtocolConstants.PongMessageType:
-                            return BindPongMessage(json);
+                            return PingMessage.Instance;
                         default:
                             throw new FormatException($"Unknown message type: {type}");
                     }
@@ -151,9 +149,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                         break;
                     case PingMessage m:
                         WritePingMessage(m, writer);
-                        break;
-                    case PongMessage m:
-                        WritePongMessage(m, writer);
                         break;
                     default:
                         throw new InvalidOperationException($"Unsupported message type: {message.GetType().FullName}");
@@ -239,17 +234,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         {
             writer.WriteStartObject();
             WriteMessageType(writer, HubProtocolConstants.PingMessageType);
-            writer.WritePropertyName(PayloadPropertyName);
-            writer.WriteValue(m.Payload);
-            writer.WriteEndObject();
-        }
-
-        private void WritePongMessage(PongMessage m, JsonTextWriter writer)
-        {
-            writer.WriteStartObject();
-            WriteMessageType(writer, HubProtocolConstants.PongMessageType);
-            writer.WritePropertyName(PayloadPropertyName);
-            writer.WriteValue(m.Payload);
             writer.WriteEndObject();
         }
 
@@ -365,18 +349,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         {
             var invocationId = JsonUtils.GetRequiredProperty<string>(json, InvocationIdPropertyName, JTokenType.String);
             return new CancelInvocationMessage(invocationId);
-        }
-
-        private HubMessage BindPongMessage(JObject json)
-        {
-            var payload = JsonUtils.GetRequiredProperty<string>(json, PayloadPropertyName);
-            return new PongMessage(payload);
-        }
-
-        private HubMessage BindPingMessage(JObject json)
-        {
-            var payload = JsonUtils.GetRequiredProperty<string>(json, PayloadPropertyName);
-            return new PingMessage(payload);
         }
 
         public static JsonSerializerSettings CreateDefaultSerializerSettings()

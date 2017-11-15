@@ -1310,7 +1310,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Fact]
-        public async Task AcceptsPongMessages()
+        public async Task AcceptsPingMessages()
         {
             var serviceProvider = CreateServiceProvider();
             var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
@@ -1320,35 +1320,12 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var endPointLifetime = endPoint.OnConnectedAsync(client.Connection).OrTimeout();
                 await client.Connected.OrTimeout();
 
-                // Send a pong
-                await client.SendHubMessageAsync(new PongMessage("this is a ping payload")).OrTimeout();
+                // Send a ping
+                await client.SendHubMessageAsync(PingMessage.Instance).OrTimeout();
 
-                // Now do an invocation to make sure we processed the pong message
+                // Now do an invocation to make sure we processed the ping message
                 var completion = await client.InvokeAsync(nameof(MethodHub.ValueMethod)).OrTimeout();
                 Assert.NotNull(completion);
-
-                client.Dispose();
-
-                await endPointLifetime.OrTimeout();
-            }
-        }
-
-        [Fact]
-        public async Task SendsPongInResponseToReceivedPingMessage()
-        {
-            var serviceProvider = CreateServiceProvider();
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
-
-            using(var client = new TestClient(false, new JsonHubProtocol()))
-            {
-                var endPointLifetime = endPoint.OnConnectedAsync(client.Connection).OrTimeout();
-                await client.Connected.OrTimeout();
-
-                await client.SendHubMessageAsync(new PingMessage("this is a ping payload")).OrTimeout();
-                var msg = await client.ReadAsync().OrTimeout();
-
-                var pongMessage = Assert.IsType<PongMessage>(msg);
-                Assert.Equal("this is a ping payload", pongMessage.Payload);
 
                 client.Dispose();
 

@@ -3,10 +3,10 @@
 
 import { ConnectionClosed } from "./Common"
 import { IConnection } from "./IConnection"
-import { HttpConnection} from "./HttpConnection"
+import { HttpConnection } from "./HttpConnection"
 import { TransportType, TransferMode } from "./Transports"
 import { Subject, Observable } from "./Observable"
-import { IHubProtocol, ProtocolType, MessageType, HubMessage, CompletionMessage, ResultMessage, InvocationMessage, StreamInvocationMessage, NegotiationMessage, PingOrPongMessage, HubInvocationMessage } from "./IHubProtocol";
+import { IHubProtocol, ProtocolType, MessageType, HubMessage, CompletionMessage, ResultMessage, InvocationMessage, StreamInvocationMessage, NegotiationMessage, HubInvocationMessage } from "./IHubProtocol";
 import { JsonHubProtocol } from "./JsonHubProtocol";
 import { TextMessageFormat } from "./Formatters"
 import { Base64EncodedHubProtocol } from "./Base64EncodedHubProtocol"
@@ -72,17 +72,7 @@ export class HubConnection {
                     }
                     break;
                 case MessageType.Ping:
-                    // Send a pong
-                    this.connection.send(
-                        this.protocol.writeMessage(<PingOrPongMessage>{
-                            type: MessageType.Pong,
-                            payload: (<PingOrPongMessage>message).payload
-                        }))
-                        .catch(e => {
-                            this.logger.log(LogLevel.Error, `Error sending ping response: ${e}`);
-                        });
-                case MessageType.Pong:
-                    // Don't care about pong payloads
+                    // Don't care about pings
                     break;
                 default:
                     this.logger.log(LogLevel.Warning, "Invalid message type: " + data);

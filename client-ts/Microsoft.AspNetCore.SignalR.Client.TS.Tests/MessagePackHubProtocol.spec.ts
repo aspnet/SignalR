@@ -20,27 +20,27 @@ describe("MessageHubProtocol", () => {
     });
 
     ([
-        [ [ 0x0b, 0x94, 0x03, 0xa3, 0x61, 0x62, 0x63, 0x01, 0xa3, 0x45, 0x72, 0x72],
-            {
-                type: MessageType.Completion,
-                invocationId: "abc",
-                error: "Err",
-                result: null
-            } as CompletionMessage ],
-        [ [ 0x0a, 0x94, 0x03, 0xa3, 0x61, 0x62, 0x63, 0x03, 0xa2, 0x4f, 0x4b ],
-            {
-                type: MessageType.Completion,
-                invocationId: "abc",
-                error: null,
-                result: "OK"
-            } as CompletionMessage ],
-        [ [ 0x07, 0x93, 0x03, 0xa3, 0x61, 0x62, 0x63, 0x02 ],
-            {
-                type: MessageType.Completion,
-                invocationId: "abc",
-                error: null,
-                result: null
-            } as CompletionMessage ]
+        [[0x0b, 0x94, 0x03, 0xa3, 0x61, 0x62, 0x63, 0x01, 0xa3, 0x45, 0x72, 0x72],
+        {
+            type: MessageType.Completion,
+            invocationId: "abc",
+            error: "Err",
+            result: null
+        } as CompletionMessage],
+        [[0x0a, 0x94, 0x03, 0xa3, 0x61, 0x62, 0x63, 0x03, 0xa2, 0x4f, 0x4b],
+        {
+            type: MessageType.Completion,
+            invocationId: "abc",
+            error: null,
+            result: "OK"
+        } as CompletionMessage],
+        [[0x07, 0x93, 0x03, 0xa3, 0x61, 0x62, 0x63, 0x02],
+        {
+            type: MessageType.Completion,
+            invocationId: "abc",
+            error: null,
+            result: null
+        } as CompletionMessage]
     ] as [[number[], CompletionMessage]]).forEach(([payload, expected_message]) =>
         it("can read Completion message", () => {
             let messages = new MessagePackHubProtocol().parseMessages(new Uint8Array(payload).buffer);
@@ -48,12 +48,12 @@ describe("MessageHubProtocol", () => {
         }));
 
     ([
-        [ [ 0x07, 0x93, 0x02, 0xa3, 0x61, 0x62, 0x63, 0x08 ],
-            {
-                type: MessageType.StreamItem,
-                invocationId: "abc",
-                item: 8
-            } as ResultMessage ]
+        [[0x07, 0x93, 0x02, 0xa3, 0x61, 0x62, 0x63, 0x08],
+        {
+            type: MessageType.StreamItem,
+            invocationId: "abc",
+            item: 8
+        } as ResultMessage]
     ] as [[number[], CompletionMessage]]).forEach(([payload, expected_message]) =>
         it("can read Result message", () => {
             let messages = new MessagePackHubProtocol().parseMessages(new Uint8Array(payload).buffer);
@@ -61,27 +61,27 @@ describe("MessageHubProtocol", () => {
         }));
 
     ([
-        [ [ 0x00 ], new Error("Invalid payload.") ],
-        [ [ 0x01, 0x90 ], new Error("Invalid payload.") ],
-        [ [ 0x01, 0xc2 ], new Error("Invalid payload.") ],
-        [ [ 0x02, 0x91, 0x05 ], new Error("Invalid message type.") ],
-        [ [ 0x03, 0x91, 0xa1, 0x78 ], new Error("Invalid message type.") ],
-        [ [ 0x02, 0x91, 0x01 ], new Error("Invalid payload for Invocation message.") ],
-        [ [ 0x02, 0x91, 0x02 ], new Error("Invalid payload for stream Result message.") ],
-        [ [ 0x03, 0x92, 0x03, 0xa0 ], new Error("Invalid payload for Completion message.") ],
-        [ [ 0x05, 0x94, 0x03, 0xa0, 0x02, 0x00 ], new Error("Invalid payload for Completion message.") ],
-        [ [ 0x04, 0x93, 0x03, 0xa0, 0x01 ], new Error("Invalid payload for Completion message.") ],
-        [ [ 0x04, 0x93, 0x03, 0xa0, 0x03 ], new Error("Invalid payload for Completion message.") ]
+        [[0x00], new Error("Invalid payload.")],
+        [[0x01, 0x90], new Error("Invalid payload.")],
+        [[0x01, 0xc2], new Error("Invalid payload.")],
+        [[0x02, 0x91, 0x05], new Error("Invalid message type.")],
+        [[0x03, 0x91, 0xa1, 0x78], new Error("Invalid message type.")],
+        [[0x02, 0x91, 0x01], new Error("Invalid payload for Invocation message.")],
+        [[0x02, 0x91, 0x02], new Error("Invalid payload for stream Result message.")],
+        [[0x03, 0x92, 0x03, 0xa0], new Error("Invalid payload for Completion message.")],
+        [[0x05, 0x94, 0x03, 0xa0, 0x02, 0x00], new Error("Invalid payload for Completion message.")],
+        [[0x04, 0x93, 0x03, 0xa0, 0x01], new Error("Invalid payload for Completion message.")],
+        [[0x04, 0x93, 0x03, 0xa0, 0x03], new Error("Invalid payload for Completion message.")]
     ] as [[number[], Error]]).forEach(([payload, expected_error]) =>
         it("throws for invalid messages", () => {
             expect(() => new MessagePackHubProtocol().parseMessages(new Uint8Array(payload).buffer))
-            .toThrow(expected_error);
+                .toThrow(expected_error);
         }));
 
     it("can read multiple messages", () => {
         let payload = [
             0x07, 0x93, 0x02, 0xa3, 0x61, 0x62, 0x63, 0x08,
-            0x0a, 0x94, 0x03, 0xa3, 0x61, 0x62, 0x63, 0x03, 0xa2, 0x4f, 0x4b ];
+            0x0a, 0x94, 0x03, 0xa3, 0x61, 0x62, 0x63, 0x03, 0xa2, 0x4f, 0x4b];
         let messages = new MessagePackHubProtocol().parseMessages(new Uint8Array(payload).buffer);
         expect(messages).toEqual([
             {
@@ -100,32 +100,14 @@ describe("MessageHubProtocol", () => {
 
     it("can read ping message", () => {
         let payload = [
-            0x08,
-            0x92, // message array length = 2 (fixarray)
+            0x02,
+            0x91, // message array length = 2 (fixarray)
             0x06, // type = 6 = Ping (fixnum)
-            0xa5, 'h'.charCodeAt(0), 'e'.charCodeAt(0), 'l'.charCodeAt(0), 'l'.charCodeAt(0), 'o'.charCodeAt(0), // payload (fixstr)
         ];
         let messages = new MessagePackHubProtocol().parseMessages(new Uint8Array(payload).buffer);
         expect(messages).toEqual([
             {
                 type: MessageType.Ping,
-                payload: "hello"
-            }
-        ])
-    })
-
-    it("can read pong message", () => {
-        let payload = [
-            0x08,
-            0x92, // message array length = 2 (fixarray)
-            0x07, // type = 7 = Pong (fixnum)
-            0xa5, 'h'.charCodeAt(0), 'e'.charCodeAt(0), 'l'.charCodeAt(0), 'l'.charCodeAt(0), 'o'.charCodeAt(0), // payload (fixstr)
-        ];
-        let messages = new MessagePackHubProtocol().parseMessages(new Uint8Array(payload).buffer);
-        expect(messages).toEqual([
-            {
-                type: MessageType.Pong,
-                payload: "hello"
             }
         ])
     })

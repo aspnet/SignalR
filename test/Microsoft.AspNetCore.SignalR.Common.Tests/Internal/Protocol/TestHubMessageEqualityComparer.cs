@@ -34,9 +34,8 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                 case CancelInvocationMessage cancelItemMessage:
                     return string.Equals(cancelItemMessage.InvocationId, ((CancelInvocationMessage)y).InvocationId, StringComparison.Ordinal);
                 case PingMessage pingMessage:
-                    return string.Equals(pingMessage.Payload, ((PingMessage)y).Payload);
-                case PongMessage pongMessage:
-                    return string.Equals(pongMessage.Payload, ((PongMessage)y).Payload);
+                    // If the types are equal (above), then we're done.
+                    return true;
                 default:
                     throw new InvalidOperationException($"Unknown message type: {x.GetType().FullName}");
             }

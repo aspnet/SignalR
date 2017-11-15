@@ -129,7 +129,7 @@ describe("HubConnection", () => {
         it("invocations ignored in callbacks not registered", async () => {
             let warnings: string[] = [];
             let logger = <ILogger>{
-                log: function(logLevel: LogLevel, message: string) {
+                log: function (logLevel: LogLevel, message: string) {
                     if (logLevel === LogLevel.Warning) {
                         warnings.push(message);
                     }
@@ -219,15 +219,15 @@ describe("HubConnection", () => {
             let connection = new TestConnection();
             let hubConnection = new HubConnection(connection);
 
-            hubConnection.off("_", () => {});
-            hubConnection.on("message", t => {});
-            hubConnection.on("message", () => {});
+            hubConnection.off("_", () => { });
+            hubConnection.on("message", t => { });
+            hubConnection.on("message", () => { });
         });
 
         it("using null/undefined for methodName or method no-ops", async () => {
             let warnings: string[] = [];
             let logger = <ILogger>{
-                log: function(logLevel: LogLevel, message: string) {
+                log: function (logLevel: LogLevel, message: string) {
                     if (logLevel === LogLevel.Warning) {
                         warnings.push(message);
                     }
@@ -242,8 +242,8 @@ describe("HubConnection", () => {
             hubConnection.on(undefined, null);
             hubConnection.on("message", null);
             hubConnection.on("message", undefined);
-            hubConnection.on(null, () => {});
-            hubConnection.on(undefined, () => {});
+            hubConnection.on(null, () => { });
+            hubConnection.on(undefined, () => { });
 
             // invoke a method to make sure we are not trying to use null/undefined
             connection.receive({
@@ -260,8 +260,8 @@ describe("HubConnection", () => {
             hubConnection.off(undefined, null);
             hubConnection.off("message", null);
             hubConnection.off("message", undefined);
-            hubConnection.off(null, () => {});
-            hubConnection.off(undefined, () => {});
+            hubConnection.off(null, () => { });
+            hubConnection.off(undefined, () => { });
         });
     });
 
@@ -426,29 +426,14 @@ describe("HubConnection", () => {
     });
 
     describe("keepAlive", () => {
-        it("can receive pong messages", async () => {
-            // Receive the pong mid-invocation so we can see that the rest of the flow works fine
+        it("can receive ping messages", async () => {
+            // Receive the ping mid-invocation so we can see that the rest of the flow works fine
 
             let connection = new TestConnection();
             let hubConnection = new HubConnection(connection);
             let invokePromise = hubConnection.invoke("testMethod", "arg", 42);
 
-            connection.receive({ type: MessageType.Pong, payload: "pong payload" });
-            connection.receive({ type: MessageType.Completion, invocationId: connection.lastInvocationId, result: "foo" });
-
-            expect(await invokePromise).toBe("foo");
-        })
-
-        it("responds to ping messages", async () => {
-            // Receive the pong mid-invocation so we can see that the rest of the flow works fine
-
-            let connection = new TestConnection();
-            let hubConnection = new HubConnection(connection);
-            let invokePromise = hubConnection.invoke("testMethod", "arg", 42);
-
-            connection.receive({ type: MessageType.Ping, payload: "ping payload" });
-            expect(connection.sentData.pop()).toEqual(JSON.stringify({ type: MessageType.Pong, payload: "ping payload"}));
-
+            connection.receive({ type: MessageType.Ping });
             connection.receive({ type: MessageType.Completion, invocationId: connection.lastInvocationId, result: "foo" });
 
             expect(await invokePromise).toBe("foo");
