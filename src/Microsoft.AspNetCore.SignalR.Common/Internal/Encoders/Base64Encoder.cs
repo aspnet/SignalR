@@ -11,7 +11,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Encoders
 {
     public class Base64Encoder : IDataEncoder
     {
-        public byte[] Decode(byte[] payload)
+        public ReadOnlySpan<byte> Decode(byte[] payload)
         {
             ReadOnlySpan<byte> buffer = payload;
             LengthPrefixedTextMessageParser.TryParseMessage(ref buffer, out var message);
@@ -20,7 +20,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Encoders
             var status = Base64.DecodeFromUtf8(message, decoded, out _, out var written);
             Debug.Assert(status == OperationStatus.Done);
 
-            return decoded.Slice(0, written).ToArray();
+            return decoded.Slice(0, written);
         }
 
         public byte[] Encode(byte[] payload)
