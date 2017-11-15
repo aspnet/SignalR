@@ -13,11 +13,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Encoders
     {
         public byte[] Decode(byte[] payload)
         {
-            var buffer = new ReadOnlyMemory<byte>(payload);
+            ReadOnlySpan<byte> buffer = payload;
             LengthPrefixedTextMessageParser.TryParseMessage(ref buffer, out var message);
 
             Span<byte> decoded = new byte[Base64.GetMaxDecodedFromUtf8Length(message.Length)];
-            var status = Base64.DecodeFromUtf8(message.Span, decoded, out _, out var written);
+            var status = Base64.DecodeFromUtf8(message, decoded, out _, out var written);
             Debug.Assert(status == OperationStatus.Done);
 
             return decoded.Slice(0, written).ToArray();
@@ -29,6 +29,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Encoders
 
             var status = Base64.EncodeToUtf8(payload, buffer, out _, out var written);
             Debug.Assert(status == OperationStatus.Done);
+
             using (var stream = new MemoryStream())
             {
                 LengthPrefixedTextMessageWriter.WriteMessage(buffer.Slice(0, written), stream);
