@@ -16,7 +16,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Encoders
         /// </summary>
         public static bool TryParseMessage(ref ReadOnlyMemory<byte> buffer, out ReadOnlyMemory<byte> payload)
         {
-            payload = default(ReadOnlyMemory<byte>);
+            payload = default;
 
             if (!TryReadLength(buffer.Span, out var index, out var length))
             {
