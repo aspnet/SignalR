@@ -303,7 +303,7 @@ namespace Microsoft.AspNetCore.SignalR
                                         }
                                         break;
 
-                                    case PingMessage pingMessage:
+                                    case PingMessage _:
                                         // We don't care about pings
                                         break;
 

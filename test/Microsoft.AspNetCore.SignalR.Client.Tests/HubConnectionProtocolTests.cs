@@ -400,18 +400,22 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
             try
             {
-                // Receive the ping mid-invocation so we can see that the rest of the flow works fine
-
                 await hubConnection.StartAsync().OrTimeout();
 
                 // Ignore negotiate message
                 await connection.ReadSentTextMessageAsync().OrTimeout();
 
-                // Receive a ping
-                await connection.ReceiveJsonMessage(new { type = 6 }).OrTimeout();
-
                 // Send an invocation
                 var invokeTask = hubConnection.InvokeAsync("Foo");
+
+                // Receive the ping mid-invocation so we can see that the rest of the flow works fine
+                await connection.ReceiveJsonMessage(new { type = 6 }).OrTimeout();
+
+                // Receive a completion
+                await connection.ReceiveJsonMessage(new { invocationId = "1", type = 3 }).OrTimeout();
+
+                // Ensure the invokeTask completes properly
+                await invokeTask.OrTimeout();
             }
             finally
             {

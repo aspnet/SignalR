@@ -103,9 +103,9 @@ If either endpoint commits a Protocol Error (see examples below), the other endp
 The SignalR Hub protocol supports "Keep Alive" messages used to ensure that the underlying transport connection remains active. These messages help ensure:
 
 1. Proxies don't close the underlying connection during idle times (when few messages are being sent)
-1. If the underlying connection is dropped without being terminated gracefully, the application is informed as quickly as possible.
+2. If the underlying connection is dropped without being terminated gracefully, the application is informed as quickly as possible.
 
-Keep alive behavior is achieved via the `Ping` message type. **Either endpoint** may send a `Ping` message at any time. The receiving endpoint is expected to simply ignore the message. No response is expected.
+Keep alive behavior is achieved via the `Ping` message type. **Either endpoint** may send a `Ping` message at any time. The receiving endpoint may choose to ignore the message, it has no obligation to respond in anyway. Most implementations will want to reset a timeout used to determine if the other party is present.
 
 Ping messages do not have any payload, they are completely empty messages (aside from the encoding necessary to identify the message as a `Ping` message).
 

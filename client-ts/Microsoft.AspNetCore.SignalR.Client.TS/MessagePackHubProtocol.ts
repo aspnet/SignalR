@@ -43,7 +43,7 @@ export class MessagePackHubProtocol implements IHubProtocol {
 
     private createPingMessage(properties: any[]): HubMessage {
         if (properties.length != 1) {
-            throw new Error("Invalid payload for Ping/Pong message.");
+            throw new Error("Invalid payload for Ping message.");
         }
 
         return {

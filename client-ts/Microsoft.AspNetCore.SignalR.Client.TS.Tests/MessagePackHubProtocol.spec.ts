@@ -101,7 +101,7 @@ describe("MessageHubProtocol", () => {
     it("can read ping message", () => {
         let payload = [
             0x02,
-            0x91, // message array length = 2 (fixarray)
+            0x91, // message array length = 1 (fixarray)
             0x06, // type = 6 = Ping (fixnum)
         ];
         let messages = new MessagePackHubProtocol().parseMessages(new Uint8Array(payload).buffer);
