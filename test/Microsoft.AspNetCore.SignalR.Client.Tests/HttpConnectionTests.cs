@@ -958,7 +958,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
         private bool IsNegotiateRequest(HttpRequestMessage request)
         {
             return request.Method == HttpMethod.Post &&
-                request.RequestUri.ToString().Contains("/negotiate");
+                new UriBuilder(request.RequestUri).Path.EndsWith("/negotiate");
         }
     }
 }
