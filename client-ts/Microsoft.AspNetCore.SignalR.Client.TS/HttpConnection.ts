@@ -191,12 +191,12 @@ export class HttpConnection implements IConnection {
 
     private resolveNegotiateUrl(url: string): string {
         let index = url.indexOf("?");
-        let negotiateUrl = this.url.substring(0, index == -1 ? url.length : index);
-        if (negotiateUrl[negotiateUrl.length - 1] !== '/') {
-            negotiateUrl += '/';
+        let negotiateUrl = this.url.substring(0, index === -1 ? url.length : index);
+        if (negotiateUrl[negotiateUrl.length - 1] !== "/") {
+            negotiateUrl += "/";
         }
         negotiateUrl += "negotiate";
-        negotiateUrl += index == -1 ? "" : url.substring(index);
+        negotiateUrl += index === -1 ? "" : url.substring(index);
         return negotiateUrl;
     }
 
