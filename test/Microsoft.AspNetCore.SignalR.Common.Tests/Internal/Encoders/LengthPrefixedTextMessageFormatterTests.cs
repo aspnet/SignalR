@@ -1,81 +1,38 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-using System;
-using System.Buffers;
-using System.Globalization;
-using System.IO;
+using System.Collections.Generic;
 using System.Text;
 using Xunit;
 
-namespace Microsoft.AspNetCore.SignalR.Tests.Internal.Encoders
+namespace Microsoft.AspNetCore.SignalR.Internal.Encoders
 {
-    public class LengthPrefixedTextMessageFormatterTests
+    public class Base64EncoderTests
     {
-        [Fact]
-        public void WriteMultipleMessages()
+        [Theory]
+        [MemberData(nameof(Payloads))]
+        public void VerifyDecode(string payload, string encoded)
         {
-            const string expectedEncoding = "0:;14:Hello,\r\nWorld!;";
-            var messages = new[]
-            {
-                new byte[0],
-                Encoding.UTF8.GetBytes("Hello,\r\nWorld!")
-            };
-
-            var output = new MemoryStream();
-            foreach (var message in messages)
-            {
-                LengthPrefixedTextMessageWriter.WriteMessage(message, output);
-            }
-
-            Assert.Equal(expectedEncoding, Encoding.UTF8.GetString(output.ToArray()));
+            var message = Encoding.UTF8.GetBytes(payload);
+            var encodedMessage = Encoding.UTF8.GetString(new Base64Encoder().Encode(message));
+            Assert.Equal(encoded, encodedMessage);
         }
 
         [Theory]
-        [InlineData("0:;", "")]
-        [InlineData("3:ABC;", "ABC")]
-        [InlineData("11:A\nR\rC\r\n;DEF;", "A\nR\rC\r\n;DEF")]
-        public void WriteMessage(string encoded, string payload)
+        [MemberData(nameof(Payloads))]
+        public void VerifyEncode(string payload, string encoded)
         {
-            var message = Encoding.UTF8.GetBytes(payload);
-            var output = new MemoryStream();
-
-            LengthPrefixedTextMessageWriter.WriteMessage(message, output);
-
-            Assert.Equal(encoded, Encoding.UTF8.GetString(output.ToArray()));
+            var encodedMessage = Encoding.UTF8.GetBytes(encoded);
+            var decodedMessage = Encoding.UTF8.GetString(new Base64Encoder().Decode(encodedMessage).ToArray());
+            Assert.Equal(payload, decodedMessage);
         }
 
-        private static class LengthPrefixedTextMessageWriter
-        {
-            private const int Int32OverflowLength = 10;
-
-            private const char FieldDelimiter = ':';
-            private const char MessageDelimiter = ';';
-
-            public static void WriteMessage(ReadOnlySpan<byte> payload, Stream output)
+        public static IEnumerable<object[]> Payloads =>
+            new object[][]
             {
-                // Calculate the length, it's the number of characters for text messages, but number of base64 characters for binary
-
-                // Write the length as a string
-
-                // Super inefficient...
-                var lengthString = payload.Length.ToString(CultureInfo.InvariantCulture);
-                var buffer = ArrayPool<byte>.Shared.Rent(Int32OverflowLength);
-                var encodedLength = Encoding.UTF8.GetBytes(lengthString, 0, lengthString.Length, buffer, 0);
-                output.Write(buffer, 0, encodedLength);
-                ArrayPool<byte>.Shared.Return(buffer);
-
-                // Write the field delimiter ':'
-                output.WriteByte((byte)FieldDelimiter);
-
-                buffer = ArrayPool<byte>.Shared.Rent(payload.Length);
-                payload.CopyTo(buffer);
-                output.Write(buffer, 0, payload.Length);
-                ArrayPool<byte>.Shared.Return(buffer);
-
-                // Terminator
-                output.WriteByte((byte)MessageDelimiter);
-            }
-        }
+                new object[] { "", "0:;" },
+                new object[] { "ABC", "4:QUJD;" },
+                new object[] { "A\nR\rC\r\n;DEF1234567890", "28:QQpSDUMNCjtERUYxMjM0NTY3ODkw;" },
+            };
     }
 }

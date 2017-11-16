@@ -28,10 +28,10 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Encoders
         {
             var maxEncodedLength = Base64.GetMaxEncodedToUtf8Length(payload.Length);
 
-            // Int32OverflowLength + 2 - Int32OverflowLength + length of separator (':') + length of terminator (';')
+            // Int32OverflowLength + length of separator (':') + length of terminator (';')
             if (int.MaxValue - maxEncodedLength < Int32OverflowLength + 2)
             {
-                throw new FormatException("The encoded message exceeds maximum supported size.");
+                throw new FormatException("The encoded message exceeds the maximum supported size.");
             }
 
             //The format is: [{length}:{message};] so allocate enough to be able to write the entire message
@@ -41,7 +41,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Encoders
             var status = Base64.EncodeToUtf8(payload, buffer.Slice(Int32OverflowLength + 1), out _, out var written);
             Debug.Assert(status == OperationStatus.Done);
 
-            buffer.Slice(Int32OverflowLength + 1).Slice(written)[0] = (byte)';';
+            buffer[Int32OverflowLength + 1 + written] = (byte)';';
             var prefixLength = 0;
             var prefix = written;
             do
