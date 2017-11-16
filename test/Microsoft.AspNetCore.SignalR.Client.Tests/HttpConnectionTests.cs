@@ -930,6 +930,31 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
             Assert.Equal(TransferMode.Binary, transferModeFeature.TransferMode);
         }
 
+        [Theory]
+        [InlineData("http://fakeuri.org/", "http://fakeuri.org/negotiate")]
+        [InlineData("http://fakeuri.org/?q=1/0", "http://fakeuri.org/negotiate?q=1/0")]
+        [InlineData("http://fakeuri.org?q=1/0", "http://fakeuri.org/negotiate?q=1/0")]
+        [InlineData("http://fakeuri.org/endpoint", "http://fakeuri.org/endpoint/negotiate")]
+        [InlineData("http://fakeuri.org/endpoint/", "http://fakeuri.org/endpoint/negotiate")]
+        [InlineData("http://fakeuri.org/endpoint?q=1/0", "http://fakeuri.org/endpoint/negotiate?q=1/0")]
+        public async Task query(string requested, string expectedNegotiate)
+        {
+            var mockHttpHandler = new Mock<HttpMessageHandler>();
+            mockHttpHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+                .Returns<HttpRequestMessage, CancellationToken>(async (request, cancellationToken) =>
+                {
+                    await Task.Yield();
+                    Assert.Equal(expectedNegotiate, request.RequestUri.ToString());
+                    return ResponseUtils.CreateResponse(HttpStatusCode.OK,
+                        ResponseUtils.CreateNegotiationResponse());
+                });
+
+            var connection = new HttpConnection(new Uri(requested), TransportType.LongPolling, loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
+            await connection.StartAsync();
+            await connection.DisposeAsync();
+        }
+
         private bool IsNegotiateRequest(HttpRequestMessage request)
         {
             return request.Method == HttpMethod.Post &&

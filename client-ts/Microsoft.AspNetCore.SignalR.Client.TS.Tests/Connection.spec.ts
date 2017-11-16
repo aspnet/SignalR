@@ -212,7 +212,7 @@ describe("Connection", () => {
 
         it("preserves user query with / before query", async done =>
         {
-            connection = new HttpConnection("http://tempuri.org/endpoint/?q=myData", options);
+            connection = new HttpConnection("http://tempuri.org/endpoint/?q=my/Data", options);
 
             try {
                 await connection.start();
@@ -223,11 +223,11 @@ describe("Connection", () => {
                 done();
             }
 
-            expect(negotiateUrl).toBe("http://tempuri.org/endpoint/negotiate?q=myData");
+            expect(negotiateUrl).toBe("http://tempuri.org/endpoint/negotiate?q=my/Data");
         });
 
         it("preserves user query without / before query", async done => {
-            connection = new HttpConnection("http://tempuri.org/endpoint?q=myData", options);
+            connection = new HttpConnection("http://tempuri.org/endpoint?q=my/Data", options);
 
             try {
                 await connection.start();
@@ -238,7 +238,7 @@ describe("Connection", () => {
                 done();
             }
 
-            expect(negotiateUrl).toBe("http://tempuri.org/endpoint/negotiate?q=myData");
+            expect(negotiateUrl).toBe("http://tempuri.org/endpoint/negotiate?q=my/Data");
         });
 
         it("adds negotiate after path without /", async done => {
@@ -270,35 +270,6 @@ describe("Connection", () => {
 
             expect(negotiateUrl).toBe("http://tempuri.org/endpoint/negotiate");
         });
-    });
-
-    it("preserves users connection string in negotiate request", async done => {
-        let options: IHttpConnectionOptions = {
-            httpClient: <IHttpClient>{
-                post(url: string): Promise<string> {
-                    expect(url).toBe("http://tempuri.org/negotiate?q=myData");
-                    connection.stop();
-                    return Promise.resolve("{}");
-                },
-                get(url: string): Promise<string> {
-                    connection.stop();
-                    return Promise.resolve("");
-                }
-            },
-            logging: null
-        } as IHttpConnectionOptions;
-
-
-        let connection = new HttpConnection("http://tempuri.org?q=myData", options);
-
-        try {
-            await connection.start();
-            done();
-        }
-        catch (e) {
-            fail();
-            done();
-        }
     });
 
     eachTransport((requestedTransport: TransportType) => {
