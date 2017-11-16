@@ -23,18 +23,29 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Encoders
             return decoded.Slice(0, written);
         }
 
+        private const int Int32OverflowLength = 10;
+
         public byte[] Encode(byte[] payload)
         {
-            Span<byte> buffer = new byte[Base64.GetMaxEncodedToUtf8Length(payload.Length)];
+            //The format is: [{length}:{message};] so allocate enough to be able to write the entire message
+            Span<byte> buffer = new byte[Int32OverflowLength + 1 + Base64.GetMaxEncodedToUtf8Length(payload.Length) + 1];
 
-            var status = Base64.EncodeToUtf8(payload, buffer, out _, out var written);
+            buffer[Int32OverflowLength] = (byte)':';
+            var status = Base64.EncodeToUtf8(payload, buffer.Slice(Int32OverflowLength + 1), out _, out var written);
             Debug.Assert(status == OperationStatus.Done);
 
-            using (var stream = new MemoryStream())
+            buffer[Int32OverflowLength + 1 + written] = (byte)';';
+            var prefixLength = 0;
+            var prefix = written;
+            do
             {
-                LengthPrefixedTextMessageWriter.WriteMessage(buffer.Slice(0, written), stream);
-                return stream.ToArray();
+                buffer[Int32OverflowLength - 1 - prefixLength] = (byte)('0' + prefix % 10);
+                prefix /= 10;
+                prefixLength++;
             }
+            while (prefix > 0);
+
+            return buffer.Slice(Int32OverflowLength - prefixLength, prefixLength + 1 + written + 1).ToArray();
         }
     }
 }
