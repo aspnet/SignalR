@@ -69,7 +69,7 @@ export class HttpConnection implements IConnection {
                 }
 
                 if (this.connectionId) {
-                    this.url += (this.url.indexOf("?") == -1 ? "?" : "&") + `id=${this.connectionId}`;
+                    this.url += (this.url.indexOf("?") === -1 ? "?" : "&") + `id=${this.connectionId}`;
                     this.transport = this.createTransport(this.options.transport, negotiateResponse.availableTransports);
                 }
             }

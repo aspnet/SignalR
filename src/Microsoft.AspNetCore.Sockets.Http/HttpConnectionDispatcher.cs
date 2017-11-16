@@ -60,10 +60,8 @@ namespace Microsoft.AspNetCore.Sockets
 
         public async Task ExecuteNegotiateAsync(HttpContext context, HttpSocketOptions options)
         {
-            // Create the log scope and attempt to pass the Connection ID to it so as many logs as possible contain
-            // the Connection ID metadata. If this is the negotiate request then the Connection ID for the scope will
-            // be set a little later.
-            var logScope = new ConnectionLogScope(GetConnectionId(context));
+            // Create the log scope and the scope connectionId param will be set when the connection is created.
+            var logScope = new ConnectionLogScope(connectionId: string.Empty);
             using (_logger.BeginScope(logScope))
             {
                 if (!await AuthorizeHelper.AuthorizeAsync(context, options.AuthorizationData))

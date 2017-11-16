@@ -191,6 +191,116 @@ describe("Connection", () => {
         done();
     });
 
+    describe("negotiate request", () =>
+    {
+        let negotiateUrl: string;
+        let connection: HttpConnection;
+        let options: IHttpConnectionOptions = {
+            httpClient: <IHttpClient>{
+                post(url: string): Promise<string> {
+                    negotiateUrl = url;
+                    connection.stop();
+                    return Promise.resolve("{}");
+                },
+                get(url: string): Promise<string> {
+                    connection.stop();
+                    return Promise.resolve("");
+                }
+            },
+            logging: null
+        } as IHttpConnectionOptions;
+
+        it("preserves user query with / before query", async done =>
+        {
+            connection = new HttpConnection("http://tempuri.org/endpoint/?q=myData", options);
+
+            try {
+                await connection.start();
+                done();
+            }
+            catch (e) {
+                fail();
+                done();
+            }
+
+            expect(negotiateUrl).toBe("http://tempuri.org/endpoint/negotiate?q=myData");
+        });
+
+        it("preserves user query without / before query", async done => {
+            connection = new HttpConnection("http://tempuri.org/endpoint?q=myData", options);
+
+            try {
+                await connection.start();
+                done();
+            }
+            catch (e) {
+                fail();
+                done();
+            }
+
+            expect(negotiateUrl).toBe("http://tempuri.org/endpoint/negotiate?q=myData");
+        });
+
+        it("adds negotiate after path without /", async done => {
+            connection = new HttpConnection("http://tempuri.org/endpoint", options);
+
+            try {
+                await connection.start();
+                done();
+            }
+            catch (e) {
+                fail();
+                done();
+            }
+
+            expect(negotiateUrl).toBe("http://tempuri.org/endpoint/negotiate");
+        });
+
+        it("adds negotiate after path with /", async done => {
+            connection = new HttpConnection("http://tempuri.org/endpoint/", options);
+
+            try {
+                await connection.start();
+                done();
+            }
+            catch (e) {
+                fail();
+                done();
+            }
+
+            expect(negotiateUrl).toBe("http://tempuri.org/endpoint/negotiate");
+        });
+    });
+
+    it("preserves users connection string in negotiate request", async done => {
+        let options: IHttpConnectionOptions = {
+            httpClient: <IHttpClient>{
+                post(url: string): Promise<string> {
+                    expect(url).toBe("http://tempuri.org/negotiate?q=myData");
+                    connection.stop();
+                    return Promise.resolve("{}");
+                },
+                get(url: string): Promise<string> {
+                    connection.stop();
+                    return Promise.resolve("");
+                }
+            },
+            logging: null
+        } as IHttpConnectionOptions;
+
+
+        let connection = new HttpConnection("http://tempuri.org?q=myData", options);
+
+        try {
+            await connection.start();
+            done();
+        }
+        catch (e) {
+            fail();
+            done();
+        }
+    });
+
     eachTransport((requestedTransport: TransportType) => {
         // OPTIONS is not sent when WebSockets transport is explicitly requested
         if (requestedTransport === TransportType.WebSockets) {
@@ -248,7 +358,7 @@ describe("Connection", () => {
         }
     });
 
-    it('does not send OPTIONS request if WebSockets transport requested explicitly', async done => {
+    it('does not send negotiate request if WebSockets transport requested explicitly', async done => {
         let options: IHttpConnectionOptions = {
             httpClient: <IHttpClient>{
                 post(url: string): Promise<string> {
@@ -270,7 +380,7 @@ describe("Connection", () => {
         }
         catch (e) {
             // WebSocket is created when the transport is connecting which happens after
-            // OPTIONS request would be sent. No better/easier way to test this.
+            // negotiate request would be sent. No better/easier way to test this.
             expect(e.message).toBe("WebSocket is not defined");
             done();
         }
