@@ -102,3 +102,8 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         }
     }
 }
+
+//          Method | Input |     Mean |     Error |    StdDev |      Op/s |  Gen 0 | Allocated |
+//---------------- |------ |---------:|----------:|----------:|----------:|-------:|----------:|
+// TryParseMessage |     0 | 7.744 us | 0.3692 us | 0.5525 us | 129,135.2 | 0.1022 |   9.28 KB |
+// TryParseMessage |     1 | 2.775 us | 0.1968 us | 0.2946 us | 360,375.7 | 0.0778 |   6.73 KB |
