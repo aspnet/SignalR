@@ -951,8 +951,8 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
                 });
 
             var connection = new HttpConnection(new Uri(requested), TransportType.LongPolling, loggerFactory: null, httpMessageHandler: mockHttpHandler.Object);
-            await connection.StartAsync();
-            await connection.DisposeAsync();
+            await connection.StartAsync().OrTimeout();
+            await connection.DisposeAsync().OrTimeout();
         }
 
         private bool IsNegotiateRequest(HttpRequestMessage request)

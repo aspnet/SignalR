@@ -6,7 +6,7 @@ import { HttpConnection } from "../Microsoft.AspNetCore.SignalR.Client.TS/HttpCo
 import { IHttpConnectionOptions } from "../Microsoft.AspNetCore.SignalR.Client.TS/IHttpConnectionOptions"
 import { DataReceived, TransportClosed } from "../Microsoft.AspNetCore.SignalR.Client.TS/Common"
 import { ITransport, TransportType, TransferMode } from "../Microsoft.AspNetCore.SignalR.Client.TS/Transports"
-import { eachTransport } from "./Common";
+import { eachTransport, eachEndpointUrl } from "./Common";
 
 describe("Connection", () => {
     it("cannot be created with relative url if document object is not present", () => {
@@ -191,84 +191,36 @@ describe("Connection", () => {
         done();
     });
 
-    describe("negotiate request", () =>
-    {
-        let negotiateUrl: string;
-        let connection: HttpConnection;
-        let options: IHttpConnectionOptions = {
-            httpClient: <IHttpClient>{
-                post(url: string): Promise<string> {
-                    negotiateUrl = url;
-                    connection.stop();
-                    return Promise.resolve("{}");
+    eachEndpointUrl((givenUrl: string, expectedUrl: string) => {
+        it("negotiate request puts 'negotiate' at the end of the path", async done => {
+            let negotiateUrl: string;
+            let connection: HttpConnection;
+            let options: IHttpConnectionOptions = {
+                httpClient: <IHttpClient>{
+                    post(url: string): Promise<string> {
+                        negotiateUrl = url;
+                        connection.stop();
+                        return Promise.resolve("{}");
+                    },
+                    get(url: string): Promise<string> {
+                        connection.stop();
+                        return Promise.resolve("");
+                    }
                 },
-                get(url: string): Promise<string> {
-                    connection.stop();
-                    return Promise.resolve("");
-                }
-            },
-            logging: null
-        } as IHttpConnectionOptions;
+                logging: null
+            } as IHttpConnectionOptions;
 
-        it("preserves user query with / before query", async done =>
-        {
-            connection = new HttpConnection("http://tempuri.org/endpoint/?q=my/Data", options);
+            connection = new HttpConnection(givenUrl, options);
 
             try {
                 await connection.start();
                 done();
-            }
-            catch (e) {
+            } catch (e) {
                 fail();
                 done();
             }
 
-            expect(negotiateUrl).toBe("http://tempuri.org/endpoint/negotiate?q=my/Data");
-        });
-
-        it("preserves user query without / before query", async done => {
-            connection = new HttpConnection("http://tempuri.org/endpoint?q=my/Data", options);
-
-            try {
-                await connection.start();
-                done();
-            }
-            catch (e) {
-                fail();
-                done();
-            }
-
-            expect(negotiateUrl).toBe("http://tempuri.org/endpoint/negotiate?q=my/Data");
-        });
-
-        it("adds negotiate after path without /", async done => {
-            connection = new HttpConnection("http://tempuri.org/endpoint", options);
-
-            try {
-                await connection.start();
-                done();
-            }
-            catch (e) {
-                fail();
-                done();
-            }
-
-            expect(negotiateUrl).toBe("http://tempuri.org/endpoint/negotiate");
-        });
-
-        it("adds negotiate after path with /", async done => {
-            connection = new HttpConnection("http://tempuri.org/endpoint/", options);
-
-            try {
-                await connection.start();
-                done();
-            }
-            catch (e) {
-                fail();
-                done();
-            }
-
-            expect(negotiateUrl).toBe("http://tempuri.org/endpoint/negotiate");
+            expect(negotiateUrl).toBe(expectedUrl);
         });
     });
 
