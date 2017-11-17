@@ -104,7 +104,7 @@ click('connect', function(event) {
     connectButton.disabled = true;
     disconnectButton.disabled = false;
     console.log('http://' + document.location.host + '/' + hubRoute);
-    connection = new signalR.HubConnection(hubRoute, logger, { transport: transportType, logger: logger });
+    connection = new signalR.HubConnection(hubRoute, { protocol: new signalRMsgPack.MessagePackHubProtocol(), transport: transportType, logging: logger });
     connection.on('Send', function(msg) {
         addLine('message-list', msg);
     });
@@ -119,7 +119,7 @@ click('connect', function(event) {
     });
 
     connection.start()
-        .then(function() {
+        .then(function () {
             isConnected = true;
             addLine('message-list', 'Connected successfully', 'green');
         })
@@ -139,7 +139,8 @@ click('disconnect', function(event) {
 
 click('broadcast', function(event) {
     let data = getText('message-text');
-    invoke(connection, 'Send', data);
+    invoke(connection, 'Target', 1, "Foo", 2.0);
+    //invoke(connection, 'Send', data);
 });
 
 click('join-group', function(event) {
