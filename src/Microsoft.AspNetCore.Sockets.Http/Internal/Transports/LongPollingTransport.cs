@@ -39,8 +39,6 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                     return;
                 }
 
-                // REVIEW: What should the content type be?
-
                 var contentLength = 0;
                 var buffers = new List<byte[]>();
                 // We're intentionally not checking cancellation here because we need to drain messages we've got so far,
@@ -54,6 +52,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                 }
 
                 context.Response.ContentLength = contentLength;
+                context.Response.ContentType = "application/octet-stream";
 
                 foreach (var buffer in buffers)
                 {
