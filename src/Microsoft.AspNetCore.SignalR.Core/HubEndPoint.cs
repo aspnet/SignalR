@@ -76,19 +76,30 @@ namespace Microsoft.AspNetCore.SignalR
             }
 
             connectionContext.UserIdentifier = _userIdProvider.GetUserId(connectionContext);
+            var protocolReaderWriter = connectionContext.ProtocolReaderWriter;
+
+            if (connection.Features.Get<IConnectionInherentKeepAliveFeature>() == null)
+            {
+                // We need keep-alive. So we do that by wrapping output in a channel that automatically
+                // emits PingMessage if WaitToReadAsync waits longer than the interval.
+                output = new KeepAliveChannel(output, _hubOptions.KeepAliveInterval);
+            }
 
             // Hubs support multiple producers so we set up this loop to copy
             // data written to the HubConnectionContext's channel to the transport channel
-            var protocolReaderWriter = connectionContext.ProtocolReaderWriter;
             async Task WriteToTransport()
             {
+                var serializedKeepAlive = protocolReaderWriter.WriteMessage(PingMessage.Instance);
+
                 try
                 {
                     while (await output.Reader.WaitToReadAsync())
                     {
                         while (output.Reader.TryRead(out var hubMessage))
                         {
-                            var buffer = protocolReaderWriter.WriteMessage(hubMessage);
+                            var buffer = ReferenceEquals(hubMessage, PingMessage.Instance) ?
+                                serializedKeepAlive :
+                                protocolReaderWriter.WriteMessage(hubMessage);
                             while (await connection.Transport.Writer.WaitToWriteAsync())
                             {
                                 if (connection.Transport.Writer.TryWrite(buffer))
