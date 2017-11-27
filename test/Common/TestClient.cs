@@ -25,7 +25,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         private CancellationTokenSource _cts;
         private ChannelConnection<byte[]> _transport;
 
-
         public DefaultConnectionContext Connection { get; }
         public Channel<byte[]> Application { get; }
         public Task Connected => ((TaskCompletionSource<bool>)Connection.Metadata["ConnectedTask"]).Task;
@@ -121,6 +120,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                         throw new NotSupportedException("Use 'StreamAsync' to call a streaming method");
                     case CompletionMessage completion:
                         return completion;
+                    case PingMessage _:
+                        // Pings are ignored
+                        break;
                     default:
                         throw new NotSupportedException("TestClient does not support receiving invocations!");
                 }
