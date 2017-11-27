@@ -9,7 +9,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
     [Config(typeof(CoreConfig))]
     public class HubProtocolBenchmark
     {
-        private HubProtocolReaderWriter HubProtocolReaderWriter;
+        private HubProtocolReaderWriter _hubProtocolReaderWriter;
         private byte[] _binaryInput;
         private TestBinder _binder;
         private HubMessage _hubMessage;
@@ -26,10 +26,10 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             switch (HubProtocol)
             {
                 case Protocol.MsgPack:
-                    HubProtocolReaderWriter = new HubProtocolReaderWriter(new MessagePackHubProtocol(), new PassThroughEncoder());
+                    _hubProtocolReaderWriter = new HubProtocolReaderWriter(new MessagePackHubProtocol(), new PassThroughEncoder());
                     break;
                 case Protocol.Json:
-                    HubProtocolReaderWriter = new HubProtocolReaderWriter(new JsonHubProtocol(), new PassThroughEncoder());
+                    _hubProtocolReaderWriter = new HubProtocolReaderWriter(new JsonHubProtocol(), new PassThroughEncoder());
                     break;
             }
 
@@ -53,7 +53,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         [Benchmark]
         public void ReadSingleMessage()
         {
-            if (!HubProtocolReaderWriter.ReadMessages(_binaryInput, _binder, out var _))
+            if (!_hubProtocolReaderWriter.ReadMessages(_binaryInput, _binder, out var _))
             {
                 throw new InvalidOperationException("Failed to read message");
             }
@@ -62,7 +62,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         [Benchmark]
         public void WriteSingleMessage()
         {
-            if (HubProtocolReaderWriter.WriteMessage(_hubMessage).Length != _binaryInput.Length)
+            if (_hubProtocolReaderWriter.WriteMessage(_hubMessage).Length != _binaryInput.Length)
             {
                 throw new InvalidOperationException("Failed to write message");
             }
@@ -83,7 +83,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
 
         private byte[] GetBytes(HubMessage hubMessage)
         {
-            return HubProtocolReaderWriter.WriteMessage(_hubMessage);
+            return _hubProtocolReaderWriter.WriteMessage(_hubMessage);
         }
     }
 }
