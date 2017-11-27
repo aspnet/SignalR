@@ -26,7 +26,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
             _logger = loggerFactory.CreateLogger<ServerSentEventsTransport>();
         }
 
-        public async Task ProcessRequestAsync(HttpContext context, CancellationToken token)
+        public async Task ProcessRequestAsync(ConnectionContext connection, HttpContext context, CancellationToken token)
         {
             context.Response.ContentType = "text/event-stream";
             context.Response.Headers["Cache-Control"] = "no-cache";

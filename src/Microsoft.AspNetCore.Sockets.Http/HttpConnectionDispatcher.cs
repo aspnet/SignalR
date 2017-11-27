@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Sockets.Features;
 using Microsoft.AspNetCore.Sockets.Internal;
 using Microsoft.AspNetCore.Sockets.Internal.Transports;
 using Microsoft.Extensions.Logging;
@@ -212,10 +213,10 @@ namespace Microsoft.AspNetCore.Sockets
                     context.Response.RegisterForDispose(timeoutSource);
                     context.Response.RegisterForDispose(tokenSource);
 
-                    var longPolling = new LongPollingTransport(timeoutSource.Token, connection.Application.Reader, connection.ConnectionId, _loggerFactory);
+                    var longPolling = new LongPollingTransport(timeoutSource.Token, options.LongPolling.PollTimeout, connection.Application.Reader, connection.ConnectionId, _loggerFactory);
 
                     // Start the transport
-                    connection.TransportTask = longPolling.ProcessRequestAsync(context, tokenSource.Token);
+                    connection.TransportTask = longPolling.ProcessRequestAsync(connection, context, tokenSource.Token);
 
                     // Start the timeout after we return from creating the transport task
                     timeoutSource.CancelAfter(options.LongPolling.PollTimeout);
@@ -319,7 +320,7 @@ namespace Microsoft.AspNetCore.Sockets
                 connection.ApplicationTask = ExecuteApplication(socketDelegate, connection);
 
                 // Start the transport
-                connection.TransportTask = transport.ProcessRequestAsync(context, context.RequestAborted);
+                connection.TransportTask = transport.ProcessRequestAsync(connection, context, context.RequestAborted);
             }
             finally
             {

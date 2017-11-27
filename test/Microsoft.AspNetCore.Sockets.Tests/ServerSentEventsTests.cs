@@ -19,13 +19,16 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [Fact]
         public async Task SSESetsContentType()
         {
-            var channel = Channel.CreateUnbounded<byte[]>();
+            var toApplication = Channel.CreateUnbounded<byte[]>();
+            var toTransport = Channel.CreateUnbounded<byte[]>();
             var context = new DefaultHttpContext();
-            var sse = new ServerSentEventsTransport(channel, connectionId: string.Empty, loggerFactory: new LoggerFactory());
+            var connection = new DefaultConnectionContext("foo", toTransport, toApplication);
 
-            Assert.True(channel.Writer.TryComplete());
+            var sse = new ServerSentEventsTransport(toTransport.Reader, connectionId: string.Empty, loggerFactory: new LoggerFactory());
 
-            await sse.ProcessRequestAsync(context, context.RequestAborted);
+            Assert.True(toTransport.Writer.TryComplete());
+
+            await sse.ProcessRequestAsync(connection, context, context.RequestAborted);
 
             Assert.Equal("text/event-stream", context.Response.ContentType);
             Assert.Equal("no-cache", context.Response.Headers["Cache-Control"]);
@@ -34,15 +37,18 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [Fact]
         public async Task SSETurnsResponseBufferingOff()
         {
-            var channel = Channel.CreateUnbounded<byte[]>();
+            var toApplication = Channel.CreateUnbounded<byte[]>();
+            var toTransport = Channel.CreateUnbounded<byte[]>();
             var context = new DefaultHttpContext();
+            var connection = new DefaultConnectionContext("foo", toTransport, toApplication);
+
             var feature = new HttpBufferingFeature();
             context.Features.Set<IHttpBufferingFeature>(feature);
-            var sse = new ServerSentEventsTransport(channel, connectionId: string.Empty, loggerFactory: new LoggerFactory());
+            var sse = new ServerSentEventsTransport(toTransport.Reader, connectionId: string.Empty, loggerFactory: new LoggerFactory());
 
-            Assert.True(channel.Writer.TryComplete());
+            Assert.True(toTransport.Writer.TryComplete());
 
-            await sse.ProcessRequestAsync(context, context.RequestAborted);
+            await sse.ProcessRequestAsync(connection, context, context.RequestAborted);
 
             Assert.True(feature.ResponseBufferingDisabled);
         }
@@ -50,23 +56,25 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [Fact]
         public async Task SSEWritesMessages()
         {
-            var channel = Channel.CreateUnbounded<byte[]>(new UnboundedChannelOptions
+            var toApplication = Channel.CreateUnbounded<byte[]>();
+            var toTransport = Channel.CreateUnbounded<byte[]>(new UnboundedChannelOptions
             {
                 AllowSynchronousContinuations = true
             });
-
             var context = new DefaultHttpContext();
+            var connection = new DefaultConnectionContext("foo", toTransport, toApplication);
+
             var ms = new MemoryStream();
             context.Response.Body = ms;
-            var sse = new ServerSentEventsTransport(channel, connectionId: string.Empty, loggerFactory: new LoggerFactory());
+            var sse = new ServerSentEventsTransport(toTransport.Reader, connectionId: string.Empty, loggerFactory: new LoggerFactory());
 
-            var task = sse.ProcessRequestAsync(context, context.RequestAborted);
+            var task = sse.ProcessRequestAsync(connection, context, context.RequestAborted);
 
-            await channel.Writer.WriteAsync(Encoding.ASCII.GetBytes("Hello"));
+            await toTransport.Writer.WriteAsync(Encoding.ASCII.GetBytes("Hello"));
 
             Assert.Equal(":\r\ndata: Hello\r\n\r\n", Encoding.ASCII.GetString(ms.ToArray()));
 
-            channel.Writer.TryComplete();
+            toTransport.Writer.TryComplete();
 
             await task.OrTimeout();
         }
@@ -77,17 +85,20 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [InlineData("Hello\r\nWorld", ":\r\ndata: Hello\r\ndata: World\r\n\r\n")]
         public async Task SSEAddsAppropriateFraming(string message, string expected)
         {
-            var channel = Channel.CreateUnbounded<byte[]>();
+            var toApplication = Channel.CreateUnbounded<byte[]>();
+            var toTransport = Channel.CreateUnbounded<byte[]>();
             var context = new DefaultHttpContext();
-            var sse = new ServerSentEventsTransport(channel, connectionId: string.Empty, loggerFactory: new LoggerFactory());
+            var connection = new DefaultConnectionContext("foo", toTransport, toApplication);
+
+            var sse = new ServerSentEventsTransport(toTransport.Reader, connectionId: string.Empty, loggerFactory: new LoggerFactory());
             var ms = new MemoryStream();
             context.Response.Body = ms;
 
-            await channel.Writer.WriteAsync(Encoding.UTF8.GetBytes(message));
+            await toTransport.Writer.WriteAsync(Encoding.UTF8.GetBytes(message));
 
-            Assert.True(channel.Writer.TryComplete());
+            Assert.True(toTransport.Writer.TryComplete());
 
-            await sse.ProcessRequestAsync(context, context.RequestAborted);
+            await sse.ProcessRequestAsync(connection, context, context.RequestAborted);
 
             Assert.Equal(expected, Encoding.UTF8.GetString(ms.ToArray()));
         }

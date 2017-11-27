@@ -43,7 +43,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
             _logger = loggerFactory.CreateLogger<WebSocketsTransport>();
         }
 
-        public async Task ProcessRequestAsync(HttpContext context, CancellationToken token)
+        public async Task ProcessRequestAsync(ConnectionContext connection, HttpContext context, CancellationToken token)
         {
             Debug.Assert(context.WebSockets.IsWebSocketRequest, "Not a websocket request");
 

@@ -11,6 +11,8 @@ using Microsoft.AspNetCore.SignalR.Tests.Common;
 using Microsoft.AspNetCore.Sockets.Internal.Transports;
 using Microsoft.Extensions.Logging;
 using Xunit;
+using System;
+using Microsoft.AspNetCore.Sockets.Features;
 
 namespace Microsoft.AspNetCore.Sockets.Tests
 {
@@ -19,13 +21,16 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [Fact]
         public async Task Set204StatusCodeWhenChannelComplete()
         {
-            var channel = Channel.CreateUnbounded<byte[]>();
+            var toApplication = Channel.CreateUnbounded<byte[]>();
+            var toTransport = Channel.CreateUnbounded<byte[]>();
             var context = new DefaultHttpContext();
-            var poll = new LongPollingTransport(CancellationToken.None, channel, connectionId: string.Empty, loggerFactory: new LoggerFactory());
+            var connection = new DefaultConnectionContext("foo", toTransport, toApplication);
 
-            Assert.True(channel.Writer.TryComplete());
+            var poll = new LongPollingTransport(CancellationToken.None, TimeSpan.Zero, toTransport.Reader, connectionId: string.Empty, loggerFactory: new LoggerFactory());
 
-            await poll.ProcessRequestAsync(context, context.RequestAborted);
+            Assert.True(toTransport.Writer.TryComplete());
+
+            await poll.ProcessRequestAsync(connection, context, context.RequestAborted).OrTimeout();
 
             Assert.Equal(204, context.Response.StatusCode);
         }
@@ -33,14 +38,17 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [Fact]
         public async Task Set200StatusCodeWhenTimeoutTokenFires()
         {
-            var channel = Channel.CreateUnbounded<byte[]>();
+            var toApplication = Channel.CreateUnbounded<byte[]>();
+            var toTransport = Channel.CreateUnbounded<byte[]>();
             var context = new DefaultHttpContext();
+            var connection = new DefaultConnectionContext("foo", toTransport, toApplication);
+
             var timeoutToken = new CancellationToken(true);
-            var poll = new LongPollingTransport(timeoutToken, channel, connectionId: string.Empty, loggerFactory: new LoggerFactory());
+            var poll = new LongPollingTransport(timeoutToken, TimeSpan.Zero, toTransport.Reader, connectionId: string.Empty, loggerFactory: new LoggerFactory());
 
             using (var cts = CancellationTokenSource.CreateLinkedTokenSource(timeoutToken, context.RequestAborted))
             {
-                await poll.ProcessRequestAsync(context, cts.Token).OrTimeout();
+                await poll.ProcessRequestAsync(connection, context, cts.Token).OrTimeout().OrTimeout();
 
                 Assert.Equal(0, context.Response.ContentLength);
                 Assert.Equal(200, context.Response.StatusCode);
@@ -50,17 +58,20 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [Fact]
         public async Task FrameSentAsSingleResponse()
         {
-            var channel = Channel.CreateUnbounded<byte[]>();
+            var toApplication = Channel.CreateUnbounded<byte[]>();
+            var toTransport = Channel.CreateUnbounded<byte[]>();
             var context = new DefaultHttpContext();
-            var poll = new LongPollingTransport(CancellationToken.None, channel, connectionId: string.Empty, loggerFactory: new LoggerFactory());
+            var connection = new DefaultConnectionContext("foo", toTransport, toApplication);
+
+            var poll = new LongPollingTransport(CancellationToken.None, TimeSpan.Zero, toTransport.Reader, connectionId: string.Empty, loggerFactory: new LoggerFactory());
             var ms = new MemoryStream();
             context.Response.Body = ms;
 
-            await channel.Writer.WriteAsync(Encoding.UTF8.GetBytes("Hello World"));
+            await toTransport.Writer.WriteAsync(Encoding.UTF8.GetBytes("Hello World"));
 
-            Assert.True(channel.Writer.TryComplete());
+            Assert.True(toTransport.Writer.TryComplete());
 
-            await poll.ProcessRequestAsync(context, context.RequestAborted);
+            await poll.ProcessRequestAsync(connection, context, context.RequestAborted).OrTimeout();
 
             Assert.Equal(200, context.Response.StatusCode);
             Assert.Equal("Hello World", Encoding.UTF8.GetString(ms.ToArray()));
@@ -69,25 +80,48 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [Fact]
         public async Task MultipleFramesSentAsSingleResponse()
         {
-            var channel = Channel.CreateUnbounded<byte[]>();
+            var toApplication = Channel.CreateUnbounded<byte[]>();
+            var toTransport = Channel.CreateUnbounded<byte[]>();
             var context = new DefaultHttpContext();
+            var connection = new DefaultConnectionContext("foo", toTransport, toApplication);
 
-            var poll = new LongPollingTransport(CancellationToken.None, channel, connectionId: string.Empty, loggerFactory: new LoggerFactory());
+            var poll = new LongPollingTransport(CancellationToken.None, TimeSpan.Zero, toTransport.Reader, connectionId: string.Empty, loggerFactory: new LoggerFactory());
             var ms = new MemoryStream();
             context.Response.Body = ms;
 
-            await channel.Writer.WriteAsync(Encoding.UTF8.GetBytes("Hello"));
-            await channel.Writer.WriteAsync(Encoding.UTF8.GetBytes(" "));
-            await channel.Writer.WriteAsync(Encoding.UTF8.GetBytes("World"));
+            await toTransport.Writer.WriteAsync(Encoding.UTF8.GetBytes("Hello"));
+            await toTransport.Writer.WriteAsync(Encoding.UTF8.GetBytes(" "));
+            await toTransport.Writer.WriteAsync(Encoding.UTF8.GetBytes("World"));
 
-            Assert.True(channel.Writer.TryComplete());
+            Assert.True(toTransport.Writer.TryComplete());
 
-            await poll.ProcessRequestAsync(context, context.RequestAborted);
+            await poll.ProcessRequestAsync(connection, context, context.RequestAborted).OrTimeout();
 
             Assert.Equal(200, context.Response.StatusCode);
 
             var payload = ms.ToArray();
             Assert.Equal("Hello World", Encoding.UTF8.GetString(payload));
+        }
+
+        [Fact]
+        public async Task SetsInherentKeepAliveFeatureOnFirstPoll()
+        {
+            var toApplication = Channel.CreateUnbounded<byte[]>();
+            var toTransport = Channel.CreateUnbounded<byte[]>();
+            var context = new DefaultHttpContext();
+            var connection = new DefaultConnectionContext("foo", toTransport, toApplication);
+            var pollTimeout = TimeSpan.FromSeconds(42);
+
+            var poll = new LongPollingTransport(CancellationToken.None, pollTimeout, toTransport.Reader, connectionId: string.Empty, loggerFactory: new LoggerFactory());
+            var ms = new MemoryStream();
+            context.Response.Body = ms;
+
+            Assert.True(toTransport.Writer.TryComplete());
+
+            await poll.ProcessRequestAsync(connection, context, context.RequestAborted).OrTimeout();
+
+            Assert.NotNull(connection.Features.Get<IConnectionInherentKeepAliveFeature>());
+            Assert.Equal(pollTimeout, connection.Features.Get<IConnectionInherentKeepAliveFeature>().KeepAliveInterval);
         }
     }
 }

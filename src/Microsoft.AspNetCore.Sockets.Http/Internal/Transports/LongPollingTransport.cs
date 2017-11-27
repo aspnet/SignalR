@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Threading.Channels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Sockets.Features;
 
 namespace Microsoft.AspNetCore.Sockets.Internal.Transports
 {
@@ -16,18 +17,25 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
         private readonly ChannelReader<byte[]> _application;
         private readonly ILogger _logger;
         private readonly CancellationToken _timeoutToken;
+        private readonly TimeSpan _timeout;
         private readonly string _connectionId;
 
-        public LongPollingTransport(CancellationToken timeoutToken, ChannelReader<byte[]> application, string connectionId, ILoggerFactory loggerFactory)
+        public LongPollingTransport(CancellationToken timeoutToken, TimeSpan timeout, ChannelReader<byte[]> application, string connectionId, ILoggerFactory loggerFactory)
         {
             _timeoutToken = timeoutToken;
+            _timeout = timeout;
             _application = application;
             _connectionId = connectionId;
             _logger = loggerFactory.CreateLogger<LongPollingTransport>();
         }
 
-        public async Task ProcessRequestAsync(HttpContext context, CancellationToken token)
+        public async Task ProcessRequestAsync(ConnectionContext connection, HttpContext context, CancellationToken token)
         {
+            if(connection.Features.Get<IConnectionInherentKeepAliveFeature>() == null)
+            {
+                connection.Features.Set<IConnectionInherentKeepAliveFeature>(new ConnectionInherentKeepAliveFeature(_timeout));
+            }
+
             try
             {
                 if (!await _application.WaitToReadAsync(token))

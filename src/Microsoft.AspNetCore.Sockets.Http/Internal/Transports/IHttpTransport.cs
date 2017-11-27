@@ -12,9 +12,10 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
         /// <summary>
         /// Executes the transport
         /// </summary>
+        /// <param name="connection"></param>
         /// <param name="context"></param>
         /// <param name="token"></param>
         /// <returns>A <see cref="Task"/> that completes when the transport has finished processing</returns>
-        Task ProcessRequestAsync(HttpContext context, CancellationToken token);
+        Task ProcessRequestAsync(ConnectionContext connection, HttpContext context, CancellationToken token);
     }
 }
