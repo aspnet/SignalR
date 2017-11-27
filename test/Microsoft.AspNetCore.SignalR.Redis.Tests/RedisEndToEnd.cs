@@ -37,7 +37,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             _serverFixture = serverFixture;
         }
 
-        [ConditionalTheory]
+        [ConditionalTheory(Skip = "Docker tests are flaky")]
         [SkipIfDockerNotPresent]
         [MemberData(nameof(TransportTypesAndProtocolTypes))]
         public async Task HubConnectionCanSendAndReceiveMessages(TransportType transportType, IHubProtocol protocol)
@@ -56,7 +56,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             }
         }
 
-        [ConditionalTheory]
+        [ConditionalTheory(Skip = "Docker tests are flaky")]
         [SkipIfDockerNotPresent]
         [MemberData(nameof(TransportTypesAndProtocolTypes))]
         public async Task HubConnectionCanSendAndReceiveGroupMessages(TransportType transportType, IHubProtocol protocol)
