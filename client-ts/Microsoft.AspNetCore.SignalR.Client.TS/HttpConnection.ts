@@ -42,6 +42,10 @@ export class HttpConnection implements IConnection {
         this.options = options;
     }
 
+    get transportType(): TransportType {
+        return this.transport.type;
+    }
+
     async start(): Promise<void> {
         if (this.connectionState != ConnectionState.Initial) {
             return Promise.reject(new Error("Cannot start a connection that is not in the 'Initial' state."));
@@ -144,7 +148,7 @@ export class HttpConnection implements IConnection {
         return this.transport.send(data);
     }
 
-    async stop(): Promise<void> {
+    async stop(error? : Error): Promise<void> {
         let previousState = this.connectionState;
         this.connectionState = ConnectionState.Disconnected;
 
@@ -154,10 +158,10 @@ export class HttpConnection implements IConnection {
         catch (e) {
             // this exception is returned to the user as a rejected Promise from the start method
         }
-        this.stopConnection(/*raiseClosed*/ previousState == ConnectionState.Connected);
+        this.stopConnection(/*raiseClosed*/ previousState == ConnectionState.Connected, error);
     }
 
-    private stopConnection(raiseClosed: Boolean, error?: any) {
+    private stopConnection(raiseClosed: Boolean, error?: Error) {
         if (this.transport) {
             this.transport.stop();
             this.transport = null;

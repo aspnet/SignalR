@@ -4,13 +4,15 @@
 import { IConnection } from "../Microsoft.AspNetCore.SignalR.Client.TS/IConnection"
 import { HubConnection } from "../Microsoft.AspNetCore.SignalR.Client.TS/HubConnection"
 import { DataReceived, ConnectionClosed } from "../Microsoft.AspNetCore.SignalR.Client.TS/Common"
-import { TransportType, ITransport, TransferMode } from "../Microsoft.AspNetCore.SignalR.Client.TS/Transports"
+import { TransportType, ITransport, TransferMode, LongPollingTransport } from "../Microsoft.AspNetCore.SignalR.Client.TS/Transports"
 import { Observer } from "../Microsoft.AspNetCore.SignalR.Client.TS/Observable"
 import { TextMessageFormat } from "../Microsoft.AspNetCore.SignalR.Client.TS/Formatters"
 import { ILogger, LogLevel } from "../Microsoft.AspNetCore.SignalR.Client.TS/ILogger"
 import { MessageType } from "../Microsoft.AspNetCore.SignalR.Client.TS/IHubProtocol"
 
-import { asyncit as it, captureException } from './JasmineUtils';
+import { asyncit as it, captureException, delay, PromiseSource } from './Utils';
+import { IHubConnectionOptions } from "../Microsoft.AspNetCore.SignalR.Client.TS/IHubConnectionOptions";
+import { connect } from "tls";
 
 describe("HubConnection", () => {
 
@@ -437,12 +439,55 @@ describe("HubConnection", () => {
             connection.receive({ type: MessageType.Completion, invocationId: connection.lastInvocationId, result: "foo" });
 
             expect(await invokePromise).toBe("foo");
-        })
+        });
+
+        it("does not terminate if messages are received", async() => {
+            let connection = new TestConnection();
+            connection.transportType = TransportType.ServerSentEvents;
+            let hubConnection = new HubConnection(connection, { serverTimeoutInMilliseconds: 100 });
+
+            let p = new PromiseSource<Error>();
+            hubConnection.onclose(error => p.resolve(error));
+
+            await hubConnection.start();
+
+            await connection.receive({ type: MessageType.Ping });
+            await delay(50);
+            await connection.receive({ type: MessageType.Ping });
+            await delay(50);
+            await connection.receive({ type: MessageType.Ping });
+            await delay(50);
+            await connection.receive({ type: MessageType.Ping });
+            await delay(50);
+
+            connection.stop();
+
+            let error = await p.promise;
+
+            expect(error).toBeUndefined();
+        });
+        
+        it("terminates if no messages received within timeout interval", async () => {
+            let connection = new TestConnection();
+            connection.transportType = TransportType.ServerSentEvents;
+            let hubConnection = new HubConnection(connection, { serverTimeoutInMilliseconds: 100 });
+
+            let p = new PromiseSource<Error>();
+            hubConnection.onclose(error => p.resolve(error));
+
+            await hubConnection.start();
+
+            let error = await p.promise;
+
+            expect(error).toEqual(new Error("Server timeout elapsed without receiving a message from the server."));
+        });
     })
 });
 
 class TestConnection implements IConnection {
     readonly features: any = {};
+
+    transportType: TransportType = TransportType.LongPolling;
 
     start(): Promise<void> {
         return Promise.resolve();
@@ -463,9 +508,9 @@ class TestConnection implements IConnection {
         return Promise.resolve();
     };
 
-    stop(): void {
+    stop(error?: Error): void {
         if (this.onclose) {
-            this.onclose();
+            this.onclose(error);
         }
     };
 
@@ -506,25 +551,3 @@ class TestObserver implements Observer<any>
         this.itemsSource.resolve(this.itemsReceived);
     }
 };
-
-class PromiseSource<T> {
-    public promise: Promise<T>
-
-    private resolver: (value?: T | PromiseLike<T>) => void;
-    private rejecter: (reason?: any) => void;
-
-    constructor() {
-        this.promise = new Promise<T>((resolve, reject) => {
-            this.resolver = resolve;
-            this.rejecter = reject;
-        });
-    }
-
-    resolve(value?: T | PromiseLike<T>) {
-        this.resolver(value);
-    }
-
-    reject(reason?: any) {
-        this.rejecter(reason);
-    }
-}

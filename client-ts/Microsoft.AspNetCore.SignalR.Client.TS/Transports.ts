@@ -23,6 +23,7 @@ export interface ITransport {
     stop(): void;
     onreceive: DataReceived;
     onclose: TransportClosed;
+    type: TransportType;
 }
 
 export class WebSocketTransport implements ITransport {
@@ -34,6 +35,8 @@ export class WebSocketTransport implements ITransport {
         this.logger = logger;
         this.jwtBearer = jwtBearer;
     }
+
+    type: TransportType = TransportType.WebSockets;
 
     connect(url: string, requestedTransferMode: TransferMode): Promise<TransferMode> {
 
@@ -112,6 +115,8 @@ export class ServerSentEventsTransport implements ITransport {
         this.jwtBearer = jwtBearer;
         this.logger = logger;
     }
+
+    type: TransportType = TransportType.ServerSentEvents;
 
     connect(url: string, requestedTransferMode: TransferMode): Promise<TransferMode> {
         if (typeof (EventSource) === "undefined") {
@@ -193,6 +198,8 @@ export class LongPollingTransport implements ITransport {
         this.jwtBearer = jwtBearer;
         this.logger = logger;
     }
+
+    type: TransportType = TransportType.LongPolling;
 
     connect(url: string, requestedTransferMode: TransferMode): Promise<TransferMode> {
         this.url = url;
