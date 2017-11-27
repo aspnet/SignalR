@@ -69,8 +69,6 @@ namespace Microsoft.AspNetCore.Sockets
 
         public TransferMode TransferMode { get; set; }
 
-        public TimeSpan KeepAliveInterval { get; set; } = TimeSpan.Zero;
-
         public async Task DisposeAsync()
         {
             Task disposeTask = Task.CompletedTask;
