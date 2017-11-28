@@ -45,7 +45,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
                     _hubMessage = new InvocationMessage("123", true, "Target", null, 1, "string", 2.0f, true, (byte)9, new byte[] { 5, 4, 3, 2, 1 }, 'c', 123456789101112L);
                     break;
                 case Message.LargeArguments:
-                    _hubMessage = new InvocationMessage("123", true, "Target", null, new string('F', 1234), new byte[1000]);
+                    _hubMessage = new InvocationMessage("123", true, "Target", null, new string('F', 10240), new byte[10240]);
                     break;
             }
 
