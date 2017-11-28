@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Sockets.Client.Http;
 using Microsoft.AspNetCore.Sockets.Client.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.AspNetCore.Sockets.Features;
 
 namespace Microsoft.AspNetCore.Sockets.Client
 {
@@ -42,12 +43,14 @@ namespace Microsoft.AspNetCore.Sockets.Client
             _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<LongPollingTransport>();
         }
 
-        public Task StartAsync(Uri url, Channel<byte[], SendMessage> application, TransferMode requestedTransferMode, string connectionId)
+        public Task StartAsync(Uri url, Channel<byte[], SendMessage> application, TransferMode requestedTransferMode, string connectionId, IConnection connection)
         {
             if (requestedTransferMode != TransferMode.Binary && requestedTransferMode != TransferMode.Text)
             {
                 throw new ArgumentException("Invalid transfer mode.", nameof(requestedTransferMode));
             }
+
+            connection.Features.Set<IConnectionInherentKeepAliveFeature>(new ConnectionInherentKeepAliveFeature(_httpClient.Timeout));
 
             _application = application;
             Mode = requestedTransferMode;

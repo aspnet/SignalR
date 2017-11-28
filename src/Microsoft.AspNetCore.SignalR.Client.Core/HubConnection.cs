@@ -24,6 +24,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
 {
     public class HubConnection
     {
+        public static readonly TimeSpan DefaultServerTimeout = TimeSpan.FromSeconds(30); // Server ping rate is 15 sec, this is 2 times that.
+
         private readonly ILoggerFactory _loggerFactory;
         private readonly ILogger _logger;
         private readonly IConnection _connection;
@@ -38,8 +40,12 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private int _nextId = 0;
         private volatile bool _startCalled;
+        private Timer _timeoutTimer;
+        private readonly bool _needKeepAlive;
 
         public Task Closed { get; }
+
+        public TimeSpan ServerTimeout { get; set; } = DefaultServerTimeout;
 
         public HubConnection(IConnection connection, IHubProtocol protocol, ILoggerFactory loggerFactory)
         {
@@ -59,6 +65,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
             _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
             _logger = _loggerFactory.CreateLogger<HubConnection>();
             _connection.OnReceived((data, state) => ((HubConnection)state).OnDataReceivedAsync(data), this);
+            _needKeepAlive = _connection.Features.Get<IConnectionInherentKeepAliveFeature>() == null;
+            _timeoutTimer = new Timer(state => ((HubConnection)state).TimeoutElapsed(), this, -1, -1);
             Closed = _connection.Closed.ContinueWith(task =>
             {
                 Shutdown(task.Exception);
@@ -75,6 +83,19 @@ namespace Microsoft.AspNetCore.SignalR.Client
             finally
             {
                 _startCalled = true;
+            }
+        }
+
+        private void TimeoutElapsed()
+        {
+            _connection.AbortAsync(new TimeoutException("Server timeout elapsed without receiving a message from the server."));
+        }
+
+        private void ResetTimeoutTimer()
+        {
+            if (_needKeepAlive)
+            {
+                _timeoutTimer.Change(ServerTimeout, Timeout.InfiniteTimeSpan);
             }
         }
 
@@ -105,6 +126,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 NegotiationProtocol.WriteMessage(new NegotiationMessage(_protocol.Name), memoryStream);
                 await _connection.SendAsync(memoryStream.ToArray(), _connectionActive.Token);
             }
+
+            ResetTimeoutTimer();
         }
 
         private IDataEncoder GetDataEncoder(TransferMode requestedTransferMode, TransferMode actualTransferMode)
@@ -125,6 +148,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private async Task DisposeAsyncCore()
         {
+            _timeoutTimer.Dispose();
             await _connection.DisposeAsync();
             await Closed;
         }
@@ -298,6 +322,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private async Task OnDataReceivedAsync(byte[] data)
         {
+            ResetTimeoutTimer();
             if (_protocolReaderWriter.ReadMessages(data, _binder, out var messages))
             {
                 foreach (var message in messages)
