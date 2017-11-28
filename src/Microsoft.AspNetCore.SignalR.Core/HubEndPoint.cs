@@ -30,6 +30,7 @@ namespace Microsoft.AspNetCore.SignalR
     {
         private static readonly Base64Encoder Base64Encoder = new Base64Encoder();
         private static readonly PassThroughEncoder PassThroughEncoder = new PassThroughEncoder();
+        private static readonly Task NeverCompleteTask = Task.Delay(-1);
 
         private readonly Dictionary<string, HubMethodDescriptor> _methods = new Dictionary<string, HubMethodDescriptor>(StringComparer.OrdinalIgnoreCase);
 
@@ -78,12 +79,7 @@ namespace Microsoft.AspNetCore.SignalR
             connectionContext.UserIdentifier = _userIdProvider.GetUserId(connectionContext);
             var protocolReaderWriter = connectionContext.ProtocolReaderWriter;
 
-            if (connection.Features.Get<IConnectionInherentKeepAliveFeature>() == null)
-            {
-                // We need keep-alive. So we do that by wrapping output in a channel that automatically
-                // emits PingMessage if WaitToReadAsync waits longer than the interval.
-                output = new KeepAliveChannel(output, _hubOptions.KeepAliveInterval);
-            }
+            var needKeepAlive = connection.Features.Get<IConnectionInherentKeepAliveFeature>() == null;
 
             // Hubs support multiple producers so we set up this loop to copy
             // data written to the HubConnectionContext's channel to the transport channel
@@ -93,20 +89,44 @@ namespace Microsoft.AspNetCore.SignalR
 
                 try
                 {
-                    while (await output.Reader.WaitToReadAsync())
+                    while (true)
                     {
-                        while (output.Reader.TryRead(out var hubMessage))
+                        var keepAliveTask = needKeepAlive ?
+                            Task.Delay(_hubOptions.KeepAliveInterval) :
+                            NeverCompleteTask;
+                        var readTask = output.Reader.WaitToReadAsync();
+                        var completed = await Task.WhenAny(keepAliveTask, readTask);
+                        if (ReferenceEquals(completed, keepAliveTask))
                         {
-                            var buffer = ReferenceEquals(hubMessage, PingMessage.Instance) ?
-                                serializedKeepAlive :
-                                protocolReaderWriter.WriteMessage(hubMessage);
+                            // Send a ping message
+                            // PERF: We do this inline rather than wrapping this pattern in a function
+                            // to avoid another async state machine allocation.
                             while (await connection.Transport.Writer.WaitToWriteAsync())
                             {
-                                if (connection.Transport.Writer.TryWrite(buffer))
+                                if (connection.Transport.Writer.TryWrite(serializedKeepAlive))
                                 {
                                     break;
                                 }
                             }
+                        }
+                        else if (readTask.GetAwaiter().GetResult()) // We know it's finished
+                        {
+                            while (output.Reader.TryRead(out var hubMessage))
+                            {
+                                var buffer = protocolReaderWriter.WriteMessage(hubMessage);
+                                while (await connection.Transport.Writer.WaitToWriteAsync())
+                                {
+                                    if (connection.Transport.Writer.TryWrite(buffer))
+                                    {
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // readTask returned false, we're done.
+                            return;
                         }
                     }
                 }
