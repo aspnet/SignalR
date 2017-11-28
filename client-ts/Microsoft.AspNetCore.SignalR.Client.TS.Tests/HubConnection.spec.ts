@@ -4,7 +4,7 @@
 import { IConnection } from "../Microsoft.AspNetCore.SignalR.Client.TS/IConnection"
 import { HubConnection } from "../Microsoft.AspNetCore.SignalR.Client.TS/HubConnection"
 import { DataReceived, ConnectionClosed } from "../Microsoft.AspNetCore.SignalR.Client.TS/Common"
-import { TransportType, ITransport, TransferMode, LongPollingTransport } from "../Microsoft.AspNetCore.SignalR.Client.TS/Transports"
+import { TransportType, ITransport, TransferMode } from "../Microsoft.AspNetCore.SignalR.Client.TS/Transports"
 import { Observer } from "../Microsoft.AspNetCore.SignalR.Client.TS/Observable"
 import { TextMessageFormat } from "../Microsoft.AspNetCore.SignalR.Client.TS/Formatters"
 import { ILogger, LogLevel } from "../Microsoft.AspNetCore.SignalR.Client.TS/ILogger"
