@@ -20,8 +20,13 @@ namespace Microsoft.AspNetCore.Sockets
         public LongPollingOptions LongPolling { get; } = new LongPollingOptions();
 
         /// <summary>
-        /// The interval at which keep-alive messages should be sent. This will be 
+        /// The interval at which keep-alive messages should be sent. The default interval
+        /// is 30 seconds.
         /// </summary>
+        /// <remarks>
+        /// This interval is not used by the Long Polling transport as it has inherent keep-alive
+        /// functionality because of the polling mechanism. 
+        /// </remarks>
         public TimeSpan KeepAliveInterval { get; set; } = DefaultKeepAliveInterval;
     }
 }
