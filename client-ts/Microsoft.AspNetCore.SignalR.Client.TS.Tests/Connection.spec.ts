@@ -158,7 +158,6 @@ describe("Connection", () => {
             send(data: any): Promise<void> {
                 return Promise.reject("");
             },
-            type: TransportType.LongPolling,
             stop(): void { },
             onreceive: undefined,
             onclose: undefined,
@@ -321,8 +320,7 @@ describe("Connection", () => {
                 // mode: TransferMode : TransferMode.Text
                 connect(url: string, requestedTransferMode: TransferMode): Promise<TransferMode> { return Promise.resolve(transportTransferMode); },
                 send(data: any): Promise<void> { return Promise.resolve(); },
-                stop(): void {},
-                type: TransportType.LongPolling,
+                stop(): void { },
                 onreceive: null,
                 onclose: null,
                 mode: transportTransferMode

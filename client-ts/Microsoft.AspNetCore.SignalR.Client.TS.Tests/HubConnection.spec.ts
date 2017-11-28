@@ -12,7 +12,6 @@ import { MessageType } from "../Microsoft.AspNetCore.SignalR.Client.TS/IHubProto
 
 import { asyncit as it, captureException, delay, PromiseSource } from './Utils';
 import { IHubConnectionOptions } from "../Microsoft.AspNetCore.SignalR.Client.TS/IHubConnectionOptions";
-import { connect } from "tls";
 
 describe("HubConnection", () => {
 
@@ -441,7 +440,7 @@ describe("HubConnection", () => {
             expect(await invokePromise).toBe("foo");
         });
 
-        it("does not terminate if messages are received", async() => {
+        it("does not terminate if messages are received", async () => {
             let connection = new TestConnection();
             connection.transportType = TransportType.ServerSentEvents;
             let hubConnection = new HubConnection(connection, { serverTimeoutInMilliseconds: 100 });
@@ -466,7 +465,7 @@ describe("HubConnection", () => {
 
             expect(error).toBeUndefined();
         });
-        
+
         it("terminates if no messages received within timeout interval", async () => {
             let connection = new TestConnection();
             connection.transportType = TransportType.ServerSentEvents;
@@ -486,8 +485,6 @@ describe("HubConnection", () => {
 
 class TestConnection implements IConnection {
     readonly features: any = {};
-
-    transportType: TransportType = TransportType.LongPolling;
 
     start(): Promise<void> {
         return Promise.resolve();

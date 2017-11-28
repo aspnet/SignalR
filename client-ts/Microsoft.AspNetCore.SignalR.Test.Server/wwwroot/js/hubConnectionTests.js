@@ -56,7 +56,7 @@ describe('hubConnection', function () {
                 });
 
                 hubConnection.start().then(function () {
-                    hubConnection.send('SendCustomObject', { Name: 'test', Value: 42});
+                    hubConnection.send('SendCustomObject', { Name: 'test', Value: 42 });
                 }).catch(function (e) {
                     fail(e);
                     done();
@@ -258,13 +258,13 @@ describe('hubConnection', function () {
                 hubConnection.start().then(function () {
                     return hubConnection.invoke('InvokeWithString', message);
                 })
-                .then(function() {
-                    return hubConnection.stop();
-                })
-                .catch(function (e) {
-                    fail(e);
-                    done();
-                });
+                    .then(function () {
+                        return hubConnection.stop();
+                    })
+                    .catch(function (e) {
+                        fail(e);
+                        done();
+                    });
             });
 
             it('closed with error if hub cannot be created', function (done) {
@@ -315,31 +315,31 @@ describe('hubConnection', function () {
                 hubConnection.start().then(function () {
                     return hubConnection.invoke('EchoComplexObject', complexObject);
                 })
-                .then(function (value) {
-                    if (protocol.name === "messagepack") {
-                        // msgpack creates a Buffer for byte arrays and jasmine fails to compare a Buffer
-                        // and a Uint8Array even though Buffer instances are also Uint8Array instances
-                        value.ByteArray = new Uint8Array(value.ByteArray);
+                    .then(function (value) {
+                        if (protocol.name === "messagepack") {
+                            // msgpack creates a Buffer for byte arrays and jasmine fails to compare a Buffer
+                            // and a Uint8Array even though Buffer instances are also Uint8Array instances
+                            value.ByteArray = new Uint8Array(value.ByteArray);
 
-                        // GUIDs are serialized as raw type which is a string containing bytes which need to
-                        // be extracted. Note that with msgpack5 the original bytes will be encoded with utf8
-                        // and needs to be decoded. To not go into utf8 encoding intricacies the test uses values
-                        // less than 0x80.
-                        let guidBytes = [];
-                        for (let i = 0; i < value.GUID.length; i++) {
-                            guidBytes.push(value.GUID.charCodeAt(i));
+                            // GUIDs are serialized as raw type which is a string containing bytes which need to
+                            // be extracted. Note that with msgpack5 the original bytes will be encoded with utf8
+                            // and needs to be decoded. To not go into utf8 encoding intricacies the test uses values
+                            // less than 0x80.
+                            let guidBytes = [];
+                            for (let i = 0; i < value.GUID.length; i++) {
+                                guidBytes.push(value.GUID.charCodeAt(i));
+                            }
+                            value.GUID = new Uint8Array(guidBytes);
                         }
-                        value.GUID = new Uint8Array(guidBytes);
-                    }
-                    expect(value).toEqual(complexObject);
-                })
-                .then(function () {
-                    hubConnection.stop();
-                })
-                .catch(function (e) {
-                    fail(e);
-                    done();
-                });
+                        expect(value).toEqual(complexObject);
+                    })
+                    .then(function () {
+                        hubConnection.stop();
+                    })
+                    .catch(function (e) {
+                        fail(e);
+                        done();
+                    });
             });
         });
     });
@@ -367,21 +367,21 @@ describe('hubConnection', function () {
                         });
                         return hubConnection.start();
                     })
-                    .then(function() {
+                    .then(function () {
                         return hubConnection.invoke('Echo', message);
                     })
-                    .then(function(response) {
+                    .then(function (response) {
                         expect(response).toEqual(message);
                         return hubConnection.stop();
                     })
-                    .catch(function(e) {
+                    .catch(function (e) {
                         fail(e);
                         done();
                     });
             });
 
-            if(transportType != signalR.TransportType.LongPolling) {
-                it("terminates if no messages received within timeout interval", function(done) {
+            if (transportType != signalR.TransportType.LongPolling) {
+                it("terminates if no messages received within timeout interval", function (done) {
                     var options = {
                         transport: transportType,
                         logging: signalR.LogLevel.Trace,
@@ -390,12 +390,12 @@ describe('hubConnection', function () {
 
                     var hubConnection = new signalR.HubConnection(TESTHUBENDPOINT_URL, options);
 
-                    var timeout = setTimeout(200, function() {
+                    var timeout = setTimeout(200, function () {
                         fail("Server timeout did not fire within expected interval");
                     });
 
-                    hubConnection.start().then(function() {
-                        hubConnection.onclose(function(error) {
+                    hubConnection.start().then(function () {
+                        hubConnection.onclose(function (error) {
                             clearTimeout(timeout);
                             expect(error).toEqual(new Error("Server timeout elapsed without receiving a message from the server."));
                             done();
