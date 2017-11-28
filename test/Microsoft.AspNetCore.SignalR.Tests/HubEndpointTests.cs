@@ -1396,7 +1396,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 // Echo a bunch of stuff, waiting 10ms between each, until 500ms have elapsed
                 DateTime start = DateTime.UtcNow;
-                while((DateTime.UtcNow - start).TotalMilliseconds <= 500.0)
+                while ((DateTime.UtcNow - start).TotalMilliseconds <= 500.0)
                 {
                     await client.SendInvocationAsync("Echo", "foo").OrTimeout();
                     await Task.Delay(10);
@@ -1410,12 +1410,12 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 // We shouldn't have any ping messages
                 HubMessage message;
                 var counter = 0;
-                while((message = await client.ReadAsync()) != null)
+                while ((message = await client.ReadAsync()) != null)
                 {
                     counter += 1;
                     Assert.IsNotType<PingMessage>(message);
                 }
-                Assert.InRange(counter, 1, Int32.MaxValue);
+                Assert.InRange(counter, 1, 50);
             }
         }
 
@@ -1443,7 +1443,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 // We should have all pings
                 HubMessage message;
                 var counter = 0;
-                while((message = await client.ReadAsync()) != null)
+                while ((message = await client.ReadAsync()) != null)
                 {
                     counter += 1;
                     Assert.Same(PingMessage.Instance, message);
