@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 
 namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
 {
-    [Config(typeof(CoreConfig))]
+    [ParameterizedJobConfig(typeof(CoreConfig))]
     public class HubProtocolBenchmark
     {
         private HubProtocolReaderWriter _hubProtocolReaderWriter;
