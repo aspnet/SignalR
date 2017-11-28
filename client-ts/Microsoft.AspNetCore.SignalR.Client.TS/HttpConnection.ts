@@ -42,10 +42,6 @@ export class HttpConnection implements IConnection {
         this.options = options;
     }
 
-    get transportType(): TransportType {
-        return this.transport.type;
-    }
-
     async start(): Promise<void> {
         if (this.connectionState != ConnectionState.Initial) {
             return Promise.reject(new Error("Cannot start a connection that is not in the 'Initial' state."));

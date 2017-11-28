@@ -97,7 +97,7 @@ export class HubConnection {
     }
 
     private configureTimeout() {
-        if (this.connection.transportType !== TransportType.LongPolling) {
+        if (this.connection.features && this.connection.features.inherentKeepAlive === true) {
             // Set the timeout timer
             this.timeoutHandle = setTimeout(() => this.serverTimeout(), this.serverTimeoutInMilliseconds);
         }

@@ -7,8 +7,6 @@ import { TransportType, TransferMode, ITransport } from  "./Transports"
 export interface IConnection {
     readonly features: any;
 
-    readonly transportType: TransportType;
-
     start(): Promise<void>;
     send(data: any): Promise<void>;
     stop(error?: Error): void;
