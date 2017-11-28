@@ -34,6 +34,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public async Task DisposeAsyncCallsConnectionStart()
         {
             var connection = new Mock<IConnection>();
+            connection.Setup(m => m.Features).Returns(new FeatureCollection());
             connection.Setup(m => m.StartAsync()).Verifiable();
             var hubConnection = new HubConnection(connection.Object, Mock.Of<IHubProtocol>(), null);
             await hubConnection.DisposeAsync();
