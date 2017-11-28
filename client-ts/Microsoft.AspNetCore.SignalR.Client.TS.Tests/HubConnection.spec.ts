@@ -442,7 +442,6 @@ describe("HubConnection", () => {
 
         it("does not terminate if messages are received", async () => {
             let connection = new TestConnection();
-            connection.transportType = TransportType.ServerSentEvents;
             let hubConnection = new HubConnection(connection, { serverTimeoutInMilliseconds: 100 });
 
             let p = new PromiseSource<Error>();
@@ -468,7 +467,6 @@ describe("HubConnection", () => {
 
         it("terminates if no messages received within timeout interval", async () => {
             let connection = new TestConnection();
-            connection.transportType = TransportType.ServerSentEvents;
             let hubConnection = new HubConnection(connection, { serverTimeoutInMilliseconds: 100 });
 
             let p = new PromiseSource<Error>();
