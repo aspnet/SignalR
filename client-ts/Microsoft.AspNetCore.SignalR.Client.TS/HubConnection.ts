@@ -59,9 +59,8 @@ export class HubConnection {
     }
 
     private processIncomingData(data: any) {
-        // For some reason, our TypeScript refs are set up for clearTimeout to take NodeJS.Timer... which is weird.
         if (this.timeoutHandle !== undefined) {
-            clearTimeout(<any>this.timeoutHandle);
+            clearTimeout(this.timeoutHandle);
         }
 
         // Parse the messages
