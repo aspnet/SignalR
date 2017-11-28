@@ -11,7 +11,6 @@
 
   <ItemGroup>
     <Inputs Include="*.ts;" />
-    <Inputs Remove="IFeatureCollection.ts" />
     <Outputs Include="@(Inputs -> '$(SignalRClientDistFolder)src\%(FileName).d.ts')" />
     <Outputs Include="@(Inputs -> '$(SignalRClientDistFolder)src\%(FileName).js')" />
     <Outputs Include="$(SignalRClientDistFolder)browser\signalr-client.js" />
