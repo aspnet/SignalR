@@ -1432,8 +1432,14 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var endPointLifetime = endPoint.OnConnectedAsync(client.Connection).OrTimeout();
                 await client.Connected.OrTimeout();
 
-                // Wait 500 ms
-                await Task.Delay(500);
+                // Wait 500 ms, but make sure to yield some time up to unblock concurrent threads
+                // This is useful on AppVeyor because it's slow enough to end up with no time
+                // being available for the endpoint to run.
+                for (var i = 0; i < 5; i += 1)
+                {
+                    await Task.Yield();
+                    await Task.Delay(100);
+                }
 
                 // Shut down
                 client.Dispose();
