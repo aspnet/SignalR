@@ -14,7 +14,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         private TestBinder _binder;
         private HubMessage _hubMessage;
 
-        [Params(Message.Small, Message.Medium, Message.Large)]
+        [Params(Message.NoArguments, Message.FewArguments, Message.ManyArguments, Message.LargeArguments)]
         public Message Input { get; set; }
 
         [Params(Protocol.MsgPack, Protocol.Json)]
@@ -35,14 +35,17 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
 
             switch (Input)
             {
-                case Message.Small:
-                    _hubMessage = new CancelInvocationMessage("123");
+                case Message.NoArguments:
+                    _hubMessage = new InvocationMessage("123", true, "Target", null);
                     break;
-                case Message.Medium:
+                case Message.FewArguments:
                     _hubMessage = new InvocationMessage("123", true, "Target", null, 1, "Foo", 2.0f);
                     break;
-                case Message.Large:
-                    _hubMessage = new InvocationMessage("123", true, "Target", null, 1, new string('F', 1234), 2.0f);
+                case Message.ManyArguments:
+                    _hubMessage = new InvocationMessage("123", true, "Target", null, 1, "string", 2.0f, true, (byte)9, new byte[] { 5, 4, 3, 2, 1 }, 'c', 123456789101112L);
+                    break;
+                case Message.LargeArguments:
+                    _hubMessage = new InvocationMessage("123", true, "Target", null, new string('F', 1234), new byte[1000]);
                     break;
             }
 
@@ -76,9 +79,10 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
 
         public enum Message
         {
-            Small = 0,
-            Medium = 1,
-            Large = 2
+            NoArguments = 0,
+            FewArguments = 1,
+            ManyArguments = 2,
+            LargeArguments = 3
         }
 
         private byte[] GetBytes(HubMessage hubMessage)
