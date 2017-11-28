@@ -20,8 +20,8 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         [Params(Protocol.MsgPack, Protocol.Json)]
         public Protocol HubProtocol { get; set; }
 
-        [IterationSetup]
-        public void Setup()
+        [GlobalSetup]
+        public void GlobalSetup()
         {
             switch (HubProtocol)
             {
