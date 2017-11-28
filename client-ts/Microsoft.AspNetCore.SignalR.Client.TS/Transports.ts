@@ -189,7 +189,7 @@ export class LongPollingTransport implements ITransport {
     private pollXhr: XMLHttpRequest;
     private shouldPoll: boolean;
 
-    constructor(httpClient: IHttpClient, jwtBearer: () => string, logger: ILogger, connection: IConnection) {
+    constructor(httpClient: IHttpClient, jwtBearer: () => string, logger: ILogger) {
         this.httpClient = httpClient;
         this.jwtBearer = jwtBearer;
         this.logger = logger;

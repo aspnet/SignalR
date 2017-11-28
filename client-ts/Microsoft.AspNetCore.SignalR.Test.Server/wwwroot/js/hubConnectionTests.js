@@ -379,6 +379,30 @@ describe('hubConnection', function () {
                         done();
                     });
             });
+
+            if(transportType != signalR.TransportType.LongPolling) {
+                it("terminates if no messages received within timeout interval", function(done) {
+                    var options = {
+                        transport: transportType,
+                        logging: signalR.LogLevel.Trace,
+                        serverTimeoutInMilliseconds: 100
+                    };
+
+                    var hubConnection = new signalR.HubConnection(TESTHUBENDPOINT_URL, options);
+
+                    var timeout = setTimeout(200, function() {
+                        fail("Server timeout did not fire within expected interval");
+                    });
+
+                    hubConnection.start().then(function() {
+                        hubConnection.onclose(function(error) {
+                            clearTimeout(timeout);
+                            expect(error).toEqual(new Error("Server timeout elapsed without receiving a message from the server."));
+                            done();
+                        });
+                    });
+                });
+            }
         });
     });
 

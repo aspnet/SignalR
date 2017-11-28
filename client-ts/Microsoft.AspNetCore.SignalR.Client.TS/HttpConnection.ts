@@ -89,7 +89,7 @@ export class HttpConnection implements IConnection {
                     ? TransferMode.Binary
                     : TransferMode.Text;
 
-            this.features.transferMode = await this.transport.connect(this.url, requestedTransferMode);
+            this.features.transferMode = await this.transport.connect(this.url, requestedTransferMode, this);
 
             // only change the state if we were connecting to not overwrite
             // the state if the connection is already marked as Disconnected
