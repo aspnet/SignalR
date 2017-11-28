@@ -9,8 +9,6 @@ namespace Microsoft.AspNetCore.Sockets
 {
     public class HttpSocketOptions
     {
-        public static readonly TimeSpan DefaultKeepAliveInterval = TimeSpan.FromSeconds(30);
-
         public IList<IAuthorizeData> AuthorizationData { get; } = new List<IAuthorizeData>();
 
         public TransportType Transports { get; set; } = TransportType.All;
@@ -18,15 +16,5 @@ namespace Microsoft.AspNetCore.Sockets
         public WebSocketOptions WebSockets { get; } = new WebSocketOptions();
 
         public LongPollingOptions LongPolling { get; } = new LongPollingOptions();
-
-        /// <summary>
-        /// The interval at which keep-alive messages should be sent. The default interval
-        /// is 30 seconds.
-        /// </summary>
-        /// <remarks>
-        /// This interval is not used by the Long Polling transport as it has inherent keep-alive
-        /// functionality because of the polling mechanism. 
-        /// </remarks>
-        public TimeSpan KeepAliveInterval { get; set; } = DefaultKeepAliveInterval;
     }
 }
