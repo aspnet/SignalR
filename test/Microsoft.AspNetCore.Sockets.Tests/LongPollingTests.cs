@@ -48,7 +48,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             using (var cts = CancellationTokenSource.CreateLinkedTokenSource(timeoutToken, context.RequestAborted))
             {
-                await poll.ProcessRequestAsync(connection, context, cts.Token).OrTimeout().OrTimeout();
+                await poll.ProcessRequestAsync(connection, context, cts.Token).OrTimeout();
 
                 Assert.Equal(0, context.Response.ContentLength);
                 Assert.Equal(200, context.Response.StatusCode);
