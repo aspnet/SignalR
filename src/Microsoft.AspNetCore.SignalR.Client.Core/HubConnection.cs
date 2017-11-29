@@ -45,6 +45,10 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         public Task Closed { get; }
 
+        /// <summary>
+        /// Gets or sets the server timeout interval for the connection. Changes to this value
+        /// are ignored after <see cref="StartAsync"/> is called.
+        /// </summary>
         public TimeSpan ServerTimeout { get; set; } = DefaultServerTimeout;
 
         public HubConnection(IConnection connection, IHubProtocol protocol, ILoggerFactory loggerFactory)
@@ -66,12 +70,14 @@ namespace Microsoft.AspNetCore.SignalR.Client
             _logger = _loggerFactory.CreateLogger<HubConnection>();
             _connection.OnReceived((data, state) => ((HubConnection)state).OnDataReceivedAsync(data), this);
             _needKeepAlive = _connection.Features.Get<IConnectionInherentKeepAliveFeature>() == null;
-            _timeoutTimer = new Timer(state => ((HubConnection)state).TimeoutElapsed(), this, -1, -1);
             Closed = _connection.Closed.ContinueWith(task =>
             {
                 Shutdown(task.Exception);
                 return task;
             }).Unwrap();
+
+            // Create the timer for timeout, but disabled by default (we enable it when started).
+            _timeoutTimer = new Timer(state => ((HubConnection)state).TimeoutElapsed(), this, Timeout.Infinite, Timeout.Infinite);
         }
 
         public async Task StartAsync()
@@ -95,6 +101,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         {
             if (_needKeepAlive)
             {
+                _logger.ResettingKeepAliveTimer();
                 _timeoutTimer.Change(ServerTimeout, Timeout.InfiniteTimeSpan);
             }
         }
