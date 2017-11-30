@@ -10,12 +10,6 @@ namespace Microsoft.AspNetCore.SignalR.Core.Internal
     internal static class SignalRCoreLoggerExtensions
     {
         // Category: HubEndPoint<THub>
-        private static readonly Action<ILogger, string, Exception> _usingHubProtocol =
-            LoggerMessage.Define<string>(LogLevel.Information, new EventId(0, nameof(UsingHubProtocol)), "Using HubProtocol '{protocol}'.");
-
-        private static readonly Action<ILogger, Exception> _negotiateCanceled =
-            LoggerMessage.Define(LogLevel.Debug, new EventId(1, nameof(NegotiateCanceled)), "Negotiate was canceled.");
-
         private static readonly Action<ILogger, Exception> _errorProcessingRequest =
             LoggerMessage.Define(LogLevel.Error, new EventId(2, nameof(ErrorProcessingRequest)), "Error when processing requests.");
 
@@ -69,6 +63,19 @@ namespace Microsoft.AspNetCore.SignalR.Core.Internal
 
         private static readonly Action<ILogger, string, Exception> _invalidReturnValueFromStreamingMethod =
             LoggerMessage.Define<string>(LogLevel.Error, new EventId(19, nameof(InvalidReturnValueFromStreamingMethod)), "A streaming method returned a value that cannot be used to build enumerator {hubMethod}.");
+
+        // Category: HubConnectionContext
+        private static readonly Action<ILogger, string, Exception> _usingHubProtocol =
+            LoggerMessage.Define<string>(LogLevel.Information, new EventId(1, nameof(UsingHubProtocol)), "Using HubProtocol '{protocol}'.");
+
+        private static readonly Action<ILogger, Exception> _negotiateCanceled =
+            LoggerMessage.Define(LogLevel.Debug, new EventId(2, nameof(NegotiateCanceled)), "Negotiate was canceled.");
+
+        private static readonly Action<ILogger, Exception> _sentPing =
+            LoggerMessage.Define(LogLevel.Trace, new EventId(4, nameof(SentPing)), "Sent a ping message to the client.");
+
+        private static readonly Action<ILogger, Exception> _transportBufferFull =
+            LoggerMessage.Define(LogLevel.Debug, new EventId(5, nameof(TransportBufferFull)), "Unable to send Ping message to client, the transport buffer is full.");
 
         public static void UsingHubProtocol(this ILogger logger, string hubProtocol)
         {
@@ -168,6 +175,16 @@ namespace Microsoft.AspNetCore.SignalR.Core.Internal
         public static void InvalidReturnValueFromStreamingMethod(this ILogger logger, string hubMethod)
         {
             _invalidReturnValueFromStreamingMethod(logger, hubMethod, null);
+        }
+
+        public static void SentPing(this ILogger logger)
+        {
+            _sentPing(logger, null);
+        }
+
+        public static void TransportBufferFull(this ILogger logger)
+        {
+            _transportBufferFull(logger, null);
         }
     }
 }

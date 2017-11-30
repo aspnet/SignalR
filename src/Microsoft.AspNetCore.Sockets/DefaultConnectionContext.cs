@@ -22,7 +22,7 @@ namespace Microsoft.AspNetCore.Sockets
                                             IConnectionHeartbeatFeature,
                                             ITransferModeFeature
     {
-        private ConcurrentBag<(Action<object> handler, object state)> _heartbeatHandlers = new ConcurrentBag<(Action<object> handler, object state)>();
+        private List<(Action<object> handler, object state)> _heartbeatHandlers = new List<(Action<object> handler, object state)>();
 
         // This tcs exists so that multiple calls to DisposeAsync all wait asynchronously
         // on the same task
@@ -81,7 +81,7 @@ namespace Microsoft.AspNetCore.Sockets
 
         public void TickHeartbeat()
         {
-            foreach(var (handler, state) in _heartbeatHandlers)
+            foreach (var (handler, state) in _heartbeatHandlers)
             {
                 handler(state);
             }

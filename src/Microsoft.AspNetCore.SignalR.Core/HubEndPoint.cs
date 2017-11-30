@@ -8,17 +8,15 @@ using System.Linq;
 using System.Reflection;
 using System.Security.Claims;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Threading.Channels;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR.Core;
 using Microsoft.AspNetCore.SignalR.Core.Internal;
 using Microsoft.AspNetCore.SignalR.Features;
 using Microsoft.AspNetCore.SignalR.Internal;
-using Microsoft.AspNetCore.SignalR.Internal.Encoders;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.Sockets;
-using Microsoft.AspNetCore.Sockets.Features;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Internal;
 using Microsoft.Extensions.Logging;
@@ -28,14 +26,11 @@ namespace Microsoft.AspNetCore.SignalR
 {
     public class HubEndPoint<THub> : IInvocationBinder where THub : Hub
     {
-        private static readonly Base64Encoder Base64Encoder = new Base64Encoder();
-        private static readonly PassThroughEncoder PassThroughEncoder = new PassThroughEncoder();
-        private static readonly Task NeverCompleteTask = Task.Delay(-1);
-
         private readonly Dictionary<string, HubMethodDescriptor> _methods = new Dictionary<string, HubMethodDescriptor>(StringComparer.OrdinalIgnoreCase);
 
         private readonly HubLifetimeManager<THub> _lifetimeManager;
         private readonly IHubContext<THub> _hubContext;
+        private readonly ILoggerFactory _loggerFactory;
         private readonly ILogger<HubEndPoint<THub>> _logger;
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly IHubProtocolResolver _protocolResolver;
@@ -50,15 +45,16 @@ namespace Microsoft.AspNetCore.SignalR
                            IHubProtocolResolver protocolResolver,
                            IHubContext<THub> hubContext,
                            IOptions<HubOptions> hubOptions,
-                           ILogger<HubEndPoint<THub>> logger,
+                           ILoggerFactory loggerFactory,
                            IServiceScopeFactory serviceScopeFactory,
                            IUserIdProvider userIdProvider)
         {
             _protocolResolver = protocolResolver;
             _lifetimeManager = lifetimeManager;
             _hubContext = hubContext;
+            _loggerFactory = loggerFactory;
             _hubOptions = hubOptions.Value;
-            _logger = logger;
+            _logger = loggerFactory.CreateLogger<HubEndPoint<THub>>();
             _serviceScopeFactory = serviceScopeFactory;
             _userIdProvider = userIdProvider;
 
@@ -71,16 +67,13 @@ namespace Microsoft.AspNetCore.SignalR
             // all the relevant state for a SignalR Hub connection.
             connection.Features.Set<IHubFeature>(new HubFeature());
 
-            var connectionContext = new HubConnectionContext(connection, _hubOptions.KeepAliveInterval);
+            var connectionContext = new HubConnectionContext(connection, _hubOptions.KeepAliveInterval, _loggerFactory.CreateLogger<HubConnectionContext>());
 
-            if (!await ProcessNegotiate(connectionContext))
+            if (!await connectionContext.NegotiateAsync(_hubOptions.NegotiateTimeout, _protocolResolver, _userIdProvider))
             {
                 return;
             }
-            Debug.Assert(connectionContext.ProtocolReaderWriter != null, "Expected ProcessNegotiate to set the ProtocolReaderWriter");
 
-            connectionContext.UserIdentifier = _userIdProvider.GetUserId(connectionContext);
-            connectionContext.Logger = _logger;
             _ = connectionContext.StartAsync();
 
             try
@@ -96,60 +89,6 @@ namespace Microsoft.AspNetCore.SignalR
             }
         }
 
-
-        // Implements the keep-alive tick behavior
-        // Each tick, we check if the time since the last send is larger than the keep alive duration (in ticks).
-        // If it is, we send a ping frame, if not, we no-op on this tick. This means that in the worst case, the
-        // true "ping rate" of the server could be (_hubOptions.KeepAliveInterval + HubEndPoint.KeepAliveTimerInterval),
-        // because if the interval elapses right after the last tick of this timer, it won't be detected until the next tick.
-        
-        private async Task<bool> ProcessNegotiate(HubConnectionContext connection)
-        {
-            try
-            {
-                using (var cts = new CancellationTokenSource())
-                {
-                    cts.CancelAfter(_hubOptions.NegotiateTimeout);
-                    while (await connection.Transport.Reader.WaitToReadAsync(cts.Token))
-                    {
-                        while (connection.Transport.Reader.TryRead(out var buffer))
-                        {
-                            if (NegotiationProtocol.TryParseMessage(buffer, out var negotiationMessage))
-                            {
-                                var protocol = _protocolResolver.GetProtocol(negotiationMessage.Protocol, connection);
-
-                                var transportCapabilities = connection.Features.Get<IConnectionTransportFeature>()?.TransportCapabilities
-                                    ?? throw new InvalidOperationException("Unable to read transport capabilities.");
-
-                                var dataEncoder = (protocol.Type == ProtocolType.Binary && (transportCapabilities & TransferMode.Binary) == 0)
-                                    ? (IDataEncoder)Base64Encoder
-                                    : PassThroughEncoder;
-
-                                var transferModeFeature = connection.Features.Get<ITransferModeFeature>() ??
-                                    throw new InvalidOperationException("Unable to read transfer mode.");
-
-                                transferModeFeature.TransferMode =
-                                    (protocol.Type == ProtocolType.Binary && (transportCapabilities & TransferMode.Binary) != 0)
-                                        ? TransferMode.Binary
-                                        : TransferMode.Text;
-
-                                connection.ProtocolReaderWriter = new HubProtocolReaderWriter(protocol, dataEncoder);
-
-                                _logger.UsingHubProtocol(protocol.Name);
-
-                                return true;
-                            }
-                        }
-                    }
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                _logger.NegotiateCanceled();
-            }
-
-            return false;
-        }
 
         private async Task RunHubAsync(HubConnectionContext connection)
         {
@@ -241,9 +180,9 @@ namespace Microsoft.AspNetCore.SignalR
 
             try
             {
-                while (await connection.Transport.Reader.WaitToReadAsync(connection.ConnectionAbortedToken))
+                while (await connection.Input.WaitToReadAsync(connection.ConnectionAbortedToken))
                 {
-                    while (connection.Transport.Reader.TryRead(out var buffer))
+                    while (connection.Input.TryRead(out var buffer))
                     {
                         if (connection.ProtocolReaderWriter.ReadMessages(buffer, this, out var hubMessages))
                         {

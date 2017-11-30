@@ -31,8 +31,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
                 {
                     Factory = t => new TestConnectionMultiplexer()
                 }));
-                var connection1 = new HubConnectionContext(output1, client1.Connection);
-                var connection2 = new HubConnectionContext(output2, client2.Connection);
+                var connection1 = new HubConnectionContext(client1.Connection, TimeSpan.FromSeconds(15));
+                var connection2 = new HubConnectionContext(client2.Connection, TimeSpan.FromSeconds(15));
 
                 await manager.OnConnectedAsync(connection1).OrTimeout();
                 await manager.OnConnectedAsync(connection2).OrTimeout();
@@ -58,8 +58,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
                 {
                     Factory = t => new TestConnectionMultiplexer()
                 }));
-                var connection1 = new HubConnectionContext(output1, client1.Connection);
-                var connection2 = new HubConnectionContext(output2, client2.Connection);
+                var connection1 = new HubConnectionContext(client1.Connection, TimeSpan.FromSeconds(15));
+                var connection2 = new HubConnectionContext(client2.Connection, TimeSpan.FromSeconds(15));
 
                 await manager.OnConnectedAsync(connection1).OrTimeout();
                 await manager.OnConnectedAsync(connection2).OrTimeout();
@@ -88,8 +88,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
                 {
                     Factory = t => new TestConnectionMultiplexer()
                 }));
-                var connection1 = new HubConnectionContext(output1, client1.Connection);
-                var connection2 = new HubConnectionContext(output2, client2.Connection);
+                var connection1 = new HubConnectionContext(client1.Connection, TimeSpan.FromSeconds(15));
+                var connection2 = new HubConnectionContext(client2.Connection, TimeSpan.FromSeconds(15));
 
                 await manager.OnConnectedAsync(connection1).OrTimeout();
                 await manager.OnConnectedAsync(connection2).OrTimeout();
@@ -115,7 +115,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
                 {
                     Factory = t => new TestConnectionMultiplexer()
                 }));
-                var connection = new HubConnectionContext(output, client.Connection);
+                var connection = new HubConnectionContext(client.Connection, TimeSpan.FromSeconds(15));
 
                 await manager.OnConnectedAsync(connection).OrTimeout();
 
@@ -156,8 +156,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
                 var output1 = Channel.CreateUnbounded<HubMessage>();
                 var output2 = Channel.CreateUnbounded<HubMessage>();
 
-                var connection1 = new HubConnectionContext(output1, client1.Connection);
-                var connection2 = new HubConnectionContext(output2, client2.Connection);
+                var connection1 = new HubConnectionContext(client1.Connection, TimeSpan.FromSeconds(15));
+                var connection2 = new HubConnectionContext(client2.Connection, TimeSpan.FromSeconds(15));
 
                 await manager1.OnConnectedAsync(connection1).OrTimeout();
                 await manager2.OnConnectedAsync(connection2).OrTimeout();
@@ -189,8 +189,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
                 var output1 = Channel.CreateUnbounded<HubMessage>();
                 var output2 = Channel.CreateUnbounded<HubMessage>();
 
-                var connection1 = new HubConnectionContext(output1, client1.Connection);
-                var connection2 = new HubConnectionContext(output2, client2.Connection);
+                var connection1 = new HubConnectionContext(client1.Connection, TimeSpan.FromSeconds(15));
+                var connection2 = new HubConnectionContext(client2.Connection, TimeSpan.FromSeconds(15));
 
                 await manager1.OnConnectedAsync(connection1).OrTimeout();
                 await manager2.OnConnectedAsync(connection2).OrTimeout();
@@ -223,7 +223,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             {
                 var output = Channel.CreateUnbounded<HubMessage>();
 
-                var connection = new HubConnectionContext(output, client.Connection);
+                var connection = new HubConnectionContext(client.Connection, TimeSpan.FromSeconds(15));
 
                 await manager1.OnConnectedAsync(connection).OrTimeout();
 
@@ -251,7 +251,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             {
                 var output = Channel.CreateUnbounded<HubMessage>();
 
-                var connection = new HubConnectionContext(output, client.Connection);
+                var connection = new HubConnectionContext(client.Connection, TimeSpan.FromSeconds(15));
 
                 await manager1.OnConnectedAsync(connection).OrTimeout();
 
@@ -276,7 +276,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             {
                 var output = Channel.CreateUnbounded<HubMessage>();
 
-                var connection = new HubConnectionContext(output, client.Connection);
+                var connection = new HubConnectionContext(client.Connection, TimeSpan.FromSeconds(15));
 
                 await manager.OnConnectedAsync(connection).OrTimeout();
 
@@ -303,7 +303,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             {
                 var output = Channel.CreateUnbounded<HubMessage>();
 
-                var connection = new HubConnectionContext(output, client.Connection);
+                var connection = new HubConnectionContext(client.Connection, TimeSpan.FromSeconds(15));
 
                 await manager.OnConnectedAsync(connection).OrTimeout();
 
@@ -329,7 +329,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             {
                 var output = Channel.CreateUnbounded<HubMessage>();
 
-                var connection = new HubConnectionContext(output, client.Connection);
+                var connection = new HubConnectionContext(client.Connection, TimeSpan.FromSeconds(15));
 
                 await manager1.OnConnectedAsync(connection).OrTimeout();
 
@@ -353,7 +353,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             {
                 var output = Channel.CreateUnbounded<HubMessage>();
 
-                var connection = new HubConnectionContext(output, client.Connection);
+                var connection = new HubConnectionContext(client.Connection, TimeSpan.FromSeconds(15));
 
                 await manager1.OnConnectedAsync(connection).OrTimeout();
 
@@ -377,7 +377,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             {
                 var output = Channel.CreateUnbounded<HubMessage>();
 
-                var connection = new HubConnectionContext(output, client.Connection);
+                var connection = new HubConnectionContext(client.Connection, TimeSpan.FromSeconds(15));
 
                 await manager.OnConnectedAsync(connection).OrTimeout();
 
@@ -407,7 +407,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             {
                 var output = Channel.CreateUnbounded<HubMessage>();
 
-                var connection = new HubConnectionContext(output, client.Connection);
+                var connection = new HubConnectionContext(client.Connection, TimeSpan.FromSeconds(15));
 
                 await manager1.OnConnectedAsync(connection).OrTimeout();
 
@@ -437,7 +437,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             {
                 var output = Channel.CreateUnbounded<HubMessage>();
 
-                var connection = new HubConnectionContext(output, client.Connection);
+                var connection = new HubConnectionContext(client.Connection, TimeSpan.FromSeconds(15));
 
                 await manager1.OnConnectedAsync(connection).OrTimeout();
 
@@ -471,7 +471,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             {
                 var output = Channel.CreateUnbounded<HubMessage>();
 
-                var connection = new HubConnectionContext(output, client.Connection);
+                var connection = new HubConnectionContext(client.Connection, TimeSpan.FromSeconds(15));
 
                 // Add connection to both "servers" to see if connection receives message twice
                 await manager1.OnConnectedAsync(connection).OrTimeout();
@@ -502,7 +502,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
                 var writer = new Mock<ChannelWriter<HubMessage>>();
                 writer.Setup(o => o.WaitToWriteAsync(It.IsAny<CancellationToken>())).Throws(new Exception());
 
-                var connection = new HubConnectionContext(new MockChannel(writer.Object), client.Connection);
+                var connection = new HubConnectionContext(client.Connection, TimeSpan.FromSeconds(30));
 
                 await manager2.OnConnectedAsync(connection).OrTimeout();
 
@@ -526,7 +526,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
                 var writer = new Mock<ChannelWriter<HubMessage>>();
                 writer.Setup(o => o.WaitToWriteAsync(It.IsAny<CancellationToken>())).Throws(new Exception("Message"));
 
-                var connection = new HubConnectionContext(new MockChannel(writer.Object), client.Connection);
+                var connection = new HubConnectionContext(client.Connection, TimeSpan.FromSeconds(30));
 
                 await manager.OnConnectedAsync(connection).OrTimeout();
 
