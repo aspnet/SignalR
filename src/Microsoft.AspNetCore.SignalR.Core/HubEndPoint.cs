@@ -42,7 +42,7 @@ namespace Microsoft.AspNetCore.SignalR
         private readonly HubOptions _hubOptions;
         private readonly IUserIdProvider _userIdProvider;
 
-        private long _lastSendTimestamp = 0;
+        private long _keepAliveDuration;
 
 
         // This is the rate at which the keep-alive timer ticks. It is NOT the actual rate at which pings are sent. See KeepAliveTick local
@@ -65,18 +65,20 @@ namespace Microsoft.AspNetCore.SignalR
             _serviceScopeFactory = serviceScopeFactory;
             _userIdProvider = userIdProvider;
 
+            // Calculate the keep-alive duration in Stopwatch ticks
+            // Frequency is "ticks/sec" so we convert it to "ticks/ms" first.
+            _keepAliveDuration = (int)_hubOptions.KeepAliveInterval.TotalMilliseconds * (Stopwatch.Frequency / 1000);
+
             DiscoverHubMethods();
         }
 
         public async Task OnConnectedAsync(ConnectionContext connection)
         {
-            var output = Channel.CreateUnbounded<HubMessage>();
-
             // Set the hub feature before doing anything else. This stores
             // all the relevant state for a SignalR Hub connection.
             connection.Features.Set<IHubFeature>(new HubFeature());
 
-            var connectionContext = new HubConnectionContext(output, connection);
+            var connectionContext = new HubConnectionContext(connection);
 
             if (!await ProcessNegotiate(connectionContext))
             {
@@ -84,78 +86,15 @@ namespace Microsoft.AspNetCore.SignalR
             }
 
             connectionContext.UserIdentifier = _userIdProvider.GetUserId(connectionContext);
-            var protocolReaderWriter = connectionContext.ProtocolReaderWriter;
+            connectionContext.Logger = _logger;
+            connectionContext.KeepAliveDuration = _keepAliveDuration;
+            _ = connectionContext.StartAsync();
 
-            // Hubs support multiple producers so we set up this loop to copy
-            // data written to the HubConnectionContext's channel to the transport channel
-            async Task WriteToTransport()
-            {
-                try
-                {
-                    while (await output.Reader.WaitToReadAsync())
-                    {
-                        while (output.Reader.TryRead(out var hubMessage))
-                        {
-                            var buffer = protocolReaderWriter.WriteMessage(hubMessage);
-                            while (await connection.Transport.Writer.WaitToWriteAsync())
-                            {
-                                if (connection.Transport.Writer.TryWrite(buffer))
-                                {
-                                    Interlocked.Exchange(ref _lastSendTimestamp, Stopwatch.GetTimestamp());
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    connectionContext.Abort(ex);
-                }
-            }
-
-            _lastSendTimestamp = Stopwatch.GetTimestamp();
-            var writingOutputTask = WriteToTransport();
-
-            Timer keepAliveTimer = null;
             try
             {
-                if (connection.Features.Get<IConnectionInherentKeepAliveFeature>() == null)
+                if (connectionContext.RequiresKeepAlives)
                 {
-                    // Calculate the keep-alive duration in Stopwatch ticks
-                    // Frequency is "ticks/sec" so we convert it to "ticks/ms" first.
-                    var keepAliveDuration = (int)_hubOptions.KeepAliveInterval.TotalMilliseconds * (Stopwatch.Frequency / 1000);
-
-                    // Serialize the keep-alive message in advance, it's a singleton and will always serialize the same.
-                    var serializedKeepAlive = protocolReaderWriter.WriteMessage(PingMessage.Instance);
-
-                    // Implements the keep-alive tick behavior
-                    // Each tick, we check if the time since the last send is larger than the keep alive duration (in ticks).
-                    // If it is, we send a ping frame, if not, we no-op on this tick. This means that in the worst case, the
-                    // true "ping rate" of the server could be (_hubOptions.KeepAliveInterval + HubEndPoint.KeepAliveTimerInterval),
-                    // because if the interval elapses right after the last tick of this timer, it won't be detected until the next tick.
-                    void KeepAliveTick(object state)
-                    {
-                        if (Stopwatch.GetTimestamp() - Interlocked.Read(ref _lastSendTimestamp) > keepAliveDuration)
-                        {
-                            // Haven't sent a message for the entire keep-alive duration, so send a ping.
-                            // If the transport channel is full, this will fail, but that's OK because
-                            // adding a Ping message when the transport is full is unnecessary since the
-                            // transport is still in the process of sending frames.
-                            if (connection.Transport.Writer.TryWrite(serializedKeepAlive))
-                            {
-                                _logger.LogTrace("Sent Ping fame to client");
-                            }
-                            else
-                            {
-                                // This isn't necessarily an error, it just indicates that the transport is applying backpressure right now.
-                                _logger.LogDebug("Unable to send Ping message to client, the transport buffer is full.");
-                            }
-                            Interlocked.Exchange(ref _lastSendTimestamp, Stopwatch.GetTimestamp());
-                        }
-                    }
-
-                    keepAliveTimer = new Timer(KeepAliveTick, null, KeepAliveTimerInterval, KeepAliveTimerInterval);
+                    connectionContext.StartKeepAliveTimer(KeepAliveTimerInterval);
                 }
 
                 await _lifetimeManager.OnConnectedAsync(connectionContext);
@@ -163,17 +102,19 @@ namespace Microsoft.AspNetCore.SignalR
             }
             finally
             {
-                keepAliveTimer?.Dispose();
                 await _lifetimeManager.OnDisconnectedAsync(connectionContext);
 
-                // Nothing should be writing to the HubConnectionContext
-                output.Writer.TryComplete();
-
-                // This should unwind once we complete the output
-                await writingOutputTask;
+                await connectionContext.DisposeAsync();
             }
         }
 
+
+        // Implements the keep-alive tick behavior
+        // Each tick, we check if the time since the last send is larger than the keep alive duration (in ticks).
+        // If it is, we send a ping frame, if not, we no-op on this tick. This means that in the worst case, the
+        // true "ping rate" of the server could be (_hubOptions.KeepAliveInterval + HubEndPoint.KeepAliveTimerInterval),
+        // because if the interval elapses right after the last tick of this timer, it won't be detected until the next tick.
+        
         private async Task<bool> ProcessNegotiate(HubConnectionContext connection)
         {
             try
@@ -181,9 +122,9 @@ namespace Microsoft.AspNetCore.SignalR
                 using (var cts = new CancellationTokenSource())
                 {
                     cts.CancelAfter(_hubOptions.NegotiateTimeout);
-                    while (await connection.Input.WaitToReadAsync(cts.Token))
+                    while (await connection.Transport.Reader.WaitToReadAsync(cts.Token))
                     {
-                        while (connection.Input.TryRead(out var buffer))
+                        while (connection.Transport.Reader.TryRead(out var buffer))
                         {
                             if (NegotiationProtocol.TryParseMessage(buffer, out var negotiationMessage))
                             {
@@ -312,9 +253,9 @@ namespace Microsoft.AspNetCore.SignalR
 
             try
             {
-                while (await connection.Input.WaitToReadAsync(connection.ConnectionAbortedToken))
+                while (await connection.Transport.Reader.WaitToReadAsync(connection.ConnectionAbortedToken))
                 {
-                    while (connection.Input.TryRead(out var buffer))
+                    while (connection.Transport.Reader.TryRead(out var buffer))
                     {
                         if (connection.ProtocolReaderWriter.ReadMessages(buffer, this, out var hubMessages))
                         {
