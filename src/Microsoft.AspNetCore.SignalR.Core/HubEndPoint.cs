@@ -42,9 +42,6 @@ namespace Microsoft.AspNetCore.SignalR
         private readonly HubOptions _hubOptions;
         private readonly IUserIdProvider _userIdProvider;
 
-        private long _keepAliveDuration;
-
-
         // This is the rate at which the keep-alive timer ticks. It is NOT the actual rate at which pings are sent. See KeepAliveTick local
         // function in OnConnectionAsync for details.
         public TimeSpan KeepAliveTimerInterval { get; set; } = TimeSpan.FromSeconds(5);
@@ -65,10 +62,6 @@ namespace Microsoft.AspNetCore.SignalR
             _serviceScopeFactory = serviceScopeFactory;
             _userIdProvider = userIdProvider;
 
-            // Calculate the keep-alive duration in Stopwatch ticks
-            // Frequency is "ticks/sec" so we convert it to "ticks/ms" first.
-            _keepAliveDuration = (int)_hubOptions.KeepAliveInterval.TotalMilliseconds * (Stopwatch.Frequency / 1000);
-
             DiscoverHubMethods();
         }
 
@@ -78,25 +71,20 @@ namespace Microsoft.AspNetCore.SignalR
             // all the relevant state for a SignalR Hub connection.
             connection.Features.Set<IHubFeature>(new HubFeature());
 
-            var connectionContext = new HubConnectionContext(connection);
+            var connectionContext = new HubConnectionContext(connection, _hubOptions.KeepAliveInterval);
 
             if (!await ProcessNegotiate(connectionContext))
             {
                 return;
             }
+            Debug.Assert(connectionContext.ProtocolReaderWriter != null, "Expected ProcessNegotiate to set the ProtocolReaderWriter");
 
             connectionContext.UserIdentifier = _userIdProvider.GetUserId(connectionContext);
             connectionContext.Logger = _logger;
-            connectionContext.KeepAliveDuration = _keepAliveDuration;
             _ = connectionContext.StartAsync();
 
             try
             {
-                if (connectionContext.RequiresKeepAlives)
-                {
-                    connectionContext.StartKeepAliveTimer(KeepAliveTimerInterval);
-                }
-
                 await _lifetimeManager.OnConnectedAsync(connectionContext);
                 await RunHubAsync(connectionContext);
             }
