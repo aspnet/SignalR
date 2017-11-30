@@ -1387,6 +1387,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 services.Configure<HubOptions>(options =>
                     options.KeepAliveInterval = TimeSpan.FromMilliseconds(100)));
             var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            endPoint.KeepAliveTimerInterval = TimeSpan.FromMilliseconds(10);
 
             using (var client = new TestClient(false, new JsonHubProtocol()))
             {
