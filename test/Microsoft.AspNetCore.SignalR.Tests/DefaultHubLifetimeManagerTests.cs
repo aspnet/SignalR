@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.SignalR.Tests.Common;
 using Moq;
 using Xunit;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.AspNetCore.Sockets;
 
 namespace Microsoft.AspNetCore.SignalR.Tests
 {
@@ -18,22 +20,20 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             using (var client2 = new TestClient())
             {
                 var manager = new DefaultHubLifetimeManager<MyHub>();
-                var connection1 = new HubConnectionContext(client1.Connection, TimeSpan.FromSeconds(15));
-                var connection2 = new HubConnectionContext(client2.Connection, TimeSpan.FromSeconds(15));
+                var connection1 = CreateHubConnectionContext(client1.Connection);
+                var connection2 = CreateHubConnectionContext(client2.Connection);
 
                 await manager.OnConnectedAsync(connection1).OrTimeout();
                 await manager.OnConnectedAsync(connection2).OrTimeout();
 
                 await manager.InvokeAllAsync("Hello", new object[] { "World" }).OrTimeout();
 
-                Assert.True(output1.Reader.TryRead(out var item));
-                var message = Assert.IsType<InvocationMessage>(item);
+                var message = Assert.IsType<InvocationMessage>(client1.TryRead());
                 Assert.Equal("Hello", message.Target);
                 Assert.Single(message.Arguments);
                 Assert.Equal("World", (string)message.Arguments[0]);
 
-                Assert.True(output2.Reader.TryRead(out item));
-                message = Assert.IsType<InvocationMessage>(item);
+                message = Assert.IsType<InvocationMessage>(client2.TryRead());
                 Assert.Equal("Hello", message.Target);
                 Assert.Single(message.Arguments);
                 Assert.Equal("World", (string)message.Arguments[0]);
@@ -46,12 +46,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             using (var client1 = new TestClient())
             using (var client2 = new TestClient())
             {
-                var output1 = Channel.CreateUnbounded<HubMessage>();
-                var output2 = Channel.CreateUnbounded<HubMessage>();
-
                 var manager = new DefaultHubLifetimeManager<MyHub>();
-                var connection1 = new HubConnectionContext(client1.Connection, TimeSpan.FromSeconds(15));
-                var connection2 = new HubConnectionContext(client2.Connection, TimeSpan.FromSeconds(15));
+                var connection1 = CreateHubConnectionContext(client1.Connection);
+                var connection2 = CreateHubConnectionContext(client2.Connection);
 
                 await manager.OnConnectedAsync(connection1).OrTimeout();
                 await manager.OnConnectedAsync(connection2).OrTimeout();
@@ -60,13 +57,12 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 await manager.InvokeAllAsync("Hello", new object[] { "World" }).OrTimeout();
 
-                Assert.True(output1.Reader.TryRead(out var item));
-                var message = Assert.IsType<InvocationMessage>(item);
+                var message = Assert.IsType<InvocationMessage>(client1.TryRead());
                 Assert.Equal("Hello", message.Target);
                 Assert.Single(message.Arguments);
                 Assert.Equal("World", (string)message.Arguments[0]);
 
-                Assert.False(output2.Reader.TryRead(out item));
+                Assert.Null(client2.TryRead());
             }
         }
 
@@ -76,12 +72,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             using (var client1 = new TestClient())
             using (var client2 = new TestClient())
             {
-                var output1 = Channel.CreateUnbounded<HubMessage>();
-                var output2 = Channel.CreateUnbounded<HubMessage>();
-
                 var manager = new DefaultHubLifetimeManager<MyHub>();
-                var connection1 = new HubConnectionContext(client1.Connection, TimeSpan.FromSeconds(15));
-                var connection2 = new HubConnectionContext(client2.Connection, TimeSpan.FromSeconds(15));
+                var connection1 = CreateHubConnectionContext(client1.Connection);
+                var connection2 = CreateHubConnectionContext(client2.Connection);
 
                 await manager.OnConnectedAsync(connection1).OrTimeout();
                 await manager.OnConnectedAsync(connection2).OrTimeout();
@@ -90,13 +83,12 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 await manager.InvokeGroupAsync("gunit", "Hello", new object[] { "World" }).OrTimeout();
 
-                Assert.True(output1.Reader.TryRead(out var item));
-                var message = Assert.IsType<InvocationMessage>(item);
+                var message = Assert.IsType<InvocationMessage>(client1.TryRead());
                 Assert.Equal("Hello", message.Target);
                 Assert.Single(message.Arguments);
                 Assert.Equal("World", (string)message.Arguments[0]);
 
-                Assert.False(output2.Reader.TryRead(out item));
+                Assert.Null(client2.TryRead());
             }
         }
 
@@ -105,16 +97,14 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             using (var client = new TestClient())
             {
-                var output = Channel.CreateUnbounded<HubMessage>();
                 var manager = new DefaultHubLifetimeManager<MyHub>();
-                var connection = new HubConnectionContext(client.Connection, TimeSpan.FromSeconds(15));
+                var connection = CreateHubConnectionContext(client.Connection);
 
                 await manager.OnConnectedAsync(connection).OrTimeout();
 
                 await manager.InvokeConnectionAsync(connection.ConnectionId, "Hello", new object[] { "World" }).OrTimeout();
 
-                Assert.True(output.Reader.TryRead(out var item));
-                var message = Assert.IsType<InvocationMessage>(item);
+                var message = Assert.IsType<InvocationMessage>(client.TryRead());
                 Assert.Equal("Hello", message.Target);
                 Assert.Single(message.Arguments);
                 Assert.Equal("World", (string)message.Arguments[0]);
@@ -131,7 +121,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 writer.Setup(o => o.WaitToWriteAsync(It.IsAny<CancellationToken>())).Throws(new Exception("Message"));
 
                 var manager = new DefaultHubLifetimeManager<MyHub>();
-                var connection = new HubConnectionContext(client.Connection, TimeSpan.FromSeconds(30));
+                var connection = CreateHubConnectionContext(client.Connection);
 
                 await manager.OnConnectedAsync(connection).OrTimeout();
 
@@ -173,6 +163,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 Writer = writer;
             }
+        }
+
+        private static HubConnectionContext CreateHubConnectionContext(DefaultConnectionContext connection)
+        {
+            return new HubConnectionContext(connection, TimeSpan.FromSeconds(15), NullLogger<HubConnectionContext>.Instance);
         }
     }
 }
