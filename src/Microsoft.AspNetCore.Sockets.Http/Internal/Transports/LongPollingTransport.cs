@@ -31,11 +31,6 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
 
         public async Task ProcessRequestAsync(ConnectionContext connection, HttpContext context, CancellationToken token)
         {
-            if (connection.Features.Get<IConnectionInherentKeepAliveFeature>() == null)
-            {
-                connection.Features.Set<IConnectionInherentKeepAliveFeature>(new ConnectionInherentKeepAliveFeature(_timeout));
-            }
-
             try
             {
                 if (!await _application.WaitToReadAsync(token))
