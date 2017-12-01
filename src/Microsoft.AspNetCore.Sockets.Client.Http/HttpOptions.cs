@@ -19,7 +19,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Http
         /// by the <see cref="WebSocketsTransport"/> to configure the WebSocket.
         /// </summary>
         /// <remarks>
-        /// This delegate is invoked AFTER headers from <see cref="Headers"/> and the JWT bearer token from <see cref="JwtBearerTokenFactory"/>
+        /// This delegate is invoked after headers from <see cref="Headers"/> and the JWT bearer token from <see cref="JwtBearerTokenFactory"/>
         /// has been applied.
         /// </remarks>
         public Action<ClientWebSocketOptions> WebSocketOptions { get; set; }

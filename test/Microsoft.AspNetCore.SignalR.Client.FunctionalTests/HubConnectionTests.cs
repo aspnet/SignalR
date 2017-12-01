@@ -6,8 +6,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Threading.Channels;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.SignalR.Tests.Common;
 using Microsoft.AspNetCore.Sockets;
@@ -16,7 +16,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Xunit;
 using Xunit.Abstractions;
-using Microsoft.AspNetCore.Sockets.Client.Http;
 
 namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 {
