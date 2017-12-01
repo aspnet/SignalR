@@ -631,13 +631,13 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 // System.Net has a TransportType type which means we need to fully-qualify this rather than 'use' the namespace
                 var cookieJar = new System.Net.CookieContainer();
                 cookieJar.Add(new System.Net.Cookie("Foo", "Bar", "/", new Uri(_serverFixture.Url).Host));
-                var httpOptions = new HttpOptions()
-                {
-                    WebSocketOptions = options => options.Cookies = cookieJar
-                };
 
-                var httpConnection = new HttpConnection(new Uri(_serverFixture.Url + "/default"), TransportType.WebSockets, loggerFactory: null, httpOptions);
-                var hubConnection = new HubConnection(httpConnection, new JsonHubProtocol(), loggerFactory: null);
+                var hubConnection = new HubConnectionBuilder()
+                    .WithUrl(_serverFixture.Url + "/default")
+                    .WithTransport(TransportType.WebSockets)
+                    .WithLoggerFactory(loggerFactory)
+                    .WithWebSocketOptions(options => options.Cookies = cookieJar)
+                    .Build();
                 try
                 {
                     await hubConnection.StartAsync().OrTimeout();
