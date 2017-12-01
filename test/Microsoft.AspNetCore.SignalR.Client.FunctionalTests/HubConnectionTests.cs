@@ -16,6 +16,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Xunit;
 using Xunit.Abstractions;
+using Microsoft.AspNetCore.Sockets.Client.Http;
 
 namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 {
@@ -609,6 +610,39 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                     await hubConnection.StartAsync().OrTimeout();
                     var headerValues = await hubConnection.InvokeAsync<string[]>("GetHeaderValues", new object[] { new[] { "X-test", "X-42" } }).OrTimeout();
                     Assert.Equal(new[] { "42", "test" }, headerValues);
+                }
+                catch (Exception ex)
+                {
+                    loggerFactory.CreateLogger<HubConnectionTests>().LogError(ex, "Exception from test");
+                    throw;
+                }
+                finally
+                {
+                    await hubConnection.DisposeAsync().OrTimeout();
+                }
+            }
+        }
+
+        [Fact]
+        public async Task WebSocketOptionsAreApplied()
+        {
+            using (StartLog(out var loggerFactory))
+            {
+                // System.Net has a TransportType type which means we need to fully-qualify this rather than 'use' the namespace
+                var cookieJar = new System.Net.CookieContainer();
+                cookieJar.Add(new System.Net.Cookie("Foo", "Bar", "/", new Uri(_serverFixture.Url).Host));
+                var httpOptions = new HttpOptions()
+                {
+                    WebSocketOptions = options => options.Cookies = cookieJar
+                };
+
+                var httpConnection = new HttpConnection(new Uri(_serverFixture.Url + "/default"), TransportType.WebSockets, loggerFactory: null, httpOptions);
+                var hubConnection = new HubConnection(httpConnection, new JsonHubProtocol(), loggerFactory: null);
+                try
+                {
+                    await hubConnection.StartAsync().OrTimeout();
+                    var cookieValue = await hubConnection.InvokeAsync<string>("GetCookieValue", new object[] { "Foo" }).OrTimeout();
+                    Assert.Equal("Bar", cookieValue);
                 }
                 catch (Exception ex)
                 {
