@@ -471,7 +471,7 @@ namespace Microsoft.AspNetCore.Sockets
             }
 
             // Configure transport-specific features.
-            if(transportType == TransportType.LongPolling)
+            if (transportType == TransportType.LongPolling)
             {
                 connection.Features.Set<IConnectionInherentKeepAliveFeature>(new ConnectionInherentKeepAliveFeature(_timeout));
             }
