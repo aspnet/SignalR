@@ -1,15 +1,10 @@
 using System;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Threading.Channels;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
-using Microsoft.AspNetCore.SignalR.Tests.Common;
 using Moq;
 using Xunit;
-using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.AspNetCore.Sockets;
-using Microsoft.AspNetCore.SignalR.Internal;
-using Microsoft.AspNetCore.SignalR.Internal.Encoders;
 
 namespace Microsoft.AspNetCore.SignalR.Tests
 {
@@ -22,8 +17,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             using (var client2 = new TestClient())
             {
                 var manager = new DefaultHubLifetimeManager<MyHub>();
-                var connection1 = CreateHubConnectionContext(client1.Connection);
-                var connection2 = CreateHubConnectionContext(client2.Connection);
+                var connection1 = HubConnectionContextUtils.Create(client1.Connection);
+                var connection2 = HubConnectionContextUtils.Create(client2.Connection);
 
                 await manager.OnConnectedAsync(connection1).OrTimeout();
                 await manager.OnConnectedAsync(connection2).OrTimeout();
@@ -52,8 +47,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             using (var client2 = new TestClient())
             {
                 var manager = new DefaultHubLifetimeManager<MyHub>();
-                var connection1 = CreateHubConnectionContext(client1.Connection);
-                var connection2 = CreateHubConnectionContext(client2.Connection);
+                var connection1 = HubConnectionContextUtils.Create(client1.Connection);
+                var connection2 = HubConnectionContextUtils.Create(client2.Connection);
 
                 await manager.OnConnectedAsync(connection1).OrTimeout();
                 await manager.OnConnectedAsync(connection2).OrTimeout();
@@ -81,8 +76,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             using (var client2 = new TestClient())
             {
                 var manager = new DefaultHubLifetimeManager<MyHub>();
-                var connection1 = CreateHubConnectionContext(client1.Connection);
-                var connection2 = CreateHubConnectionContext(client2.Connection);
+                var connection1 = HubConnectionContextUtils.Create(client1.Connection);
+                var connection2 = HubConnectionContextUtils.Create(client2.Connection);
 
                 await manager.OnConnectedAsync(connection1).OrTimeout();
                 await manager.OnConnectedAsync(connection2).OrTimeout();
@@ -109,7 +104,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             using (var client = new TestClient())
             {
                 var manager = new DefaultHubLifetimeManager<MyHub>();
-                var connection = CreateHubConnectionContext(client.Connection);
+                var connection = HubConnectionContextUtils.Create(client.Connection);
 
                 await manager.OnConnectedAsync(connection).OrTimeout();
 
@@ -134,7 +129,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 writer.Setup(o => o.WaitToWriteAsync(It.IsAny<CancellationToken>())).Throws(new Exception("Message"));
 
                 var manager = new DefaultHubLifetimeManager<MyHub>();
-                var connection = CreateHubConnectionContext(client.Connection);
+                var connection = HubConnectionContextUtils.Create(client.Connection, new MockChannel(writer.Object));
 
                 await manager.OnConnectedAsync(connection).OrTimeout();
 
@@ -176,17 +171,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 Writer = writer;
             }
-        }
-
-        private static HubConnectionContext CreateHubConnectionContext(DefaultConnectionContext connection)
-        {
-            var context = new HubConnectionContext(connection, TimeSpan.FromSeconds(15), NullLogger<HubConnectionContext>.Instance);
-            context.ProtocolReaderWriter = new HubProtocolReaderWriter(new JsonHubProtocol(), new PassThroughEncoder());
-
-            // We don't need to hold this task, it's also held internally and awaited by DisposeAsync.
-            _ = context.StartAsync();
-
-            return context;
         }
     }
 }

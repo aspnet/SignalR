@@ -244,5 +244,16 @@ namespace Microsoft.AspNetCore.SignalR
                 connection._abortCompletedTcs.TrySetException(ex);
             }
         }
+
+        public async Task WriteAsync(HubInvocationMessage message)
+        {
+            while(await Output.Writer.WaitToWriteAsync())
+            {
+                if(Output.Writer.TryWrite(message))
+                {
+                    return;
+                }
+            }
+        }
     }
 }

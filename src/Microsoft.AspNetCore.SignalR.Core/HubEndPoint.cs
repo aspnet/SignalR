@@ -37,10 +37,6 @@ namespace Microsoft.AspNetCore.SignalR
         private readonly HubOptions _hubOptions;
         private readonly IUserIdProvider _userIdProvider;
 
-        // This is the rate at which the keep-alive timer ticks. It is NOT the actual rate at which pings are sent. See KeepAliveTick local
-        // function in OnConnectionAsync for details.
-        public TimeSpan KeepAliveTimerInterval { get; set; } = TimeSpan.FromSeconds(5);
-
         public HubEndPoint(HubLifetimeManager<THub> lifetimeManager,
                            IHubProtocolResolver protocolResolver,
                            IHubContext<THub> hubContext,
@@ -271,9 +267,9 @@ namespace Microsoft.AspNetCore.SignalR
 
         private async Task SendMessageAsync(HubConnectionContext connection, HubMessage hubMessage)
         {
-            while (await connection.Output.WaitToWriteAsync())
+            while (await connection.Output.Writer.WaitToWriteAsync())
             {
-                if (connection.Output.TryWrite(hubMessage))
+                if (connection.Output.Writer.TryWrite(hubMessage))
                 {
                     return;
                 }
