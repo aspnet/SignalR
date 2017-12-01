@@ -13,7 +13,6 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.SignalR.Core;
 using Microsoft.AspNetCore.SignalR.Core.Internal;
-using Microsoft.AspNetCore.SignalR.Features;
 using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Encoders;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
@@ -33,22 +32,32 @@ namespace Microsoft.AspNetCore.SignalR
         private readonly ILogger _logger;
         private readonly CancellationTokenSource _connectionAbortedTokenSource = new CancellationTokenSource();
         private readonly TaskCompletionSource<object> _abortCompletedTcs = new TaskCompletionSource<object>();
-        private Task _writingTask = Task.CompletedTask;
+        private Task _lifetimeTask = Task.CompletedTask;
+
+        private readonly Channel<HubMessage> _input;
 
         private long _lastSendTimestamp = Stopwatch.GetTimestamp();
-        private long _keepAliveDuration;
+        private readonly long _keepAliveDuration;
         private byte[] _pingMessage;
 
-        public HubConnectionContext(ConnectionContext connectionContext, TimeSpan keepAliveInterval, ILogger<HubConnectionContext> logger)
+        public HubConnectionContext(ConnectionContext connectionContext, TimeSpan keepAliveInterval, ILoggerFactory loggerFactory)
         {
             Output = Channel.CreateUnbounded<HubMessage>();
+            _input = Channel.CreateUnbounded<HubMessage>();
             _connectionContext = connectionContext;
-            _logger = logger;
+            _logger = loggerFactory.CreateLogger<HubConnectionContext>();
             ConnectionAbortedToken = _connectionAbortedTokenSource.Token;
             _keepAliveDuration = (int)keepAliveInterval.TotalMilliseconds * (Stopwatch.Frequency / 1000);
         }
 
-        private IHubFeature HubFeature => Features.Get<IHubFeature>();
+        internal virtual ChannelReader<HubMessage> Input => _input;
+
+        internal virtual Channel<HubMessage> Output { get; set; }
+
+        internal ExceptionDispatchInfo AbortException { get; private set; }
+
+        // Currently used only for streaming methods
+        internal ConcurrentDictionary<string, CancellationTokenSource> ActiveRequestCancellationSources { get; } = new ConcurrentDictionary<string, CancellationTokenSource>();
 
         public virtual CancellationToken ConnectionAbortedToken { get; }
 
@@ -62,22 +71,39 @@ namespace Microsoft.AspNetCore.SignalR
 
         public virtual HubProtocolReaderWriter ProtocolReaderWriter { get; set; }
 
-        internal virtual Channel<HubMessage> Output { get; set; }
-
-        internal ExceptionDispatchInfo AbortException { get; private set; }
-
-        public virtual ChannelReader<byte[]> Input => _connectionContext.Transport.Reader;
-
-        // Currently used only for streaming methods
-        internal ConcurrentDictionary<string, CancellationTokenSource> ActiveRequestCancellationSources { get; } = new ConcurrentDictionary<string, CancellationTokenSource>();
-
         public string UserIdentifier { get; private set; }
 
-        // Hubs support multiple producers so we set up this loop to copy
-        // data written to the HubConnectionContext's channel to the transport channel
-        internal Task StartAsync()
+        public virtual void Abort()
         {
-            return _writingTask = StartAsyncCore();
+            // If we already triggered the token then noop, this isn't thread safe but it's good enough
+            // to avoid spawning a new task in the most common cases
+            if (_connectionAbortedTokenSource.IsCancellationRequested)
+            {
+                return;
+            }
+
+            // We fire and forget since this can trigger user code to run
+            Task.Factory.StartNew(_abortedCallback, this);
+        }
+
+        public async Task DisposeAsync()
+        {
+            // Nothing should be writing to the HubConnectionContext
+            Output.Writer.TryComplete();
+
+            // This should unwind once we complete the output
+            await _lifetimeTask;
+        }
+
+        public async Task WriteAsync(HubMessage message)
+        {
+            while (await Output.Writer.WaitToWriteAsync())
+            {
+                if (Output.Writer.TryWrite(message))
+                {
+                    return;
+                }
+            }
         }
 
         internal async Task<bool> NegotiateAsync(TimeSpan timeout, IHubProtocolResolver protocolResolver, IUserIdProvider userIdProvider)
@@ -130,7 +156,14 @@ namespace Microsoft.AspNetCore.SignalR
             return false;
         }
 
-        private async Task StartAsyncCore()
+        // Hubs support multiple producers so we set up this loop to copy
+        // data written to the HubConnectionContext's channel to the transport channel
+        internal Task StartAsync(IInvocationBinder invocationBinder)
+        {
+            return _lifetimeTask = StartAsyncCore(invocationBinder);
+        }
+
+        private Task StartAsyncCore(IInvocationBinder invocationBinder)
         {
             if (Features.Get<IConnectionInherentKeepAliveFeature>() == null)
             {
@@ -139,6 +172,46 @@ namespace Microsoft.AspNetCore.SignalR
                 _connectionContext.Features.Get<IConnectionHeartbeatFeature>()?.OnHeartbeat(state => ((HubConnectionContext)state).KeepAliveTick(), this);
             }
 
+            var writing = DoWriting();
+            var reading = DoReading(invocationBinder);
+
+            return Task.WhenAll(writing, reading);
+        }
+
+        private async Task DoReading(IInvocationBinder invocationBinder)
+        {
+            try
+            {
+                while (await _connectionContext.Transport.Reader.WaitToReadAsync(ConnectionAbortedToken))
+                {
+                    while (_connectionContext.Transport.Reader.TryRead(out var buffer))
+                    {
+                        if (ProtocolReaderWriter.ReadMessages(buffer, invocationBinder, out var hubMessages))
+                        {
+                            foreach (var hubMessage in hubMessages)
+                            {
+                                while (await _input.Writer.WaitToWriteAsync())
+                                {
+                                    if (_input.Writer.TryWrite(hubMessage))
+                                    {
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                _input.Writer.TryComplete();
+            }
+            catch (Exception ex)
+            {
+                _input.Writer.TryComplete(ex);
+            }
+        }
+
+        private async Task DoWriting()
+        {
             try
             {
                 while (await Output.Reader.WaitToReadAsync())
@@ -146,6 +219,7 @@ namespace Microsoft.AspNetCore.SignalR
                     while (Output.Reader.TryRead(out var hubMessage))
                     {
                         var buffer = ProtocolReaderWriter.WriteMessage(hubMessage);
+
                         while (await _connectionContext.Transport.Writer.WaitToWriteAsync())
                         {
                             if (_connectionContext.Transport.Writer.TryWrite(buffer))
@@ -161,19 +235,6 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 Abort(ex);
             }
-        }
-
-        public virtual void Abort()
-        {
-            // If we already triggered the token then noop, this isn't thread safe but it's good enough
-            // to avoid spawning a new task in the most common cases
-            if (_connectionAbortedTokenSource.IsCancellationRequested)
-            {
-                return;
-            }
-
-            // We fire and forget since this can trigger user code to run
-            Task.Factory.StartNew(_abortedCallback, this);
         }
 
         private void KeepAliveTick()
@@ -205,15 +266,6 @@ namespace Microsoft.AspNetCore.SignalR
             }
         }
 
-        public async Task DisposeAsync()
-        {
-            // Nothing should be writing to the HubConnectionContext
-            Output.Writer.TryComplete();
-
-            // This should unwind once we complete the output
-            await _writingTask;
-        }
-
         internal void Abort(Exception exception)
         {
             AbortException = ExceptionDispatchInfo.Capture(exception);
@@ -242,17 +294,6 @@ namespace Microsoft.AspNetCore.SignalR
                 // TODO: Should we log if the cancellation callback fails? This is more preventative to make sure
                 // we don't end up with an unobserved task
                 connection._abortCompletedTcs.TrySetException(ex);
-            }
-        }
-
-        public async Task WriteAsync(HubInvocationMessage message)
-        {
-            while(await Output.Writer.WaitToWriteAsync())
-            {
-                if(Output.Writer.TryWrite(message))
-                {
-                    return;
-                }
             }
         }
     }

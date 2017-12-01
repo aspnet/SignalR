@@ -12,14 +12,14 @@ namespace Microsoft.AspNetCore.SignalR.Tests
     {
         public static HubConnectionContext Create(DefaultConnectionContext connection, Channel<HubMessage> replacementOutput = null)
         {
-            var context = new HubConnectionContext(connection, TimeSpan.FromSeconds(15), NullLogger<HubConnectionContext>.Instance);
+            var context = new HubConnectionContext(connection, TimeSpan.FromSeconds(15), NullLoggerFactory.Instance);
             if (replacementOutput != null)
             {
                 context.Output = replacementOutput;
             }
             context.ProtocolReaderWriter = new HubProtocolReaderWriter(new JsonHubProtocol(), new PassThroughEncoder());
 
-            _ = context.StartAsync();
+            _ = context.StartAsync(null);
 
             return context;
         }

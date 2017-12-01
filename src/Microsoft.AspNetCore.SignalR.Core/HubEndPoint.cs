@@ -13,7 +13,6 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR.Core;
 using Microsoft.AspNetCore.SignalR.Core.Internal;
-using Microsoft.AspNetCore.SignalR.Features;
 using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.Sockets;
@@ -59,11 +58,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public async Task OnConnectedAsync(ConnectionContext connection)
         {
-            // Set the hub feature before doing anything else. This stores
-            // all the relevant state for a SignalR Hub connection.
-            connection.Features.Set<IHubFeature>(new HubFeature());
-
-            var connectionContext = new HubConnectionContext(connection, _hubOptions.KeepAliveInterval, _loggerFactory.CreateLogger<HubConnectionContext>());
+            var connectionContext = new HubConnectionContext(connection, _hubOptions.KeepAliveInterval, _loggerFactory);
 
             if (!await connectionContext.NegotiateAsync(_hubOptions.NegotiateTimeout, _protocolResolver, _userIdProvider))
             {
@@ -71,7 +66,7 @@ namespace Microsoft.AspNetCore.SignalR
             }
 
             // We don't need to hold this task, it's also held internally and awaited by DisposeAsync.
-            _ = connectionContext.StartAsync();
+            _ = connectionContext.StartAsync(this);
 
             try
             {
@@ -179,55 +174,49 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 while (await connection.Input.WaitToReadAsync(connection.ConnectionAbortedToken))
                 {
-                    while (connection.Input.TryRead(out var buffer))
+                    while (connection.Input.TryRead(out var hubMessage))
                     {
-                        if (connection.ProtocolReaderWriter.ReadMessages(buffer, this, out var hubMessages))
+                        switch (hubMessage)
                         {
-                            foreach (var hubMessage in hubMessages)
-                            {
-                                switch (hubMessage)
+                            case InvocationMessage invocationMessage:
+                                _logger.ReceivedHubInvocation(invocationMessage);
+
+                                // Don't wait on the result of execution, continue processing other
+                                // incoming messages on this connection.
+                                _ = ProcessInvocation(connection, invocationMessage, isStreamedInvocation: false);
+                                break;
+
+                            case StreamInvocationMessage streamInvocationMessage:
+                                _logger.ReceivedStreamHubInvocation(streamInvocationMessage);
+
+                                // Don't wait on the result of execution, continue processing other
+                                // incoming messages on this connection.
+                                _ = ProcessInvocation(connection, streamInvocationMessage, isStreamedInvocation: true);
+                                break;
+
+                            case CancelInvocationMessage cancelInvocationMessage:
+                                // Check if there is an associated active stream and cancel it if it exists.
+                                // The cts will be removed when the streaming method completes executing
+                                if (connection.ActiveRequestCancellationSources.TryGetValue(cancelInvocationMessage.InvocationId, out var cts))
                                 {
-                                    case InvocationMessage invocationMessage:
-                                        _logger.ReceivedHubInvocation(invocationMessage);
-
-                                        // Don't wait on the result of execution, continue processing other
-                                        // incoming messages on this connection.
-                                        _ = ProcessInvocation(connection, invocationMessage, isStreamedInvocation: false);
-                                        break;
-
-                                    case StreamInvocationMessage streamInvocationMessage:
-                                        _logger.ReceivedStreamHubInvocation(streamInvocationMessage);
-
-                                        // Don't wait on the result of execution, continue processing other
-                                        // incoming messages on this connection.
-                                        _ = ProcessInvocation(connection, streamInvocationMessage, isStreamedInvocation: true);
-                                        break;
-
-                                    case CancelInvocationMessage cancelInvocationMessage:
-                                        // Check if there is an associated active stream and cancel it if it exists.
-                                        // The cts will be removed when the streaming method completes executing
-                                        if (connection.ActiveRequestCancellationSources.TryGetValue(cancelInvocationMessage.InvocationId, out var cts))
-                                        {
-                                            _logger.CancelStream(cancelInvocationMessage.InvocationId);
-                                            cts.Cancel();
-                                        }
-                                        else
-                                        {
-                                            // Stream can be canceled on the server while client is canceling stream.
-                                            _logger.UnexpectedCancel();
-                                        }
-                                        break;
-
-                                    case PingMessage _:
-                                        // We don't care about pings
-                                        break;
-
-                                    // Other kind of message we weren't expecting
-                                    default:
-                                        _logger.UnsupportedMessageReceived(hubMessage.GetType().FullName);
-                                        throw new NotSupportedException($"Received unsupported message: {hubMessage}");
+                                    _logger.CancelStream(cancelInvocationMessage.InvocationId);
+                                    cts.Cancel();
                                 }
-                            }
+                                else
+                                {
+                                    // Stream can be canceled on the server while client is canceling stream.
+                                    _logger.UnexpectedCancel();
+                                }
+                                break;
+
+                            case PingMessage _:
+                                // We don't care about pings
+                                break;
+
+                            // Other kind of message we weren't expecting
+                            default:
+                                _logger.UnsupportedMessageReceived(hubMessage.GetType().FullName);
+                                throw new NotSupportedException($"Received unsupported message: {hubMessage}");
                         }
                     }
                 }
@@ -265,19 +254,9 @@ namespace Microsoft.AspNetCore.SignalR
             }
         }
 
-        private async Task SendMessageAsync(HubConnectionContext connection, HubMessage hubMessage)
+        private Task SendMessageAsync(HubConnectionContext connection, HubMessage hubMessage)
         {
-            while (await connection.Output.Writer.WaitToWriteAsync())
-            {
-                if (connection.Output.Writer.TryWrite(hubMessage))
-                {
-                    return;
-                }
-            }
-
-            // Output is closed. Cancel this invocation completely
-            _logger.OutboundChannelClosed();
-            throw new OperationCanceledException("Outbound channel was closed while trying to write hub message");
+            return connection.WriteAsync(hubMessage);
         }
 
         private async Task Invoke(HubMethodDescriptor descriptor, HubConnectionContext connection,
