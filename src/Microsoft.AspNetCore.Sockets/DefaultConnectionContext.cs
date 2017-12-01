@@ -5,12 +5,11 @@ using System;
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Threading.Channels;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Sockets.Features;
 using Microsoft.Extensions.Internal;
-using System.Collections.Concurrent;
 
 namespace Microsoft.AspNetCore.Sockets
 {

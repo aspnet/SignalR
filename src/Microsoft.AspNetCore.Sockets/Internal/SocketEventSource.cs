@@ -43,6 +43,15 @@ namespace Microsoft.AspNetCore.Sockets.Internal
             }
         }
 
+        [NonEvent]
+        public void ScannedConnections(TimeSpan duration)
+        {
+            if (IsEnabled() && IsEnabled(EventLevel.Verbose, EventKeywords.None))
+            {
+                ScannedConnections(duration.TotalMilliseconds);
+            }
+        }
+
         [Event(eventId: 1, Level = EventLevel.Informational, Message = "Started connection '{0}'.")]
         public ValueStopwatch ConnectionStart(string connectionId)
         {
@@ -85,16 +94,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal
             }
         }
 
-        [Event(eventId: 5, Level = EventLevel.Verbose, Message = "Scanning connections in {0:0.00}ms.")]
+        [Event(eventId: 5, Level = EventLevel.Verbose, Message = "Finished scanning connections. Duration: {0:0.00}ms.")]
         private void ScannedConnections(double durationInMilliseconds) => WriteEvent(5, durationInMilliseconds);
-
-        [NonEvent]
-        public void ScannedConnections(TimeSpan duration)
-        {
-            if (IsEnabled() && IsEnabled(EventLevel.Verbose, EventKeywords.None))
-            {
-                ScannedConnections(duration.TotalMilliseconds);
-            }
-        }
     }
 }

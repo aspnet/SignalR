@@ -11,7 +11,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 
-
 namespace Microsoft.AspNetCore.SignalR.Tests
 {
     public class ServerFixture<TStartup> : IDisposable

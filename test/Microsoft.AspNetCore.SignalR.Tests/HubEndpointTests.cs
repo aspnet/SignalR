@@ -1435,15 +1435,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 // Wait 500 ms, but make sure to yield some time up to unblock concurrent threads
                 // This is useful on AppVeyor because it's slow enough to end up with no time
                 // being available for the endpoint to run.
-                for (var i = 0; i < 5; i += 1)
+                for (var i = 0; i < 50; i += 1)
                 {
-                    // Tick the heartbeat feature manually, 10 times, every 10ms
-                    for(var j = 0; j < 10; j += 1)
-                    {
-                        client.Connection.TickHeartbeat();
-                        await Task.Yield();
-                        await Task.Delay(10);
-                    }
+                    client.Connection.TickHeartbeat();
+                    await Task.Yield();
+                    await Task.Delay(10);
                 }
 
                 // Shut down
@@ -1454,7 +1450,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 // We should have all pings
                 HubMessage message;
                 var counter = 0;
-                while ((message = await client.ReadAsync()) != null)
+                while ((message = await client.ReadAsync().OrTimeout()) != null)
                 {
                     counter += 1;
                     Assert.Same(PingMessage.Instance, message);
