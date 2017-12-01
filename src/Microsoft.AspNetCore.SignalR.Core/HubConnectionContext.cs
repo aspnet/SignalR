@@ -32,32 +32,20 @@ namespace Microsoft.AspNetCore.SignalR
         private readonly ILogger _logger;
         private readonly CancellationTokenSource _connectionAbortedTokenSource = new CancellationTokenSource();
         private readonly TaskCompletionSource<object> _abortCompletedTcs = new TaskCompletionSource<object>();
-        private Task _lifetimeTask = Task.CompletedTask;
-
-        private readonly Channel<HubMessage> _input;
-
-        private long _lastSendTimestamp = Stopwatch.GetTimestamp();
         private readonly long _keepAliveDuration;
+
+        private Task _writingTask = Task.CompletedTask;
+        private long _lastSendTimestamp = Stopwatch.GetTimestamp();
         private byte[] _pingMessage;
 
         public HubConnectionContext(ConnectionContext connectionContext, TimeSpan keepAliveInterval, ILoggerFactory loggerFactory)
         {
             Output = Channel.CreateUnbounded<HubMessage>();
-            _input = Channel.CreateUnbounded<HubMessage>();
             _connectionContext = connectionContext;
             _logger = loggerFactory.CreateLogger<HubConnectionContext>();
             ConnectionAbortedToken = _connectionAbortedTokenSource.Token;
             _keepAliveDuration = (int)keepAliveInterval.TotalMilliseconds * (Stopwatch.Frequency / 1000);
         }
-
-        internal virtual ChannelReader<HubMessage> Input => _input;
-
-        internal virtual Channel<HubMessage> Output { get; set; }
-
-        internal ExceptionDispatchInfo AbortException { get; private set; }
-
-        // Currently used only for streaming methods
-        internal ConcurrentDictionary<string, CancellationTokenSource> ActiveRequestCancellationSources { get; } = new ConcurrentDictionary<string, CancellationTokenSource>();
 
         public virtual CancellationToken ConnectionAbortedToken { get; }
 
@@ -71,7 +59,36 @@ namespace Microsoft.AspNetCore.SignalR
 
         public virtual HubProtocolReaderWriter ProtocolReaderWriter { get; set; }
 
+        public virtual ChannelReader<byte[]> Input => _connectionContext.Transport.Reader;
+
         public string UserIdentifier { get; private set; }
+
+        internal virtual Channel<HubMessage> Output { get; set; }
+
+        internal ExceptionDispatchInfo AbortException { get; private set; }
+
+        // Currently used only for streaming methods
+        internal ConcurrentDictionary<string, CancellationTokenSource> ActiveRequestCancellationSources { get; } = new ConcurrentDictionary<string, CancellationTokenSource>();
+
+        public async Task WriteAsync(HubInvocationMessage message)
+        {
+            while (await Output.Writer.WaitToWriteAsync())
+            {
+                if (Output.Writer.TryWrite(message))
+                {
+                    return;
+                }
+            }
+        }
+
+        public async Task DisposeAsync()
+        {
+            // Nothing should be writing to the HubConnectionContext
+            Output.Writer.TryComplete();
+
+            // This should unwind once we complete the output
+            await _writingTask;
+        }
 
         public virtual void Abort()
         {
@@ -86,24 +103,11 @@ namespace Microsoft.AspNetCore.SignalR
             Task.Factory.StartNew(_abortedCallback, this);
         }
 
-        public async Task DisposeAsync()
+        // Hubs support multiple producers so we set up this loop to copy
+        // data written to the HubConnectionContext's channel to the transport channel
+        internal Task StartAsync()
         {
-            // Nothing should be writing to the HubConnectionContext
-            Output.Writer.TryComplete();
-
-            // This should unwind once we complete the output
-            await _lifetimeTask;
-        }
-
-        public async Task WriteAsync(HubMessage message)
-        {
-            while (await Output.Writer.WaitToWriteAsync())
-            {
-                if (Output.Writer.TryWrite(message))
-                {
-                    return;
-                }
-            }
+            return _writingTask = StartAsyncCore();
         }
 
         internal async Task<bool> NegotiateAsync(TimeSpan timeout, IHubProtocolResolver protocolResolver, IUserIdProvider userIdProvider)
@@ -156,14 +160,20 @@ namespace Microsoft.AspNetCore.SignalR
             return false;
         }
 
-        // Hubs support multiple producers so we set up this loop to copy
-        // data written to the HubConnectionContext's channel to the transport channel
-        internal Task StartAsync(IInvocationBinder invocationBinder)
+        internal void Abort(Exception exception)
         {
-            return _lifetimeTask = StartAsyncCore(invocationBinder);
+            AbortException = ExceptionDispatchInfo.Capture(exception);
+            Abort();
         }
 
-        private Task StartAsyncCore(IInvocationBinder invocationBinder)
+        // Used by the HubEndPoint only
+        internal Task AbortAsync()
+        {
+            Abort();
+            return _abortCompletedTcs.Task;
+        }
+
+        private async Task StartAsyncCore()
         {
             if (Features.Get<IConnectionInherentKeepAliveFeature>() == null)
             {
@@ -172,46 +182,6 @@ namespace Microsoft.AspNetCore.SignalR
                 _connectionContext.Features.Get<IConnectionHeartbeatFeature>()?.OnHeartbeat(state => ((HubConnectionContext)state).KeepAliveTick(), this);
             }
 
-            var writing = DoWriting();
-            var reading = DoReading(invocationBinder);
-
-            return Task.WhenAll(writing, reading);
-        }
-
-        private async Task DoReading(IInvocationBinder invocationBinder)
-        {
-            try
-            {
-                while (await _connectionContext.Transport.Reader.WaitToReadAsync(ConnectionAbortedToken))
-                {
-                    while (_connectionContext.Transport.Reader.TryRead(out var buffer))
-                    {
-                        if (ProtocolReaderWriter.ReadMessages(buffer, invocationBinder, out var hubMessages))
-                        {
-                            foreach (var hubMessage in hubMessages)
-                            {
-                                while (await _input.Writer.WaitToWriteAsync())
-                                {
-                                    if (_input.Writer.TryWrite(hubMessage))
-                                    {
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                _input.Writer.TryComplete();
-            }
-            catch (Exception ex)
-            {
-                _input.Writer.TryComplete(ex);
-            }
-        }
-
-        private async Task DoWriting()
-        {
             try
             {
                 while (await Output.Reader.WaitToReadAsync())
@@ -219,7 +189,6 @@ namespace Microsoft.AspNetCore.SignalR
                     while (Output.Reader.TryRead(out var hubMessage))
                     {
                         var buffer = ProtocolReaderWriter.WriteMessage(hubMessage);
-
                         while (await _connectionContext.Transport.Writer.WaitToWriteAsync())
                         {
                             if (_connectionContext.Transport.Writer.TryWrite(buffer))
@@ -264,19 +233,6 @@ namespace Microsoft.AspNetCore.SignalR
 
                 Interlocked.Exchange(ref _lastSendTimestamp, Stopwatch.GetTimestamp());
             }
-        }
-
-        internal void Abort(Exception exception)
-        {
-            AbortException = ExceptionDispatchInfo.Capture(exception);
-            Abort();
-        }
-
-        // Used by the HubEndPoint only
-        internal Task AbortAsync()
-        {
-            Abort();
-            return _abortCompletedTcs.Task;
         }
 
         private static void AbortConnection(object state)

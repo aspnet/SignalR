@@ -19,7 +19,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
             context.ProtocolReaderWriter = new HubProtocolReaderWriter(new JsonHubProtocol(), new PassThroughEncoder());
 
-            _ = context.StartAsync(null);
+            _ = context.StartAsync();
 
             return context;
         }

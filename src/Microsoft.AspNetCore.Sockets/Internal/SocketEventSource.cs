@@ -79,7 +79,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal
         [Event(eventId: 4, Level = EventLevel.Verbose, Message = "Scanning connections.")]
         public void ScanningConnections()
         {
-            if(IsEnabled() && IsEnabled(EventLevel.Verbose, EventKeywords.None))
+            if (IsEnabled() && IsEnabled(EventLevel.Verbose, EventKeywords.None))
             {
                 WriteEvent(4);
             }
@@ -91,7 +91,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal
         [NonEvent]
         public void ScannedConnections(TimeSpan duration)
         {
-            if(IsEnabled() && IsEnabled(EventLevel.Verbose, EventKeywords.None))
+            if (IsEnabled() && IsEnabled(EventLevel.Verbose, EventKeywords.None))
             {
                 ScannedConnections(duration.TotalMilliseconds);
             }
