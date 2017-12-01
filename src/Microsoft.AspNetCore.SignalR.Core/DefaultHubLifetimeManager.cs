@@ -1,4 +1,4 @@
-﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
@@ -155,9 +155,9 @@ namespace Microsoft.AspNetCore.SignalR
 
         private async Task WriteAsync(HubConnectionContext connection, HubInvocationMessage hubMessage)
         {
-            while (await connection.Output.WaitToWriteAsync())
+            while (await connection.Output.Writer.WaitToWriteAsync())
             {
-                if (connection.Output.TryWrite(hubMessage))
+                if (connection.Output.Writer.TryWrite(hubMessage))
                 {
                     break;
                 }

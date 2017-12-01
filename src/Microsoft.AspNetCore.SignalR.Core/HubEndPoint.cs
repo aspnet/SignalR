@@ -74,6 +74,7 @@ namespace Microsoft.AspNetCore.SignalR
                 return;
             }
 
+            // We don't need to hold this task, it's also held internally and awaited by DisposeAsync.
             _ = connectionContext.StartAsync();
 
             try

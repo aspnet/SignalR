@@ -29,7 +29,6 @@ namespace Microsoft.AspNetCore.SignalR
         private static readonly Base64Encoder Base64Encoder = new Base64Encoder();
         private static readonly PassThroughEncoder PassThroughEncoder = new PassThroughEncoder();
 
-        private readonly Channel<HubMessage> _output;
         private readonly ConnectionContext _connectionContext;
         private readonly ILogger _logger;
         private readonly CancellationTokenSource _connectionAbortedTokenSource = new CancellationTokenSource();
@@ -42,7 +41,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public HubConnectionContext(ConnectionContext connectionContext, TimeSpan keepAliveInterval, ILogger<HubConnectionContext> logger)
         {
-            _output = Channel.CreateUnbounded<HubMessage>();
+            Output = Channel.CreateUnbounded<HubMessage>();
             _connectionContext = connectionContext;
             _logger = logger;
             ConnectionAbortedToken = _connectionAbortedTokenSource.Token;
@@ -63,9 +62,9 @@ namespace Microsoft.AspNetCore.SignalR
 
         public virtual HubProtocolReaderWriter ProtocolReaderWriter { get; set; }
 
-        internal ExceptionDispatchInfo AbortException { get; private set; }
+        internal virtual Channel<HubMessage> Output { get; set; }
 
-        public virtual ChannelWriter<HubMessage> Output => _output;
+        internal ExceptionDispatchInfo AbortException { get; private set; }
 
         public virtual ChannelReader<byte[]> Input => _connectionContext.Transport.Reader;
 
@@ -142,9 +141,9 @@ namespace Microsoft.AspNetCore.SignalR
 
             try
             {
-                while (await _output.Reader.WaitToReadAsync())
+                while (await Output.Reader.WaitToReadAsync())
                 {
-                    while (_output.Reader.TryRead(out var hubMessage))
+                    while (Output.Reader.TryRead(out var hubMessage))
                     {
                         var buffer = ProtocolReaderWriter.WriteMessage(hubMessage);
                         while (await _connectionContext.Transport.Writer.WaitToWriteAsync())
@@ -209,7 +208,7 @@ namespace Microsoft.AspNetCore.SignalR
         public async Task DisposeAsync()
         {
             // Nothing should be writing to the HubConnectionContext
-            _output.Writer.TryComplete();
+            Output.Writer.TryComplete();
 
             // This should unwind once we complete the output
             await _writingTask;

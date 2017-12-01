@@ -8,6 +8,8 @@ using Moq;
 using Xunit;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.AspNetCore.Sockets;
+using Microsoft.AspNetCore.SignalR.Internal;
+using Microsoft.AspNetCore.SignalR.Internal.Encoders;
 
 namespace Microsoft.AspNetCore.SignalR.Tests
 {
@@ -27,6 +29,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 await manager.OnConnectedAsync(connection2).OrTimeout();
 
                 await manager.InvokeAllAsync("Hello", new object[] { "World" }).OrTimeout();
+
+                await connection1.DisposeAsync().OrTimeout();
+                await connection2.DisposeAsync().OrTimeout();
 
                 var message = Assert.IsType<InvocationMessage>(client1.TryRead());
                 Assert.Equal("Hello", message.Target);
@@ -57,6 +62,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 await manager.InvokeAllAsync("Hello", new object[] { "World" }).OrTimeout();
 
+                await connection1.DisposeAsync().OrTimeout();
+                await connection2.DisposeAsync().OrTimeout();
+
                 var message = Assert.IsType<InvocationMessage>(client1.TryRead());
                 Assert.Equal("Hello", message.Target);
                 Assert.Single(message.Arguments);
@@ -83,6 +91,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 await manager.InvokeGroupAsync("gunit", "Hello", new object[] { "World" }).OrTimeout();
 
+                await connection1.DisposeAsync().OrTimeout();
+                await connection2.DisposeAsync().OrTimeout();
+
                 var message = Assert.IsType<InvocationMessage>(client1.TryRead());
                 Assert.Equal("Hello", message.Target);
                 Assert.Single(message.Arguments);
@@ -103,6 +114,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 await manager.OnConnectedAsync(connection).OrTimeout();
 
                 await manager.InvokeConnectionAsync(connection.ConnectionId, "Hello", new object[] { "World" }).OrTimeout();
+
+                await connection.DisposeAsync().OrTimeout();
 
                 var message = Assert.IsType<InvocationMessage>(client.TryRead());
                 Assert.Equal("Hello", message.Target);
@@ -167,7 +180,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
         private static HubConnectionContext CreateHubConnectionContext(DefaultConnectionContext connection)
         {
-            return new HubConnectionContext(connection, TimeSpan.FromSeconds(15), NullLogger<HubConnectionContext>.Instance);
+            var context = new HubConnectionContext(connection, TimeSpan.FromSeconds(15), NullLogger<HubConnectionContext>.Instance);
+            context.ProtocolReaderWriter = new HubProtocolReaderWriter(new JsonHubProtocol(), new PassThroughEncoder());
+
+            // We don't need to hold this task, it's also held internally and awaited by DisposeAsync.
+            _ = context.StartAsync();
+
+            return context;
         }
     }
 }
