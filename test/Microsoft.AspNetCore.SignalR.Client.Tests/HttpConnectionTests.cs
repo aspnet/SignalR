@@ -6,8 +6,8 @@ using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Threading.Channels;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Client.Tests;
 using Microsoft.AspNetCore.SignalR.Tests.Common;
 using Microsoft.AspNetCore.Sockets.Client.Http;
@@ -286,10 +286,10 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
 
             var onReceivedInvoked = false;
             connection.OnReceived(_ =>
-           {
-               onReceivedInvoked = true;
-               return Task.CompletedTask;
-           });
+            {
+                onReceivedInvoked = true;
+                return Task.CompletedTask;
+            });
 
             await connection.StartAsync();
             await connection.DisposeAsync();
@@ -433,9 +433,9 @@ namespace Microsoft.AspNetCore.Sockets.Client.Tests
             var connection = new HttpConnection(new Uri("http://fakeuri.org/"), new TestTransportFactory(mockTransport.Object), loggerFactory: null,
                 httpOptions: new HttpOptions { HttpMessageHandler = mockHttpHandler.Object });
             connection.OnReceived(_ =>
-               {
-                   throw new OperationCanceledException();
-               });
+            {
+                throw new OperationCanceledException();
+            });
 
             await connection.StartAsync();
             channel.Writer.TryWrite(Array.Empty<byte>());
