@@ -27,7 +27,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             Assert.True(toTransport.Writer.TryComplete());
 
-            await sse.ProcessRequestAsync(connection, context, context.RequestAborted);
+            await sse.ProcessRequestAsync(context, context.RequestAborted);
 
             Assert.Equal("text/event-stream", context.Response.ContentType);
             Assert.Equal("no-cache", context.Response.Headers["Cache-Control"]);
@@ -47,7 +47,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             Assert.True(toTransport.Writer.TryComplete());
 
-            await sse.ProcessRequestAsync(connection, context, context.RequestAborted);
+            await sse.ProcessRequestAsync(context, context.RequestAborted);
 
             Assert.True(feature.ResponseBufferingDisabled);
         }
@@ -67,7 +67,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             context.Response.Body = ms;
             var sse = new ServerSentEventsTransport(toTransport.Reader, connectionId: string.Empty, loggerFactory: new LoggerFactory());
 
-            var task = sse.ProcessRequestAsync(connection, context, context.RequestAborted);
+            var task = sse.ProcessRequestAsync(context, context.RequestAborted);
 
             await toTransport.Writer.WriteAsync(Encoding.ASCII.GetBytes("Hello"));
 
@@ -97,7 +97,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             Assert.True(toTransport.Writer.TryComplete());
 
-            await sse.ProcessRequestAsync(connection, context, context.RequestAborted);
+            await sse.ProcessRequestAsync(context, context.RequestAborted);
 
             Assert.Equal(expected, Encoding.UTF8.GetString(ms.ToArray()));
         }

@@ -29,7 +29,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
             _logger = loggerFactory.CreateLogger<LongPollingTransport>();
         }
 
-        public async Task ProcessRequestAsync(ConnectionContext connection, HttpContext context, CancellationToken token)
+        public async Task ProcessRequestAsync(HttpContext context, CancellationToken token)
         {
             try
             {

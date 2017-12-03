@@ -101,7 +101,7 @@ namespace Microsoft.AspNetCore.Sockets
                     return;
                 }
 
-                if (!await EnsureConnectionStateAsync(connection, context, TransportType.ServerSentEvents, supportedTransports, logScope))
+                if (!await EnsureConnectionStateAsync(connection, context, TransportType.ServerSentEvents, supportedTransports, logScope, options))
                 {
                     // Bad connection state. It's already set the response status code.
                     return;
@@ -127,7 +127,7 @@ namespace Microsoft.AspNetCore.Sockets
                     return;
                 }
 
-                if (!await EnsureConnectionStateAsync(connection, context, TransportType.WebSockets, supportedTransports, logScope))
+                if (!await EnsureConnectionStateAsync(connection, context, TransportType.WebSockets, supportedTransports, logScope, options))
                 {
                     // Bad connection state. It's already set the response status code.
                     return;
@@ -154,7 +154,7 @@ namespace Microsoft.AspNetCore.Sockets
                     return;
                 }
 
-                if (!await EnsureConnectionStateAsync(connection, context, TransportType.LongPolling, supportedTransports, logScope))
+                if (!await EnsureConnectionStateAsync(connection, context, TransportType.LongPolling, supportedTransports, logScope, options))
                 {
                     // Bad connection state. It's already set the response status code.
                     return;
@@ -220,7 +220,7 @@ namespace Microsoft.AspNetCore.Sockets
                     var longPolling = new LongPollingTransport(timeoutSource.Token, options.LongPolling.PollTimeout, connection.Application.Reader, connection.ConnectionId, _loggerFactory);
 
                     // Start the transport
-                    connection.TransportTask = longPolling.ProcessRequestAsync(connection, context, tokenSource.Token);
+                    connection.TransportTask = longPolling.ProcessRequestAsync(context, tokenSource.Token);
 
                     // Start the timeout after we return from creating the transport task
                     timeoutSource.CancelAfter(options.LongPolling.PollTimeout);
@@ -324,7 +324,7 @@ namespace Microsoft.AspNetCore.Sockets
                 connection.ApplicationTask = ExecuteApplication(socketDelegate, connection);
 
                 // Start the transport
-                connection.TransportTask = transport.ProcessRequestAsync(connection, context, context.RequestAborted);
+                connection.TransportTask = transport.ProcessRequestAsync(context, context.RequestAborted);
             }
             finally
             {
@@ -446,7 +446,7 @@ namespace Microsoft.AspNetCore.Sockets
             }
         }
 
-        private async Task<bool> EnsureConnectionStateAsync(DefaultConnectionContext connection, HttpContext context, TransportType transportType, TransportType supportedTransports, ConnectionLogScope logScope)
+        private async Task<bool> EnsureConnectionStateAsync(DefaultConnectionContext connection, HttpContext context, TransportType transportType, TransportType supportedTransports, ConnectionLogScope logScope, HttpSocketOptions options)
         {
             if ((supportedTransports & transportType) == 0)
             {
@@ -473,7 +473,7 @@ namespace Microsoft.AspNetCore.Sockets
             // Configure transport-specific features.
             if (transportType == TransportType.LongPolling)
             {
-                connection.Features.Set<IConnectionInherentKeepAliveFeature>(new ConnectionInherentKeepAliveFeature(_timeout));
+                connection.Features.Set<IConnectionInherentKeepAliveFeature>(new ConnectionInherentKeepAliveFeature(options.LongPolling.PollTimeout));
             }
 
             // Setup the connection state from the http context
