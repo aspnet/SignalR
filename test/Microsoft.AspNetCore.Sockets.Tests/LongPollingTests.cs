@@ -101,26 +101,5 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var payload = ms.ToArray();
             Assert.Equal("Hello World", Encoding.UTF8.GetString(payload));
         }
-
-        [Fact]
-        public async Task SetsInherentKeepAliveFeatureOnFirstPoll()
-        {
-            var toApplication = Channel.CreateUnbounded<byte[]>();
-            var toTransport = Channel.CreateUnbounded<byte[]>();
-            var context = new DefaultHttpContext();
-            var connection = new DefaultConnectionContext("foo", toTransport, toApplication);
-            var pollTimeout = TimeSpan.FromSeconds(42);
-
-            var poll = new LongPollingTransport(CancellationToken.None, toTransport.Reader, connectionId: string.Empty, loggerFactory: new LoggerFactory());
-            var ms = new MemoryStream();
-            context.Response.Body = ms;
-
-            Assert.True(toTransport.Writer.TryComplete());
-
-            await poll.ProcessRequestAsync(context, context.RequestAborted).OrTimeout();
-
-            Assert.NotNull(connection.Features.Get<IConnectionInherentKeepAliveFeature>());
-            Assert.Equal(pollTimeout, connection.Features.Get<IConnectionInherentKeepAliveFeature>().KeepAliveInterval);
-        }
     }
 }
