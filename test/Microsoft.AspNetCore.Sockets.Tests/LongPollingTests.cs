@@ -25,7 +25,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var context = new DefaultHttpContext();
             var connection = new DefaultConnectionContext("foo", toTransport, toApplication);
 
-            var poll = new LongPollingTransport(CancellationToken.None, TimeSpan.Zero, toTransport.Reader, connectionId: string.Empty, loggerFactory: new LoggerFactory());
+            var poll = new LongPollingTransport(CancellationToken.None, toTransport.Reader, connectionId: string.Empty, loggerFactory: new LoggerFactory());
 
             Assert.True(toTransport.Writer.TryComplete());
 
@@ -43,7 +43,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var connection = new DefaultConnectionContext("foo", toTransport, toApplication);
 
             var timeoutToken = new CancellationToken(true);
-            var poll = new LongPollingTransport(timeoutToken, TimeSpan.Zero, toTransport.Reader, connectionId: string.Empty, loggerFactory: new LoggerFactory());
+            var poll = new LongPollingTransport(timeoutToken, toTransport.Reader, connectionId: string.Empty, loggerFactory: new LoggerFactory());
 
             using (var cts = CancellationTokenSource.CreateLinkedTokenSource(timeoutToken, context.RequestAborted))
             {
@@ -62,7 +62,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var context = new DefaultHttpContext();
             var connection = new DefaultConnectionContext("foo", toTransport, toApplication);
 
-            var poll = new LongPollingTransport(CancellationToken.None, TimeSpan.Zero, toTransport.Reader, connectionId: string.Empty, loggerFactory: new LoggerFactory());
+            var poll = new LongPollingTransport(CancellationToken.None, toTransport.Reader, connectionId: string.Empty, loggerFactory: new LoggerFactory());
             var ms = new MemoryStream();
             context.Response.Body = ms;
 
@@ -84,7 +84,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var context = new DefaultHttpContext();
             var connection = new DefaultConnectionContext("foo", toTransport, toApplication);
 
-            var poll = new LongPollingTransport(CancellationToken.None, TimeSpan.Zero, toTransport.Reader, connectionId: string.Empty, loggerFactory: new LoggerFactory());
+            var poll = new LongPollingTransport(CancellationToken.None, toTransport.Reader, connectionId: string.Empty, loggerFactory: new LoggerFactory());
             var ms = new MemoryStream();
             context.Response.Body = ms;
 
@@ -111,7 +111,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var connection = new DefaultConnectionContext("foo", toTransport, toApplication);
             var pollTimeout = TimeSpan.FromSeconds(42);
 
-            var poll = new LongPollingTransport(CancellationToken.None, pollTimeout, toTransport.Reader, connectionId: string.Empty, loggerFactory: new LoggerFactory());
+            var poll = new LongPollingTransport(CancellationToken.None, toTransport.Reader, connectionId: string.Empty, loggerFactory: new LoggerFactory());
             var ms = new MemoryStream();
             context.Response.Body = ms;
 
