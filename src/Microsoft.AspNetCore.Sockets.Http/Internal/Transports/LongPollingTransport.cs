@@ -17,13 +17,11 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
         private readonly ChannelReader<byte[]> _application;
         private readonly ILogger _logger;
         private readonly CancellationToken _timeoutToken;
-        private readonly TimeSpan _timeout;
         private readonly string _connectionId;
 
-        public LongPollingTransport(CancellationToken timeoutToken, TimeSpan timeout, ChannelReader<byte[]> application, string connectionId, ILoggerFactory loggerFactory)
+        public LongPollingTransport(CancellationToken timeoutToken, ChannelReader<byte[]> application, string connectionId, ILoggerFactory loggerFactory)
         {
             _timeoutToken = timeoutToken;
-            _timeout = timeout;
             _application = application;
             _connectionId = connectionId;
             _logger = loggerFactory.CreateLogger<LongPollingTransport>();

@@ -143,9 +143,6 @@ namespace Microsoft.AspNetCore.Sockets
             {
                 // GET /{path} maps to long polling
 
-                // Initialze Long Polling connection features
-
-
                 // Connection must already exist
                 var connection = await GetConnectionAsync(context);
                 if (connection == null)
@@ -217,7 +214,7 @@ namespace Microsoft.AspNetCore.Sockets
                     context.Response.RegisterForDispose(timeoutSource);
                     context.Response.RegisterForDispose(tokenSource);
 
-                    var longPolling = new LongPollingTransport(timeoutSource.Token, options.LongPolling.PollTimeout, connection.Application.Reader, connection.ConnectionId, _loggerFactory);
+                    var longPolling = new LongPollingTransport(timeoutSource.Token, connection.Application.Reader, connection.ConnectionId, _loggerFactory);
 
                     // Start the transport
                     connection.TransportTask = longPolling.ProcessRequestAsync(context, tokenSource.Token);
