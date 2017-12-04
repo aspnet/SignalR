@@ -290,7 +290,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Internal
 
         public static void ResettingKeepAliveTimer(this ILogger logger)
         {
-            _resettingKeepAliveTimer(logger);
+            _resettingKeepAliveTimer(logger, null);
         }
     }
 }

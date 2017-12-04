@@ -9,13 +9,13 @@ using System.Text;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.SignalR.Client.Tests;
 using Microsoft.AspNetCore.Sockets;
 using Microsoft.AspNetCore.Sockets.Client;
 using Microsoft.AspNetCore.Sockets.Internal;
 using Moq;
 using Moq.Protected;
 using Xunit;
-using Microsoft.AspNetCore.SignalR.Client.Tests;
 
 namespace Microsoft.AspNetCore.Client.Tests
 {

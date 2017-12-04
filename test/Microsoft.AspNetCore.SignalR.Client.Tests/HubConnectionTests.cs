@@ -212,11 +212,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
             try
             {
-                await connection.ReceiveJsonMessage(new { type = 6 });
+                await connection.ReceiveJsonMessage(new { type = HubProtocolConstants.PingMessageType });
                 await Task.Delay(50);
-                await connection.ReceiveJsonMessage(new { type = 6 });
+                await connection.ReceiveJsonMessage(new { type = HubProtocolConstants.PingMessageType });
                 await Task.Delay(50);
-                await connection.ReceiveJsonMessage(new { type = 6 });
+                await connection.ReceiveJsonMessage(new { type = HubProtocolConstants.PingMessageType });
                 await Task.Delay(50);
 
                 Assert.False(hubConnection.Closed.IsCompleted);

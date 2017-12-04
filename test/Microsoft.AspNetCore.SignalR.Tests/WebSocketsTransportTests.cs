@@ -9,9 +9,9 @@ using Microsoft.AspNetCore.Sockets.Client;
 using Microsoft.AspNetCore.Sockets.Internal;
 using Microsoft.AspNetCore.Testing.xunit;
 using Microsoft.Extensions.Logging.Testing;
+using Moq;
 using Xunit;
 using Xunit.Abstractions;
-using Moq;
 
 namespace Microsoft.AspNetCore.SignalR.Tests
 {

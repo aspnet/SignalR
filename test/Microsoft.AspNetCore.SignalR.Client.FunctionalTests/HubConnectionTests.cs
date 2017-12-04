@@ -679,12 +679,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                     await hubConnection.InvokeAsync("Echo", "foo");
                     await Task.Delay(50);
                     Assert.False(hubConnection.Closed.IsCompleted);
-
-                    if (transportType != TransportType.LongPolling)
-                    {
-                        var ex = await Assert.ThrowsAsync<TimeoutException>(async () => await hubConnection.Closed.OrTimeout(milliseconds: 500));
-                        Assert.Equal("Server timeout elapsed without receiving a message from the server.", ex.Message);
-                    }
                 }
                 catch (Exception ex)
                 {
@@ -693,13 +687,15 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 }
                 finally
                 {
-                    try
+                    if (transportType == TransportType.LongPolling)
                     {
                         await hubConnection.DisposeAsync().OrTimeout();
                     }
-                    catch (TimeoutException) when (transportType != TransportType.LongPolling)
+                    else
                     {
-                        // Already observed this exception!
+                        // We should have timed out the other transports.
+                        var ex = await Assert.ThrowsAsync<TimeoutException>(async () => await hubConnection.Closed.OrTimeout(milliseconds: 500));
+                        Assert.Equal("Server timeout elapsed without receiving a message from the server.", ex.Message);
                     }
                 }
             }
