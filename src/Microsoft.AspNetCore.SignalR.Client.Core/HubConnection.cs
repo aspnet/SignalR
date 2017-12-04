@@ -94,7 +94,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private void TimeoutElapsed()
         {
-            _connection.AbortAsync(new TimeoutException("Server timeout elapsed without receiving a message from the server."));
+            _connection.AbortAsync(new TimeoutException($"Server timeout ({ServerTimeout.TotalMilliseconds:0.00}ms) elapsed without receiving a message from the server."));
         }
 
         private void ResetTimeoutTimer()
