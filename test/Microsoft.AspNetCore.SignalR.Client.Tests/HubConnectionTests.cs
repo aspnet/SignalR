@@ -197,7 +197,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
             await hubConnection.StartAsync();
             var ex = await Assert.ThrowsAsync<TimeoutException>(async () => await hubConnection.Closed.OrTimeout());
-            Assert.Equal("Server timeout elapsed without receiving a message from the server.", ex.Message);
+            Assert.Equal("Server timeout (100.00ms) elapsed without receiving a message from the server.", ex.Message);
         }
 
         [Fact]

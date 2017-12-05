@@ -695,7 +695,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                     {
                         // We should have timed out the other transports.
                         var ex = await Assert.ThrowsAsync<TimeoutException>(async () => await hubConnection.Closed.OrTimeout(milliseconds: 500));
-                        Assert.Equal("Server timeout elapsed without receiving a message from the server.", ex.Message);
+                        Assert.Equal("Server timeout (100.00ms) elapsed without receiving a message from the server.", ex.Message);
                     }
                 }
             }
