@@ -41,7 +41,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         private int _nextId = 0;
         private volatile bool _startCalled;
         private Timer _timeoutTimer;
-        private readonly bool _needKeepAlive;
+        private bool _needKeepAlive;
 
         public Task Closed { get; }
 
@@ -69,7 +69,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
             _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
             _logger = _loggerFactory.CreateLogger<HubConnection>();
             _connection.OnReceived((data, state) => ((HubConnection)state).OnDataReceivedAsync(data), this);
-            _needKeepAlive = _connection.Features.Get<IConnectionInherentKeepAliveFeature>() == null;
             Closed = _connection.Closed.ContinueWith(task =>
             {
                 Shutdown(task.Exception);
@@ -122,6 +121,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             transferModeFeature.TransferMode = requestedTransferMode;
             await _connection.StartAsync();
+            _needKeepAlive = _connection.Features.Get<IConnectionInherentKeepAliveFeature>() == null;
             var actualTransferMode = transferModeFeature.TransferMode;
 
             _protocolReaderWriter = new HubProtocolReaderWriter(_protocol, GetDataEncoder(requestedTransferMode, actualTransferMode));
