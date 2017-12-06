@@ -200,7 +200,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             Assert.Equal("Server timeout (100.00ms) elapsed without receiving a message from the server.", ex.Message);
         }
 
-        [Fact]
+        [Fact(Skip = "Not really able to do this reliably")]
         public async Task ConnectionNotTerminatedIfServerKeepsSending()
         {
             var connection = new TestConnection();
