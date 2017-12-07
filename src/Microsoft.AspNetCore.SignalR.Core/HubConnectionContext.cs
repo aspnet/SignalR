@@ -5,6 +5,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Net;
 using System.Runtime.ExceptionServices;
 using System.Security.Claims;
 using System.Threading;
@@ -18,7 +19,9 @@ using Microsoft.AspNetCore.SignalR.Internal.Encoders;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.Sockets;
 using Microsoft.AspNetCore.Sockets.Features;
+using Microsoft.AspNetCore.Sockets.Http.Features;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Http;
 
 namespace Microsoft.AspNetCore.SignalR
 {
@@ -69,6 +72,8 @@ namespace Microsoft.AspNetCore.SignalR
 
         // Currently used only for streaming methods
         internal ConcurrentDictionary<string, CancellationTokenSource> ActiveRequestCancellationSources { get; } = new ConcurrentDictionary<string, CancellationTokenSource>();
+
+        public IPAddress CallerIP => Features.Get<IHttpContextFeature>()?.HttpContext.Connection.RemoteIpAddress;
 
         public async Task WriteAsync(HubInvocationMessage message)
         {
