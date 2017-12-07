@@ -73,7 +73,7 @@ namespace Microsoft.AspNetCore.SignalR
         // Currently used only for streaming methods
         internal ConcurrentDictionary<string, CancellationTokenSource> ActiveRequestCancellationSources { get; } = new ConcurrentDictionary<string, CancellationTokenSource>();
 
-        public IPAddress ClientIP => Features.Get<IHttpContextFeature>()?.HttpContext.Connection.RemoteIpAddress;
+        public IPAddress RemoteIpAddress => Features.Get<IHttpContextFeature>()?.HttpContext.Connection.RemoteIpAddress;
 
         public IPAddress LocalIpAddress => Features.Get<IHttpContextFeature>()?.HttpContext.Connection.LocalIpAddress;
 
