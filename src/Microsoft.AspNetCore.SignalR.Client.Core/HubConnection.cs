@@ -47,7 +47,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         /// <summary>
         /// Gets or sets the server timeout interval for the connection. Changes to this value
-        /// are ignored after <see cref="StartAsync"/> is called.
+        /// will not be applied until the Keep Alive timer is next reset.
         /// </summary>
         public TimeSpan ServerTimeout { get; set; } = DefaultServerTimeout;
 
