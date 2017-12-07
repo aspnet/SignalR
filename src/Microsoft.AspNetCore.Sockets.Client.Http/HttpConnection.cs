@@ -443,10 +443,10 @@ namespace Microsoft.AspNetCore.Sockets.Client
         {
             if (ex != null)
             {
-                _logger.AbortingClient(ex, _connectionId);
+                _logger.AbortingClient(_connectionId, ex);
 
                 // Immediately fault the close task. When the transport shuts down,
-                // it will trigger the close task to be completed, so we want to it be
+                // it will trigger the close task to be completed, so we want it to be
                 // marked faulted before that happens
                 _closedTcs.TrySetException(ex);
             }

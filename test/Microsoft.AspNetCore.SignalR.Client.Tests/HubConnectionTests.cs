@@ -236,7 +236,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
             hubConnection.ServerTimeout = TimeSpan.FromMilliseconds(100);
 
-            await hubConnection.StartAsync();
+            await hubConnection.StartAsync().OrTimeout();
             try
             {
                 await Task.Delay(300);

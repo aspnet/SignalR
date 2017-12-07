@@ -509,9 +509,9 @@ namespace Microsoft.AspNetCore.Sockets.Client.Internal
             }
         }
 
-        public static void AbortingClient(this ILogger logger, Exception ex, string connectionId)
+        public static void AbortingClient(this ILogger logger, string connectionId, Exception ex)
         {
-            if (logger.IsEnabled(LogLevel.Information))
+            if (logger.IsEnabled(LogLevel.Error))
             {
                 _abortingClient(logger, DateTime.Now, connectionId, ex);
             }
