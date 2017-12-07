@@ -200,54 +200,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             Assert.Equal("Server timeout (100.00ms) elapsed without receiving a message from the server.", ex.Message);
         }
 
-        [Fact(Skip = "Not really able to do this reliably")]
-        public async Task ConnectionNotTerminatedIfServerKeepsSending()
-        {
-            var connection = new TestConnection();
-            var hubConnection = new HubConnection(connection, new JsonHubProtocol(), new LoggerFactory());
-
-            hubConnection.ServerTimeout = TimeSpan.FromMilliseconds(100);
-
-            await hubConnection.StartAsync();
-
-            try
-            {
-                await connection.ReceiveJsonMessage(new { type = HubProtocolConstants.PingMessageType });
-                await Task.Delay(50);
-                await connection.ReceiveJsonMessage(new { type = HubProtocolConstants.PingMessageType });
-                await Task.Delay(50);
-                await connection.ReceiveJsonMessage(new { type = HubProtocolConstants.PingMessageType });
-                await Task.Delay(50);
-
-                Assert.False(hubConnection.Closed.IsCompleted);
-            }
-            finally
-            {
-                await hubConnection.DisposeAsync();
-            }
-        }
-
-        [Fact]
-        public async Task ServerTimeoutIgnoredIfTransportHasInherentKeepAlive()
-        {
-            var connection = new TestConnection();
-            connection.Features.Set<IConnectionInherentKeepAliveFeature>(new ConnectionInherentKeepAliveFeature(TimeSpan.FromSeconds(1)));
-            var hubConnection = new HubConnection(connection, new JsonHubProtocol(), new LoggerFactory());
-
-            hubConnection.ServerTimeout = TimeSpan.FromMilliseconds(100);
-
-            await hubConnection.StartAsync().OrTimeout();
-            try
-            {
-                await Task.Delay(300);
-                Assert.False(hubConnection.Closed.IsCompleted);
-            }
-            finally
-            {
-                await hubConnection.DisposeAsync();
-            }
-        }
-
         // Moq really doesn't handle out parameters well, so to make these tests work I added a manual mock -anurse
         private class MockHubProtocol : IHubProtocol
         {

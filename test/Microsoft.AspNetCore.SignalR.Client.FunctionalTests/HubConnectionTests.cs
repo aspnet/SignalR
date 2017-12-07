@@ -655,52 +655,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             }
         }
 
-        [Theory]
-        [MemberData(nameof(TransportTypes))]
-        public async Task KeepAliveBehaviorIsCorrect(TransportType transportType)
-        {
-            using (StartLog(out var loggerFactory))
-            {
-                var hubConnection = new HubConnectionBuilder()
-                    .WithUrl(_serverFixture.Url + "/default")
-                    .WithTransport(transportType)
-                    .WithLoggerFactory(loggerFactory)
-                    .WithHeader("X-test", "42")
-                    .WithHeader("X-42", "test")
-                    .Build();
-                hubConnection.ServerTimeout = TimeSpan.FromMilliseconds(100);
-                try
-                {
-                    await hubConnection.StartAsync().OrTimeout();
-                    await hubConnection.InvokeAsync("Echo", "foo");
-                    await Task.Delay(50);
-                    await hubConnection.InvokeAsync("Echo", "foo");
-                    await Task.Delay(50);
-                    await hubConnection.InvokeAsync("Echo", "foo");
-                    await Task.Delay(50);
-                    Assert.False(hubConnection.Closed.IsCompleted);
-                }
-                catch (Exception ex)
-                {
-                    loggerFactory.CreateLogger<HubConnectionTests>().LogError(ex, "Exception from test");
-                    throw;
-                }
-                finally
-                {
-                    if (transportType == TransportType.LongPolling)
-                    {
-                        await hubConnection.DisposeAsync().OrTimeout();
-                    }
-                    else
-                    {
-                        // We should have timed out the other transports.
-                        var ex = await Assert.ThrowsAsync<TimeoutException>(async () => await hubConnection.Closed.OrTimeout(milliseconds: 500));
-                        Assert.Equal("Server timeout (100.00ms) elapsed without receiving a message from the server.", ex.Message);
-                    }
-                }
-            }
-        }
-
         public static IEnumerable<object[]> HubProtocolsAndTransportsAndHubPaths
         {
             get
