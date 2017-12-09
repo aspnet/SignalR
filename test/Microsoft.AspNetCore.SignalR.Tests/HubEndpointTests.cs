@@ -842,9 +842,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 await Task.WhenAll(firstClient.Connected, secondClient.Connected).OrTimeout();
 
-                var excludeSecondClientId = new HashSet<string>();
-                excludeSecondClientId.Add(secondClient.Connection.ConnectionId);
-
                 await firstClient.SendInvocationAsync("SendToOthers", "To others").OrTimeout();
 
                 var secondClientResult = await secondClient.ReadAsync().OrTimeout();
@@ -860,6 +857,35 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 secondClient.Dispose();
 
                 await Task.WhenAll(firstEndPointTask, secondEndPointTask).OrTimeout();
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(HubTypes))]
+        public async Task SendToCaller(Type hubType)
+        {
+            var serviceProvider = CreateServiceProvider();
+
+            dynamic endPoint = serviceProvider.GetService(GetEndPointType(hubType));
+
+            using (var firstClient = new TestClient())
+            {
+                Task firstEndPointTask = endPoint.OnConnectedAsync(firstClient.Connection);
+
+                await firstClient.Connected;
+
+                await firstClient.SendInvocationAsync("SendToCaller", "To caller").OrTimeout();
+
+                var firstClientResult = await firstClient.ReadAsync().OrTimeout();
+                var invocation = Assert.IsType<InvocationMessage>(firstClientResult);
+                Assert.Equal("Send", invocation.Target);
+                Assert.Equal("To caller", invocation.Arguments[0]);
+
+
+                // kill the connections
+                firstClient.Dispose();
+
+                await firstEndPointTask.OrTimeout();
             }
         }
 
@@ -1599,6 +1625,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 return Clients.Others.Send(message);
             }
+
+            public Task SendToCaller(string message)
+            {
+                return Clients.Caller.Send(message);
+            }
         }
 
         public interface Test
@@ -1781,6 +1812,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             public Task SendToOthers(string message)
             {
                 return Clients.Others.Send(message);
+            }
+
+            public Task SendToCaller(string message)
+            {
+                return Clients.Caller.Send(message);
             }
         }
 
@@ -1981,6 +2017,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             public Task SendToOthers(string message)
             {
                 return Clients.Others.InvokeAsync("Send", message);
+            }
+
+            public Task SendToCaller(string message)
+            {
+                return Clients.Caller.InvokeAsync("Send", message);
             }
         }
 
