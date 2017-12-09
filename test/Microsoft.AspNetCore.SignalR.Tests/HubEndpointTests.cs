@@ -881,7 +881,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 Assert.Equal("Send", invocation.Target);
                 Assert.Equal("To caller", invocation.Arguments[0]);
 
-
                 // kill the connections
                 firstClient.Dispose();
 
