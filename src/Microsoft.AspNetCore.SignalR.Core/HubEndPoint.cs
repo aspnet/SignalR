@@ -368,7 +368,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         private void InitializeHub(THub hub, HubConnectionContext connection)
         {
-            hub.Clients = new HubClientsWrapperThing(_hubContext.Clients, connection.ConnectionId);
+            hub.Clients = new HubCallerClients(_hubContext.Clients, connection.ConnectionId);
             hub.Context = new HubCallerContext(connection);
             hub.Groups = _hubContext.Groups;
         }

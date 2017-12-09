@@ -5,21 +5,22 @@ using System.Collections.Generic;
 
 namespace Microsoft.AspNetCore.SignalR
 {
-    public class HubClientsWrapperThing : IHubCallerClients
+    public class HubCallerClients : IHubCallerClients
     {
         private string _connectionId;
         private IHubClients _hubClients;
+        private string[] _currentConnectionId;
 
-        public HubClientsWrapperThing(IHubClients hubClients, string ConnectionId)
+        public HubCallerClients(IHubClients hubClients, string connectionId)
         {
-            _connectionId = ConnectionId;
+            _connectionId = connectionId;
             _hubClients = hubClients;
+            _currentConnectionId = new string[] { _connectionId };
         }
-        public IHubClients HubClients => _hubClients;
 
         public IClientProxy Caller => _hubClients.Client(_connectionId);
 
-        public IClientProxy Others => _hubClients.AllExcept(new List<string> { _connectionId });
+        public IClientProxy Others => _hubClients.AllExcept(_currentConnectionId);
 
         public IClientProxy All => _hubClients.All;
 
