@@ -19,12 +19,5 @@ namespace Microsoft.AspNetCore.SignalR
 
         T User(string userId);
     }
-
-    public interface IHubCallerClients<T> : IHubClients<T>
-    {
-        T Caller { get; }
-
-        T Others { get; }
-    }
 }
 

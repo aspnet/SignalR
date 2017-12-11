@@ -6,6 +6,4 @@ using System.Collections.Generic;
 namespace Microsoft.AspNetCore.SignalR
 {
     public interface IHubClients : IHubClients<IClientProxy> { }
-
-    public interface IHubCallerClients : IHubCallerClients<IClientProxy> { }
 }
