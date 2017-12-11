@@ -877,10 +877,12 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             dynamic endPoint = serviceProvider.GetService(GetEndPointType(hubType));
 
             using (var firstClient = new TestClient())
+            using (var secondClient = new TestClient())
             {
                 Task firstEndPointTask = endPoint.OnConnectedAsync(firstClient.Connection);
+                Task secondEndPointTask = endPoint.OnConnectedAsync(secondClient.Connection);
 
-                await firstClient.Connected;
+                await Task.WhenAll(firstClient.Connected, secondClient.Connected).OrTimeout();
 
                 await firstClient.SendInvocationAsync("SendToCaller", "To caller").OrTimeout();
 
@@ -888,6 +890,12 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var invocation = Assert.IsType<InvocationMessage>(firstClientResult);
                 Assert.Equal("Send", invocation.Target);
                 Assert.Equal("To caller", invocation.Arguments[0]);
+
+                await firstClient.SendInvocationAsync("BroadcastMethod", "To everyone").OrTimeout();
+                var secondClientResult = await secondClient.ReadAsync().OrTimeout();
+                invocation = Assert.IsType<InvocationMessage>(secondClientResult);
+                Assert.Equal("Broadcast", invocation.Target);
+                Assert.Equal("To everyone", invocation.Arguments[0]);
 
                 // kill the connections
                 firstClient.Dispose();
