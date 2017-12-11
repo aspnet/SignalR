@@ -211,15 +211,23 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
                     _closeTcs.SetResult(null);
 
-                    if (t.IsFaulted)
+                    try
                     {
-                        Closed?.Invoke(t.Exception.InnerException);
+                        if (t.IsFaulted)
+                        {
+                            Closed?.Invoke(t.Exception.InnerException);
+                        }
+                        else
+                        {
+                            // Call the closed event. If there was an abort exception, it will be flowed forward
+                            // However, if there wasn't, this will just be null and we're good
+                            Closed?.Invoke(abortException);
+                        }
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        // Call the closed event. If there was an abort exception, it will be flowed forward
-                        // However, if there wasn't, this will just be null and we're good
-                        Closed?.Invoke(abortException);
+                        // Suppress (but log) the exception, this is user code
+                        _logger.ErrorDuringClosedEvent(ex);
                     }
                 });
 
@@ -320,7 +328,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 await _transport.StartAsync(connectUrl, applicationSide, GetTransferMode(), _connectionId, this);
 
                 // actual transfer mode can differ from the one that was requested so set it on the feature
-                if(!_transport.Mode.HasValue)
+                if (!_transport.Mode.HasValue)
                 {
                     // This can happen with custom transports so it should be an exception, not an assert.
                     throw new InvalidOperationException("Transport was expected to set the Mode property after StartAsync, but it has not been set.");
@@ -465,7 +473,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
         //     first AbortAsync call is still set at the time CloseAsync gets to calling the Closed event. However, this can't happen because the
         //     StartAsync method can't be called until the connection state is changed to Disconnected, which happens AFTER the close code
         //     captures and resets _abortException.
-        public async Task AbortAsync(Exception ex) => await StopAsyncCore(ex ?? throw new ArgumentNullException(nameof(ex))).ForceAsync();
+        public async Task AbortAsync(Exception exception) => await StopAsyncCore(exception ?? throw new ArgumentNullException(nameof(exception))).ForceAsync();
 
         public async Task StopAsync() => await StopAsyncCore(exception: null).ForceAsync();
 
