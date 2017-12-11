@@ -850,13 +850,21 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 Assert.Equal("To others", invocation.Arguments[0]);
 
                 var firstClientResult = await firstClient.ReadAsync().OrTimeout();
-                var completionMessage = Assert.IsType<CompletionMessage>(firstClientResult);
+                var completion = Assert.IsType<CompletionMessage>(firstClientResult);
+
+                await secondClient.SendInvocationAsync("BroadcastMethod", "To everyone").OrTimeout();
+                firstClientResult = await firstClient.ReadAsync().OrTimeout();
+                invocation = Assert.IsType<InvocationMessage>(firstClientResult);
+                Assert.Equal("Broadcast", invocation.Target);
+                Assert.Equal("To everyone", invocation.Arguments[0]);
 
                 // kill the connections
                 firstClient.Dispose();
                 secondClient.Dispose();
 
                 await Task.WhenAll(firstEndPointTask, secondEndPointTask).OrTimeout();
+
+
             }
         }
 
