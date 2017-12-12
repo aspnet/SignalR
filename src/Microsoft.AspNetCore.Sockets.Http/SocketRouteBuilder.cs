@@ -4,6 +4,7 @@
 using System;
 using System.Reflection;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 
 namespace Microsoft.AspNetCore.Sockets
@@ -20,9 +21,9 @@ namespace Microsoft.AspNetCore.Sockets
         }
 
         public void MapSocket(string path, Action<ISocketBuilder> socketConfig) =>
-            MapSocket(path, new HttpSocketOptions(), socketConfig);
+            MapSocket(new PathString(path), new HttpSocketOptions(), socketConfig);
 
-        public void MapSocket(string path, HttpSocketOptions options, Action<ISocketBuilder> socketConfig)
+        public void MapSocket(PathString path, HttpSocketOptions options, Action<ISocketBuilder> socketConfig)
         {
             var socketBuilder = new SocketBuilder(_routes.ServiceProvider);
             socketConfig(socketBuilder);
@@ -33,10 +34,10 @@ namespace Microsoft.AspNetCore.Sockets
 
         public void MapEndPoint<TEndPoint>(string path) where TEndPoint : EndPoint
         {
-            MapEndPoint<TEndPoint>(path, socketOptions: null);
+            MapEndPoint<TEndPoint>(new PathString(path), socketOptions: null);
         }
 
-        public void MapEndPoint<TEndPoint>(string path, Action<HttpSocketOptions> socketOptions) where TEndPoint : EndPoint
+        public void MapEndPoint<TEndPoint>(PathString path, Action<HttpSocketOptions> socketOptions) where TEndPoint : EndPoint
         {
             var authorizeAttributes = typeof(TEndPoint).GetCustomAttributes<AuthorizeAttribute>(inherit: true);
             var options = new HttpSocketOptions();
