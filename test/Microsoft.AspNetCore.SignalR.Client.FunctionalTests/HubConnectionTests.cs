@@ -655,6 +655,41 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             }
         }
 
+        [Theory]
+        [MemberData(nameof(TransportTypes))]
+        public async Task CheckHttpConnectionFeatures(TransportType transportType)
+        {
+            using (StartLog(out var loggerFactory, $"{nameof(ClientCanSendHeaders)}_{transportType}"))
+            {
+                var hubConnection = new HubConnectionBuilder()
+                    .WithUrl(_serverFixture.Url + "/default")
+                    .WithTransport(transportType)
+                    .WithLoggerFactory(loggerFactory)
+                    .Build();
+                try
+                {
+                    await hubConnection.StartAsync().OrTimeout();
+                    var localPort = await hubConnection.InvokeAsync<int>("CheckLocalPort").OrTimeout();
+                    var remotePort = await hubConnection.InvokeAsync<int>("CheckRemotePort").OrTimeout();
+                    var remoteIP = await hubConnection.InvokeAsync<string>("CheckRemoteIP").OrTimeout();
+                    var localIP = await hubConnection.InvokeAsync<string>("CheckLocalIP").OrTimeout();
+                    Assert.True(localPort > 0);
+                    Assert.True(remotePort > 0);
+                    Assert.Equal("::1", localIP);
+                    Assert.Equal("::1",remoteIP);
+                }
+                catch (Exception ex)
+                {
+                    loggerFactory.CreateLogger<HubConnectionTests>().LogError(ex, "Exception from test");
+                    throw;
+                }
+                finally
+                {
+                    await hubConnection.DisposeAsync().OrTimeout();
+                }
+            }
+        }
+
         public static IEnumerable<object[]> HubProtocolsAndTransportsAndHubPaths
         {
             get

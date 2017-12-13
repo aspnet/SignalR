@@ -29,6 +29,26 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             await Clients.Client(Context.ConnectionId).InvokeAsync("Echo", message);
         }
 
+        public int CheckLocalPort()
+        {
+            return (int)Context.Connection.LocalPort;
+        }
+
+        public int CheckRemotePort()
+        {
+            return (int)Context.Connection.RemotePort;
+        }
+
+        public string CheckRemoteIP()
+        {
+            return Context.Connection.RemoteIpAddress.ToString();
+        }
+
+        public string CheckLocalIP()
+        {
+            return Context.Connection.LocalIpAddress.ToString();
+        }
+
         public async Task CallHandlerThatDoesntExist()
         {
             await Clients.Client(Context.ConnectionId).InvokeAsync("NoClientHandler");
