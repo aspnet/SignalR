@@ -267,6 +267,64 @@ describe('hubConnection', function () {
                     });
             });
 
+            it('can receive server calls without rebinding handler when restarted', function (done) {
+                var options = {
+                    transport: transportType,
+                    protocol: protocol,
+                    logging: signalR.LogLevel.Trace
+                };
+                var hubConnection = new signalR.HubConnection(TESTHUBENDPOINT_URL, options);
+
+                var message = '你好 SignalR！';
+
+                // client side method names are case insensitive
+                var methodName = 'message';
+                var idx = Math.floor(Math.random() * (methodName.length - 1));
+                methodName = methodName.substr(0, idx) + methodName[idx].toUpperCase() + methodName.substr(idx + 1);
+
+                let closeCount = 0;
+                let invocationCount = 0;
+
+                hubConnection.onclose(function (e) {
+                    expect(e).toBeUndefined();
+                    closeCount += 1;
+                    if (closeCount === 1) {
+                        // Reconnect
+                        hubConnection.start()
+                            .then(function () {
+                                return hubConnection.invoke('InvokeWithString', message);
+                            })
+                            .then(function () {
+                                return hubConnection.stop();
+                            })
+                            .catch(function (e) {
+                                fail(e);
+                                done();
+                            });
+                    } else {
+                        expect(invocationCount).toBe(2);
+                        done();
+                    }
+                })
+
+                hubConnection.on(methodName, function (msg) {
+                    expect(msg).toBe(message);
+                    invocationCount += 1;
+                });
+
+                hubConnection.start()
+                    .then(function () {
+                        return hubConnection.invoke('InvokeWithString', message);
+                    })
+                    .then(function () {
+                        return hubConnection.stop();
+                    })
+                    .catch(function (e) {
+                        fail(e);
+                        done();
+                    });
+            });
+
             it('closed with error if hub cannot be created', function (done) {
                 var errorRegex = {
                     WebSockets: '1011|1005', // Message is browser specific (e.g. 'Websocket closed with status code: 1011'), Edge and IE report 1005 even though the server sent 1011
