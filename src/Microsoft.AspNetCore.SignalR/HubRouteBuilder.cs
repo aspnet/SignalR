@@ -23,6 +23,11 @@ namespace Microsoft.AspNetCore.SignalR
             MapHub<THub>(new PathString(path), socketOptions: null);
         }
 
+        public void MapHub<THub>(PathString path) where THub : Hub
+        {
+            MapHub<THub>(path, socketOptions: null);
+        }
+
         public void MapHub<THub>(PathString path, Action<HttpSocketOptions> socketOptions) where THub : Hub
         {
             // find auth attributes
