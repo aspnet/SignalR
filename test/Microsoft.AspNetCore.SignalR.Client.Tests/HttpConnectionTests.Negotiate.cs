@@ -81,7 +81,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     async (connection, closed) =>
                     {
                         var exception = await Assert.ThrowsAsync<TException>(
-                            () => connection.StartAsync());
+                            () => connection.StartAsync().OrTimeout());
 
                         Assert.Equal(expectedExceptionMessage, exception.Message);
                     });

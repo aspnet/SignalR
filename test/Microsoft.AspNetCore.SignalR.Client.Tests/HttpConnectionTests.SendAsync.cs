@@ -106,10 +106,10 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     CreateConnection(testHttpHandler),
                     async (connection, closed) =>
                     {
-                        await connection.StartAsync();
+                        await connection.StartAsync().OrTimeout();
 
                         var exception = await Assert.ThrowsAsync<HttpRequestException>(
-                            async () => await connection.SendAsync(new byte[0]));
+                            async () => await connection.SendAsync(new byte[0]).OrTimeout());
 
                         longPollTcs.TrySetResult(null);
                     });

@@ -59,7 +59,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     var onReceived = new SyncPoint();
                     connection.OnReceived(_ => onReceived.WaitToContinue().OrTimeout());
 
-                    await connection.StartAsync();
+                    await connection.StartAsync().OrTimeout();
 
                     // This will trigger the received callback
                     testTransport.Application.Writer.TryWrite(Array.Empty<byte>());
