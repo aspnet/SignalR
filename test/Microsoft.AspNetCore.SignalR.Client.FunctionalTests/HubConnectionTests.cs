@@ -659,7 +659,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         [MemberData(nameof(TransportTypes))]
         public async Task CheckHttpConnectionFeatures(TransportType transportType)
         {
-            using (StartLog(out var loggerFactory, $"{nameof(ClientCanSendHeaders)}_{transportType}"))
+            using (StartLog(out var loggerFactory, $"{nameof(CheckHttpConnectionFeatures)}_{transportType}"))
             {
                 var hubConnection = new HubConnectionBuilder()
                     .WithUrl(_serverFixture.Url + "/default")
@@ -675,8 +675,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                     var localIP = await hubConnection.InvokeAsync<string>("CheckLocalIP").OrTimeout();
                     Assert.True(localPort > 0);
                     Assert.True(remotePort > 0);
-                    Assert.Equal("::1", localIP);
-                    Assert.Equal("::1",remoteIP);
+                    Assert.Equal("127.0.0.1", localIP);
+                    Assert.Equal("127.0.0.1",remoteIP);
                 }
                 catch (Exception ex)
                 {
