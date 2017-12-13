@@ -669,10 +669,10 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 try
                 {
                     await hubConnection.StartAsync().OrTimeout();
-                    var localPort = await hubConnection.InvokeAsync<int>("CheckLocalPort").OrTimeout();
-                    var remotePort = await hubConnection.InvokeAsync<int>("CheckRemotePort").OrTimeout();
-                    var remoteIP = await hubConnection.InvokeAsync<string>("CheckRemoteIP").OrTimeout();
-                    var localIP = await hubConnection.InvokeAsync<string>("CheckLocalIP").OrTimeout();
+                    var localPort = await hubConnection.InvokeAsync<int>("GetLocalPort").OrTimeout();
+                    var remotePort = await hubConnection.InvokeAsync<int>("GetRemotePort").OrTimeout();
+                    var remoteIP = await hubConnection.InvokeAsync<string>("GetRemoteIP").OrTimeout();
+                    var localIP = await hubConnection.InvokeAsync<string>("GetLocalIP").OrTimeout();
                     Assert.True(localPort > 0);
                     Assert.True(remotePort > 0);
                     Assert.Equal("127.0.0.1", localIP);
