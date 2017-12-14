@@ -17,15 +17,22 @@ using Microsoft.AspNetCore.Http.Internal;
 using Microsoft.AspNetCore.Sockets.Features;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Primitives;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Microsoft.AspNetCore.Sockets.Tests
 {
-    public class HttpConnectionDispatcherTests
+    public class HttpConnectionDispatcherTests : LoggedTest
     {
+        public HttpConnectionDispatcherTests(ITestOutputHelper output) : base(output)
+        {
+        }
+
         [Fact]
         public async Task NegotiateReservesConnectionIdAndReturnsIt()
         {
@@ -364,25 +371,29 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [Fact]
         public async Task WebSocketTransportTimesOutWhenCloseFrameNotReceived()
         {
-            var manager = CreateConnectionManager();
-            var connection = manager.CreateConnection();
+            using (StartLog(out var loggerFactory))
+            {
+                var manager = CreateConnectionManager(loggerFactory);
+                var connection = manager.CreateConnection();
 
-            var dispatcher = new HttpConnectionDispatcher(manager, new LoggerFactory());
+                var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
 
-            var context = MakeRequest("/foo", connection);
-            SetTransport(context, TransportType.WebSockets);
+                var context = MakeRequest("/foo", connection);
+                SetTransport(context, TransportType.WebSockets);
 
-            var services = new ServiceCollection();
-            services.AddEndPoint<ImmediatelyCompleteEndPoint>();
-            var builder = new SocketBuilder(services.BuildServiceProvider());
-            builder.UseEndPoint<ImmediatelyCompleteEndPoint>();
-            var app = builder.Build();
-            var options = new HttpSocketOptions();
-            options.WebSockets.CloseTimeout = TimeSpan.FromSeconds(1);
+                var services = new ServiceCollection();
+                services.AddSingleton(loggerFactory);
+                services.AddEndPoint<ImmediatelyCompleteEndPoint>();
+                var builder = new SocketBuilder(services.BuildServiceProvider());
+                builder.UseEndPoint<ImmediatelyCompleteEndPoint>();
+                var app = builder.Build();
+                var options = new HttpSocketOptions();
+                options.WebSockets.CloseTimeout = TimeSpan.FromSeconds(1);
 
-            var task = dispatcher.ExecuteAsync(context, options, app);
+                var task = dispatcher.ExecuteAsync(context, options, app);
 
-            await task.OrTimeout();
+                await task.OrTimeout();
+            }
         }
 
         [Theory]
@@ -1101,9 +1112,9 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             }
         }
 
-        private static ConnectionManager CreateConnectionManager()
+        private static ConnectionManager CreateConnectionManager(ILoggerFactory loggerFactory = null)
         {
-            return new ConnectionManager(new Logger<ConnectionManager>(new LoggerFactory()), new EmptyApplicationLifetime());
+            return new ConnectionManager((loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<ConnectionManager>(), new EmptyApplicationLifetime());
         }
 
         private string GetContentAsString(Stream body)
