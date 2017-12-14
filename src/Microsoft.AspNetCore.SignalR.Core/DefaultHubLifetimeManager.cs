@@ -150,7 +150,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         private InvocationMessage CreateInvocationMessage(string methodName, object[] args)
         {
-            return new InvocationMessage(GetInvocationId(), nonBlocking: true, target: methodName, argumentBindingException: null, arguments: args);
+            return new InvocationMessage(null, target: methodName, argumentBindingException: null, arguments: args);
         }
 
         public override Task InvokeUserAsync(string userId, string methodName, object[] args)
