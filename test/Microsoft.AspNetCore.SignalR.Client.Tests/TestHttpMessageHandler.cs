@@ -35,7 +35,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             testHttpMessageHandler.OnSocketSend((_, __) => ResponseUtils.CreateResponse(HttpStatusCode.Accepted));
             testHttpMessageHandler.OnLongPoll(async cancellationToken =>
             {
-                // Just block until cancelled
+                // Just block until canceled
                 var tcs = new TaskCompletionSource<object>();
                 using (cancellationToken.Register(() => tcs.TrySetResult(null)))
                 {
