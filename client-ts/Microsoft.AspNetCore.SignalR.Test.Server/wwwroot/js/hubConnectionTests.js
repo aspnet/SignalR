@@ -255,9 +255,10 @@ describe('hubConnection', function () {
                     done();
                 });
 
-                hubConnection.start().then(function () {
-                    return hubConnection.invoke('InvokeWithString', message);
-                })
+                hubConnection.start()
+                    .then(function () {
+                        return hubConnection.invoke('InvokeWithString', message);
+                    })
                     .then(function () {
                         return hubConnection.stop();
                     })
@@ -370,9 +371,10 @@ describe('hubConnection', function () {
                         : new Uint8Array([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00])
                 };
 
-                hubConnection.start().then(function () {
-                    return hubConnection.invoke('EchoComplexObject', complexObject);
-                })
+                hubConnection.start()
+                    .then(function () {
+                        return hubConnection.invoke('EchoComplexObject', complexObject);
+                    })
                     .then(function (value) {
                         if (protocol.name === "messagepack") {
                             // msgpack creates a Buffer for byte arrays and jasmine fails to compare a Buffer
