@@ -1071,7 +1071,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 await firstClient.InvokeAsync(nameof(MethodHub.GroupAddMethod), "testGroup").OrTimeout();
                 await secondClient.InvokeAsync(nameof(MethodHub.GroupAddMethod), "testGroup").OrTimeout();
 
-
                 await firstClient.SendInvocationAsync("SendToOthersInGroup", "testGroup", "test").OrTimeout();
 
                 // check that 'secondConnection' has received the group send
