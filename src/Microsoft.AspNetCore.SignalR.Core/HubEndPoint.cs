@@ -58,7 +58,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public async Task OnConnectedAsync(ConnectionContext connection)
         {
-            var connectionContext = new HubConnectionContext(connection, _hubOptions.KeepAliveInterval, _loggerFactory);
+            var connectionContext = new HubConnectionContext(connection, _hubContext.Clients, _hubOptions.KeepAliveInterval, _loggerFactory);
 
             if (!await connectionContext.NegotiateAsync(_hubOptions.NegotiateTimeout, _protocolResolver, _userIdProvider))
             {
@@ -368,8 +368,8 @@ namespace Microsoft.AspNetCore.SignalR
 
         private void InitializeHub(THub hub, HubConnectionContext connection)
         {
-            hub.Clients = new HubCallerClients(_hubContext.Clients, connection.ConnectionId);
-            hub.Context = new HubCallerContext(connection);
+            hub.Clients = connection.CallerClients;
+            hub.Context = connection.CallerContext;
             hub.Groups = _hubContext.Groups;
         }
 

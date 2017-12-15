@@ -38,13 +38,15 @@ namespace Microsoft.AspNetCore.SignalR
         private long _lastSendTimestamp = Stopwatch.GetTimestamp();
         private byte[] _pingMessage;
 
-        public HubConnectionContext(ConnectionContext connectionContext, TimeSpan keepAliveInterval, ILoggerFactory loggerFactory)
+        public HubConnectionContext(ConnectionContext connectionContext, IHubClients clients, TimeSpan keepAliveInterval, ILoggerFactory loggerFactory)
         {
             Output = Channel.CreateUnbounded<HubMessage>();
             _connectionContext = connectionContext;
             _logger = loggerFactory.CreateLogger<HubConnectionContext>();
             ConnectionAbortedToken = _connectionAbortedTokenSource.Token;
             _keepAliveDuration = (int)keepAliveInterval.TotalMilliseconds * (Stopwatch.Frequency / 1000);
+            CallerContext = new HubCallerContext(this);
+            CallerClients = new HubCallerClients(clients, ConnectionId);
         }
 
         public virtual CancellationToken ConnectionAbortedToken { get; }
@@ -64,6 +66,10 @@ namespace Microsoft.AspNetCore.SignalR
         public string UserIdentifier { get; private set; }
 
         internal virtual Channel<HubMessage> Output { get; set; }
+
+        internal HubCallerContext CallerContext { get; private set; }
+
+        internal HubCallerClients CallerClients { get; private set; }
 
         internal ExceptionDispatchInfo AbortException { get; private set; }
 
