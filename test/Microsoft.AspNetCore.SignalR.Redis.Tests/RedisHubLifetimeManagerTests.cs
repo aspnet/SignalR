@@ -96,10 +96,10 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
                 await manager.InvokeGroupAsync("gunit", "Hello", new object[] { "World" }).OrTimeout();
 
                 await AssertMessageAsync(client1);
+                Assert.Null(client2.TryRead());
 
                 await connection1.DisposeAsync().OrTimeout();
                 await connection2.DisposeAsync().OrTimeout();
-                Assert.Null(client2.TryRead());
             }
         }
 
@@ -123,7 +123,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
                 await manager.AddGroupAsync(connection1.ConnectionId, "gunit").OrTimeout();
                 await manager.AddGroupAsync(connection2.ConnectionId, "gunit").OrTimeout();
 
-                var excludedIds = new List<string>{client2.Connection.ConnectionId };
+                var excludedIds = new List<string>{ client2.Connection.ConnectionId };
                 await manager.InvokeGroupExceptAsync("gunit", "Hello", new object[] { "World" }, excludedIds).OrTimeout();
 
                 await AssertMessageAsync(client1);

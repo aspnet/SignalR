@@ -44,7 +44,7 @@ namespace Microsoft.AspNetCore.SignalR
     {
         private readonly string _groupName;
         private readonly HubLifetimeManager<THub> _lifetimeManager;
-        private IReadOnlyList<string> _excludedIds;
+        private readonly IReadOnlyList<string> _excludedIds;
 
         public GroupExceptProxy(HubLifetimeManager<THub> lifetimeManager, string groupName, IReadOnlyList<string> excludedIds)
         {
