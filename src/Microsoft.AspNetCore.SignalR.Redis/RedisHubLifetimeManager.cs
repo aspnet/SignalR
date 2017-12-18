@@ -152,14 +152,14 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
         public override Task InvokeAllAsync(string methodName, object[] args)
         {
-            var message = new InvocationMessage(null, target: methodName, argumentBindingException: null, arguments: args);
+            var message = new InvocationMessage(target: methodName, argumentBindingException: null, arguments: args);
 
             return PublishAsync(_channelNamePrefix, message);
         }
 
         public override Task InvokeAllExceptAsync(string methodName, object[] args, IReadOnlyList<string> excludedIds)
         {
-            var message = new RedisExcludeClientsMessage(null, target: methodName, excludedIds: excludedIds, arguments: args);
+            var message = new RedisExcludeClientsMessage(target: methodName, excludedIds: excludedIds, arguments: args);
             return PublishAsync(_channelNamePrefix + ".AllExcept", message);
         }
 
@@ -607,8 +607,13 @@ namespace Microsoft.AspNetCore.SignalR.Redis
         {
             public IReadOnlyList<string> ExcludedIds;
 
+            public RedisExcludeClientsMessage(string target, IReadOnlyList<string> excludedIds, params object[] arguments)
+                : this(invocationId: null, target, excludedIds, arguments)
+            {
+            }
+
             public RedisExcludeClientsMessage(string invocationId, string target, IReadOnlyList<string> excludedIds, params object[] arguments)
-                : base(invocationId, target, argumentBindingException: null, arguments: arguments)
+                : base(invocationId, target, argumentBindingException: null, arguments)
             {
                 ExcludedIds = excludedIds;
             }

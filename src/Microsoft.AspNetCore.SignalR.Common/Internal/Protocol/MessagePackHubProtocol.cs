@@ -80,7 +80,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
             // For MsgPack, we represent an empty invocation ID as an empty string,
             // so we need to normalize that to "null", which is what indicates a non-blocking invocation.
-            if(string.IsNullOrEmpty(invocationId))
+            if (string.IsNullOrEmpty(invocationId))
             {
                 invocationId = null;
             }
@@ -320,9 +320,9 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             Exception msgPackException = null;
             try
             {
-                if(unpacker.Read())
+                if (unpacker.Read())
                 {
-                    if(unpacker.LastReadData.IsNil)
+                    if (unpacker.LastReadData.IsNil)
                     {
                         return null;
                     }
