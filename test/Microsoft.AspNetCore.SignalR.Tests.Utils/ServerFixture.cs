@@ -87,7 +87,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
         private class AsyncForwardingLoggerProvider : ILoggerProvider
         {
-            private AsyncLocal<ILoggerFactory> _localLogger;
+            private AsyncLocal<ILoggerFactory> _localLogger = new AsyncLocal<ILoggerFactory>();
 
             public ILogger CreateLogger(string categoryName)
             {
