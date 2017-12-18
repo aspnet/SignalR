@@ -56,6 +56,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
     public class InvocationMessage : HubMethodInvocationMessage
     {
+        public InvocationMessage(string target, ExceptionDispatchInfo argumentBindingException, params object[] arguments)
+            : this(invocationId: null, target, argumentBindingException, arguments)
+        {
+        }
+
         public InvocationMessage(string invocationId, string target, ExceptionDispatchInfo argumentBindingException, params object[] arguments)
             : base(invocationId, target, argumentBindingException, arguments)
         {

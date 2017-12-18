@@ -18,12 +18,12 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         public static IEnumerable<object[]> TestMessages => new[]
         {
             new object[] { new[] { new InvocationMessage(invocationId: "xyz", target: "method", argumentBindingException: null) } },
-            new object[] { new[] { new InvocationMessage(invocationId: null, target: "method", argumentBindingException: null) } },
-            new object[] { new[] { new InvocationMessage(invocationId: null, target: "method", argumentBindingException: null, new object[] { null }) } },
-            new object[] { new[] { new InvocationMessage(invocationId: null, target: "method", argumentBindingException: null, 42) } },
-            new object[] { new[] { new InvocationMessage(invocationId: null, target: "method", argumentBindingException: null, 42, "string") } },
-            new object[] { new[] { new InvocationMessage(invocationId: null, target: "method", argumentBindingException: null, 42, "string", new CustomObject()) } },
-            new object[] { new[] { new InvocationMessage(invocationId: null, target: "method", argumentBindingException: null, new[] { new CustomObject(), new CustomObject() }) } },
+            new object[] { new[] { new InvocationMessage(target: "method", argumentBindingException: null) } },
+            new object[] { new[] { new InvocationMessage(target: "method", argumentBindingException: null, new object[] { null }) } },
+            new object[] { new[] { new InvocationMessage(target: "method", argumentBindingException: null, 42) } },
+            new object[] { new[] { new InvocationMessage(target: "method", argumentBindingException: null, 42, "string") } },
+            new object[] { new[] { new InvocationMessage(target: "method", argumentBindingException: null, 42, "string", new CustomObject()) } },
+            new object[] { new[] { new InvocationMessage(target: "method", argumentBindingException: null, new[] { new CustomObject(), new CustomObject() }) } },
 
             new object[] { new[] { new CompletionMessage(invocationId: "xyz", error: "Error not found!", result: null, hasResult: false) } },
             new object[] { new[] { new CompletionMessage(invocationId: "xyz", error: null, result: null, hasResult: false) } },
