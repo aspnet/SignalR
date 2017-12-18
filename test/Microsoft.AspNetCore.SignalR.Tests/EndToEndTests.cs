@@ -114,7 +114,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     .Returns<HttpRequestMessage, CancellationToken>(
                         (request, cancellationToken) => Task.FromException<HttpResponseMessage>(new InvalidOperationException("HTTP requests should not be sent.")));
 
-                var connection = new HttpConnection(new Uri(url), TransportType.WebSockets, loggerFactory, new HttpOptions { HttpMessageHandler = mockHttpHandler.Object});
+                var connection = new HttpConnection(new Uri(url), TransportType.WebSockets, loggerFactory, new HttpOptions { HttpMessageHandler = mockHttpHandler.Object });
 
                 try
                 {
@@ -326,6 +326,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             using (StartLog(out var loggerFactory, testName: $"ConnectionCanSendAndReceiveMessages_{transportType.ToString()}"))
             {
+                _serverFixture.SetTestLoggerFactory(loggerFactory);
+
                 var logger = loggerFactory.CreateLogger<EndToEndTests>();
 
                 var url = _serverFixture.Url + "/uncreatable";
