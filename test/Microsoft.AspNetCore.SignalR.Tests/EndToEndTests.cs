@@ -353,13 +353,24 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     };
 
                     logger.LogInformation("Starting connection to {url}", url);
-                    await connection.StartAsync().OrTimeout();
+
+                    try
+                    {
+                        await connection.StartAsync().OrTimeout();
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // Due to a race, this can fail with OperationCanceledException in the SendAsync
+                        // call that HubConnection does to send the negotiate message.
+                        // This has only been happening on AppVeyor, likely due to a slower CI machine
+                        // The closed event will still fire with the exception we care about.
+                    }
 
                     await closeTcs.Task.OrTimeout();
                 }
                 catch (Exception ex)
                 {
-                    logger.LogInformation(ex, "Test threw exception");
+                    logger.LogError(ex, "Test threw {exceptionType}: {message}", ex.GetType(), ex.Message);
                     throw;
                 }
                 finally
