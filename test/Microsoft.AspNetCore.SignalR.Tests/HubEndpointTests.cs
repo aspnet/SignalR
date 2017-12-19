@@ -824,9 +824,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(HubTypes))]
         public async Task SendToOthers(Type hubType)
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
-
-            dynamic endPoint = serviceProvider.GetService(HubEndPointTestUtils.GetEndPointType(hubType));
+            dynamic endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
@@ -866,9 +864,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(HubTypes))]
         public async Task SendToCaller(Type hubType)
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
-
-            dynamic endPoint = serviceProvider.GetService(HubEndPointTestUtils.GetEndPointType(hubType));
+            dynamic endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
@@ -1617,39 +1613,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 Assert.InRange(counter, 1, Int32.MaxValue);
             }
         }
-
-<<<<<<< HEAD
-        private static void AssertHubMessage(HubMessage expected, HubMessage actual)
-        {
-            // We aren't testing InvocationIds here
-            switch (expected)
-            {
-                case CompletionMessage expectedCompletion:
-                    var actualCompletion = Assert.IsType<CompletionMessage>(actual);
-                    Assert.Equal(expectedCompletion.Error, actualCompletion.Error);
-                    Assert.Equal(expectedCompletion.HasResult, actualCompletion.HasResult);
-                    Assert.Equal(expectedCompletion.Result, actualCompletion.Result);
-                    break;
-                case StreamItemMessage expectedStreamItem:
-                    var actualStreamItem = Assert.IsType<StreamItemMessage>(actual);
-                    Assert.Equal(expectedStreamItem.Item, actualStreamItem.Item);
-                    break;
-                case InvocationMessage expectedInvocation:
-                    var actualInvocation = Assert.IsType<InvocationMessage>(actual);
-
-                    // Either both must have non-null invocationIds or both must have null invocation IDs. Checking the exact value is NOT desired here though as it could be randomly generated
-                    Assert.True((expectedInvocation.InvocationId == null && actualInvocation.InvocationId == null) ||
-                        (expectedInvocation.InvocationId != null && actualInvocation.InvocationId != null));
-                    Assert.Equal(expectedInvocation.Target, actualInvocation.Target);
-                    Assert.Equal(expectedInvocation.Arguments, actualInvocation.Arguments);
-                    break;
-                default:
-                    throw new InvalidOperationException($"Unsupported Hub Message type {expected.GetType()}");
-            }
-        }
-=======
-
->>>>>>> Refactoring HubEndPointTests
 
         public static IEnumerable<object[]> HubTypes()
         {
