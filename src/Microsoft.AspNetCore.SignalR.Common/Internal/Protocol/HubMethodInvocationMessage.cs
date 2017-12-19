@@ -4,6 +4,7 @@
 using System;
 using System.Linq;
 using System.Runtime.ExceptionServices;
+using Newtonsoft.Json;
 
 namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 {
@@ -35,7 +36,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             }
         }
 
-        public HubMethodInvocationMessage(string invocationId, string target, ExceptionDispatchInfo argumentBindingException, object[] arguments)
+        protected HubMethodInvocationMessage(string invocationId, string target, ExceptionDispatchInfo argumentBindingException, object[] arguments)
             : base(invocationId)
         {
             if (string.IsNullOrEmpty(target))
