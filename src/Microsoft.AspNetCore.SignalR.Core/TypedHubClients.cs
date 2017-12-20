@@ -39,7 +39,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public T MultipleClients(IReadOnlyList<string> connectionIds)
         {
-            throw new System.NotImplementedException();
+            return TypedClientBuilder<T>.Build(_hubClients.MultipleClients(connectionIds));
         }
 
         public T OthersInGroup(string groupName)
