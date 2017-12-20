@@ -148,7 +148,8 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                     feature.Client.SendAbort();
 
                     // Wait for the transport
-                    await Assert.ThrowsAsync<WebSocketException>(() => transport).OrTimeout();
+                    var aggex = await Assert.ThrowsAsync<AggregateException>(() => transport).OrTimeout();
+                    Assert.Collection(aggex.InnerExceptions, ex => Assert.IsType<WebSocketException>(ex));
 
                     var summary = await client.OrTimeout();
                     Assert.Equal(WebSocketCloseStatus.InternalServerError, summary.CloseResult.CloseStatus);
@@ -185,8 +186,12 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                     // Close from the client
                     await feature.Client.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
 
-                    var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => transport.OrTimeout());
-                    Assert.Equal("Catastrophic failure.", ex.Message);
+                    var aggex = await Assert.ThrowsAsync<AggregateException>(() => transport.OrTimeout());
+                    Assert.Collection(aggex.InnerExceptions, ex =>
+                    {
+                        Assert.IsType<InvalidOperationException>(ex);
+                        Assert.Equal("Catastrophic failure.", ex.Message);
+                    });
                 }
             }
         }
@@ -256,9 +261,11 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                     var client = feature.Client.ExecuteAndCaptureFramesAsync();
 
                     // fail the client to server channel
-                    applicationToTransport.Writer.TryComplete(new Exception());
+                    var expected = new Exception();
+                    applicationToTransport.Writer.TryComplete(expected);
 
-                    await Assert.ThrowsAsync<Exception>(() => transport).OrTimeout();
+                    var actual = await Assert.ThrowsAsync<AggregateException>(() => transport.OrTimeout());
+                    Assert.Same(expected, actual.InnerException);
 
                     Assert.Equal(WebSocketState.Aborted, serverSocket.State);
                 }

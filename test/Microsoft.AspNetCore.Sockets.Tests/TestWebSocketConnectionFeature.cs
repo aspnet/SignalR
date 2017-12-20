@@ -107,7 +107,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             {
                 try
                 {
-                    await _input.WaitToReadAsync();
+                    await _input.WaitToReadAsync(cancellationToken);
 
                     if (_input.TryRead(out var message))
                     {
