@@ -31,7 +31,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var serverToClient = Channel.CreateUnbounded<WebSocketMessage>();
 
             var clientSocket = new WebSocketChannel(serverToClient.Reader, clientToServer.Writer, _loggerFactory.CreateLogger($"{typeof(WebSocketChannel).FullName}:Client"));
-            var serverSocket = new WebSocketChannel(clientToServer.Reader, serverToClient.Writer, _loggerFactory.CreateLogger($"{typeof(WebSocketChannel).FullName}:Server");
+            var serverSocket = new WebSocketChannel(clientToServer.Reader, serverToClient.Writer, _loggerFactory.CreateLogger($"{typeof(WebSocketChannel).FullName}:Server"));
 
             Client = clientSocket;
             return Task.FromResult<WebSocket>(serverSocket);
