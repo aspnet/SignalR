@@ -6,14 +6,22 @@ using System.Threading.Tasks;
 using System.Threading.Channels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.Sockets.Tests
 {
     internal class TestWebSocketConnectionFeature : IHttpWebSocketFeature, IDisposable
     {
+        private readonly ILoggerFactory _loggerFactory;
+
         public bool IsWebSocketRequest => true;
 
         public WebSocketChannel Client { get; private set; }
+
+        public TestWebSocketConnectionFeature(ILoggerFactory loggerFactory)
+        {
+            _loggerFactory = loggerFactory;
+        }
 
         public Task<WebSocket> AcceptAsync() => AcceptAsync(new WebSocketAcceptContext());
 
@@ -22,8 +30,8 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var clientToServer = Channel.CreateUnbounded<WebSocketMessage>();
             var serverToClient = Channel.CreateUnbounded<WebSocketMessage>();
 
-            var clientSocket = new WebSocketChannel(serverToClient.Reader, clientToServer.Writer);
-            var serverSocket = new WebSocketChannel(clientToServer.Reader, serverToClient.Writer);
+            var clientSocket = new WebSocketChannel(serverToClient.Reader, clientToServer.Writer, _loggerFactory.CreateLogger($"{typeof(WebSocketChannel).FullName}:Client"));
+            var serverSocket = new WebSocketChannel(clientToServer.Reader, serverToClient.Writer, _loggerFactory.CreateLogger($"{typeof(WebSocketChannel).FullName}:Server");
 
             Client = clientSocket;
             return Task.FromResult<WebSocket>(serverSocket);
@@ -37,15 +45,16 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         {
             private readonly ChannelReader<WebSocketMessage> _input;
             private readonly ChannelWriter<WebSocketMessage> _output;
-
+            private readonly ILogger _logger;
             private WebSocketCloseStatus? _closeStatus;
             private string _closeStatusDescription;
             private WebSocketState _state;
 
-            public WebSocketChannel(ChannelReader<WebSocketMessage> input, ChannelWriter<WebSocketMessage> output)
+            public WebSocketChannel(ChannelReader<WebSocketMessage> input, ChannelWriter<WebSocketMessage> output, ILogger logger)
             {
                 _input = input;
                 _output = output;
+                _logger = logger;
             }
 
             public override WebSocketCloseStatus? CloseStatus => _closeStatus;
@@ -58,32 +67,25 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             public override void Abort()
             {
+                _logger.LogDebug("Aborting socket.");
                 _output.TryComplete(new OperationCanceledException());
                 _state = WebSocketState.Aborted;
             }
 
             public void SendAbort()
             {
+                _logger.LogDebug("Terminating connection abnormally.");
                 _output.TryComplete(new WebSocketException(WebSocketError.ConnectionClosedPrematurely));
             }
 
             public override async Task CloseAsync(WebSocketCloseStatus closeStatus, string statusDescription, CancellationToken cancellationToken)
             {
-                await SendMessageAsync(new WebSocketMessage
-                {
-                    CloseStatus = closeStatus,
-                    CloseStatusDescription = statusDescription,
-                    MessageType = WebSocketMessageType.Close,
-                },
-                cancellationToken);
-
-                _state = WebSocketState.CloseSent;
-
-                _output.TryComplete();
+                CloseOutputAsync(closeStatus, statusDescription, cancellationToken);
             }
 
             public override async Task CloseOutputAsync(WebSocketCloseStatus closeStatus, string statusDescription, CancellationToken cancellationToken)
             {
+                _logger.LogDebug("Sending close frame with status {closeStatus} {closeStatusDescription}.", closeStatus, statusDescription);
                 await SendMessageAsync(new WebSocketMessage
                 {
                     CloseStatus = closeStatus,
@@ -95,10 +97,12 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 _state = WebSocketState.CloseSent;
 
                 _output.TryComplete();
+                _logger.LogDebug("Close frame sent.");
             }
 
             public override void Dispose()
             {
+                _logger.LogDebug("Disposing socket.");
                 _state = WebSocketState.Closed;
                 _output.TryComplete();
             }
@@ -107,6 +111,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             {
                 try
                 {
+                    _logger.LogDebug("Waiting for a message to arrive.");
                     await _input.WaitToReadAsync(cancellationToken);
 
                     if (_input.TryRead(out var message))
@@ -116,8 +121,10 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                             _state = WebSocketState.CloseReceived;
                             _closeStatus = message.CloseStatus;
                             _closeStatusDescription = message.CloseStatusDescription;
+                            _logger.LogDebug("Received {frameType} frame with close status {closeStatus} {closeStatusDescription}.", message.MessageType, message.CloseStatus, message.CloseStatusDescription);
                             return new WebSocketReceiveResult(0, WebSocketMessageType.Close, true, message.CloseStatus, message.CloseStatusDescription);
                         }
+                        _logger.LogDebug("Received {frameType} frame with {payloadSize} bytes of payload.", message.MessageType, message.Buffer.Length);
 
                         // REVIEW: This assumes the buffer passed in is > the buffer received
                         Buffer.BlockCopy(message.Buffer, 0, buffer.Array, buffer.Offset, message.Buffer.Length);
@@ -153,10 +160,11 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 cancellationToken);
             }
 
-            public async Task<WebSocketConnectionSummary> ExecuteAndCaptureFramesAsync()
+            public async Task<WebSocketConnectionSummary> ExecuteAndCaptureFramesAsync(CancellationToken cancellationToken)
             {
+                _logger.LogDebug("Collecting frames sent to socket");
                 var frames = new List<WebSocketMessage>();
-                while (await _input.WaitToReadAsync())
+                while (await _input.WaitToReadAsync(cancellationToken))
                 {
                     while (_input.TryRead(out var message))
                     {
@@ -165,23 +173,29 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                             _state = WebSocketState.CloseReceived;
                             _closeStatus = message.CloseStatus;
                             _closeStatusDescription = message.CloseStatusDescription;
+                            _logger.LogDebug("Received {frameType} frame with close status {closeStatus} {closeStatusDescription}.", message.MessageType, message.CloseStatus, message.CloseStatusDescription);
                             return new WebSocketConnectionSummary(frames, new WebSocketReceiveResult(0, message.MessageType, message.EndOfMessage, message.CloseStatus, message.CloseStatusDescription));
                         }
 
+                        _logger.LogDebug("Collected {frameType} frame with {payloadLength} bytes of payload.", message.MessageType, message.Buffer.Length);
                         frames.Add(message);
                     }
                 }
+
                 _state = WebSocketState.Closed;
                 _closeStatus = WebSocketCloseStatus.InternalServerError;
+                _logger.LogDebug(_input.Completion.Exception, "Socket terminated abnormally with exception.");
                 return new WebSocketConnectionSummary(frames, new WebSocketReceiveResult(0, WebSocketMessageType.Close, endOfMessage: true, closeStatus: WebSocketCloseStatus.InternalServerError, closeStatusDescription: ""));
             }
 
             private async Task SendMessageAsync(WebSocketMessage webSocketMessage, CancellationToken cancellationToken)
             {
+                _logger.LogDebug("Sending {payloadLength} byte {frameType} frame.", webSocketMessage.Buffer.Length, webSocketMessage.MessageType);
                 while (await _output.WaitToWriteAsync(cancellationToken))
                 {
                     if (_output.TryWrite(webSocketMessage))
                     {
+                        _logger.LogDebug("Sent frame.");
                         break;
                     }
                 }

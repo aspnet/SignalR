@@ -94,6 +94,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
             // We're done writing
             _application.Writer.TryComplete();
 
+            _logger.LogDebug("Sending WebSocket close frame");
             await socket.CloseOutputAsync(failed ? WebSocketCloseStatus.InternalServerError : WebSocketCloseStatus.NormalClosure, "", _transportCts.Token);
 
             // Wait for the other task to finish, but abort the transport if the close timeout elapses
@@ -111,6 +112,8 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                 // This occurs when the timeout elapses.
                 // We care about it, but only enough to log it, and the Register call above handles that.
             }
+
+            _logger.LogDebug("WebSocket connection ended");
 
             // Observe any exceptions from original completed task
             trigger.GetAwaiter().GetResult();
@@ -189,47 +192,55 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
             }
             catch (Exception ex)
             {
-                _logger.LogTrace(ex, "Terminating Receive loop due to an error");
+                _logger.LogDebug(ex, "Terminating receive loop due to an error");
                 throw;
             }
+            _logger.LogDebug("Terminating receive loop");
         }
 
         private async Task StartSending(WebSocket ws, CancellationToken cancellationToken)
         {
-            while (await _application.Reader.WaitToReadAsync(cancellationToken))
+            try
             {
-                // Get a frame from the application
-                while (_application.Reader.TryRead(out var buffer))
+                while (await _application.Reader.WaitToReadAsync(cancellationToken))
                 {
-                    if (buffer.Length > 0)
+                    // Get a frame from the application
+                    while (_application.Reader.TryRead(out var buffer))
                     {
-                        try
+                        if (buffer.Length > 0)
                         {
-                            _logger.SendPayload(_connection.ConnectionId, buffer.Length);
-
-                            var webSocketMessageType = (_connection.TransferMode == TransferMode.Binary
-                                ? WebSocketMessageType.Binary
-                                : WebSocketMessageType.Text);
-
-                            if (WebSocketCanSend(ws))
+                            try
                             {
-                                await ws.SendAsync(new ArraySegment<byte>(buffer), webSocketMessageType, endOfMessage: true, cancellationToken);
+                                _logger.SendPayload(_connection.ConnectionId, buffer.Length);
+
+                                var webSocketMessageType = (_connection.TransferMode == TransferMode.Binary
+                                    ? WebSocketMessageType.Binary
+                                    : WebSocketMessageType.Text);
+
+                                if (WebSocketCanSend(ws))
+                                {
+                                    await ws.SendAsync(new ArraySegment<byte>(buffer), webSocketMessageType, endOfMessage: true, cancellationToken);
+                                }
                             }
-                        }
-                        catch (WebSocketException socketException) when (!WebSocketCanSend(ws))
-                        {
-                            // this can happen when we send the CloseFrame to the client and try to write afterwards
-                            _logger.SendFailed(_connection.ConnectionId, socketException);
-                            break;
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.ErrorWritingFrame(_connection.ConnectionId, ex);
-                            break;
+                            catch (WebSocketException socketException) when (!WebSocketCanSend(ws))
+                            {
+                                // this can happen when we send the CloseFrame to the client and try to write afterwards
+                                _logger.SendFailed(_connection.ConnectionId, socketException);
+                                break;
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.ErrorWritingFrame(_connection.ConnectionId, ex);
+                                break;
+                            }
                         }
                     }
                 }
             }
+            catch (OperationCanceledException)
+            {
+            }
+            _logger.LogDebug("Terminating send loop");
         }
 
         private static bool WebSocketCanSend(WebSocket ws)
