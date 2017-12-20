@@ -64,7 +64,7 @@ export class HttpConnection implements IConnection {
                 let headers;
                 if (this.options.accessToken) {
                     headers = new Map<string, string>();
-                    headers.set("Authorization", `Bearer ${this.options.accessToken}`);
+                    headers.set("Authorization", `Bearer ${this.options.accessToken()}`);
                 }
 
                 let negotiatePayload = await this.httpClient.post(this.resolveNegotiateUrl(this.baseUrl), "", headers);

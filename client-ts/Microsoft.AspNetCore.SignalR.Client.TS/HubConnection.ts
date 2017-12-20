@@ -20,7 +20,7 @@ export { JsonHubProtocol } from "./JsonHubProtocol"
 export { LogLevel, ILogger } from "./ILogger"
 export { ConsoleLogger, NullLogger } from "./Loggers"
 
-const DEFAULT_SERVER_TIMEOUT_IN_MS: number = 30 * 1000;
+const DEFAULT_TIMEOUT_IN_MS: number = 30 * 1000;
 
 export class HubConnection {
     private readonly connection: IConnection;
@@ -31,14 +31,14 @@ export class HubConnection {
     private id: number;
     private closedCallbacks: ConnectionClosed[];
     private timeoutHandle: NodeJS.Timer;
-    private serverTimeoutInMilliseconds: number;
+    private timeoutInMilliseconds: number;
 
     constructor(url: string, options?: IHubConnectionOptions);
     constructor(connection: IConnection, options?: IHubConnectionOptions);
     constructor(urlOrConnection: string | IConnection, options: IHubConnectionOptions = {}) {
         options = options || {};
 
-        this.serverTimeoutInMilliseconds = options.timeoutInMilliseconds || DEFAULT_SERVER_TIMEOUT_IN_MS;
+        this.timeoutInMilliseconds = options.timeoutInMilliseconds || DEFAULT_TIMEOUT_IN_MS;
 
         if (typeof urlOrConnection === "string") {
             this.connection = new HttpConnection(urlOrConnection, options);
@@ -99,7 +99,7 @@ export class HubConnection {
     private configureTimeout() {
         if (!this.connection.features || !this.connection.features.inherentKeepAlive) {
             // Set the timeout timer
-            this.timeoutHandle = setTimeout(() => this.serverTimeout(), this.serverTimeoutInMilliseconds);
+            this.timeoutHandle = setTimeout(() => this.serverTimeout(), this.timeoutInMilliseconds);
         }
     }
 
