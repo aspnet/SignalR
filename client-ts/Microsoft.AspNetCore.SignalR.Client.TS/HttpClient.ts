@@ -60,6 +60,10 @@ export class DefaultHttpClient extends HttpClient {
                 request.headers.forEach((value, header) => xhr.setRequestHeader(header, value));
             }
 
+            if (request.responseType) {
+                xhr.responseType = request.responseType;
+            }
+
             if (request.abortSignal) {
                 request.abortSignal.onabort = () => {
                     xhr.abort();
