@@ -99,6 +99,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
             // Wait for the other task to finish, but abort the transport if the close timeout elapses
             try
             {
+                _logger.LogDebug("Waiting {closeTimeout}ms for shutdown to occur.", _options.CloseTimeout.TotalMilliseconds);
                 _transportCts.CancelAfter(_options.CloseTimeout);
                 using (_transportCts.Token.Register(self => ((WebSocketsTransport)self).CloseTimedOut(), this))
                 {
