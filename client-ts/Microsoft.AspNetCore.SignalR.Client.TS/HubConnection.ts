@@ -13,7 +13,6 @@ import { Base64EncodedHubProtocol } from "./Base64EncodedHubProtocol"
 import { ILogger, LogLevel } from "./ILogger"
 import { ConsoleLogger, NullLogger, LoggerFactory } from "./Loggers"
 import { IHubConnectionOptions } from "./IHubConnectionOptions"
-import { setTimeout, clearTimeout } from "timers";
 
 export { TransportType } from "./Transports"
 export { HttpConnection } from "./HttpConnection"
@@ -34,10 +33,12 @@ export class HubConnection {
     private timeoutHandle: NodeJS.Timer;
     private serverTimeoutInMilliseconds: number;
 
+    constructor(url: string, options?: IHubConnectionOptions);
+    constructor(connection: IConnection, options?: IHubConnectionOptions);
     constructor(urlOrConnection: string | IConnection, options: IHubConnectionOptions = {}) {
         options = options || {};
 
-        this.serverTimeoutInMilliseconds = options.serverTimeoutInMilliseconds || DEFAULT_SERVER_TIMEOUT_IN_MS;
+        this.serverTimeoutInMilliseconds = options.timeoutInMilliseconds || DEFAULT_SERVER_TIMEOUT_IN_MS;
 
         if (typeof urlOrConnection === "string") {
             this.connection = new HttpConnection(urlOrConnection, options);
@@ -46,7 +47,7 @@ export class HubConnection {
             this.connection = urlOrConnection;
         }
 
-        this.logger = LoggerFactory.createLogger(options.logging);
+        this.logger = LoggerFactory.createLogger(options.logger);
 
         this.protocol = options.protocol || new JsonHubProtocol();
         this.connection.onreceive = (data: any) => this.processIncomingData(data);
@@ -156,7 +157,7 @@ export class HubConnection {
         this.configureTimeout();
     }
 
-    stop(): void {
+    stop(): Promise<void> {
         if (this.timeoutHandle) {
             clearTimeout(this.timeoutHandle);
         }
