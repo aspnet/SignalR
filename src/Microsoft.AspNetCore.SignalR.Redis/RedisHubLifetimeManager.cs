@@ -582,18 +582,20 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             }
             var publishTasks = new List<Task>(connectionIds.Count);
             var message = new RedisInvocationMessage(target: methodName, arguments: args);
-
-            // If the connection is local we can skip sending the message through the bus since we require sticky connections.
-            // This also saves serializing and deserializing the message!
+            
             foreach(string connectionId in connectionIds)
             {
                 var connection = _connections[connectionId];
+                // If the connection is local we can skip sending the message through the bus since we require sticky connections.
+                // This also saves serializing and deserializing the message!
                 if (connection != null)
                 {
-                    return connection.WriteAsync(message.CreateInvocation());
+                     publishTasks.Add(connection.WriteAsync(message.CreateInvocation()));
                 }
-
-                publishTasks.Add(PublishAsync(_channelNamePrefix + "." + connectionId, message));
+                else
+                {
+                    publishTasks.Add(PublishAsync(_channelNamePrefix + "." + connectionId, message));
+                }
             }
 
             return Task.WhenAll(publishTasks);

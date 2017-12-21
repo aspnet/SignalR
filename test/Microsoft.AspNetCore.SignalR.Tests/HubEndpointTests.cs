@@ -953,7 +953,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 await Task.WhenAll(firstClient.Connected, secondClient.Connected, thirdClient.Connected).OrTimeout();
 
-                var secondAndThirdClients = new HashSet<string> {secondClient.Connection.ConnectionId, thirdClient.Connection.ConnectionId };
+                var secondAndThirdClients = new HashSet<string> {secondClient.Connection.ConnectionId,
+                    thirdClient.Connection.ConnectionId };
+
                 secondAndThirdClients.Add(secondClient.Connection.ConnectionId);
 
                 await firstClient.SendInvocationAsync("SendToMultipleClients", "Second and Third", secondAndThirdClients).OrTimeout();
