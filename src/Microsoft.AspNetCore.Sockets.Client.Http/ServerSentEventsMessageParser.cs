@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
@@ -22,7 +23,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
         private InternalParseState _internalParserState = InternalParseState.ReadMessagePayload;
         private List<byte[]> _data = new List<byte[]>();
 
-        public ParseResult ParseMessage(ReadableBuffer buffer, out ReadCursor consumed, out ReadCursor examined, out byte[] message)
+        public ParseResult ParseMessage(ReadOnlyBuffer buffer, out Position consumed, out Position examined, out byte[] message)
         {
             consumed = buffer.Start;
             examined = buffer.End;
@@ -146,7 +147,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private ReadOnlySpan<byte> ConvertBufferToSpan(ReadableBuffer buffer)
+        private ReadOnlySpan<byte> ConvertBufferToSpan(ReadOnlyBuffer buffer)
         {
             if (buffer.IsSingleSpan)
             {
