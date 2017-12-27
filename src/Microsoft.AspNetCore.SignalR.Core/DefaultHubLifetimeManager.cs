@@ -127,6 +127,29 @@ namespace Microsoft.AspNetCore.SignalR
             return Task.CompletedTask;
         }
 
+        public override Task InvokeGroupsAsync(IReadOnlyList<string> groupNames, string methodName, object[] args)
+        {
+            // Each task represents the list of tasks for each of the writes within a group
+            var tasks = new List<Task>();
+
+            foreach (string groupName in groupNames)
+            {
+                if (groupName == null)
+                {
+                    throw new ArgumentNullException(nameof(groupName));
+                }
+
+                var group = _groups[groupName];
+                if (group != null)
+                {
+                    var message = CreateInvocationMessage(methodName, args);
+                    tasks.Add(Task.WhenAll(group.Values.Select(c => c.WriteAsync(message))));
+                }
+            }
+
+            return Task.WhenAll(tasks);
+        }
+
         public override Task InvokeGroupExceptAsync(string groupName, string methodName, object[] args, IReadOnlyList<string> excludedIds)
         {
             if (groupName == null)

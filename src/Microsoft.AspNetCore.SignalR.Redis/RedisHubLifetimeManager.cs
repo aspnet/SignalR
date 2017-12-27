@@ -601,6 +601,23 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             return Task.WhenAll(publishTasks);
         }
 
+        public override Task InvokeGroupsAsync(IReadOnlyList<string> groupNames, string methodName, object[] args)
+        {
+            if (groupNames == null)
+            {
+                throw new ArgumentNullException(nameof(groupNames));
+            }
+            var publishTasks = new List<Task>(groupNames.Count);
+            var message = new RedisInvocationMessage(target: methodName, arguments: args);
+
+            foreach (string groupName in groupNames)
+            {
+                publishTasks.Add(PublishAsync(_channelNamePrefix + "." + groupName, message));
+            }
+
+            return Task.WhenAll(publishTasks);
+        }
+
         private class LoggerTextWriter : TextWriter
         {
             private readonly ILogger _logger;

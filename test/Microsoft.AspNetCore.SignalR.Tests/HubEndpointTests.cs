@@ -1123,6 +1123,50 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
+        [Theory]
+        [MemberData(nameof(HubTypes))]
+        public async Task InvokeMultipleGroups(Type hubType)
+        {
+            dynamic endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
+
+            using (var firstClient = new TestClient())
+            using (var secondClient = new TestClient())
+            using (var thirdClient = new TestClient())
+            {
+                Task firstEndPointTask = endPoint.OnConnectedAsync(firstClient.Connection);
+                Task secondEndPointTask = endPoint.OnConnectedAsync(secondClient.Connection);
+                Task thirdEndPointTask = endPoint.OnConnectedAsync(thirdClient.Connection);
+
+
+                await Task.WhenAll(firstClient.Connected, secondClient.Connected, thirdClient.Connected).OrTimeout();
+
+                await secondClient.InvokeAsync(nameof(MethodHub.GroupAddMethod), "GroupA").OrTimeout();
+                await thirdClient.InvokeAsync(nameof(MethodHub.GroupAddMethod), "GroupB").OrTimeout(); ;
+
+                var groupNames = new List<string> { "GroupA", "GroupB" };
+                await firstClient.SendInvocationAsync("SendToMultipleGroups", "test", groupNames).OrTimeout();
+
+                var hubMessage = await secondClient.ReadAsync().OrTimeout();
+                var invocation = Assert.IsType<InvocationMessage>(hubMessage);
+                Assert.Equal("Send", invocation.Target);
+                Assert.Single(invocation.Arguments);
+                Assert.Equal("test", invocation.Arguments[0]);
+
+                hubMessage = await thirdClient.ReadAsync().OrTimeout();
+                invocation = Assert.IsType<InvocationMessage>(hubMessage);
+                Assert.Equal("Send", invocation.Target);
+                Assert.Single(invocation.Arguments);
+                Assert.Equal("test", invocation.Arguments[0]);
+
+                // kill the connections
+                firstClient.Dispose();
+                secondClient.Dispose();
+                thirdClient.Dispose();
+
+                await Task.WhenAll(firstEndPointTask, secondEndPointTask, thirdEndPointTask).OrTimeout();
+            }
+        }
+
         [Fact]
         public async Task RemoveFromGroupWhenNotInGroupDoesNotFail()
         {
