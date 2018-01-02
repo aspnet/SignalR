@@ -516,6 +516,12 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 // _startTask is returned to the user and they should handle exceptions.
             }
 
+            // Capture the _closeTcs before causing the Input completion to run
+            // This fixes a race when the Closed event starts the client again
+            // and the client creation resets the _closeTcs causing the currently
+            // running StopAsync to wait on the new _closeTcs
+            var closeTcs = _closeTcs;
+
             if (_transportChannel != null)
             {
                 Output.TryComplete();
@@ -531,9 +537,9 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 await _receiveLoopTask;
             }
 
-            if (_closeTcs != null)
+            if (closeTcs != null)
             {
-                await _closeTcs.Task;
+                await closeTcs.Task;
             }
         }
 
