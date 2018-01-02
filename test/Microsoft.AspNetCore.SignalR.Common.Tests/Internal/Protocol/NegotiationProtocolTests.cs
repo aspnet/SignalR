@@ -30,6 +30,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         [InlineData("42\u001e", "Unexpected JSON Token Type 'Integer'. Expected a JSON Object.")]
         [InlineData("\"42\"\u001e", "Unexpected JSON Token Type 'String'. Expected a JSON Object.")]
         [InlineData("null\u001e", "Unexpected JSON Token Type 'Null'. Expected a JSON Object.")]
+        [InlineData("{}\u001e", "Missing required property 'protocol'.")]
         [InlineData("[]\u001e", "Unexpected JSON Token Type 'Array'. Expected a JSON Object.")]
         public void ParsingNegotiationMessageThrowsForInvalidMessages(string payload, string expectedMessage)
         {
