@@ -17,7 +17,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         T Group(string groupName);
 
-        T MultipleGroups(IReadOnlyList<string> groupNames);
+        T Groups(IReadOnlyList<string> groupNames);
 
         T GroupExcept(string groupName, IReadOnlyList<string> excludeIds);
 

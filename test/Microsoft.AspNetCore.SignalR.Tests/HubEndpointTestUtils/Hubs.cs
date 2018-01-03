@@ -49,7 +49,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests.HubEndpointTestUtils
 
         public Task SendToMultipleGroups(string message, IReadOnlyList<string> groupNames)
         {
-            return Clients.MultipleGroups(groupNames).InvokeAsync("Send", message);
+            return Clients.Groups(groupNames).InvokeAsync("Send", message);
         }
 
         public Task SendToOthersInGroup(string groupName, string message)
@@ -213,7 +213,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests.HubEndpointTestUtils
 
         public Task SendToMultipleGroups(string message, IReadOnlyList<string> groupNames)
         {
-            return Clients.MultipleGroups(groupNames).Send(message);
+            return Clients.Groups(groupNames).Send(message);
         }
 
         public Task BroadcastMethod(string message)
@@ -289,7 +289,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests.HubEndpointTestUtils
 
         public Task SendToMultipleGroups(string message, IReadOnlyList<string> groupNames)
         {
-            return Clients.MultipleGroups(groupNames).Send(message);
+            return Clients.Groups(groupNames).Send(message);
         }
 
         public Task SendToOthersInGroup(string groupName, string message)
