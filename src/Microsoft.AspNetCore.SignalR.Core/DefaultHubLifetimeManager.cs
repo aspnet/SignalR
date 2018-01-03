@@ -131,8 +131,9 @@ namespace Microsoft.AspNetCore.SignalR
         {
             // Each task represents the list of tasks for each of the writes within a group
             var tasks = new List<Task>();
+            var message = CreateInvocationMessage(methodName, args);
 
-            foreach (string groupName in groupNames)
+            foreach (var groupName in groupNames)
             {
                 if (groupName == null)
                 {
@@ -142,7 +143,6 @@ namespace Microsoft.AspNetCore.SignalR
                 var group = _groups[groupName];
                 if (group != null)
                 {
-                    var message = CreateInvocationMessage(methodName, args);
                     tasks.Add(Task.WhenAll(group.Values.Select(c => c.WriteAsync(message))));
                 }
             }

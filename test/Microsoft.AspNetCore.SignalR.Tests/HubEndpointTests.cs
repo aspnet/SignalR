@@ -1131,17 +1131,14 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
-            using (var thirdClient = new TestClient())
             {
                 Task firstEndPointTask = endPoint.OnConnectedAsync(firstClient.Connection);
                 Task secondEndPointTask = endPoint.OnConnectedAsync(secondClient.Connection);
-                Task thirdEndPointTask = endPoint.OnConnectedAsync(thirdClient.Connection);
 
-
-                await Task.WhenAll(firstClient.Connected, secondClient.Connected, thirdClient.Connected).OrTimeout();
+                await Task.WhenAll(firstClient.Connected, secondClient.Connected).OrTimeout();
 
                 await secondClient.InvokeAsync(nameof(MethodHub.GroupAddMethod), "GroupA").OrTimeout();
-                await thirdClient.InvokeAsync(nameof(MethodHub.GroupAddMethod), "GroupB").OrTimeout(); ;
+                await firstClient.InvokeAsync(nameof(MethodHub.GroupAddMethod), "GroupB").OrTimeout(); ;
 
                 var groupNames = new List<string> { "GroupA", "GroupB" };
                 await firstClient.SendInvocationAsync("SendToMultipleGroups", "test", groupNames).OrTimeout();
@@ -1152,7 +1149,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 Assert.Single(invocation.Arguments);
                 Assert.Equal("test", invocation.Arguments[0]);
 
-                hubMessage = await thirdClient.ReadAsync().OrTimeout();
+                hubMessage = await firstClient.ReadAsync().OrTimeout();
                 invocation = Assert.IsType<InvocationMessage>(hubMessage);
                 Assert.Equal("Send", invocation.Target);
                 Assert.Single(invocation.Arguments);
@@ -1161,9 +1158,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 // kill the connections
                 firstClient.Dispose();
                 secondClient.Dispose();
-                thirdClient.Dispose();
 
-                await Task.WhenAll(firstEndPointTask, secondEndPointTask, thirdEndPointTask).OrTimeout();
+                await Task.WhenAll(firstEndPointTask, secondEndPointTask).OrTimeout();
             }
         }
 

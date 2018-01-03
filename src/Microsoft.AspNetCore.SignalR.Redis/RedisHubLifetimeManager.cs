@@ -610,7 +610,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             var publishTasks = new List<Task>(groupNames.Count);
             var message = new RedisInvocationMessage(target: methodName, arguments: args);
 
-            foreach (string groupName in groupNames)
+            foreach (var groupName in groupNames)
             {
                 publishTasks.Add(PublishAsync(_channelNamePrefix + "." + groupName, message));
             }
