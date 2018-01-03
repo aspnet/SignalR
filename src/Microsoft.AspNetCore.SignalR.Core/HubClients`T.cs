@@ -31,7 +31,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public T MultipleClients(IReadOnlyList<string> connectionIds)
         {
-            throw new NotImplementedException();
+            return TypedClientBuilder<T>.Build(new MultipleClientProxy<THub>(_lifetimeManager, connectionIds));
         }
 
         public virtual T Group(string groupName)
