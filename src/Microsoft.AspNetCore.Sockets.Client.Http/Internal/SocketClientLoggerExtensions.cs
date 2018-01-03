@@ -417,7 +417,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Internal
             _skippingDispose(logger, null);
         }
 
-        public static void ConnectionStateChanged(this ILogger logger, HttpConnection.ConnectionState previousState, HttpConnection.ConnectionState newState)
+        public static void ConnectionStateChanged(this ILogger logger, string connectionId, HttpConnectionOneOff.ConnectionState previousState, HttpConnectionOneOff.ConnectionState newState)
         {
             if (logger.IsEnabled(LogLevel.Debug))
             {
