@@ -4,6 +4,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Collections.Sequences;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -34,7 +35,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
 
             while (buffer.Length > 0)
             {
-                if (ReadCursorOperations.Seek(start, end, out var lineEnd, ByteLF) == -1)
+                if (ReadOnlyBuffer.Seek(start, end, out var lineEnd, ByteLF) == -1)
                 {
                     // For the case of  data: Foo\r\n\r\<Anytine except \n>
                     if (_internalParserState == InternalParseState.ReadEndOfMessage)
