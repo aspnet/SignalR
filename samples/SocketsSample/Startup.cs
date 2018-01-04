@@ -5,6 +5,7 @@ using System;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json.Serialization;
 using SocketsSample.EndPoints;
 using SocketsSample.Hubs;
 
@@ -18,11 +19,12 @@ namespace SocketsSample
         {
             services.AddSockets();
 
-            services.AddSignalR(options =>
-            {
-                // Faster pings for testing
-                options.KeepAliveInterval = TimeSpan.FromSeconds(5);
-            });
+            services
+                .AddSignalR(options =>
+                {
+                    // Faster pings for testing
+                    options.KeepAliveInterval = TimeSpan.FromSeconds(5);
+                });
             // .AddRedis();
 
             services.AddCors(o =>

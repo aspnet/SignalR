@@ -3,28 +3,34 @@
 
 using System;
 using System.Collections.Generic;
-using System.Threading.Channels;
 using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.Sockets;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
-using Newtonsoft.Json;
 using Xunit;
 
 namespace Microsoft.AspNetCore.SignalR.Common.Protocol.Tests
 {
     public class DefaultHubProtocolResolverTests
     {
+        private static readonly IList<IHubProtocol> AllProtocols = new List<IHubProtocol>()
+        {
+            new JsonHubProtocol(),
+            new MessagePackHubProtocol()
+        };
+
         [Theory]
         [MemberData(nameof(HubProtocols))]
         public void DefaultHubProtocolResolverTestsCanCreateSupportedProtocols(IHubProtocol protocol)
         {
+
             var mockConnection = new Mock<HubConnectionContext>(new Mock<ConnectionContext>().Object, TimeSpan.FromSeconds(30), NullLoggerFactory.Instance);
+            var resolver = new DefaultHubProtocolResolver(Options.Create(new HubOptions()), AllProtocols, NullLogger<DefaultHubProtocolResolver>.Instance);
             Assert.IsType(
                 protocol.GetType(),
-                new DefaultHubProtocolResolver(Options.Create(new HubOptions())).GetProtocol(protocol.Name, mockConnection.Object));
+                resolver.GetProtocol(protocol.Name, mockConnection.Object));
         }
 
         [Theory]
@@ -33,8 +39,9 @@ namespace Microsoft.AspNetCore.SignalR.Common.Protocol.Tests
         public void DefaultHubProtocolResolverThrowsForNotSupportedProtocol(string protocolName)
         {
             var mockConnection = new Mock<HubConnectionContext>(new Mock<ConnectionContext>().Object, TimeSpan.FromSeconds(30), NullLoggerFactory.Instance);
+            var resolver = new DefaultHubProtocolResolver(Options.Create(new HubOptions()), AllProtocols, NullLogger<DefaultHubProtocolResolver>.Instance);
             var exception = Assert.Throws<NotSupportedException>(
-                () => new DefaultHubProtocolResolver(Options.Create(new HubOptions())).GetProtocol(protocolName, mockConnection.Object));
+                () => resolver.GetProtocol(protocolName, mockConnection.Object));
 
             Assert.Equal($"The protocol '{protocolName ?? "(null)"}' is not supported.", exception.Message);
         }

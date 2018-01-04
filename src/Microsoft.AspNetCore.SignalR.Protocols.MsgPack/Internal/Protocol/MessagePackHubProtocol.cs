@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.ExceptionServices;
 using Microsoft.AspNetCore.SignalR.Internal.Formatters;
+using Microsoft.Extensions.Options;
 using MsgPack;
 using MsgPack.Serialization;
 
@@ -24,12 +25,12 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         public ProtocolType Type => ProtocolType.Binary;
 
         public MessagePackHubProtocol()
-            : this(CreateDefaultSerializationContext())
+            : this(Options.Create(new MessagePackHubProtocolOptions()))
         { }
 
-        public MessagePackHubProtocol(SerializationContext serializationContext)
+        public MessagePackHubProtocol(IOptions<MessagePackHubProtocolOptions> options)
         {
-            _serializationContext = serializationContext;
+            _serializationContext = options.Value.SerializationContext;
         }
 
         public bool TryParseMessages(ReadOnlySpan<byte> input, IInvocationBinder binder, out IList<HubMessage> messages)
@@ -395,7 +396,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             throw new FormatException($"Deserializing object of the `{type.Name}` type for '{field}' failed.", msgPackException);
         }
 
-        public static SerializationContext CreateDefaultSerializationContext()
+        internal static SerializationContext CreateDefaultSerializationContext()
         {
             // serializes objects (here: arguments and results) as maps so that property names are preserved
             var serializationContext = new SerializationContext { SerializationMethod = SerializationMethod.Map };

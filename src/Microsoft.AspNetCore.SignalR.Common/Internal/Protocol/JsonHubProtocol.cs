@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.ExceptionServices;
 using Microsoft.AspNetCore.SignalR.Internal.Formatters;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
@@ -26,29 +27,13 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         // ONLY to be used for application payloads (args, return values, etc.)
         private JsonSerializer _payloadSerializer;
 
-        /// <summary>
-        /// Creates an instance of the <see cref="JsonHubProtocol"/> using the default <see cref="JsonSerializer"/>
-        /// to serialize application payloads (arguments, results, etc.). The serialization of the outer protocol can
-        /// NOT be changed using this serializer.
-        /// </summary>
-        public JsonHubProtocol()
-            : this(JsonSerializer.Create(CreateDefaultSerializerSettings()))
-        { }
-
-        /// <summary>
-        /// Creates an instance of the <see cref="JsonHubProtocol"/> using the specified <see cref="JsonSerializer"/>
-        /// to serialize application payloads (arguments, results, etc.). The serialization of the outer protocol can
-        /// NOT be changed using this serializer.
-        /// </summary>
-        /// <param name="payloadSerializer">The <see cref="JsonSerializer"/> to use to serialize application payloads (arguments, results, etc.).</param>
-        public JsonHubProtocol(JsonSerializer payloadSerializer)
+        public JsonHubProtocol() : this(Options.Create(new JsonHubProtocolOptions()))
         {
-            if (payloadSerializer == null)
-            {
-                throw new ArgumentNullException(nameof(payloadSerializer));
-            }
+        }
 
-            _payloadSerializer = payloadSerializer;
+        public JsonHubProtocol(IOptions<JsonHubProtocolOptions> options)
+        {
+            _payloadSerializer = JsonSerializer.Create(options.Value.PayloadSerializerSettings);
         }
 
         public string Name => "json";
@@ -346,7 +331,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             return new CancelInvocationMessage(invocationId);
         }
 
-        public static JsonSerializerSettings CreateDefaultSerializerSettings()
+        internal static JsonSerializerSettings CreateDefaultSerializerSettings()
         {
             return new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
         }
