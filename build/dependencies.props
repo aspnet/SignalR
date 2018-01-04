@@ -59,9 +59,9 @@
     <MsgPackCliPackageVersion>0.9.0-beta2</MsgPackCliPackageVersion>
     <NewtonsoftJsonPackageVersion>10.0.1</NewtonsoftJsonPackageVersion>
     <StackExchangeRedisStrongNamePackageVersion>1.2.4</StackExchangeRedisStrongNamePackageVersion>
-    <SystemBuffersPrimitivesPackageVersion>0.1.0-e180102-3</SystemBuffersPrimitivesPackageVersion>
-    <SystemIOPipelinesExtensionsPackageVersion>0.1.0-e180102-3</SystemIOPipelinesExtensionsPackageVersion>
-    <SystemIOPipelinesPackageVersion>0.1.0-e180102-3</SystemIOPipelinesPackageVersion>
+    <SystemBuffersPrimitivesPackageVersion>0.1.0-e180104-2</SystemBuffersPrimitivesPackageVersion>
+    <SystemIOPipelinesExtensionsPackageVersion>0.1.0-e180104-2</SystemIOPipelinesExtensionsPackageVersion>
+    <SystemIOPipelinesPackageVersion>0.1.0-e180104-2</SystemIOPipelinesPackageVersion>
     <SystemMemoryPackageVersion>4.5.0-preview1-26102-01</SystemMemoryPackageVersion>
     <SystemNumericsVectorsPackageVersion>4.5.0-preview1-26102-01</SystemNumericsVectorsPackageVersion>
     <SystemReactiveLinqPackageVersion>3.1.1</SystemReactiveLinqPackageVersion>
