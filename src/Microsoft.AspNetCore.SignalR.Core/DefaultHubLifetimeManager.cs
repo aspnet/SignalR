@@ -135,9 +135,9 @@ namespace Microsoft.AspNetCore.SignalR
 
             foreach (var groupName in groupNames)
             {
-                if (groupName == null)
+                if (string.IsNullOrEmpty(groupName))
                 {
-                    throw new ArgumentNullException(nameof(groupName));
+                    throw new ArgumentException(nameof(groupName));
                 }
 
                 var group = _groups[groupName];

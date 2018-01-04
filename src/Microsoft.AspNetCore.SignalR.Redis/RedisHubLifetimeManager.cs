@@ -612,7 +612,10 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
             foreach (var groupName in groupNames)
             {
-                publishTasks.Add(PublishAsync(_channelNamePrefix + "." + groupName, message));
+                if (!string.IsNullOrEmpty(groupName))
+                {
+                    publishTasks.Add(PublishAsync(_channelNamePrefix + "." + groupName, message));
+                }
             }
 
             return Task.WhenAll(publishTasks);

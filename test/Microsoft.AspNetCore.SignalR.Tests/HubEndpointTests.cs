@@ -1141,7 +1141,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 await firstClient.InvokeAsync(nameof(MethodHub.GroupAddMethod), "GroupB").OrTimeout(); ;
 
                 var groupNames = new List<string> { "GroupA", "GroupB" };
-                await firstClient.SendInvocationAsync("SendToMultipleGroups", "test", groupNames).OrTimeout();
+                await firstClient.SendInvocationAsync(nameof(MethodHub.SendToMultipleGroups), "test", groupNames).OrTimeout();
 
                 var hubMessage = await secondClient.ReadAsync().OrTimeout();
                 var invocation = Assert.IsType<InvocationMessage>(hubMessage);
