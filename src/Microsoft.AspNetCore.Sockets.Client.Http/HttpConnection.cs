@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Threading;
@@ -27,8 +26,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         private readonly ILoggerFactory _loggerFactory;
         private readonly ILogger _logger;
-        private volatile ConnectionState _connectionState = ConnectionState.Disconnected;
-        private readonly object _stateChangeLock = new object();
         private readonly HttpClient _httpClient;
         private readonly HttpOptions _httpOptions;
         private readonly List<ReceiveCallback> _callbacks = new List<ReceiveCallback>();
@@ -39,6 +36,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         private HttpConnectionOneOff _connection;
         private List<Action<Exception>> _closed = new List<Action<Exception>>();
+        private bool _disposed;
 
         public Uri Url { get; }
 
@@ -118,37 +116,29 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         private async Task AbortAsyncCore(Exception exception)
         {
-            HttpConnectionOneOff connection;
-            lock (_stateChangeLock)
+            var connection = _connection;
+            if (connection == null || _disposed)
             {
-                if (!(_connectionState == ConnectionState.Connecting || _connectionState == ConnectionState.Connected))
-                {
-                    //_logger.SkippingStop(_connectionId);
-                    return;
-                }
-
-                _connectionState = ConnectionState.Disconnected;
-                connection = _connection;
+                return;
             }
-
-            await connection.AbortAsync(exception);
+            _connection = null;
+            await connection.StopAsync(exception);
         }
 
         public async Task DisposeAsync() => await DisposeAsyncCore().ForceAsync();
 
         private async Task DisposeAsyncCore()
         {
-            if (ChangeState(to: ConnectionState.Disposed) == ConnectionState.Disposed)
+            if (_disposed == true)
             {
-                //_logger.SkippingDispose(_connectionId);
-
-                // the connection was already disposed
                 return;
             }
+            _disposed = true;
 
-            if (_connection != null)
+            var connection = _connection;
+            if (connection != null)
             {
-                await _connection.DisposeAsync();
+                await connection.DisposeAsync();
             }
 
             _httpClient?.Dispose();
@@ -169,35 +159,28 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         private Task SendAsyncCore(byte[] data, CancellationToken cancellationToken = default)
         {
-            if (_connectionState != ConnectionState.Connected)
+            var connection = _connection;
+            if (connection == null || _disposed)
             {
                 throw new InvalidOperationException(
                     $"Cannot send messages when the connection is not in the {nameof(ConnectionState.Connected)} state.");
             }
 
-            var connection = _connection;
-            if (connection != null)
-            {
-                return connection.SendAsync(data, cancellationToken);
-            }
-            return Task.CompletedTask;
+            return connection.SendAsync(data, cancellationToken);
         }
 
         public async Task StartAsync() => await StartAsyncCore().ForceAsync();
 
         private async Task StartAsyncCore()
         {
-            lock (_stateChangeLock)
+            if (_connection != null || _disposed)
             {
-                if (_connectionState != ConnectionState.Disconnected)
-                {
-                    throw new InvalidOperationException($"Cannot start a connection that is not in the {nameof(ConnectionState.Disconnected)} state.");
-                }
-                _connectionState = ConnectionState.Connecting;
+                throw new InvalidOperationException(
+                    $"Cannot start a connection that is not in the {nameof(ConnectionState.Disconnected)} state.");
+            }
 
-                _connection = new HttpConnectionOneOff(Url, _transportFactory, _requestedTransportType, _logger, _httpClient, _httpOptions);
-                _connection.Features = Features;
-                _connection.OnRecieveCallback = async buffer =>
+            var connection = new HttpConnectionOneOff(Url, _transportFactory, _requestedTransportType, _logger, _httpClient, _httpOptions, this,
+                async buffer =>
                 {
                     // Copying the callbacks to avoid concurrency issues
                     ReceiveCallback[] callbackCopies;
@@ -218,80 +201,54 @@ namespace Microsoft.AspNetCore.Sockets.Client
                             _logger.ExceptionThrownFromCallback(nameof(OnReceived), ex);
                         }
                     }
-                };
-                _connection.Closed += ex =>
+                },
+                ex =>
                 {
-                    ChangeState(from: ConnectionState.Connected, to: ConnectionState.Disconnected);
-                    var closed = _closed.ToArray();
+                    _connection = null;
+                    Action<Exception>[] closed;
+                    lock (_closed)
+                    {
+                        closed = _closed.ToArray();
+                    }
                     foreach (var callback in closed)
                     {
                         try
                         {
                             callback(ex);
                         }
-                        catch (Exception)
-                        {
-                        }
+                        catch { }
                     }
-                };
+                });
+
+            if (Interlocked.CompareExchange(ref _connection, connection, null) != null)
+            {
+                // Another StartAsync finished while this one was running
+                //throw?
+                return;
             }
 
             try
             {
-                await _connection.StartAsync();
+                await connection.StartAsync();
             }
-            catch (Exception)
+            catch
             {
-                ChangeState(from: ConnectionState.Connecting, to: ConnectionState.Disconnected);
+                _connection = null;
                 throw;
             }
-            ChangeState(from: ConnectionState.Connecting, to: ConnectionState.Connected);
         }
 
         public async Task StopAsync() => await StopAsyncCore().ForceAsync();
 
-        private async Task StopAsyncCore()
+        private Task StopAsyncCore()
         {
-            HttpConnectionOneOff connection;
-            lock (_stateChangeLock)
+            var connection = _connection;
+            if (connection == null || _disposed)
             {
-                if (!(_connectionState == ConnectionState.Connecting || _connectionState == ConnectionState.Connected))
-                {
-                    //_logger.SkippingStop(_connectionId);
-                    return;
-                }
-
-                _connectionState = ConnectionState.Disconnected;
-                connection = _connection;
+                return Task.CompletedTask;
             }
 
-            await connection.StopAsync();
-        }
-
-        private ConnectionState ChangeState(ConnectionState from, ConnectionState to)
-        {
-            lock (_stateChangeLock)
-            {
-                var state = _connectionState;
-                if (_connectionState == from)
-                {
-                    _connectionState = to;
-                }
-
-                //_logger.ConnectionStateChanged(_connectionId, state, to);
-                return state;
-            }
-        }
-
-        private ConnectionState ChangeState(ConnectionState to)
-        {
-            lock (_stateChangeLock)
-            {
-                var state = _connectionState;
-                _connectionState = to;
-                //_logger.ConnectionStateChanged(_connectionId, state, to);
-                return state;
-            }
+            return connection.StopAsync(exception: null);
         }
 
         // Internal because it's used by logging to avoid ToStringing prematurely.
@@ -304,7 +261,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
         }
     }
 
-    internal class HttpConnectionOneOff : IConnection
+    internal class HttpConnectionOneOff
     {
         private readonly ILogger _logger;
 
@@ -326,23 +283,28 @@ namespace Microsoft.AspNetCore.Sockets.Client
         private ChannelReader<byte[]> Input => _transportChannel.Input;
         private ChannelWriter<SendMessage> Output => _transportChannel.Output;
         private readonly TransportType _requestedTransportType;
+        private readonly IConnection _connection;
 
-        public Uri Url { get; }
+        private readonly Uri _url;
 
-        public IFeatureCollection Features { get; set; }
+        public IFeatureCollection Features => _connection.Features;
 
-        public event Action<Exception> Closed;
+        private Action<Exception> _closedEvent;
 
-        public Func<byte[], Task> OnRecieveCallback;
+        private Func<byte[], Task> _onRecieveCallback;
 
-        public HttpConnectionOneOff(Uri url, ITransportFactory transportFactory, TransportType transportType, ILogger logger, HttpClient httpClient, HttpOptions httpOptions)
+        public HttpConnectionOneOff(Uri url, ITransportFactory transportFactory, TransportType transportType, ILogger logger, HttpClient httpClient,
+            HttpOptions httpOptions, IConnection connection, Func<byte[], Task> onReceivedCallback, Action<Exception> closedEvent)
         {
-            Url = url ?? throw new ArgumentNullException(nameof(url));
+            _url = url ?? throw new ArgumentNullException(nameof(url));
             _logger = logger;
             _httpClient = httpClient;
             _httpOptions = httpOptions;
             _requestedTransportType = transportType;
             _transportFactory = transportFactory ?? throw new ArgumentNullException(nameof(transportFactory));
+            _connection = connection;
+            _onRecieveCallback = onReceivedCallback;
+            _closedEvent = closedEvent;
         }
 
         public Task StartAsync()
@@ -383,14 +345,14 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
             try
             {
-                var connectUrl = Url;
+                var connectUrl = _url;
                 if (_requestedTransportType == TransportType.WebSockets)
                 {
                     _transport = _transportFactory.CreateTransport(TransportType.WebSockets);
                 }
                 else
                 {
-                    var negotiationResponse = await Negotiate(Url, _httpClient, _logger);
+                    var negotiationResponse = await Negotiate(_url, _httpClient, _logger);
                     _connectionId = negotiationResponse.ConnectionId;
                     _logScope.ConnectionId = _connectionId;
 
@@ -402,7 +364,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     }
 
                     _transport = _transportFactory.CreateTransport(GetAvailableServerTransports(negotiationResponse));
-                    connectUrl = CreateConnectUrl(Url, negotiationResponse);
+                    connectUrl = CreateConnectUrl(_url, negotiationResponse);
                 }
 
                 _logger.StartingTransport(_transport, connectUrl);
@@ -456,13 +418,13 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     {
                         if (t.IsFaulted)
                         {
-                            Closed?.Invoke(t.Exception.InnerException);
+                            _closedEvent.Invoke(t.Exception.InnerException);
                         }
                         else
                         {
                             // Call the closed event. If there was an abort exception, it will be flowed forward
                             // However, if there wasn't, this will just be null and we're good
-                            Closed?.Invoke(abortException);
+                            _closedEvent.Invoke(abortException);
                         }
                     }
                     catch (Exception ex)
@@ -566,7 +528,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             // Start the transport, giving it one end of the pipeline
             try
             {
-                await _transport.StartAsync(connectUrl, applicationSide, GetTransferMode(), this);
+                await _transport.StartAsync(connectUrl, applicationSide, GetTransferMode(), _connectionId, _connection);
 
                 // actual transfer mode can differ from the one that was requested so set it on the feature
                 if (!_transport.Mode.HasValue)
@@ -629,25 +591,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                         {
                             _logger.RaiseReceiveEvent();
 
-                            // Copying the callbacks to avoid concurrency issues
-                            ReceiveCallback[] callbackCopies;
-                            lock (_callbacks)
-                            {
-                                callbackCopies = new ReceiveCallback[_callbacks.Count];
-                                _callbacks.CopyTo(callbackCopies);
-                            }
-
-                            foreach (var callbackObject in callbackCopies)
-                            {
-                                try
-                                {
-                                    await callbackObject.InvokeAsync(buffer);
-                                }
-                                catch (Exception ex)
-                                {
-                                    _logger.ExceptionThrownFromCallback(nameof(OnReceived), ex);
-                                }
-                            }
+                            return _onRecieveCallback(buffer);
                         });
                     }
                     else
@@ -706,11 +650,9 @@ namespace Microsoft.AspNetCore.Sockets.Client
         //  2. If the transport is closed gracefully and then AbortAsync is called before it captures the _abortException value
         //     the graceful shutdown could be turned into an abort. However, again, this is an inherent race between two different conditions:
         //     The transport shutting down because the server went away, and the user requesting the Abort
-        public async Task AbortAsync(Exception exception) => await StopAsyncCore(exception ?? throw new ArgumentNullException(nameof(exception)));
+        //public async Task AbortAsync(Exception exception) => await StopAsyncCore(exception ?? throw new ArgumentNullException(nameof(exception)));
 
-        public async Task StopAsync() => await StopAsyncCore(exception: null);
-
-        private async Task StopAsyncCore(Exception exception)
+        public async Task StopAsync(Exception exception)
         {
             lock (_stateChangeLock)
             {
@@ -765,7 +707,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
         public async Task DisposeAsync()
         {
             // This will no-op if we're already stopped
-            await StopAsyncCore(exception: null);
+            await StopAsync(exception: null);
 
             if (ChangeState(to: ConnectionState.Disposed) == ConnectionState.Disposed)
             {
@@ -777,12 +719,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
             _logger.DisposingClient();
             _scopeDisposable.Dispose();
-        }
-
-        public IDisposable OnReceived(Func<byte[], object, Task> callback, object state)
-        {
-            // This method is handled via the parent HttpConnection class
-            throw new NotImplementedException();
         }
 
         private ConnectionState ChangeState(ConnectionState from, ConnectionState to)
@@ -848,6 +784,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
     {
         private readonly ReceiveCallback _receiveCallback;
         private readonly List<ReceiveCallback> _callbacks;
+
         public Subscription(ReceiveCallback callback, List<ReceiveCallback> callbacks)
         {
             _receiveCallback = callback;
