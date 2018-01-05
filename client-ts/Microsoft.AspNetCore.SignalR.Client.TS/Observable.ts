@@ -26,7 +26,7 @@ export class ObserverDisposable<T> {
         }
 
         if (this.subject.observers.length === 0) {
-            // TODO: cancel streaming on server
+            this.subject.cancelCallback();
         }
     }
 }
@@ -38,9 +38,11 @@ export interface Observable<T> {
 
 export class Subject<T> implements Observable<T> {
     observers: Observer<T>[];
+    cancelCallback: () => Promise<void>;
 
-    constructor() {
+    constructor(cancelCallback: () => Promise<void>) {
         this.observers = [];
+        this.cancelCallback = cancelCallback;
     }
 
     public next(item: T): void {
