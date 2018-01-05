@@ -26,7 +26,7 @@ export class ObserverDisposable<T> {
         }
 
         if (this.subject.observers.length === 0) {
-            this.subject.cancelCallback();
+            this.subject.cancelCallback().catch((_) => { });
         }
     }
 }
