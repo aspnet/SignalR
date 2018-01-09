@@ -10,7 +10,7 @@ export interface Observer<T> {
     complete?: () => void;
 }
 
-export class ObserverDisposable<T> {
+export class Subscription<T> {
     subject: Subject<T>;
     observer: Observer<T>;
 
@@ -32,8 +32,7 @@ export class ObserverDisposable<T> {
 }
 
 export interface Observable<T> {
-    // TODO: Return a Subscription so the caller can unsubscribe? IDisposable in System.IObservable
-    subscribe(observer: Observer<T>): ObserverDisposable<T>;
+    subscribe(observer: Observer<T>): Subscription<T>;
 }
 
 export class Subject<T> implements Observable<T> {
@@ -67,8 +66,8 @@ export class Subject<T> implements Observable<T> {
         }
     }
 
-    public subscribe(observer: Observer<T>): ObserverDisposable<T> {
+    public subscribe(observer: Observer<T>): Subscription<T> {
         this.observers.push(observer);
-        return new ObserverDisposable(this, observer);
+        return new Subscription(this, observer);
     }
 }

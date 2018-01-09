@@ -393,13 +393,13 @@ describe("HubConnection", () => {
 
             let hubConnection = new HubConnection(connection, { logger: null });
             let observer = new TestObserver();
-            let disposable = hubConnection.stream("testMethod")
+            let subscription = hubConnection.stream("testMethod")
                 .subscribe(observer);
 
             connection.receive({ type: MessageType.StreamItem, invocationId: connection.lastInvocationId, item: 1 });
             expect(observer.itemsReceived).toEqual([1]);
 
-            disposable.dispose();
+            subscription.dispose();
 
             connection.receive({ type: MessageType.StreamItem, invocationId: connection.lastInvocationId, item: 2 });
             // Observer should no longer receive messages
