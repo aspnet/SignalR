@@ -84,6 +84,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                             while (!eventStreamCts.IsCancellationRequested)
                             {
                                 await stream.WriteAsync(buffer, 0, buffer.Length).OrTimeout();
+                                // Simulate network latency by forcing async to happen
+                                await Task.Yield();
                             }
                         });
                     mockStream.Setup(s => s.CanRead).Returns(true);
