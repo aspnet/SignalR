@@ -19,7 +19,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddSignalR();
+            services.AddSignalR()
+                .UseMessagePackProtocol();
             services.AddAuthorization(options =>
             {
                 options.AddPolicy(JwtBearerDefaults.AuthenticationScheme, policy =>

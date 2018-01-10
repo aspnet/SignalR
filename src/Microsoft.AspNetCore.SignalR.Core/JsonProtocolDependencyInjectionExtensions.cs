@@ -29,7 +29,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <returns>The value of <paramref name="builder"/></returns>
         public static ISignalRBuilder UseJsonProtocol(this ISignalRBuilder builder, Action<JsonHubProtocolOptions> configure)
         {
-            builder.Services.TryAdd(ServiceDescriptor.Singleton<IHubProtocol, JsonHubProtocol>());
+            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IHubProtocol, JsonHubProtocol>());
             builder.Services.Configure(configure);
             return builder;
         }
