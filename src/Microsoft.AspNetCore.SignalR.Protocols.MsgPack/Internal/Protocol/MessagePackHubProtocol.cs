@@ -18,9 +18,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         private const int VoidResult = 2;
         private const int NonVoidResult = 3;
 
+        public static readonly string ProtocolName = "messagepack";
+
         public SerializationContext SerializationContext { get; }
 
-        public string Name => "messagepack";
+        public string Name => ProtocolName;
 
         public ProtocolType Type => ProtocolType.Binary;
 

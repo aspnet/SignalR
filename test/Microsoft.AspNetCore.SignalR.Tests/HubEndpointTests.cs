@@ -1339,7 +1339,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 var endPointLifetime = endPoint.OnConnectedAsync(client.Connection);
 
-                await client.Connected.OrTimeout();
+                // Wait for a connection, or for the endpoint to fail.
+                await client.Connected.OrThrowIfOtherFails(endPointLifetime).OrTimeout();
 
                 var messages = await client.StreamAsync(method, 4).OrTimeout();
 
@@ -1635,7 +1636,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 var endPointLifetime = endPoint.OnConnectedAsync(client.Connection);
 
-                await client.Connected.OrTimeout();
+                await client.Connected.OrThrowIfOtherFails(endPointLifetime).OrTimeout();
 
                 await client.SendInvocationAsync(nameof(MethodHub.SendAnonymousObject)).OrTimeout();
 

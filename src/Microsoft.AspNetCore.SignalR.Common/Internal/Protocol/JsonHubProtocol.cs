@@ -24,6 +24,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         private const string ArgumentsPropertyName = "arguments";
         private const string PayloadPropertyName = "payload";
 
+        public static readonly string ProtocolName = "json";
+
         // ONLY to be used for application payloads (args, return values, etc.)
         public JsonSerializer PayloadSerializer { get; }
 
@@ -36,7 +38,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             PayloadSerializer = JsonSerializer.Create(options.Value.PayloadSerializerSettings);
         }
 
-        public string Name => "json";
+        public string Name => ProtocolName;
 
         public ProtocolType Type => ProtocolType.Text;
 

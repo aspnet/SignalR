@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 {
@@ -60,23 +61,41 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             // use static name 'redisTestContainer' so if the container doesn't get removed we don't keep adding more
             // use redis base docker image
             // 10 second timeout to allow redis image to be downloaded
-            RunProcess(_path, $"run --rm -p 6379:6379 --name {_dockerContainerName} -d redis", logger, TimeSpan.FromSeconds(10));
+            RunProcessAndThrowIfFailed(_path, $"run --rm -p 6379:6379 --name {_dockerContainerName} -d redis", logger, TimeSpan.FromSeconds(10));
         }
 
         public void Stop(ILogger logger)
         {
             logger.LogInformation("Stopping docker container");
-            RunProcess(_path, $"stop {_dockerContainerName}", logger, TimeSpan.FromSeconds(5));
+            RunProcessAndThrowIfFailed(_path, $"stop {_dockerContainerName}", logger, TimeSpan.FromSeconds(5));
         }
 
-        private static void RunProcess(string fileName, string arugments, ILogger logger, TimeSpan timeout)
+        public int RunCommand(string commandAndArguments, out string output) =>
+            RunCommand(commandAndArguments, NullLogger.Instance, out output);
+
+        public int RunCommand(string commandAndArguments, ILogger logger, out string output)
+        {
+            return RunProcess(_path, commandAndArguments, logger, TimeSpan.FromSeconds(5), out output);
+        } 
+
+        private static void RunProcessAndThrowIfFailed(string fileName, string arguments, ILogger logger, TimeSpan timeout)
+        {
+            var exitCode = RunProcess(fileName, arguments, logger, timeout, out var output);
+
+            if(exitCode != 0)
+            {
+                throw new Exception($"Command '{fileName} {arguments}' failed with exit code '{exitCode}'. Output:{Environment.NewLine}{output}");
+            }
+        }
+
+        private static int RunProcess(string fileName, string arguments, ILogger logger, TimeSpan timeout, out string output)
         {
             var process = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = fileName,
-                    Arguments = arugments,
+                    Arguments = arguments,
                     UseShellExecute = false,
                     RedirectStandardError = true,
                     RedirectStandardOutput = true
@@ -105,11 +124,9 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 
             process.WaitForExit((int)timeout.TotalMilliseconds);
 
-            // Check the exit code
-            if(exitCode != 0)
-            {
-                throw new Exception($"Command '{fileName} {arugments}' failed with exit code '{exitCode}'. Output:{Environment.NewLine}{string.Join(Environment.NewLine, lines)}");
-            }
+            output = string.Join(Environment.NewLine, lines);
+
+            return exitCode;
         }
 
         private static void LogIfNotNull(Action<string, object[]> logger, string message, string data)
