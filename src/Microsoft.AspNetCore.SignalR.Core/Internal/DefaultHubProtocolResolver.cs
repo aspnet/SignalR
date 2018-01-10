@@ -27,7 +27,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             {
                 foreach (var protocol in availableProtocols)
                 {
-                    _logger.LogDebug("Registered SignalR protocol: {ProtocolName}", protocol.Name);
+                    _logger.RegisteredSignalRProtocol(protocol.Name);
                 }
             }
         }
@@ -36,7 +36,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         {
             if (_availableProtocols.TryGetValue(protocolName, out var protocol))
             {
-                _logger.LogDebug("Found protocol implementation for requested protocol: {ProtocolName}", protocolName);
+                _logger.FoundImplementationForProtocol(protocolName);
                 return protocol;
             }
 
