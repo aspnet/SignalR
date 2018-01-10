@@ -79,10 +79,10 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         // Category: DefaultHubProtocolResolver
         private static readonly Action<ILogger, string, Exception> _registeredSignalRProtocol =
-            LoggerMessage.Define<string>(LogLevel.Debug, new EventId(0, nameof(RegisteredSignalRProtocol)), "Registered SignalR Protocol: {ProtocolName}");
+            LoggerMessage.Define<string>(LogLevel.Debug, new EventId(0, nameof(RegisteredSignalRProtocol)), "Registered SignalR Protocol: {ProtocolName}.");
 
         private static readonly Action<ILogger, string, Exception> _foundImplementationForProtocol =
-            LoggerMessage.Define<string>(LogLevel.Debug, new EventId(1, nameof(FoundImplementationForProtocol)), "Found protocol implementation for requested protocol: {ProtocolName}");
+            LoggerMessage.Define<string>(LogLevel.Debug, new EventId(1, nameof(FoundImplementationForProtocol)), "Found protocol implementation for requested protocol: {ProtocolName}.");
 
         public static void UsingHubProtocol(this ILogger logger, string hubProtocol)
         {
