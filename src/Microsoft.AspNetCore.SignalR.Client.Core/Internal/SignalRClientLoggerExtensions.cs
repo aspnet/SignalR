@@ -118,9 +118,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.Internal
         private static readonly Action<ILogger, string, Exception> _errorInvokingClientSideMethod =
            LoggerMessage.Define<string>(LogLevel.Error, new EventId(6, nameof(ErrorInvokingClientSideMethod)), "Invoking client side method '{methodName}' failed.");
 
-        public static void PreparingNonBlockingInvocation(this ILogger logger, string invocationId, string target, int count)
+        public static void PreparingNonBlockingInvocation(this ILogger logger, string target, int count)
         {
-            _preparingNonBlockingInvocation(logger, invocationId, target, count, null);
+            _preparingNonBlockingInvocation(logger, target, count, null);
         }
 
         public static void PreparingBlockingInvocation(this ILogger logger, string invocationId, string target, string returnType, int count)
