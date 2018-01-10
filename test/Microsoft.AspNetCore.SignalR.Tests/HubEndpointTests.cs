@@ -1473,7 +1473,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 services
                     .AddSignalR()
-                    .UseJsonProtocol(o =>
+                    .AddJsonProtocol(o =>
                     {
                         o.PayloadSerializerSettings = new JsonSerializerSettings
                         {
@@ -1538,7 +1538,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             var serviceProvider = HubEndPointTestUtils.CreateServiceProvider(services =>
             {
                 services.AddSignalR()
-                    .UseMessagePackProtocol(options =>
+                    .AddMessagePackProtocol(options =>
                     {
                         options.SerializationContext.SerializationMethod = SerializationMethod.Array;
                     });

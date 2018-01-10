@@ -5,7 +5,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
 {
     public static class MessagePackProtocolHubConnectionBuilderExtensions
     {
-        public static IHubConnectionBuilder WithMessagePackProtocol(this IHubConnectionBuilder builder) => WithMessagePackProtocol(builder, new MessagePackHubProtocolOptions());
+        public static IHubConnectionBuilder WithMessagePackProtocol(this IHubConnectionBuilder builder) =>
+            WithMessagePackProtocol(builder, new MessagePackHubProtocolOptions());
 
         public static IHubConnectionBuilder WithMessagePackProtocol(this IHubConnectionBuilder builder, MessagePackHubProtocolOptions options)
         {

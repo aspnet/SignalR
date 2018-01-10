@@ -18,7 +18,7 @@ namespace Microsoft.Extensions.DependencyInjection
             services.Configure(configure);
             services.AddSockets();
             return services.AddSignalRCore()
-                .UseJsonProtocol();
+                .AddJsonProtocol();
         }
     }
 }

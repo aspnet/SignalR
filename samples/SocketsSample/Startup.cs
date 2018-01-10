@@ -19,12 +19,11 @@ namespace SocketsSample
         {
             services.AddSockets();
 
-            services
-                .AddSignalR(options =>
-                {
-                    // Faster pings for testing
-                    options.KeepAliveInterval = TimeSpan.FromSeconds(5);
-                });
+            services.AddSignalR(options =>
+            {
+                // Faster pings for testing
+                options.KeepAliveInterval = TimeSpan.FromSeconds(5);
+            });
             // .AddRedis();
 
             services.AddCors(o =>

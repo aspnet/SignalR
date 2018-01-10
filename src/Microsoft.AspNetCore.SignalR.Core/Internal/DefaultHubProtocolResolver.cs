@@ -15,13 +15,13 @@ namespace Microsoft.AspNetCore.SignalR.Internal
     {
         private readonly IOptions<HubOptions> _options;
         private readonly ILogger<DefaultHubProtocolResolver> _logger;
-        private readonly IDictionary<string, IHubProtocol> _availableProtocols;
+        private readonly Dictionary<string, IHubProtocol> _availableProtocols;
 
         public DefaultHubProtocolResolver(IOptions<HubOptions> options, IEnumerable<IHubProtocol> availableProtocols, ILogger<DefaultHubProtocolResolver> logger)
         {
             _options = options;
             _logger = logger;
-            _availableProtocols = availableProtocols.ToDictionary(p => p.Name);
+            _availableProtocols = availableProtocols.ToDictionary(p => p.Name, StringComparer.OrdinalIgnoreCase);
 
             if (_logger.IsEnabled(LogLevel.Debug))
             {

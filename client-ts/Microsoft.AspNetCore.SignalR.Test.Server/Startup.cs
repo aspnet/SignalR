@@ -24,7 +24,7 @@ namespace Microsoft.AspNetCore.SignalR.Test.Server
         {
             services.AddSockets();
             services.AddSignalR()
-                .UseJsonProtocol(options =>
+                .AddJsonProtocol(options =>
                 {
                     // we are running the same tests with JSON and MsgPack protocols and having
                     // consistent casing makes it cleaner to verify results
