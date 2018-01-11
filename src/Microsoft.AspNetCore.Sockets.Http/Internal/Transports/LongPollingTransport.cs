@@ -35,6 +35,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                 {
                     await _application.Completion;
                     _logger.LongPolling204(_connectionId, context.TraceIdentifier);
+                    context.Response.ContentType = "text/plain";
                     context.Response.StatusCode = StatusCodes.Status204NoContent;
                     return;
                 }
@@ -79,12 +80,14 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                     _logger.PollTimedOut(_connectionId, context.TraceIdentifier);
 
                     context.Response.ContentLength = 0;
+                    context.Response.ContentType = "text/plain";
                     context.Response.StatusCode = StatusCodes.Status200OK;
                 }
                 else
                 {
                     // Case 3
                     _logger.LongPolling204(_connectionId, context.TraceIdentifier);
+                    context.Response.ContentType = "text/plain";
                     context.Response.StatusCode = StatusCodes.Status204NoContent;
                 }
             }
