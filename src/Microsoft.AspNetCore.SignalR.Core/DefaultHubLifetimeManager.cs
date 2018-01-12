@@ -90,6 +90,25 @@ namespace Microsoft.AspNetCore.SignalR
             return Task.WhenAll(tasks);
         }
 
+        private Task InvokeFirstWhere(string methodName, object[] args, Func<HubConnectionContext, bool> include)
+        {
+            if (_connections.Count == 0)
+            {
+                return Task.CompletedTask;
+            }
+
+            foreach (var connection in _connections)
+            {
+                if (include(connection))
+                {
+                    var message = CreateInvocationMessage(methodName, args);
+                    return connection.WriteAsync(message);
+                }
+            }
+
+            return Task.CompletedTask;
+        }
+
         public override Task InvokeConnectionAsync(string connectionId, string methodName, object[] args)
         {
             if (connectionId == null)
@@ -176,7 +195,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public override Task InvokeUserAsync(string userId, string methodName, object[] args)
         {
-            return InvokeAllWhere(methodName, args, connection =>
+            return InvokeFirstWhere(methodName, args, connection =>
                 string.Equals(connection.UserIdentifier, userId, StringComparison.Ordinal));
         }
 
