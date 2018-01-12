@@ -287,7 +287,7 @@ export class HubConnection {
 
     private createInvocation(methodName: string, args: any[], nonblocking: boolean): InvocationMessage {
         if (nonblocking) {
-            return <InvocationMessage>{
+            return {
                 type: MessageType.Invocation,
                 target: methodName,
                 arguments: args,
@@ -297,7 +297,7 @@ export class HubConnection {
             let id = this.id;
             this.id++;
 
-            return <InvocationMessage>{
+            return {
                 type: MessageType.Invocation,
                 invocationId: id.toString(),
                 target: methodName,
@@ -310,7 +310,7 @@ export class HubConnection {
         let id = this.id;
         this.id++;
 
-        return <StreamInvocationMessage>{
+        return {
             type: MessageType.StreamInvocation,
             invocationId: id.toString(),
             target: methodName,
@@ -319,7 +319,7 @@ export class HubConnection {
     }
 
     private createCancelInvocation(id: string): CancelInvocation {
-        return <CancelInvocation>{
+        return {
             type: MessageType.CancelInvocation,
             invocationId: id,
         };
