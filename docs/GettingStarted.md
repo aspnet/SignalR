@@ -17,10 +17,10 @@ The build process is handled by *KoreBuild* which can be found in the [aspnet/Bu
 
 *KoreBuild* will do much of the heavy-lifting for you, including installing any necessary SDK versions as well as running the build and its tests.
 
-If, after running `build.cmd` or `build.sh`, you did not get a successful build, please refer to the [Troubleshooting](#troubleshooting) section below. If your problem isn't covered, please check that you've met all of the prerequisites. If you still can't get the solution to build successfully, please open an issue so that we might assist and please consider updating this documentation to help others in the future.
+If, after running `build.cmd` or `build.sh`, you did not get a successful build, please refer to the [Troubleshooting](./BuildTroubleshooting.md) document. If your problem isn't covered, please check that you've met all of the prerequisites. If you still can't get the solution to build successfully, please open an issue so that we might assist and please consider updating this documentation to help others in the future.
 
 ## Other Resources
-For more information on what's going on in the build, please see the [Build Details](BuildDetails.md) document.
+For more information on what's going on in the build, please see the [Build Details](/BuildDetails.md) document.
 
-For troubleshooting build or Visual Studio issues, please see the [Troubleshooting](BuildTroubleshooting.md) document.
+For troubleshooting build or Visual Studio issues, please see the [Troubleshooting](/BuildTroubleshooting.md) document.
 
