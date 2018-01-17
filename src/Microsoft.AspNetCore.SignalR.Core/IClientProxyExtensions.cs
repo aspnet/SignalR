@@ -13,9 +13,9 @@ namespace Microsoft.AspNetCore.SignalR
         /// <param name="clientProxy">The <see cref="IClientProxy"/></param>
         /// <param name="method">name of the method to invoke</param>
         /// <returns>A task that represents when the data has been sent to the client.</returns>
-        public static Task InvokeAsync(this IClientProxy clientProxy, string method)
+        public static Task SendAsync(this IClientProxy clientProxy, string method)
         {
-            return clientProxy.InvokeAsync(method, Array.Empty<object>());
+            return clientProxy.SendAsync(method, Array.Empty<object>());
         }
 
         /// <summary>
@@ -25,9 +25,9 @@ namespace Microsoft.AspNetCore.SignalR
         /// <param name="method">name of the method to invoke</param>
         /// <param name="arg1">The first argument</param>
         /// <returns>A task that represents when the data has been sent to the client.</returns>
-        public static Task InvokeAsync(this IClientProxy clientProxy, string method, object arg1)
+        public static Task SendAsync(this IClientProxy clientProxy, string method, object arg1)
         {
-            return clientProxy.InvokeAsync(method, new object[] { arg1 });
+            return clientProxy.SendAsync(method, new object[] { arg1 });
         }
 
         /// <summary>
@@ -38,9 +38,9 @@ namespace Microsoft.AspNetCore.SignalR
         /// <param name="arg1">The first argument</param>
         /// <param name="arg2">The second argument</param>
         /// <returns>A task that represents when the data has been sent to the client.</returns>
-        public static Task InvokeAsync(this IClientProxy clientProxy, string method, object arg1, object arg2)
+        public static Task SendAsync(this IClientProxy clientProxy, string method, object arg1, object arg2)
         {
-            return clientProxy.InvokeAsync(method, new object[] { arg1, arg2 });
+            return clientProxy.SendAsync(method, new object[] { arg1, arg2 });
         }
 
         /// <summary>
@@ -52,9 +52,9 @@ namespace Microsoft.AspNetCore.SignalR
         /// <param name="arg2">The second argument</param>
         /// <param name="arg3">The third argument</param>
         /// <returns>A task that represents when the data has been sent to the client.</returns>
-        public static Task InvokeAsync(this IClientProxy clientProxy, string method, object arg1, object arg2, object arg3)
+        public static Task SendAsync(this IClientProxy clientProxy, string method, object arg1, object arg2, object arg3)
         {
-            return clientProxy.InvokeAsync(method, new object[] { arg1, arg2, arg3 });
+            return clientProxy.SendAsync(method, new object[] { arg1, arg2, arg3 });
         }
 
         /// <summary>
@@ -67,9 +67,9 @@ namespace Microsoft.AspNetCore.SignalR
         /// <param name="arg3">The third argument</param>
         /// <param name="arg4">The fourth argument</param>
         /// <returns>A task that represents when the data has been sent to the client.</returns>
-        public static Task InvokeAsync(this IClientProxy clientProxy, string method, object arg1, object arg2, object arg3, object arg4)
+        public static Task SendAsync(this IClientProxy clientProxy, string method, object arg1, object arg2, object arg3, object arg4)
         {
-            return clientProxy.InvokeAsync(method, new object[] { arg1, arg2, arg3, arg4 });
+            return clientProxy.SendAsync(method, new object[] { arg1, arg2, arg3, arg4 });
         }
 
         /// <summary>
@@ -83,9 +83,9 @@ namespace Microsoft.AspNetCore.SignalR
         /// <param name="arg4">The fourth argument</param>
         /// <param name="arg5">The fifth argument</param>
         /// <returns>A task that represents when the data has been sent to the client.</returns>
-        public static Task InvokeAsync(this IClientProxy clientProxy, string method, object arg1, object arg2, object arg3, object arg4, object arg5)
+        public static Task SendAsync(this IClientProxy clientProxy, string method, object arg1, object arg2, object arg3, object arg4, object arg5)
         {
-            return clientProxy.InvokeAsync(method, new object[] { arg1, arg2, arg3, arg4, arg5 });
+            return clientProxy.SendAsync(method, new object[] { arg1, arg2, arg3, arg4, arg5 });
         }
 
         /// <summary>
@@ -100,9 +100,9 @@ namespace Microsoft.AspNetCore.SignalR
         /// <param name="arg5">The fifth argument</param>
         /// <param name="arg6">The sixth argument</param>
         /// <returns>A task that represents when the data has been sent to the client.</returns>
-        public static Task InvokeAsync(this IClientProxy clientProxy, string method, object arg1, object arg2, object arg3, object arg4, object arg5, object arg6)
+        public static Task SendAsync(this IClientProxy clientProxy, string method, object arg1, object arg2, object arg3, object arg4, object arg5, object arg6)
         {
-            return clientProxy.InvokeAsync(method, new object[] { arg1, arg2, arg3, arg4, arg5, arg6 });
+            return clientProxy.SendAsync(method, new object[] { arg1, arg2, arg3, arg4, arg5, arg6 });
         }
 
         /// <summary>
@@ -118,9 +118,9 @@ namespace Microsoft.AspNetCore.SignalR
         /// <param name="arg6">The sixth argument</param>
         /// <param name="arg7">The seventh argument</param>
         /// <returns>A task that represents when the data has been sent to the client.</returns>
-        public static Task InvokeAsync(this IClientProxy clientProxy, string method, object arg1, object arg2, object arg3, object arg4, object arg5, object arg6, object arg7)
+        public static Task SendAsync(this IClientProxy clientProxy, string method, object arg1, object arg2, object arg3, object arg4, object arg5, object arg6, object arg7)
         {
-            return clientProxy.InvokeAsync(method, new object[] { arg1, arg2, arg3, arg4, arg5, arg6, arg7 });
+            return clientProxy.SendAsync(method, new object[] { arg1, arg2, arg3, arg4, arg5, arg6, arg7 });
         }
 
         /// <summary>
@@ -137,9 +137,9 @@ namespace Microsoft.AspNetCore.SignalR
         /// <param name="arg7">The seventh argument</param>
         /// <param name="arg8">The eigth argument</param>
         /// <returns>A task that represents when the data has been sent to the client.</returns>
-        public static Task InvokeAsync(this IClientProxy clientProxy, string method, object arg1, object arg2, object arg3, object arg4, object arg5, object arg6, object arg7, object arg8)
+        public static Task SendAsync(this IClientProxy clientProxy, string method, object arg1, object arg2, object arg3, object arg4, object arg5, object arg6, object arg7, object arg8)
         {
-            return clientProxy.InvokeAsync(method, new object[] { arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8 });
+            return clientProxy.SendAsync(method, new object[] { arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8 });
         }
 
         /// <summary>
@@ -157,9 +157,9 @@ namespace Microsoft.AspNetCore.SignalR
         /// <param name="arg8">The eigth argument</param>
         /// <param name="arg9">The ninth argument</param>
         /// <returns>A task that represents when the data has been sent to the client.</returns>
-        public static Task InvokeAsync(this IClientProxy clientProxy, string method, object arg1, object arg2, object arg3, object arg4, object arg5, object arg6, object arg7, object arg8, object arg9)
+        public static Task SendAsync(this IClientProxy clientProxy, string method, object arg1, object arg2, object arg3, object arg4, object arg5, object arg6, object arg7, object arg8, object arg9)
         {
-            return clientProxy.InvokeAsync(method, new object[] { arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9 });
+            return clientProxy.SendAsync(method, new object[] { arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9 });
         }
 
         /// <summary>
@@ -178,9 +178,9 @@ namespace Microsoft.AspNetCore.SignalR
         /// <param name="arg9">The ninth argument</param>
         /// <param name="arg10">The tenth argument</param>
         /// <returns>A task that represents when the data has been sent to the client.</returns>
-        public static Task InvokeAsync(this IClientProxy clientProxy, string method, object arg1, object arg2, object arg3, object arg4, object arg5, object arg6, object arg7, object arg8, object arg9, object arg10)
+        public static Task SendAsync(this IClientProxy clientProxy, string method, object arg1, object arg2, object arg3, object arg4, object arg5, object arg6, object arg7, object arg8, object arg9, object arg10)
         {
-            return clientProxy.InvokeAsync(method, new object[] { arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10 });
+            return clientProxy.SendAsync(method, new object[] { arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10 });
         }
     }
 }
