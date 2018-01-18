@@ -8,7 +8,8 @@ namespace Microsoft.AspNetCore.SignalR
     public static class IClientProxyExtensions
     {
         /// <summary>
-        /// Fire-and-forget a method on the connection(s) represented by the <see cref="IClientProxy"/> instance.
+        /// Invokes a method on the connection(s) represented by the <see cref="IClientProxy"/> instance.
+        /// Does not wait for a response from the receiver.
         /// </summary>
         /// <param name="clientProxy">The <see cref="IClientProxy"/></param>
         /// <param name="method">name of the method to invoke</param>
@@ -19,7 +20,8 @@ namespace Microsoft.AspNetCore.SignalR
         }
 
         /// <summary>
-        /// Fire-and-forget a method on the connection(s) represented by the <see cref="IClientProxy"/> instance.
+        /// Invokes a method on the connection(s) represented by the <see cref="IClientProxy"/> instance.
+        /// Does not wait for a response from the receiver.
         /// </summary>
         /// <param name="clientProxy">The <see cref="IClientProxy"/></param>
         /// <param name="method">name of the method to invoke</param>
@@ -31,7 +33,8 @@ namespace Microsoft.AspNetCore.SignalR
         }
 
         /// <summary>
-        /// Fire-and-forget a method on the connection(s) represented by the <see cref="IClientProxy"/> instance.
+        /// Invokes a method on the connection(s) represented by the <see cref="IClientProxy"/> instance.
+        /// Does not wait for a response from the receiver.
         /// </summary>
         /// <param name="clientProxy">The <see cref="IClientProxy"/></param>
         /// <param name="method">name of the method to invoke</param>
@@ -44,7 +47,8 @@ namespace Microsoft.AspNetCore.SignalR
         }
 
         /// <summary>
-        /// Fire-and-forget a method on the connection(s) represented by the <see cref="IClientProxy"/> instance.
+        /// Invokes a method on the connection(s) represented by the <see cref="IClientProxy"/> instance.
+        /// Does not wait for a response from the receiver.
         /// </summary>
         /// <param name="clientProxy">The <see cref="IClientProxy"/></param>
         /// <param name="method">name of the method to invoke</param>
@@ -58,7 +62,8 @@ namespace Microsoft.AspNetCore.SignalR
         }
 
         /// <summary>
-        /// Fire-and-forget a method on the connection(s) represented by the <see cref="IClientProxy"/> instance.
+        /// Invokes a method on the connection(s) represented by the <see cref="IClientProxy"/> instance.
+        /// Does not wait for a response from the receiver.
         /// </summary>
         /// <param name="clientProxy">The <see cref="IClientProxy"/></param>
         /// <param name="method">name of the method to invoke</param>
@@ -73,7 +78,8 @@ namespace Microsoft.AspNetCore.SignalR
         }
 
         /// <summary>
-        /// Fire-and-forget a method on the connection(s) represented by the <see cref="IClientProxy"/> instance.
+        /// Invokes a method on the connection(s) represented by the <see cref="IClientProxy"/> instance.
+        /// Does not wait for a response from the receiver.
         /// </summary>
         /// <param name="clientProxy">The <see cref="IClientProxy"/></param>
         /// <param name="method">name of the method to invoke</param>
@@ -89,7 +95,8 @@ namespace Microsoft.AspNetCore.SignalR
         }
 
         /// <summary>
-        /// Fire-and-forget a method on the connection(s) represented by the <see cref="IClientProxy"/> instance.
+        /// Invokes a method on the connection(s) represented by the <see cref="IClientProxy"/> instance.
+        /// Does not wait for a response from the receiver.
         /// </summary>
         /// <param name="clientProxy">The <see cref="IClientProxy"/></param>
         /// <param name="method">name of the method to invoke</param>
@@ -106,7 +113,8 @@ namespace Microsoft.AspNetCore.SignalR
         }
 
         /// <summary>
-        /// Fire-and-forget a method on the connection(s) represented by the <see cref="IClientProxy"/> instance.
+        /// Invokes a method on the connection(s) represented by the <see cref="IClientProxy"/> instance.
+        /// Does not wait for a response from the receiver.
         /// </summary>
         /// <param name="clientProxy">The <see cref="IClientProxy"/></param>
         /// <param name="method">name of the method to invoke</param>
@@ -124,7 +132,8 @@ namespace Microsoft.AspNetCore.SignalR
         }
 
         /// <summary>
-        /// Fire-and-forget a method on the connection(s) represented by the <see cref="IClientProxy"/> instance.
+        /// Invokes a method on the connection(s) represented by the <see cref="IClientProxy"/> instance.
+        /// Does not wait for a response from the receiver.
         /// </summary>
         /// <param name="clientProxy">The <see cref="IClientProxy"/></param>
         /// <param name="method">name of the method to invoke</param>
@@ -143,7 +152,8 @@ namespace Microsoft.AspNetCore.SignalR
         }
 
         /// <summary>
-        /// Fire-and-forget a method on the connection(s) represented by the <see cref="IClientProxy"/> instance.
+        /// Invokes a method on the connection(s) represented by the <see cref="IClientProxy"/> instance.
+        /// Does not wait for a response from the receiver.
         /// </summary>
         /// <param name="clientProxy">The <see cref="IClientProxy"/></param>
         /// <param name="method">name of the method to invoke</param>
@@ -163,7 +173,8 @@ namespace Microsoft.AspNetCore.SignalR
         }
 
         /// <summary>
-        /// Fire-and-forget a method on the connection(s) represented by the <see cref="IClientProxy"/> instance.
+        /// Invokes a method on the connection(s) represented by the <see cref="IClientProxy"/> instance.
+        /// Does not wait for a response from the receiver.
         /// </summary>
         /// <param name="clientProxy">The <see cref="IClientProxy"/></param>
         /// <param name="method">name of the method to invoke</param>

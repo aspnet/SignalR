@@ -19,7 +19,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public Task SendAsync(string method, params object[] args)
         {
-            return _lifetimeManager.InvokeUserAsync(_userId, method, args);
+            return _lifetimeManager.SendUserAsync(_userId, method, args);
         }
     }
 
@@ -36,7 +36,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public Task SendAsync(string method, params object[] args)
         {
-            return _lifetimeManager.InvokeUsersAsync(_userIds, method, args);
+            return _lifetimeManager.SendUsersAsync(_userIds, method, args);
         }
     }
 
@@ -53,7 +53,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public Task SendAsync(string method, params object[] args)
         {
-            return _lifetimeManager.InvokeGroupAsync(_groupName, method, args);
+            return _lifetimeManager.SendGroupAsync(_groupName, method, args);
         }
     }
 
@@ -70,7 +70,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public Task SendAsync(string method, params object[] args)
         {
-            return _lifetimeManager.InvokeGroupsAsync(_groupNames, method, args);
+            return _lifetimeManager.SendGroupsAsync(_groupNames, method, args);
         }
     }
 
@@ -89,7 +89,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public Task SendAsync(string method, params object[] args)
         {
-            return _lifetimeManager.InvokeGroupExceptAsync(_groupName, method, args, _excludedIds);
+            return _lifetimeManager.SendGroupExceptAsync(_groupName, method, args, _excludedIds);
         }
     }
 
@@ -104,7 +104,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public Task SendAsync(string method, params object[] args)
         {
-            return _lifetimeManager.InvokeAllAsync(method, args);
+            return _lifetimeManager.SendAllAsync(method, args);
         }
     }
 
@@ -121,7 +121,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public Task SendAsync(string method, params object[] args)
         {
-            return _lifetimeManager.InvokeAllExceptAsync(method, args, _excludedIds);
+            return _lifetimeManager.SendAllExceptAsync(method, args, _excludedIds);
         }
     }
 
@@ -138,7 +138,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public Task SendAsync(string method, params object[] args)
         {
-            return _lifetimeManager.InvokeConnectionAsync(_connectionId, method, args);
+            return _lifetimeManager.SendConnectionAsync(_connectionId, method, args);
         }
     }
 
@@ -155,7 +155,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public Task SendAsync(string method, params object[] args)
         {
-            return _lifetimeManager.InvokeConnectionsAsync(_connectionIds, method, args);
+            return _lifetimeManager.SendConnectionsAsync(_connectionIds, method, args);
         }
     }
 

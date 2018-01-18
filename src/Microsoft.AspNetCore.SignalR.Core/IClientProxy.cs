@@ -8,7 +8,8 @@ namespace Microsoft.AspNetCore.SignalR
     public interface IClientProxy
     {
         /// <summary>
-        /// Fire-and-forget a method on the connection(s) represented by the <see cref="IClientProxy"/> instance.
+        /// Invokes a method on the connection(s) represented by the <see cref="IClientProxy"/> instance.
+        /// Does not wait for a response from the receiver.
         /// </summary>
         /// <param name="method">name of the method to invoke</param>
         /// <param name="args">argumetns to pass to the client</param>
