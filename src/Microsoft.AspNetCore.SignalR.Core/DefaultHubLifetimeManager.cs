@@ -62,10 +62,10 @@ namespace Microsoft.AspNetCore.SignalR
 
         public override Task SendAllAsync(string methodName, object[] args)
         {
-            return InvokeAllWhere(methodName, args, c => true);
+            return SendAllWhere(methodName, args, c => true);
         }
 
-        private Task InvokeAllWhere(string methodName, object[] args, Func<HubConnectionContext, bool> include)
+        private Task SendAllWhere(string methodName, object[] args, Func<HubConnectionContext, bool> include)
         {
             var count = _connections.Count;
             if (count == 0)
@@ -176,7 +176,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public override Task SendUserAsync(string userId, string methodName, object[] args)
         {
-            return InvokeAllWhere(methodName, args, connection =>
+            return SendAllWhere(methodName, args, connection =>
                 string.Equals(connection.UserIdentifier, userId, StringComparison.Ordinal));
         }
 
@@ -195,7 +195,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public override Task SendAllExceptAsync(string methodName, object[] args, IReadOnlyList<string> excludedIds)
         {
-            return InvokeAllWhere(methodName, args, connection =>
+            return SendAllWhere(methodName, args, connection =>
             {
                 return !excludedIds.Contains(connection.ConnectionId);
             });
@@ -203,7 +203,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public override Task SendConnectionsAsync(IReadOnlyList<string> connectionIds, string methodName, object[] args)
         {
-            return InvokeAllWhere(methodName, args, connection =>
+            return SendAllWhere(methodName, args, connection =>
             {
                 return connectionIds.Contains(connection.ConnectionId);
             });
@@ -211,7 +211,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public override Task SendUsersAsync(IReadOnlyList<string> userIds, string methodName, object[] args)
         {
-            return InvokeAllWhere(methodName, args, connection =>
+            return SendAllWhere(methodName, args, connection =>
             {
                 return userIds.Contains(connection.UserIdentifier);
             });
