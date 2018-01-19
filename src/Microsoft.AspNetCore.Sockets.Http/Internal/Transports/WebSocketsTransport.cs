@@ -19,6 +19,8 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
         private readonly ILogger _logger;
         private readonly Channel<byte[]> _application;
         private readonly DefaultConnectionContext _connection;
+        private readonly CancellationTokenSource _transportCts = new CancellationTokenSource();
+        private WebSocket _socket;
 
         public WebSocketsTransport(WebSocketOptions options, Channel<byte[]> application, DefaultConnectionContext connection, ILoggerFactory loggerFactory)
         {
@@ -64,9 +66,12 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
 
         public async Task ProcessSocketAsync(WebSocket socket)
         {
+            Debug.Assert(_socket == null, "ProcessSocketAsync can only be called once.");
+            _socket = socket;
+
             // Begin sending and receiving. Receiving must be started first because ExecuteAsync enables SendAsync.
-            var receiving = StartReceiving(socket);
-            var sending = StartSending(socket);
+            var receiving = StartReceiving(socket, _transportCts.Token);
+            var sending = StartSending(socket, _transportCts.Token);
 
             // Wait for something to shut down.
             var trigger = await Task.WhenAny(
@@ -89,124 +94,153 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
             // We're done writing
             _application.Writer.TryComplete();
 
-            await socket.CloseOutputAsync(failed ? WebSocketCloseStatus.InternalServerError : WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+            _logger.LogDebug("Sending WebSocket close frame");
+            await socket.CloseOutputAsync(failed ? WebSocketCloseStatus.InternalServerError : WebSocketCloseStatus.NormalClosure, "", _transportCts.Token);
 
-            var resultTask = await Task.WhenAny(task, Task.Delay(_options.CloseTimeout));
+            // Wait for the other task to finish, but abort the transport if the close timeout elapses
+            try
+            {
+                _logger.LogDebug("Waiting {closeTimeout}ms for shutdown to occur.", _options.CloseTimeout.TotalMilliseconds);
+                _transportCts.CancelAfter(_options.CloseTimeout);
+                using (_transportCts.Token.Register(self => ((WebSocketsTransport)self).CloseTimedOut(), this))
+                {
+                    await task;
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // This occurs when the timeout elapses.
+                // We care about it, but only enough to log it, and the Register call above handles that.
+            }
 
-            if (resultTask != task)
-            {
-                _logger.CloseTimedOut(_connection.ConnectionId);
-                socket.Abort();
-            }
-            else
-            {
-                // Observe any exceptions from second completed task
-                task.GetAwaiter().GetResult();
-            }
+            _logger.LogDebug("WebSocket connection ended");
 
             // Observe any exceptions from original completed task
             trigger.GetAwaiter().GetResult();
         }
 
-        private async Task<WebSocketReceiveResult> StartReceiving(WebSocket socket)
+        private void CloseTimedOut()
         {
-            // REVIEW: This code was copied from the client, it's highly unoptimized at the moment (especially
-            // for server logic)
-            var incomingMessage = new List<ArraySegment<byte>>();
-            while (true)
-            {
-                const int bufferSize = 4096;
-                var totalBytes = 0;
-                WebSocketReceiveResult receiveResult;
-                do
-                {
-                    var buffer = new ArraySegment<byte>(new byte[bufferSize]);
-
-                    // Exceptions are handled above where the send and receive tasks are being run.
-                    receiveResult = await socket.ReceiveAsync(buffer, CancellationToken.None);
-                    if (receiveResult.MessageType == WebSocketMessageType.Close)
-                    {
-                        return receiveResult;
-                    }
-
-                    _logger.MessageReceived(_connection.ConnectionId, receiveResult.MessageType, receiveResult.Count, receiveResult.EndOfMessage);
-
-                    var truncBuffer = new ArraySegment<byte>(buffer.Array, 0, receiveResult.Count);
-                    incomingMessage.Add(truncBuffer);
-                    totalBytes += receiveResult.Count;
-                } while (!receiveResult.EndOfMessage);
-
-                // Making sure the message type is either text or binary
-                Debug.Assert((receiveResult.MessageType == WebSocketMessageType.Binary || receiveResult.MessageType == WebSocketMessageType.Text), "Unexpected message type");
-
-                // TODO: Check received message type against the _options.WebSocketMessageType
-
-                byte[] messageBuffer = null;
-
-                if (incomingMessage.Count > 1)
-                {
-                    messageBuffer = new byte[totalBytes];
-                    var offset = 0;
-                    for (var i = 0; i < incomingMessage.Count; i++)
-                    {
-                        Buffer.BlockCopy(incomingMessage[i].Array, 0, messageBuffer, offset, incomingMessage[i].Count);
-                        offset += incomingMessage[i].Count;
-                    }
-                }
-                else
-                {
-                    messageBuffer = new byte[incomingMessage[0].Count];
-                    Buffer.BlockCopy(incomingMessage[0].Array, incomingMessage[0].Offset, messageBuffer, 0, incomingMessage[0].Count);
-                }
-
-                _logger.MessageToApplication(_connection.ConnectionId, messageBuffer.Length);
-                while (await _application.Writer.WaitToWriteAsync())
-                {
-                    if (_application.Writer.TryWrite(messageBuffer))
-                    {
-                        incomingMessage.Clear();
-                        break;
-                    }
-                }
-            }
+            _logger.CloseTimedOut(_connection.ConnectionId);
+            _socket.Abort();
         }
 
-        private async Task StartSending(WebSocket ws)
+        private async Task StartReceiving(WebSocket socket, CancellationToken cancellationToken)
         {
-            while (await _application.Reader.WaitToReadAsync())
+            try
             {
-                // Get a frame from the application
-                while (_application.Reader.TryRead(out var buffer))
+                // REVIEW: This code was copied from the client, it's highly unoptimized at the moment (especially
+                // for server logic)
+                var incomingMessage = new List<ArraySegment<byte>>();
+                while (!cancellationToken.IsCancellationRequested)
                 {
-                    if (buffer.Length > 0)
+                    const int bufferSize = 4096;
+                    var totalBytes = 0;
+                    WebSocketReceiveResult receiveResult;
+                    do
                     {
-                        try
-                        {
-                            _logger.SendPayload(_connection.ConnectionId, buffer.Length);
+                        var buffer = new ArraySegment<byte>(new byte[bufferSize]);
 
-                            var webSocketMessageType = (_connection.TransferMode == TransferMode.Binary
-                                ? WebSocketMessageType.Binary
-                                : WebSocketMessageType.Text);
+                        // Exceptions are handled above where the send and receive tasks are being run.
+                        receiveResult = await socket.ReceiveAsync(buffer, cancellationToken);
+                        if (receiveResult.MessageType == WebSocketMessageType.Close)
+                        {
+                            return;
+                        }
 
-                            if (WebSocketCanSend(ws))
-                            {
-                                await ws.SendAsync(new ArraySegment<byte>(buffer), webSocketMessageType, endOfMessage: true, cancellationToken: CancellationToken.None);
-                            }
-                        }
-                        catch (WebSocketException socketException) when (!WebSocketCanSend(ws))
+                        _logger.MessageReceived(_connection.ConnectionId, receiveResult.MessageType, receiveResult.Count, receiveResult.EndOfMessage);
+
+                        var truncBuffer = new ArraySegment<byte>(buffer.Array, 0, receiveResult.Count);
+                        incomingMessage.Add(truncBuffer);
+                        totalBytes += receiveResult.Count;
+                    } while (!receiveResult.EndOfMessage);
+
+                    // Making sure the message type is either text or binary
+                    Debug.Assert((receiveResult.MessageType == WebSocketMessageType.Binary || receiveResult.MessageType == WebSocketMessageType.Text), "Unexpected message type");
+
+                    // TODO: Check received message type against the _options.WebSocketMessageType
+
+                    byte[] messageBuffer = null;
+
+                    if (incomingMessage.Count > 1)
+                    {
+                        messageBuffer = new byte[totalBytes];
+                        var offset = 0;
+                        for (var i = 0; i < incomingMessage.Count; i++)
                         {
-                            // this can happen when we send the CloseFrame to the client and try to write afterwards
-                            _logger.SendFailed(_connection.ConnectionId, socketException);
-                            break;
+                            Buffer.BlockCopy(incomingMessage[i].Array, 0, messageBuffer, offset, incomingMessage[i].Count);
+                            offset += incomingMessage[i].Count;
                         }
-                        catch (Exception ex)
+                    }
+                    else
+                    {
+                        messageBuffer = new byte[incomingMessage[0].Count];
+                        Buffer.BlockCopy(incomingMessage[0].Array, incomingMessage[0].Offset, messageBuffer, 0, incomingMessage[0].Count);
+                    }
+
+                    _logger.MessageToApplication(_connection.ConnectionId, messageBuffer.Length);
+                    while (await _application.Writer.WaitToWriteAsync(cancellationToken))
+                    {
+                        if (_application.Writer.TryWrite(messageBuffer))
                         {
-                            _logger.ErrorWritingFrame(_connection.ConnectionId, ex);
+                            incomingMessage.Clear();
                             break;
                         }
                     }
                 }
+                cancellationToken.ThrowIfCancellationRequested();
             }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Terminating receive loop due to an error");
+                throw;
+            }
+            _logger.LogDebug("Terminating receive loop");
+        }
+
+        private async Task StartSending(WebSocket ws, CancellationToken cancellationToken)
+        {
+            try
+            {
+                while (await _application.Reader.WaitToReadAsync(cancellationToken))
+                {
+                    // Get a frame from the application
+                    while (_application.Reader.TryRead(out var buffer))
+                    {
+                        if (buffer.Length > 0)
+                        {
+                            try
+                            {
+                                _logger.SendPayload(_connection.ConnectionId, buffer.Length);
+
+                                var webSocketMessageType = (_connection.TransferMode == TransferMode.Binary
+                                    ? WebSocketMessageType.Binary
+                                    : WebSocketMessageType.Text);
+
+                                if (WebSocketCanSend(ws))
+                                {
+                                    await ws.SendAsync(new ArraySegment<byte>(buffer), webSocketMessageType, endOfMessage: true, cancellationToken);
+                                }
+                            }
+                            catch (WebSocketException socketException) when (!WebSocketCanSend(ws))
+                            {
+                                // this can happen when we send the CloseFrame to the client and try to write afterwards
+                                _logger.SendFailed(_connection.ConnectionId, socketException);
+                                break;
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.ErrorWritingFrame(_connection.ConnectionId, ex);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            _logger.LogDebug("Terminating send loop");
         }
 
         private static bool WebSocketCanSend(WebSocket ws)
