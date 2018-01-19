@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Sockets.Features;
 using Microsoft.AspNetCore.Sockets.Internal;
 using Microsoft.AspNetCore.Sockets.Internal.Transports;
@@ -459,6 +460,9 @@ namespace Microsoft.AspNetCore.Sockets
                 return false;
             }
 
+            //Set the IHttpConnectionFeature now that we can access it.
+            connection.Features.Set(context.Features.Get<IHttpConnectionFeature>());
+
             var transport = (TransportType?)connection.Metadata[ConnectionMetadataNames.Transport];
 
             if (transport == null)
@@ -537,6 +541,7 @@ namespace Microsoft.AspNetCore.Sockets
                 return null;
             }
 
+            connection.Features.Set(context.Features.Get<IHttpConnectionFeature>());
             return connection;
         }
     }
