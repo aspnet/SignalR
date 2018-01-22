@@ -1401,7 +1401,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var messages = await client.StreamAsync(nameof(StreamingHub.ThrowStream));
 
                 Assert.Equal(1, messages.Count);
-                Assert.Equal("Exception from observable", (messages[0] as CompletionMessage).Error);
+                var completion = messages[0] as CompletionMessage;
+                Assert.NotNull(completion);
+                Assert.Equal("Exception from observable", completion.Error);
 
                 client.Dispose();
 
