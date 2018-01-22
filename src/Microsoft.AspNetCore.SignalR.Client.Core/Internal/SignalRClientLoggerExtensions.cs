@@ -10,8 +10,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.Internal
     internal static class SignalRClientLoggerExtensions
     {
         // Category: HubConnection
-        private static readonly Action<ILogger, string, string, int, Exception> _preparingNonBlockingInvocation =
-            LoggerMessage.Define<string, string, int>(LogLevel.Trace, new EventId(1, nameof(PreparingNonBlockingInvocation)), "Preparing non-blocking invocation '{invocationId}' of '{target}', with {argumentCount} argument(s).");
+        private static readonly Action<ILogger, string, int, Exception> _preparingNonBlockingInvocation =
+            LoggerMessage.Define<string, int>(LogLevel.Trace, new EventId(1, nameof(PreparingNonBlockingInvocation)), "Preparing non-blocking invocation of '{target}', with {argumentCount} argument(s).");
 
         private static readonly Action<ILogger, string, string, string, int, Exception> _preparingBlockingInvocation =
             LoggerMessage.Define<string, string, string, int>(LogLevel.Trace, new EventId(2, nameof(PreparingBlockingInvocation)), "Preparing blocking invocation '{invocationId}' of '{target}', with return type '{returnType}' and {argumentCount} argument(s).");
