@@ -3,7 +3,6 @@
 
 using System;
 using System.Net.WebSockets;
-using Microsoft.AspNetCore.Sockets.Client.Http.Internal;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.Sockets.Client.Internal
@@ -418,7 +417,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Internal
             _skippingDispose(logger, null);
         }
 
-        public static void ConnectionStateChanged(this ILogger logger, string connectionId, ConnectionState previousState, ConnectionState newState)
+        public static void ConnectionStateChanged(this ILogger logger, HttpConnection.ConnectionState previousState, HttpConnection.ConnectionState newState)
         {
             if (logger.IsEnabled(LogLevel.Debug))
             {
