@@ -460,7 +460,7 @@ namespace Microsoft.AspNetCore.Sockets
                 return false;
             }
 
-            //Set the IHttpConnectionFeature now that we can access it.
+            // Set the IHttpConnectionFeature now that we can access it.
             connection.Features.Set(context.Features.Get<IHttpConnectionFeature>());
 
             var transport = (TransportType?)connection.Metadata[ConnectionMetadataNames.Transport];
@@ -541,7 +541,6 @@ namespace Microsoft.AspNetCore.Sockets
                 return null;
             }
 
-            connection.Features.Set(context.Features.Get<IHttpConnectionFeature>());
             return connection;
         }
     }

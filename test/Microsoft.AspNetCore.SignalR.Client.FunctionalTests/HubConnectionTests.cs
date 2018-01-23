@@ -795,7 +795,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             }
         }
 
-
         public static IEnumerable<object[]> HubProtocolsAndTransportsAndHubPaths
         {
             get
