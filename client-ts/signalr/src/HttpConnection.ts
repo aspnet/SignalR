@@ -12,7 +12,7 @@ export interface IHttpConnectionOptions {
     httpClient?: HttpClient;
     transport?: TransportType | ITransport;
     logger?: ILogger | LogLevel;
-    accessToken?: () => string;
+    accessTokenFactory?: () => string;
 }
 
 const enum ConnectionState {
@@ -68,9 +68,9 @@ export class HttpConnection implements IConnection {
             }
             else {
                 let headers;
-                if (this.options.accessToken) {
+                if (this.options.accessTokenFactory) {
                     headers = new Map<string, string>();
-                    headers.set("Authorization", `Bearer ${this.options.accessToken()}`);
+                    headers.set("Authorization", `Bearer ${this.options.accessTokenFactory()}`);
                 }
 
                 let negotiatePayload = await this.httpClient.post(this.resolveNegotiateUrl(this.baseUrl), {
@@ -119,13 +119,13 @@ export class HttpConnection implements IConnection {
             transport = TransportType[availableTransports[0]];
         }
         if (transport === TransportType.WebSockets && availableTransports.indexOf(TransportType[transport]) >= 0) {
-            return new WebSocketTransport(this.options.accessToken, this.logger);
+            return new WebSocketTransport(this.options.accessTokenFactory, this.logger);
         }
         if (transport === TransportType.ServerSentEvents && availableTransports.indexOf(TransportType[transport]) >= 0) {
-            return new ServerSentEventsTransport(this.httpClient, this.options.accessToken, this.logger);
+            return new ServerSentEventsTransport(this.httpClient, this.options.accessTokenFactory, this.logger);
         }
         if (transport === TransportType.LongPolling && availableTransports.indexOf(TransportType[transport]) >= 0) {
-            return new LongPollingTransport(this.httpClient, this.options.accessToken, this.logger);
+            return new LongPollingTransport(this.httpClient, this.options.accessTokenFactory, this.logger);
         }
 
         if (this.isITransport(transport)) {
