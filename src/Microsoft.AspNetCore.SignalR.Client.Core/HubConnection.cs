@@ -6,10 +6,10 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Threading.Channels;
-using Microsoft.AspNetCore.SignalR.Client.Internal;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Encoders;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
@@ -27,7 +27,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         public static readonly TimeSpan DefaultServerTimeout = TimeSpan.FromSeconds(30); // Server ping rate is 15 sec, this is 2 times that.
 
         private readonly ILoggerFactory _loggerFactory;
-        private readonly ILogger _logger;
+        private readonly HubConnectionLogger _logger;
         private readonly IConnection _connection;
         private readonly IHubProtocol _protocol;
         private readonly HubBinder _binder;
@@ -67,7 +67,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             _binder = new HubBinder(this);
             _protocol = protocol;
             _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
-            _logger = _loggerFactory.CreateLogger<HubConnection>();
+            _logger = new HubConnectionLogger(_loggerFactory.CreateLogger<HubConnection>());
             _connection.OnReceived((data, state) => ((HubConnection)state).OnDataReceivedAsync(data), this);
             _connection.Closed += e => Shutdown(e);
 
@@ -604,6 +604,248 @@ namespace Microsoft.AspNetCore.SignalR.Client
         private class TransferModeFeature : ITransferModeFeature
         {
             public TransferMode TransferMode { get; set; }
+        }
+
+        private struct HubConnectionLogger
+        {
+            private ILogger _logger;
+
+            public HubConnectionLogger(ILogger logger)
+            {
+                _logger = logger;
+            }
+
+            private static readonly Action<ILogger, string, int, Exception> _preparingNonBlockingInvocation =
+                LoggerMessage.Define<string, int>(LogLevel.Trace, new EventId(1, nameof(PreparingNonBlockingInvocation)), "Preparing non-blocking invocation of '{target}', with {argumentCount} argument(s).");
+
+            private static readonly Action<ILogger, string, string, string, int, Exception> _preparingBlockingInvocation =
+                LoggerMessage.Define<string, string, string, int>(LogLevel.Trace, new EventId(2, nameof(PreparingBlockingInvocation)), "Preparing blocking invocation '{invocationId}' of '{target}', with return type '{returnType}' and {argumentCount} argument(s).");
+
+            private static readonly Action<ILogger, string, Exception> _registerInvocation =
+                LoggerMessage.Define<string>(LogLevel.Debug, new EventId(3, nameof(RegisterInvocation)), "Registering Invocation ID '{invocationId}' for tracking.");
+
+            private static readonly Action<ILogger, string, string, string, string, Exception> _issueInvocation =
+                LoggerMessage.Define<string, string, string, string>(LogLevel.Trace, new EventId(4, nameof(IssueInvocation)), "Issuing Invocation '{invocationId}': {returnType} {methodName}({args}).");
+
+            private static readonly Action<ILogger, string, Exception> _sendInvocation =
+                LoggerMessage.Define<string>(LogLevel.Debug, new EventId(5, nameof(SendInvocation)), "Sending Invocation '{invocationId}'.");
+
+            private static readonly Action<ILogger, string, Exception> _sendInvocationCompleted =
+                LoggerMessage.Define<string>(LogLevel.Debug, new EventId(6, nameof(SendInvocationCompleted)), "Sending Invocation '{invocationId}' completed.");
+
+            private static readonly Action<ILogger, string, Exception> _sendInvocationFailed =
+                LoggerMessage.Define<string>(LogLevel.Error, new EventId(7, nameof(SendInvocationFailed)), "Sending Invocation '{invocationId}' failed.");
+
+            private static readonly Action<ILogger, string, string, string, Exception> _receivedInvocation =
+                LoggerMessage.Define<string, string, string>(LogLevel.Trace, new EventId(8, nameof(ReceivedInvocation)), "Received Invocation '{invocationId}': {methodName}({args}).");
+
+            private static readonly Action<ILogger, string, Exception> _dropCompletionMessage =
+                LoggerMessage.Define<string>(LogLevel.Warning, new EventId(9, nameof(DropCompletionMessage)), "Dropped unsolicited Completion message for invocation '{invocationId}'.");
+
+            private static readonly Action<ILogger, string, Exception> _dropStreamMessage =
+                LoggerMessage.Define<string>(LogLevel.Warning, new EventId(10, nameof(DropStreamMessage)), "Dropped unsolicited StreamItem message for invocation '{invocationId}'.");
+
+            private static readonly Action<ILogger, Exception> _shutdownConnection =
+                LoggerMessage.Define(LogLevel.Trace, new EventId(11, nameof(ShutdownConnection)), "Shutting down connection.");
+
+            private static readonly Action<ILogger, Exception> _shutdownWithError =
+                LoggerMessage.Define(LogLevel.Error, new EventId(12, nameof(ShutdownWithError)), "Connection is shutting down due to an error.");
+
+            private static readonly Action<ILogger, string, Exception> _removeInvocation =
+                LoggerMessage.Define<string>(LogLevel.Trace, new EventId(13, nameof(RemoveInvocation)), "Removing pending invocation {invocationId}.");
+
+            private static readonly Action<ILogger, string, Exception> _missingHandler =
+                LoggerMessage.Define<string>(LogLevel.Warning, new EventId(14, nameof(MissingHandler)), "Failed to find handler for '{target}' method.");
+
+            private static readonly Action<ILogger, string, Exception> _receivedStreamItem =
+                LoggerMessage.Define<string>(LogLevel.Trace, new EventId(15, nameof(ReceivedStreamItem)), "Received StreamItem for Invocation {invocationId}.");
+
+            private static readonly Action<ILogger, string, Exception> _cancelingStreamItem =
+                LoggerMessage.Define<string>(LogLevel.Trace, new EventId(16, nameof(CancelingStreamItem)), "Canceling dispatch of StreamItem message for Invocation {invocationId}. The invocation was canceled.");
+
+            private static readonly Action<ILogger, string, Exception> _receivedStreamItemAfterClose =
+                LoggerMessage.Define<string>(LogLevel.Warning, new EventId(17, nameof(ReceivedStreamItemAfterClose)), "Invocation {invocationId} received stream item after channel was closed.");
+
+            private static readonly Action<ILogger, string, Exception> _receivedInvocationCompletion =
+                LoggerMessage.Define<string>(LogLevel.Trace, new EventId(18, nameof(ReceivedInvocationCompletion)), "Received Completion for Invocation {invocationId}.");
+
+            private static readonly Action<ILogger, string, Exception> _cancelingInvocationCompletion =
+                LoggerMessage.Define<string>(LogLevel.Trace, new EventId(19, nameof(CancelingInvocationCompletion)), "Canceling dispatch of Completion message for Invocation {invocationId}. The invocation was canceled.");
+
+            private static readonly Action<ILogger, string, Exception> _cancelingCompletion =
+                LoggerMessage.Define<string>(LogLevel.Trace, new EventId(20, nameof(CancelingCompletion)), "Canceling dispatch of Completion message for Invocation {invocationId}. The invocation was canceled.");
+
+            private static readonly Action<ILogger, string, Exception> _invokeAfterTermination =
+                LoggerMessage.Define<string>(LogLevel.Error, new EventId(21, nameof(InvokeAfterTermination)), "Invoke for Invocation '{invocationId}' was called after the connection was terminated.");
+
+            private static readonly Action<ILogger, string, Exception> _invocationAlreadyInUse =
+                LoggerMessage.Define<string>(LogLevel.Critical, new EventId(22, nameof(InvocationAlreadyInUse)), "Invocation ID '{invocationId}' is already in use.");
+
+            private static readonly Action<ILogger, string, Exception> _receivedUnexpectedResponse =
+                LoggerMessage.Define<string>(LogLevel.Error, new EventId(23, nameof(ReceivedUnexpectedResponse)), "Unsolicited response received for invocation '{invocationId}'.");
+
+            private static readonly Action<ILogger, string, Exception> _hubProtocol =
+                LoggerMessage.Define<string>(LogLevel.Information, new EventId(24, nameof(HubProtocol)), "Using HubProtocol '{protocol}'.");
+
+            private static readonly Action<ILogger, string, string, string, int, Exception> _preparingStreamingInvocation =
+                LoggerMessage.Define<string, string, string, int>(LogLevel.Trace, new EventId(25, nameof(PreparingStreamingInvocation)), "Preparing streaming invocation '{invocationId}' of '{target}', with return type '{returnType}' and {argumentCount} argument(s).");
+
+            private static readonly Action<ILogger, Exception> _resettingKeepAliveTimer =
+                LoggerMessage.Define(LogLevel.Trace, new EventId(26, nameof(ResettingKeepAliveTimer)), "Resetting keep-alive timer, received a message from the server.");
+
+            private static readonly Action<ILogger, Exception> _errorDuringClosedEvent =
+                LoggerMessage.Define(LogLevel.Error, new EventId(27, nameof(ErrorDuringClosedEvent)), "An exception was thrown in the handler for the Closed event.");
+
+            private static readonly Action<ILogger, string, Exception> _errorInvokingClientSideMethod =
+           LoggerMessage.Define<string>(LogLevel.Error, new EventId(28, nameof(ErrorInvokingClientSideMethod)), "Invoking client side method '{methodName}' failed.");
+
+            public void PreparingNonBlockingInvocation(string target, int count)
+            {
+                _preparingNonBlockingInvocation(_logger, target, count, null);
+            }
+
+            public void PreparingBlockingInvocation(string invocationId, string target, string returnType, int count)
+            {
+                _preparingBlockingInvocation(_logger, invocationId, target, returnType, count, null);
+            }
+
+            public void PreparingStreamingInvocation(string invocationId, string target, string returnType, int count)
+            {
+                _preparingStreamingInvocation(_logger, invocationId, target, returnType, count, null);
+            }
+
+            public void RegisterInvocation(string invocationId)
+            {
+                _registerInvocation(_logger, invocationId, null);
+            }
+
+            public void IssueInvocation(string invocationId, string returnType, string methodName, object[] args)
+            {
+                if (_logger.IsEnabled(LogLevel.Trace))
+                {
+                    var argsList = args == null ? string.Empty : string.Join(", ", args.Select(a => a?.GetType().FullName ?? "(null)"));
+                    _issueInvocation(_logger, invocationId, returnType, methodName, argsList, null);
+                }
+            }
+
+            public void SendInvocation(string invocationId)
+            {
+                _sendInvocation(_logger, invocationId, null);
+            }
+
+            public void SendInvocationCompleted(string invocationId)
+            {
+                _sendInvocationCompleted(_logger, invocationId, null);
+            }
+
+            public void SendInvocationFailed(string invocationId, Exception exception)
+            {
+                _sendInvocationFailed(_logger, invocationId, exception);
+            }
+
+            public void ReceivedInvocation(string invocationId, string methodName, object[] args)
+            {
+                if (_logger.IsEnabled(LogLevel.Trace))
+                {
+                    var argsList = args == null ? string.Empty : string.Join(", ", args.Select(a => a?.GetType().FullName ?? "(null)"));
+                    _receivedInvocation(_logger, invocationId, methodName, argsList, null);
+                }
+            }
+
+            public void DropCompletionMessage(string invocationId)
+            {
+                _dropCompletionMessage(_logger, invocationId, null);
+            }
+
+            public void DropStreamMessage(string invocationId)
+            {
+                _dropStreamMessage(_logger, invocationId, null);
+            }
+
+            public void ShutdownConnection()
+            {
+                _shutdownConnection(_logger, null);
+            }
+
+            public void ShutdownWithError(Exception exception)
+            {
+                _shutdownWithError(_logger, exception);
+            }
+
+            public void RemoveInvocation(string invocationId)
+            {
+                _removeInvocation(_logger, invocationId, null);
+            }
+
+            public void MissingHandler(string target)
+            {
+                _missingHandler(_logger, target, null);
+            }
+
+            public void ReceivedStreamItem(string invocationId)
+            {
+                _receivedStreamItem(_logger, invocationId, null);
+            }
+
+            public void CancelingStreamItem(string invocationId)
+            {
+                _cancelingStreamItem(_logger, invocationId, null);
+            }
+
+            public void ReceivedStreamItemAfterClose(string invocationId)
+            {
+                _receivedStreamItemAfterClose(_logger, invocationId, null);
+            }
+
+            public void ReceivedInvocationCompletion(string invocationId)
+            {
+                _receivedInvocationCompletion(_logger, invocationId, null);
+            }
+
+            public void CancelingInvocationCompletion(string invocationId)
+            {
+                _cancelingInvocationCompletion(_logger, invocationId, null);
+            }
+
+            public void CancelingCompletion(string invocationId)
+            {
+                _cancelingCompletion(_logger, invocationId, null);
+            }
+
+            public void InvokeAfterTermination(string invocationId)
+            {
+                _invokeAfterTermination(_logger, invocationId, null);
+            }
+
+            public void InvocationAlreadyInUse(string invocationId)
+            {
+                _invocationAlreadyInUse(_logger, invocationId, null);
+            }
+
+            public void ReceivedUnexpectedResponse(string invocationId)
+            {
+                _receivedUnexpectedResponse(_logger, invocationId, null);
+            }
+
+            public void HubProtocol(string hubProtocol)
+            {
+                _hubProtocol(_logger, hubProtocol, null);
+            }
+
+            public void ResettingKeepAliveTimer()
+            {
+                _resettingKeepAliveTimer(_logger, null);
+            }
+
+            public void ErrorDuringClosedEvent(Exception exception)
+            {
+                _errorDuringClosedEvent(_logger, exception);
+            }
+
+            public void ErrorInvokingClientSideMethod(string methodName, Exception exception)
+            {
+                _errorInvokingClientSideMethod(_logger, methodName, exception);
+            }
         }
     }
 }
