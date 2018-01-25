@@ -27,7 +27,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         public static readonly TimeSpan DefaultServerTimeout = TimeSpan.FromSeconds(30); // Server ping rate is 15 sec, this is 2 times that.
 
         private readonly ILoggerFactory _loggerFactory;
-        private readonly HubConnectionLogger _logger;
+        private readonly ILogger _logger;
         private readonly IConnection _connection;
         private readonly IHubProtocol _protocol;
         private readonly HubBinder _binder;
@@ -67,7 +67,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             _binder = new HubBinder(this);
             _protocol = protocol;
             _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
-            _logger = new HubConnectionLogger(_loggerFactory.CreateLogger<HubConnection>());
+            _logger = _loggerFactory.CreateLogger<HubConnection>();
             _connection.OnReceived((data, state) => ((HubConnection)state).OnDataReceivedAsync(data), this);
             _connection.Closed += e => Shutdown(e);
 
@@ -96,7 +96,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         {
             if (_needKeepAlive)
             {
-                _logger.ResettingKeepAliveTimer();
+                Log.ResettingKeepAliveTimer(_logger);
                 _timeoutTimer.Change(ServerTimeout, Timeout.InfiniteTimeSpan);
             }
         }
@@ -123,7 +123,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             _protocolReaderWriter = new HubProtocolReaderWriter(_protocol, GetDataEncoder(requestedTransferMode, actualTransferMode));
 
-            _logger.HubProtocol(_protocol.Name);
+            Log.HubProtocol(_logger, _protocol.Name);
 
             _connectionActive = new CancellationTokenSource();
             using (var memoryStream = new MemoryStream())
@@ -240,18 +240,18 @@ namespace Microsoft.AspNetCore.SignalR.Client
         private Task InvokeCore(string methodName, InvocationRequest irq, object[] args)
         {
             ThrowIfConnectionTerminated(irq.InvocationId);
-            _logger.PreparingBlockingInvocation(irq.InvocationId, methodName, irq.ResultType.FullName, args.Length);
+            Log.PreparingBlockingInvocation(_logger, irq.InvocationId, methodName, irq.ResultType.FullName, args.Length);
 
             // Client invocations are always blocking
             var invocationMessage = new InvocationMessage(irq.InvocationId, target: methodName,
                 argumentBindingException: null, arguments: args);
 
-            _logger.RegisterInvocation(invocationMessage.InvocationId);
+            Log.RegisterInvocation(_logger, invocationMessage.InvocationId);
 
             AddInvocation(irq);
 
             // Trace the full invocation
-            _logger.IssueInvocation(invocationMessage.InvocationId, irq.ResultType.FullName, methodName, args);
+            Log.IssueInvocation(_logger, invocationMessage.InvocationId, irq.ResultType.FullName, methodName, args);
 
             // We don't need to wait for this to complete. It will signal back to the invocation request.
             return SendHubMessage(invocationMessage, irq);
@@ -261,18 +261,18 @@ namespace Microsoft.AspNetCore.SignalR.Client
         {
             ThrowIfConnectionTerminated(irq.InvocationId);
 
-            _logger.PreparingStreamingInvocation(irq.InvocationId, methodName, irq.ResultType.FullName, args.Length);
+            Log.PreparingStreamingInvocation(_logger, irq.InvocationId, methodName, irq.ResultType.FullName, args.Length);
 
             var invocationMessage = new StreamInvocationMessage(irq.InvocationId, methodName,
                 argumentBindingException: null, arguments: args);
 
             // I just want an excuse to use 'irq' as a variable name...
-            _logger.RegisterInvocation(invocationMessage.InvocationId);
+            Log.RegisterInvocation(_logger, invocationMessage.InvocationId);
 
             AddInvocation(irq);
 
             // Trace the full invocation
-            _logger.IssueInvocation(invocationMessage.InvocationId, irq.ResultType.FullName, methodName, args);
+            Log.IssueInvocation(_logger, invocationMessage.InvocationId, irq.ResultType.FullName, methodName, args);
 
             // We don't need to wait for this to complete. It will signal back to the invocation request.
             return SendHubMessage(invocationMessage, irq);
@@ -283,14 +283,14 @@ namespace Microsoft.AspNetCore.SignalR.Client
             try
             {
                 var payload = _protocolReaderWriter.WriteMessage(hubMessage);
-                _logger.SendInvocation(hubMessage.InvocationId);
+                Log.SendInvocation(_logger, hubMessage.InvocationId);
 
                 await _connection.SendAsync(payload, irq.CancellationToken);
-                _logger.SendInvocationCompleted(hubMessage.InvocationId);
+                Log.SendInvocationCompleted(_logger, hubMessage.InvocationId);
             }
             catch (Exception ex)
             {
-                _logger.SendInvocationFailed(hubMessage.InvocationId, ex);
+                Log.SendInvocationFailed(_logger, hubMessage.InvocationId, ex);
                 irq.Fail(ex);
                 TryRemoveInvocation(hubMessage.InvocationId, out _);
             }
@@ -313,17 +313,17 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             try
             {
-                _logger.PreparingNonBlockingInvocation(methodName, args.Length);
+                Log.PreparingNonBlockingInvocation(_logger, methodName, args.Length);
 
                 var payload = _protocolReaderWriter.WriteMessage(invocationMessage);
-                _logger.SendInvocation(invocationMessage.InvocationId);
+                Log.SendInvocation(_logger, invocationMessage.InvocationId);
 
                 await _connection.SendAsync(payload, cancellationToken);
-                _logger.SendInvocationCompleted(invocationMessage.InvocationId);
+                Log.SendInvocationCompleted(_logger, invocationMessage.InvocationId);
             }
             catch (Exception ex)
             {
-                _logger.SendInvocationFailed(invocationMessage.InvocationId, ex);
+                Log.SendInvocationFailed(_logger, invocationMessage.InvocationId, ex);
                 throw;
             }
         }
@@ -339,14 +339,14 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     switch (message)
                     {
                         case InvocationMessage invocation:
-                            _logger.ReceivedInvocation(invocation.InvocationId, invocation.Target,
+                            Log.ReceivedInvocation(_logger, invocation.InvocationId, invocation.Target,
                                 invocation.ArgumentBindingException != null ? null : invocation.Arguments);
                             await DispatchInvocationAsync(invocation, _connectionActive.Token);
                             break;
                         case CompletionMessage completion:
                             if (!TryRemoveInvocation(completion.InvocationId, out irq))
                             {
-                                _logger.DropCompletionMessage(completion.InvocationId);
+                                Log.DropCompletionMessage(_logger, completion.InvocationId);
                                 return;
                             }
                             DispatchInvocationCompletion(completion, irq);
@@ -356,7 +356,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                             // Complete the invocation with an error, we don't support streaming (yet)
                             if (!TryGetInvocation(streamItem.InvocationId, out irq))
                             {
-                                _logger.DropStreamMessage(streamItem.InvocationId);
+                                Log.DropStreamMessage(_logger, streamItem.InvocationId);
                                 return;
                             }
                             DispatchInvocationStreamItemAsync(streamItem, irq);
@@ -373,10 +373,10 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private void Shutdown(Exception exception = null)
         {
-            _logger.ShutdownConnection();
+            Log.ShutdownConnection(_logger);
             if (exception != null)
             {
-                _logger.ShutdownWithError(exception);
+                Log.ShutdownWithError(_logger, exception);
             }
 
             lock (_pendingCallsLock)
@@ -388,7 +388,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
                 foreach (var outstandingCall in _pendingCalls.Values)
                 {
-                    _logger.RemoveInvocation(outstandingCall.InvocationId);
+                    Log.RemoveInvocation(_logger, outstandingCall.InvocationId);
                     if (exception != null)
                     {
                         outstandingCall.Fail(exception);
@@ -404,7 +404,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
             catch (Exception ex)
             {
-                _logger.ErrorDuringClosedEvent(ex);
+                Log.ErrorDuringClosedEvent(_logger, ex);
             }
         }
 
@@ -413,7 +413,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             // Find the handler
             if (!_handlers.TryGetValue(invocation.Target, out var handlers))
             {
-                _logger.MissingHandler(invocation.Target);
+                Log.MissingHandler(_logger, invocation.Target);
                 return;
             }
 
@@ -434,7 +434,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 }
                 catch (Exception ex)
                 {
-                    _logger.ErrorInvokingClientSideMethod(invocation.Target, ex);
+                    Log.ErrorInvokingClientSideMethod(_logger, invocation.Target, ex);
                 }
             }
         }
@@ -443,25 +443,25 @@ namespace Microsoft.AspNetCore.SignalR.Client
         // and there's nobody to actually wait for us to finish.
         private async void DispatchInvocationStreamItemAsync(StreamItemMessage streamItem, InvocationRequest irq)
         {
-            _logger.ReceivedStreamItem(streamItem.InvocationId);
+            Log.ReceivedStreamItem(_logger, streamItem.InvocationId);
 
             if (irq.CancellationToken.IsCancellationRequested)
             {
-                _logger.CancelingStreamItem(irq.InvocationId);
+                Log.CancelingStreamItem(_logger, irq.InvocationId);
             }
             else if (!await irq.StreamItem(streamItem.Item))
             {
-                _logger.ReceivedStreamItemAfterClose(irq.InvocationId);
+                Log.ReceivedStreamItemAfterClose(_logger, irq.InvocationId);
             }
         }
 
         private void DispatchInvocationCompletion(CompletionMessage completion, InvocationRequest irq)
         {
-            _logger.ReceivedInvocationCompletion(completion.InvocationId);
+            Log.ReceivedInvocationCompletion(_logger, completion.InvocationId);
 
             if (irq.CancellationToken.IsCancellationRequested)
             {
-                _logger.CancelingInvocationCompletion(irq.InvocationId);
+                Log.CancelingInvocationCompletion(_logger, irq.InvocationId);
             }
             else
             {
@@ -473,7 +473,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         {
             if (_connectionActive.Token.IsCancellationRequested)
             {
-                _logger.InvokeAfterTermination(invocationId);
+                Log.InvokeAfterTermination(_logger, invocationId);
                 throw new InvalidOperationException("Connection has been terminated.");
             }
         }
@@ -487,7 +487,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 ThrowIfConnectionTerminated(irq.InvocationId);
                 if (_pendingCalls.ContainsKey(irq.InvocationId))
                 {
-                    _logger.InvocationAlreadyInUse(irq.InvocationId);
+                    Log.InvocationAlreadyInUse(_logger, irq.InvocationId);
                     throw new InvalidOperationException($"Invocation ID '{irq.InvocationId}' is already in use.");
                 }
                 else
@@ -556,7 +556,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             {
                 if (!_connection._pendingCalls.TryGetValue(invocationId, out var irq))
                 {
-                    _connection._logger.ReceivedUnexpectedResponse(invocationId);
+                    Log.ReceivedUnexpectedResponse(_connection._logger, invocationId);
                     return null;
                 }
                 return irq.ResultType;
@@ -566,7 +566,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             {
                 if (!_connection._handlers.TryGetValue(methodName, out var handlers))
                 {
-                    _connection._logger.MissingHandler(methodName);
+                    Log.MissingHandler(_connection._logger, methodName);
                     return Type.EmptyTypes;
                 }
 
@@ -606,15 +606,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
             public TransferMode TransferMode { get; set; }
         }
 
-        private struct HubConnectionLogger
+        private static class Log
         {
-            private ILogger _logger;
-
-            public HubConnectionLogger(ILogger logger)
-            {
-                _logger = logger;
-            }
-
             private static readonly Action<ILogger, string, int, Exception> _preparingNonBlockingInvocation =
                 LoggerMessage.Define<string, int>(LogLevel.Trace, new EventId(1, nameof(PreparingNonBlockingInvocation)), "Preparing non-blocking invocation of '{target}', with {argumentCount} argument(s).");
 
@@ -699,152 +692,152 @@ namespace Microsoft.AspNetCore.SignalR.Client
             private static readonly Action<ILogger, string, Exception> _errorInvokingClientSideMethod =
            LoggerMessage.Define<string>(LogLevel.Error, new EventId(28, nameof(ErrorInvokingClientSideMethod)), "Invoking client side method '{methodName}' failed.");
 
-            public void PreparingNonBlockingInvocation(string target, int count)
+            public static void PreparingNonBlockingInvocation(ILogger logger, string target, int count)
             {
-                _preparingNonBlockingInvocation(_logger, target, count, null);
+                _preparingNonBlockingInvocation(logger, target, count, null);
             }
 
-            public void PreparingBlockingInvocation(string invocationId, string target, string returnType, int count)
+            public static void PreparingBlockingInvocation(ILogger logger, string invocationId, string target, string returnType, int count)
             {
-                _preparingBlockingInvocation(_logger, invocationId, target, returnType, count, null);
+                _preparingBlockingInvocation(logger, invocationId, target, returnType, count, null);
             }
 
-            public void PreparingStreamingInvocation(string invocationId, string target, string returnType, int count)
+            public static void PreparingStreamingInvocation(ILogger logger, string invocationId, string target, string returnType, int count)
             {
-                _preparingStreamingInvocation(_logger, invocationId, target, returnType, count, null);
+                _preparingStreamingInvocation(logger, invocationId, target, returnType, count, null);
             }
 
-            public void RegisterInvocation(string invocationId)
+            public static void RegisterInvocation(ILogger logger, string invocationId)
             {
-                _registerInvocation(_logger, invocationId, null);
+                _registerInvocation(logger, invocationId, null);
             }
 
-            public void IssueInvocation(string invocationId, string returnType, string methodName, object[] args)
+            public static void IssueInvocation(ILogger logger, string invocationId, string returnType, string methodName, object[] args)
             {
-                if (_logger.IsEnabled(LogLevel.Trace))
+                if (logger.IsEnabled(LogLevel.Trace))
                 {
                     var argsList = args == null ? string.Empty : string.Join(", ", args.Select(a => a?.GetType().FullName ?? "(null)"));
-                    _issueInvocation(_logger, invocationId, returnType, methodName, argsList, null);
+                    _issueInvocation(logger, invocationId, returnType, methodName, argsList, null);
                 }
             }
 
-            public void SendInvocation(string invocationId)
+            public static void SendInvocation(ILogger logger, string invocationId)
             {
-                _sendInvocation(_logger, invocationId, null);
+                _sendInvocation(logger, invocationId, null);
             }
 
-            public void SendInvocationCompleted(string invocationId)
+            public static void SendInvocationCompleted(ILogger logger, string invocationId)
             {
-                _sendInvocationCompleted(_logger, invocationId, null);
+                _sendInvocationCompleted(logger, invocationId, null);
             }
 
-            public void SendInvocationFailed(string invocationId, Exception exception)
+            public static void SendInvocationFailed(ILogger logger, string invocationId, Exception exception)
             {
-                _sendInvocationFailed(_logger, invocationId, exception);
+                _sendInvocationFailed(logger, invocationId, exception);
             }
 
-            public void ReceivedInvocation(string invocationId, string methodName, object[] args)
+            public static void ReceivedInvocation(ILogger logger, string invocationId, string methodName, object[] args)
             {
-                if (_logger.IsEnabled(LogLevel.Trace))
+                if (logger.IsEnabled(LogLevel.Trace))
                 {
                     var argsList = args == null ? string.Empty : string.Join(", ", args.Select(a => a?.GetType().FullName ?? "(null)"));
-                    _receivedInvocation(_logger, invocationId, methodName, argsList, null);
+                    _receivedInvocation(logger, invocationId, methodName, argsList, null);
                 }
             }
 
-            public void DropCompletionMessage(string invocationId)
+            public static void DropCompletionMessage(ILogger logger, string invocationId)
             {
-                _dropCompletionMessage(_logger, invocationId, null);
+                _dropCompletionMessage(logger, invocationId, null);
             }
 
-            public void DropStreamMessage(string invocationId)
+            public static void DropStreamMessage(ILogger logger, string invocationId)
             {
-                _dropStreamMessage(_logger, invocationId, null);
+                _dropStreamMessage(logger, invocationId, null);
             }
 
-            public void ShutdownConnection()
+            public static void ShutdownConnection(ILogger logger)
             {
-                _shutdownConnection(_logger, null);
+                _shutdownConnection(logger, null);
             }
 
-            public void ShutdownWithError(Exception exception)
+            public static void ShutdownWithError(ILogger logger, Exception exception)
             {
-                _shutdownWithError(_logger, exception);
+                _shutdownWithError(logger, exception);
             }
 
-            public void RemoveInvocation(string invocationId)
+            public static void RemoveInvocation(ILogger logger, string invocationId)
             {
-                _removeInvocation(_logger, invocationId, null);
+                _removeInvocation(logger, invocationId, null);
             }
 
-            public void MissingHandler(string target)
+            public static void MissingHandler(ILogger logger, string target)
             {
-                _missingHandler(_logger, target, null);
+                _missingHandler(logger, target, null);
             }
 
-            public void ReceivedStreamItem(string invocationId)
+            public static void ReceivedStreamItem(ILogger logger, string invocationId)
             {
-                _receivedStreamItem(_logger, invocationId, null);
+                _receivedStreamItem(logger, invocationId, null);
             }
 
-            public void CancelingStreamItem(string invocationId)
+            public static void CancelingStreamItem(ILogger logger, string invocationId)
             {
-                _cancelingStreamItem(_logger, invocationId, null);
+                _cancelingStreamItem(logger, invocationId, null);
             }
 
-            public void ReceivedStreamItemAfterClose(string invocationId)
+            public static void ReceivedStreamItemAfterClose(ILogger logger, string invocationId)
             {
-                _receivedStreamItemAfterClose(_logger, invocationId, null);
+                _receivedStreamItemAfterClose(logger, invocationId, null);
             }
 
-            public void ReceivedInvocationCompletion(string invocationId)
+            public static void ReceivedInvocationCompletion(ILogger logger, string invocationId)
             {
-                _receivedInvocationCompletion(_logger, invocationId, null);
+                _receivedInvocationCompletion(logger, invocationId, null);
             }
 
-            public void CancelingInvocationCompletion(string invocationId)
+            public static void CancelingInvocationCompletion(ILogger logger, string invocationId)
             {
-                _cancelingInvocationCompletion(_logger, invocationId, null);
+                _cancelingInvocationCompletion(logger, invocationId, null);
             }
 
-            public void CancelingCompletion(string invocationId)
+            public static void CancelingCompletion(ILogger logger, string invocationId)
             {
-                _cancelingCompletion(_logger, invocationId, null);
+                _cancelingCompletion(logger, invocationId, null);
             }
 
-            public void InvokeAfterTermination(string invocationId)
+            public static void InvokeAfterTermination(ILogger logger, string invocationId)
             {
-                _invokeAfterTermination(_logger, invocationId, null);
+                _invokeAfterTermination(logger, invocationId, null);
             }
 
-            public void InvocationAlreadyInUse(string invocationId)
+            public static void InvocationAlreadyInUse(ILogger logger, string invocationId)
             {
-                _invocationAlreadyInUse(_logger, invocationId, null);
+                _invocationAlreadyInUse(logger, invocationId, null);
             }
 
-            public void ReceivedUnexpectedResponse(string invocationId)
+            public static void ReceivedUnexpectedResponse(ILogger logger, string invocationId)
             {
-                _receivedUnexpectedResponse(_logger, invocationId, null);
+                _receivedUnexpectedResponse(logger, invocationId, null);
             }
 
-            public void HubProtocol(string hubProtocol)
+            public static void HubProtocol(ILogger logger, string hubProtocol)
             {
-                _hubProtocol(_logger, hubProtocol, null);
+                _hubProtocol(logger, hubProtocol, null);
             }
 
-            public void ResettingKeepAliveTimer()
+            public static void ResettingKeepAliveTimer(ILogger logger)
             {
-                _resettingKeepAliveTimer(_logger, null);
+                _resettingKeepAliveTimer(logger, null);
             }
 
-            public void ErrorDuringClosedEvent(Exception exception)
+            public static void ErrorDuringClosedEvent(ILogger logger, Exception exception)
             {
-                _errorDuringClosedEvent(_logger, exception);
+                _errorDuringClosedEvent(logger, exception);
             }
 
-            public void ErrorInvokingClientSideMethod(string methodName, Exception exception)
+            public static void ErrorInvokingClientSideMethod(ILogger logger, string methodName, Exception exception)
             {
-                _errorInvokingClientSideMethod(_logger, methodName, exception);
+                _errorInvokingClientSideMethod(logger, methodName, exception);
             }
         }
     }

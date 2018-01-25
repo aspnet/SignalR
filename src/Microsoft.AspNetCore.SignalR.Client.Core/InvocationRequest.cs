@@ -14,7 +14,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
     {
         private readonly CancellationTokenRegistration _cancellationTokenRegistration;
 
-        protected InvocationRequestLogger Logger { get; }
+        protected ILogger Logger { get; }
 
         public Type ResultType { get; }
         public CancellationToken CancellationToken { get; }
@@ -28,10 +28,10 @@ namespace Microsoft.AspNetCore.SignalR.Client
             InvocationId = invocationId;
             CancellationToken = cancellationToken;
             ResultType = resultType;
-            Logger = new InvocationRequestLogger(logger);
+            Logger = logger;
             HubConnection = hubConnection;
 
-            Logger.InvocationCreated(InvocationId);
+            Log.InvocationCreated(Logger, InvocationId);
         }
 
         public static InvocationRequest Invoke(CancellationToken cancellationToken, Type resultType, string invocationId, ILoggerFactory loggerFactory, HubConnection hubConnection, out Task<object> result)
@@ -57,7 +57,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         public virtual void Dispose()
         {
-            Logger.InvocationDisposed(InvocationId);
+            Log.InvocationDisposed(Logger, InvocationId);
 
             // Just in case it hasn't already been completed
             Cancel();
@@ -78,10 +78,10 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             public override void Complete(CompletionMessage completionMessage)
             {
-                Logger.InvocationCompleted(InvocationId);
+                Log.InvocationCompleted(Logger, InvocationId);
                 if (completionMessage.Result != null)
                 {
-                    Logger.ReceivedUnexpectedComplete(InvocationId);
+                    Log.ReceivedUnexpectedComplete(Logger, InvocationId);
                     _channel.Writer.TryComplete(new InvalidOperationException("Server provided a result in a completion response to a streamed invocation."));
                 }
 
@@ -96,7 +96,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             public override void Fail(Exception exception)
             {
-                Logger.InvocationFailed(InvocationId);
+                Log.InvocationFailed(Logger, InvocationId);
                 _channel.Writer.TryComplete(exception);
             }
 
@@ -114,7 +114,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 }
                 catch (Exception ex)
                 {
-                    Logger.ErrorWritingStreamItem(InvocationId, ex);
+                    Log.ErrorWritingStreamItem(Logger, InvocationId, ex);
                 }
                 return true;
             }
@@ -144,19 +144,19 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     return;
                 }
 
-                Logger.InvocationCompleted(InvocationId);
+                Log.InvocationCompleted(Logger, InvocationId);
                 _completionSource.TrySetResult(completionMessage.Result);
             }
 
             public override void Fail(Exception exception)
             {
-                Logger.InvocationFailed(InvocationId);
+                Log.InvocationFailed(Logger, InvocationId);
                 _completionSource.TrySetException(exception);
             }
 
             public override ValueTask<bool> StreamItem(object item)
             {
-                Logger.StreamItemOnNonStreamInvocation(InvocationId);
+                Log.StreamItemOnNonStreamInvocation(Logger, InvocationId);
                 _completionSource.TrySetException(new InvalidOperationException($"Streaming hub methods must be invoked with the '{nameof(HubConnection)}.{nameof(HubConnection.StreamAsync)}' method."));
 
                 // We "delivered" the stream item successfully as far as the caller cares
@@ -169,15 +169,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
         }
 
-        protected struct InvocationRequestLogger
+        private static class Log
         {
-            private ILogger _logger;
-
-            public InvocationRequestLogger(ILogger logger)
-            {
-                _logger = logger;
-            }
-
             // Category: Streaming and NonStreaming
             private static readonly Action<ILogger, string, Exception> _invocationCreated =
                 LoggerMessage.Define<string>(LogLevel.Trace, new EventId(1, nameof(InvocationCreated)), "Invocation {invocationId} created.");
@@ -202,39 +195,39 @@ namespace Microsoft.AspNetCore.SignalR.Client
             private static readonly Action<ILogger, string, Exception> _streamItemOnNonStreamInvocation =
                 LoggerMessage.Define<string>(LogLevel.Error, new EventId(5, nameof(StreamItemOnNonStreamInvocation)), "Invocation {invocationId} received stream item but was invoked as a non-streamed invocation.");
 
-            public void InvocationCreated(string invocationId)
+            public static void InvocationCreated(ILogger logger, string invocationId)
             {
-                _invocationCreated(_logger, invocationId, null);
+                _invocationCreated(logger, invocationId, null);
             }
 
-            public void InvocationDisposed(string invocationId)
+            public static void InvocationDisposed(ILogger logger, string invocationId)
             {
-                _invocationDisposed(_logger, invocationId, null);
+                _invocationDisposed(logger, invocationId, null);
             }
 
-            public void InvocationCompleted(string invocationId)
+            public static void InvocationCompleted(ILogger logger, string invocationId)
             {
-                _invocationCompleted(_logger, invocationId, null);
+                _invocationCompleted(logger, invocationId, null);
             }
 
-            public void InvocationFailed(string invocationId)
+            public static void InvocationFailed(ILogger logger, string invocationId)
             {
-                _invocationFailed(_logger, invocationId, null);
+                _invocationFailed(logger, invocationId, null);
             }
 
-            public void ErrorWritingStreamItem(string invocationId, Exception exception)
+            public static void ErrorWritingStreamItem(ILogger logger, string invocationId, Exception exception)
             {
-                _errorWritingStreamItem(_logger, invocationId, exception);
+                _errorWritingStreamItem(logger, invocationId, exception);
             }
 
-            public void ReceivedUnexpectedComplete(string invocationId)
+            public static void ReceivedUnexpectedComplete(ILogger logger, string invocationId)
             {
-                _receivedUnexpectedComplete(_logger, invocationId, null);
+                _receivedUnexpectedComplete(logger, invocationId, null);
             }
 
-            public void StreamItemOnNonStreamInvocation(string invocationId)
+            public static void StreamItemOnNonStreamInvocation(ILogger logger, string invocationId)
             {
-                _streamItemOnNonStreamInvocation(_logger, invocationId, null);
+                _streamItemOnNonStreamInvocation(logger, invocationId, null);
             }
         }
     }
