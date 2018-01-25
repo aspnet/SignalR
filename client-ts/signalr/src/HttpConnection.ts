@@ -42,7 +42,10 @@ export class HttpConnection implements IConnection {
     constructor(url: string, options: IHttpConnectionOptions = {}) {
         this.logger = LoggerFactory.createLogger(options.logger);
         this.baseUrl = this.resolveUrl(url);
+
         options = options || {};
+        options.accessTokenFactory = options.accessTokenFactory || (() => null);
+
         this.httpClient = options.httpClient || new DefaultHttpClient();
         this.connectionState = ConnectionState.Disconnected;
         this.options = options;
@@ -68,9 +71,10 @@ export class HttpConnection implements IConnection {
             }
             else {
                 let headers;
-                if (this.options.accessTokenFactory) {
+                let token = this.options.accessTokenFactory();
+                if (token) {
                     headers = new Map<string, string>();
-                    headers.set("Authorization", `Bearer ${this.options.accessTokenFactory()}`);
+                    headers.set("Authorization", `Bearer ${token}`);
                 }
 
                 let negotiatePayload = await this.httpClient.post(this.resolveNegotiateUrl(this.baseUrl), {
