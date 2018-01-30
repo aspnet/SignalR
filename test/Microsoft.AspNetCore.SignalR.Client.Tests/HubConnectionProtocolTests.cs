@@ -78,7 +78,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 await connection.ReadSentTextMessageAsync().OrTimeout();
                 var invokeMessage = await connection.ReadSentTextMessageAsync().OrTimeout();
 
-                Assert.Equal("{\"invocationId\":\"1\",\"type\":1,\"target\":\"Foo\",\"arguments\":[]}\u001e", invokeMessage);
+                Assert.Equal("{\"type\":1,\"invocationId\":\"1\",\"target\":\"Foo\",\"arguments\":[]}\u001e", invokeMessage);
             }
             finally
             {
@@ -102,7 +102,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 await connection.ReadSentTextMessageAsync().OrTimeout();
                 var invokeMessage = await connection.ReadSentTextMessageAsync().OrTimeout();
 
-                Assert.Equal("{\"invocationId\":\"1\",\"type\":4,\"target\":\"Foo\",\"arguments\":[]}\u001e", invokeMessage);
+                Assert.Equal("{\"type\":4,\"invocationId\":\"1\",\"target\":\"Foo\",\"arguments\":[]}\u001e", invokeMessage);
 
                 // Complete the channel
                 await connection.ReceiveJsonMessage(new { invocationId = "1", type = 3 }).OrTimeout();
@@ -372,7 +372,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 using (var ms = new MemoryStream())
                 {
                     new MessagePackHubProtocol()
-                        .WriteMessage(new InvocationMessage(null, "MyMethod", null, 42), ms);
+                        .WriteMessage(new InvocationMessage(HubMessage.EmptyHeaders, null, "MyMethod", null, 42), ms);
 
                     var invokeMessage = Convert.ToBase64String(ms.ToArray());
                     var payloadSize = invokeMessage.Length.ToString(CultureInfo.InvariantCulture);

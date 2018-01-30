@@ -220,11 +220,11 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     if (!invocationReq.HubConnection._connectionActive.IsCancellationRequested)
                     {
                         // Fire and forget, if it fails that means we aren't connected anymore.
-                        _ = invocationReq.HubConnection.SendHubMessage(new CancelInvocationMessage(invocationReq.InvocationId), invocationReq);
+                        _ = invocationReq.HubConnection.SendHubMessage(new CancelInvocationMessage(HubMessage.EmptyHeaders, invocationReq.InvocationId), invocationReq);
 
                         if (invocationReq.HubConnection.TryRemoveInvocation(invocationReq.InvocationId, out _))
                         {
-                            invocationReq.Complete(CompletionMessage.Empty(irq.InvocationId));
+                            invocationReq.Complete(CompletionMessage.Empty(HubMessage.EmptyHeaders, irq.InvocationId));
                         }
 
                         invocationReq.Dispose();
@@ -256,7 +256,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             _logger.PreparingBlockingInvocation(irq.InvocationId, methodName, irq.ResultType.FullName, args.Length);
 
             // Client invocations are always blocking
-            var invocationMessage = new InvocationMessage(irq.InvocationId, target: methodName,
+            var invocationMessage = new InvocationMessage(HubMessage.EmptyHeaders, irq.InvocationId, target: methodName,
                 argumentBindingException: null, arguments: args);
 
             _logger.RegisterInvocation(invocationMessage.InvocationId);
@@ -276,7 +276,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             _logger.PreparingStreamingInvocation(irq.InvocationId, methodName, irq.ResultType.FullName, args.Length);
 
-            var invocationMessage = new StreamInvocationMessage(irq.InvocationId, methodName,
+            var invocationMessage = new StreamInvocationMessage(HubMessage.EmptyHeaders, irq.InvocationId, methodName,
                 argumentBindingException: null, arguments: args);
 
             // I just want an excuse to use 'irq' as a variable name...
@@ -319,7 +319,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 throw new InvalidOperationException($"The '{nameof(SendAsync)}' method cannot be called before the connection has been started.");
             }
 
-            var invocationMessage = new InvocationMessage(null, target: methodName,
+            var invocationMessage = new InvocationMessage(HubMessage.EmptyHeaders, null, target: methodName,
                 argumentBindingException: null, arguments: args);
 
             ThrowIfConnectionTerminated(invocationMessage.InvocationId);

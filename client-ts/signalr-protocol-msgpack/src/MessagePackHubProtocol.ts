@@ -48,7 +48,8 @@ export class MessagePackHubProtocol implements IHubProtocol {
         }
 
         return {
-            type: properties[0]
+            // Disregard the headers
+            type: properties[1]
         } as HubMessage;
     }
 
@@ -57,21 +58,24 @@ export class MessagePackHubProtocol implements IHubProtocol {
             throw new Error("Invalid payload for Invocation message.");
         }
 
-        let invocationId = properties[1];
+        let headers = properties[1] as { [key: string]: string };
+        let invocationId = properties[2] as string;
         if (invocationId) {
             return {
+                headers,
                 type: MessageType.Invocation,
                 invocationId: invocationId,
-                target: properties[2],
-                arguments: properties[3]
-            } as InvocationMessage;
+                target: properties[3] as string,
+                arguments: properties[4],
+            };
         }
         else {
             return {
+                headers,
                 type: MessageType.Invocation,
-                target: properties[2],
-                arguments: properties[3]
-            } as InvocationMessage;
+                target: properties[3],
+                arguments: properties[4]
+            };
         }
 
     }

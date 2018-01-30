@@ -236,7 +236,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 observable.OnNext(1);
 
-                await client.SendHubMessageAsync(new CancelInvocationMessage(invocationId)).OrTimeout();
+                await client.SendHubMessageAsync(new CancelInvocationMessage(HubMessage.EmptyHeaders, invocationId)).OrTimeout();
 
                 await waitForDispose.Task.OrTimeout();
 
@@ -1345,11 +1345,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var messages = await client.StreamAsync(method, 4).OrTimeout();
 
                 Assert.Equal(5, messages.Count);
-                HubEndPointTestUtils.AssertHubMessage(new StreamItemMessage(string.Empty, "0"), messages[0]);
-                HubEndPointTestUtils.AssertHubMessage(new StreamItemMessage(string.Empty, "1"), messages[1]);
-                HubEndPointTestUtils.AssertHubMessage(new StreamItemMessage(string.Empty, "2"), messages[2]);
-                HubEndPointTestUtils.AssertHubMessage(new StreamItemMessage(string.Empty, "3"), messages[3]);
-                HubEndPointTestUtils.AssertHubMessage(CompletionMessage.Empty(string.Empty), messages[4]);
+                HubEndPointTestUtils.AssertHubMessage(new StreamItemMessage(HubMessage.EmptyHeaders, string.Empty, "0"), messages[0]);
+                HubEndPointTestUtils.AssertHubMessage(new StreamItemMessage(HubMessage.EmptyHeaders, string.Empty, "1"), messages[1]);
+                HubEndPointTestUtils.AssertHubMessage(new StreamItemMessage(HubMessage.EmptyHeaders, string.Empty, "2"), messages[2]);
+                HubEndPointTestUtils.AssertHubMessage(new StreamItemMessage(HubMessage.EmptyHeaders, string.Empty, "3"), messages[3]);
+                HubEndPointTestUtils.AssertHubMessage(CompletionMessage.Empty(HubMessage.EmptyHeaders, string.Empty), messages[4]);
 
                 client.Dispose();
 
@@ -1370,11 +1370,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 await client.Connected.OrTimeout();
 
                 var invocationId = Guid.NewGuid().ToString("N");
-                await client.SendHubMessageAsync(new StreamInvocationMessage(invocationId, nameof(StreamingHub.BlockingStream),
+                await client.SendHubMessageAsync(new StreamInvocationMessage(HubMessage.EmptyHeaders, invocationId, nameof(StreamingHub.BlockingStream),
                     argumentBindingException: null));
 
                 // cancel the Streaming method
-                await client.SendHubMessageAsync(new CancelInvocationMessage(invocationId)).OrTimeout();
+                await client.SendHubMessageAsync(new CancelInvocationMessage(HubMessage.EmptyHeaders, invocationId)).OrTimeout();
 
                 var hubMessage = Assert.IsType<CompletionMessage>(await client.ReadAsync().OrTimeout());
                 Assert.Equal(invocationId, hubMessage.InvocationId);

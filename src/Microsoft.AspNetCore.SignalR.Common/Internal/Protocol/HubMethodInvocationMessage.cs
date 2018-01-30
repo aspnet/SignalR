@@ -2,9 +2,9 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.ExceptionServices;
-using Newtonsoft.Json;
 
 namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 {
@@ -36,8 +36,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             }
         }
 
-        protected HubMethodInvocationMessage(string invocationId, string target, ExceptionDispatchInfo argumentBindingException, object[] arguments)
-            : base(invocationId)
+        protected HubMethodInvocationMessage(IReadOnlyDictionary<string, string> headers, string invocationId, string target, ExceptionDispatchInfo argumentBindingException, object[] arguments)
+            : base(headers, invocationId)
         {
             if (string.IsNullOrEmpty(target))
             {
@@ -57,13 +57,13 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
     public class InvocationMessage : HubMethodInvocationMessage
     {
-        public InvocationMessage(string target, ExceptionDispatchInfo argumentBindingException, params object[] arguments)
-            : this(invocationId: null, target, argumentBindingException, arguments)
+        public InvocationMessage(IReadOnlyDictionary<string, string> headers, string target, ExceptionDispatchInfo argumentBindingException, params object[] arguments)
+            : this(headers, invocationId: null, target, argumentBindingException, arguments)
         {
         }
 
-        public InvocationMessage(string invocationId, string target, ExceptionDispatchInfo argumentBindingException, params object[] arguments)
-            : base(invocationId, target, argumentBindingException, arguments)
+        public InvocationMessage(IReadOnlyDictionary<string, string> headers, string invocationId, string target, ExceptionDispatchInfo argumentBindingException, params object[] arguments)
+            : base(headers, invocationId, target, argumentBindingException, arguments)
         {
         }
 
@@ -75,8 +75,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
     public class StreamInvocationMessage : HubMethodInvocationMessage
     {
-        public StreamInvocationMessage(string invocationId, string target, ExceptionDispatchInfo argumentBindingException, params object[] arguments)
-            : base(invocationId, target, argumentBindingException, arguments)
+        public StreamInvocationMessage(IReadOnlyDictionary<string, string> headers, string invocationId, string target, ExceptionDispatchInfo argumentBindingException, params object[] arguments)
+            : base(headers, invocationId, target, argumentBindingException, arguments)
         {
             if (string.IsNullOrEmpty(invocationId))
             {

@@ -4,6 +4,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 
 namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
@@ -18,6 +19,12 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         {
             // Types should be equal
             if (!Equals(x.GetType(), y.GetType()))
+            {
+                return false;
+            }
+
+            // Headers should be equal
+            if (!SequenceEqual(x.Headers, y.Headers))
             {
                 return false;
             }

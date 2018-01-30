@@ -41,7 +41,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             Connection = new DefaultConnectionContext(Guid.NewGuid().ToString(), _transport, Application);
 
             var claimValue = Interlocked.Increment(ref _id).ToString();
-            var claims = new List<Claim>{ new Claim(ClaimTypes.Name, claimValue) };
+            var claims = new List<Claim> { new Claim(ClaimTypes.Name, claimValue) };
             if (addClaimId)
             {
                 claims.Add(new Claim(ClaimTypes.NameIdentifier, claimValue));
@@ -137,14 +137,14 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         public Task<string> SendInvocationAsync(string methodName, bool nonBlocking, params object[] args)
         {
             var invocationId = nonBlocking ? null : GetInvocationId();
-            return SendHubMessageAsync(new InvocationMessage(invocationId, methodName,
+            return SendHubMessageAsync(new InvocationMessage(HubMessage.EmptyHeaders, invocationId, methodName,
                 argumentBindingException: null, arguments: args));
         }
 
         public Task<string> SendStreamInvocationAsync(string methodName, params object[] args)
         {
             var invocationId = GetInvocationId();
-            return SendHubMessageAsync(new StreamInvocationMessage(invocationId, methodName,
+            return SendHubMessageAsync(new StreamInvocationMessage(HubMessage.EmptyHeaders, invocationId, methodName,
                 argumentBindingException: null, arguments: args));
         }
 

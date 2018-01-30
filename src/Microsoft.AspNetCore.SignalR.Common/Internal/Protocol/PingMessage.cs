@@ -7,7 +7,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
     {
         public static readonly PingMessage Instance = new PingMessage();
 
-        private PingMessage()
+        private PingMessage() : base(EmptyHeaders)
         {
         }
     }
