@@ -5,29 +5,30 @@ import { IHubProtocol, ProtocolType, MessageType, HubMessage, InvocationMessage,
 import { BinaryMessageFormat } from "./BinaryMessageFormat"
 import { Buffer } from 'buffer';
 import * as msgpack5 from "msgpack5";
+import { BinaryMessageFormat } from "./BinaryMessageFormat";
 
 export class MessagePackHubProtocol implements IHubProtocol {
 
-    readonly name: string = "messagepack";
+    public readonly name: string = "messagepack";
 
-    readonly type: ProtocolType = ProtocolType.Binary;
+    public readonly type: ProtocolType = ProtocolType.Binary;
 
-    parseMessages(input: ArrayBuffer): HubMessage[] {
-        return BinaryMessageFormat.parse(input).map(m => this.parseMessage(m));
+    public parseMessages(input: ArrayBuffer): HubMessage[] {
+        return BinaryMessageFormat.parse(input).map((m) => this.parseMessage(m));
     }
 
     private parseMessage(input: Uint8Array): HubMessage {
-        if (input.length == 0) {
+        if (input.length === 0) {
             throw new Error("Invalid payload.");
         }
 
-        let msgpack = msgpack5();
-        let properties = msgpack.decode(new Buffer(input));
-        if (properties.length == 0 || !(properties instanceof Array)) {
+        const msgpack = msgpack5();
+        const properties = msgpack.decode(new Buffer(input));
+        if (properties.length === 0 || !(properties instanceof Array)) {
             throw new Error("Invalid payload.");
         }
 
-        let messageType = properties[0] as MessageType;
+        const messageType = properties[0] as MessageType;
 
         switch (messageType) {
             case MessageType.Invocation:
@@ -44,7 +45,7 @@ export class MessagePackHubProtocol implements IHubProtocol {
     }
 
     private createPingMessage(properties: any[]): HubMessage {
-        if (properties.length != 1) {
+        if (properties.length !== 1) {
             throw new Error("Invalid payload for Ping message.");
         }
 
@@ -68,10 +69,9 @@ export class MessagePackHubProtocol implements IHubProtocol {
                 target: properties[3] as string,
                 arguments: properties[4],
             };
-        }
-        else {
+        } else {
             return {
-                headers,
+                arguments: properties[3],
                 type: MessageType.Invocation,
                 target: properties[3],
                 arguments: properties[4]
@@ -109,7 +109,10 @@ export class MessagePackHubProtocol implements IHubProtocol {
             throw new Error("Invalid payload for Completion message.");
         }
 
-        let completionMessage = {
+        const completionMessage = {
+            error: null as string,
+            invocationId: properties[1],
+            result: null as any,
             headers,
             type: MessageType.Completion,
             invocationId: properties[2],
@@ -129,7 +132,7 @@ export class MessagePackHubProtocol implements IHubProtocol {
         return completionMessage as CompletionMessage;
     }
 
-    writeMessage(message: HubMessage): ArrayBuffer {
+    public writeMessage(message: HubMessage): ArrayBuffer {
         switch (message.type) {
             case MessageType.Invocation:
                 return this.writeInvocation(message as InvocationMessage);
