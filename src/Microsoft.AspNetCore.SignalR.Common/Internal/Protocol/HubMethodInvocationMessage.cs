@@ -76,7 +76,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
     public class StreamInvocationMessage : HubMethodInvocationMessage
     {
         public StreamInvocationMessage(string invocationId, string target, ExceptionDispatchInfo argumentBindingException, params object[] arguments)
-            : base(headers, invocationId, target, argumentBindingException, arguments)
+            : base(invocationId, target, argumentBindingException, arguments)
         {
             if (string.IsNullOrEmpty(invocationId))
             {

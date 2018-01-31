@@ -245,7 +245,7 @@ namespace Microsoft.AspNetCore.SignalR
                     // Send an error to the client. Then let the normal completion process occur
                     _logger.UnknownHubMethod(hubMethodInvocationMessage.Target);
                     await SendMessageAsync(connection, CompletionMessage.WithError(
-                        HubMessage.EmptyHeaders, hubMethodInvocationMessage.InvocationId, $"Unknown hub method '{hubMethodInvocationMessage.Target}'"));
+                        hubMethodInvocationMessage.InvocationId, $"Unknown hub method '{hubMethodInvocationMessage.Target}'"));
                 }
                 else
                 {
@@ -313,7 +313,7 @@ namespace Microsoft.AspNetCore.SignalR
                     else if (!string.IsNullOrEmpty(hubMethodInvocationMessage.InvocationId))
                     {
                         _logger.SendingResult(hubMethodInvocationMessage.InvocationId, methodExecutor);
-                        await SendMessageAsync(connection, CompletionMessage.WithResult(HubMessage.EmptyHeaders, hubMethodInvocationMessage.InvocationId, result));
+                        await SendMessageAsync(connection, CompletionMessage.WithResult(hubMethodInvocationMessage.InvocationId, result));
                     }
                 }
                 catch (TargetInvocationException ex)
@@ -363,7 +363,7 @@ namespace Microsoft.AspNetCore.SignalR
                 return;
             }
 
-            await SendMessageAsync(connection, CompletionMessage.WithError(HubMessage.EmptyHeaders, hubMethodInvocationMessage.InvocationId, errorMessage));
+            await SendMessageAsync(connection, CompletionMessage.WithError(hubMethodInvocationMessage.InvocationId, errorMessage));
         }
 
         private void InitializeHub(THub hub, HubConnectionContext connection)
@@ -397,7 +397,7 @@ namespace Microsoft.AspNetCore.SignalR
                 while (await enumerator.MoveNextAsync())
                 {
                     // Send the stream item
-                    await SendMessageAsync(connection, new StreamItemMessage(HubMessage.EmptyHeaders, invocationId, enumerator.Current));
+                    await SendMessageAsync(connection, new StreamItemMessage(invocationId, enumerator.Current));
                 }
             }
             catch (ChannelClosedException ex)
@@ -416,7 +416,7 @@ namespace Microsoft.AspNetCore.SignalR
             }
             finally
             {
-                await SendMessageAsync(connection, new CompletionMessage(HubMessage.EmptyHeaders, invocationId, error: error, result: null, hasResult: false));
+                await SendMessageAsync(connection, new CompletionMessage(invocationId, error: error, result: null, hasResult: false));
 
                 if (connection.ActiveRequestCancellationSources.TryRemove(invocationId, out var cts))
                 {
@@ -435,7 +435,7 @@ namespace Microsoft.AspNetCore.SignalR
                 if (!string.IsNullOrEmpty(hubMethodInvocationMessage.InvocationId))
                 {
                     _logger.StreamingMethodCalledWithInvoke(hubMethodInvocationMessage);
-                    await SendMessageAsync(connection, CompletionMessage.WithError(HubMessage.EmptyHeaders, hubMethodInvocationMessage.InvocationId,
+                    await SendMessageAsync(connection, CompletionMessage.WithError(hubMethodInvocationMessage.InvocationId,
                         $"The client attempted to invoke the streaming '{hubMethodInvocationMessage.Target}' method in a non-streaming fashion."));
                 }
 
@@ -445,7 +445,7 @@ namespace Microsoft.AspNetCore.SignalR
             if (!isStreamedResult && isStreamedInvocation)
             {
                 _logger.NonStreamingMethodCalledWithStream(hubMethodInvocationMessage);
-                await SendMessageAsync(connection, CompletionMessage.WithError(HubMessage.EmptyHeaders, hubMethodInvocationMessage.InvocationId,
+                await SendMessageAsync(connection, CompletionMessage.WithError(hubMethodInvocationMessage.InvocationId,
                     $"The client attempted to invoke the non-streaming '{hubMethodInvocationMessage.Target}' method in a streaming fashion."));
 
                 return false;

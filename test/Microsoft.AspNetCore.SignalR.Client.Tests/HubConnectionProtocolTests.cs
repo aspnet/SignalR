@@ -372,7 +372,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 using (var ms = new MemoryStream())
                 {
                     new MessagePackHubProtocol()
-                        .WriteMessage(new InvocationMessage(HubMessage.EmptyHeaders, null, "MyMethod", null, 42), ms);
+                        .WriteMessage(new InvocationMessage(null, "MyMethod", null, 42), ms);
 
                     var invokeMessage = Convert.ToBase64String(ms.ToArray());
                     var payloadSize = invokeMessage.Length.ToString(CultureInfo.InvariantCulture);

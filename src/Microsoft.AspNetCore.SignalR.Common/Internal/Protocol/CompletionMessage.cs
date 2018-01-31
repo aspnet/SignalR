@@ -34,13 +34,13 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
         // Static factory methods. Don't want to use constructor overloading because it will break down
         // if you need to send a payload statically-typed as a string. And because a static factory is clearer here
-        public static CompletionMessage WithError(IReadOnlyDictionary<string, string> headers, string invocationId, string error)
+        public static CompletionMessage WithError(string invocationId, string error)
             => new CompletionMessage(invocationId, error, result: null, hasResult: false);
 
-        public static CompletionMessage WithResult(IReadOnlyDictionary<string, string> headers, string invocationId, object payload)
+        public static CompletionMessage WithResult(string invocationId, object payload)
             => new CompletionMessage(invocationId, error: null, result: payload, hasResult: true);
 
-        public static CompletionMessage Empty(IReadOnlyDictionary<string, string> headers, string invocationId)
+        public static CompletionMessage Empty(string invocationId)
             => new CompletionMessage(invocationId, error: null, result: null, hasResult: false);
     }
 }

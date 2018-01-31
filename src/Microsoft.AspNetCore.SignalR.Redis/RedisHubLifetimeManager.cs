@@ -725,7 +725,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
             public InvocationMessage CreateInvocation()
             {
-                return new InvocationMessage(HubMessage.EmptyHeaders, Target, argumentBindingException: null, arguments: Arguments);
+                return new InvocationMessage(Target, argumentBindingException: null, arguments: Arguments);
             }
         }
     }

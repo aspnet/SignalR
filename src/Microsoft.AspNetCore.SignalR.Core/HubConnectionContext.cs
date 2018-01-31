@@ -186,7 +186,7 @@ namespace Microsoft.AspNetCore.SignalR
             if (Features.Get<IConnectionInherentKeepAliveFeature>() == null)
             {
                 Debug.Assert(ProtocolReaderWriter != null, "Expected the ProtocolReaderWriter to be set before StartAsync is called");
-                _pingMessage = ProtocolReaderWriter.WriteMessage(PingMessage.Instance);
+                _pingMessage = ProtocolReaderWriter.WriteMessage(new PingMessage());
                 _connectionContext.Features.Get<IConnectionHeartbeatFeature>()?.OnHeartbeat(state => ((HubConnectionContext)state).KeepAliveTick(), this);
             }
 
