@@ -1,7 +1,6 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-using System.Collections.Generic;
 
 namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 {
@@ -9,7 +8,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
     {
         public object Item { get; }
 
-        public StreamItemMessage(IReadOnlyDictionary<string, string> headers, string invocationId, object item) : base(headers, invocationId)
+        public StreamItemMessage(string invocationId, object item) : base(invocationId)
         {
             Item = item;
         }

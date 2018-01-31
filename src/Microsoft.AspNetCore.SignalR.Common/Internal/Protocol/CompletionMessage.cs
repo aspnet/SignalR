@@ -12,8 +12,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         public object Result { get; }
         public bool HasResult { get; }
 
-        public CompletionMessage(IReadOnlyDictionary<string, string> headers, string invocationId, string error, object result, bool hasResult)
-            : base(headers, invocationId)
+        public CompletionMessage(string invocationId, string error, object result, bool hasResult)
+            : base(invocationId)
         {
             if (error != null && result != null)
             {
@@ -35,12 +35,12 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         // Static factory methods. Don't want to use constructor overloading because it will break down
         // if you need to send a payload statically-typed as a string. And because a static factory is clearer here
         public static CompletionMessage WithError(IReadOnlyDictionary<string, string> headers, string invocationId, string error)
-            => new CompletionMessage(headers, invocationId, error, result: null, hasResult: false);
+            => new CompletionMessage(invocationId, error, result: null, hasResult: false);
 
         public static CompletionMessage WithResult(IReadOnlyDictionary<string, string> headers, string invocationId, object payload)
-            => new CompletionMessage(headers, invocationId, error: null, result: payload, hasResult: true);
+            => new CompletionMessage(invocationId, error: null, result: payload, hasResult: true);
 
         public static CompletionMessage Empty(IReadOnlyDictionary<string, string> headers, string invocationId)
-            => new CompletionMessage(headers, invocationId, error: null, result: null, hasResult: false);
+            => new CompletionMessage(invocationId, error: null, result: null, hasResult: false);
     }
 }

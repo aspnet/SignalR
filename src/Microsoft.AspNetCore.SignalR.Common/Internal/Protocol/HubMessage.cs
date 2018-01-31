@@ -8,14 +8,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 {
     public abstract class HubMessage
     {
-        // REVIEW: In theory someone could downcast and write to this... I could make a custom empty dictionary type.
-        public static readonly IReadOnlyDictionary<string, string> EmptyHeaders = new Dictionary<string, string>();
+        public Dictionary<string, string> Headers { get; }
 
-        public IReadOnlyDictionary<string, string> Headers { get; }
-
-        protected HubMessage(IReadOnlyDictionary<string, string> headers)
+        protected HubMessage()
         {
-            Headers = headers ?? throw new ArgumentNullException(nameof(headers));
+            Headers = new Dictionary<string, string>();
         }
     }
 }

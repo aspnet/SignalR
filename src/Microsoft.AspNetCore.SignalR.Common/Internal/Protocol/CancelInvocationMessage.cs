@@ -7,7 +7,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 {
     public class CancelInvocationMessage : HubInvocationMessage
     {
-        public CancelInvocationMessage(IReadOnlyDictionary<string, string> headers, string invocationId) : base(headers, invocationId)
+        public CancelInvocationMessage(string invocationId) : base(invocationId)
         {
         }
     }
