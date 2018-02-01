@@ -1681,7 +1681,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 await client.Connected.OrTimeout();
 
                 // Send a ping
-                await client.SendHubMessageAsync(new PingMessage()).OrTimeout();
+                await client.SendHubMessageAsync(PingMessage.Instance).OrTimeout();
 
                 // Now do an invocation to make sure we processed the ping message
                 var completion = await client.InvokeAsync(nameof(MethodHub.ValueMethod)).OrTimeout();

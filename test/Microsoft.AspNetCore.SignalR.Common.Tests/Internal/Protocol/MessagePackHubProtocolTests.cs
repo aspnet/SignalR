@@ -331,7 +331,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             new object[] {
                 new ProtocolTestData(
                     name: "Ping",
-                    message: new PingMessage(),
+                    message: PingMessage.Instance,
                     encoded: Array(HubProtocolConstants.PingMessageType),
                     binary: "kQY="),
             },

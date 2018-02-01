@@ -102,7 +102,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                         case HubProtocolConstants.CancelInvocationMessageType:
                             return BindCancelInvocationMessage(json);
                         case HubProtocolConstants.PingMessageType:
-                            return new PingMessage();
+                            return PingMessage.Instance;
                         default:
                             throw new InvalidDataException($"Unknown message type: {type}");
                     }

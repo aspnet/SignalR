@@ -71,7 +71,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                     case HubProtocolConstants.CancelInvocationMessageType:
                         return CreateCancelInvocationMessage(unpacker);
                     case HubProtocolConstants.PingMessageType:
-                        return new PingMessage();
+                        return PingMessage.Instance;
                     default:
                         throw new FormatException($"Invalid message type: {messageType}.");
                 }

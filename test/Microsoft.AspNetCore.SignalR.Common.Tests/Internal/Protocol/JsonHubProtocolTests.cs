@@ -79,7 +79,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             new object[] { new CancelInvocationMessage("123"), true, NullValueHandling.Ignore, "{\"type\":5,\"invocationId\":\"123\"}" },
             new object[] { AddHeaders(TestHeaders, new CancelInvocationMessage("123")), true, NullValueHandling.Ignore, WithHeadersPrefix + ",\"type\":5,\"invocationId\":\"123\"}" },
 
-            new object[] { new PingMessage(), true, NullValueHandling.Ignore, "{\"type\":6}" },
+            new object[] { PingMessage.Instance, true, NullValueHandling.Ignore, "{\"type\":6}" },
         };
 
         [Theory]
