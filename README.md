@@ -13,7 +13,7 @@ This project is part of ASP.NET Core. You can find samples, documentation and ge
 
 ## TypeScript Version
 
-If you are encountering TypeScript definition issues with SignalR, please update your TypeScript to the latest version. If the issue occurs in the latest TypeScript, please let us know.
+If you are encountering TypeScript definition issues with SignalR, please ensure you are using the latest version of TypeScript to compile your application. If the issue occurs in the latest TypeScript, please let us know.
 
 ## Packages
 
