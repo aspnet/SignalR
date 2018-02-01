@@ -10,7 +10,10 @@ export const enum MessageType {
     Ping = 6,
 }
 
+export type MessageHeaders = { [key: string]: string };
+
 export interface HubMessage {
+    readonly headers?: MessageHeaders;
     readonly type: MessageType;
 }
 

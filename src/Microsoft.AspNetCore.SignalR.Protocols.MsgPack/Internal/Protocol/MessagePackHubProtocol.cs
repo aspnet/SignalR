@@ -56,7 +56,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             {
                 _ = ReadArrayLength(unpacker, "elementCount");
 
-                // Read headers
                 var headers = ReadHeaders(unpacker);
 
                 var messageType = ReadInt32(unpacker, "messageType");

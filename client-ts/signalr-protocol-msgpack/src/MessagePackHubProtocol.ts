@@ -1,7 +1,7 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-import { IHubProtocol, ProtocolType, MessageType, HubMessage, InvocationMessage, ResultMessage, CompletionMessage, StreamInvocationMessage } from "@aspnet/signalr";
+import { IHubProtocol, ProtocolType, MessageType, HubMessage, InvocationMessage, ResultMessage, CompletionMessage, StreamInvocationMessage, MessageHeaders } from "@aspnet/signalr";
 import { BinaryMessageFormat } from "./BinaryMessageFormat"
 import { Buffer } from 'buffer';
 import * as msgpack5 from "msgpack5";
@@ -27,14 +27,19 @@ export class MessagePackHubProtocol implements IHubProtocol {
             throw new Error("Invalid payload.");
         }
 
-        let messageType = properties[0] as MessageType;
+        let headers: MessageHeaders = properties[0] as MessageHeaders;
+        if(typeof headers !== "object") {
+            throw new Error("Invalid headers.");
+        }
+        let messageType = properties[1] as MessageType;
+
         switch (messageType) {
             case MessageType.Invocation:
-                return this.createInvocationMessage(properties);
+                return this.createInvocationMessage(headers, properties);
             case MessageType.StreamItem:
-                return this.createStreamItemMessage(properties);
+                return this.createStreamItemMessage(headers, properties);
             case MessageType.Completion:
-                return this.createCompletionMessage(properties);
+                return this.createCompletionMessage(headers, properties);
             case MessageType.Ping:
                 return this.createPingMessage(properties);
             default:
@@ -43,22 +48,21 @@ export class MessagePackHubProtocol implements IHubProtocol {
     }
 
     private createPingMessage(properties: any[]): HubMessage {
-        if (properties.length != 1) {
+        if (properties.length != 2) {
             throw new Error("Invalid payload for Ping message.");
         }
 
         return {
-            // Disregard the headers
-            type: properties[1]
+            // Ping messages have no headers.
+            type: MessageType.Ping
         } as HubMessage;
     }
 
-    private createInvocationMessage(properties: any[]): InvocationMessage {
-        if (properties.length != 4) {
+    private createInvocationMessage(headers: MessageHeaders, properties: any[]): InvocationMessage {
+        if (properties.length != 5) {
             throw new Error("Invalid payload for Invocation message.");
         }
 
-        let headers = properties[1] as { [key: string]: string };
         let invocationId = properties[2] as string;
         if (invocationId) {
             return {
@@ -80,20 +84,21 @@ export class MessagePackHubProtocol implements IHubProtocol {
 
     }
 
-    private createStreamItemMessage(properties: any[]): ResultMessage {
-        if (properties.length != 3) {
+    private createStreamItemMessage(headers: MessageHeaders, properties: any[]): ResultMessage {
+        if (properties.length != 4) {
             throw new Error("Invalid payload for stream Result message.");
         }
 
         return {
+            headers,
             type: MessageType.StreamItem,
-            invocationId: properties[1],
-            item: properties[2]
+            invocationId: properties[2],
+            item: properties[3]
         } as ResultMessage;
     }
 
-    private createCompletionMessage(properties: any[]): CompletionMessage {
-        if (properties.length < 3) {
+    private createCompletionMessage(headers: MessageHeaders, properties: any[]): CompletionMessage {
+        if (properties.length < 4) {
             throw new Error("Invalid payload for Completion message.");
         }
 
@@ -101,26 +106,27 @@ export class MessagePackHubProtocol implements IHubProtocol {
         const voidResult = 2;
         const nonVoidResult = 3;
 
-        let resultKind = properties[2];
+        let resultKind = properties[3];
 
-        if ((resultKind === voidResult && properties.length != 3) ||
-            (resultKind !== voidResult && properties.length != 4)) {
+        if ((resultKind === voidResult && properties.length != 4) ||
+            (resultKind !== voidResult && properties.length != 5)) {
             throw new Error("Invalid payload for Completion message.");
         }
 
         let completionMessage = {
+            headers,
             type: MessageType.Completion,
-            invocationId: properties[1],
+            invocationId: properties[2],
             error: null as string,
             result: null as any
         };
 
         switch (resultKind) {
             case errorResult:
-                completionMessage.error = properties[3];
+                completionMessage.error = properties[4];
                 break;
             case nonVoidResult:
-                completionMessage.result = properties[3];
+                completionMessage.result = properties[4];
                 break;
         }
 
@@ -143,7 +149,7 @@ export class MessagePackHubProtocol implements IHubProtocol {
 
     private writeInvocation(invocationMessage: InvocationMessage): ArrayBuffer {
         let msgpack = msgpack5();
-        let payload = msgpack.encode([MessageType.Invocation, invocationMessage.invocationId || null,
+        let payload = msgpack.encode([invocationMessage.headers || {}, MessageType.Invocation, invocationMessage.invocationId || null,
         invocationMessage.target, invocationMessage.arguments]);
 
         return BinaryMessageFormat.write(payload.slice());
@@ -151,7 +157,7 @@ export class MessagePackHubProtocol implements IHubProtocol {
 
     private writeStreamInvocation(streamInvocationMessage: StreamInvocationMessage): ArrayBuffer {
         let msgpack = msgpack5();
-        let payload = msgpack.encode([MessageType.StreamInvocation, streamInvocationMessage.invocationId,
+        let payload = msgpack.encode([streamInvocationMessage.headers || {}, MessageType.StreamInvocation, streamInvocationMessage.invocationId,
         streamInvocationMessage.target, streamInvocationMessage.arguments]);
 
         return BinaryMessageFormat.write(payload.slice());
