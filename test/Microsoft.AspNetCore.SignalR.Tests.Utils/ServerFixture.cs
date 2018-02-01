@@ -5,6 +5,7 @@ using System;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
@@ -50,8 +51,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
         private void StartServer(string url)
         {
+            var sink = new TestSink();
             _host = new WebHostBuilder()
-                .ConfigureLogging(builder => builder.AddProvider(new ForwardingLoggerProvider(_loggerFactory)))
+                .ConfigureLogging(builder =>
+                {
+                    builder.AddProvider(new ForwardingLoggerProvider(_loggerFactory));
+                    builder.AddProvider(new TestSinkLoggerProvider(sink));
+                })
                 .UseStartup(typeof(TStartup))
                 .UseKestrel()
                 .UseUrls(url)
@@ -68,7 +74,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 {
                     throw t.Exception.InnerException;
                 }
-                throw new TimeoutException("Timed out waiting for application to start.");
+                throw new TimeoutException($"Timed out waiting for application to start. Startup Logs:{Environment.NewLine}{RenderLogs(sink)}");
             }
             _logger.LogInformation("Test Server started");
 
@@ -77,6 +83,20 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 _logger.LogInformation("Test server shut down");
                 _logToken.Dispose();
             });
+        }
+
+        private string RenderLogs(TestSink sink)
+        {
+            var builder = new StringBuilder();
+            foreach(var write in sink.Writes)
+            {
+                builder.AppendLine($"{write.LoggerName} {write.LogLevel}: {write.Formatter(write.State, write.Exception)}");
+                if(write.Exception != null)
+                {
+                    builder.AppendLine(write.Exception.ToString());
+                }
+            }
+            return builder.ToString();
         }
 
         public void Dispose()
