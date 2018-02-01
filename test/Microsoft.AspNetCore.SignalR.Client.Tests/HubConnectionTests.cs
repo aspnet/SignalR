@@ -216,7 +216,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             await hubConnection.DisposeAsync().OrTimeout();
 
             // Fire callbacks, they shouldn't fail
-            foreach(var registration in connection.Callbacks)
+            foreach (var registration in connection.Callbacks)
             {
                 await registration.InvokeAsync(new byte[0]);
             }
