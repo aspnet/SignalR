@@ -8,11 +8,18 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 {
     public abstract class HubMessage
     {
-        public IDictionary<string, string> Headers { get; set; }
+        private Dictionary<string, string> _headers;
+
+        public IDictionary<string, string> Headers
+        {
+            get
+            {
+                return _headers ?? (_headers = new Dictionary<string, string>());
+            }
+        }
 
         protected HubMessage()
         {
-            Headers = new Dictionary<string, string>();
         }
     }
 }

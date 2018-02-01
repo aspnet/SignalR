@@ -87,7 +87,10 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
                 if(headers != null)
                 {
-                    m.Headers = headers;
+                    foreach(var header in headers)
+                    {
+                        m.Headers[header.Key] = header.Value;
+                    }
                 }
 
                 return m;
