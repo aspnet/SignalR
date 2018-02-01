@@ -6,7 +6,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
 {
     public static class MessagePackHelpers
     {
-        public static MessagePackObject Arr(params MessagePackObject[] items) =>
+        public static MessagePackObject Array(params MessagePackObject[] items) =>
             new MessagePackObject(items);
 
         public static MessagePackObject Map(params (MessagePackObject Key, MessagePackObject Value)[] items) =>

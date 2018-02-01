@@ -11,7 +11,10 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         // This lets you add headers to a hub message and return it, in a single expression.
         public static HubMessage AddHeaders(IDictionary<string, string> headers, HubMessage hubMessage)
         {
-            hubMessage.Headers = headers;
+            foreach (var header in headers)
+            {
+                hubMessage.Headers[header.Key] = header.Value;
+            }
             return hubMessage;
         }
     }

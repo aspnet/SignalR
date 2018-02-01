@@ -85,9 +85,9 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                         throw new FormatException($"Invalid message type: {messageType}.");
                 }
 
-                if(headers != null)
+                if (headers != null)
                 {
-                    foreach(var header in headers)
+                    foreach (var header in headers)
                     {
                         m.Headers[header.Key] = header.Value;
                     }
