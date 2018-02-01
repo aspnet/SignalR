@@ -56,49 +56,31 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             {
                 _ = ReadArrayLength(unpacker, "elementCount");
 
-                var headers = ReadHeaders(unpacker);
-
                 var messageType = ReadInt32(unpacker, "messageType");
 
-                HubMessage m;
                 switch (messageType)
                 {
                     case HubProtocolConstants.InvocationMessageType:
-                        m = CreateInvocationMessage(unpacker, binder);
-                        break;
+                        return CreateInvocationMessage(unpacker, binder);
                     case HubProtocolConstants.StreamInvocationMessageType:
-                        m = CreateStreamInvocationMessage(unpacker, binder);
-                        break;
+                        return CreateStreamInvocationMessage(unpacker, binder);
                     case HubProtocolConstants.StreamItemMessageType:
-                        m = CreateStreamItemMessage(unpacker, binder);
-                        break;
+                        return CreateStreamItemMessage(unpacker, binder);
                     case HubProtocolConstants.CompletionMessageType:
-                        m = CreateCompletionMessage(unpacker, binder);
-                        break;
+                        return CreateCompletionMessage(unpacker, binder);
                     case HubProtocolConstants.CancelInvocationMessageType:
-                        m = CreateCancelInvocationMessage(unpacker);
-                        break;
+                        return CreateCancelInvocationMessage(unpacker);
                     case HubProtocolConstants.PingMessageType:
-                        m = new PingMessage();
-                        break;
+                        return new PingMessage();
                     default:
                         throw new FormatException($"Invalid message type: {messageType}.");
                 }
-
-                if (headers != null)
-                {
-                    foreach (var header in headers)
-                    {
-                        m.Headers[header.Key] = header.Value;
-                    }
-                }
-
-                return m;
             }
         }
 
         private static InvocationMessage CreateInvocationMessage(Unpacker unpacker, IInvocationBinder binder)
         {
+            var headers = ReadHeaders(unpacker);
             var invocationId = ReadInvocationId(unpacker);
 
             // For MsgPack, we represent an empty invocation ID as an empty string,
@@ -114,40 +96,44 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             try
             {
                 var arguments = BindArguments(unpacker, parameterTypes);
-                return new InvocationMessage(invocationId, target, argumentBindingException: null, arguments: arguments);
+                return ApplyHeaders(headers, new InvocationMessage(invocationId, target, argumentBindingException: null, arguments: arguments));
             }
             catch (Exception ex)
             {
-                return new InvocationMessage(invocationId, target, ExceptionDispatchInfo.Capture(ex));
+                return ApplyHeaders(headers, new InvocationMessage(invocationId, target, ExceptionDispatchInfo.Capture(ex)));
             }
         }
 
         private static StreamInvocationMessage CreateStreamInvocationMessage(Unpacker unpacker, IInvocationBinder binder)
         {
+            var headers = ReadHeaders(unpacker);
             var invocationId = ReadInvocationId(unpacker);
             var target = ReadString(unpacker, "target");
             var parameterTypes = binder.GetParameterTypes(target);
+
             try
             {
                 var arguments = BindArguments(unpacker, parameterTypes);
-                return new StreamInvocationMessage(invocationId, target, argumentBindingException: null, arguments: arguments);
+                return ApplyHeaders(headers, new StreamInvocationMessage(invocationId, target, argumentBindingException: null, arguments: arguments));
             }
             catch (Exception ex)
             {
-                return new StreamInvocationMessage(invocationId, target, ExceptionDispatchInfo.Capture(ex));
+                return ApplyHeaders(headers, new StreamInvocationMessage(invocationId, target, ExceptionDispatchInfo.Capture(ex)));
             }
         }
 
         private static StreamItemMessage CreateStreamItemMessage(Unpacker unpacker, IInvocationBinder binder)
         {
+            var headers = ReadHeaders(unpacker);
             var invocationId = ReadInvocationId(unpacker);
             var itemType = binder.GetReturnType(invocationId);
             var value = DeserializeObject(unpacker, itemType, "item");
-            return new StreamItemMessage(invocationId, value);
+            return ApplyHeaders(headers, new StreamItemMessage(invocationId, value));
         }
 
         private static CompletionMessage CreateCompletionMessage(Unpacker unpacker, IInvocationBinder binder)
         {
+            var headers = ReadHeaders(unpacker);
             var invocationId = ReadInvocationId(unpacker);
             var resultKind = ReadInt32(unpacker, "resultKind");
 
@@ -172,13 +158,14 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                     throw new FormatException("Invalid invocation result kind.");
             }
 
-            return new CompletionMessage(invocationId, error, result, hasResult);
+            return ApplyHeaders(headers, new CompletionMessage(invocationId, error, result, hasResult));
         }
 
         private static CancelInvocationMessage CreateCancelInvocationMessage(Unpacker unpacker)
         {
+            var headers = ReadHeaders(unpacker);
             var invocationId = ReadInvocationId(unpacker);
-            return new CancelInvocationMessage(invocationId);
+            return ApplyHeaders(headers, new CancelInvocationMessage(invocationId));
         }
 
         private static Dictionary<string, string> ReadHeaders(Unpacker unpacker)
@@ -229,6 +216,19 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             }
         }
 
+        private static T ApplyHeaders<T>(IDictionary<string, string> source, T destination) where T: HubInvocationMessage
+        {
+            if(source != null && source.Count > 0)
+            {
+                foreach(var header in source)
+                {
+                    destination.Headers[header.Key] = header.Value;
+                }
+            }
+
+            return destination;
+        }
+
         public void WriteMessage(HubMessage message, Stream output)
         {
             using (var memoryStream = new MemoryStream())
@@ -271,8 +271,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         private void WriteInvocationMessage(InvocationMessage message, Packer packer)
         {
             packer.PackArrayHeader(5);
-            PackHeaders(packer, message.Headers);
             packer.Pack(HubProtocolConstants.InvocationMessageType);
+            PackHeaders(packer, message.Headers);
             if (string.IsNullOrEmpty(message.InvocationId))
             {
                 packer.PackNull();
@@ -288,8 +288,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         private void WriteStreamInvocationMessage(StreamInvocationMessage message, Packer packer)
         {
             packer.PackArrayHeader(5);
-            PackHeaders(packer, message.Headers);
             packer.Pack(HubProtocolConstants.StreamInvocationMessageType);
+            PackHeaders(packer, message.Headers);
             packer.PackString(message.InvocationId);
             packer.PackString(message.Target);
             packer.PackObject(message.Arguments, SerializationContext);
@@ -298,8 +298,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         private void WriteStreamingItemMessage(StreamItemMessage message, Packer packer)
         {
             packer.PackArrayHeader(4);
-            PackHeaders(packer, message.Headers);
             packer.Pack(HubProtocolConstants.StreamItemMessageType);
+            PackHeaders(packer, message.Headers);
             packer.PackString(message.InvocationId);
             packer.PackObject(message.Item, SerializationContext);
         }
@@ -312,8 +312,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 VoidResult;
 
             packer.PackArrayHeader(4 + (resultKind != VoidResult ? 1 : 0));
-            PackHeaders(packer, message.Headers);
             packer.Pack(HubProtocolConstants.CompletionMessageType);
+            PackHeaders(packer, message.Headers);
             packer.PackString(message.InvocationId);
             packer.Pack(resultKind);
             switch (resultKind)
@@ -330,19 +330,14 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         private void WriteCancelInvocationMessage(CancelInvocationMessage message, Packer packer)
         {
             packer.PackArrayHeader(3);
-            PackHeaders(packer, message.Headers);
             packer.Pack(HubProtocolConstants.CancelInvocationMessageType);
+            PackHeaders(packer, message.Headers);
             packer.PackString(message.InvocationId);
         }
 
         private void WritePingMessage(PingMessage pingMessage, Packer packer)
         {
-            packer.PackArrayHeader(2);
-
-            // Pack empty headers map for Ping Message
-            // We don't support headers for Ping messages, but for consistency, an empty headers map must be written out
-            packer.PackMapHeader(0);
-
+            packer.PackArrayHeader(1);
             packer.Pack(HubProtocolConstants.PingMessageType);
         }
 

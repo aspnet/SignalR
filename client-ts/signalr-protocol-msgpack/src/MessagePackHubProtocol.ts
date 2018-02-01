@@ -1,7 +1,7 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-import { IHubProtocol, ProtocolType, MessageType, HubMessage, InvocationMessage, ResultMessage, CompletionMessage, StreamInvocationMessage, MessageHeaders } from "@aspnet/signalr";
+import { IHubProtocol, ProtocolType, MessageType, HubMessage, InvocationMessage, StreamItemMessage, CompletionMessage, StreamInvocationMessage, MessageHeaders } from "@aspnet/signalr";
 import { BinaryMessageFormat } from "./BinaryMessageFormat"
 import { Buffer } from 'buffer';
 import * as msgpack5 from "msgpack5";
@@ -27,19 +27,15 @@ export class MessagePackHubProtocol implements IHubProtocol {
             throw new Error("Invalid payload.");
         }
 
-        let headers: MessageHeaders = properties[0] as MessageHeaders;
-        if(typeof headers !== "object") {
-            throw new Error("Invalid headers.");
-        }
-        let messageType = properties[1] as MessageType;
+        let messageType = properties[0] as MessageType;
 
         switch (messageType) {
             case MessageType.Invocation:
-                return this.createInvocationMessage(headers, properties);
+                return this.createInvocationMessage(this.readHeaders(properties), properties);
             case MessageType.StreamItem:
-                return this.createStreamItemMessage(headers, properties);
+                return this.createStreamItemMessage(this.readHeaders(properties), properties);
             case MessageType.Completion:
-                return this.createCompletionMessage(headers, properties);
+                return this.createCompletionMessage(this.readHeaders(properties), properties);
             case MessageType.Ping:
                 return this.createPingMessage(properties);
             default:
@@ -48,7 +44,7 @@ export class MessagePackHubProtocol implements IHubProtocol {
     }
 
     private createPingMessage(properties: any[]): HubMessage {
-        if (properties.length != 2) {
+        if (properties.length != 1) {
             throw new Error("Invalid payload for Ping message.");
         }
 
@@ -84,7 +80,7 @@ export class MessagePackHubProtocol implements IHubProtocol {
 
     }
 
-    private createStreamItemMessage(headers: MessageHeaders, properties: any[]): ResultMessage {
+    private createStreamItemMessage(headers: MessageHeaders, properties: any[]): StreamItemMessage {
         if (properties.length != 4) {
             throw new Error("Invalid payload for stream Result message.");
         }
@@ -94,7 +90,7 @@ export class MessagePackHubProtocol implements IHubProtocol {
             type: MessageType.StreamItem,
             invocationId: properties[2],
             item: properties[3]
-        } as ResultMessage;
+        } as StreamItemMessage;
     }
 
     private createCompletionMessage(headers: MessageHeaders, properties: any[]): CompletionMessage {
@@ -149,7 +145,7 @@ export class MessagePackHubProtocol implements IHubProtocol {
 
     private writeInvocation(invocationMessage: InvocationMessage): ArrayBuffer {
         let msgpack = msgpack5();
-        let payload = msgpack.encode([invocationMessage.headers || {}, MessageType.Invocation, invocationMessage.invocationId || null,
+        let payload = msgpack.encode([MessageType.Invocation, invocationMessage.headers || {}, invocationMessage.invocationId || null,
         invocationMessage.target, invocationMessage.arguments]);
 
         return BinaryMessageFormat.write(payload.slice());
@@ -157,9 +153,17 @@ export class MessagePackHubProtocol implements IHubProtocol {
 
     private writeStreamInvocation(streamInvocationMessage: StreamInvocationMessage): ArrayBuffer {
         let msgpack = msgpack5();
-        let payload = msgpack.encode([streamInvocationMessage.headers || {}, MessageType.StreamInvocation, streamInvocationMessage.invocationId,
+        let payload = msgpack.encode([MessageType.StreamInvocation, streamInvocationMessage.headers || {}, streamInvocationMessage.invocationId,
         streamInvocationMessage.target, streamInvocationMessage.arguments]);
 
         return BinaryMessageFormat.write(payload.slice());
+    }
+
+    private readHeaders(properties: any): MessageHeaders {
+        let headers: MessageHeaders = properties[1] as MessageHeaders;
+        if (typeof headers !== "object") {
+            throw new Error("Invalid headers.");
+        }
+        return headers;
     }
 }

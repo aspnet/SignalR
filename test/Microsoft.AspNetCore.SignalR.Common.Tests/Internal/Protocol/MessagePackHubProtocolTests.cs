@@ -63,57 +63,57 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                 new ProtocolTestData(
                     name: "InvocationWithNoHeadersAndNoArgs",
                     message: new InvocationMessage(invocationId: "xyz", target: "method", argumentBindingException: null),
-                    encoded: Array(Map(), HubProtocolConstants.InvocationMessageType, "xyz", "method", Array()),
-                    binary: "lYABo3h5eqZtZXRob2SQ"),
+                    encoded: Array(HubProtocolConstants.InvocationMessageType, Map(), "xyz", "method", Array()),
+                    binary: "lQGAo3h5eqZtZXRob2SQ"),
             },
             new object[] {
                 new ProtocolTestData(
                     name: "InvocationWithNoHeadersNoIdAndNoArgs",
                     message: new InvocationMessage(target: "method", argumentBindingException: null),
-                    encoded: Array(Map(), HubProtocolConstants.InvocationMessageType, MessagePackObject.Nil, "method", Array()),
-                    binary: "lYABwKZtZXRob2SQ"),
+                    encoded: Array(HubProtocolConstants.InvocationMessageType, Map(), MessagePackObject.Nil, "method", Array()),
+                    binary: "lQGAwKZtZXRob2SQ"),
             },
             new object[] {
                 new ProtocolTestData(
                     name: "InvocationWithNoHeadersNoIdAndSingleNullArg",
                     message: new InvocationMessage(target: "method", argumentBindingException: null, new object[] { null }),
-                    encoded: Array(Map(), HubProtocolConstants.InvocationMessageType, MessagePackObject.Nil, "method", Array(MessagePackObject.Nil)),
-                    binary: "lYABwKZtZXRob2SRwA=="),
+                    encoded: Array(HubProtocolConstants.InvocationMessageType, Map(), MessagePackObject.Nil, "method", Array(MessagePackObject.Nil)),
+                    binary: "lQGAwKZtZXRob2SRwA=="),
             },
             new object[] {
                 new ProtocolTestData(
                     name: "InvocationWithNoHeadersNoIdAndSingleIntArg",
                     message: new InvocationMessage(target: "method", argumentBindingException: null, 42),
-                    encoded: Array(Map(), HubProtocolConstants.InvocationMessageType, MessagePackObject.Nil, "method", Array(42)),
-                    binary: "lYABwKZtZXRob2SRKg=="),
+                    encoded: Array(HubProtocolConstants.InvocationMessageType, Map(), MessagePackObject.Nil, "method", Array(42)),
+                    binary: "lQGAwKZtZXRob2SRKg=="),
             },
             new object[] {
                 new ProtocolTestData(
                     name: "InvocationWithNoHeadersNoIdIntAndStringArgs",
                     message: new InvocationMessage(target: "method", argumentBindingException: null, 42, "string"),
-                    encoded: Array(Map(), HubProtocolConstants.InvocationMessageType, MessagePackObject.Nil, "method", Array(42, "string")),
-                    binary: "lYABwKZtZXRob2SSKqZzdHJpbmc="),
+                    encoded: Array(HubProtocolConstants.InvocationMessageType, Map(), MessagePackObject.Nil, "method", Array(42, "string")),
+                    binary: "lQGAwKZtZXRob2SSKqZzdHJpbmc="),
             },
             new object[] {
                 new ProtocolTestData(
                     name: "InvocationWithNoHeadersNoIdAndCustomObjectArg",
                     message: new InvocationMessage(target: "method", argumentBindingException: null, 42, "string", new CustomObject()),
-                    encoded: Array(Map(), HubProtocolConstants.InvocationMessageType, MessagePackObject.Nil, "method", Array(42, "string", CustomObjectSerialized)),
-                    binary: "lYABwKZtZXRob2STKqZzdHJpbmeGq0J5dGVBcnJQcm9wxAMBAgOsRGF0ZVRpbWVQcm9w0wjUgG2ydsAAqkRvdWJsZVByb3DLQBkh+1RCzxKnSW50UHJvcCqoTnVsbFByb3DAqlN0cmluZ1Byb3CoU2lnbmFsUiE="),
+                    encoded: Array(HubProtocolConstants.InvocationMessageType, Map(), MessagePackObject.Nil, "method", Array(42, "string", CustomObjectSerialized)),
+                    binary: "lQGAwKZtZXRob2STKqZzdHJpbmeGq0J5dGVBcnJQcm9wxAMBAgOsRGF0ZVRpbWVQcm9w0wjUgG2ydsAAqkRvdWJsZVByb3DLQBkh+1RCzxKnSW50UHJvcCqoTnVsbFByb3DAqlN0cmluZ1Byb3CoU2lnbmFsUiE="),
             },
             new object[] {
                 new ProtocolTestData(
                     name: "InvocationWithNoHeadersNoIdAndArrayOfCustomObjectArgs",
                     message: new InvocationMessage(target: "method", argumentBindingException: null, new[] { new CustomObject(), new CustomObject() }),
-                    encoded: Array(Map(), HubProtocolConstants.InvocationMessageType, MessagePackObject.Nil, "method", Array(CustomObjectSerialized, CustomObjectSerialized)),
-                    binary: "lYABwKZtZXRob2SShqtCeXRlQXJyUHJvcMQDAQIDrERhdGVUaW1lUHJvcNMI1IBtsnbAAKpEb3VibGVQcm9wy0AZIftUQs8Sp0ludFByb3AqqE51bGxQcm9wwKpTdHJpbmdQcm9wqFNpZ25hbFIhhqtCeXRlQXJyUHJvcMQDAQIDrERhdGVUaW1lUHJvcNMI1IBtsnbAAKpEb3VibGVQcm9wy0AZIftUQs8Sp0ludFByb3AqqE51bGxQcm9wwKpTdHJpbmdQcm9wqFNpZ25hbFIh"),
+                    encoded: Array(HubProtocolConstants.InvocationMessageType, Map(), MessagePackObject.Nil, "method", Array(CustomObjectSerialized, CustomObjectSerialized)),
+                    binary: "lQGAwKZtZXRob2SShqtCeXRlQXJyUHJvcMQDAQIDrERhdGVUaW1lUHJvcNMI1IBtsnbAAKpEb3VibGVQcm9wy0AZIftUQs8Sp0ludFByb3AqqE51bGxQcm9wwKpTdHJpbmdQcm9wqFNpZ25hbFIhhqtCeXRlQXJyUHJvcMQDAQIDrERhdGVUaW1lUHJvcNMI1IBtsnbAAKpEb3VibGVQcm9wy0AZIftUQs8Sp0ludFByb3AqqE51bGxQcm9wwKpTdHJpbmdQcm9wqFNpZ25hbFIh"),
             },
             new object[] {
                 new ProtocolTestData(
                     name: "InvocationWithHeadersNoIdAndArrayOfCustomObjectArgs",
                     message: AddHeaders(TestHeaders, new InvocationMessage(target: "method", argumentBindingException: null, new[] { new CustomObject(), new CustomObject() })),
-                    encoded: Array(TestHeadersSerialized, HubProtocolConstants.InvocationMessageType, MessagePackObject.Nil, "method", Array(CustomObjectSerialized, CustomObjectSerialized)),
-                    binary: "lYOjRm9vo0JhcrJLZXlXaXRoCk5ldw0KTGluZXOrU3RpbGwgV29ya3OxVmFsdWVXaXRoTmV3TGluZXOwQWxzbwpXb3Jrcw0KRmluZQHApm1ldGhvZJKGq0J5dGVBcnJQcm9wxAMBAgOsRGF0ZVRpbWVQcm9w0wjUgG2ydsAAqkRvdWJsZVByb3DLQBkh+1RCzxKnSW50UHJvcCqoTnVsbFByb3DAqlN0cmluZ1Byb3CoU2lnbmFsUiGGq0J5dGVBcnJQcm9wxAMBAgOsRGF0ZVRpbWVQcm9w0wjUgG2ydsAAqkRvdWJsZVByb3DLQBkh+1RCzxKnSW50UHJvcCqoTnVsbFByb3DAqlN0cmluZ1Byb3CoU2lnbmFsUiE="),
+                    encoded: Array(HubProtocolConstants.InvocationMessageType, TestHeadersSerialized, MessagePackObject.Nil, "method", Array(CustomObjectSerialized, CustomObjectSerialized)),
+                    binary: "lQGDo0Zvb6NCYXKyS2V5V2l0aApOZXcNCkxpbmVzq1N0aWxsIFdvcmtzsVZhbHVlV2l0aE5ld0xpbmVzsEFsc28KV29ya3MNCkZpbmXApm1ldGhvZJKGq0J5dGVBcnJQcm9wxAMBAgOsRGF0ZVRpbWVQcm9w0wjUgG2ydsAAqkRvdWJsZVByb3DLQBkh+1RCzxKnSW50UHJvcCqoTnVsbFByb3DAqlN0cmluZ1Byb3CoU2lnbmFsUiGGq0J5dGVBcnJQcm9wxAMBAgOsRGF0ZVRpbWVQcm9w0wjUgG2ydsAAqkRvdWJsZVByb3DLQBkh+1RCzxKnSW50UHJvcCqoTnVsbFByb3DAqlN0cmluZ1Byb3CoU2lnbmFsUiE="),
             },
 
             // StreamItem Messages
@@ -121,57 +121,57 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                 new ProtocolTestData(
                     name: "StreamItemWithNoHeadersAndNullItem",
                     message: new StreamItemMessage(invocationId: "xyz", item: null),
-                    encoded: Array(Map(), HubProtocolConstants.StreamItemMessageType, "xyz", MessagePackObject.Nil),
-                    binary: "lIACo3h5esA="),
+                    encoded: Array(HubProtocolConstants.StreamItemMessageType, Map(), "xyz", MessagePackObject.Nil),
+                    binary: "lAKAo3h5esA="),
             },
             new object[] {
                 new ProtocolTestData(
                     name: "StreamItemWithNoHeadersAndIntItem",
                     message: new StreamItemMessage(invocationId: "xyz", item: 42),
-                    encoded: Array(Map(), HubProtocolConstants.StreamItemMessageType, "xyz", 42),
-                    binary: "lIACo3h5eio="),
+                    encoded: Array(HubProtocolConstants.StreamItemMessageType, Map(), "xyz", 42),
+                    binary: "lAKAo3h5eio="),
             },
             new object[] {
                 new ProtocolTestData(
                     name: "StreamItemWithNoHeadersAndFloatItem",
                     message: new StreamItemMessage(invocationId: "xyz", item: 42.0f),
-                    encoded: Array(Map(), HubProtocolConstants.StreamItemMessageType, "xyz", 42.0f),
-                    binary: "lIACo3h5espCKAAA"),
+                    encoded: Array(HubProtocolConstants.StreamItemMessageType, Map(), "xyz", 42.0f),
+                    binary: "lAKAo3h5espCKAAA"),
             },
             new object[] {
                 new ProtocolTestData(
                     name: "StreamItemWithNoHeadersAndStringItem",
                     message: new StreamItemMessage(invocationId: "xyz", item: "string"),
-                    encoded: Array(Map(), HubProtocolConstants.StreamItemMessageType, "xyz", "string"),
-                    binary: "lIACo3h5eqZzdHJpbmc="),
+                    encoded: Array(HubProtocolConstants.StreamItemMessageType, Map(), "xyz", "string"),
+                    binary: "lAKAo3h5eqZzdHJpbmc="),
             },
             new object[] {
                 new ProtocolTestData(
                     name: "StreamItemWithNoHeadersAndBoolItem",
                     message: new StreamItemMessage(invocationId: "xyz", item: true),
-                    encoded: Array(Map(), HubProtocolConstants.StreamItemMessageType, "xyz", true),
-                    binary: "lIACo3h5esM="),
+                    encoded: Array(HubProtocolConstants.StreamItemMessageType, Map(), "xyz", true),
+                    binary: "lAKAo3h5esM="),
             },
             new object[] {
                 new ProtocolTestData(
                     name: "StreamItemWithNoHeadersAndCustomObjectItem",
                     message: new StreamItemMessage(invocationId: "xyz", item: new CustomObject()),
-                    encoded: Array(Map(), HubProtocolConstants.StreamItemMessageType, "xyz", CustomObjectSerialized),
-                    binary: "lIACo3h5eoarQnl0ZUFyclByb3DEAwECA6xEYXRlVGltZVByb3DTCNSAbbJ2wACqRG91YmxlUHJvcMtAGSH7VELPEqdJbnRQcm9wKqhOdWxsUHJvcMCqU3RyaW5nUHJvcKhTaWduYWxSIQ=="),
+                    encoded: Array(HubProtocolConstants.StreamItemMessageType, Map(), "xyz", CustomObjectSerialized),
+                    binary: "lAKAo3h5eoarQnl0ZUFyclByb3DEAwECA6xEYXRlVGltZVByb3DTCNSAbbJ2wACqRG91YmxlUHJvcMtAGSH7VELPEqdJbnRQcm9wKqhOdWxsUHJvcMCqU3RyaW5nUHJvcKhTaWduYWxSIQ=="),
             },
             new object[] {
                 new ProtocolTestData(
                     name: "StreamItemWithNoHeadersAndCustomObjectArrayItem",
                     message: new StreamItemMessage(invocationId: "xyz", item: new[] { new CustomObject(), new CustomObject() }),
-                    encoded: Array(Map(), HubProtocolConstants.StreamItemMessageType, "xyz", Array(CustomObjectSerialized, CustomObjectSerialized)),
-                    binary: "lIACo3h5epKGq0J5dGVBcnJQcm9wxAMBAgOsRGF0ZVRpbWVQcm9w0wjUgG2ydsAAqkRvdWJsZVByb3DLQBkh+1RCzxKnSW50UHJvcCqoTnVsbFByb3DAqlN0cmluZ1Byb3CoU2lnbmFsUiGGq0J5dGVBcnJQcm9wxAMBAgOsRGF0ZVRpbWVQcm9w0wjUgG2ydsAAqkRvdWJsZVByb3DLQBkh+1RCzxKnSW50UHJvcCqoTnVsbFByb3DAqlN0cmluZ1Byb3CoU2lnbmFsUiE="),
+                    encoded: Array(HubProtocolConstants.StreamItemMessageType, Map(), "xyz", Array(CustomObjectSerialized, CustomObjectSerialized)),
+                    binary: "lAKAo3h5epKGq0J5dGVBcnJQcm9wxAMBAgOsRGF0ZVRpbWVQcm9w0wjUgG2ydsAAqkRvdWJsZVByb3DLQBkh+1RCzxKnSW50UHJvcCqoTnVsbFByb3DAqlN0cmluZ1Byb3CoU2lnbmFsUiGGq0J5dGVBcnJQcm9wxAMBAgOsRGF0ZVRpbWVQcm9w0wjUgG2ydsAAqkRvdWJsZVByb3DLQBkh+1RCzxKnSW50UHJvcCqoTnVsbFByb3DAqlN0cmluZ1Byb3CoU2lnbmFsUiE="),
             },
             new object[] {
                 new ProtocolTestData(
                     name: "StreamItemWithHeadersAndCustomObjectArrayItem",
-                    message: new StreamItemMessage(invocationId: "xyz", item: new[] { new CustomObject(), new CustomObject() }) { Headers = TestHeaders },
-                    encoded: Array(TestHeadersSerialized, HubProtocolConstants.StreamItemMessageType, "xyz", Array(CustomObjectSerialized, CustomObjectSerialized)),
-                    binary: "lIOjRm9vo0JhcrJLZXlXaXRoCk5ldw0KTGluZXOrU3RpbGwgV29ya3OxVmFsdWVXaXRoTmV3TGluZXOwQWxzbwpXb3Jrcw0KRmluZQKjeHl6koarQnl0ZUFyclByb3DEAwECA6xEYXRlVGltZVByb3DTCNSAbbJ2wACqRG91YmxlUHJvcMtAGSH7VELPEqdJbnRQcm9wKqhOdWxsUHJvcMCqU3RyaW5nUHJvcKhTaWduYWxSIYarQnl0ZUFyclByb3DEAwECA6xEYXRlVGltZVByb3DTCNSAbbJ2wACqRG91YmxlUHJvcMtAGSH7VELPEqdJbnRQcm9wKqhOdWxsUHJvcMCqU3RyaW5nUHJvcKhTaWduYWxSIQ=="),
+                    message: AddHeaders(TestHeaders, new StreamItemMessage(invocationId: "xyz", item: new[] { new CustomObject(), new CustomObject() })),
+                    encoded: Array(HubProtocolConstants.StreamItemMessageType, TestHeadersSerialized, "xyz", Array(CustomObjectSerialized, CustomObjectSerialized)),
+                    binary: "lAKDo0Zvb6NCYXKyS2V5V2l0aApOZXcNCkxpbmVzq1N0aWxsIFdvcmtzsVZhbHVlV2l0aE5ld0xpbmVzsEFsc28KV29ya3MNCkZpbmWjeHl6koarQnl0ZUFyclByb3DEAwECA6xEYXRlVGltZVByb3DTCNSAbbJ2wACqRG91YmxlUHJvcMtAGSH7VELPEqdJbnRQcm9wKqhOdWxsUHJvcMCqU3RyaW5nUHJvcKhTaWduYWxSIYarQnl0ZUFyclByb3DEAwECA6xEYXRlVGltZVByb3DTCNSAbbJ2wACqRG91YmxlUHJvcMtAGSH7VELPEqdJbnRQcm9wKqhOdWxsUHJvcMCqU3RyaW5nUHJvcKhTaWduYWxSIQ=="),
             },
 
             // Completion Messages
@@ -179,85 +179,85 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                 new ProtocolTestData(
                     name: "CompletionWithNoHeadersAndError",
                     message: CompletionMessage.WithError(invocationId: "xyz", error: "Error not found!"),
-                    encoded: Array(Map(), HubProtocolConstants.CompletionMessageType, "xyz", 1, "Error not found!"),
-                    binary: "lYADo3h5egGwRXJyb3Igbm90IGZvdW5kIQ=="),
+                    encoded: Array(HubProtocolConstants.CompletionMessageType, Map(), "xyz", 1, "Error not found!"),
+                    binary: "lQOAo3h5egGwRXJyb3Igbm90IGZvdW5kIQ=="),
             },
             new object[] {
                 new ProtocolTestData(
                     name: "CompletionWithHeadersAndError",
                     message: AddHeaders(TestHeaders, CompletionMessage.WithError(invocationId: "xyz", error: "Error not found!")),
-                    encoded: Array(TestHeadersSerialized, HubProtocolConstants.CompletionMessageType, "xyz", 1, "Error not found!"),
-                    binary: "lYOjRm9vo0JhcrJLZXlXaXRoCk5ldw0KTGluZXOrU3RpbGwgV29ya3OxVmFsdWVXaXRoTmV3TGluZXOwQWxzbwpXb3Jrcw0KRmluZQOjeHl6AbBFcnJvciBub3QgZm91bmQh"),
+                    encoded: Array(HubProtocolConstants.CompletionMessageType, TestHeadersSerialized, "xyz", 1, "Error not found!"),
+                    binary: "lQODo0Zvb6NCYXKyS2V5V2l0aApOZXcNCkxpbmVzq1N0aWxsIFdvcmtzsVZhbHVlV2l0aE5ld0xpbmVzsEFsc28KV29ya3MNCkZpbmWjeHl6AbBFcnJvciBub3QgZm91bmQh"),
             },
             new object[] {
                 new ProtocolTestData(
                     name: "CompletionWithNoHeadersAndNoResult",
                     message: CompletionMessage.Empty(invocationId: "xyz"),
-                    encoded: Array(Map(), HubProtocolConstants.CompletionMessageType, "xyz", 2),
-                    binary: "lIADo3h5egI="),
+                    encoded: Array(HubProtocolConstants.CompletionMessageType, Map(), "xyz", 2),
+                    binary: "lAOAo3h5egI="),
             },
             new object[] {
                 new ProtocolTestData(
                     name: "CompletionWithHeadersAndNoResult",
                     message: AddHeaders(TestHeaders, CompletionMessage.Empty(invocationId: "xyz")),
-                    encoded: Array(TestHeadersSerialized, HubProtocolConstants.CompletionMessageType, "xyz", 2),
-                    binary: "lIOjRm9vo0JhcrJLZXlXaXRoCk5ldw0KTGluZXOrU3RpbGwgV29ya3OxVmFsdWVXaXRoTmV3TGluZXOwQWxzbwpXb3Jrcw0KRmluZQOjeHl6Ag=="),
+                    encoded: Array(HubProtocolConstants.CompletionMessageType, TestHeadersSerialized, "xyz", 2),
+                    binary: "lAODo0Zvb6NCYXKyS2V5V2l0aApOZXcNCkxpbmVzq1N0aWxsIFdvcmtzsVZhbHVlV2l0aE5ld0xpbmVzsEFsc28KV29ya3MNCkZpbmWjeHl6Ag=="),
             },
             new object[] {
                 new ProtocolTestData(
                     name: "CompletionWithNoHeadersAndNullResult",
                     message: CompletionMessage.WithResult(invocationId: "xyz", payload: null),
-                    encoded: Array(Map(), HubProtocolConstants.CompletionMessageType, "xyz", 3, MessagePackObject.Nil),
-                    binary: "lYADo3h5egPA"),
+                    encoded: Array(HubProtocolConstants.CompletionMessageType, Map(), "xyz", 3, MessagePackObject.Nil),
+                    binary: "lQOAo3h5egPA"),
             },
             new object[] {
                 new ProtocolTestData(
                     name: "CompletionWithNoHeadersAndIntResult",
                     message: CompletionMessage.WithResult(invocationId: "xyz", payload: 42),
-                    encoded: Array(Map(), HubProtocolConstants.CompletionMessageType, "xyz", 3, 42),
-                    binary: "lYADo3h5egMq"),
+                    encoded: Array(HubProtocolConstants.CompletionMessageType, Map(), "xyz", 3, 42),
+                    binary: "lQOAo3h5egMq"),
             },
             new object[] {
                 new ProtocolTestData(
                     name: "CompletionWithNoHeadersAndFloatResult",
                     message: CompletionMessage.WithResult(invocationId: "xyz", payload: 42.0f),
-                    encoded: Array(Map(), HubProtocolConstants.CompletionMessageType, "xyz", 3, 42.0f),
-                    binary: "lYADo3h5egPKQigAAA=="),
+                    encoded: Array(HubProtocolConstants.CompletionMessageType, Map(), "xyz", 3, 42.0f),
+                    binary: "lQOAo3h5egPKQigAAA=="),
             },
             new object[] {
                 new ProtocolTestData(
                     name: "CompletionWithNoHeadersAndStringResult",
                     message: CompletionMessage.WithResult(invocationId: "xyz", payload: "string"),
-                    encoded: Array(Map(), HubProtocolConstants.CompletionMessageType, "xyz", 3, "string"),
-                    binary: "lYADo3h5egOmc3RyaW5n"),
+                    encoded: Array(HubProtocolConstants.CompletionMessageType, Map(), "xyz", 3, "string"),
+                    binary: "lQOAo3h5egOmc3RyaW5n"),
             },
             new object[] {
                 new ProtocolTestData(
                     name: "CompletionWithNoHeadersAndBooleanResult",
                     message: CompletionMessage.WithResult(invocationId: "xyz", payload: true),
-                    encoded: Array(Map(), HubProtocolConstants.CompletionMessageType, "xyz", 3, true),
-                    binary: "lYADo3h5egPD"),
+                    encoded: Array(HubProtocolConstants.CompletionMessageType, Map(), "xyz", 3, true),
+                    binary: "lQOAo3h5egPD"),
             },
             new object[] {
                 new ProtocolTestData(
                     name: "CompletionWithNoHeadersAndCustomObjectResult",
                     message: CompletionMessage.WithResult(invocationId: "xyz", payload: new CustomObject()),
-                    encoded: Array(Map(), HubProtocolConstants.CompletionMessageType, "xyz", 3, CustomObjectSerialized),
-                    binary: "lYADo3h5egOGq0J5dGVBcnJQcm9wxAMBAgOsRGF0ZVRpbWVQcm9w0wjUgG2ydsAAqkRvdWJsZVByb3DLQBkh+1RCzxKnSW50UHJvcCqoTnVsbFByb3DAqlN0cmluZ1Byb3CoU2lnbmFsUiE="),
+                    encoded: Array(HubProtocolConstants.CompletionMessageType, Map(), "xyz", 3, CustomObjectSerialized),
+                binary: "lQOAo3h5egOGq0J5dGVBcnJQcm9wxAMBAgOsRGF0ZVRpbWVQcm9w0wjUgG2ydsAAqkRvdWJsZVByb3DLQBkh+1RCzxKnSW50UHJvcCqoTnVsbFByb3DAqlN0cmluZ1Byb3CoU2lnbmFsUiE="),
             },
             new object[] {
                 new ProtocolTestData(
                     name: "CompletionWithNoHeadersAndCustomObjectArrayResult",
                     message: CompletionMessage.WithResult(invocationId: "xyz", payload: new[] { new CustomObject(), new CustomObject() }),
-                    encoded: Array(Map(), HubProtocolConstants.CompletionMessageType, "xyz", 3, Array(CustomObjectSerialized, CustomObjectSerialized)),
-                    binary: "lYADo3h5egOShqtCeXRlQXJyUHJvcMQDAQIDrERhdGVUaW1lUHJvcNMI1IBtsnbAAKpEb3VibGVQcm9wy0AZIftUQs8Sp0ludFByb3AqqE51bGxQcm9wwKpTdHJpbmdQcm9wqFNpZ25hbFIhhqtCeXRlQXJyUHJvcMQDAQIDrERhdGVUaW1lUHJvcNMI1IBtsnbAAKpEb3VibGVQcm9wy0AZIftUQs8Sp0ludFByb3AqqE51bGxQcm9wwKpTdHJpbmdQcm9wqFNpZ25hbFIh"),
+                    encoded: Array(HubProtocolConstants.CompletionMessageType, Map(), "xyz", 3, Array(CustomObjectSerialized, CustomObjectSerialized)),
+                    binary: "lQOAo3h5egOShqtCeXRlQXJyUHJvcMQDAQIDrERhdGVUaW1lUHJvcNMI1IBtsnbAAKpEb3VibGVQcm9wy0AZIftUQs8Sp0ludFByb3AqqE51bGxQcm9wwKpTdHJpbmdQcm9wqFNpZ25hbFIhhqtCeXRlQXJyUHJvcMQDAQIDrERhdGVUaW1lUHJvcNMI1IBtsnbAAKpEb3VibGVQcm9wy0AZIftUQs8Sp0ludFByb3AqqE51bGxQcm9wwKpTdHJpbmdQcm9wqFNpZ25hbFIh"),
             },
             new object[] {
                 new ProtocolTestData(
                     name: "CompletionWithHeadersAndCustomObjectArrayResult",
                     message: AddHeaders(TestHeaders, CompletionMessage.WithResult(invocationId: "xyz", payload: new[] { new CustomObject(), new CustomObject() })),
-                    encoded: Array(TestHeadersSerialized, HubProtocolConstants.CompletionMessageType, "xyz", 3, Array(CustomObjectSerialized, CustomObjectSerialized)),
-                    binary: "lYOjRm9vo0JhcrJLZXlXaXRoCk5ldw0KTGluZXOrU3RpbGwgV29ya3OxVmFsdWVXaXRoTmV3TGluZXOwQWxzbwpXb3Jrcw0KRmluZQOjeHl6A5KGq0J5dGVBcnJQcm9wxAMBAgOsRGF0ZVRpbWVQcm9w0wjUgG2ydsAAqkRvdWJsZVByb3DLQBkh+1RCzxKnSW50UHJvcCqoTnVsbFByb3DAqlN0cmluZ1Byb3CoU2lnbmFsUiGGq0J5dGVBcnJQcm9wxAMBAgOsRGF0ZVRpbWVQcm9w0wjUgG2ydsAAqkRvdWJsZVByb3DLQBkh+1RCzxKnSW50UHJvcCqoTnVsbFByb3DAqlN0cmluZ1Byb3CoU2lnbmFsUiE="),
+                    encoded: Array(HubProtocolConstants.CompletionMessageType, TestHeadersSerialized, "xyz", 3, Array(CustomObjectSerialized, CustomObjectSerialized)),
+                    binary: "lQODo0Zvb6NCYXKyS2V5V2l0aApOZXcNCkxpbmVzq1N0aWxsIFdvcmtzsVZhbHVlV2l0aE5ld0xpbmVzsEFsc28KV29ya3MNCkZpbmWjeHl6A5KGq0J5dGVBcnJQcm9wxAMBAgOsRGF0ZVRpbWVQcm9w0wjUgG2ydsAAqkRvdWJsZVByb3DLQBkh+1RCzxKnSW50UHJvcCqoTnVsbFByb3DAqlN0cmluZ1Byb3CoU2lnbmFsUiGGq0J5dGVBcnJQcm9wxAMBAgOsRGF0ZVRpbWVQcm9w0wjUgG2ydsAAqkRvdWJsZVByb3DLQBkh+1RCzxKnSW50UHJvcCqoTnVsbFByb3DAqlN0cmluZ1Byb3CoU2lnbmFsUiE="),
             },
 
             // StreamInvocation Messages
@@ -265,50 +265,50 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                 new ProtocolTestData(
                     name: "StreamInvocationWithNoHeadersAndNoArgs",
                     message: new StreamInvocationMessage(invocationId: "xyz", target: "method", argumentBindingException: null),
-                    encoded: Array(Map(), HubProtocolConstants.StreamInvocationMessageType, "xyz", "method", Array()),
-                    binary: "lYAEo3h5eqZtZXRob2SQ"),
+                    encoded: Array(HubProtocolConstants.StreamInvocationMessageType, Map(), "xyz", "method", Array()),
+                    binary: "lQSAo3h5eqZtZXRob2SQ"),
             },
             new object[] {
                 new ProtocolTestData(
                     name: "StreamInvocationWithNoHeadersAndNullArg",
                     message: new StreamInvocationMessage(invocationId: "xyz", target: "method", argumentBindingException: null, new object[] { null }),
-                    encoded: Array(Map(), HubProtocolConstants.StreamInvocationMessageType, "xyz", "method", Array(MessagePackObject.Nil)),
-                    binary: "lYAEo3h5eqZtZXRob2SRwA=="),
+                    encoded: Array(HubProtocolConstants.StreamInvocationMessageType, Map(), "xyz", "method", Array(MessagePackObject.Nil)),
+                    binary: "lQSAo3h5eqZtZXRob2SRwA=="),
             },
             new object[] {
                 new ProtocolTestData(
                     name: "StreamInvocationWithNoHeadersAndIntArg",
                     message: new StreamInvocationMessage(invocationId: "xyz", target: "method", argumentBindingException: null, 42),
-                    encoded: Array(Map(), HubProtocolConstants.StreamInvocationMessageType, "xyz", "method", Array(42)),
-                    binary: "lYAEo3h5eqZtZXRob2SRKg=="),
+                    encoded: Array(HubProtocolConstants.StreamInvocationMessageType, Map(), "xyz", "method", Array(42)),
+                    binary: "lQSAo3h5eqZtZXRob2SRKg=="),
             },
             new object[] {
                 new ProtocolTestData(
                     name: "StreamInvocationWithNoHeadersAndIntAndStringArgs",
                     message: new StreamInvocationMessage(invocationId: "xyz", target: "method", argumentBindingException: null, 42, "string"),
-                    encoded: Array(Map(), HubProtocolConstants.StreamInvocationMessageType, "xyz", "method", Array(42, "string")),
-                    binary: "lYAEo3h5eqZtZXRob2SSKqZzdHJpbmc="),
+                    encoded: Array(HubProtocolConstants.StreamInvocationMessageType, Map(), "xyz", "method", Array(42, "string")),
+                    binary: "lQSAo3h5eqZtZXRob2SSKqZzdHJpbmc="),
             },
             new object[] {
                 new ProtocolTestData(
                     name: "StreamInvocationWithNoHeadersAndIntStringAndCustomObjectArgs",
                     message: new StreamInvocationMessage(invocationId: "xyz", target: "method", argumentBindingException: null, 42, "string", new CustomObject()),
-                    encoded: Array(Map(), HubProtocolConstants.StreamInvocationMessageType, "xyz", "method", Array(42, "string", CustomObjectSerialized)),
-                    binary: "lYAEo3h5eqZtZXRob2STKqZzdHJpbmeGq0J5dGVBcnJQcm9wxAMBAgOsRGF0ZVRpbWVQcm9w0wjUgG2ydsAAqkRvdWJsZVByb3DLQBkh+1RCzxKnSW50UHJvcCqoTnVsbFByb3DAqlN0cmluZ1Byb3CoU2lnbmFsUiE="),
+                    encoded: Array(HubProtocolConstants.StreamInvocationMessageType, Map(), "xyz", "method", Array(42, "string", CustomObjectSerialized)),
+                    binary: "lQSAo3h5eqZtZXRob2STKqZzdHJpbmeGq0J5dGVBcnJQcm9wxAMBAgOsRGF0ZVRpbWVQcm9w0wjUgG2ydsAAqkRvdWJsZVByb3DLQBkh+1RCzxKnSW50UHJvcCqoTnVsbFByb3DAqlN0cmluZ1Byb3CoU2lnbmFsUiE="),
             },
             new object[] {
                 new ProtocolTestData(
                     name: "StreamInvocationWithNoHeadersAndCustomObjectArrayArg",
                     message: new StreamInvocationMessage(invocationId: "xyz", target: "method", argumentBindingException: null, new[] { new CustomObject(), new CustomObject() }),
-                    encoded: Array(Map(), HubProtocolConstants.StreamInvocationMessageType, "xyz", "method", Array(CustomObjectSerialized, CustomObjectSerialized)),
-                    binary: "lYAEo3h5eqZtZXRob2SShqtCeXRlQXJyUHJvcMQDAQIDrERhdGVUaW1lUHJvcNMI1IBtsnbAAKpEb3VibGVQcm9wy0AZIftUQs8Sp0ludFByb3AqqE51bGxQcm9wwKpTdHJpbmdQcm9wqFNpZ25hbFIhhqtCeXRlQXJyUHJvcMQDAQIDrERhdGVUaW1lUHJvcNMI1IBtsnbAAKpEb3VibGVQcm9wy0AZIftUQs8Sp0ludFByb3AqqE51bGxQcm9wwKpTdHJpbmdQcm9wqFNpZ25hbFIh"),
+                    encoded: Array(HubProtocolConstants.StreamInvocationMessageType, Map(), "xyz", "method", Array(CustomObjectSerialized, CustomObjectSerialized)),
+                    binary: "lQSAo3h5eqZtZXRob2SShqtCeXRlQXJyUHJvcMQDAQIDrERhdGVUaW1lUHJvcNMI1IBtsnbAAKpEb3VibGVQcm9wy0AZIftUQs8Sp0ludFByb3AqqE51bGxQcm9wwKpTdHJpbmdQcm9wqFNpZ25hbFIhhqtCeXRlQXJyUHJvcMQDAQIDrERhdGVUaW1lUHJvcNMI1IBtsnbAAKpEb3VibGVQcm9wy0AZIftUQs8Sp0ludFByb3AqqE51bGxQcm9wwKpTdHJpbmdQcm9wqFNpZ25hbFIh"),
             },
             new object[] {
                 new ProtocolTestData(
                     name: "StreamInvocationWithHeadersAndCustomObjectArrayArg",
-                    message: new StreamInvocationMessage(invocationId: "xyz", target: "method", argumentBindingException: null, new[] { new CustomObject(), new CustomObject() }) { Headers = TestHeaders },
-                    encoded: Array(TestHeadersSerialized, HubProtocolConstants.StreamInvocationMessageType, "xyz", "method", Array(CustomObjectSerialized, CustomObjectSerialized)),
-                    binary: "lYOjRm9vo0JhcrJLZXlXaXRoCk5ldw0KTGluZXOrU3RpbGwgV29ya3OxVmFsdWVXaXRoTmV3TGluZXOwQWxzbwpXb3Jrcw0KRmluZQSjeHl6pm1ldGhvZJKGq0J5dGVBcnJQcm9wxAMBAgOsRGF0ZVRpbWVQcm9w0wjUgG2ydsAAqkRvdWJsZVByb3DLQBkh+1RCzxKnSW50UHJvcCqoTnVsbFByb3DAqlN0cmluZ1Byb3CoU2lnbmFsUiGGq0J5dGVBcnJQcm9wxAMBAgOsRGF0ZVRpbWVQcm9w0wjUgG2ydsAAqkRvdWJsZVByb3DLQBkh+1RCzxKnSW50UHJvcCqoTnVsbFByb3DAqlN0cmluZ1Byb3CoU2lnbmFsUiE="),
+                    message: AddHeaders(TestHeaders, new StreamInvocationMessage(invocationId: "xyz", target: "method", argumentBindingException: null, new[] { new CustomObject(), new CustomObject() })),
+                    encoded: Array(HubProtocolConstants.StreamInvocationMessageType, TestHeadersSerialized, "xyz", "method", Array(CustomObjectSerialized, CustomObjectSerialized)),
+                    binary: "lQSDo0Zvb6NCYXKyS2V5V2l0aApOZXcNCkxpbmVzq1N0aWxsIFdvcmtzsVZhbHVlV2l0aE5ld0xpbmVzsEFsc28KV29ya3MNCkZpbmWjeHl6pm1ldGhvZJKGq0J5dGVBcnJQcm9wxAMBAgOsRGF0ZVRpbWVQcm9w0wjUgG2ydsAAqkRvdWJsZVByb3DLQBkh+1RCzxKnSW50UHJvcCqoTnVsbFByb3DAqlN0cmluZ1Byb3CoU2lnbmFsUiGGq0J5dGVBcnJQcm9wxAMBAgOsRGF0ZVRpbWVQcm9w0wjUgG2ydsAAqkRvdWJsZVByb3DLQBkh+1RCzxKnSW50UHJvcCqoTnVsbFByb3DAqlN0cmluZ1Byb3CoU2lnbmFsUiE="),
             },
 
             // CancelInvocation Messages
@@ -316,15 +316,15 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                 new ProtocolTestData(
                     name: "CancelInvocationWithNoHeaders",
                     message: new CancelInvocationMessage(invocationId: "xyz"),
-                    encoded: Array(Map(), HubProtocolConstants.CancelInvocationMessageType, "xyz"),
-                    binary: "k4AFo3h5eg=="),
+                    encoded: Array(HubProtocolConstants.CancelInvocationMessageType, Map(), "xyz"),
+                    binary: "kwWAo3h5eg=="),
             },
             new object[] {
                 new ProtocolTestData(
                     name: "CancelInvocationWithHeaders",
-                    message: new CancelInvocationMessage(invocationId: "xyz") { Headers = TestHeaders },
-                    encoded: Array(TestHeadersSerialized, HubProtocolConstants.CancelInvocationMessageType, "xyz"),
-                    binary: "k4OjRm9vo0JhcrJLZXlXaXRoCk5ldw0KTGluZXOrU3RpbGwgV29ya3OxVmFsdWVXaXRoTmV3TGluZXOwQWxzbwpXb3Jrcw0KRmluZQWjeHl6"),
+                    message: AddHeaders(TestHeaders, new CancelInvocationMessage(invocationId: "xyz")),
+                    encoded: Array(HubProtocolConstants.CancelInvocationMessageType, TestHeadersSerialized, "xyz"),
+                    binary: "kwWDo0Zvb6NCYXKyS2V5V2l0aApOZXcNCkxpbmVzq1N0aWxsIFdvcmtzsVZhbHVlV2l0aE5ld0xpbmVzsEFsc28KV29ya3MNCkZpbmWjeHl6"),
             },
 
             // Ping Messages
@@ -332,8 +332,8 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                 new ProtocolTestData(
                     name: "Ping",
                     message: new PingMessage(),
-                    encoded: Array(Map(), HubProtocolConstants.PingMessageType),
-                    binary: "koAG"),
+                    encoded: Array(HubProtocolConstants.PingMessageType),
+                    binary: "kQY="),
             },
         };
 
