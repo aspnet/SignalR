@@ -58,7 +58,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 })
                 .UseStartup(typeof(TStartup))
                 .UseKestrel()
-
                 // We're using 127.0.0.1 instead of localhost to ensure that we use IPV4 across different OSes
                 .UseUrls("http://127.0.0.1:0")
                 .UseContentRoot(Directory.GetCurrentDirectory())
