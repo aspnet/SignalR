@@ -92,6 +92,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
             await socket.CloseOutputAsync(failed ? WebSocketCloseStatus.InternalServerError : WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
 
             var resultTask = await Task.WhenAny(task, Task.Delay(_options.CloseTimeout));
+
             if (resultTask != task)
             {
                 _logger.CloseTimedOut();
