@@ -3,125 +3,180 @@
 
 using System;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Microsoft.AspNetCore.SignalR.Client.Tests
 {
     public partial class HttpConnectionTests
     {
         // Nested class for grouping
-        public class AbortAsync
+        public class AbortAsync : LoggedTest
         {
+            public AbortAsync(ITestOutputHelper output) : base(output)
+            {
+            }
+
             [Fact]
             public Task AbortAsyncTriggersClosedEventWithException()
             {
-                return WithConnectionAsync(CreateConnection(), async (connection, closed) =>
+                using (StartLog(out var loggerFactory))
                 {
-                    // Start the connection
-                    await connection.StartAsync().OrTimeout();
+                    return WithConnectionAsync(CreateConnection(loggerFactory: loggerFactory), async (connection, closed) =>
+                    {
+                        var logger = loggerFactory.CreateLogger<AbortAsync>();
 
-                    // Abort with an error
-                    var expected = new Exception("Ruh roh!");
-                    await connection.AbortAsync(expected).OrTimeout();
+                        // Start the connection
+                        logger.LogInformation("Starting connection");
+                        await connection.StartAsync().OrTimeout();
+                        logger.LogInformation("Started connection");
 
-                    // Verify that it is thrown
-                    var actual = await Assert.ThrowsAsync<Exception>(async () => await closed.OrTimeout());
-                    Assert.Same(expected, actual);
-                });
+                        // Abort with an error
+                        logger.LogInformation("Aborting connection");
+                        var expected = new Exception("Ruh roh!");
+                        await connection.AbortAsync(expected).OrTimeout();
+                        logger.LogInformation("Aborted connection");
+
+                        // Verify that it is thrown
+                        logger.LogInformation("Verifying that closed throws the exception from Abort");
+                        var actual = await Assert.ThrowsAsync<Exception>(async () => await closed.OrTimeout());
+                        Assert.Same(expected, actual);
+                    });
+                }
             }
 
             [Fact]
             public Task AbortAsyncWhileStoppingTriggersClosedEventWithException()
             {
-                return WithConnectionAsync(CreateConnection(transport: new TestTransport(onTransportStop: SyncPoint.Create(2, out var syncPoints))), async (connection, closed) =>
+                using (StartLog(out var loggerFactory))
                 {
-                    // Start the connection
-                    await connection.StartAsync().OrTimeout();
+                    return WithConnectionAsync(CreateConnection(loggerFactory: loggerFactory, transport: new TestTransport(onTransportStop: SyncPoint.Create(2, out var syncPoints))), async (connection, closed) =>
+                    {
+                        var logger = loggerFactory.CreateLogger<AbortAsync>();
 
-                    // Stop normally
-                    var stopTask = connection.StopAsync().OrTimeout();
+                        // Start the connection
+                        logger.LogInformation("Starting connection");
+                        await connection.StartAsync().OrTimeout();
+                        logger.LogInformation("Started connection");
 
-                    // Wait to reach the first sync point
-                    await syncPoints[0].WaitForSyncPoint().OrTimeout();
+                        // Stop normally
+                        logger.LogInformation("Stopping connection");
+                        var stopTask = connection.StopAsync().OrTimeout();
 
-                    // Abort with an error
-                    var expected = new Exception("Ruh roh!");
-                    var abortTask = connection.AbortAsync(expected).OrTimeout();
+                        // Wait to reach the first sync point
+                        logger.LogInformation("Waiting for transport to shut down");
+                        await syncPoints[0].WaitForSyncPoint().OrTimeout();
+                        logger.LogInformation("Transport is now shutting down");
 
-                    // Wait for the sync point to hit again
-                    await syncPoints[1].WaitForSyncPoint().OrTimeout();
+                        // Abort with an error
+                        logger.LogInformation("Aborting connection");
+                        var expected = new Exception("Ruh roh!");
+                        var abortTask = connection.AbortAsync(expected).OrTimeout();
 
-                    // Release sync point 0
-                    syncPoints[0].Continue();
+                        // Wait for the sync point to hit again
+                        logger.LogInformation("Waiting for transport to shut down (again)");
+                        await syncPoints[1].WaitForSyncPoint().OrTimeout();
+                        logger.LogInformation("Transport is now shutting down (again)");
 
-                    // We should close with the error from Abort (because it was set by the call to Abort even though Stop triggered the close)
-                    var actual = await Assert.ThrowsAsync<Exception>(async () => await closed.OrTimeout());
-                    Assert.Same(expected, actual);
+                        // Release sync point 0
+                        syncPoints[0].Continue();
 
-                    // Clean-up
-                    syncPoints[1].Continue();
-                    await Task.WhenAll(stopTask, abortTask).OrTimeout();
-                });
+                        logger.LogInformation("Verifying that closed throws the exception from Abort");
+                        var actual = await Assert.ThrowsAsync<Exception>(async () => await closed.OrTimeout());
+                        Assert.Same(expected, actual);
+
+                        logger.LogInformation("Cleaning up");
+                        syncPoints[1].Continue();
+                        await Task.WhenAll(stopTask, abortTask).OrTimeout();
+                    });
+                }
             }
 
             [Fact]
             public Task StopAsyncWhileAbortingTriggersClosedEventWithoutException()
             {
-                return WithConnectionAsync(CreateConnection(transport: new TestTransport(onTransportStop: SyncPoint.Create(2, out var syncPoints))), async (connection, closed) =>
+                using (StartLog(out var loggerFactory))
                 {
-                    // Start the connection
-                    await connection.StartAsync().OrTimeout();
+                    return WithConnectionAsync(CreateConnection(loggerFactory: loggerFactory, transport: new TestTransport(onTransportStop: SyncPoint.Create(2, out var syncPoints))), async (connection, closed) =>
+                    {
+                        var logger = loggerFactory.CreateLogger<AbortAsync>();
 
-                    // Abort with an error
-                    var expected = new Exception("Ruh roh!");
-                    var abortTask = connection.AbortAsync(expected).OrTimeout();
+                        logger.LogInformation("Starting connection");
+                        await connection.StartAsync().OrTimeout();
+                        logger.LogInformation("Started connection");
 
-                    // Wait to reach the first sync point
-                    await syncPoints[0].WaitForSyncPoint().OrTimeout();
+                        logger.LogInformation("Aborting connection");
+                        var expected = new Exception("Ruh roh!");
+                        var abortTask = connection.AbortAsync(expected).OrTimeout();
 
-                    // Stop normally, without a sync point.
-                    // This should clear the exception, meaning Closed will not "throw"
-                    syncPoints[1].Continue();
-                    await connection.StopAsync();
-                    await closed.OrTimeout();
+                        logger.LogInformation("Waiting for transport to shut down");
+                        await syncPoints[0].WaitForSyncPoint().OrTimeout();
+                        logger.LogInformation("Transport is now shutting down");
 
-                    // Clean-up
-                    syncPoints[0].Continue();
-                    await abortTask.OrTimeout();
-                });
+                        // Stop normally, without a sync point.
+                        syncPoints[1].Continue();
+
+                        logger.LogInformation("Stopping gracefully");
+                        await connection.StopAsync();
+                        logger.LogInformation("Verifying closed event does not throw");
+                        await closed.OrTimeout();
+
+                        logger.LogInformation("Cleaning up");
+                        syncPoints[0].Continue();
+                        await abortTask.OrTimeout();
+                    });
+                }
             }
 
             [Fact]
             public Task StartAsyncCannotBeCalledWhileAbortAsyncInProgress()
             {
-                return WithConnectionAsync(CreateConnection(transport: new TestTransport(onTransportStop: SyncPoint.Create(out var syncPoint))), async (connection, closed) =>
+                using (StartLog(out var loggerFactory))
                 {
-                    // Start the connection
-                    await connection.StartAsync().OrTimeout();
+                    return WithConnectionAsync(CreateConnection(loggerFactory: loggerFactory, transport: new TestTransport(onTransportStop: SyncPoint.Create(out var syncPoint))), async (connection, closed) =>
+                    {
+                        var logger = loggerFactory.CreateLogger<AbortAsync>();
 
-                    // Abort with an error
-                    var expected = new Exception("Ruh roh!");
-                    var abortTask = connection.AbortAsync(expected).OrTimeout();
+                        // Start the connection
+                        logger.LogInformation("Starting connection");
+                        await connection.StartAsync().OrTimeout();
+                        logger.LogInformation("Started connection");
 
-                    // Wait to reach the first sync point
-                    await syncPoint.WaitForSyncPoint().OrTimeout();
+                        // Abort with an error
+                        var expected = new Exception("Ruh roh!");
+                        logger.LogInformation("Aborting connection");
+                        var abortTask = connection.AbortAsync(expected).OrTimeout();
 
-                    var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => connection.StartAsync().OrTimeout());
-                    Assert.Equal("Cannot start a connection that is not in the Disconnected state.", ex.Message);
+                        // Wait to reach the first sync point
+                        logger.LogInformation("Waiting for transport to shut down");
+                        await syncPoint.WaitForSyncPoint().OrTimeout();
+                        logger.LogInformation("Transport is now shutting down");
 
-                    // Release the sync point and wait for close to complete
-                    // (it will throw the abort exception)
-                    syncPoint.Continue();
-                    await abortTask.OrTimeout();
-                    var actual = await Assert.ThrowsAsync<Exception>(() => closed.OrTimeout());
-                    Assert.Same(expected, actual);
+                        logger.LogInformation("Verifying that start throws");
+                        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => connection.StartAsync().OrTimeout());
+                        Assert.Equal("Cannot start a connection that is not in the Disconnected state.", ex.Message);
+                        logger.LogInformation("Verified that start throws");
 
-                    // We can start now
-                    await connection.StartAsync().OrTimeout();
+                        // Release the sync point and wait for close to complete
+                        // (it will throw the abort exception)
+                        logger.LogInformation("Allowing Abort to continue");
+                        syncPoint.Continue();
+                        await abortTask.OrTimeout();
+                        logger.LogInformation("Abort completed");
 
-                    // And we can stop without getting the abort exception.
-                    await connection.StopAsync().OrTimeout();
-                });
+                        logger.LogInformation("Verified that abort exception was given to Closed handler");
+                        var actual = await Assert.ThrowsAsync<Exception>(() => closed.OrTimeout());
+                        Assert.Same(expected, actual);
+
+                        logger.LogInformation("Verifying that connection can be started again after Abort completes");
+                        await connection.StartAsync().OrTimeout();
+
+                        logger.LogInformation("Verifying that we can stop without getting the abort exception");
+                        await connection.StopAsync().OrTimeout();
+                    });
+                }
             }
         }
     }

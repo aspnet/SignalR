@@ -100,7 +100,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
             private async Task RunInvalidNegotiateResponseTest<TException>(string negotiatePayload, string expectedExceptionMessage, ILoggerFactory loggerFactory) where TException : Exception
             {
-                var testHttpHandler = new TestHttpMessageHandler(autoNegotiate: false, loggerFactory);
+                var testHttpHandler = new TestHttpMessageHandler(autoNegotiate: false, loggerFactory.CreateLogger<TestHttpMessageHandler>());
+                var logger = loggerFactory.CreateLogger<Negotiate>();
 
                 testHttpHandler.OnNegotiate((_, cancellationToken) => ResponseUtils.CreateResponse(HttpStatusCode.OK, negotiatePayload));
 
