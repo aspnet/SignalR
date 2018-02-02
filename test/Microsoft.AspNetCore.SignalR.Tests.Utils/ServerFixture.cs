@@ -3,12 +3,14 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -38,10 +40,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             _logToken = testLog.StartTestLog(null, $"{nameof(ServerFixture<TStartup>)}_{typeof(TStartup).Name}", out _loggerFactory, "ServerFixture");
             _loggerFactory.AddProvider(_asyncLoggerProvider);
             _logger = _loggerFactory.CreateLogger<ServerFixture<TStartup>>();
-            // We're using 127.0.0.1 instead of localhost to ensure that we use IPV4 across different OSes
-            Url = "http://127.0.0.1:" + GetNextPort();
 
-            StartServer(Url);
+            StartServer();
         }
 
         public void SetTestLoggerFactory(ILoggerFactory loggerFactory)
@@ -49,18 +49,18 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             _asyncLoggerProvider.SetLoggerFactory(loggerFactory);
         }
 
-        private void StartServer(string url)
+        private void StartServer()
         {
-            var sink = new TestSink();
             _host = new WebHostBuilder()
                 .ConfigureLogging(builder =>
                 {
                     builder.AddProvider(new ForwardingLoggerProvider(_loggerFactory));
-                    builder.AddProvider(new TestSinkLoggerProvider(sink));
                 })
                 .UseStartup(typeof(TStartup))
                 .UseKestrel()
-                .UseUrls(url)
+
+                // We're using 127.0.0.1 instead of localhost to ensure that we use IPV4 across different OSes
+                .UseUrls("http://127.0.0.1:0")
                 .UseContentRoot(Directory.GetCurrentDirectory())
                 .Build();
 
@@ -74,29 +74,17 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 {
                     throw t.Exception.InnerException;
                 }
-                throw new TimeoutException($"Timed out waiting for application to start. Startup Logs:{Environment.NewLine}{RenderLogs(sink)}");
+                throw new TimeoutException($"Timed out waiting for application to start.");
             }
-            _logger.LogInformation("Test Server started");
+
+            Url = _host.ServerFeatures.Get<IServerAddressesFeature>().Addresses.Single();
+            _logger.LogInformation("Test Server started at: {Address}", Url);
 
             _lifetime.ApplicationStopped.Register(() =>
             {
                 _logger.LogInformation("Test server shut down");
                 _logToken.Dispose();
             });
-        }
-
-        private string RenderLogs(TestSink sink)
-        {
-            var builder = new StringBuilder();
-            foreach(var write in sink.Writes)
-            {
-                builder.AppendLine($"{write.LoggerName} {write.LogLevel}: {write.Formatter(write.State, write.Exception)}");
-                if(write.Exception != null)
-                {
-                    builder.AppendLine(write.Exception.ToString());
-                }
-            }
-            return builder.ToString();
         }
 
         public void Dispose()
