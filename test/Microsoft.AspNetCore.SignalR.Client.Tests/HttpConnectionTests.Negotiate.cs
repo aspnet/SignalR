@@ -5,34 +5,49 @@ using System;
 using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Client.Tests;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 using Xunit;
-
+using Xunit.Abstractions;
 using TransportType = Microsoft.AspNetCore.Sockets.TransportType;
 
 namespace Microsoft.AspNetCore.SignalR.Client.Tests
 {
     public partial class HttpConnectionTests
     {
-        public class Negotiate
+        public class Negotiate : LoggedTest
         {
+            public Negotiate(ITestOutputHelper output) : base(output)
+            {
+            }
+
             [Theory]
             [InlineData("")]
             [InlineData("Not Json")]
             public Task StartThrowsFormatExceptionIfNegotiationResponseIsInvalid(string negotiatePayload)
             {
-                return RunInvalidNegotiateResponseTest<FormatException>(negotiatePayload, "Invalid negotiation response received.");
+                using (StartLog(out var loggerFactory))
+                {
+                    return RunInvalidNegotiateResponseTest<FormatException>(negotiatePayload, "Invalid negotiation response received.", loggerFactory);
+                }
             }
 
             [Fact]
             public Task StartThrowsFormatExceptionIfNegotiationResponseHasNoConnectionId()
             {
-                return RunInvalidNegotiateResponseTest<FormatException>(ResponseUtils.CreateNegotiationContent(connectionId: null), "Invalid connection id returned in negotiation response.");
+                using (StartLog(out var loggerFactory))
+                {
+                    return RunInvalidNegotiateResponseTest<FormatException>(ResponseUtils.CreateNegotiationContent(connectionId: null), "Invalid connection id returned in negotiation response.", loggerFactory);
+                }
             }
 
             [Fact]
             public Task StartThrowsFormatExceptionIfNegotiationResponseHasNoTransports()
             {
-                return RunInvalidNegotiateResponseTest<FormatException>(ResponseUtils.CreateNegotiationContent(transportTypes: null), "No transports returned in negotiation response.");
+                using (StartLog(out var loggerFactory))
+                {
+                    return RunInvalidNegotiateResponseTest<FormatException>(ResponseUtils.CreateNegotiationContent(transportTypes: null), "No transports returned in negotiation response.", loggerFactory);
+                }
             }
 
             [Theory]
@@ -40,7 +55,10 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             [InlineData(TransportType.ServerSentEvents)]
             public Task ConnectionCannotBeStartedIfNoCommonTransportsBetweenClientAndServer(TransportType serverTransports)
             {
-                return RunInvalidNegotiateResponseTest<InvalidOperationException>(ResponseUtils.CreateNegotiationContent(transportTypes: serverTransports), "No requested transports available on the server.");
+                using (StartLog(out var loggerFactory))
+                {
+                    return RunInvalidNegotiateResponseTest<InvalidOperationException>(ResponseUtils.CreateNegotiationContent(transportTypes: serverTransports), "No requested transports available on the server.", loggerFactory);
+                }
             }
 
             [Theory]
@@ -52,30 +70,37 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             [InlineData("http://fakeuri.org/endpoint?q=1/0", "http://fakeuri.org/endpoint/negotiate?q=1/0")]
             public async Task CorrectlyHandlesQueryStringWhenAppendingNegotiateToUrl(string requestedUrl, string expectedNegotiate)
             {
-                var testHttpHandler = new TestHttpMessageHandler(autoNegotiate: false);
-
-                var negotiateUrlTcs = new TaskCompletionSource<string>();
-                testHttpHandler.OnLongPoll(cancellationToken => ResponseUtils.CreateResponse(HttpStatusCode.NoContent));
-                testHttpHandler.OnNegotiate((request, cancellationToken) =>
+                using (StartLog(out var loggerFactory, $"{nameof(CorrectlyHandlesQueryStringWhenAppendingNegotiateToUrl)}_Length_{requestedUrl.Length}"))
                 {
-                    negotiateUrlTcs.TrySetResult(request.RequestUri.ToString());
-                    return ResponseUtils.CreateResponse(HttpStatusCode.OK,
-                        ResponseUtils.CreateNegotiationContent());
-                });
+                    var logger = loggerFactory.CreateLogger<Negotiate>();
+                    var testHttpHandler = new TestHttpMessageHandler(autoNegotiate: false, loggerFactory.CreateLogger<TestHttpMessageHandler>());
 
-                await WithConnectionAsync(
-                    CreateConnection(testHttpHandler, url: requestedUrl),
-                    async (connection, closed) =>
+                    var negotiateUrlTcs = new TaskCompletionSource<string>();
+                    testHttpHandler.OnLongPoll(cancellationToken => ResponseUtils.CreateResponse(HttpStatusCode.NoContent));
+                    testHttpHandler.OnNegotiate((request, cancellationToken) =>
                     {
-                        await connection.StartAsync().OrTimeout();
+                        logger.LogInformation("Received negotiate request at URL: {Url}", request.RequestUri);
+                        negotiateUrlTcs.TrySetResult(request.RequestUri.ToString());
+                        return ResponseUtils.CreateResponse(HttpStatusCode.OK,
+                            ResponseUtils.CreateNegotiationContent());
                     });
 
-                Assert.Equal(expectedNegotiate, await negotiateUrlTcs.Task.OrTimeout());
+                    await WithConnectionAsync(
+                        CreateConnection(testHttpHandler, url: requestedUrl, loggerFactory: loggerFactory),
+                        async (connection, closed) =>
+                        {
+                            logger.LogInformation("Starting connection");
+                            await connection.StartAsync().OrTimeout();
+                            logger.LogInformation("Connection started");
+                        });
+
+                    Assert.Equal(expectedNegotiate, await negotiateUrlTcs.Task.OrTimeout());
+                }
             }
 
-            private async Task RunInvalidNegotiateResponseTest<TException>(string negotiatePayload, string expectedExceptionMessage) where TException : Exception
+            private async Task RunInvalidNegotiateResponseTest<TException>(string negotiatePayload, string expectedExceptionMessage, ILoggerFactory loggerFactory) where TException : Exception
             {
-                var testHttpHandler = new TestHttpMessageHandler(autoNegotiate: false);
+                var testHttpHandler = new TestHttpMessageHandler(autoNegotiate: false, loggerFactory);
 
                 testHttpHandler.OnNegotiate((_, cancellationToken) => ResponseUtils.CreateResponse(HttpStatusCode.OK, negotiatePayload));
 
@@ -83,8 +108,10 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     CreateConnection(testHttpHandler),
                     async (connection, closed) =>
                     {
+                        logger.LogInformation("Starting connection");
                         var exception = await Assert.ThrowsAsync<TException>(
                             () => connection.StartAsync().OrTimeout());
+                        logger.LogInformation("Connection started");
 
                         Assert.Equal(expectedExceptionMessage, exception.Message);
                     });
