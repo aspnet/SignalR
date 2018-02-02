@@ -20,11 +20,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             }
 
             [Fact]
-            public Task AbortAsyncTriggersClosedEventWithException()
+            public async Task AbortAsyncTriggersClosedEventWithException()
             {
                 using (StartLog(out var loggerFactory))
                 {
-                    return WithConnectionAsync(CreateConnection(loggerFactory: loggerFactory), async (connection, closed) =>
+                    await WithConnectionAsync(CreateConnection(loggerFactory: loggerFactory), async (connection, closed) =>
                     {
                         var logger = loggerFactory.CreateLogger<AbortAsync>();
 
@@ -48,11 +48,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             }
 
             [Fact]
-            public Task AbortAsyncWhileStoppingTriggersClosedEventWithException()
+            public async Task AbortAsyncWhileStoppingTriggersClosedEventWithException()
             {
                 using (StartLog(out var loggerFactory))
                 {
-                    return WithConnectionAsync(CreateConnection(loggerFactory: loggerFactory, transport: new TestTransport(onTransportStop: SyncPoint.Create(2, out var syncPoints))), async (connection, closed) =>
+                    await WithConnectionAsync(CreateConnection(loggerFactory: loggerFactory, transport: new TestTransport(onTransportStop: SyncPoint.Create(2, out var syncPoints))), async (connection, closed) =>
                     {
                         var logger = loggerFactory.CreateLogger<AbortAsync>();
 
@@ -95,11 +95,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             }
 
             [Fact]
-            public Task StopAsyncWhileAbortingTriggersClosedEventWithoutException()
+            public async Task StopAsyncWhileAbortingTriggersClosedEventWithoutException()
             {
                 using (StartLog(out var loggerFactory))
                 {
-                    return WithConnectionAsync(CreateConnection(loggerFactory: loggerFactory, transport: new TestTransport(onTransportStop: SyncPoint.Create(2, out var syncPoints))), async (connection, closed) =>
+                    await WithConnectionAsync(CreateConnection(loggerFactory: loggerFactory, transport: new TestTransport(onTransportStop: SyncPoint.Create(2, out var syncPoints))), async (connection, closed) =>
                     {
                         var logger = loggerFactory.CreateLogger<AbortAsync>();
 
@@ -131,11 +131,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             }
 
             [Fact]
-            public Task StartAsyncCannotBeCalledWhileAbortAsyncInProgress()
+            public async Task StartAsyncCannotBeCalledWhileAbortAsyncInProgress()
             {
                 using (StartLog(out var loggerFactory))
                 {
-                    return WithConnectionAsync(CreateConnection(loggerFactory: loggerFactory, transport: new TestTransport(onTransportStop: SyncPoint.Create(out var syncPoint))), async (connection, closed) =>
+                    await WithConnectionAsync(CreateConnection(loggerFactory: loggerFactory, transport: new TestTransport(onTransportStop: SyncPoint.Create(out var syncPoint))), async (connection, closed) =>
                     {
                         var logger = loggerFactory.CreateLogger<AbortAsync>();
 
