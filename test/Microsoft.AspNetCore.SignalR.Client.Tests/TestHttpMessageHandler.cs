@@ -4,14 +4,22 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Client.Tests;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Microsoft.AspNetCore.SignalR.Client.Tests
 {
     public class TestHttpMessageHandler : HttpMessageHandler
     {
         private Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> _handler;
+        private readonly ILogger _logger;
 
         public TestHttpMessageHandler(bool autoNegotiate = true)
+            : this(autoNegotiate, NullLogger.Instance)
+        {
+        }
+
+        public TestHttpMessageHandler(bool autoNegotiate, ILogger logger)
         {
             _handler = (request, cancellationToken) => BaseHandler(request, cancellationToken);
 
@@ -19,18 +27,34 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 OnNegotiate((_, cancellationToken) => ResponseUtils.CreateResponse(HttpStatusCode.OK, ResponseUtils.CreateNegotiationContent()));
             }
+
+            _logger = logger;
         }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             await Task.Yield();
 
-            return await _handler(request, cancellationToken);
+            _logger.LogDebug("Received {Method} request to {Url} with Content Type '{ContentType}' and Content Length '{ContentLength}'",
+                request.Method.ToString(), request.RequestUri.ToString(), request.Content?.Headers?.ContentType?.ToString() ?? "<none>", request.Content?.Headers?.ContentLength ?? 0);
+
+            try
+            {
+                var response = await _handler(request, cancellationToken);
+                _logger.LogDebug("Sending {StatusCode} {StatusDescription} response with Content Type '{ContentType}' and Content Length '{ContentLength}'",
+                    (int)response.StatusCode, response.ReasonPhrase, response.Content?.Headers?.ContentType?.ToString() ?? "<none>", response.Content?.Headers?.ContentLength ?? 0);
+
+                return response;
+            } catch(Exception ex)
+            {
+                _logger.LogError(ex, "Error in HTTP request");
+                throw;
+            }
         }
 
-        public static HttpMessageHandler CreateDefault()
+        public static HttpMessageHandler CreateDefault(ILogger logger = null)
         {
-            var testHttpMessageHandler = new TestHttpMessageHandler();
+            var testHttpMessageHandler = new TestHttpMessageHandler(autoNegotiate: true, logger ?? NullLogger.Instance);
 
             testHttpMessageHandler.OnSocketSend((_, __) => ResponseUtils.CreateResponse(HttpStatusCode.Accepted));
             testHttpMessageHandler.OnLongPoll(async cancellationToken =>
