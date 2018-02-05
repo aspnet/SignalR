@@ -61,7 +61,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             var t = Task.Run(() => _host.Start());
             _logger.LogInformation("Starting test server...");
             _lifetime = _host.Services.GetRequiredService<IApplicationLifetime>();
-            if (!_lifetime.ApplicationStarted.WaitHandle.WaitOne(TimeSpan.FromSeconds(5)))
+
+            // This only happens once per fixture, so we can afford to wait a little bit on it.
+            if (!_lifetime.ApplicationStarted.WaitHandle.WaitOne(TimeSpan.FromSeconds(20)))
             {
                 // t probably faulted
                 if (t.IsFaulted)
