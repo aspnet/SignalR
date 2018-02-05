@@ -18,7 +18,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             services.AddEndPoint<EchoEndPoint>();
         }
 
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILogger<Startup> logger)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
             app.UseSockets(options => options.MapEndPoint<EchoEndPoint>("/echo"));
             app.UseSignalR(options => options.MapHub<UncreatableHub>("/uncreatable"));

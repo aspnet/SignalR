@@ -144,7 +144,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
             public void Dispose()
             {
-                throw new NotImplementedException();
             }
 
             public IList<LogRecord> GetLogs() => _logs.ToList();
