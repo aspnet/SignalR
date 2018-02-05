@@ -91,6 +91,27 @@ namespace Microsoft.AspNetCore.Sockets.Client
             }).Unwrap();
         }
 
+        public async Task StartAsyncWithRetries(Uri url, Channel<byte[], SendMessage> application, TransferMode requestedTransferMode, IConnection connection)
+        {
+            var retries = 0;
+            while (retries < 5)
+            {
+                try
+                {
+                    await StartAsync(url, application, requestedTransferMode, connection);
+                    break;
+                }
+                catch (WebSocketException )
+                {
+                    if (retries < 5)
+                    {
+                        retries++;
+                    }
+                    else throw;
+                }
+            }
+        }
+
         private async Task ReceiveMessages(Uri pollUrl)
         {
             _logger.StartReceive();

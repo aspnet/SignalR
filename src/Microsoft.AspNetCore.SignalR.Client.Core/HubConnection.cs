@@ -19,6 +19,7 @@ using Microsoft.AspNetCore.Sockets.Features;
 using Microsoft.AspNetCore.Sockets.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Net.WebSockets;
 
 namespace Microsoft.AspNetCore.SignalR.Client
 {
@@ -84,6 +85,28 @@ namespace Microsoft.AspNetCore.SignalR.Client
             finally
             {
                 _startCalled = true;
+            }
+        }
+
+        public async Task StartAsyncWithRetries()
+        {
+            var attmepts = 0;
+            while (attmepts < 5)
+            {
+                try
+                {
+                    await StartAsync();
+                    break;
+                }
+                catch (WebSocketException)
+                {
+                    if (attmepts < 5)
+                    {
+                        attmepts++;
+                        continue;
+                    }
+                    else throw;
+                }
             }
         }
 
