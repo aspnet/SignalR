@@ -51,7 +51,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             var url = "http://127.0.0.1:0";
 
             _host = new WebHostBuilder()
-                .ConfigureLogging(builder => builder.AddProvider(_logSinkProvider))
+                .ConfigureLogging(builder => builder
+                    .AddProvider(_logSinkProvider)
+                    .AddProvider(new ForwardingLoggerProvider(_loggerFactory)))
                 .UseStartup(typeof(TStartup))
                 .UseKestrel()
                 .UseUrls(url)
@@ -109,6 +111,25 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             _logger.LogInformation("Shutting down test server");
             _host.Dispose();
             _loggerFactory.Dispose();
+        }
+
+        private class ForwardingLoggerProvider : ILoggerProvider
+        {
+            private readonly ILoggerFactory _loggerFactory;
+
+            public ForwardingLoggerProvider(ILoggerFactory loggerFactory)
+            {
+                _loggerFactory = loggerFactory;
+            }
+
+            public void Dispose()
+            {
+            }
+
+            public ILogger CreateLogger(string categoryName)
+            {
+                return _loggerFactory.CreateLogger(categoryName);
+            }
         }
 
         // TestSink doesn't seem to be thread-safe :(.
