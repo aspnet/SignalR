@@ -39,7 +39,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
             var testLog = AssemblyTestLog.ForAssembly(typeof(TStartup).Assembly);
             _logToken = testLog.StartTestLog(null, $"{nameof(ServerFixture<TStartup>)}_{typeof(TStartup).Name}", out _loggerFactory, "ServerFixture");
-            _loggerFactory.AddProvider(_logSinkProvider);
             _logger = _loggerFactory.CreateLogger<ServerFixture<TStartup>>();
 
             StartServer();
@@ -74,7 +73,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 }
 
                 var logs = _logSinkProvider.GetLogs();
-                throw new TimeoutException($"Timed out waiting for application to start. {Environment.NewLine}Startup Logs:{Environment.NewLine}{RenderLogs(logs)}");
+                throw new TimeoutException($"Timed out waiting for application to start.{Environment.NewLine}Startup Logs:{Environment.NewLine}{RenderLogs(logs)}");
             }
             _logger.LogInformation("Test Server started");
 
