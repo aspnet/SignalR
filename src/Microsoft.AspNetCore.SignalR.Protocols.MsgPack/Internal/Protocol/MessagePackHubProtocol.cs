@@ -176,7 +176,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 // If headerCount is larger than int.MaxValue, things are going to go horribly wrong anyway :)
                 var headers = new Dictionary<string, string>((int)headerCount);
 
-                for (var i = 0; i < headerCount; i += 1)
+                for (var i = 0; i < headerCount; i++)
                 {
                     var key = ReadString(unpacker, $"headers[{i}].Key");
                     var value = ReadString(unpacker, $"headers[{i}].Value");
