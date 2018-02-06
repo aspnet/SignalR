@@ -90,6 +90,9 @@ namespace Microsoft.AspNetCore.Client.Tests
                     await longPollingTransport.StopAsync();
                 }
             }
+
+            // TODO: Just to verify that I'm right, will remove before merge.
+            Assert.False(true, "Boom");
         }
 
         [Fact]
