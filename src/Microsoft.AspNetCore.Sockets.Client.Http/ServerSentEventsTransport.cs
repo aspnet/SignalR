@@ -82,7 +82,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
             var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
-            using (var stream = await response.Content.ReadAsStreamAsync())
+            var stream = await response.Content.ReadAsStreamAsync();
             {
                 var pipelineReader = StreamPipeConnection.CreateReader(PipeOptions.Default, stream);
                 var readCancellationRegistration = cancellationToken.Register(
