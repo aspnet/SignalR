@@ -10,6 +10,7 @@ branches:
     - /^rel\/.*/
 build_script:
   - ps: .\run.ps1 default-build
+after_build:
   - ps: "7z a testlogs.zip testlogs"
 artifacts:
   - path: testlogs.zip
