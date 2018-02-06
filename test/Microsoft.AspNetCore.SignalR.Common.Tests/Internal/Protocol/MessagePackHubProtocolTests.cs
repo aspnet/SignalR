@@ -341,20 +341,18 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         [MemberData(nameof(TestData))]
         public void ParseMessages(ProtocolTestData testData)
         {
-            var bytes = Frame(testData.Encoded);
+            // Verify that the input binary string decodes to the expected MsgPack primitives
+            var bytes = Convert.FromBase64String(testData.Binary);
+            var obj = Unpack(bytes);
+            Assert.Equal(testData.Encoded, obj);
+
+            // Parse the input fully now.
+            bytes = Frame(bytes);
             var protocol = new MessagePackHubProtocol();
             Assert.True(protocol.TryParseMessages(bytes, new TestBinder(testData.Message), out var messages));
 
             Assert.Equal(1, messages.Count);
             Assert.Equal(testData.Message, messages[0], TestHubMessageEqualityComparer.Instance);
-
-            // Unframe the message to check the binary encoding
-            var byteSpan = bytes.AsReadOnlySpan();
-            Assert.True(BinaryMessageParser.TryParseMessage(ref byteSpan, out var unframed));
-
-            // Check the baseline binary encoding, use Assert.True in order to configure the error message
-            var actual = Convert.ToBase64String(unframed.ToArray());
-            Assert.True(string.Equals(actual, testData.Binary, StringComparison.Ordinal), $"Binary encoding changed from [{testData.Binary}] to [{actual}]. Please verify the MsgPack output and update the baseline");
         }
 
         [Theory]
@@ -370,56 +368,56 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
 
             // Check the baseline binary encoding, use Assert.True in order to configure the error message
             var actual = Convert.ToBase64String(unframed.ToArray());
-            Assert.True(string.Equals(actual, testData.Binary, StringComparison.Ordinal), $"Binary encoding changed from [{testData.Binary}] to [{actual}]. Please verify the MsgPack output and update the baseline");
+            Assert.True(string.Equals(actual, testData.Binary, StringComparison.Ordinal), $"Binary encoding changed from{Environment.NewLine} [{testData.Binary}]{Environment.NewLine} to{Environment.NewLine} [{actual}]{Environment.NewLine}Please verify the MsgPack output and update the baseline");
         }
 
         public static IEnumerable<object[]> InvalidPayloads => new[]
         {
-            // Headers
-            new object[] { new InvalidMessageData("HeadersNotAMap", Array("foo"), "Reading map length for 'headers' failed.") },
-            new object[] { new InvalidMessageData("HeaderKeyInt", Array(Map((42, "foo"))), "Reading 'headers[0].Key' as String failed.") },
-            new object[] { new InvalidMessageData("HeaderValueInt", Array(Map(("foo", 42))), "Reading 'headers[0].Value' as String failed.") },
-            new object[] { new InvalidMessageData("HeaderKeyArray", Array(Map(("biz", "boz"), (Array(), "foo"))), "Reading 'headers[1].Key' as String failed.") },
-            new object[] { new InvalidMessageData("HeaderValueArray", Array(Map(("biz", "boz"), ("foo", Array()))), "Reading 'headers[1].Value' as String failed.") },
-
             // Message Type
-            new object[] { new InvalidMessageData("MessageTypeString", Array(Map(), "foo"), "Reading 'messageType' as Int32 failed.") },
-            new object[] { new InvalidMessageData("MessageTypeOutOfRange", Array(Map(), 10), "Invalid message type: 10.") },
+            new object[] { new InvalidMessageData("MessageTypeString", Array("foo"), "Reading 'messageType' as Int32 failed.") },
+            new object[] { new InvalidMessageData("MessageTypeOutOfRange", Array(10), "Invalid message type: 10.") },
+
+            // Headers
+            new object[] { new InvalidMessageData("HeadersNotAMap", Array(HubProtocolConstants.InvocationMessageType, "foo"), "Reading map length for 'headers' failed.") },
+            new object[] { new InvalidMessageData("HeaderKeyInt", Array(HubProtocolConstants.InvocationMessageType, Map((42, "foo"))), "Reading 'headers[0].Key' as String failed.") },
+            new object[] { new InvalidMessageData("HeaderValueInt", Array(HubProtocolConstants.InvocationMessageType, Map(("foo", 42))), "Reading 'headers[0].Value' as String failed.") },
+            new object[] { new InvalidMessageData("HeaderKeyArray", Array(HubProtocolConstants.InvocationMessageType, Map(("biz", "boz"), (Array(), "foo"))), "Reading 'headers[1].Key' as String failed.") },
+            new object[] { new InvalidMessageData("HeaderValueArray", Array(HubProtocolConstants.InvocationMessageType, Map(("biz", "boz"), ("foo", Array()))), "Reading 'headers[1].Value' as String failed.") },
 
             // InvocationMessage
-            new object[] { new InvalidMessageData("InvocationMissingId", Array(Map(), HubProtocolConstants.InvocationMessageType), "Reading 'invocationId' as String failed.") },
-            new object[] { new InvalidMessageData("InvocationIdBoolean", Array(Map(), HubProtocolConstants.InvocationMessageType, false), "Reading 'invocationId' as String failed.") },
-            new object[] { new InvalidMessageData("InvocationTargetMissing", Array(Map(), HubProtocolConstants.InvocationMessageType, "abc"), "Reading 'target' as String failed.") },
-            new object[] { new InvalidMessageData("InvocationTargetInt", Array(Map(), HubProtocolConstants.InvocationMessageType, "abc", 42), "Reading 'target' as String failed.") },
+            new object[] { new InvalidMessageData("InvocationMissingId", Array(HubProtocolConstants.InvocationMessageType, Map()), "Reading 'invocationId' as String failed.") },
+            new object[] { new InvalidMessageData("InvocationIdBoolean", Array(HubProtocolConstants.InvocationMessageType, Map(), false), "Reading 'invocationId' as String failed.") },
+            new object[] { new InvalidMessageData("InvocationTargetMissing", Array(HubProtocolConstants.InvocationMessageType, Map(), "abc"), "Reading 'target' as String failed.") },
+            new object[] { new InvalidMessageData("InvocationTargetInt", Array(HubProtocolConstants.InvocationMessageType, Map(), "abc", 42), "Reading 'target' as String failed.") },
 
             // StreamInvocationMessage
-            new object[] { new InvalidMessageData("StreamInvocationMissingId", Array(Map(), HubProtocolConstants.StreamInvocationMessageType), "Reading 'invocationId' as String failed.") },
-            new object[] { new InvalidMessageData("StreamInvocationIdBoolean", Array(Map(), HubProtocolConstants.StreamInvocationMessageType, false), "Reading 'invocationId' as String failed.") },
-            new object[] { new InvalidMessageData("StreamInvocationTargetMissing", Array(Map(), HubProtocolConstants.StreamInvocationMessageType, "abc"), "Reading 'target' as String failed.") },
-            new object[] { new InvalidMessageData("StreamInvocationTargetInt", Array(Map(), HubProtocolConstants.StreamInvocationMessageType, "abc", 42), "Reading 'target' as String failed.") },
+            new object[] { new InvalidMessageData("StreamInvocationMissingId", Array(HubProtocolConstants.StreamInvocationMessageType, Map()), "Reading 'invocationId' as String failed.") },
+            new object[] { new InvalidMessageData("StreamInvocationIdBoolean", Array(HubProtocolConstants.StreamInvocationMessageType, Map(), false), "Reading 'invocationId' as String failed.") },
+            new object[] { new InvalidMessageData("StreamInvocationTargetMissing", Array(HubProtocolConstants.StreamInvocationMessageType, Map(), "abc"), "Reading 'target' as String failed.") },
+            new object[] { new InvalidMessageData("StreamInvocationTargetInt", Array(HubProtocolConstants.StreamInvocationMessageType, Map(), "abc", 42), "Reading 'target' as String failed.") },
 
             // StreamItemMessage
-            new object[] { new InvalidMessageData("StreamItemMissingId", Array(Map(), HubProtocolConstants.StreamItemMessageType), "Reading 'invocationId' as String failed.") },
-            new object[] { new InvalidMessageData("StreamItemInvocationIdBoolean", Array(Map(), HubProtocolConstants.StreamItemMessageType, false), "Reading 'invocationId' as String failed.") },
-            new object[] { new InvalidMessageData("StreamItemMissing", Array(Map(), HubProtocolConstants.StreamItemMessageType, "xyz"), "Deserializing object of the `String` type for 'item' failed.") },
-            new object[] { new InvalidMessageData("StreamItemTypeMismatch", Array(Map(), HubProtocolConstants.StreamItemMessageType, "xyz", 42), "Deserializing object of the `String` type for 'item' failed.") },
+            new object[] { new InvalidMessageData("StreamItemMissingId", Array(HubProtocolConstants.StreamItemMessageType, Map()), "Reading 'invocationId' as String failed.") },
+            new object[] { new InvalidMessageData("StreamItemInvocationIdBoolean", Array(HubProtocolConstants.StreamItemMessageType, Map(), false), "Reading 'invocationId' as String failed.") },
+            new object[] { new InvalidMessageData("StreamItemMissing", Array(HubProtocolConstants.StreamItemMessageType, Map(), "xyz"), "Deserializing object of the `String` type for 'item' failed.") },
+            new object[] { new InvalidMessageData("StreamItemTypeMismatch", Array(HubProtocolConstants.StreamItemMessageType, Map(), "xyz", 42), "Deserializing object of the `String` type for 'item' failed.") },
 
             // CompletionMessage
-            new object[] { new InvalidMessageData("CompletionMissingId", Array(Map(), HubProtocolConstants.CompletionMessageType), "Reading 'invocationId' as String failed.") },
-            new object[] { new InvalidMessageData("CompletionIdBoolean", Array(Map(), HubProtocolConstants.CompletionMessageType, false), "Reading 'invocationId' as String failed.") },
-            new object[] { new InvalidMessageData("CompletionResultKindString", Array(Map(), HubProtocolConstants.CompletionMessageType, "xyz", "abc"), "Reading 'resultKind' as Int32 failed.") },
-            new object[] { new InvalidMessageData("CompletionResultKindOutOfRange", Array(Map(), HubProtocolConstants.CompletionMessageType, "xyz", 42), "Invalid invocation result kind.") },
-            new object[] { new InvalidMessageData("CompletionErrorMissing", Array(Map(), HubProtocolConstants.CompletionMessageType, "xyz", 1), "Reading 'error' as String failed.") },
-            new object[] { new InvalidMessageData("CompletionErrorInt", Array(Map(), HubProtocolConstants.CompletionMessageType, "xyz", 1, 42), "Reading 'error' as String failed.") },
-            new object[] { new InvalidMessageData("CompletionResultMissing", Array(Map(), HubProtocolConstants.CompletionMessageType, "xyz", 3), "Deserializing object of the `String` type for 'argument' failed.") },
-            new object[] { new InvalidMessageData("CompletionResultTypeMismatch", Array(Map(), HubProtocolConstants.CompletionMessageType, "xyz", 3, 42), "Deserializing object of the `String` type for 'argument' failed.") },
+            new object[] { new InvalidMessageData("CompletionMissingId", Array(HubProtocolConstants.CompletionMessageType, Map()), "Reading 'invocationId' as String failed.") },
+            new object[] { new InvalidMessageData("CompletionIdBoolean", Array(HubProtocolConstants.CompletionMessageType, Map(), false), "Reading 'invocationId' as String failed.") },
+            new object[] { new InvalidMessageData("CompletionResultKindString", Array(HubProtocolConstants.CompletionMessageType, Map(), "xyz", "abc"), "Reading 'resultKind' as Int32 failed.") },
+            new object[] { new InvalidMessageData("CompletionResultKindOutOfRange", Array(HubProtocolConstants.CompletionMessageType, Map(), "xyz", 42), "Invalid invocation result kind.") },
+            new object[] { new InvalidMessageData("CompletionErrorMissing", Array(HubProtocolConstants.CompletionMessageType, Map(), "xyz", 1), "Reading 'error' as String failed.") },
+            new object[] { new InvalidMessageData("CompletionErrorInt", Array(HubProtocolConstants.CompletionMessageType, Map(), "xyz", 1, 42), "Reading 'error' as String failed.") },
+            new object[] { new InvalidMessageData("CompletionResultMissing", Array(HubProtocolConstants.CompletionMessageType, Map(), "xyz", 3), "Deserializing object of the `String` type for 'argument' failed.") },
+            new object[] { new InvalidMessageData("CompletionResultTypeMismatch", Array(HubProtocolConstants.CompletionMessageType, Map(), "xyz", 3, 42), "Deserializing object of the `String` type for 'argument' failed.") },
         };
 
         [Theory]
         [MemberData(nameof(InvalidPayloads))]
         public void ParserThrowsForInvalidMessages(InvalidMessageData testData)
         {
-            var buffer = Frame(new[] { testData.Encoded });
+            var buffer = Frame(Pack(testData.Encoded));
             var binder = new TestBinder(new[] { typeof(string) }, typeof(string));
             var exception = Assert.Throws<FormatException>(() => _hubProtocol.TryParseMessages(buffer, binder, out var messages));
 
@@ -429,25 +427,25 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         public static IEnumerable<object[]> ArgumentBindingErrors => new[]
         {
             // InvocationMessage
-            new object[] {new InvalidMessageData("InvocationArgumentArrayMissing", Array(Map(), HubProtocolConstants.InvocationMessageType, "abc", "xyz"), "Reading array length for 'arguments' failed.") },
-            new object[] {new InvalidMessageData("InvocationArgumentArrayNotAnArray", Array(Map(), HubProtocolConstants.InvocationMessageType, "abc", "xyz", 42), "Reading array length for 'arguments' failed.") },
-            new object[] {new InvalidMessageData("InvocationArgumentArraySizeMismatchEmpty", Array(Map(), HubProtocolConstants.InvocationMessageType, "abc", "xyz", Array()), "Invocation provides 0 argument(s) but target expects 1.") },
-            new object[] {new InvalidMessageData("InvocationArgumentArraySizeMismatchTooLarge", Array(Map(), HubProtocolConstants.InvocationMessageType, "abc", "xyz", Array("a", "b")), "Invocation provides 2 argument(s) but target expects 1.") },
-            new object[] {new InvalidMessageData("InvocationArgumentTypeMismatch", Array(Map(), HubProtocolConstants.InvocationMessageType, "abc", "xyz", Array(42)), "Error binding arguments. Make sure that the types of the provided values match the types of the hub method being invoked.") },
+            new object[] {new InvalidMessageData("InvocationArgumentArrayMissing", Array(HubProtocolConstants.InvocationMessageType, Map(), "abc", "xyz"), "Reading array length for 'arguments' failed.") },
+            new object[] {new InvalidMessageData("InvocationArgumentArrayNotAnArray", Array(HubProtocolConstants.InvocationMessageType, Map(), "abc", "xyz", 42), "Reading array length for 'arguments' failed.") },
+            new object[] {new InvalidMessageData("InvocationArgumentArraySizeMismatchEmpty", Array(HubProtocolConstants.InvocationMessageType, Map(), "abc", "xyz", Array()), "Invocation provides 0 argument(s) but target expects 1.") },
+            new object[] {new InvalidMessageData("InvocationArgumentArraySizeMismatchTooLarge", Array(HubProtocolConstants.InvocationMessageType, Map(), "abc", "xyz", Array("a", "b")), "Invocation provides 2 argument(s) but target expects 1.") },
+            new object[] {new InvalidMessageData("InvocationArgumentTypeMismatch", Array(HubProtocolConstants.InvocationMessageType, Map(), "abc", "xyz", Array(42)), "Error binding arguments. Make sure that the types of the provided values match the types of the hub method being invoked.") },
 
             // StreamInvocationMessage
-            new object[] {new InvalidMessageData("StreamInvocationArgumentArrayMissing", Array(Map(), HubProtocolConstants.StreamInvocationMessageType, "abc", "xyz"), "Reading array length for 'arguments' failed.") }, // array is missing
-            new object[] {new InvalidMessageData("StreamInvocationArgumentArrayNotAnArray", Array(Map(), HubProtocolConstants.StreamInvocationMessageType, "abc", "xyz", 42), "Reading array length for 'arguments' failed.") }, // arguments isn't an array
-            new object[] {new InvalidMessageData("StreamInvocationArgumentArraySizeMismatchEmpty", Array(Map(), HubProtocolConstants.StreamInvocationMessageType, "abc", "xyz", Array()), "Invocation provides 0 argument(s) but target expects 1.") }, // array is missing elements
-            new object[] {new InvalidMessageData("StreamInvocationArgumentArraySizeMismatchTooLarge", Array(Map(), HubProtocolConstants.StreamInvocationMessageType, "abc", "xyz", Array("a", "b")), "Invocation provides 2 argument(s) but target expects 1.") }, // argument count does not match binder argument count
-            new object[] {new InvalidMessageData("StreamInvocationArgumentTypeMismatch", Array(Map(), HubProtocolConstants.StreamInvocationMessageType, "abc", "xyz", Array(42)), "Error binding arguments. Make sure that the types of the provided values match the types of the hub method being invoked.") }, // argument type mismatch
+            new object[] {new InvalidMessageData("StreamInvocationArgumentArrayMissing", Array(HubProtocolConstants.StreamInvocationMessageType, Map(), "abc", "xyz"), "Reading array length for 'arguments' failed.") }, // array is missing
+            new object[] {new InvalidMessageData("StreamInvocationArgumentArrayNotAnArray", Array(HubProtocolConstants.StreamInvocationMessageType, Map(), "abc", "xyz", 42), "Reading array length for 'arguments' failed.") }, // arguments isn't an array
+            new object[] {new InvalidMessageData("StreamInvocationArgumentArraySizeMismatchEmpty", Array(HubProtocolConstants.StreamInvocationMessageType, Map(), "abc", "xyz", Array()), "Invocation provides 0 argument(s) but target expects 1.") }, // array is missing elements
+            new object[] {new InvalidMessageData("StreamInvocationArgumentArraySizeMismatchTooLarge", Array(HubProtocolConstants.StreamInvocationMessageType, Map(), "abc", "xyz", Array("a", "b")), "Invocation provides 2 argument(s) but target expects 1.") }, // argument count does not match binder argument count
+            new object[] {new InvalidMessageData("StreamInvocationArgumentTypeMismatch", Array(HubProtocolConstants.StreamInvocationMessageType, Map(), "abc", "xyz", Array(42)), "Error binding arguments. Make sure that the types of the provided values match the types of the hub method being invoked.") }, // argument type mismatch
         };
 
         [Theory]
         [MemberData(nameof(ArgumentBindingErrors))]
         public void GettingArgumentsThrowsIfBindingFailed(InvalidMessageData testData)
         {
-            var buffer = Frame(new[] { testData.Encoded });
+            var buffer = Frame(Pack(testData.Encoded));
             var binder = new TestBinder(new[] { typeof(string) }, typeof(string));
             _hubProtocol.TryParseMessages(buffer, binder, out var messages);
             var exception = Assert.Throws<FormatException>(() => ((HubMethodInvocationMessage)messages[0]).Arguments);
@@ -469,7 +467,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         public void SerializerCanSerializeTypesWithNoDefaultCtor()
         {
             var result = Write(CompletionMessage.WithResult("0", new List<int> { 42 }.AsReadOnly()));
-            AssertMessages(new[] { Array(Map(), HubProtocolConstants.CompletionMessageType, "0", 3, Array(42)) }, result);
+            AssertMessages(Array(HubProtocolConstants.CompletionMessageType, Map(), "0", 3, Array(42)), result);
         }
 
         private static void AssertMessages(MessagePackObject expectedOutput, ReadOnlySpan<byte> bytes)
@@ -479,11 +477,11 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             Assert.Equal(expectedOutput, obj);
         }
 
-        private static byte[] Frame(MessagePackObject input)
+        private static byte[] Frame(byte[] input)
         {
             using (var stream = new MemoryStream())
             {
-                BinaryMessageFormatter.WriteMessage(Pack(input), stream);
+                BinaryMessageFormatter.WriteMessage(input, stream);
                 stream.Flush();
                 return stream.ToArray();
             }

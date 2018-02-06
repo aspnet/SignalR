@@ -26,7 +26,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         };
 
         // It's cleaner to do this as a prefix and use concatenation rather than string interpolation because JSON is already filled with '{'s.
-        private static readonly string WithHeadersPrefix = "{\"headers\":{\"Foo\":\"Bar\",\"KeyWith\\nNew\\r\\nLines\":\"Still Works\",\"ValueWithNewLines\":\"Also\\nWorks\\r\\nFine\"}";
+        private static readonly string SerializedHeaders = "\"headers\":{\"Foo\":\"Bar\",\"KeyWith\\nNew\\r\\nLines\":\"Still Works\",\"ValueWithNewLines\":\"Also\\nWorks\\r\\nFine\"}";
 
         public static IEnumerable<object[]> ProtocolTestData => new[]
         {
@@ -38,7 +38,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             new object[] { new InvocationMessage(null, "Target", null, new CustomObject()), true, NullValueHandling.Ignore, "{\"type\":1,\"target\":\"Target\",\"arguments\":[{\"stringProp\":\"SignalR!\",\"doubleProp\":6.2831853071,\"intProp\":42,\"dateTimeProp\":\"2017-04-11T00:00:00\",\"byteArrProp\":\"AQID\"}]}" },
             new object[] { new InvocationMessage(null, "Target", null, new CustomObject()), false, NullValueHandling.Include, "{\"type\":1,\"target\":\"Target\",\"arguments\":[{\"StringProp\":\"SignalR!\",\"DoubleProp\":6.2831853071,\"IntProp\":42,\"DateTimeProp\":\"2017-04-11T00:00:00\",\"NullProp\":null,\"ByteArrProp\":\"AQID\"}]}" },
             new object[] { new InvocationMessage(null, "Target", null, new CustomObject()), true, NullValueHandling.Include, "{\"type\":1,\"target\":\"Target\",\"arguments\":[{\"stringProp\":\"SignalR!\",\"doubleProp\":6.2831853071,\"intProp\":42,\"dateTimeProp\":\"2017-04-11T00:00:00\",\"nullProp\":null,\"byteArrProp\":\"AQID\"}]}" },
-            new object[] { AddHeaders(TestHeaders, new InvocationMessage("123", "Target", null, 1, "Foo", 2.0f)), true, NullValueHandling.Ignore, WithHeadersPrefix + ",\"type\":1,\"invocationId\":\"123\",\"target\":\"Target\",\"arguments\":[1,\"Foo\",2.0]}" },
+            new object[] { AddHeaders(TestHeaders, new InvocationMessage("123", "Target", null, 1, "Foo", 2.0f)), true, NullValueHandling.Ignore, "{\"type\":1," + SerializedHeaders + ",\"invocationId\":\"123\",\"target\":\"Target\",\"arguments\":[1,\"Foo\",2.0]}" },
 
             new object[] { new StreamItemMessage("123", 1), true, NullValueHandling.Ignore, "{\"type\":2,\"invocationId\":\"123\",\"item\":1}" },
             new object[] { new StreamItemMessage("123", "Foo"), true, NullValueHandling.Ignore, "{\"type\":2,\"invocationId\":\"123\",\"item\":\"Foo\"}" },
@@ -49,7 +49,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             new object[] { new StreamItemMessage("123", new CustomObject()), true, NullValueHandling.Ignore, "{\"type\":2,\"invocationId\":\"123\",\"item\":{\"stringProp\":\"SignalR!\",\"doubleProp\":6.2831853071,\"intProp\":42,\"dateTimeProp\":\"2017-04-11T00:00:00\",\"byteArrProp\":\"AQID\"}}" },
             new object[] { new StreamItemMessage("123", new CustomObject()), false, NullValueHandling.Include, "{\"type\":2,\"invocationId\":\"123\",\"item\":{\"StringProp\":\"SignalR!\",\"DoubleProp\":6.2831853071,\"IntProp\":42,\"DateTimeProp\":\"2017-04-11T00:00:00\",\"NullProp\":null,\"ByteArrProp\":\"AQID\"}}" },
             new object[] { new StreamItemMessage("123", new CustomObject()), true, NullValueHandling.Include, "{\"type\":2,\"invocationId\":\"123\",\"item\":{\"stringProp\":\"SignalR!\",\"doubleProp\":6.2831853071,\"intProp\":42,\"dateTimeProp\":\"2017-04-11T00:00:00\",\"nullProp\":null,\"byteArrProp\":\"AQID\"}}" },
-            new object[] { AddHeaders(TestHeaders, new StreamItemMessage("123", new CustomObject())), true, NullValueHandling.Include, WithHeadersPrefix + ",\"type\":2,\"invocationId\":\"123\",\"item\":{\"stringProp\":\"SignalR!\",\"doubleProp\":6.2831853071,\"intProp\":42,\"dateTimeProp\":\"2017-04-11T00:00:00\",\"nullProp\":null,\"byteArrProp\":\"AQID\"}}" },
+            new object[] { AddHeaders(TestHeaders, new StreamItemMessage("123", new CustomObject())), true, NullValueHandling.Include, "{\"type\":2," + SerializedHeaders + ",\"invocationId\":\"123\",\"item\":{\"stringProp\":\"SignalR!\",\"doubleProp\":6.2831853071,\"intProp\":42,\"dateTimeProp\":\"2017-04-11T00:00:00\",\"nullProp\":null,\"byteArrProp\":\"AQID\"}}" },
 
             new object[] { CompletionMessage.WithResult("123", 1), true, NullValueHandling.Ignore, "{\"type\":3,\"invocationId\":\"123\",\"result\":1}" },
             new object[] { CompletionMessage.WithResult("123", "Foo"), true, NullValueHandling.Ignore, "{\"type\":3,\"invocationId\":\"123\",\"result\":\"Foo\"}" },
@@ -60,11 +60,11 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             new object[] { CompletionMessage.WithResult("123", new CustomObject()), true, NullValueHandling.Ignore, "{\"type\":3,\"invocationId\":\"123\",\"result\":{\"stringProp\":\"SignalR!\",\"doubleProp\":6.2831853071,\"intProp\":42,\"dateTimeProp\":\"2017-04-11T00:00:00\",\"byteArrProp\":\"AQID\"}}" },
             new object[] { CompletionMessage.WithResult("123", new CustomObject()), false, NullValueHandling.Include, "{\"type\":3,\"invocationId\":\"123\",\"result\":{\"StringProp\":\"SignalR!\",\"DoubleProp\":6.2831853071,\"IntProp\":42,\"DateTimeProp\":\"2017-04-11T00:00:00\",\"NullProp\":null,\"ByteArrProp\":\"AQID\"}}" },
             new object[] { CompletionMessage.WithResult("123", new CustomObject()), true, NullValueHandling.Include, "{\"type\":3,\"invocationId\":\"123\",\"result\":{\"stringProp\":\"SignalR!\",\"doubleProp\":6.2831853071,\"intProp\":42,\"dateTimeProp\":\"2017-04-11T00:00:00\",\"nullProp\":null,\"byteArrProp\":\"AQID\"}}" },
-            new object[] { AddHeaders(TestHeaders, CompletionMessage.WithResult("123", new CustomObject())), true, NullValueHandling.Include, WithHeadersPrefix + ",\"type\":3,\"invocationId\":\"123\",\"result\":{\"stringProp\":\"SignalR!\",\"doubleProp\":6.2831853071,\"intProp\":42,\"dateTimeProp\":\"2017-04-11T00:00:00\",\"nullProp\":null,\"byteArrProp\":\"AQID\"}}" },
+            new object[] { AddHeaders(TestHeaders, CompletionMessage.WithResult("123", new CustomObject())), true, NullValueHandling.Include, "{\"type\":3," + SerializedHeaders + ",\"invocationId\":\"123\",\"result\":{\"stringProp\":\"SignalR!\",\"doubleProp\":6.2831853071,\"intProp\":42,\"dateTimeProp\":\"2017-04-11T00:00:00\",\"nullProp\":null,\"byteArrProp\":\"AQID\"}}" },
             new object[] { CompletionMessage.WithError("123", "Whoops!"), false, NullValueHandling.Ignore, "{\"type\":3,\"invocationId\":\"123\",\"error\":\"Whoops!\"}" },
-            new object[] { AddHeaders(TestHeaders, CompletionMessage.WithError("123", "Whoops!")), false, NullValueHandling.Ignore, WithHeadersPrefix + ",\"type\":3,\"invocationId\":\"123\",\"error\":\"Whoops!\"}" },
+            new object[] { AddHeaders(TestHeaders, CompletionMessage.WithError("123", "Whoops!")), false, NullValueHandling.Ignore, "{\"type\":3," + SerializedHeaders + ",\"invocationId\":\"123\",\"error\":\"Whoops!\"}" },
             new object[] { CompletionMessage.Empty("123"), true, NullValueHandling.Ignore, "{\"type\":3,\"invocationId\":\"123\"}" },
-            new object[] { AddHeaders(TestHeaders, CompletionMessage.Empty("123")), true, NullValueHandling.Ignore, WithHeadersPrefix + ",\"type\":3,\"invocationId\":\"123\"}" },
+            new object[] { AddHeaders(TestHeaders, CompletionMessage.Empty("123")), true, NullValueHandling.Ignore, "{\"type\":3," + SerializedHeaders + ",\"invocationId\":\"123\"}" },
 
             new object[] { new StreamInvocationMessage("123", "Target", null, 1, "Foo", 2.0f), true, NullValueHandling.Ignore, "{\"type\":4,\"invocationId\":\"123\",\"target\":\"Target\",\"arguments\":[1,\"Foo\",2.0]}" },
             new object[] { new StreamInvocationMessage("123", "Target", null, 1, "Foo", 2.0f), true, NullValueHandling.Ignore, "{\"type\":4,\"invocationId\":\"123\",\"target\":\"Target\",\"arguments\":[1,\"Foo\",2.0]}" },
@@ -74,10 +74,10 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             new object[] { new StreamInvocationMessage("123", "Target", null, new CustomObject()), true, NullValueHandling.Ignore, "{\"type\":4,\"invocationId\":\"123\",\"target\":\"Target\",\"arguments\":[{\"stringProp\":\"SignalR!\",\"doubleProp\":6.2831853071,\"intProp\":42,\"dateTimeProp\":\"2017-04-11T00:00:00\",\"byteArrProp\":\"AQID\"}]}" },
             new object[] { new StreamInvocationMessage("123", "Target", null, new CustomObject()), false, NullValueHandling.Include, "{\"type\":4,\"invocationId\":\"123\",\"target\":\"Target\",\"arguments\":[{\"StringProp\":\"SignalR!\",\"DoubleProp\":6.2831853071,\"IntProp\":42,\"DateTimeProp\":\"2017-04-11T00:00:00\",\"NullProp\":null,\"ByteArrProp\":\"AQID\"}]}" },
             new object[] { new StreamInvocationMessage("123", "Target", null, new CustomObject()), true, NullValueHandling.Include, "{\"type\":4,\"invocationId\":\"123\",\"target\":\"Target\",\"arguments\":[{\"stringProp\":\"SignalR!\",\"doubleProp\":6.2831853071,\"intProp\":42,\"dateTimeProp\":\"2017-04-11T00:00:00\",\"nullProp\":null,\"byteArrProp\":\"AQID\"}]}" },
-            new object[] { AddHeaders(TestHeaders, new StreamInvocationMessage("123", "Target", null, new CustomObject())), true, NullValueHandling.Include, WithHeadersPrefix + ",\"type\":4,\"invocationId\":\"123\",\"target\":\"Target\",\"arguments\":[{\"stringProp\":\"SignalR!\",\"doubleProp\":6.2831853071,\"intProp\":42,\"dateTimeProp\":\"2017-04-11T00:00:00\",\"nullProp\":null,\"byteArrProp\":\"AQID\"}]}" },
+            new object[] { AddHeaders(TestHeaders, new StreamInvocationMessage("123", "Target", null, new CustomObject())), true, NullValueHandling.Include, "{\"type\":4," + SerializedHeaders + ",\"invocationId\":\"123\",\"target\":\"Target\",\"arguments\":[{\"stringProp\":\"SignalR!\",\"doubleProp\":6.2831853071,\"intProp\":42,\"dateTimeProp\":\"2017-04-11T00:00:00\",\"nullProp\":null,\"byteArrProp\":\"AQID\"}]}" },
 
             new object[] { new CancelInvocationMessage("123"), true, NullValueHandling.Ignore, "{\"type\":5,\"invocationId\":\"123\"}" },
-            new object[] { AddHeaders(TestHeaders, new CancelInvocationMessage("123")), true, NullValueHandling.Ignore, WithHeadersPrefix + ",\"type\":5,\"invocationId\":\"123\"}" },
+            new object[] { AddHeaders(TestHeaders, new CancelInvocationMessage("123")), true, NullValueHandling.Ignore, "{\"type\":5," + SerializedHeaders + ",\"invocationId\":\"123\"}" },
 
             new object[] { PingMessage.Instance, true, NullValueHandling.Ignore, "{\"type\":6}" },
         };
@@ -138,10 +138,10 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         [InlineData("[42]", "Unexpected JSON Token Type 'Array'. Expected a JSON Object.")]
         [InlineData("{}", "Missing required property 'type'.")]
 
-        [InlineData("{'type':1,'headers':{\"Foo\": 42}}", "Expected header 'Foo' to be of type String.")]
-        [InlineData("{'type':1,'headers':{\"Foo\": true}}", "Expected header 'Foo' to be of type String.")]
-        [InlineData("{'type':1,'headers':{\"Foo\": null}}", "Expected header 'Foo' to be of type String.")]
-        [InlineData("{'type':1,'headers':{\"Foo\": []}}", "Expected header 'Foo' to be of type String.")]
+        [InlineData("{'type':1,'headers':{\"Foo\": 42},'target':'test',arguments:[]}", "Expected header 'Foo' to be of type String.")]
+        [InlineData("{'type':1,'headers':{\"Foo\": true},'target':'test',arguments:[]}", "Expected header 'Foo' to be of type String.")]
+        [InlineData("{'type':1,'headers':{\"Foo\": null},'target':'test',arguments:[]}", "Expected header 'Foo' to be of type String.")]
+        [InlineData("{'type':1,'headers':{\"Foo\": []},'target':'test',arguments:[]}", "Expected header 'Foo' to be of type String.")]
 
         [InlineData("{'type':1}", "Missing required property 'target'.")]
         [InlineData("{'type':1,'invocationId':42}", "Expected 'invocationId' to be of type String.")]
@@ -172,7 +172,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         {
             input = Frame(input);
 
-            var binder = new TestBinder();
+            var binder = new TestBinder(Array.Empty<Type>(), typeof(object));
             var protocol = new JsonHubProtocol();
             var ex = Assert.Throws<InvalidDataException>(() => protocol.TryParseMessages(Encoding.UTF8.GetBytes(input), binder, out var messages));
             Assert.Equal(expectedMessage, ex.Message);
