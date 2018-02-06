@@ -68,7 +68,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         [Fact(Skip = "Flaky tests keep failing")]
         public async Task SSETransportStopsSendAndReceiveLoopsWhenTransportStopped()
         {
-            var eventStreamCts = new CancellationTokenSource();
             var mockHttpHandler = new Mock<HttpMessageHandler>();
             mockHttpHandler.Protected()
                 .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
@@ -81,9 +80,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                         {
                             await Task.Yield();
                             var buffer = Encoding.ASCII.GetBytes("data: 3:abc\r\n\r\n");
-                            while (!eventStreamCts.IsCancellationRequested)
+                            while (!t.IsCancellationRequested)
                             {
-                                await stream.WriteAsync(buffer, 0, buffer.Length).OrTimeout();
+                                await stream.WriteAsync(buffer, 0, buffer.Length, t).OrTimeout();
                             }
                         });
                     mockStream.Setup(s => s.CanRead).Returns(true);
@@ -115,7 +114,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 }
 
                 await transportActiveTask.OrTimeout();
-                eventStreamCts.Cancel();
             }
         }
 
