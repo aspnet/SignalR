@@ -103,7 +103,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             }
         }
 
-        [Theory(Skip="https://github.com/aspnet/SignalR/issues/1392")]
+        [Theory]
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
         public async Task CanStopAndStartConnection(IHubProtocol protocol, TransportType transportType, string path)
         {
@@ -215,7 +215,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             }
         }
 
-        [Theory(Skip="https://github.com/aspnet/SignalR/issues/1392")]
+        [Theory]
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
         public async Task CanInvokeClientMethodFromServer(IHubProtocol protocol, TransportType transportType, string path)
         {
@@ -317,7 +317,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             }
         }
 
-        [Theory(Skip="https://github.com/aspnet/SignalR/issues/1392")]
+        [Theory]
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
         public async Task CanCloseStreamMethodEarly(IHubProtocol protocol, TransportType transportType, string path)
         {
