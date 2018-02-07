@@ -1,12 +1,12 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-import { ConnectionClosed } from "./Common"
-import { IConnection } from "./IConnection"
-import { HttpConnection, IHttpConnectionOptions } from "./HttpConnection"
-import { TransportType, TransferMode } from "./Transports"
-import { Subject, Observable } from "./Observable"
-import { IHubProtocol, ProtocolType, MessageType, HubMessage, CompletionMessage, StreamItemMessage, InvocationMessage, StreamInvocationMessage, NegotiationMessage, CancelInvocationMessage } from "./IHubProtocol";
+import { Base64EncodedHubProtocol } from "./Base64EncodedHubProtocol";
+import { ConnectionClosed } from "./Common";
+import { HttpConnection, IHttpConnectionOptions } from "./HttpConnection";
+import { IConnection } from "./IConnection";
+import { CancelInvocationMessage, CompletionMessage, HubMessage, IHubProtocol, InvocationMessage, MessageType, NegotiationMessage, ProtocolType, StreamInvocationMessage, StreamItemMessage } from "./IHubProtocol";
+import { ILogger, LogLevel } from "./ILogger";
 import { JsonHubProtocol } from "./JsonHubProtocol";
 import { ConsoleLogger, LoggerFactory, NullLogger } from "./Loggers";
 import { Observable, Subject } from "./Observable";
@@ -73,7 +73,7 @@ export class HubConnection {
                     break;
                 case MessageType.StreamItem:
                 case MessageType.Completion:
-                    let callback = this.callbacks.get(message.invocationId);
+                    const callback = this.callbacks.get(message.invocationId);
                     if (callback != null) {
                         if (message.type === MessageType.Completion) {
                             this.callbacks.delete(message.invocationId);
@@ -163,9 +163,9 @@ export class HubConnection {
     public stream<T>(methodName: string, ...args: any[]): Observable<T> {
         const invocationDescriptor = this.createStreamInvocation(methodName, args);
 
-        let subject = new Subject<T>(() => {
-            let cancelInvocation: CancelInvocationMessage = this.createCancelInvocation(invocationDescriptor.invocationId);
-            let message: any = this.protocol.writeMessage(cancelInvocation);
+        const subject = new Subject<T>(() => {
+            const cancelInvocation: CancelInvocationMessage = this.createCancelInvocation(invocationDescriptor.invocationId);
+            const cancelMessage: any = this.protocol.writeMessage(cancelInvocation);
 
             this.callbacks.delete(invocationDescriptor.invocationId);
 
@@ -185,10 +185,7 @@ export class HubConnection {
                     subject.complete();
                 }
             } else {
-                subject.next((invocationEvent as ResultMessage).item as T);
-            }
-            else {
-                subject.next(<T>(invocationEvent.item));
+                subject.next((invocationEvent.item) as T);
             }
         });
 
