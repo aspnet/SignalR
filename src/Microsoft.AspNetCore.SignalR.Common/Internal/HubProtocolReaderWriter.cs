@@ -16,6 +16,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         public readonly IHubProtocol HubProtocol;
         public readonly IDataEncoder DataEncoder;
 
+        public string ProtocolName => _hubProtocol.Name;
+
         public HubProtocolReaderWriter(IHubProtocol hubProtocol, IDataEncoder dataEncoder)
         {
             HubProtocol = hubProtocol;

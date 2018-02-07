@@ -42,6 +42,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public HubConnectionContext(ConnectionContext connectionContext, TimeSpan keepAliveInterval, ILoggerFactory loggerFactory)
         {
+            Output = Channel.CreateUnbounded<byte[]>();
             _connectionContext = connectionContext;
             _logger = loggerFactory.CreateLogger<HubConnectionContext>();
             ConnectionAbortedToken = _connectionAbortedTokenSource.Token;
@@ -67,7 +68,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public string UserIdentifier { get; private set; }
 
-        internal virtual HubProtocolReaderWriter ProtocolReaderWriter { get; set; }
+        internal virtual Channel<byte[]> Output { get; set; }
 
         internal ExceptionDispatchInfo AbortException { get; private set; }
 
@@ -82,7 +83,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public int? LocalPort => Features.Get<IHttpConnectionFeature>()?.LocalPort;
 
-        public virtual async Task WriteAsync(CachedHubMessage message)
+        public async Task WriteAsync(byte[] message)
         {
             try
             {
@@ -193,6 +194,39 @@ namespace Microsoft.AspNetCore.SignalR
         {
             Abort();
             return _abortCompletedTcs.Task;
+        }
+
+        private async Task StartAsyncCore()
+        {
+            if (Features.Get<IConnectionInherentKeepAliveFeature>() == null)
+            {
+                Debug.Assert(ProtocolReaderWriter != null, "Expected the ProtocolReaderWriter to be set before StartAsync is called");
+                _pingMessage = ProtocolReaderWriter.WriteMessage(PingMessage.Instance);
+                _connectionContext.Features.Get<IConnectionHeartbeatFeature>()?.OnHeartbeat(state => ((HubConnectionContext)state).KeepAliveTick(), this);
+            }
+
+            try
+            {
+                while (await Output.Reader.WaitToReadAsync())
+                {
+                    while (Output.Reader.TryRead(out var hubMessage))
+                    {
+                        //var buffer = ProtocolReaderWriter.WriteMessage(hubMessage);
+                        while (await _connectionContext.Transport.Writer.WaitToWriteAsync())
+                        {
+                            if (_connectionContext.Transport.Writer.TryWrite(hubMessage))
+                            {
+                                Interlocked.Exchange(ref _lastSendTimestamp, Stopwatch.GetTimestamp());
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Abort(ex);
+            }
         }
 
         private void KeepAliveTick()

@@ -75,6 +75,9 @@ namespace Microsoft.AspNetCore.SignalR
 
             var tasks = new List<Task>(count);
             var message = new CachedHubMessage(CreateInvocationMessage(methodName, args));
+            //var msg = _connections.First().ProtocolReaderWriter.WriteMessage(message);
+            var parsedMessages = new Dictionary<string, byte[]>();
+
             // TODO: serialize once per format by providing a different stream?
             foreach (var connection in _connections)
             {
@@ -83,7 +86,13 @@ namespace Microsoft.AspNetCore.SignalR
                     continue;
                 }
 
-                tasks.Add(connection.WriteAsync(message));
+                if (!parsedMessages.TryGetValue(connection.ProtocolReaderWriter.ProtocolName, out var buffer))
+                {
+                    buffer = connection.ProtocolReaderWriter.WriteMessage(message);
+                    parsedMessages[connection.ProtocolReaderWriter.ProtocolName] = buffer;
+                }
+
+                tasks.Add(connection.WriteAsync(buffer));
             }
 
             return Task.WhenAll(tasks);
@@ -104,8 +113,9 @@ namespace Microsoft.AspNetCore.SignalR
             }
 
             var message = new CachedHubMessage(CreateInvocationMessage(methodName, args));
+            var msg = connection.ProtocolReaderWriter.WriteMessage(message);
 
-            return connection.WriteAsync(message);
+            return connection.WriteAsync(msg);
         }
 
         public override Task SendGroupAsync(string groupName, string methodName, object[] args)
@@ -119,7 +129,8 @@ namespace Microsoft.AspNetCore.SignalR
             if (group != null)
             {
                 var message = new CachedHubMessage(CreateInvocationMessage(methodName, args));
-                var tasks = group.Values.Select(c => c.WriteAsync(message));
+                var msg = group.Values.First().ProtocolReaderWriter.WriteMessage(message);
+                var tasks = group.Values.Select(c => c.WriteAsync(msg));
                 return Task.WhenAll(tasks);
             }
 
@@ -142,7 +153,8 @@ namespace Microsoft.AspNetCore.SignalR
                 var group = _groups[groupName];
                 if (group != null)
                 {
-                    tasks.Add(Task.WhenAll(group.Values.Select(c => c.WriteAsync(message))));
+                    var msg = group.Values.First().ProtocolReaderWriter.WriteMessage(message);
+                    tasks.Add(Task.WhenAll(group.Values.Select(c => c.WriteAsync(msg))));
                 }
             }
 
@@ -160,8 +172,9 @@ namespace Microsoft.AspNetCore.SignalR
             if (group != null)
             {
                 var message = new CachedHubMessage(CreateInvocationMessage(methodName, args));
+                var msg = group.Values.First().ProtocolReaderWriter.WriteMessage(message);
                 var tasks = group.Values.Where(connection => !excludedIds.Contains(connection.ConnectionId))
-                    .Select(c => c.WriteAsync(message));
+                    .Select(c => c.WriteAsync(msg));
                 return Task.WhenAll(tasks);
             }
 
