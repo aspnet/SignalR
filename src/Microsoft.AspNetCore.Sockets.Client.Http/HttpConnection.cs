@@ -383,6 +383,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 _logger.HttpReceiveStarted();
                 var closingToken = _closingTokenSource.Token;
 
+                // Need to manually check token in the loop because of a bug in Channel
+                // We can remove it once we have a fixed build
                 while (!closingToken.IsCancellationRequested && await Input.WaitToReadAsync(closingToken))
                 {
                     if (_connectionState != ConnectionState.Connected)
