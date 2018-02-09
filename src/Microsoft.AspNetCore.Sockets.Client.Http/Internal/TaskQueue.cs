@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Microsoft.AspNetCore.Sockets.Client.Internal
@@ -12,6 +13,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Internal
     public sealed class TaskQueue
     {
         private readonly object _lockObj = new object();
+        private readonly CancellationTokenSource _cts;
         private Task _lastQueuedTask;
         private volatile bool _drained;
 
@@ -22,6 +24,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Internal
         public TaskQueue(Task initialTask)
         {
             _lastQueuedTask = initialTask;
+            _cts = new CancellationTokenSource();
         }
 
         public bool IsDrained
@@ -52,7 +55,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Internal
 
                     return taskFunc(s1) ?? Task.CompletedTask;
                 },
-                state).Unwrap();
+                state, _cts.Token).Unwrap();
                 _lastQueuedTask = newTask;
                 return newTask;
             }
@@ -63,6 +66,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Internal
             lock (_lockObj)
             {
                 _drained = true;
+                _cts.Cancel();
 
                 return _lastQueuedTask;
             }
