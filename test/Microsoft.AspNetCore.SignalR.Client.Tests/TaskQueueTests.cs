@@ -55,7 +55,7 @@ namespace Microsoft.AspNetCore.Client.Tests
         }
 
         [Fact]
-        public void DrainWillNotRunCallbacksAlreadyInTheQueue()
+        public async Task DrainWillNotRunCallbacksAlreadyInTheQueue()
         {
             var queue = new TaskQueue();
             var waitHandle = new ManualResetEvent(false);
@@ -68,7 +68,7 @@ namespace Microsoft.AspNetCore.Client.Tests
             });
 
             var n = 0;
-            _ = queue.Enqueue(() =>
+            var task = queue.Enqueue(() =>
             {
                 n = 1;
                 return Task.CompletedTask;
@@ -77,6 +77,13 @@ namespace Microsoft.AspNetCore.Client.Tests
             inCallbackHandle.WaitOne();
             _ = queue.Drain();
             waitHandle.Set();
+            try
+            {
+                await task;
+                Assert.True(false);
+            }
+            catch (OperationCanceledException) { }
+
             Assert.Equal(0, n);
         }
     }
