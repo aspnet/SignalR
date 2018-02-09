@@ -69,8 +69,8 @@
     <SystemRuntimeCompilerServicesUnsafePackageVersion>4.5.0-preview2-26130-01</SystemRuntimeCompilerServicesUnsafePackageVersion>
     <SystemThreadingChannelsPackageVersion>4.5.0-preview2-26130-01</SystemThreadingChannelsPackageVersion>
     <SystemThreadingTasksExtensionsPackageVersion>4.5.0-preview2-26130-01</SystemThreadingTasksExtensionsPackageVersion>
-    <XunitPackageVersion>2.3.1</XunitPackageVersion>
-    <XunitRunnerVisualStudioPackageVersion>2.3.1</XunitRunnerVisualStudioPackageVersion>
+    <XunitPackageVersion>2.4.0-beta.1.build3945</XunitPackageVersion>
+    <XunitRunnerVisualStudioPackageVersion>2.4.0-beta.1.build3945</XunitRunnerVisualStudioPackageVersion>
   </PropertyGroup>
   <Import Project="$(DotNetPackageVersionPropsPath)" Condition=" '$(DotNetPackageVersionPropsPath)' != '' " />
 </Project>
