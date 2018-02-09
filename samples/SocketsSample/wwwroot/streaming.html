@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 
 <head>
@@ -25,18 +25,7 @@
     <ul id="resultsList"></ul>
 
     <ul id="messages"></ul>
-    <script type="text/javascript">
-        if (typeof Promise === 'undefined') {
-            document.write(
-                '<script type="text/javascript" src="lib/signalr-client/signalr-clientES5.js"><\/script>' +
-                '<script type="text/javascript" src="lib/signalr-client/signalr-msgpackprotocolES5.js"><\/script>');
-        }
-        else {
-            document.write(
-                '<script type="text/javascript" src="lib/signalr-client/signalr-client.js"><\/script>' +
-                '<script type="text/javascript" src="lib/signalr-client/signalr-msgpackprotocol.js"><\/script>');
-        }
-    </script>
+    <script src="lib/signalr-client/signalr.js"></script>
     <script src="utils.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -65,7 +54,7 @@
             });
 
             click('connectButton', function () {
-                connection = new signalR.HubConnection('/streaming', { transport: transportType, logging: logger });
+                connection = new signalR.HubConnection('/streaming', { transport: transportType, logger: logger });
 
                 connection.onclose(function () {
                     channelButton.disabled = true;

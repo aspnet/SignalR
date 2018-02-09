@@ -672,7 +672,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                     .WithUrl(_serverFixture.Url + "/authorizedhub")
                     .WithTransport(transportType)
                     .WithLoggerFactory(loggerFactory)
-                    .WithJwtBearer(() => token)
+                    .WithAccessToken(() => token)
                     .Build();
                 try
                 {
@@ -744,6 +744,44 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                     await hubConnection.StartAsync().OrTimeout();
                     var cookieValue = await hubConnection.InvokeAsync<string>("GetCookieValue", new object[] { "Foo" }).OrTimeout();
                     Assert.Equal("Bar", cookieValue);
+                }
+                catch (Exception ex)
+                {
+                    loggerFactory.CreateLogger<HubConnectionTests>().LogError(ex, "Exception from test");
+                    throw;
+                }
+                finally
+                {
+                    await hubConnection.DisposeAsync().OrTimeout();
+                }
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(TransportTypes))]
+        public async Task CheckHttpConnectionFeatures(TransportType transportType)
+        {
+            using (StartLog(out var loggerFactory, $"{nameof(CheckHttpConnectionFeatures)}_{transportType}"))
+            {
+                var hubConnection = new HubConnectionBuilder()
+                    .WithUrl(_serverFixture.Url + "/default")
+                    .WithTransport(transportType)
+                    .WithLoggerFactory(loggerFactory)
+                    .Build();
+                try
+                {
+                    await hubConnection.StartAsync().OrTimeout();
+
+                    var features = await hubConnection.InvokeAsync<object[]>("GetIHttpConnectionFeatureProperties").OrTimeout();
+                    var localPort = (Int64)features[0];
+                    var remotePort = (Int64)features[1];
+                    var localIP = (string)features[2];
+                    var remoteIP = (string)features[3];
+
+                    Assert.True(localPort > 0L);
+                    Assert.True(remotePort > 0L);
+                    Assert.Equal("127.0.0.1", localIP);
+                    Assert.Equal("127.0.0.1", remoteIP);
                 }
                 catch (Exception ex)
                 {

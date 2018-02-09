@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 
 <head>
@@ -15,14 +15,7 @@
     </form>
 
     <ul id="messages"></ul>
-    <script type="text/javascript">
-        if (typeof Promise === 'undefined') {
-            document.write('<script type="text/javascript" src="lib/signalr-client/signalr-clientES5.js"><\/script>');
-        }
-        else {
-            document.write('<script type="text/javascript" src="lib/signalr-client/signalr-client.js"><\/script>');
-        }
-    </script>
+    <script src="lib/signalr-client/signalr.js"></script>
     <script src="utils.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -31,7 +24,7 @@
             document.getElementById('transportName').innerHTML = signalR.TransportType[transportType];
 
             let url = 'http://' + document.location.host + '/chat';
-            let connection = new signalR.HttpConnection(url, { transport: transportType, logging: new signalR.ConsoleLogger(signalR.LogLevel.Trace) });
+            let connection = new signalR.HttpConnection(url, { transport: transportType, logger: new signalR.ConsoleLogger(signalR.LogLevel.Trace) });
 
             connection.onreceive = function (data) {
                 let child = document.createElement('li');

@@ -26,12 +26,12 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
         public async Task CallEcho(string message)
         {
-            await Clients.Client(Context.ConnectionId).InvokeAsync("Echo", message);
+            await Clients.Client(Context.ConnectionId).SendAsync("Echo", message);
         }
 
         public async Task CallHandlerThatDoesntExist()
         {
-            await Clients.Client(Context.ConnectionId).InvokeAsync("NoClientHandler");
+            await Clients.Client(Context.ConnectionId).SendAsync("NoClientHandler");
         }
 
         public IEnumerable<string> GetHeaderValues(string[] headerNames)
@@ -43,6 +43,19 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         public string GetCookieValue(string cookieName)
         {
             return Context.Connection.GetHttpContext().Request.Cookies[cookieName];
+        }
+
+        public object[] GetIHttpConnectionFeatureProperties()
+        {
+            object[] result =
+            {
+                Context.Connection.LocalPort,
+                Context.Connection.RemotePort,
+                Context.Connection.LocalIpAddress.ToString(),
+                Context.Connection.RemoteIpAddress.ToString()
+            };
+
+            return result;
         }
     }
 
