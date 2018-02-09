@@ -117,16 +117,6 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
                 using (var feature = new TestWebSocketConnectionFeature())
                 {
-                    async Task CompleteApplicationAfterTransportCompletes()
-                    {
-                        // Wait until the transport completes so that we can end the application
-                        var result = await connection.Transport.Input.ReadAsync();
-                        connection.Transport.Input.AdvanceTo(result.Buffer.End);
-
-                        // Complete the application so that the connection unwinds without aborting
-                        connection.Transport.Output.Complete();
-                    }
-
                     var connectionContext = new DefaultConnectionContext(string.Empty, null, null);
                     var ws = new WebSocketsTransport(new WebSocketOptions(), connection.Application, connectionContext, loggerFactory);
 
@@ -136,15 +126,13 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                     // Run the client socket
                     var client = feature.Client.ExecuteAndCaptureFramesAsync();
 
-                    // When the close frame is received, we complete the application so the send
-                    // loop unwinds
-                    _ = CompleteApplicationAfterTransportCompletes();
-
                     // Terminate the client to server channel with an exception
                     feature.Client.SendAbort();
 
                     // Wait for the transport
                     await Assert.ThrowsAsync<WebSocketException>(() => transport).OrTimeout();
+
+                    connection.Transport.Output.Complete();
 
                     var summary = await client.OrTimeout();
                     Assert.Equal(WebSocketCloseStatus.InternalServerError, summary.CloseResult.CloseStatus);
