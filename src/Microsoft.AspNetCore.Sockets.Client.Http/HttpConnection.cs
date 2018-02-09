@@ -422,6 +422,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 }
 
                 await Input.Completion;
+                _transportChannel = null;
             }
             catch (Exception ex)
             {
