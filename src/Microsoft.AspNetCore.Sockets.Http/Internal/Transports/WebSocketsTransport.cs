@@ -86,9 +86,6 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                 _logger.WaitingForClose();
             }
 
-            // We're done writing
-            _application.Output.Complete();
-
             await socket.CloseOutputAsync(failed ? WebSocketCloseStatus.InternalServerError : WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
 
             var resultTask = await Task.WhenAny(task, Task.Delay(_options.CloseTimeout));
@@ -110,28 +107,36 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
 
         private async Task<WebSocketReceiveResult> StartReceiving(WebSocket socket)
         {
-            while (true)
+            try
             {
-                var memory = _application.Output.GetMemory();
-
-                // REVIEW: Use new Memory<byte> websocket APIs on .NET Core 2.1
-                memory.TryGetArray(out var arraySegment);
-
-                // Exceptions are handled above where the send and receive tasks are being run.
-                var receiveResult = await socket.ReceiveAsync(arraySegment, CancellationToken.None);
-                if (receiveResult.MessageType == WebSocketMessageType.Close)
+                while (true)
                 {
-                    return receiveResult;
+                    var memory = _application.Output.GetMemory();
+
+                    // REVIEW: Use new Memory<byte> websocket APIs on .NET Core 2.1
+                    memory.TryGetArray(out var arraySegment);
+
+                    // Exceptions are handled above where the send and receive tasks are being run.
+                    var receiveResult = await socket.ReceiveAsync(arraySegment, CancellationToken.None);
+                    if (receiveResult.MessageType == WebSocketMessageType.Close)
+                    {
+                        return receiveResult;
+                    }
+
+                    _logger.MessageReceived(receiveResult.MessageType, receiveResult.Count, receiveResult.EndOfMessage);
+
+                    _application.Output.Advance(receiveResult.Count);
+
+                    if (receiveResult.EndOfMessage)
+                    {
+                        await _application.Output.FlushAsync();
+                    }
                 }
-
-                _logger.MessageReceived(receiveResult.MessageType, receiveResult.Count, receiveResult.EndOfMessage);
-
-                _application.Output.Advance(receiveResult.Count);
-
-                if (receiveResult.EndOfMessage)
-                {
-                    await _application.Output.FlushAsync();
-                }
+            }
+            finally
+            {
+                // We're done writing
+                _application.Output.Complete();
             }
         }
 
