@@ -379,14 +379,12 @@ namespace Microsoft.AspNetCore.Sockets.Client
             {
                 _logger.HttpReceiveStarted();
 
-                while (await Input.WaitToReadAsync())
+                while (!Input.Completion.IsCompleted && await Input.WaitToReadAsync())
                 {
                     if (_connectionState != ConnectionState.Connected)
                     {
                         _logger.SkipRaisingReceiveEvent();
-                        // drain
-                        Input.TryRead(out _);
-                        continue;
+                        break;
                     }
 
                     if (Input.TryRead(out var buffer))
