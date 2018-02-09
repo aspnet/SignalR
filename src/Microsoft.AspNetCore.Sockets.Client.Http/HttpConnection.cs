@@ -38,6 +38,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
         private volatile Task _receiveLoopTask;
         private TaskCompletionSource<object> _startTcs;
         private TaskCompletionSource<object> _closeTcs;
+        private CancellationTokenSource _closingTokenSource;
         private TaskQueue _eventQueue;
         private readonly ITransportFactory _transportFactory;
         private string _connectionId;
@@ -186,6 +187,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             if (ChangeState(from: ConnectionState.Connecting, to: ConnectionState.Connected) == ConnectionState.Connecting)
             {
                 _closeTcs = new TaskCompletionSource<object>();
+                _closingTokenSource = new CancellationTokenSource();
 
                 _ = Input.Completion.ContinueWith(async t =>
                 {
@@ -203,6 +205,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     _logger.ProcessRemainingMessages();
 
                     await _startTcs.Task;
+                    _closingTokenSource.Cancel();
                     await _receiveLoopTask;
 
                     _logger.DrainEvents();
@@ -378,8 +381,9 @@ namespace Microsoft.AspNetCore.Sockets.Client
             try
             {
                 _logger.HttpReceiveStarted();
+                var closingToken = _closingTokenSource.Token;
 
-                while (!Input.Completion.IsCompleted && await Input.WaitToReadAsync())
+                while (!closingToken.IsCancellationRequested && await Input.WaitToReadAsync(closingToken))
                 {
                     if (_connectionState != ConnectionState.Connected)
                     {
