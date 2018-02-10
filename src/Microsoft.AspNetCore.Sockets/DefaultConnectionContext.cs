@@ -75,8 +75,6 @@ namespace Microsoft.AspNetCore.Sockets
 
         public TransferMode TransferMode { get; set; }
 
-        public override MemoryPool MemoryPool { get; }
-
         public void OnHeartbeat(Action<object> action, object state)
         {
             lock (_heartbeatHandlers)
