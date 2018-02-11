@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Sockets.Client.Internal;
 using Xunit;
@@ -51,6 +52,39 @@ namespace Microsoft.AspNetCore.Client.Tests
 
             task.Wait();
             Assert.Equal(2, n);
+        }
+
+        [Fact]
+        public async Task DrainWillNotRunCallbacksAlreadyInTheQueue()
+        {
+            var queue = new TaskQueue();
+            var waitHandle = new ManualResetEvent(false);
+            var inCallbackHandle = new ManualResetEvent(false);
+            _ = queue.Enqueue(() =>
+            {
+                inCallbackHandle.Set();
+                waitHandle.WaitOne();
+                return Task.CompletedTask;
+            });
+
+            var n = 0;
+            var task = queue.Enqueue(() =>
+            {
+                n = 1;
+                return Task.CompletedTask;
+            });
+
+            inCallbackHandle.WaitOne();
+            _ = queue.Drain();
+            waitHandle.Set();
+            try
+            {
+                await task;
+                Assert.True(false);
+            }
+            catch (OperationCanceledException) { }
+
+            Assert.Equal(0, n);
         }
     }
 }
