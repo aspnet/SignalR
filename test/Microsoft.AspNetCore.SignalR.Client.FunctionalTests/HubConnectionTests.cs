@@ -232,7 +232,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                     var tcs = new TaskCompletionSource<string>();
                     connection.On<string>("Echo", tcs.SetResult);
 
-                    await connection.InvokeAsync("CallEcho", originalMessage).OrTimeout(TimeSpan.FromSeconds(20));
+                    await connection.InvokeAsync("CallEcho", originalMessage).OrTimeout();
 
                     Assert.Equal(originalMessage, await tcs.Task.OrTimeout());
                 }
@@ -272,7 +272,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 try
                 {
                     await connection.StartAsync().OrTimeout();
-                    await connection.InvokeAsync("CallHandlerThatDoesntExist").OrTimeout(TimeSpan.FromSeconds(20));
+                    await connection.InvokeAsync("CallHandlerThatDoesntExist").OrTimeout();
                     await connection.DisposeAsync().OrTimeout();
                     await closeTcs.Task.OrTimeout();
                 }

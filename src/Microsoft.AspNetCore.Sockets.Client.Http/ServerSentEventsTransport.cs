@@ -5,6 +5,7 @@ using System;
 using System.IO.Pipelines;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Sockets.Client.Http;
@@ -98,7 +99,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                             break;
                         }
 
-                        _logger.LogDebug("Received {count} bytes", input.Length);
+                        _logger.LogDebug("Received {count} bytes: {payload}", input.Length, Encoding.UTF8.GetString(input.ToArray()));
 
                         var consumed = input.Start;
                         var examined = input.End;
@@ -110,7 +111,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                             switch (parseResult)
                             {
                                 case ServerSentEventsMessageParser.ParseResult.Completed:
-                                    _logger.LogDebug("Received {count} bytes from SSE payload", buffer.Length);
+                                    _logger.LogDebug("Received {count} bytes from SSE payload: {payload}", buffer.Length, Encoding.UTF8.GetString(buffer));
                                     await _application.Output.WriteAsync(buffer);
                                     _parser.Reset();
                                     break;
