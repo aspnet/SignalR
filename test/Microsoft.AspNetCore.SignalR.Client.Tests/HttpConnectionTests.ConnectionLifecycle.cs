@@ -214,7 +214,14 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     var httpHandler = new TestHttpMessageHandler();
 
                     var longPollResult = new TaskCompletionSource<HttpResponseMessage>();
-                    httpHandler.OnLongPoll(cancellationToken => longPollResult.Task.OrTimeout());
+                    httpHandler.OnLongPoll(cancellationToken => 
+                    { 
+                        cancellationToken.Register(() => 
+                        {
+                            longPollResult.TrySetResult(ResponseUtils.CreateResponse(HttpStatusCode.NoContent));
+                        });
+                        return longPollResult.Task;
+                    });
 
                     httpHandler.OnSocketSend((data, _) =>
                     {
@@ -228,8 +235,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     {
                         await connection.StartAsync().OrTimeout();
                         await connection.SendAsync(new byte[] { 0x42 }).OrTimeout();
-
-                        longPollResult.TrySetResult(ResponseUtils.CreateResponse(HttpStatusCode.NoContent));
 
                         // Wait for the connection to close, because the send failed.
                         await Assert.ThrowsAsync<HttpRequestException>(() => closed.OrTimeout());
