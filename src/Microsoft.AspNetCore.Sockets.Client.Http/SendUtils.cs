@@ -33,7 +33,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                         transportCts.Token.ThrowIfCancellationRequested();
                         if (!buffer.IsEmpty)
                         {
-                            // logger.SendingMessages(messages.Count, sendUrl);
+                            logger.SendingMessages(buffer.Length, sendUrl);
 
                             // Send them in a single post
                             var request = new HttpRequestMessage(HttpMethod.Post, sendUrl);

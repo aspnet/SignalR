@@ -232,7 +232,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                     var tcs = new TaskCompletionSource<string>();
                     connection.On<string>("Echo", tcs.SetResult);
 
-                    await connection.InvokeAsync("CallEcho", originalMessage).OrTimeout();
+                    await connection.InvokeAsync("CallEcho", originalMessage).OrTimeout(TimeSpan.FromSeconds(20));
 
                     Assert.Equal(originalMessage, await tcs.Task.OrTimeout());
                 }
@@ -252,7 +252,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
         public async Task InvokeNonExistantClientMethodFromServer(IHubProtocol protocol, TransportType transportType, string path)
         {
-            using (StartLog(out var loggerFactory, $"{nameof(InvokeNonExistantClientMethodFromServer)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
+            using (StartLog(out var loggerFactory, LogLevel.Trace, $"{nameof(InvokeNonExistantClientMethodFromServer)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
             {
                 var httpConnection = new HttpConnection(new Uri(_serverFixture.Url + path), transportType, loggerFactory);
                 var connection = new HubConnection(httpConnection, protocol, loggerFactory);
@@ -272,7 +272,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 try
                 {
                     await connection.StartAsync().OrTimeout();
-                    await connection.InvokeAsync("CallHandlerThatDoesntExist").OrTimeout();
+                    await connection.InvokeAsync("CallHandlerThatDoesntExist").OrTimeout(TimeSpan.FromSeconds(20));
                     await connection.DisposeAsync().OrTimeout();
                     await closeTcs.Task.OrTimeout();
                 }

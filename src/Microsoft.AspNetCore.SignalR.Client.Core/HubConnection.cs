@@ -430,6 +430,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 return;
             }
 
+            _logger.LogDebug("Dispatching invocation: {invocation}", invocation);
+
             //TODO: Optimize this!
             // Copying the callbacks to avoid concurrency issues
             InvocationHandler[] copiedHandlers;

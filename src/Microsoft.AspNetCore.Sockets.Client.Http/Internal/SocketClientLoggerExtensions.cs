@@ -66,8 +66,8 @@ namespace Microsoft.AspNetCore.Sockets.Client.Internal
             LoggerMessage.Define(LogLevel.Debug, new EventId(18, nameof(CancelMessage)), "Canceled passing message to application.");
 
         // Category: ServerSentEventsTransport and LongPollingTransport
-        private static readonly Action<ILogger, int, Uri, Exception> _sendingMessages =
-            LoggerMessage.Define<int, Uri>(LogLevel.Debug, new EventId(10, nameof(SendingMessages)), "Sending {count} message(s) to the server using url: {url}.");
+        private static readonly Action<ILogger, long, Uri, Exception> _sendingMessages =
+            LoggerMessage.Define<long, Uri>(LogLevel.Debug, new EventId(10, nameof(SendingMessages)), "Sending {count} bytes to the server using url: {url}.");
 
         private static readonly Action<ILogger, Exception> _sentSuccessfully =
             LoggerMessage.Define(LogLevel.Debug, new EventId(11, nameof(SentSuccessfully)), "Message(s) sent successfully.");
@@ -261,7 +261,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Internal
             _cancelMessage(logger, null);
         }
 
-        public static void SendingMessages(this ILogger logger, int count, Uri url)
+        public static void SendingMessages(this ILogger logger, long count, Uri url)
         {
             _sendingMessages(logger, count, url, null);
         }
