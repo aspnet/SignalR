@@ -227,7 +227,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                         async (connection, closed) =>
                     {
                         await connection.StartAsync().OrTimeout();
-                        await Assert.ThrowsAsync<HttpRequestException>(() => connection.SendAsync(new byte[] { 0x42 }).OrTimeout());
+                        await connection.SendAsync(new byte[] { 0x42 }).OrTimeout();
 
                         longPollResult.TrySetResult(ResponseUtils.CreateResponse(HttpStatusCode.NoContent));
 
@@ -318,7 +318,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 async (connection, closed) =>
                 {
                     await connection.StartAsync().OrTimeout();
-                    testTransport.Application.Writer.TryComplete(expected);
+                    testTransport.Application.Output.Complete(expected);
                     var actual = await Assert.ThrowsAsync<Exception>(() => closed.OrTimeout());
                     Assert.Same(expected, actual);
 

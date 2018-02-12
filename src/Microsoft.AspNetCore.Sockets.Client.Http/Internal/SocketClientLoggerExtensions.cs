@@ -47,8 +47,8 @@ namespace Microsoft.AspNetCore.Sockets.Client.Internal
         private static readonly Action<ILogger, int, Exception> _messageToApp =
             LoggerMessage.Define<int>(LogLevel.Debug, new EventId(12, nameof(MessageToApp)), "Passing message to application. Payload size: {count}.");
 
-        private static readonly Action<ILogger, int, Exception> _receivedFromApp =
-            LoggerMessage.Define<int>(LogLevel.Debug, new EventId(13, nameof(ReceivedFromApp)), "Received message from application. Payload size: {count}.");
+        private static readonly Action<ILogger, long, Exception> _receivedFromApp =
+            LoggerMessage.Define<long>(LogLevel.Debug, new EventId(13, nameof(ReceivedFromApp)), "Received message from application. Payload size: {count}.");
 
         private static readonly Action<ILogger, Exception> _sendMessageCanceled =
             LoggerMessage.Define(LogLevel.Information, new EventId(14, nameof(SendMessageCanceled)), "Sending a message canceled.");
@@ -221,7 +221,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Internal
             _sendStarted(logger, null);
         }
 
-        public static void ReceivedFromApp(this ILogger logger, int count)
+        public static void ReceivedFromApp(this ILogger logger, long count)
         {
             _receivedFromApp(logger, count, null);
         }
