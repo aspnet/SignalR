@@ -111,6 +111,11 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     {
                         _logger.WebSocketClosed(receiveResult.CloseStatus);
 
+                        if (receiveResult.CloseStatus != WebSocketCloseStatus.NormalClosure)
+                        {
+                            throw new InvalidOperationException($"Websocket closed with error: {receiveResult.CloseStatus}.");
+                        }
+
                         return;
                     }
 
