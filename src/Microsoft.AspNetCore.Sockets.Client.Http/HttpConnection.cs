@@ -325,7 +325,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         private async Task StartTransport(Uri connectUrl)
         {
-            var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
+            var options = new PipeOptions(readerScheduler: PipeScheduler.ThreadPool);
+            var pair = DuplexPipe.CreateConnectionPair(options, options);
             _transportChannel = pair.Transport;
 
             // Start the transport, giving it one end of the pipeline
@@ -464,6 +465,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
             }
 
             _logger.SendingMessage();
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             await Output.WriteAsync(data);
         }
