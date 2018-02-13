@@ -37,7 +37,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             ReadOnlySpan<byte> span = input;
             while (span.Length > 0 && _dataEncoder.TryDecode(ref span, out var data))
             {
-                _hubProtocol.TryParseMessages(data, binder, out messages);
+                _hubProtocol.TryParseMessages(data, binder, messages);
             }
             return messages.Count > 0;
         }
