@@ -19,7 +19,6 @@ using Microsoft.AspNetCore.Sockets.Features;
 using Microsoft.AspNetCore.Sockets.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using System.Text;
 
 namespace Microsoft.AspNetCore.SignalR.Client
 {
@@ -345,7 +344,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
         private async Task OnDataReceivedAsync(byte[] data)
         {
             ResetTimeoutTimer();
-
             if (_protocolReaderWriter.ReadMessages(data, _binder, out var messages))
             {
                 foreach (var message in messages)
