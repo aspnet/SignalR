@@ -345,15 +345,11 @@ namespace Microsoft.AspNetCore.SignalR.Client
         private async Task OnDataReceivedAsync(byte[] data)
         {
             ResetTimeoutTimer();
-            _logger.LogDebug("Received {count} bytes. OnDataReceived({payload})", data.Length, Encoding.UTF8.GetString(data));
 
             if (_protocolReaderWriter.ReadMessages(data, _binder, out var messages))
             {
-                _logger.LogDebug("Parsed {count} messages.", messages.Count);
-
                 foreach (var message in messages)
                 {
-                    _logger.LogDebug("Processing {message}", message);
                     InvocationRequest irq;
                     switch (message)
                     {
@@ -387,10 +383,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
                             throw new InvalidOperationException($"Unexpected message type: {message.GetType().FullName}");
                     }
                 }
-            }
-            else
-            {
-                _logger.LogDebug("No messages parsed");
             }
         }
 
@@ -440,9 +432,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 return;
             }
 
-            _logger.LogDebug("Dispatching invocation: {invocation}", invocation);
-
-            //TODO: Optimize this!
+            // TODO: Optimize this!
             // Copying the callbacks to avoid concurrency issues
             InvocationHandler[] copiedHandlers;
             lock (handlers)

@@ -99,8 +99,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
                             break;
                         }
 
-                        _logger.LogDebug("Received {count} bytes: {payload}", input.Length, Encoding.UTF8.GetString(input.ToArray()));
-
                         var consumed = input.Start;
                         var examined = input.End;
 
@@ -111,7 +109,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
                             switch (parseResult)
                             {
                                 case ServerSentEventsMessageParser.ParseResult.Completed:
-                                    _logger.LogDebug("Received {count} bytes from SSE payload: {payload}", buffer.Length, Encoding.UTF8.GetString(buffer));
                                     await _application.Output.WriteAsync(buffer);
                                     _parser.Reset();
                                     break;
