@@ -30,6 +30,24 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Encoders
             Assert.Equal(payload, decodedMessage);
         }
 
+        [Fact]
+        public void CanParseMultipleMessages()
+        {
+            ReadOnlySpan<byte> data = Encoding.UTF8.GetBytes("28:QQpSDUMNCjtERUYxMjM0NTY3ODkw;4:QUJD;4:QUJD;");
+            var encoder = new Base64Encoder();
+            Assert.True(encoder.TryDecode(ref data, out var payload1));
+            Assert.True(encoder.TryDecode(ref data, out var payload2));
+            Assert.True(encoder.TryDecode(ref data, out var payload3));
+            Assert.False(encoder.TryDecode(ref data, out var payload4));
+            Assert.Equal(0, data.Length);
+            var payload1Value = Encoding.UTF8.GetString(payload1.ToArray());
+            var payload2Value = Encoding.UTF8.GetString(payload2.ToArray());
+            var payload3Value = Encoding.UTF8.GetString(payload3.ToArray());
+            Assert.Equal("A\nR\rC\r\n;DEF1234567890", payload1Value);
+            Assert.Equal("ABC", payload2Value);
+            Assert.Equal("ABC", payload3Value);
+        }
+
         public static IEnumerable<object[]> Payloads =>
             new object[][]
             {

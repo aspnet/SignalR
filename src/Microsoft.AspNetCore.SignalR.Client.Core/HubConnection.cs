@@ -19,6 +19,7 @@ using Microsoft.AspNetCore.Sockets.Features;
 using Microsoft.AspNetCore.Sockets.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Text;
 
 namespace Microsoft.AspNetCore.SignalR.Client
 {
@@ -344,10 +345,15 @@ namespace Microsoft.AspNetCore.SignalR.Client
         private async Task OnDataReceivedAsync(byte[] data)
         {
             ResetTimeoutTimer();
+            _logger.LogDebug("Received {count} bytes. OnDataReceived({payload})", data.Length, Encoding.UTF8.GetString(data));
+
             if (_protocolReaderWriter.ReadMessages(data, _binder, out var messages))
             {
+                _logger.LogDebug("Parsed {count} messages.", messages.Count);
+
                 foreach (var message in messages)
                 {
+                    _logger.LogDebug("Processing {message}", message);
                     InvocationRequest irq;
                     switch (message)
                     {
@@ -381,6 +387,10 @@ namespace Microsoft.AspNetCore.SignalR.Client
                             throw new InvalidOperationException($"Unexpected message type: {message.GetType().FullName}");
                     }
                 }
+            }
+            else
+            {
+                _logger.LogDebug("No messages parsed");
             }
         }
 
