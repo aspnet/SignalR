@@ -1,6 +1,7 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using System;
 using System.Collections.Generic;
 using System.Text;
 using Xunit;
@@ -22,8 +23,10 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Encoders
         [MemberData(nameof(Payloads))]
         public void VerifyEncode(string payload, string encoded)
         {
-            var encodedMessage = Encoding.UTF8.GetBytes(encoded);
-            var decodedMessage = Encoding.UTF8.GetString(new Base64Encoder().Decode(encodedMessage).ToArray());
+            ReadOnlySpan<byte> encodedMessage = Encoding.UTF8.GetBytes(encoded);
+            var encoder = new Base64Encoder();
+            encoder.TryDecode(ref encodedMessage, out var data);
+            var decodedMessage = Encoding.UTF8.GetString(data.ToArray());
             Assert.Equal(payload, decodedMessage);
         }
 
