@@ -76,7 +76,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             }
             catch (Exception ex)
             {
-                args = ex.Message;
+                args = $"Error: {ex.Message}";
             }
             return $"InvocationMessage {{ {nameof(InvocationId)}: \"{InvocationId}\", {nameof(Target)}: \"{Target}\", {nameof(Arguments)}: [ {args} ] }}";
         }
@@ -102,7 +102,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             }
             catch (Exception ex)
             {
-                args = ex.Message;
+                args = $"Error: {ex.Message}";
             }
             return $"StreamInvocation {{ {nameof(InvocationId)}: \"{InvocationId}\", {nameof(Target)}: \"{Target}\", {nameof(Arguments)}: [ {args} ] }}";
         }
