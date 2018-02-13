@@ -76,13 +76,13 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     var mockStream = new Mock<Stream>();
                     mockStream
                         .Setup(s => s.CopyToAsync(It.IsAny<Stream>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
-                        .Returns<Stream, int, CancellationToken>(async (stream, bufferSize, t) =>
+                        .Returns<Stream, int, CancellationToken>(async (stream, bufferSize, token) =>
                         {
                             await Task.Yield();
                             var buffer = Encoding.ASCII.GetBytes("data: 3:abc\r\n\r\n");
-                            while (!t.IsCancellationRequested)
+                            while (!token.IsCancellationRequested)
                             {
-                                await stream.WriteAsync(buffer, 0, buffer.Length, t).OrTimeout();
+                                await stream.WriteAsync(buffer, 0, buffer.Length, token).OrTimeout();
                             }
                         });
                     mockStream.Setup(s => s.CanRead).Returns(true);
