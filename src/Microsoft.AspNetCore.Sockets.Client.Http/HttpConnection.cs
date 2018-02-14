@@ -21,7 +21,7 @@ using Newtonsoft.Json;
 
 namespace Microsoft.AspNetCore.Sockets.Client
 {
-    public class HttpConnection : IConnection
+    public partial class HttpConnection : IConnection
     {
         private static readonly TimeSpan HttpClientTimeout = TimeSpan.FromSeconds(120);
 
@@ -43,10 +43,10 @@ namespace Microsoft.AspNetCore.Sockets.Client
         private readonly TransportType _requestedTransportType = TransportType.All;
         private readonly ConnectionLogScope _logScope;
         private readonly IDisposable _scopeDisposable;
-        
-        public PipeReader Input => _transportChannel.Input;
 
-        public PipeWriter Output => _transportChannel.Output;
+        public PipeReader Input { get; }
+
+        public PipeWriter Output { get; }
 
         public Uri Url { get; }
 
@@ -91,6 +91,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
             _transportFactory = new DefaultTransportFactory(transportType, _loggerFactory, _httpClient, httpOptions);
             _logScope = new ConnectionLogScope();
             _scopeDisposable = _logger.BeginScope(_logScope);
+            Input = new HttpConnectionPipeReader(this);
+            Output = new HttpConnectionPipeWriter(this);
         }
 
         public HttpConnection(Uri url, ITransportFactory transportFactory, ILoggerFactory loggerFactory, HttpOptions httpOptions)
@@ -104,6 +106,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
             _transportFactory = transportFactory ?? throw new ArgumentNullException(nameof(transportFactory));
             _logScope = new ConnectionLogScope();
             _scopeDisposable = _logger.BeginScope(_logScope);
+            Input = new HttpConnectionPipeReader(this);
+            Output = new HttpConnectionPipeWriter(this);
         }
 
         public async Task StartAsync() => await StartAsyncCore().ForceAsync();
@@ -489,6 +493,15 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 _connectionState = to;
                 _logger.ConnectionStateChanged(state, to);
                 return state;
+            }
+        }
+
+        private void EnsureConnected()
+        {
+            if (_connectionState != ConnectionState.Connected)
+            {
+                throw new InvalidOperationException(
+                "Cannot send messages when the connection is not in the Connected state.");
             }
         }
 

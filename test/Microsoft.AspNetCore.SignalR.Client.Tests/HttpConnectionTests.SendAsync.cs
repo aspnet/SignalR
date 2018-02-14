@@ -48,6 +48,52 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             }
 
             [Fact]
+            public Task SendThrowsIfConnectionIsNotStarted()
+            {
+                return WithConnectionAsync(
+                    CreateConnection(),
+                    async (connection, closed) =>
+                    {
+                        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+                            () => connection.Output.WriteAsync(new byte[0]).OrTimeout());
+                        Assert.Equal("Cannot send messages when the connection is not in the Connected state.", exception.Message);
+                    });
+            }
+
+            [Fact]
+            public Task SendThrowsIfConnectionIsStopped()
+            {
+                return WithConnectionAsync(
+                    CreateConnection(),
+                    async (connection, closed) =>
+                    {
+                        await connection.StartAsync().OrTimeout();
+                        await connection.StopAsync().OrTimeout();
+
+                        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+                            () => connection.Output.WriteAsync(new byte[0]).OrTimeout());
+                        Assert.Equal("Cannot send messages when the connection is not in the Connected state.", exception.Message);
+                    });
+            }
+
+            [Fact]
+            public Task SendThrowsIfConnectionIsDisposed()
+            {
+                return WithConnectionAsync(
+                    CreateConnection(),
+                    async (connection, closed) =>
+                    {
+                        await connection.StartAsync().OrTimeout();
+                        await connection.DisposeAsync().OrTimeout();
+
+                        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+                            () => connection.Output.WriteAsync(new byte[0]).OrTimeout());
+                        Assert.Equal("Cannot send messages when the connection is not in the Connected state.", exception.Message);
+                    });
+            }
+
+
+            [Fact]
             public async Task ExceptionOnSendAsyncClosesWithError()
             {
                 var testHttpHandler = new TestHttpMessageHandler();
