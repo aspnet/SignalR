@@ -327,6 +327,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     testTransport.Application.Output.Complete(expected);
                     var actual = await Assert.ThrowsAsync<Exception>(() => closed.OrTimeout());
                     Assert.Same(expected, actual);
+
+                    var sendException = await Assert.ThrowsAsync<InvalidOperationException>(() => connection.Output.WriteAsync(new byte[0]).OrTimeout());
+                    Assert.Equal("Cannot send messages when the connection is not in the Connected state.", sendException.Message);
                 });
             }
 
