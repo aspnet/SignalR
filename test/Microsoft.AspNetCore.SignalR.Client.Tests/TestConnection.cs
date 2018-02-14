@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Sockets;
 using Microsoft.AspNetCore.Sockets.Client;
 using Microsoft.AspNetCore.Sockets.Features;
 using Newtonsoft.Json;
+using System.IO.Pipelines;
 
 namespace Microsoft.AspNetCore.SignalR.Client.Tests
 {
@@ -23,31 +24,39 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         private TaskCompletionSource<object> _started = new TaskCompletionSource<object>();
         private TaskCompletionSource<object> _disposed = new TaskCompletionSource<object>();
 
-        private Channel<byte[]> _sentMessages = Channel.CreateUnbounded<byte[]>();
-        private Channel<byte[]> _receivedMessages = Channel.CreateUnbounded<byte[]>();
-
-        private CancellationTokenSource _receiveShutdownToken = new CancellationTokenSource();
-        private Task _receiveLoop;
-
         private TransferMode? _transferMode;
+
+        private IDuplexPipe _transport;
+        private IDuplexPipe _application;
 
         public event Action<Exception> Closed;
         public Task Started => _started.Task;
         public Task Disposed => _disposed.Task;
-        public ChannelReader<byte[]> SentMessages => _sentMessages.Reader;
-        public ChannelWriter<byte[]> ReceivedMessages => _receivedMessages.Writer;
 
         private bool _closed;
         private object _closedLock = new object();
 
-        public List<ReceiveCallback> Callbacks { get; } = new List<ReceiveCallback>();
-
         public IFeatureCollection Features { get; } = new FeatureCollection();
+
+        public IDuplexPipe Application => _application;
+
+        public PipeReader Input => _transport.Input;
+
+        public PipeWriter Output => _transport.Output;
 
         public TestConnection(TransferMode? transferMode = null)
         {
             _transferMode = transferMode;
-            _receiveLoop = ReceiveLoopAsync(_receiveShutdownToken.Token);
+            var options = new PipeOptions(readerScheduler: PipeScheduler.ThreadPool);
+            var pair = DuplexPipe.CreateConnectionPair(options, options);
+            _transport = pair.Transport;
+            _application = pair.Application;
+
+            Input.OnWriterCompleted((error, state) =>
+            {
+                TriggerClosed(error);
+            }, 
+            null);
         }
 
         public Task AbortAsync(Exception ex) => DisposeCoreAsync(ex);
@@ -58,26 +67,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
         private Task DisposeCoreAsync(Exception ex = null)
         {
-            TriggerClosed(ex);
-            _receiveShutdownToken.Cancel();
-            return _receiveLoop;
-        }
+            Output.Complete();
 
-        public async Task SendAsync(byte[] data, CancellationToken cancellationToken)
-        {
-            if (!_started.Task.IsCompleted)
-            {
-                throw new InvalidOperationException("Connection must be started before SendAsync can be called");
-            }
-
-            while (await _sentMessages.Writer.WaitToWriteAsync(cancellationToken))
-            {
-                if (_sentMessages.Writer.TryWrite(data))
-                {
-                    return;
-                }
-            }
-            throw new ObjectDisposedException("Unable to send message, underlying channel was closed");
+            return Task.CompletedTask;
         }
 
         public Task StartAsync()
@@ -100,7 +92,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
         public async Task<string> ReadSentTextMessageAsync()
         {
-            var message = await SentMessages.ReadAsync();
+            var message = await Input.ReadSingleAsync();
             return Encoding.UTF8.GetString(message);
         }
 
@@ -109,7 +101,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             var json = JsonConvert.SerializeObject(jsonObject, Formatting.None);
             var bytes = FormatMessageToArray(Encoding.UTF8.GetBytes(json));
 
-            return _receivedMessages.Writer.WriteAsync(bytes);
+            return _application.Output.WriteAsync(bytes);
         }
 
         private byte[] FormatMessageToArray(byte[] message)
@@ -117,42 +109,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             var output = new MemoryStream();
             TextMessageFormatter.WriteMessage(message, output);
             return output.ToArray();
-        }
-
-        private async Task ReceiveLoopAsync(CancellationToken token)
-        {
-            try
-            {
-                while (!token.IsCancellationRequested)
-                {
-                    while (await _receivedMessages.Reader.WaitToReadAsync(token))
-                    {
-                        while (_receivedMessages.Reader.TryRead(out var message))
-                        {
-                            ReceiveCallback[] callbackCopies;
-                            lock (Callbacks)
-                            {
-                                callbackCopies = Callbacks.ToArray();
-                            }
-
-                            foreach (var callback in callbackCopies)
-                            {
-                                await callback.InvokeAsync(message);
-                            }
-                        }
-                    }
-                }
-                TriggerClosed();
-            }
-            catch (OperationCanceledException)
-            {
-                // Do nothing, we were just asked to shut down.
-                TriggerClosed();
-            }
-            catch (Exception ex)
-            {
-                TriggerClosed(ex);
-            }
         }
 
         private void TriggerClosed(Exception ex = null)
@@ -166,51 +122,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 }
             }
         }
-
-        public IDisposable OnReceived(Func<byte[], object, Task> callback, object state)
+        public void Dispose()
         {
-            var receiveCallBack = new ReceiveCallback(callback, state);
-            lock (Callbacks)
-            {
-                Callbacks.Add(receiveCallBack);
-            }
-            return new Subscription(receiveCallBack, Callbacks);
-        }
-
-        public class ReceiveCallback
-        {
-            private readonly Func<byte[], object, Task> _callback;
-            private readonly object _state;
-
-            public ReceiveCallback(Func<byte[], object, Task> callback, object state)
-            {
-                _callback = callback;
-                _state = state;
-            }
-
-            public Task InvokeAsync(byte[] data)
-            {
-                return _callback(data, _state);
-            }
-        }
-
-        private class Subscription : IDisposable
-        {
-            private readonly ReceiveCallback _callback;
-            private readonly List<ReceiveCallback> _callbacks;
-            public Subscription(ReceiveCallback callback, List<ReceiveCallback> callbacks)
-            {
-                _callback = callback;
-                _callbacks = callbacks;
-            }
-
-            public void Dispose()
-            {
-                lock (_callbacks)
-                {
-                    _callbacks.Remove(_callback);
-                }
-            }
+         
         }
     }
 }

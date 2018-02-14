@@ -2,8 +2,11 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Pipelines;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.SignalR.Internal;
@@ -21,6 +24,18 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public async Task StartAsyncCallsConnectionStart()
         {
             var connection = new Mock<IConnection>();
+            var writer = new Mock<PipeWriter>();
+            var reader = new Mock<PipeReader>();
+            var readerAwaiter = new Mock<IAwaiter<ReadResult>>();
+            var flushAwaiter = new Mock<IAwaiter<FlushResult>>();
+            flushAwaiter.Setup(m => m.IsCompleted).Returns(true);
+            flushAwaiter.Setup(m => m.GetResult()).Returns(new FlushResult());
+            readerAwaiter.Setup(m => m.IsCompleted).Returns(true);
+            readerAwaiter.Setup(m => m.GetResult()).Returns(new ReadResult(ReadOnlyBuffer<byte>.Empty, isCancelled: false, isCompleted: true));
+            writer.Setup(m => m.FlushAsync(It.IsAny<CancellationToken>())).Returns(new ValueAwaiter<FlushResult>(flushAwaiter.Object));
+            reader.Setup(m => m.ReadAsync(It.IsAny<CancellationToken>())).Returns(new ValueAwaiter<ReadResult>(readerAwaiter.Object));
+            connection.SetupGet(p => p.Output).Returns(writer.Object);
+            connection.SetupGet(p => p.Input).Returns(reader.Object);
             connection.SetupGet(p => p.Features).Returns(new FeatureCollection());
             connection.Setup(m => m.StartAsync()).Returns(Task.CompletedTask).Verifiable();
             var hubConnection = new HubConnection(connection.Object, Mock.Of<IHubProtocol>(), null);
@@ -205,21 +220,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
             var exception = Assert.IsType<TimeoutException>(await closeTcs.Task.OrTimeout());
             Assert.Equal("Server timeout (100.00ms) elapsed without receiving a message from the server.", exception.Message);
-        }
-
-        [Fact]
-        public async Task OnReceivedAfterTimerDisposedDoesNotThrow()
-        {
-            var connection = new TestConnection();
-            var hubConnection = new HubConnection(connection, new JsonHubProtocol(), new LoggerFactory());
-            await hubConnection.StartAsync().OrTimeout();
-            await hubConnection.DisposeAsync().OrTimeout();
-
-            // Fire callbacks, they shouldn't fail
-            foreach (var registration in connection.Callbacks)
-            {
-                await registration.InvokeAsync(new byte[0]);
-            }
         }
 
         // Moq really doesn't handle out parameters well, so to make these tests work I added a manual mock -anurse

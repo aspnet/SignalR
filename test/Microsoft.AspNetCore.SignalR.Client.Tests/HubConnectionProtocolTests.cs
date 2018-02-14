@@ -4,6 +4,7 @@
 using System;
 using System.Globalization;
 using System.IO;
+using System.IO.Pipelines;
 using System.Text;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -378,7 +379,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     var payloadSize = invokeMessage.Length.ToString(CultureInfo.InvariantCulture);
                     var message = $"{payloadSize}:{invokeMessage};";
 
-                    connection.ReceivedMessages.TryWrite(Encoding.UTF8.GetBytes(message));
+                    await connection.Application.Output.WriteAsync(Encoding.UTF8.GetBytes(message));
                 }
 
                 Assert.Equal(42, await invocationTcs.Task.OrTimeout());

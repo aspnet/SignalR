@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipelines;
@@ -34,20 +35,18 @@ namespace Microsoft.AspNetCore.Sockets.Client
         private readonly HttpClient _httpClient;
         private readonly HttpOptions _httpOptions;
         private volatile ITransport _transport;
-        private volatile Task _receiveLoopTask;
         private TaskCompletionSource<object> _startTcs;
         private TaskCompletionSource<object> _closeTcs;
-        private TaskQueue _eventQueue;
         private readonly ITransportFactory _transportFactory;
         private string _connectionId;
         private Exception _abortException;
-        private readonly TimeSpan _eventQueueDrainTimeout = TimeSpan.FromSeconds(5);
-        private PipeReader Input => _transportChannel.Input;
-        private PipeWriter Output => _transportChannel.Output;
-        private readonly List<ReceiveCallback> _callbacks = new List<ReceiveCallback>();
         private readonly TransportType _requestedTransportType = TransportType.All;
         private readonly ConnectionLogScope _logScope;
         private readonly IDisposable _scopeDisposable;
+        
+        public PipeReader Input => _transportChannel.Input;
+
+        public PipeWriter Output => _transportChannel.Output;
 
         public Uri Url { get; }
 
@@ -118,7 +117,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
             }
 
             _startTcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
-            _eventQueue = new TaskQueue();
 
             StartAsyncInternal()
                 .ContinueWith(t =>
@@ -202,11 +200,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     _logger.ProcessRemainingMessages();
 
                     await _startTcs.Task;
-                    await _receiveLoopTask;
-
-                    _logger.DrainEvents();
-
-                    await Task.WhenAny(_eventQueue.Drain().NoThrow(), Task.Delay(_eventQueueDrainTimeout));
 
                     _logger.CompleteClosed();
                     _logScope.ConnectionId = null;
@@ -238,8 +231,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     }
 
                 }, null);
-
-                _receiveLoopTask = ReceiveAsync();
             }
         }
 
@@ -372,105 +363,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
             transferModeFeature.TransferMode = transferMode;
         }
 
-        private async Task ReceiveAsync()
-        {
-            try
-            {
-                _logger.HttpReceiveStarted();
-
-                while (true)
-                {
-                    if (_connectionState != ConnectionState.Connected)
-                    {
-                        _logger.SkipRaisingReceiveEvent();
-
-                        break;
-                    }
-
-                    var result = await Input.ReadAsync();
-                    var buffer = result.Buffer;
-
-                    try
-                    {
-                        if (!buffer.IsEmpty)
-                        {
-                            _logger.ScheduleReceiveEvent();
-                            var data = buffer.ToArray();
-
-                            _ = _eventQueue.Enqueue(async () =>
-                            {
-                                _logger.RaiseReceiveEvent();
-
-                                // Copying the callbacks to avoid concurrency issues
-                                ReceiveCallback[] callbackCopies;
-                                lock (_callbacks)
-                                {
-                                    callbackCopies = new ReceiveCallback[_callbacks.Count];
-                                    _callbacks.CopyTo(callbackCopies);
-                                }
-
-                                foreach (var callbackObject in callbackCopies)
-                                {
-                                    try
-                                    {
-                                        await callbackObject.InvokeAsync(data);
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        _logger.ExceptionThrownFromCallback(nameof(OnReceived), ex);
-                                    }
-                                }
-                            });
-
-                        }
-                        else if (result.IsCompleted)
-                        {
-                            break;
-                        }
-                    }
-                    finally
-                    {
-                        Input.AdvanceTo(buffer.End);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Input.Complete(ex);
-
-                _logger.ErrorReceiving(ex);
-            }
-            finally
-            {
-                Input.Complete();
-            }
-
-            _logger.EndReceive();
-        }
-
-        public async Task SendAsync(byte[] data, CancellationToken cancellationToken = default) =>
-            await SendAsyncCore(data, cancellationToken).ForceAsync();
-
-        private async Task SendAsyncCore(byte[] data, CancellationToken cancellationToken)
-        {
-            if (data == null)
-            {
-                throw new ArgumentNullException(nameof(data));
-            }
-
-            if (_connectionState != ConnectionState.Connected)
-            {
-                throw new InvalidOperationException(
-                    "Cannot send messages when the connection is not in the Connected state.");
-            }
-
-            _logger.SendingMessage();
-
-            cancellationToken.ThrowIfCancellationRequested();
-
-            await Output.WriteAsync(data);
-        }
-
         // AbortAsync creates a few thread-safety races that we are OK with.
         //  1. If the transport shuts down gracefully after AbortAsync is called but BEFORE _abortException is called, then the
         //     Closed event will not receive the Abort exception. This is OK because technically the transport was shut down gracefully
@@ -519,7 +411,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
             }
 
             TaskCompletionSource<object> closeTcs = null;
-            Task receiveLoopTask = null;
             ITransport transport = null;
 
             lock (_stateChangeLock)
@@ -535,7 +426,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 // Create locals of relevant member variables to prevent a race when Closed event triggers a connect
                 // while StopAsync is still running
                 closeTcs = _closeTcs;
-                receiveLoopTask = _receiveLoopTask;
                 transport = _transport;
             }
 
@@ -547,11 +437,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
             if (transport != null)
             {
                 await transport.StopAsync();
-            }
-
-            if (receiveLoopTask != null)
-            {
-                await receiveLoopTask;
             }
 
             if (closeTcs != null)
@@ -581,52 +466,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
             _scopeDisposable.Dispose();
         }
 
-        public IDisposable OnReceived(Func<byte[], object, Task> callback, object state)
-        {
-            var receiveCallback = new ReceiveCallback(callback, state);
-            lock (_callbacks)
-            {
-                _callbacks.Add(receiveCallback);
-            }
-            return new Subscription(receiveCallback, _callbacks);
-        }
-
-        private class ReceiveCallback
-        {
-            private readonly Func<byte[], object, Task> _callback;
-            private readonly object _state;
-
-            public ReceiveCallback(Func<byte[], object, Task> callback, object state)
-            {
-                _callback = callback;
-                _state = state;
-            }
-
-            public Task InvokeAsync(byte[] data)
-            {
-                return _callback(data, _state);
-            }
-        }
-
-        private class Subscription : IDisposable
-        {
-            private readonly ReceiveCallback _receiveCallback;
-            private readonly List<ReceiveCallback> _callbacks;
-            public Subscription(ReceiveCallback callback, List<ReceiveCallback> callbacks)
-            {
-                _receiveCallback = callback;
-                _callbacks = callbacks;
-            }
-
-            public void Dispose()
-            {
-                lock (_callbacks)
-                {
-                    _callbacks.Remove(_receiveCallback);
-                }
-            }
-        }
-
         private ConnectionState ChangeState(ConnectionState from, ConnectionState to)
         {
             lock (_stateChangeLock)
@@ -651,6 +490,11 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 _logger.ConnectionStateChanged(state, to);
                 return state;
             }
+        }
+
+        public void Dispose()
+        {
+            throw new NotImplementedException();
         }
 
         // Internal because it's used by logging to avoid ToStringing prematurely.

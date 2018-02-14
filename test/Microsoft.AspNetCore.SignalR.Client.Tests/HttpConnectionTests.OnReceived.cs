@@ -26,80 +26,24 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     CreateConnection(testHttpHandler),
                     async (connection, closed) =>
                     {
-                        var receiveTcs = new TaskCompletionSource<string>();
-                        connection.OnReceived((data, state) =>
+
+                        async Task<string> ReadAsync()
                         {
-                            var tcs = ((TaskCompletionSource<string>)state);
-                            tcs.TrySetResult(Encoding.UTF8.GetString(data));
-                            return Task.CompletedTask;
-                        }, receiveTcs);
+                            var result = await connection.Input.ReadAsync();
+                            var buffer = result.Buffer;
 
-                        await connection.StartAsync().OrTimeout();
-                        Assert.Contains("42", await receiveTcs.Task.OrTimeout());
-                    });
-            }
-
-            [Fact]
-            public async Task CanReceiveDataEvenIfExceptionThrownFromPreviousReceivedEvent()
-            {
-                var testHttpHandler = new TestHttpMessageHandler();
-
-                testHttpHandler.OnLongPoll(cancellationToken => ResponseUtils.CreateResponse(HttpStatusCode.OK, "42"));
-                testHttpHandler.OnSocketSend((_, __) => ResponseUtils.CreateResponse(HttpStatusCode.Accepted));
-
-                await WithConnectionAsync(
-                    CreateConnection(testHttpHandler),
-                    async (connection, closed) =>
-                    {
-                        var receiveTcs = new TaskCompletionSource<string>();
-                        var receivedRaised = false;
-                        connection.OnReceived((data, state) =>
-                        {
-                            if (!receivedRaised)
+                            try
                             {
-                                receivedRaised = true;
-                                return Task.FromException(new InvalidOperationException());
+                                return Encoding.UTF8.GetString(buffer.ToArray());
                             }
-
-                            receiveTcs.TrySetResult(Encoding.UTF8.GetString(data));
-                            return Task.CompletedTask;
-                        }, receiveTcs);
-
-                        await connection.StartAsync().OrTimeout();
-                        Assert.Contains("42", await receiveTcs.Task.OrTimeout());
-                        Assert.True(receivedRaised);
-                    });
-            }
-
-            [Fact]
-            public async Task CanReceiveDataEvenIfExceptionThrownSynchronouslyFromPreviousReceivedEvent()
-            {
-                var testHttpHandler = new TestHttpMessageHandler();
-
-                testHttpHandler.OnLongPoll(cancellationToken => ResponseUtils.CreateResponse(HttpStatusCode.OK, "42"));
-                testHttpHandler.OnSocketSend((_, __) => ResponseUtils.CreateResponse(HttpStatusCode.Accepted));
-
-                await WithConnectionAsync(
-                    CreateConnection(testHttpHandler),
-                    async (connection, closed) =>
-                    {
-                        var receiveTcs = new TaskCompletionSource<string>();
-                        var receivedRaised = false;
-                        connection.OnReceived((data, state) =>
-                        {
-                            if (!receivedRaised)
+                            finally
                             {
-                                receivedRaised = true;
-                                throw new InvalidOperationException();
+                                connection.Input.AdvanceTo(buffer.End);
                             }
-
-                            receiveTcs.TrySetResult(Encoding.UTF8.GetString(data));
-                            return Task.CompletedTask;
-                        }, receiveTcs);
+                        }
 
                         await connection.StartAsync().OrTimeout();
-                        Assert.Contains("42", await receiveTcs.Task.OrTimeout());
-                        Assert.True(receivedRaised);
+                        Assert.Contains("42", await ReadAsync().OrTimeout());
                     });
             }
         }
