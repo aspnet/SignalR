@@ -79,8 +79,6 @@ namespace ClientSample
             {
                 await connection.DisposeAsync();
 
-                connection.Output.Complete();
-
                 if (reading != null)
                 {
                     await reading;

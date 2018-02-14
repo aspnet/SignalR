@@ -492,9 +492,9 @@ namespace Microsoft.AspNetCore.Sockets.Client
             }
         }
 
-        public void Dispose()
+        void IDisposable.Dispose()
         {
-            throw new NotImplementedException();
+            // We want to hide this since it noops, it's temporary until we remove IDisposable from IDuplexPipe
         }
 
         // Internal because it's used by logging to avoid ToStringing prematurely.

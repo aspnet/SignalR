@@ -799,11 +799,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         {
             get
             {
-                foreach (var protocol in HubProtocols.Skip(1).Take(1))
+                foreach (var protocol in HubProtocols)
                 {
-                    foreach (var transport in TransportTypes().SelectMany(t => t).Take(1))
+                    foreach (var transport in TransportTypes().SelectMany(t => t))
                     {
-                        foreach (var hubPath in HubPaths.Take(1))
+                        foreach (var hubPath in HubPaths)
                         {
                             yield return new object[] { protocol, transport, hubPath };
                         }
