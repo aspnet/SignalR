@@ -2,8 +2,10 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -36,6 +38,7 @@ namespace ClientSample
 
             Console.WriteLine($"Connecting to {baseUrl}...");
             var connection = new HttpConnection(new Uri(baseUrl), loggerFactory);
+            Task reading = null;
 
             try
             {
@@ -44,7 +47,7 @@ namespace ClientSample
 
                 await connection.StartAsync();
 
-                _ = ReadAsync(connection);
+                reading = ReadAsync(connection);
 
                 Console.WriteLine($"Connected to {baseUrl}");
                 var cts = new CancellationTokenSource();
@@ -75,6 +78,11 @@ namespace ClientSample
             finally
             {
                 await connection.DisposeAsync();
+
+                if (reading != null)
+                {
+                    await reading;
+                }
             }
             return 0;
         }

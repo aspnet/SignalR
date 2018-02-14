@@ -167,13 +167,23 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         public async Task StopAsync() => await StopAsyncCore().ForceAsync();
 
-        private Task StopAsyncCore() => _connection.StopAsync();
+        private async Task StopAsyncCore()
+        {
+            await _connection.StopAsync();
+
+            if (_readingTask != null)
+            {
+                await _readingTask;
+            }
+        }
 
         public async Task DisposeAsync() => await DisposeAsyncCore().ForceAsync();
 
         private async Task DisposeAsyncCore()
         {
             await _connection.DisposeAsync();
+
+            await StopAsync();
 
             // Dispose the timer AFTER shutting down the connection.
             _timeoutTimer.Dispose();

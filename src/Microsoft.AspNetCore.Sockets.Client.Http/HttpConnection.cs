@@ -32,11 +32,9 @@ namespace Microsoft.AspNetCore.Sockets.Client
         private readonly object _stateChangeLock = new object();
 
         private volatile IDuplexPipe _transportChannel;
-        private volatile IDuplexPipe _applicationChannel;
         private readonly HttpClient _httpClient;
         private readonly HttpOptions _httpOptions;
         private volatile ITransport _transport;
-        private TaskCompletionSource<object> _receiveTcs;
         private TaskCompletionSource<object> _startTcs;
         private TaskCompletionSource<object> _closeTcs;
         private readonly ITransportFactory _transportFactory;
@@ -189,7 +187,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
             if (ChangeState(from: ConnectionState.Connecting, to: ConnectionState.Connected) == ConnectionState.Connecting)
             {
                 _closeTcs = new TaskCompletionSource<object>();
-                _receiveTcs = new TaskCompletionSource<object>();
 
                 Input.OnWriterCompleted(async (exception, state) =>
                 {
@@ -238,13 +235,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     }
 
                 }, null);
-
-                // Subscribe to the application's OnReaderCompleted so we can detect the end of the receive loop
-                _applicationChannel.Output.OnReaderCompleted((error, state) =>
-                {
-                    ((HttpConnection)state)._receiveTcs.TrySetResult(null);
-                }
-                , this);
             }
         }
 
@@ -333,7 +323,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
             var options = new PipeOptions(readerScheduler: PipeScheduler.ThreadPool);
             var pair = DuplexPipe.CreateConnectionPair(options, options);
             _transportChannel = pair.Transport;
-            _applicationChannel = pair.Application;
 
             // Start the transport, giving it one end of the pipeline
             try
@@ -426,7 +415,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
             }
 
             TaskCompletionSource<object> closeTcs = null;
-            TaskCompletionSource<object> receiveLoopTcs = null;
             ITransport transport = null;
 
             lock (_stateChangeLock)
@@ -442,7 +430,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 // Create locals of relevant member variables to prevent a race when Closed event triggers a connect
                 // while StopAsync is still running
                 closeTcs = _closeTcs;
-                receiveLoopTcs = _receiveTcs;
                 transport = _transport;
             }
 
@@ -454,11 +441,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
             if (transport != null)
             {
                 await transport.StopAsync();
-            }
-
-            if (receiveLoopTcs != null)
-            {
-                await receiveLoopTcs.Task;
             }
 
             if (closeTcs != null)
