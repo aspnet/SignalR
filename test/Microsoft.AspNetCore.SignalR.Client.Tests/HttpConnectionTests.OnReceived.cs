@@ -5,6 +5,7 @@ using System;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using System.IO.Pipelines;
 using Microsoft.AspNetCore.Client.Tests;
 using Xunit;
 
@@ -26,24 +27,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     CreateConnection(testHttpHandler),
                     async (connection, closed) =>
                     {
-
-                        async Task<string> ReadAsync()
-                        {
-                            var result = await connection.Input.ReadAsync();
-                            var buffer = result.Buffer;
-
-                            try
-                            {
-                                return Encoding.UTF8.GetString(buffer.ToArray());
-                            }
-                            finally
-                            {
-                                connection.Input.AdvanceTo(buffer.End);
-                            }
-                        }
-
                         await connection.StartAsync().OrTimeout();
-                        Assert.Contains("42", await ReadAsync().OrTimeout());
+                        var data = await connection.Input.ReadSingleAsync().OrTimeout();
+                        Assert.Contains("42", Encoding.UTF8.GetString(data));
                     });
             }
         }

@@ -356,7 +356,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
         public async Task StreamDoesNotStartIfTokenAlreadyCanceled(IHubProtocol protocol, TransportType transportType, string path)
         {
-            using (StartLog(out var loggerFactory, $"{nameof(StreamDoesNotStartIfTokenAlreadyCanceled)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
+            using (StartLog(out var loggerFactory, LogLevel.Trace, $"{nameof(StreamDoesNotStartIfTokenAlreadyCanceled)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
             {
                 var httpConnection = new HttpConnection(new Uri(_serverFixture.Url + path), transportType, loggerFactory);
                 var connection = new HubConnection(httpConnection, protocol, loggerFactory);
@@ -799,11 +799,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         {
             get
             {
-                foreach (var protocol in HubProtocols)
+                foreach (var protocol in HubProtocols.Skip(1).Take(1))
                 {
-                    foreach (var transport in TransportTypes().SelectMany(t => t))
+                    foreach (var transport in TransportTypes().SelectMany(t => t).Take(1))
                     {
-                        foreach (var hubPath in HubPaths)
+                        foreach (var hubPath in HubPaths.Take(1))
                         {
                             yield return new object[] { protocol, transport, hubPath };
                         }

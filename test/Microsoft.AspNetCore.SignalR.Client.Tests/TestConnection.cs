@@ -55,7 +55,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             Input.OnWriterCompleted((error, state) =>
             {
                 TriggerClosed(error);
-            }, 
+            },
             null);
         }
 
@@ -67,7 +67,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
         private Task DisposeCoreAsync(Exception ex = null)
         {
-            Output.Complete();
+            Application.Output.Complete(ex);
+            Application.Input.Complete();
 
             return Task.CompletedTask;
         }
@@ -92,7 +93,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
         public async Task<string> ReadSentTextMessageAsync()
         {
-            var message = await Input.ReadSingleAsync();
+            var message = await _application.Input.ReadSingleAsync();
             return Encoding.UTF8.GetString(message);
         }
 
@@ -124,7 +125,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         }
         public void Dispose()
         {
-         
+
         }
     }
 }

@@ -11,7 +11,6 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.Sockets;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using Xunit;
 
 namespace Microsoft.AspNetCore.SignalR.Client.Tests
@@ -29,11 +28,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             try
             {
                 await hubConnection.StartAsync();
+                // skip negotiation
+                await connection.ReadSentTextMessageAsync().OrTimeout();
 
                 var invokeTask = hubConnection.SendAsync("Foo");
 
-                // skip negotiation
-                await connection.ReadSentTextMessageAsync().OrTimeout();
                 var invokeMessage = await connection.ReadSentTextMessageAsync().OrTimeout();
 
                 Assert.Equal("{\"type\":1,\"target\":\"Foo\",\"arguments\":[]}\u001e", invokeMessage);
@@ -72,11 +71,12 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             try
             {
                 await hubConnection.StartAsync();
+                
+                // skip negotiation
+                await connection.ReadSentTextMessageAsync().OrTimeout();
 
                 var invokeTask = hubConnection.InvokeAsync("Foo");
 
-                // skip negotiation
-                await connection.ReadSentTextMessageAsync().OrTimeout();
                 var invokeMessage = await connection.ReadSentTextMessageAsync().OrTimeout();
 
                 Assert.Equal("{\"type\":1,\"invocationId\":\"1\",\"target\":\"Foo\",\"arguments\":[]}\u001e", invokeMessage);
@@ -96,11 +96,12 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             try
             {
                 await hubConnection.StartAsync();
+                
+                // skip negotiation
+                await connection.ReadSentTextMessageAsync().OrTimeout();
 
                 var channel = await hubConnection.StreamAsync<object>("Foo");
 
-                // skip negotiation
-                await connection.ReadSentTextMessageAsync().OrTimeout();
                 var invokeMessage = await connection.ReadSentTextMessageAsync().OrTimeout();
 
                 Assert.Equal("{\"type\":4,\"invocationId\":\"1\",\"target\":\"Foo\",\"arguments\":[]}\u001e", invokeMessage);
@@ -335,9 +336,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             try
             {
                 await hubConnection.StartAsync().OrTimeout();
-                await hubConnection.SendAsync("MyMethod", 42).OrTimeout();
 
                 await connection.ReadSentTextMessageAsync().OrTimeout();
+
+                await hubConnection.SendAsync("MyMethod", 42).OrTimeout();
+
                 var invokeMessage = await connection.ReadSentTextMessageAsync().OrTimeout();
 
                 // The message is in the following format `size:payload;`

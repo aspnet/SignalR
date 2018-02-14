@@ -3,6 +3,7 @@
 
 using System;
 using System.Diagnostics;
+using System.IO.Pipelines;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
@@ -37,12 +38,16 @@ namespace ClientSample
 
             Console.WriteLine($"Connecting to {baseUrl}...");
             var connection = new HttpConnection(new Uri(baseUrl), loggerFactory);
+            Task reading = null;
+
             try
             {
                 var closeTcs = new TaskCompletionSource<object>();
                 connection.Closed += e => closeTcs.SetResult(null);
-                connection.OnReceived(data => Console.Out.WriteLineAsync($"{Encoding.UTF8.GetString(data)}"));
+
                 await connection.StartAsync();
+
+                reading = ReadAsync(connection);
 
                 Console.WriteLine($"Connected to {baseUrl}");
                 var cts = new CancellationTokenSource();
@@ -61,7 +66,7 @@ namespace ClientSample
                         break;
                     }
 
-                    await connection.SendAsync(Encoding.UTF8.GetBytes(line), cts.Token);
+                    await connection.Output.WriteAsync(Encoding.UTF8.GetBytes(line));
                 }
             }
             catch (AggregateException aex) when (aex.InnerExceptions.All(e => e is OperationCanceledException))
@@ -73,8 +78,42 @@ namespace ClientSample
             finally
             {
                 await connection.DisposeAsync();
+
+                connection.Output.Complete();
+
+                if (reading != null)
+                {
+                    await reading;
+                }
             }
             return 0;
+        }
+
+        private static async Task ReadAsync(HttpConnection connection)
+        {
+            while (true)
+            {
+                var result = await connection.Input.ReadAsync();
+                var buffer = result.Buffer;
+
+                try
+                {
+                    if (!buffer.IsEmpty)
+                    {
+                        Console.WriteLine(Encoding.UTF8.GetString(buffer.ToArray()));
+                    }
+                    else if (result.IsCompleted)
+                    {
+                        break;
+                    }
+                }
+                finally
+                {
+                    connection.Input.AdvanceTo(buffer.End);
+                }
+            }
+
+            connection.Input.Complete();
         }
     }
 }

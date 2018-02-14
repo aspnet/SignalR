@@ -104,7 +104,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 // we don't need the timer anyway.
                 try
                 {
-                    _timeoutTimer.Change(ServerTimeout, Timeout.InfiniteTimeSpan);
+                    _timeoutTimer.Change(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : ServerTimeout, Timeout.InfiniteTimeSpan);
                 }
                 catch (ObjectDisposedException)
                 {
@@ -306,12 +306,14 @@ namespace Microsoft.AspNetCore.SignalR.Client
             try
             {
                 var payload = _protocolReaderWriter.WriteMessage(hubMessage);
-                _logger.SendInvocation(hubMessage.InvocationId);
+                _logger.SendInvocation(hubMessage.InvocationId, hubMessage);
 
                 // TODO: Pass irq.CancellationToken when that's available
+                irq.CancellationToken.ThrowIfCancellationRequested();
+
                 await _connection.Output.WriteAsync(payload);
 
-                _logger.SendInvocationCompleted(hubMessage.InvocationId);
+                _logger.SendInvocationCompleted(hubMessage.InvocationId, hubMessage);
             }
             catch (Exception ex)
             {
@@ -341,11 +343,13 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 _logger.PreparingNonBlockingInvocation(methodName, args.Length);
 
                 var payload = _protocolReaderWriter.WriteMessage(invocationMessage);
-                _logger.SendInvocation(invocationMessage.InvocationId);
+                _logger.SendInvocation(invocationMessage.InvocationId, invocationMessage);
 
                 // TODO: Pass the cancellationToken when that's available
+                cancellationToken.ThrowIfCancellationRequested();
+
                 await _connection.Output.WriteAsync(payload);
-                _logger.SendInvocationCompleted(invocationMessage.InvocationId);
+                _logger.SendInvocationCompleted(invocationMessage.InvocationId, invocationMessage);
             }
             catch (Exception ex)
             {

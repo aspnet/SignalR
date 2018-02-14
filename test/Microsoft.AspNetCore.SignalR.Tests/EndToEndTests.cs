@@ -7,6 +7,7 @@ using System.Net.Http;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
+using System.IO.Pipelines;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.AspNetCore.Sockets;
@@ -121,19 +122,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 try
                 {
-                    var receiveTcs = new TaskCompletionSource<byte[]>();
-                    connection.OnReceived((data, state) =>
-                    {
-                        var tcs = (TaskCompletionSource<byte[]>)state;
-                        tcs.TrySetResult(data);
-                        return Task.CompletedTask;
-                    }, receiveTcs);
-
                     var message = new byte[] { 42 };
                     await connection.StartAsync().OrTimeout();
-                    await connection.SendAsync(message).OrTimeout();
+                    await connection.Output.WriteAsync(message).OrTimeout();
 
-                    var receivedData = await receiveTcs.Task.OrTimeout();
+                    var receivedData = await connection.Input.ReadSingleAsync().OrTimeout();
                     Assert.Equal(message, receivedData);
                 }
                 catch (Exception ex)
@@ -180,23 +173,24 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                         }
                     };
 
-                    var receiveTcs = new TaskCompletionSource<string>();
-                    connection.OnReceived((data, state) =>
+                    logger.LogInformation("Starting connection to {url}", url);
+                    await connection.StartAsync().OrTimeout();
+                    logger.LogInformation("Started connection to {url}", url);
+
+                    async Task<string> ReceiveAsync()
                     {
+                        var data = await connection.Input.ReadSingleAsync();
                         logger.LogInformation("Received {length} byte message", data.Length);
 
                         if (IsBase64Encoded(requestedTransferMode, connection))
                         {
                             data = Convert.FromBase64String(Encoding.UTF8.GetString(data));
                         }
-                        var tcs = (TaskCompletionSource<string>)state;
-                        tcs.TrySetResult(Encoding.UTF8.GetString(data));
-                        return Task.CompletedTask;
-                    }, receiveTcs);
 
-                    logger.LogInformation("Starting connection to {url}", url);
-                    await connection.StartAsync().OrTimeout();
-                    logger.LogInformation("Started connection to {url}", url);
+                        return Encoding.UTF8.GetString(data);
+                    }
+
+                    var receiveTask = ReceiveAsync();
 
                     var bytes = Encoding.UTF8.GetBytes(message);
 
@@ -209,7 +203,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     logger.LogInformation("Sending {length} byte message", bytes.Length);
                     try
                     {
-                        await connection.SendAsync(bytes).OrTimeout();
+                        await connection.Output.WriteAsync(bytes).OrTimeout();
                     }
                     catch (OperationCanceledException)
                     {
@@ -222,7 +216,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     logger.LogInformation("Sent message", bytes.Length);
 
                     logger.LogInformation("Receiving message");
-                    Assert.Equal(message, await receiveTcs.Task.OrTimeout());
+                    Assert.Equal(message, await receiveTask.OrTimeout());
                     logger.LogInformation("Completed receive");
                     await closeTcs.Task.OrTimeout();
                 }
@@ -271,26 +265,19 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 try
                 {
-                    var receiveTcs = new TaskCompletionSource<byte[]>();
-                    connection.OnReceived((data, state) =>
-                    {
-                        logger.LogInformation("Received {length} byte message", data.Length);
-                        var tcs = (TaskCompletionSource<byte[]>)state;
-                        tcs.TrySetResult(data);
-                        return Task.CompletedTask;
-                    }, receiveTcs);
-
                     logger.LogInformation("Starting connection to {url}", url);
                     await connection.StartAsync().OrTimeout();
                     logger.LogInformation("Started connection to {url}", url);
 
+                    var receiveTask = connection.Input.ReadSingleAsync();
+
                     var bytes = Encoding.UTF8.GetBytes(message);
                     logger.LogInformation("Sending {length} byte message", bytes.Length);
-                    await connection.SendAsync(bytes).OrTimeout();
+                    await connection.Output.WriteAsync(bytes).OrTimeout();
                     logger.LogInformation("Sent message", bytes.Length);
 
                     logger.LogInformation("Receiving message");
-                    var receivedData = await receiveTcs.Task.OrTimeout();
+                    var receivedData = await receiveTask.OrTimeout();
                     Assert.Equal(message, Encoding.UTF8.GetString(receivedData));
                     logger.LogInformation("Completed receive");
                 }
