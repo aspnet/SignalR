@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 // console.log messages should be prefixed with "#" to ensure stdout continues to conform to TAP (Test Anything Protocol)
 // https://testanything.org/tap-version-13-specification.html
 
