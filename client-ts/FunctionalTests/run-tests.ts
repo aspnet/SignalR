@@ -16,6 +16,9 @@ const verbose = argv.v || argv.verbose || false;
 const browser = argv.browser || "chrome";
 const headless = argv.headless || argv.h || false;
 
+let webDriver: ChildProcess;
+let dotnet: ChildProcess;
+
 console.log("TAP version 13");
 
 function logverbose(message: any) {
@@ -36,7 +39,7 @@ function runCommand(command: string, args: string[]) {
         console.error(result.stderr);
         console.error("stdout:");
         console.error(result.stdout);
-        cleanup(() => process.exit(result.status));
+        shutdown(1);
     }
 }
 
@@ -147,109 +150,109 @@ async function runTests(port: number, serverUrl: string): Promise<void> {
     }
 }
 
-function waitForMatch(command: string, process: ChildProcess, regex: RegExp, onMatch: (RegExpMatchArray) => void) {
-    let lastLine = "";
-
-    async function onData(this: Readable, chunk: string | Buffer): Promise<void> {
-        chunk = chunk.toString();
-
-        // Process lines
-        let lineEnd = chunk.indexOf(os.EOL);
-        while (lineEnd >= 0) {
-            const chunkLine = lastLine + chunk.substring(0, lineEnd);
-            lastLine = "";
-
-            chunk = chunk.substring(lineEnd + os.EOL.length);
-
-            logverbose(`# ${command}: ${chunkLine}`);
-            const results = regex.exec(chunkLine);
-            if (results && results.length > 0) {
-                onMatch(results);
-                this.removeAllListeners("data");
-                return;
-            }
-            lineEnd = chunk.indexOf(os.EOL);
-        }
-        lastLine = chunk.toString();
-    }
-
-    process.on("close", (code, signal) => {
-        console.log(`# ${command} process exited with code: ${code}`);
-        cleanup(() => global.process.exit(code));
-    });
-
-    process.stdout.on("data", onData.bind(process.stdout));
-    process.stderr.on("data", onData.bind(process.stderr));
-}
-
-const webDriverManagerPath = path.resolve(__dirname, "node_modules", "webdriver-manager", "bin", "webdriver-manager");
-
-// This script launches the functional test app and then uses Selenium WebDriver to run the tests and verify the results.
-console.log("# Updating WebDrivers...");
-runCommand(process.execPath, [webDriverManagerPath, "update"]);
-console.log("# Updated WebDrivers");
-
-let webDriver;
-let dotnet;
-
-function cleanupDotNet(cb: () => void) {
-    if (dotnet && !dotnet.killed) {
-        console.log(`# Killing dotnet process (PID: ${dotnet.pid})`);
-        kill(dotnet.pid, "SIGTERM", () => {
-            console.log("# Killed dotnet process");
-            cb();
-        });
-    } else {
-        cb();
-    }
-}
-
-function cleanup(cb: () => void) {
-    if (webDriver && !webDriver.killed) {
-        console.log(`# Killing webdriver-manager process (PID: ${webDriver.pid})`);
-        kill(webDriver.pid, "SIGTERM", () => {
-            console.log("# Killed webdriver-manager process");
-            cleanupDotNet(cb);
-        });
-    } else {
-        cleanupDotNet(cb);
-    }
-}
-
-console.log("# Launching WebDriver...");
-webDriver = spawn(process.execPath, [webDriverManagerPath, "start"]);
-
-const webDriverRegex = /\d+:\d+:\d+.\d+ INFO - Selenium Server is up and running on port (\d+)/;
-
-// The message we're waiting for is written to stderr for some reason
-waitForMatch("webdriver-server", webDriver, webDriverRegex, (results) => {
-    console.log("# WebDriver Launched");
-    webDriverLaunched(Number.parseInt(results[1]), () => {
+function waitForMatch(command: string, process: ChildProcess, regex: RegExp): Promise<RegExpMatchArray> {
+    return new Promise<RegExpMatchArray>((resolve, reject) => {
         try {
-            // Clean up is automatic
-            cleanup(() => process.exit(0));
+            let lastLine = "";
+
+            async function onData(this: Readable, chunk: string | Buffer): Promise<void> {
+                try {
+                    chunk = chunk.toString();
+
+                    // Process lines
+                    let lineEnd = chunk.indexOf(os.EOL);
+                    while (lineEnd >= 0) {
+                        const chunkLine = lastLine + chunk.substring(0, lineEnd);
+                        lastLine = "";
+
+                        chunk = chunk.substring(lineEnd + os.EOL.length);
+
+                        logverbose(`# ${command}: ${chunkLine}`);
+                        const results = regex.exec(chunkLine);
+                        if (results && results.length > 0) {
+                            this.removeAllListeners("data");
+                            resolve(results);
+                            return;
+                        }
+                        lineEnd = chunk.indexOf(os.EOL);
+                    }
+                    lastLine = chunk.toString();
+                } catch (e) {
+                    this.removeAllListeners("data");
+                    reject(e);
+                }
+            }
+
+            process.on("close", async (code, signal) => {
+                console.log(`# ${command} process exited with code: ${code}`);
+                await shutdown(1);
+            });
+
+            process.stdout.on("data", onData.bind(process.stdout));
+            process.stderr.on("data", onData.bind(process.stderr));
         } catch (e) {
-            console.error(`Bail out! Error terminating WebDriver: ${e}`);
-            cleanup(() => process.exit(1));
+            reject(e);
         }
     });
-});
+}
 
-function webDriverLaunched(webDriverPort: number, cb: () => void) {
+async function cleanUpProcess(name: string, process: ChildProcess): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+        try {
+            if (process && !process.killed) {
+                console.log(`# Killing ${name} process (PID: ${process.pid})`);
+                kill(process.pid, "SIGTERM", () => {
+                    console.log("# Killed dotnet process");
+                    resolve();
+                });
+            }
+            else {
+                resolve();
+            }
+        } catch (e) {
+            reject(e);
+        }
+    });
+}
+
+async function shutdown(code: number): Promise<void> {
+    await cleanUpProcess("dotnet", dotnet);
+    await cleanUpProcess("webDriver", webDriver);
+    process.exit(code);
+}
+
+// "async main" via IIFE
+(async function () {
+    const webDriverManagerPath = path.resolve(__dirname, "node_modules", "webdriver-manager", "bin", "webdriver-manager");
+
+    // This script launches the functional test app and then uses Selenium WebDriver to run the tests and verify the results.
+    console.log("# Updating WebDrivers...");
+    runCommand(process.execPath, [webDriverManagerPath, "update"]);
+    console.log("# Updated WebDrivers");
+
+    console.log("# Launching WebDriver...");
+    webDriver = spawn(process.execPath, [webDriverManagerPath, "start"]);
+
+    const webDriverRegex = /\d+:\d+:\d+.\d+ INFO - Selenium Server is up and running on port (\d+)/;
+
+    // The message we're waiting for is written to stderr for some reason
+    let results = await waitForMatch("webdriver-server", webDriver, webDriverRegex);
+    let webDriverPort = Number.parseInt(results[1]);
+
+    console.log("# WebDriver Launched");
     console.log("# Launching Functional Test server...");
     dotnet = spawn("dotnet", [path.resolve(__dirname, "bin", "Debug", "netcoreapp2.1", "FunctionalTests.dll")], {
         cwd: rootDir,
     });
 
     const regex = /Now listening on: (http:\/\/localhost:([\d])+)/;
-    waitForMatch("dotnet", dotnet, regex, async (results) => {
-        try {
-            console.log("# Functional Test server launched.");
-            await runTests(webDriverPort, results[1]);
-            cb();
-        } catch (e) {
-            console.error(`Bail out! Error running tests: ${e}`);
-            cleanup(() => process.exit(1));
-        }
-    });
-}
+    results = await waitForMatch("dotnet", dotnet, regex);
+    try {
+        console.log("# Functional Test server launched.");
+        await runTests(webDriverPort, results[1]);
+        await shutdown(0);
+    } catch (e) {
+        console.error(`Bail out! Error running tests: ${e}`);
+        await shutdown(1);
+    }
+})();

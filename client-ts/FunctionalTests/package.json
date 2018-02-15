@@ -23,7 +23,7 @@
     "build:lint": "node ../node_modules/tslint/bin/tslint -c ../tslint.json -p ./tsconfig.json",
     "build:tsc": "node ../node_modules/typescript/bin/tsc --project ./tsconfig.json",
     "build:rollup": "node ../node_modules/rollup/bin/rollup -c",
-    "rawtest": "ts-node -O '{\"module\":\"commonjs\"}' ./run-tests.ts --browser chrome -h",
+    "rawtest": "ts-node --project ./run-tests.tsconfig.json ./run-tests.ts --browser chrome -h",
     "test": "npm run rawtest | faucet"
   },
   "author": "",
