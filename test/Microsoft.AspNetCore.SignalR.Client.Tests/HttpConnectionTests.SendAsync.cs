@@ -92,7 +92,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     });
             }
 
-
             [Fact]
             public async Task ExceptionOnSendAsyncClosesWithError()
             {

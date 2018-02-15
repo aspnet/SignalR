@@ -2,8 +2,6 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
-using System.Buffers;
-using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipelines;
 using System.Net.Http;
@@ -501,7 +499,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             if (_connectionState != ConnectionState.Connected)
             {
                 throw new InvalidOperationException(
-                "Cannot send messages when the connection is not in the Connected state.");
+                "Cannot send or receive messages when the connection is not in the Connected state.");
             }
         }
 

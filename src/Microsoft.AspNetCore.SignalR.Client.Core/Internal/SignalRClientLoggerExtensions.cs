@@ -3,7 +3,6 @@
 
 using System;
 using System.Linq;
-using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.SignalR.Client.Internal
@@ -23,11 +22,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Internal
         private static readonly Action<ILogger, string, string, string, string, Exception> _issueInvocation =
             LoggerMessage.Define<string, string, string, string>(LogLevel.Trace, new EventId(4, nameof(IssueInvocation)), "Issuing Invocation '{invocationId}': {returnType} {methodName}({args}).");
 
-        private static readonly Action<ILogger, string, HubMessage, Exception> _sendInvocation =
-            LoggerMessage.Define<string, HubMessage>(LogLevel.Debug, new EventId(5, nameof(SendInvocation)), "Sending Invocation '{invocationId}'. {payload}");
+        private static readonly Action<ILogger, string, Exception> _sendInvocation =
+            LoggerMessage.Define<string>(LogLevel.Debug, new EventId(5, nameof(SendInvocation)), "Sending Invocation '{invocationId}'.");
 
-        private static readonly Action<ILogger, string, HubMessage, Exception> _sendInvocationCompleted =
-            LoggerMessage.Define<string, HubMessage>(LogLevel.Debug, new EventId(6, nameof(SendInvocationCompleted)), "Sending Invocation '{invocationId}' completed. {payload}");
+        private static readonly Action<ILogger, string, Exception> _sendInvocationCompleted =
+            LoggerMessage.Define<string>(LogLevel.Debug, new EventId(6, nameof(SendInvocationCompleted)), "Sending Invocation '{invocationId}' completed.");
 
         private static readonly Action<ILogger, string, Exception> _sendInvocationFailed =
             LoggerMessage.Define<string>(LogLevel.Error, new EventId(7, nameof(SendInvocationFailed)), "Sending Invocation '{invocationId}' failed.");
@@ -148,14 +147,14 @@ namespace Microsoft.AspNetCore.SignalR.Client.Internal
             }
         }
 
-        public static void SendInvocation(this ILogger logger, string invocationId, HubMessage message)
+        public static void SendInvocation(this ILogger logger, string invocationId)
         {
-            _sendInvocation(logger, invocationId, message, null);
+            _sendInvocation(logger, invocationId, null);
         }
 
-        public static void SendInvocationCompleted(this ILogger logger, string invocationId, HubMessage message)
+        public static void SendInvocationCompleted(this ILogger logger, string invocationId)
         {
-            _sendInvocationCompleted(logger, invocationId, message, null);
+            _sendInvocationCompleted(logger, invocationId, null);
         }
 
         public static void SendInvocationFailed(this ILogger logger, string invocationId, Exception exception)
