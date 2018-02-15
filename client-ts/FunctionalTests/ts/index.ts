@@ -6,12 +6,12 @@ import "es6-promise/dist/es6-promise.auto.js";
 // Load SignalR
 import { getParameterByName } from "./Utils";
 
-var minified = getParameterByName("release") === "true" ? ".min" : "";
+const minified = getParameterByName("release") === "true" ? ".min" : "";
 document.write(
     '<script type="text/javascript" src="lib/signalr/signalr' + minified + '.js"><\/script>' +
     '<script type="text/javascript" src="lib/signalr/signalr-protocol-msgpack' + minified + '.js"><\/script>');
 
-import "./WebDriverReporter";
 import "./ConnectionTests";
 import "./HubConnectionTests";
+import "./WebDriverReporter";
 import "./WebSocketTests";

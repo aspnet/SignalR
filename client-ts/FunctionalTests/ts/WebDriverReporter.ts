@@ -20,42 +20,32 @@ class WebDriverReporter implements jasmine.CustomReporter {
         document.body.appendChild(this.element);
     }
 
-    jasmineStarted(suiteInfo: jasmine.SuiteInfo): void {
+    public jasmineStarted(suiteInfo: jasmine.SuiteInfo): void {
         this.taplog(`1..${suiteInfo.totalSpecsDefined}`);
     }
 
-    suiteStarted(result: jasmine.CustomReporterResult): void {
-    }
-
-    specStarted(result: jasmine.CustomReporterResult): void {
-    }
-
-    specDone(result: jasmine.CustomReporterResult): void {
+    public specDone(result: jasmine.CustomReporterResult): void {
         if (result.status === "failed") {
             this.taplog(`not ok ${this.specCounter} ${result.fullName}`);
 
             // Include YAML block with failed expectations
-            this.taplog(' ---');
-            this.taplog(` message: ${result.failedExpectations.map(e => e.message).join(";")}`);
-            this.taplog(' ...');
-        }
-        else {
+            this.taplog(" ---");
+            this.taplog(` message: ${result.failedExpectations.map((e) => e.message).join(";")}`);
+            this.taplog(" ...");
+        } else {
             this.taplog(`ok ${this.specCounter} ${result.fullName}`);
         }
 
         this.specCounter += 1;
     }
 
-    suiteDone(result: jasmine.CustomReporterResult): void {
-    }
-
-    jasmineDone(runDetails: jasmine.RunDetails): void {
+    public jasmineDone(runDetails: jasmine.RunDetails): void {
         this.element.setAttribute("data-done", "1");
     }
 
     private taplog(msg: string) {
-        for (let line of msg.split(/\r|\n|\r\n/)) {
-            let li = this.document.createElement("li");
+        for (const line of msg.split(/\r|\n|\r\n/)) {
+            const li = this.document.createElement("li");
             li.setAttribute("style", "font-family: monospace; white-space: pre");
             li.setAttribute("id", `__tap_item_${this.recordCounter}`);
             this.recordCounter += 1;
