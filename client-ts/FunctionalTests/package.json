@@ -7,6 +7,7 @@
   "dependencies": {},
   "devDependencies": {
     "@types/selenium-webdriver": "^3.0.8",
+    "@types/yargs": "^11.0.0",
     "es6-promise": "^4.2.2",
     "faucet": "0.0.1",
     "selenium-webdriver": "^4.0.0-alpha.1",
@@ -22,7 +23,8 @@
     "build:lint": "node ../node_modules/tslint/bin/tslint -c ../tslint.json -p ./tsconfig.json",
     "build:tsc": "node ../node_modules/typescript/bin/tsc --project ./tsconfig.json",
     "build:rollup": "node ../node_modules/rollup/bin/rollup -c",
-    "test": "node ./run-tests.js --browser chrome -h | faucet"
+    "rawtest": "ts-node -O '{\"module\":\"commonjs\"}' ./run-tests.ts --browser chrome -h",
+    "test": "npm run rawtest | faucet"
   },
   "author": "",
   "license": "Apache-2.0"

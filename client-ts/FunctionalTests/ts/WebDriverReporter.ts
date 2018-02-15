@@ -1,5 +1,17 @@
 import { getParameterByName } from "./Utils";
 
+function formatValue(v: any): string {
+    if (v === undefined) {
+        return "<undefined>";
+    } else if (v === null) {
+        return "<null>";
+    } else if (v.toString) {
+        return v.toString();
+    } else {
+        return v;
+    }
+}
+
 class WebDriverReporter implements jasmine.CustomReporter {
     private element: HTMLUListElement;
     private specCounter: number = 1; // TAP number start at 1
@@ -30,7 +42,19 @@ class WebDriverReporter implements jasmine.CustomReporter {
 
             // Include YAML block with failed expectations
             this.taplog(" ---");
-            this.taplog(` message: ${result.failedExpectations.map((e) => e.message).join(";")}`);
+            this.taplog(" failures:");
+            for (const expectation of result.failedExpectations) {
+                this.taplog(`   - message: ${expectation.message}`);
+                if (expectation.matcherName) {
+                    this.taplog(`     matcher: ${expectation.matcherName}`);
+                }
+                if (expectation.expected) {
+                    this.taplog(`     expected: ${formatValue(expectation.expected)}`);
+                }
+                if (expectation.actual) {
+                    this.taplog(`     actual: ${formatValue(expectation.actual)}`);
+                }
+            }
             this.taplog(" ...");
         } else {
             this.taplog(`ok ${this.specCounter} ${result.fullName}`);
