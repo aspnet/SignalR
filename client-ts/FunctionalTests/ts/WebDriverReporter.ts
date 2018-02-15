@@ -2,8 +2,8 @@ import { getParameterByName } from "./Utils";
 
 class WebDriverReporter implements jasmine.CustomReporter {
     private element: HTMLUListElement;
-    private spec_counter: number = 1; // TAP number start at 1
-    private record_counter: number = 0;
+    private specCounter: number = 1; // TAP number start at 1
+    private recordCounter: number = 0;
 
     constructor(private document: Document, show: boolean = false) {
         // We write to the DOM because it's the most compatible way for WebDriver to read.
@@ -32,7 +32,7 @@ class WebDriverReporter implements jasmine.CustomReporter {
 
     specDone(result: jasmine.CustomReporterResult): void {
         if (result.status === "failed") {
-            this.taplog(`not ok ${this.spec_counter} ${result.fullName}`);
+            this.taplog(`not ok ${this.specCounter} ${result.fullName}`);
 
             // Include YAML block with failed expectations
             this.taplog(' ---');
@@ -40,10 +40,10 @@ class WebDriverReporter implements jasmine.CustomReporter {
             this.taplog(' ...');
         }
         else {
-            this.taplog(`ok ${this.spec_counter} ${result.fullName}`);
+            this.taplog(`ok ${this.specCounter} ${result.fullName}`);
         }
 
-        this.spec_counter += 1;
+        this.specCounter += 1;
     }
 
     suiteDone(result: jasmine.CustomReporterResult): void {
@@ -57,8 +57,8 @@ class WebDriverReporter implements jasmine.CustomReporter {
         for (let line of msg.split(/\r|\n|\r\n/)) {
             let li = this.document.createElement("li");
             li.setAttribute("style", "font-family: monospace; white-space: pre");
-            li.setAttribute("id", `__tap_item_${this.record_counter}`);
-            this.record_counter += 1;
+            li.setAttribute("id", `__tap_item_${this.recordCounter}`);
+            this.recordCounter += 1;
 
             li.innerHTML = line;
             this.element.appendChild(li);
