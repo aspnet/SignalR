@@ -21,50 +21,36 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
             public override void AdvanceTo(SequencePosition consumed)
             {
-                _connection.EnsureConnected();
-
                 _connection._transportChannel.Input.AdvanceTo(consumed);
             }
 
             public override void AdvanceTo(SequencePosition consumed, SequencePosition examined)
             {
-                _connection.EnsureConnected();
-
                 _connection._transportChannel.Input.AdvanceTo(consumed, examined);
             }
 
             public override void CancelPendingRead()
             {
-                _connection.EnsureConnected();
-
                 _connection._transportChannel.Input.CancelPendingRead();
             }
 
             public override void Complete(Exception exception = null)
             {
-                _connection.EnsureConnected();
-
                 _connection._transportChannel.Input.Complete(exception);
             }
 
             public override void OnWriterCompleted(Action<Exception, object> callback, object state)
             {
-                _connection.EnsureConnected();
-
                 _connection._transportChannel.Input.OnWriterCompleted(callback, state);
             }
 
             public override ValueAwaiter<ReadResult> ReadAsync(CancellationToken cancellationToken = default)
             {
-                _connection.EnsureConnected();
-
                 return _connection._transportChannel.Input.ReadAsync(cancellationToken);
             }
 
             public override bool TryRead(out ReadResult result)
             {
-                _connection.EnsureConnected();
-
                 return _connection._transportChannel.Input.TryRead(out result);
             }
         }

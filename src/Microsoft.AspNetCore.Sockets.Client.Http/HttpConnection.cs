@@ -499,7 +499,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             if (_connectionState != ConnectionState.Connected)
             {
                 throw new InvalidOperationException(
-                "Cannot send or receive messages when the connection is not in the Connected state.");
+                "Cannot send messages when the connection is not in the Connected state.");
             }
         }
 
