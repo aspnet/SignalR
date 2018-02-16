@@ -41,6 +41,12 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             _serverFixture = serverFixture;
         }
 
+        public IDisposable StartLog2(out ILoggerFactory loggerFactory, LogLevel logLevel = LogLevel.Trace, string testName = null)
+        {
+            var inner = StartLog(out loggerFactory, logLevel, testName);
+            return new StoreTestDisposable(_serverFixture, testName, loggerFactory, inner);
+        }
+
         [Theory]
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
         public async Task CheckFixedMessage(IHubProtocol protocol, TransportType transportType, string path)
@@ -78,10 +84,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
         public async Task CanSendAndReceiveMessage(IHubProtocol protocol, TransportType transportType, string path)
         {
-            using (StartLog(out var loggerFactory, $"{nameof(CanSendAndReceiveMessage)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
+            var testName = $"{nameof(CanSendAndReceiveMessage)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}";
+            using (StartLog2(out var loggerFactory, LogLevel.Trace, testName))
             {
                 const string originalMessage = "SignalR";
-                var httpConnection = new HttpConnection(new Uri(_serverFixture.Url + path), transportType, loggerFactory);
+                var httpConnection = new HttpConnection(new Uri(_serverFixture.Url + path + $"?testName={testName}"), transportType, loggerFactory);
                 var connection = new HubConnection(httpConnection, protocol, loggerFactory);
                 try
                 {
@@ -252,9 +259,10 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
         public async Task InvokeNonExistantClientMethodFromServer(IHubProtocol protocol, TransportType transportType, string path)
         {
-            using (StartLog(out var loggerFactory, LogLevel.Trace, $"{nameof(InvokeNonExistantClientMethodFromServer)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
+            string testName = $"{nameof(InvokeNonExistantClientMethodFromServer)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}";
+            using (StartLog2(out var loggerFactory, LogLevel.Trace, testName))
             {
-                var httpConnection = new HttpConnection(new Uri(_serverFixture.Url + path), transportType, loggerFactory);
+                var httpConnection = new HttpConnection(new Uri(_serverFixture.Url + path + $"?testName={testName}"), transportType, loggerFactory);
                 var connection = new HubConnection(httpConnection, protocol, loggerFactory);
                 var closeTcs = new TaskCompletionSource<object>();
                 connection.Closed += e =>
@@ -292,9 +300,10 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
         public async Task CanStreamClientMethodFromServer(IHubProtocol protocol, TransportType transportType, string path)
         {
-            using (StartLog(out var loggerFactory, LogLevel.Trace, $"{nameof(CanStreamClientMethodFromServer)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
+            var testName = $"{nameof(CanStreamClientMethodFromServer)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}";
+            using (StartLog2(out var loggerFactory, LogLevel.Trace, testName))
             {
-                var httpConnection = new HttpConnection(new Uri(_serverFixture.Url + path), transportType, loggerFactory);
+                var httpConnection = new HttpConnection(new Uri(_serverFixture.Url + path + $"?testName={testName}"), transportType, loggerFactory);
                 var connection = new HubConnection(httpConnection, protocol, loggerFactory);
                 try
                 {
@@ -727,7 +736,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         [OSSkipCondition(OperatingSystems.Windows, WindowsVersions.Win7, WindowsVersions.Win2008R2, SkipReason = "No WebSockets Client for this platform")]
         public async Task WebSocketOptionsAreApplied()
         {
-            using (StartLog(out var loggerFactory, $"{nameof(WebSocketOptionsAreApplied)}"))
+            using (StartLog2(out var loggerFactory, LogLevel.Trace, $"{nameof(WebSocketOptionsAreApplied)}"))
             {
                 // System.Net has a TransportType type which means we need to fully-qualify this rather than 'use' the namespace
                 var cookieJar = new System.Net.CookieContainer();
@@ -829,6 +838,26 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             }
             yield return new object[] { TransportType.ServerSentEvents };
             yield return new object[] { TransportType.LongPolling };
+        }
+
+        private class StoreTestDisposable : IDisposable
+        {
+            private readonly ServerFixture<Startup> _serverFixture;
+            private readonly IDisposable _inner;
+            private readonly string _testName;
+            public StoreTestDisposable(ServerFixture<Startup> serverFixture, string testName, ILoggerFactory loggerFactory, IDisposable inner)
+            {
+                _serverFixture = serverFixture;
+                _testName = testName;
+                _serverFixture.LoggerFactoryManager.Add(testName, loggerFactory);
+                _inner = inner;
+            }
+
+            public void Dispose()
+            {
+                _inner.Dispose();
+                _serverFixture.LoggerFactoryManager.Remove(_testName);
+            }
         }
     }
 }

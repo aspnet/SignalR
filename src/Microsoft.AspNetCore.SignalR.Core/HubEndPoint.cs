@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Security.Claims;
+using System.Text;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -64,9 +65,6 @@ namespace Microsoft.AspNetCore.SignalR
                 return;
             }
 
-            // We don't need to hold this task, it's also held internally and awaited by DisposeAsync.
-            _ = connectionContext.StartAsync();
-
             try
             {
                 await _lifetimeManager.OnConnectedAsync(connectionContext);
@@ -75,8 +73,6 @@ namespace Microsoft.AspNetCore.SignalR
             finally
             {
                 await _lifetimeManager.OnDisconnectedAsync(connectionContext);
-
-                await connectionContext.DisposeAsync();
             }
         }
 
@@ -178,6 +174,8 @@ namespace Microsoft.AspNetCore.SignalR
                     var consumed = buffer.End;
                     var examined = buffer.End;
 
+                    _logger.LogDebug("Received {bytes}: {payload}", buffer.Length, Encoding.UTF8.GetString(buffer.ToArray()));
+
                     try
                     {
                         if (!buffer.IsEmpty)
@@ -277,7 +275,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         private Task SendMessageAsync(HubConnectionContext connection, HubMessage hubMessage)
         {
-            return connection.WriteAsync(hubMessage, throwOnFailure: true);
+            return connection.WriteAsync(hubMessage);
         }
 
         private async Task Invoke(HubMethodDescriptor descriptor, HubConnectionContext connection,

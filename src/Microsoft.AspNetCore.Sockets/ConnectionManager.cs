@@ -63,7 +63,8 @@ namespace Microsoft.AspNetCore.Sockets
             _logger.CreatedNewConnection(id);
             var connectionTimer = SocketEventSource.Log.ConnectionStart(id);
 
-            var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
+            var options = new PipeOptions(readerScheduler: PipeScheduler.ThreadPool, writerScheduler: PipeScheduler.ThreadPool);
+            var pair = DuplexPipe.CreateConnectionPair(options, options);
             
             var connection = new DefaultConnectionContext(id, pair.Application, pair.Transport);
             connection.ConnectionTimer = connectionTimer;
