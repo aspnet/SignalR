@@ -61,7 +61,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
         [MemberData(nameof(TransportTypesAndProtocolTypes))]
         public async Task HubConnectionCanSendAndReceiveGroupMessages(TransportType transportType, IHubProtocol protocol)
         {
-            using (StartLog(out var loggerFactory, testName:
+            using (StartLog(out var loggerFactory, LogLevel.Trace, testName:
                 $"{nameof(HubConnectionCanSendAndReceiveGroupMessages)}_{transportType.ToString()}_{protocol.Name}"))
             {
                 var connection = CreateConnection(_serverFixture.FirstServer.Url + "/echo", transportType, protocol, loggerFactory);
