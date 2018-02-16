@@ -348,6 +348,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
             {
                 foreach (var message in messages)
                 {
+                    _logger.LogDebug("Dispatching invocation: {message}", message);
+
                     InvocationRequest irq;
                     switch (message)
                     {
@@ -429,6 +431,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 _logger.MissingHandler(invocation.Target);
                 return;
             }
+
+            _logger.LogDebug("Dispatching invocation: {invocation}", invocation);
 
             // TODO: Optimize this!
             // Copying the callbacks to avoid concurrency issues

@@ -300,9 +300,10 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
         public async Task CanStreamClientMethodFromServer(IHubProtocol protocol, TransportType transportType, string path)
         {
-            using (StartLog(out var loggerFactory, LogLevel.Trace, $"{nameof(CanStreamClientMethodFromServer)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
+            var testName = $"{nameof(CanStreamClientMethodFromServer)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}";
+            using (StartLog2(out var loggerFactory, LogLevel.Trace, testName))
             {
-                var httpConnection = new HttpConnection(new Uri(_serverFixture.Url + path), transportType, loggerFactory);
+                var httpConnection = new HttpConnection(new Uri(_serverFixture.Url + path + $"?testName={testName}"), transportType, loggerFactory);
                 var connection = new HubConnection(httpConnection, protocol, loggerFactory);
                 try
                 {

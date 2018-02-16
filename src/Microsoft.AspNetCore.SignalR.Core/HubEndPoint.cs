@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Security.Claims;
+using System.Text;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -172,6 +173,8 @@ namespace Microsoft.AspNetCore.SignalR
                     var buffer = result.Buffer;
                     var consumed = buffer.End;
                     var examined = buffer.End;
+
+                    _logger.LogDebug("Received {bytes}: {payload}", buffer.Length, Encoding.UTF8.GetString(buffer.ToArray()));
 
                     try
                     {

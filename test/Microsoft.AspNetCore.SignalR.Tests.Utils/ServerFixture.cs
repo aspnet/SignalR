@@ -165,11 +165,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
             public ILogger CreateLogger(string categoryName)
             {
-                if (_loggerFactoryManager.Current != null)
-                {
-                    return _loggerFactoryManager.Current.CreateLogger(categoryName);
-                }
-                return new TestLogger(categoryName);
+                return new TestLogger(categoryName, _loggerFactoryManager);
             }
 
             public void Dispose()
@@ -179,10 +175,12 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             private class TestLogger : ILogger
             {
                 private string _categoryName;
+                private TestLoggerFactoryManager _testLoggerFactory;
 
-                public TestLogger(string categoryName)
+                public TestLogger(string categoryName, TestLoggerFactoryManager testLoggerFactory)
                 {
                     _categoryName = categoryName;
+                    _testLoggerFactory = testLoggerFactory;
                 }
 
                 public IDisposable BeginScope<TState>(TState state)
@@ -197,7 +195,10 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
                 {
-
+                    if (_testLoggerFactory.Current != null)
+                    {
+                        _testLoggerFactory.Current.CreateLogger(_categoryName).Log(logLevel, eventId, state, exception, formatter);
+                    }
                 }
             }
         }
