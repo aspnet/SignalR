@@ -7,7 +7,9 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.SignalR.Tests;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Primitives;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
@@ -44,8 +46,17 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             });
         }
 
-        public void Configure(IApplicationBuilder app)
+        public void Configure(IApplicationBuilder app, TestLoggerFactoryManager testLoggerFactory)
         {
+            app.Use(async (context, next) =>
+            {
+                var testName = context.Request.Query["testName"];
+
+                testLoggerFactory.SetCurrent(testName);
+
+                await next();
+            });
+
             app.UseAuthentication();
 
             app.UseSignalR(routes =>
