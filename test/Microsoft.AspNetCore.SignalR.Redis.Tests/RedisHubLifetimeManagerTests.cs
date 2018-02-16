@@ -113,7 +113,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
                 await manager.AddGroupAsync(connection1.ConnectionId, "gunit").OrTimeout();
                 await manager.AddGroupAsync(connection2.ConnectionId, "gunit").OrTimeout();
 
-                var excludedIds = new List<string>{ client2.Connection.ConnectionId };
+                var excludedIds = new List<string> { client2.Connection.ConnectionId };
                 await manager.SendGroupExceptAsync("gunit", "Hello", new object[] { "World" }, excludedIds).OrTimeout();
 
                 await AssertMessageAsync(client1);

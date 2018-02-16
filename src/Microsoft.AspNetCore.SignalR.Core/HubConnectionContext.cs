@@ -90,16 +90,16 @@ namespace Microsoft.AspNetCore.SignalR
 
         public virtual async Task WriteAsync(HubMessage message)
         {
+            var buffer = ProtocolReaderWriter.WriteMessage(message);
+
             // Hubs support multiple producers so need to lock as we write into the buffer
             // since the pipe only supports a single consumer at a time
             lock (_writeLock)
             {
-                var buffer = ProtocolReaderWriter.WriteMessage(message);
-
                 _connectionContext.Transport.Output.Write(buffer);
-
-                Interlocked.Exchange(ref _lastSendTimestamp, Stopwatch.GetTimestamp());
             }
+
+            Interlocked.Exchange(ref _lastSendTimestamp, Stopwatch.GetTimestamp());
 
             await FlushAsync(_connectionContext.Transport.Output, CancellationToken.None);
         }
