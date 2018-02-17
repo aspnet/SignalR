@@ -36,11 +36,8 @@ namespace Microsoft.AspNetCore.SignalR
         private readonly CancellationTokenSource _connectionAbortedTokenSource = new CancellationTokenSource();
         private readonly TaskCompletionSource<object> _abortCompletedTcs = new TaskCompletionSource<object>();
         private readonly long _keepAliveDuration;
-        private readonly object _writeLock = new object();
 
-        private TaskCompletionSource<object> _flushTcs;
-        private readonly object _flushLock = new object();
-        private Action _flushCompleted;
+        private readonly SemaphoreSlim _writeLock = new SemaphoreSlim(1);
 
         private long _lastSendTimestamp = Stopwatch.GetTimestamp();
 
@@ -55,8 +52,6 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 Features.Get<IConnectionHeartbeatFeature>()?.OnHeartbeat(state => ((HubConnectionContext)state).KeepAliveTick(), this);
             }
-
-            _flushCompleted = OnFlushCompleted;
         }
 
         public virtual CancellationToken ConnectionAbortedToken { get; }
@@ -90,54 +85,19 @@ namespace Microsoft.AspNetCore.SignalR
 
         public virtual async Task WriteAsync(HubMessage message)
         {
+            await _writeLock.WaitAsync();
+
             var buffer = ProtocolReaderWriter.WriteMessage(message);
 
-            // Hubs support multiple producers so need to lock as we write into the buffer
-            // since the pipe only supports a single consumer at a time
-            lock (_writeLock)
-            {
-                _connectionContext.Transport.Output.Write(buffer);
-            }
+            _connectionContext.Transport.Output.Write(buffer);
 
             Interlocked.Exchange(ref _lastSendTimestamp, Stopwatch.GetTimestamp());
 
-            await FlushAsync(_connectionContext.Transport.Output, CancellationToken.None);
+            await _connectionContext.Transport.Output.FlushAsync(CancellationToken.None);
+
+            _writeLock.Release();
         }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private Task FlushAsync(PipeWriter pipeWriter, CancellationToken cancellationToken)
-        {
-            var awaitable = pipeWriter.FlushAsync(cancellationToken);
-            if (awaitable.IsCompleted)
-            {
-                // The flush task can't fail today
-                return Task.CompletedTask;
-            }
-            return FlushAsyncAwaited(awaitable, cancellationToken);
-        }
-
-        private async Task FlushAsyncAwaited(ValueAwaiter<FlushResult> awaitable, CancellationToken cancellationToken)
-        {
-            // Since the flush awaitable doesn't currently support multiple awaiters
-            // we need to use a task to track the callbacks.
-            // All awaiters get the same task
-            lock (_flushLock)
-            {
-                if (_flushTcs == null || _flushTcs.Task.IsCompleted)
-                {
-                    _flushTcs = new TaskCompletionSource<object>();
-
-                    awaitable.OnCompleted(_flushCompleted);
-                }
-            }
-
-            await _flushTcs.Task;
-
-            cancellationToken.ThrowIfCancellationRequested();
-        }
-
-        private void OnFlushCompleted() => _flushTcs.TrySetResult(null);
-
+        
         public virtual void Abort()
         {
             // If we already triggered the token then noop, this isn't thread safe but it's good enough
