@@ -73,8 +73,13 @@ namespace Microsoft.AspNetCore.Sockets.Client
             }
             finally
             {
-                // Make sure the poll loop is terminated
-                transportCts.Cancel();
+                try
+                {
+                    // Make sure the poll loop is terminated
+                    transportCts.Cancel();
+                }
+                // workaround issue with a null-ref in 2.0
+                catch { }
             }
 
             logger.SendStopped();

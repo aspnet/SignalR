@@ -134,12 +134,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             {
                 readCancellationRegistration.Dispose();
                 _transportCts.Cancel();
-                try
-                {
-                    stream.Dispose();
-                }
-                // workaround issue with a null-ref in 2.0
-                catch { }
+                stream.Dispose();
                 _logger.ReceiveStopped();
             }
         }
@@ -147,7 +142,12 @@ namespace Microsoft.AspNetCore.Sockets.Client
         public async Task StopAsync()
         {
             _logger.TransportStopping();
-            _transportCts.Cancel();
+            try
+            {
+                _transportCts.Cancel();
+            }
+            // workaround issue with a null-ref in 2.0
+            catch { }
 
             try
             {
