@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.IO.Pipelines;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -38,7 +39,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     {
                         await connection.StartAsync().OrTimeout();
 
-                        await connection.SendAsync(data).OrTimeout();
+                        await connection.Output.WriteAsync(data).OrTimeout();
 
                         Assert.Equal(data, await sendTcs.Task.OrTimeout());
 
@@ -54,7 +55,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     async (connection, closed) =>
                     {
                         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-                            () => connection.SendAsync(new byte[0]).OrTimeout());
+                            () => connection.Output.WriteAsync(new byte[0]).OrTimeout());
                         Assert.Equal("Cannot send messages when the connection is not in the Connected state.", exception.Message);
                     });
             }
@@ -70,7 +71,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                         await connection.StopAsync().OrTimeout();
 
                         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-                            () => connection.SendAsync(new byte[0]).OrTimeout());
+                            () => connection.Output.WriteAsync(new byte[0]).OrTimeout());
                         Assert.Equal("Cannot send messages when the connection is not in the Connected state.", exception.Message);
                     });
             }
@@ -86,7 +87,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                         await connection.DisposeAsync().OrTimeout();
 
                         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-                            () => connection.SendAsync(new byte[0]).OrTimeout());
+                            () => connection.Output.WriteAsync(new byte[0]).OrTimeout());
                         Assert.Equal("Cannot send messages when the connection is not in the Connected state.", exception.Message);
                     });
             }
@@ -116,9 +117,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     {
                         await connection.StartAsync().OrTimeout();
 
-                        await connection.SendAsync(new byte[] { 0 }).OrTimeout();
+                        await connection.Output.WriteAsync(new byte[] { 0 }).OrTimeout();
 
-                        var exception = await Assert.ThrowsAsync<HttpRequestException>(() => closed.OrTimeout());
+                        await Assert.ThrowsAsync<HttpRequestException>(() => closed.OrTimeout());
                     });
             }
         }

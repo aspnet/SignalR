@@ -4,6 +4,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Pipelines;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.SignalR.Internal;
@@ -20,8 +22,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         [Fact]
         public async Task StartAsyncCallsConnectionStart()
         {
-            var connection = new Mock<IConnection>();
-            connection.SetupGet(p => p.Features).Returns(new FeatureCollection());
+            var connection = CreateMockConnection();
             connection.Setup(m => m.StartAsync()).Returns(Task.CompletedTask).Verifiable();
             var hubConnection = new HubConnection(connection.Object, Mock.Of<IHubProtocol>(), null);
             await hubConnection.StartAsync();
@@ -32,8 +33,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         [Fact]
         public async Task DisposeAsyncCallsConnectionStart()
         {
-            var connection = new Mock<IConnection>();
-            connection.Setup(m => m.Features).Returns(new FeatureCollection());
+            var connection = CreateMockConnection();
             connection.Setup(m => m.StartAsync()).Verifiable();
             var hubConnection = new HubConnection(connection.Object, Mock.Of<IHubProtocol>(), null);
             await hubConnection.DisposeAsync();
@@ -172,8 +172,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         [Fact]
         public async Task PendingInvocationsAreTerminatedWithExceptionWhenConnectionClosesDueToError()
         {
-            var mockConnection = new Mock<IConnection>();
-            mockConnection.SetupGet(p => p.Features).Returns(new FeatureCollection());
+            var mockConnection = CreateMockConnection();
             mockConnection
                 .Setup(m => m.DisposeAsync())
                 .Returns(Task.FromResult<object>(null));
@@ -207,19 +206,21 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             Assert.Equal("Server timeout (100.00ms) elapsed without receiving a message from the server.", exception.Message);
         }
 
-        [Fact]
-        public async Task OnReceivedAfterTimerDisposedDoesNotThrow()
+        private static Mock<IConnection> CreateMockConnection()
         {
-            var connection = new TestConnection();
-            var hubConnection = new HubConnection(connection, new JsonHubProtocol(), new LoggerFactory());
-            await hubConnection.StartAsync().OrTimeout();
-            await hubConnection.DisposeAsync().OrTimeout();
-
-            // Fire callbacks, they shouldn't fail
-            foreach (var registration in connection.Callbacks)
-            {
-                await registration.InvokeAsync(new byte[0]);
-            }
+            var connection = new Mock<IConnection>();
+            var writer = new Mock<PipeWriter>();
+            var reader = new Mock<PipeReader>();
+            var flushAwaiter = new Mock<IAwaiter<FlushResult>>();
+            flushAwaiter.Setup(m => m.IsCompleted).Returns(true);
+            flushAwaiter.Setup(m => m.GetResult()).Returns(new FlushResult());
+            writer.Setup(m => m.FlushAsync(It.IsAny<CancellationToken>())).Returns(new ValueAwaiter<FlushResult>(flushAwaiter.Object));
+            writer.Setup(m => m.GetMemory(It.IsAny<int>())).Returns(new byte[1000]);
+            writer.Setup(m => m.Advance(It.IsAny<int>())).Verifiable();
+            connection.SetupGet(p => p.Output).Returns(writer.Object);
+            connection.SetupGet(p => p.Input).Returns(reader.Object);
+            connection.SetupGet(p => p.Features).Returns(new FeatureCollection());
+            return connection;
         }
 
         // Moq really doesn't handle out parameters well, so to make these tests work I added a manual mock -anurse

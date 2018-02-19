@@ -36,18 +36,15 @@ namespace System.IO.Pipelines
 
         public static async Task<byte[]> ReadSingleAsync(this PipeReader pipeReader)
         {
-            while (true)
-            {
-                var result = await pipeReader.ReadAsync();
+            var result = await pipeReader.ReadAsync();
 
-                try
-                {
-                    return result.Buffer.ToArray();
-                }
-                finally
-                {
-                    pipeReader.AdvanceTo(result.Buffer.End);
-                }
+            try
+            {
+                return result.Buffer.ToArray();
+            }
+            finally
+            {
+                pipeReader.AdvanceTo(result.Buffer.End);
             }
         }
 

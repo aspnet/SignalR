@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Pipelines;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Channels;
@@ -38,6 +39,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
         private readonly ConcurrentDictionary<string, List<InvocationHandler>> _handlers = new ConcurrentDictionary<string, List<InvocationHandler>>();
         private CancellationTokenSource _connectionActive;
 
+        private Task _readingTask;
+
         private int _nextId = 0;
         private volatile bool _startCalled;
         private Timer _timeoutTimer;
@@ -68,9 +71,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             _protocol = protocol;
             _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
             _logger = _loggerFactory.CreateLogger<HubConnection>();
-            _connection.OnReceived((data, state) => ((HubConnection)state).OnDataReceivedAsync(data), this);
             _connection.Closed += e => Shutdown(e);
-
             // Create the timer for timeout, but disabled by default (we enable it when started).
             _timeoutTimer = new Timer(state => ((HubConnection)state).TimeoutElapsed(), this, Timeout.Infinite, Timeout.Infinite);
         }
@@ -103,7 +104,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 // we don't need the timer anyway.
                 try
                 {
-                    _timeoutTimer.Change(ServerTimeout, Timeout.InfiniteTimeSpan);
+                    _timeoutTimer.Change(Debugger.IsAttached ? Timeout.InfiniteTimeSpan : ServerTimeout, Timeout.InfiniteTimeSpan);
                 }
                 catch (ObjectDisposedException)
                 {
@@ -140,8 +141,12 @@ namespace Microsoft.AspNetCore.SignalR.Client
             using (var memoryStream = new MemoryStream())
             {
                 NegotiationProtocol.WriteMessage(new NegotiationMessage(_protocol.Name), memoryStream);
-                await _connection.SendAsync(memoryStream.ToArray(), _connectionActive.Token);
+
+                // TODO: Pass the token when that's available
+                await _connection.Output.WriteAsync(memoryStream.ToArray());
             }
+
+            _readingTask = StartReading();
 
             ResetTimeoutTimer();
         }
@@ -162,13 +167,23 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         public async Task StopAsync() => await StopAsyncCore().ForceAsync();
 
-        private Task StopAsyncCore() => _connection.StopAsync();
+        private async Task StopAsyncCore()
+        {
+            await _connection.StopAsync();
+
+            if (_readingTask != null)
+            {
+                await _readingTask;
+            }
+        }
 
         public async Task DisposeAsync() => await DisposeAsyncCore().ForceAsync();
 
         private async Task DisposeAsyncCore()
         {
             await _connection.DisposeAsync();
+
+            await StopAsync();
 
             // Dispose the timer AFTER shutting down the connection.
             _timeoutTimer.Dispose();
@@ -298,7 +313,11 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 var payload = _protocolReaderWriter.WriteMessage(hubMessage);
                 _logger.SendInvocation(hubMessage.InvocationId);
 
-                await _connection.SendAsync(payload, irq.CancellationToken);
+                // TODO: Pass irq.CancellationToken when that's available
+                irq.CancellationToken.ThrowIfCancellationRequested();
+
+                await _connection.Output.WriteAsync(payload);
+
                 _logger.SendInvocationCompleted(hubMessage.InvocationId);
             }
             catch (Exception ex)
@@ -331,7 +350,10 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 var payload = _protocolReaderWriter.WriteMessage(invocationMessage);
                 _logger.SendInvocation(invocationMessage.InvocationId);
 
-                await _connection.SendAsync(payload, cancellationToken);
+                // TODO: Pass the cancellationToken when that's available
+                cancellationToken.ThrowIfCancellationRequested();
+
+                await _connection.Output.WriteAsync(payload);
                 _logger.SendInvocationCompleted(invocationMessage.InvocationId);
             }
             catch (Exception ex)
@@ -341,46 +363,81 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
         }
 
-        private async Task OnDataReceivedAsync(byte[] data)
+        private async Task StartReading()
         {
-            ResetTimeoutTimer();
-            if (_protocolReaderWriter.ReadMessages(data, _binder, out var messages))
+            try
             {
-                foreach (var message in messages)
+                while (true)
                 {
-                    InvocationRequest irq;
-                    switch (message)
+                    var result = await _connection.Input.ReadAsync();
+                    var buffer = result.Buffer;
+                    var consumed = buffer.End;
+                    var examined = buffer.End;
+
+                    try
                     {
-                        case InvocationMessage invocation:
-                            _logger.ReceivedInvocation(invocation.InvocationId, invocation.Target,
-                                invocation.ArgumentBindingException != null ? null : invocation.Arguments);
-                            await DispatchInvocationAsync(invocation, _connectionActive.Token);
-                            break;
-                        case CompletionMessage completion:
-                            if (!TryRemoveInvocation(completion.InvocationId, out irq))
+                        if (!buffer.IsEmpty)
+                        {
+                            ResetTimeoutTimer();
+
+                            if (_protocolReaderWriter.ReadMessages(buffer, _binder, out var messages, out consumed, out examined))
                             {
-                                _logger.DropCompletionMessage(completion.InvocationId);
-                                return;
+                                foreach (var message in messages)
+                                {
+                                    InvocationRequest irq;
+                                    switch (message)
+                                    {
+                                        case InvocationMessage invocation:
+                                            _logger.ReceivedInvocation(invocation.InvocationId, invocation.Target,
+                                                invocation.ArgumentBindingException != null ? null : invocation.Arguments);
+                                            await DispatchInvocationAsync(invocation, _connectionActive.Token);
+                                            break;
+                                        case CompletionMessage completion:
+                                            if (!TryRemoveInvocation(completion.InvocationId, out irq))
+                                            {
+                                                _logger.DropCompletionMessage(completion.InvocationId);
+                                                return;
+                                            }
+                                            DispatchInvocationCompletion(completion, irq);
+                                            irq.Dispose();
+                                            break;
+                                        case StreamItemMessage streamItem:
+                                            // Complete the invocation with an error, we don't support streaming (yet)
+                                            if (!TryGetInvocation(streamItem.InvocationId, out irq))
+                                            {
+                                                _logger.DropStreamMessage(streamItem.InvocationId);
+                                                return;
+                                            }
+                                            DispatchInvocationStreamItemAsync(streamItem, irq);
+                                            break;
+                                        case PingMessage _:
+                                            // Nothing to do on receipt of a ping.
+                                            break;
+                                        default:
+                                            throw new InvalidOperationException($"Unexpected message type: {message.GetType().FullName}");
+                                    }
+                                }
                             }
-                            DispatchInvocationCompletion(completion, irq);
-                            irq.Dispose();
+
+                        }
+                        else if (result.IsCompleted)
+                        {
                             break;
-                        case StreamItemMessage streamItem:
-                            // Complete the invocation with an error, we don't support streaming (yet)
-                            if (!TryGetInvocation(streamItem.InvocationId, out irq))
-                            {
-                                _logger.DropStreamMessage(streamItem.InvocationId);
-                                return;
-                            }
-                            DispatchInvocationStreamItemAsync(streamItem, irq);
-                            break;
-                        case PingMessage _:
-                            // Nothing to do on receipt of a ping.
-                            break;
-                        default:
-                            throw new InvalidOperationException($"Unexpected message type: {message.GetType().FullName}");
+                        }
+                    }
+                    finally
+                    {
+                        _connection.Input.AdvanceTo(consumed, examined);
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                _connection.Input.Complete(ex);
+            }
+            finally
+            {
+                _connection.Input.Complete();
             }
         }
 
