@@ -290,7 +290,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     logger.LogInformation("Sent message", bytes.Length);
 
                     logger.LogInformation("Receiving message");
-                    var receivedData = await receiveTcs.Task.OrTimeout();
+                    var receivedData = await receiveTcs.Task;
                     Assert.Equal(message, Encoding.UTF8.GetString(receivedData));
                     logger.LogInformation("Completed receive");
                 }
