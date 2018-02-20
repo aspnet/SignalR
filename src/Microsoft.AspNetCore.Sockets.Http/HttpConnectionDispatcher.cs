@@ -365,7 +365,7 @@ namespace Microsoft.AspNetCore.Sockets
             context.Response.ContentType = "application/json";
 
             // Establish the connection
-            var connection = _manager.CreateConnection();
+            var connection = _manager.CreateConnection(options.PauseWriterThreshold, options.ResumeWriterThreshold);
 
             // Set the Connection ID on the logging scope so that logs from now on will have the
             // Connection ID metadata set.

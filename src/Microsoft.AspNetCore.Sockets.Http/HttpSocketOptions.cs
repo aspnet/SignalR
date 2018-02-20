@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Authorization;
+using System.IO.Pipelines;
 
 namespace Microsoft.AspNetCore.Sockets
 {
@@ -16,5 +17,9 @@ namespace Microsoft.AspNetCore.Sockets
         public WebSocketOptions WebSockets { get; } = new WebSocketOptions();
 
         public LongPollingOptions LongPolling { get; } = new LongPollingOptions();
+
+        public long PauseWriterThreshold { get; set; } = PipeOptions.Default.PauseWriterThreshold;
+
+        public long ResumeWriterThreshold { get; set; } = PipeOptions.Default.ResumeWriterThreshold;
     }
 }
