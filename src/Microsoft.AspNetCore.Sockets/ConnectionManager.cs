@@ -56,13 +56,12 @@ namespace Microsoft.AspNetCore.Sockets
             return _connections.TryGetValue(id, out connection);
         }
 
-        public DefaultConnectionContext CreateConnection(long pauseWriterThreshold, long resumeWriterThreshold)
+        public DefaultConnectionContext CreateConnection(PipeOptions pipeOptions)
         {
             var id = MakeNewConnectionId();
 
             _logger.CreatedNewConnection(id);
             var connectionTimer = SocketEventSource.Log.ConnectionStart(id);
-            var pipeOptions = new PipeOptions(pauseWriterThreshold: pauseWriterThreshold, resumeWriterThreshold: resumeWriterThreshold);
             var pair = DuplexPipe.CreateConnectionPair(pipeOptions, pipeOptions);
 
             var connection = new DefaultConnectionContext(id, pair.Application, pair.Transport);
@@ -74,7 +73,7 @@ namespace Microsoft.AspNetCore.Sockets
 
         public DefaultConnectionContext CreateConnection()
         {
-            return CreateConnection(PipeOptions.Default.PauseWriterThreshold, PipeOptions.Default.ResumeWriterThreshold);
+            return CreateConnection(PipeOptions.Default);
         }
 
         public void RemoveConnection(string id)
