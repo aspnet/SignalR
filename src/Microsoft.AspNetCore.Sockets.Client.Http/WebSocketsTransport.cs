@@ -237,7 +237,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     {
                         if (result.IsCancelled)
                         {
-                            return;
+                            break;
                         }
 
                         if (!buffer.IsEmpty)

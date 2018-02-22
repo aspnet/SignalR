@@ -211,7 +211,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                     {
                         if (result.IsCancelled)
                         {
-                            return;
+                            break;
                         }
 
                         if (!buffer.IsEmpty)
