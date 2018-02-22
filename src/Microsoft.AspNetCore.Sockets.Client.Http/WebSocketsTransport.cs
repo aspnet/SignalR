@@ -97,8 +97,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
                 if (trigger == receiving)
                 {
-                    // _logger.WaitingForSend();
-
                     // We're waiting for the application to finish and there are 2 things it could be doing
                     // 1. Waiting for application data
                     // 2. Waiting for a websocket send to complete
@@ -112,8 +110,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
                         if (resultTask != sending)
                         {
-                            // _logger.CloseTimedOut();
-
                             _aborted = true;
 
                             // Abort the websocket if we're stuck in a pending send to the client
@@ -128,15 +124,13 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 }
                 else
                 {
-                    // _logger.WaitingForClose();
-
                     // We're waiting on the websocket to close and there are 2 things it could be doing
                     // 1. Waiting for websocket data
                     // 2. Waiting on a flush to complete (backpressure being applied)
 
                     _aborted = true;
 
-                    // Abort the websocket if we're stuck in a pending receive from to the client
+                    // Abort the websocket if we're stuck in a pending receive from the client
                     socket.Abort();
 
                     // Cancel any pending flush so that we can quit
@@ -182,7 +176,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     {
                         var flushResult = await _application.Output.FlushAsync();
 
-                        // We cancelled in the middle of applying back pressure
+                        // We canceled in the middle of applying back pressure
                         // or if the consumer is done
                         if (flushResult.IsCancelled || flushResult.IsCompleted)
                         {
@@ -210,12 +204,12 @@ namespace Microsoft.AspNetCore.Sockets.Client
             {
                 // We're done writing
                 _application.Output.Complete();
-            }
 
-            _logger.ReceiveStopped();
+                _logger.ReceiveStopped();
+            }
         }
 
-        private async Task StartSending(WebSocket ws)
+        private async Task StartSending(WebSocket socket)
         {
             var webSocketMessageType =
                 Mode == TransferMode.Binary
@@ -246,9 +240,9 @@ namespace Microsoft.AspNetCore.Sockets.Client
                             {
                                 _logger.ReceivedFromApp(buffer.Length);
 
-                                if (WebSocketCanSend(ws))
+                                if (WebSocketCanSend(socket))
                                 {
-                                    await ws.SendAsync(buffer, webSocketMessageType);
+                                    await socket.SendAsync(buffer, webSocketMessageType);
                                 }
                                 else
                                 {
@@ -281,16 +275,16 @@ namespace Microsoft.AspNetCore.Sockets.Client
             }
             finally
             {
-                if (WebSocketCanSend(ws))
+                if (WebSocketCanSend(socket))
                 {
                     // We're done sending, send the close frame to the client if the websocket is still open
-                    await ws.CloseOutputAsync(error != null ? WebSocketCloseStatus.InternalServerError : WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+                    await socket.CloseOutputAsync(error != null ? WebSocketCloseStatus.InternalServerError : WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
                 }
 
                 _application.Input.Complete();
-            }
 
-            _logger.SendStopped();
+                _logger.SendStopped();
+            }
         }
 
         private static bool WebSocketCanSend(WebSocket ws)

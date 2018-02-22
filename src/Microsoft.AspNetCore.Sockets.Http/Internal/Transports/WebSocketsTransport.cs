@@ -163,7 +163,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                     {
                         var flushResult = await _application.Output.FlushAsync();
 
-                        // We cancelled in the middle of applying back pressure
+                        // We canceled in the middle of applying back pressure
                         // or if the consumer is done
                         if (flushResult.IsCancelled || flushResult.IsCompleted)
                         {
@@ -194,7 +194,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
             }
         }
 
-        private async Task StartSending(WebSocket ws)
+        private async Task StartSending(WebSocket socket)
         {
             Exception error = null;
 
@@ -224,9 +224,9 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                                     ? WebSocketMessageType.Binary
                                     : WebSocketMessageType.Text);
 
-                                if (WebSocketCanSend(ws))
+                                if (WebSocketCanSend(socket))
                                 {
-                                    await ws.SendAsync(buffer, webSocketMessageType);
+                                    await socket.SendAsync(buffer, webSocketMessageType);
                                 }
                                 else
                                 {
@@ -260,10 +260,10 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
             finally
             {
                 // Send the close frame before calling into user code
-                if (WebSocketCanSend(ws))
+                if (WebSocketCanSend(socket))
                 {
                     // We're done sending, send the close frame to the client if the websocket is still open
-                    await ws.CloseOutputAsync(error != null ? WebSocketCloseStatus.InternalServerError : WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+                    await socket.CloseOutputAsync(error != null ? WebSocketCloseStatus.InternalServerError : WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
                 }
 
                 _application.Input.Complete();
