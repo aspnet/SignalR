@@ -18,7 +18,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         public DefaultHubProtocolResolver(IOptions<HubOptions> options, IEnumerable<IHubProtocol> availableProtocols, ILogger<DefaultHubProtocolResolver> logger)
         {
-            _options = options ?? throw new ArgumentNullException(nameof(options));
+            _options = options ?? throw new ArgumentNullException("options");
             _logger = logger ?? NullLogger<DefaultHubProtocolResolver>.Instance;
             _availableProtocols = new Dictionary<string, IHubProtocol>(StringComparer.OrdinalIgnoreCase);
 
@@ -35,7 +35,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         public IHubProtocol GetProtocol(string protocolName, HubConnectionContext connection)
         {
-            protocolName = protocolName ?? throw new ArgumentNullException(nameof(protocolName));
+            protocolName = protocolName ?? throw new ArgumentNullException("protocolName");
 
             if (_availableProtocols.TryGetValue(protocolName, out var protocol))
             {
@@ -50,10 +50,10 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         {
             // Category: DefaultHubProtocolResolver
             private static readonly Action<ILogger, string, Type, Exception> _registeredSignalRProtocol =
-                LoggerMessage.Define<string, Type>(LogLevel.Debug, new EventId(1, nameof(RegisteredSignalRProtocol)), "Registered SignalR Protocol: {ProtocolName}, implemented by {ImplementationType}.");
+                LoggerMessage.Define<string, Type>(LogLevel.Debug, new EventId(1, "RegisteredSignalRProtocol"), "Registered SignalR Protocol: {ProtocolName}, implemented by {ImplementationType}.");
 
             private static readonly Action<ILogger, string, Exception> _foundImplementationForProtocol =
-                LoggerMessage.Define<string>(LogLevel.Debug, new EventId(2, nameof(FoundImplementationForProtocol)), "Found protocol implementation for requested protocol: {ProtocolName}.");
+                LoggerMessage.Define<string>(LogLevel.Debug, new EventId(2, "FoundImplementationForProtocol"), "Found protocol implementation for requested protocol: {ProtocolName}.");
 
             public static void RegisteredSignalRProtocol(ILogger logger, string protocolName, Type implementationType)
             {

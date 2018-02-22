@@ -1,3 +1,6 @@
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 using System;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.Extensions.Internal;
@@ -5,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.SignalR.Internal
 {
-    public partial class HubDispatcher<THub>
+    public partial class DefaultHubDispatcher<THub>
     {
         private static class Log
         {
@@ -46,16 +49,16 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 LoggerMessage.Define(LogLevel.Debug, new EventId(12, "UnexpectedCancel"), "CancelInvocationMessage received unexpectedly.");
 
             private static readonly Action<ILogger, StreamInvocationMessage, Exception> _receivedStreamHubInvocation =
-                LoggerMessage.Define<StreamInvocationMessage>(LogLevel.Debug, new EventId(14, "ReceivedStreamHubInvocation"), "Received stream hub invocation: {invocationMessage}.");
+                LoggerMessage.Define<StreamInvocationMessage>(LogLevel.Debug, new EventId(13, "ReceivedStreamHubInvocation"), "Received stream hub invocation: {invocationMessage}.");
 
             private static readonly Action<ILogger, HubMethodInvocationMessage, Exception> _streamingMethodCalledWithInvoke =
-                LoggerMessage.Define<HubMethodInvocationMessage>(LogLevel.Error, new EventId(15, "StreamingMethodCalledWithInvoke"), "A streaming method was invoked in the non-streaming fashion : {invocationMessage}.");
+                LoggerMessage.Define<HubMethodInvocationMessage>(LogLevel.Error, new EventId(14, "StreamingMethodCalledWithInvoke"), "A streaming method was invoked in the non-streaming fashion : {invocationMessage}.");
 
             private static readonly Action<ILogger, HubMethodInvocationMessage, Exception> _nonStreamingMethodCalledWithStream =
-                LoggerMessage.Define<HubMethodInvocationMessage>(LogLevel.Error, new EventId(16, "NonStreamingMethodCalledWithStream"), "A non-streaming method was invoked in the streaming fashion : {invocationMessage}.");
+                LoggerMessage.Define<HubMethodInvocationMessage>(LogLevel.Error, new EventId(15, "NonStreamingMethodCalledWithStream"), "A non-streaming method was invoked in the streaming fashion : {invocationMessage}.");
 
             private static readonly Action<ILogger, string, Exception> _invalidReturnValueFromStreamingMethod =
-                LoggerMessage.Define<string>(LogLevel.Error, new EventId(17, "InvalidReturnValueFromStreamingMethod"), "A streaming method returned a value that cannot be used to build enumerator {hubMethod}.");
+                LoggerMessage.Define<string>(LogLevel.Error, new EventId(16, "InvalidReturnValueFromStreamingMethod"), "A streaming method returned a value that cannot be used to build enumerator {hubMethod}.");
 
             public static void ErrorInvokingHubMethod(ILogger logger, string hubMethod, Exception exception)
             {
