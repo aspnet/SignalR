@@ -18,7 +18,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         public DefaultHubProtocolResolver(IOptions<HubOptions> options, IEnumerable<IHubProtocol> availableProtocols, ILogger<DefaultHubProtocolResolver> logger)
         {
-            _options = options ?? throw new ArgumentNullException("options");
+            _options = options ?? throw new ArgumentNullException(nameof(options));
             _logger = logger ?? NullLogger<DefaultHubProtocolResolver>.Instance;
             _availableProtocols = new Dictionary<string, IHubProtocol>(StringComparer.OrdinalIgnoreCase);
 
@@ -35,7 +35,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         public IHubProtocol GetProtocol(string protocolName, HubConnectionContext connection)
         {
-            protocolName = protocolName ?? throw new ArgumentNullException("protocolName");
+            protocolName = protocolName ?? throw new ArgumentNullException(nameof(protocolName));
 
             if (_availableProtocols.TryGetValue(protocolName, out var protocol))
             {

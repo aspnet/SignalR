@@ -144,7 +144,7 @@ namespace Microsoft.AspNetCore.SignalR
         private static class Log
         {
             private static readonly Action<ILogger, Exception> _errorProcessingRequest =
-                LoggerMessage.Define(LogLevel.Error, new EventId(1, nameof(ErrorProcessingRequest)), "Error when processing requests.");
+                LoggerMessage.Define(LogLevel.Error, new EventId(1, "ErrorProcessingRequest"), "Error when processing requests.");
 
             private static readonly Action<ILogger, Exception> _abortFailed =
                 LoggerMessage.Define(LogLevel.Trace, new EventId(2, "AbortFailed"), "Abort callback failed.");
