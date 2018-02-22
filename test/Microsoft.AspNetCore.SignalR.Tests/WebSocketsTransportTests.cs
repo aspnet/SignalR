@@ -73,9 +73,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 await pair.Transport.Output.WriteAsync(new byte[] { 0x42 });
 
-                await pair.Transport.Input.WaitToReadAsync();
-                pair.Transport.Output.Complete();
-
                 // The echo endpoint closes the connection immediately after sending response which should stop the transport
                 await webSocketsTransport.Running.OrTimeout();
 
