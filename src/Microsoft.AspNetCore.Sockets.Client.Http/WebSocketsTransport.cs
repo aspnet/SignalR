@@ -20,6 +20,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
         private IDuplexPipe _application;
         private readonly ILogger _logger;
         private readonly TimeSpan _closeTimeout;
+        private volatile bool _aborted;
 
         public Task Running { get; private set; } = Task.CompletedTask;
 
@@ -111,6 +112,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     {
                         // _logger.CloseTimedOut();
 
+                        _aborted = true;
+
                         // Abort the websocket if we're stuck in a pending send to the client
                         socket.Abort();
                     }
@@ -122,6 +125,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     // We're waiting on the websocket to close and there are 2 things it could be doing
                     // 1. Waiting for websocket data
                     // 2. Waiting on a flush to complete (backpressure being applied)
+
+                    _aborted = true;
 
                     // Abort the websocket if we're stuck in a pending receive from to the client
                     socket.Abort();
@@ -184,11 +189,14 @@ namespace Microsoft.AspNetCore.Sockets.Client
             }
             catch (Exception ex)
             {
-                _application.Output.Complete(ex);
+                if (!_aborted)
+                {
+                    _application.Output.Complete(ex);
 
-                // We re-throw here so we can communicate that there was an error when sending
-                // the close frame
-                throw;
+                    // We re-throw here so we can communicate that there was an error when sending
+                    // the close frame
+                    throw;
+                }
             }
             finally
             {
@@ -235,15 +243,12 @@ namespace Microsoft.AspNetCore.Sockets.Client
                                     await ws.SendAsync(buffer, webSocketMessageType);
                                 }
                             }
-                            catch (WebSocketException socketException) when (!WebSocketCanSend(ws))
-                            {
-                                // this can happen when we send the CloseFrame to the client and try to write afterwards
-                                _logger.ErrorSendingMessage(socketException);
-                                break;
-                            }
                             catch (Exception ex)
                             {
-                                _logger.ErrorSendingMessage(ex);
+                                if (!_aborted)
+                                {
+                                    _logger.ErrorSendingMessage(ex);
+                                }
                                 break;
                             }
                         }
