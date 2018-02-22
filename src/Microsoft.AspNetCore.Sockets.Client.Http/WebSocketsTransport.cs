@@ -50,7 +50,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
             httpOptions?.WebSocketOptions?.Invoke(_webSocket.Options);
 
-
             _closeTimeout = httpOptions?.CloseTimeout ?? TimeSpan.FromSeconds(5);
             _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<WebSocketsTransport>();
         }

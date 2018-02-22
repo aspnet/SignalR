@@ -108,7 +108,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         }
 
         [Fact]
-        public async Task TransportFailsWhenClientDisconnectsAbnormally()
+        public async Task TransportCommunicatesErrorToApplicationWhenClientDisconnectsAbnormally()
         {
             using (StartLog(out var loggerFactory, LogLevel.Debug))
             {
@@ -124,6 +124,10 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                             // Wait until the transport completes so that we can end the application
                             var result = await connection.Transport.Input.ReadAsync();
                             connection.Transport.Input.AdvanceTo(result.Buffer.End);
+                        }
+                        catch (Exception ex)
+                        {
+                            Assert.IsType<WebSocketError>(ex);
                         }
                         finally
                         {
