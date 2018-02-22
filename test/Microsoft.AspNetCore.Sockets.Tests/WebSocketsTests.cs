@@ -119,12 +119,17 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 {
                     async Task CompleteApplicationAfterTransportCompletes()
                     {
-                        // Wait until the transport completes so that we can end the application
-                        var result = await connection.Transport.Input.ReadAsync();
-                        connection.Transport.Input.AdvanceTo(result.Buffer.End);
-
-                        // Complete the application so that the connection unwinds without aborting
-                        connection.Transport.Output.Complete();
+                        try
+                        {
+                            // Wait until the transport completes so that we can end the application
+                            var result = await connection.Transport.Input.ReadAsync();
+                            connection.Transport.Input.AdvanceTo(result.Buffer.End);
+                        }
+                        finally
+                        {
+                            // Complete the application so that the connection unwinds without aborting
+                            connection.Transport.Output.Complete();
+                        }
                     }
 
                     var connectionContext = new DefaultConnectionContext(string.Empty, null, null);
@@ -144,7 +149,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                     feature.Client.SendAbort();
 
                     // Wait for the transport
-                    await Assert.ThrowsAsync<WebSocketException>(() => transport).OrTimeout();
+                    await transport.OrTimeout();
 
                     await client.OrTimeout();
                 }
@@ -178,8 +183,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                     // Close from the client
                     await feature.Client.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
 
-                    var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => transport.OrTimeout());
-                    Assert.Equal("Catastrophic failure.", ex.Message);
+                    await transport.OrTimeout();
                 }
             }
         }
@@ -247,7 +251,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                     // fail the client to server channel
                     connection.Transport.Output.Complete(new Exception());
 
-                    await Assert.ThrowsAsync<Exception>(() => transport).OrTimeout();
+                    await transport.OrTimeout();
 
                     Assert.Equal(WebSocketState.Aborted, serverSocket.State);
                 }

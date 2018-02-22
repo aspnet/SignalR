@@ -68,41 +68,70 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
             var receiving = StartReceiving(socket);
             var sending = StartSending(socket);
 
-            // Wait for something to shut down.
-            var trigger = await Task.WhenAny(
-                receiving,
-                sending);
+            // Wait for something to complete
+            var trigger = await Task.WhenAny(receiving, sending);
 
-            var failed = trigger.IsCanceled || trigger.IsFaulted;
-            var task = Task.CompletedTask;
             if (trigger == receiving)
             {
-                task = sending;
                 _logger.WaitingForSend();
+
+                // If receiving finished first, it's because of a couple of reasons
+                // 1. We received a close frame, if that's the case, we should send one back
+                if (socket.State == WebSocketState.CloseReceived)
+                {
+                    await socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+                }
+                else
+                {
+                    // 2. If close wasn't received that means we ended because of an exception. Here the websocket is still running
+                    // fine and we need to close it with an error
+                    await socket.CloseOutputAsync(WebSocketCloseStatus.InternalServerError, "", CancellationToken.None);
+                }
+
+                // We're waiting for the application to finish and there are 2 things it could be doing
+                // 1. Waiting for application data
+                // 2. Waiting for a websocket send to complete
+
+                var resultTask = await Task.WhenAny(sending, Task.Delay(_options.CloseTimeout));
+
+                if (resultTask != sending)
+                {
+                    _logger.CloseTimedOut();
+
+                    // We timed out so now we're in ungraceful shutdown mode
+                    // Cancel the application so that ReadAsync yields
+                    _application.Input.CancelPendingRead();
+
+                    // Abort the websocket if we're stuck in a pending send to the client
+                    socket.Abort();
+                }
             }
             else
             {
-                task = receiving;
                 _logger.WaitingForClose();
+
+                // The websocket receive loop is still running so we attempt to graceful close by sending the client
+                // a close frame
+                await socket.CloseOutputAsync(sending.IsFaulted ? WebSocketCloseStatus.InternalServerError : WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+
+                // We're waiting on the websocket to close and there are 2 things it could be doing
+                // 1. Waiting for websocket data
+                // 2. Waiting on a flush to complete (backpressure being applied)
+
+                // Give the receiving task time to complete gracefully with a close message
+                var resultTask = await Task.WhenAny(receiving, Task.Delay(_options.CloseTimeout));
+
+                if (resultTask != receiving)
+                {
+                    _logger.CloseTimedOut();
+
+                    // Cancel any pending flush so that we can quit
+                    _application.Output.CancelPendingFlush();
+
+                    // We didn't complete so abort the websocket
+                    socket.Abort();
+                }
             }
-
-            await socket.CloseOutputAsync(failed ? WebSocketCloseStatus.InternalServerError : WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
-
-            var resultTask = await Task.WhenAny(task, Task.Delay(_options.CloseTimeout));
-
-            if (resultTask != task)
-            {
-                _logger.CloseTimedOut();
-                socket.Abort();
-            }
-            else
-            {
-                // Observe any exceptions from second completed task
-                task.GetAwaiter().GetResult();
-            }
-
-            // Observe any exceptions from original completed task
-            trigger.GetAwaiter().GetResult();
         }
 
         private async Task StartReceiving(WebSocket socket)
@@ -133,9 +162,24 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
 
                     if (receiveResult.EndOfMessage)
                     {
-                        await _application.Output.FlushAsync();
+                        var flushResult = await _application.Output.FlushAsync();
+
+                        // We cancelled in the middle of applying back pressure
+                        // or if the consumer is done
+                        if (flushResult.IsCancelled || flushResult.IsCompleted)
+                        {
+                            break;
+                        }
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                _application.Output.Complete(ex);
+
+                // We re-throw here so we can communicate that there was an error when sending
+                // the close frame
+                throw;
             }
             finally
             {
@@ -146,51 +190,63 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
 
         private async Task StartSending(WebSocket ws)
         {
-            while (true)
+            try
             {
-                var result = await _application.Input.ReadAsync();
-                var buffer = result.Buffer;
-
-                // Get a frame from the application
-
-                try
+                while (true)
                 {
-                    if (!buffer.IsEmpty)
+                    var result = await _application.Input.ReadAsync();
+                    var buffer = result.Buffer;
+
+                    // Get a frame from the application
+
+                    try
                     {
-                        try
+                        if (result.IsCancelled)
                         {
-                            _logger.SendPayload(buffer.Length);
+                            return;
+                        }
 
-                            var webSocketMessageType = (_connection.TransferMode == TransferMode.Binary
-                                ? WebSocketMessageType.Binary
-                                : WebSocketMessageType.Text);
-
-                            if (WebSocketCanSend(ws))
+                        if (!buffer.IsEmpty)
+                        {
+                            try
                             {
-                                await ws.SendAsync(buffer, webSocketMessageType);
+                                _logger.SendPayload(buffer.Length);
+
+                                var webSocketMessageType = (_connection.TransferMode == TransferMode.Binary
+                                    ? WebSocketMessageType.Binary
+                                    : WebSocketMessageType.Text);
+
+                                if (WebSocketCanSend(ws))
+                                {
+                                    await ws.SendAsync(buffer, webSocketMessageType);
+                                }
+                            }
+                            catch (WebSocketException socketException) when (!WebSocketCanSend(ws))
+                            {
+                                // this can happen when we send the CloseFrame to the client and try to write afterwards
+                                _logger.SendFailed(socketException);
+                                break;
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.ErrorWritingFrame(ex);
+                                break;
                             }
                         }
-                        catch (WebSocketException socketException) when (!WebSocketCanSend(ws))
+                        else if (result.IsCompleted)
                         {
-                            // this can happen when we send the CloseFrame to the client and try to write afterwards
-                            _logger.SendFailed(socketException);
-                            break;
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.ErrorWritingFrame(ex);
                             break;
                         }
                     }
-                    else if (result.IsCompleted)
+                    finally
                     {
-                        break;
+                        _application.Input.AdvanceTo(buffer.End);
                     }
                 }
-                finally
-                {
-                    _application.Input.AdvanceTo(buffer.End);
-                }
+            }
+            finally
+            {
+                _application.Input.Complete();
             }
         }
 
