@@ -240,16 +240,16 @@ namespace Microsoft.AspNetCore.SignalR
         {
             // Category: HubConnectionContext
             private static readonly Action<ILogger, string, Exception> _usingHubProtocol =
-                LoggerMessage.Define<string>(LogLevel.Information, new EventId(1, nameof(UsingHubProtocol)), "Using HubProtocol '{protocol}'.");
+                LoggerMessage.Define<string>(LogLevel.Information, new EventId(1, "UsingHubProtocol"), "Using HubProtocol '{protocol}'.");
 
             private static readonly Action<ILogger, Exception> _negotiateCanceled =
-                LoggerMessage.Define(LogLevel.Debug, new EventId(2, nameof(NegotiateCanceled)), "Negotiate was canceled.");
+                LoggerMessage.Define(LogLevel.Debug, new EventId(2, "NegotiateCanceled"), "Negotiate was canceled.");
 
             private static readonly Action<ILogger, Exception> _sentPing =
-                LoggerMessage.Define(LogLevel.Trace, new EventId(3, nameof(SentPing)), "Sent a ping message to the client.");
+                LoggerMessage.Define(LogLevel.Trace, new EventId(3, "SentPing"), "Sent a ping message to the client.");
 
             private static readonly Action<ILogger, Exception> _transportBufferFull =
-                LoggerMessage.Define(LogLevel.Debug, new EventId(4, nameof(TransportBufferFull)), "Unable to send Ping message to client, the transport buffer is full.");
+                LoggerMessage.Define(LogLevel.Debug, new EventId(4, "TransportBufferFull"), "Unable to send Ping message to client, the transport buffer is full.");
 
             public static void UsingHubProtocol(ILogger logger, string hubProtocol)
             {
