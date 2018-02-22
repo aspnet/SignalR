@@ -85,72 +85,75 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         private async Task ProcessSocketAsync(WebSocket socket)
         {
-            // Begin sending and receiving. Receiving must be started first because ExecuteAsync enables SendAsync.
-            var receiving = StartReceiving(socket);
-            var sending = StartSending(socket);
-
-            // Wait for something to complete
-            var trigger = await Task.WhenAny(receiving, sending);
-
-            if (trigger == receiving)
+            using (socket)
             {
-                // _logger.WaitingForSend();
+                // Begin sending and receiving. Receiving must be started first because ExecuteAsync enables SendAsync.
+                var receiving = StartReceiving(socket);
+                var sending = StartSending(socket);
 
-                // If receiving finished first, it's because of a couple of reasons
-                // 1. We received a close frame, if that's the case, we should send one back
-                if (socket.State == WebSocketState.CloseReceived)
+                // Wait for something to complete
+                var trigger = await Task.WhenAny(receiving, sending);
+
+                if (trigger == receiving)
                 {
-                    await socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+                    // _logger.WaitingForSend();
+
+                    // If receiving finished first, it's because of a couple of reasons
+                    // 1. We received a close frame, if that's the case, we should send one back
+                    if (socket.State == WebSocketState.CloseReceived)
+                    {
+                        await socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+                    }
+                    else
+                    {
+                        // 2. If close wasn't received that means we ended because of an exception. Here the websocket is still running
+                        // fine and we need to close it with an error
+                        await socket.CloseOutputAsync(WebSocketCloseStatus.InternalServerError, "", CancellationToken.None);
+                    }
+
+                    // We're waiting for the application to finish and there are 2 things it could be doing
+                    // 1. Waiting for application data
+                    // 2. Waiting for a websocket send to complete
+
+                    var resultTask = await Task.WhenAny(sending, Task.Delay(_closeTimeout));
+
+                    if (resultTask != sending)
+                    {
+                        // _logger.CloseTimedOut();
+
+                        // We timed out so now we're in ungraceful shutdown mode
+                        // Cancel the application so that ReadAsync yields
+                        _application.Input.CancelPendingRead();
+
+                        // Abort the websocket if we're stuck in a pending send to the client
+                        socket.Abort();
+                    }
                 }
                 else
                 {
-                    // 2. If close wasn't received that means we ended because of an exception. Here the websocket is still running
-                    // fine and we need to close it with an error
-                    await socket.CloseOutputAsync(WebSocketCloseStatus.InternalServerError, "", CancellationToken.None);
-                }
+                    // _logger.WaitingForClose();
 
-                // We're waiting for the application to finish and there are 2 things it could be doing
-                // 1. Waiting for application data
-                // 2. Waiting for a websocket send to complete
+                    // The websocket receive loop is still running so we attempt to graceful close by sending the client
+                    // a close frame
+                    await socket.CloseOutputAsync(sending.IsFaulted ? WebSocketCloseStatus.InternalServerError : WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
 
-                var resultTask = await Task.WhenAny(sending, Task.Delay(_closeTimeout));
+                    // We're waiting on the websocket to close and there are 2 things it could be doing
+                    // 1. Waiting for websocket data
+                    // 2. Waiting on a flush to complete (backpressure being applied)
 
-                if (resultTask != sending)
-                {
-                    // _logger.CloseTimedOut();
+                    // Give the receiving task time to complete gracefully with a close message
+                    var resultTask = await Task.WhenAny(receiving, Task.Delay(_closeTimeout));
 
-                    // We timed out so now we're in ungraceful shutdown mode
-                    // Cancel the application so that ReadAsync yields
-                    _application.Input.CancelPendingRead();
+                    if (resultTask != receiving)
+                    {
+                        // _logger.CloseTimedOut();
 
-                    // Abort the websocket if we're stuck in a pending send to the client
-                    socket.Abort();
-                }
-            }
-            else
-            {
-                // _logger.WaitingForClose();
+                        // Cancel any pending flush so that we can quit
+                        _application.Output.CancelPendingFlush();
 
-                // The websocket receive loop is still running so we attempt to graceful close by sending the client
-                // a close frame
-                await socket.CloseOutputAsync(sending.IsFaulted ? WebSocketCloseStatus.InternalServerError : WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
-
-                // We're waiting on the websocket to close and there are 2 things it could be doing
-                // 1. Waiting for websocket data
-                // 2. Waiting on a flush to complete (backpressure being applied)
-
-                // Give the receiving task time to complete gracefully with a close message
-                var resultTask = await Task.WhenAny(receiving, Task.Delay(_closeTimeout));
-
-                if (resultTask != receiving)
-                {
-                    // _logger.CloseTimedOut();
-
-                    // Cancel any pending flush so that we can quit
-                    _application.Output.CancelPendingFlush();
-
-                    // We didn't complete so abort the websocket
-                    socket.Abort();
+                        // We didn't complete so abort the websocket
+                        socket.Abort();
+                    }
                 }
             }
         }
