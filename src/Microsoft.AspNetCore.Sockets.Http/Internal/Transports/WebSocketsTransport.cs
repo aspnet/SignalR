@@ -83,17 +83,24 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                 // Cancel the application so that ReadAsync yields
                 _application.Input.CancelPendingRead();
 
-                var resultTask = await Task.WhenAny(sending, Task.Delay(_options.CloseTimeout));
-
-                if (resultTask != sending)
+                using (var delayCts = new CancellationTokenSource())
                 {
-                    // We timed out so now we're in ungraceful shutdown mode
-                    _logger.CloseTimedOut();
+                    var resultTask = await Task.WhenAny(sending, Task.Delay(_options.CloseTimeout, delayCts.Token));
 
-                    // Abort the websocket if we're stuck in a pending send to the client
-                    _aborted = true;
+                    if (resultTask != sending)
+                    {
+                        // We timed out so now we're in ungraceful shutdown mode
+                        _logger.CloseTimedOut();
 
-                    socket.Abort();
+                        // Abort the websocket if we're stuck in a pending send to the client
+                        _aborted = true;
+
+                        socket.Abort();
+                    }
+                    else
+                    {
+                        delayCts.Cancel();
+                    }
                 }
             }
             else
@@ -104,17 +111,24 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                 // 1. Waiting for websocket data
                 // 2. Waiting on a flush to complete (backpressure being applied)
 
-                var resultTask = await Task.WhenAny(receiving, Task.Delay(_options.CloseTimeout));
-
-                if (resultTask != receiving)
+                using (var delayCts = new CancellationTokenSource())
                 {
-                    // Abort the websocket if we're stuck in a pending receive from the client
-                    _aborted = true;
+                    var resultTask = await Task.WhenAny(receiving, Task.Delay(_options.CloseTimeout, delayCts.Token));
 
-                    socket.Abort();
+                    if (resultTask != receiving)
+                    {
+                        // Abort the websocket if we're stuck in a pending receive from the client
+                        _aborted = true;
 
-                    // Cancel any pending flush so that we can quit
-                    _application.Output.CancelPendingFlush();
+                        socket.Abort();
+
+                        // Cancel any pending flush so that we can quit
+                        _application.Output.CancelPendingFlush();
+                    }
+                    else
+                    {
+                        delayCts.Cancel();
+                    }
                 }
             }
         }
@@ -214,6 +228,10 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                                 {
                                     await ws.SendAsync(buffer, webSocketMessageType);
                                 }
+                                else
+                                {
+                                    break;
+                                }
                             }
                             catch (Exception ex)
                             {
@@ -241,7 +259,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
             }
             finally
             {
-                // Send the clpse frame before calling into user code
+                // Send the close frame before calling into user code
                 if (WebSocketCanSend(ws))
                 {
                     // We're done sending, send the close frame to the client if the websocket is still open

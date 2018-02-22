@@ -106,16 +106,24 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     // Cancel the application so that ReadAsync yields
                     _application.Input.CancelPendingRead();
 
-                    var resultTask = await Task.WhenAny(sending, Task.Delay(_closeTimeout));
-
-                    if (resultTask != sending)
+                    using (var delayCts = new CancellationTokenSource())
                     {
-                        // _logger.CloseTimedOut();
+                        var resultTask = await Task.WhenAny(sending, Task.Delay(_closeTimeout, delayCts.Token));
 
-                        _aborted = true;
+                        if (resultTask != sending)
+                        {
+                            // _logger.CloseTimedOut();
 
-                        // Abort the websocket if we're stuck in a pending send to the client
-                        socket.Abort();
+                            _aborted = true;
+
+                            // Abort the websocket if we're stuck in a pending send to the client
+                            socket.Abort();
+                        }
+                        else
+                        {
+                            // Cancel the timeout
+                            delayCts.Cancel();
+                        }
                     }
                 }
                 else
@@ -241,6 +249,10 @@ namespace Microsoft.AspNetCore.Sockets.Client
                                 if (WebSocketCanSend(ws))
                                 {
                                     await ws.SendAsync(buffer, webSocketMessageType);
+                                }
+                                else
+                                {
+                                    break;
                                 }
                             }
                             catch (Exception ex)
