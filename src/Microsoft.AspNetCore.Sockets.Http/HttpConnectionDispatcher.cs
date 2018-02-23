@@ -365,8 +365,9 @@ namespace Microsoft.AspNetCore.Sockets
             context.Response.ContentType = "application/json";
 
             // Establish the connection
-            var pipeOptions = new PipeOptions(pauseWriterThreshold: options.PauseWriterThreshold, resumeWriterThreshold: options.ResumeWriterThreshold);
-            var connection = _manager.CreateConnection(pipeOptions);
+            var transportPipeOptions = new PipeOptions(pauseWriterThreshold: options.TransportPauseWriterThreshold, resumeWriterThreshold: options.TransportPauseWriterThreshold/2);
+            var appPipeOptions = new PipeOptions(pauseWriterThreshold: options.ApplicationPauseWriterThreshold, resumeWriterThreshold: options.ApplicationPauseWriterThreshold/2);
+            var connection = _manager.CreateConnection(transportPipeOptions, appPipeOptions);
 
             // Set the Connection ID on the logging scope so that logs from now on will have the
             // Connection ID metadata set.

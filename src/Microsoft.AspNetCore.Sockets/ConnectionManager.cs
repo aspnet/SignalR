@@ -56,13 +56,13 @@ namespace Microsoft.AspNetCore.Sockets
             return _connections.TryGetValue(id, out connection);
         }
 
-        public DefaultConnectionContext CreateConnection(PipeOptions pipeOptions)
+        public DefaultConnectionContext CreateConnection(PipeOptions transportPipeOptions, PipeOptions appPipeOptions)
         {
             var id = MakeNewConnectionId();
 
             _logger.CreatedNewConnection(id);
             var connectionTimer = SocketEventSource.Log.ConnectionStart(id);
-            var pair = DuplexPipe.CreateConnectionPair(pipeOptions, pipeOptions);
+            var pair = DuplexPipe.CreateConnectionPair(transportPipeOptions, appPipeOptions);
 
             var connection = new DefaultConnectionContext(id, pair.Application, pair.Transport);
             connection.ConnectionTimer = connectionTimer;
@@ -73,7 +73,7 @@ namespace Microsoft.AspNetCore.Sockets
 
         public DefaultConnectionContext CreateConnection()
         {
-            return CreateConnection(PipeOptions.Default);
+            return CreateConnection(PipeOptions.Default, PipeOptions.Default);
         }
 
         public void RemoveConnection(string id)
