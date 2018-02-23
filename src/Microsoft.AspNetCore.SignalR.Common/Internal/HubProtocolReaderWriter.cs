@@ -13,13 +13,13 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 {
     public class HubProtocolReaderWriter
     {
-        public readonly IHubProtocol HubProtocol;
-        public readonly IDataEncoder DataEncoder;
+        private readonly IHubProtocol _hubProtocol;
+        private readonly IDataEncoder _dataEncoder;
 
         public HubProtocolReaderWriter(IHubProtocol hubProtocol, IDataEncoder dataEncoder)
         {
-            HubProtocol = hubProtocol;
-            DataEncoder = dataEncoder;
+            _hubProtocol = hubProtocol;
+            _dataEncoder = dataEncoder;
         }
 
         public bool ReadMessages(ReadOnlyBuffer<byte> buffer, IInvocationBinder binder, out IList<HubMessage> messages, out SequencePosition consumed, out SequencePosition examined)
@@ -35,9 +35,9 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         {
             messages = new List<HubMessage>();
             ReadOnlySpan<byte> span = input;
-            while (span.Length > 0 && DataEncoder.TryDecode(ref span, out var data))
+            while (span.Length > 0 && _dataEncoder.TryDecode(ref span, out var data))
             {
-                HubProtocol.TryParseMessages(data, binder, messages);
+                _hubProtocol.TryParseMessages(data, binder, messages);
             }
             return messages.Count > 0;
         }
@@ -46,9 +46,25 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         {
             using (var ms = new MemoryStream())
             {
-                HubProtocol.WriteMessage(hubMessage, ms);
-                return DataEncoder.Encode(ms.ToArray());
+                _hubProtocol.WriteMessage(hubMessage, ms);
+                return _dataEncoder.Encode(ms.ToArray());
             }
+        }
+
+        public override bool Equals(object obj)
+        {
+            HubProtocolReaderWriter readerWriter = obj as HubProtocolReaderWriter;
+            if (readerWriter == null)
+            {
+                return false;
+            }
+
+            return _dataEncoder == readerWriter._dataEncoder && _hubProtocol == readerWriter._hubProtocol;
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
         }
     }
 }

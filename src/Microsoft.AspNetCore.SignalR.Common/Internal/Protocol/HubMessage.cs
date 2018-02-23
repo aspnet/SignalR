@@ -19,8 +19,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         {
             for (var i = 0; i < _serializedMessages.Count; i++)
             {
-                if (_serializedMessages[i].DataEncoder == protocolReaderWriter.DataEncoder &&
-                    _serializedMessages[i].HubProtocol == protocolReaderWriter.HubProtocol)
+                if (_serializedMessages[i].ProtocolReaderWriter == protocolReaderWriter)
                 {
                     return _serializedMessages[i].Message;
                 }
@@ -30,8 +29,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             _serializedMessages.Add(new SerializedMessage
             {
                 Message = bytes,
-                DataEncoder = protocolReaderWriter.DataEncoder,
-                HubProtocol = protocolReaderWriter.HubProtocol
+                ProtocolReaderWriter = protocolReaderWriter
             });
 
             return bytes;
@@ -39,8 +37,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
         private struct SerializedMessage
         {
-            public IDataEncoder DataEncoder;
-            public IHubProtocol HubProtocol;
+            public HubProtocolReaderWriter ProtocolReaderWriter;
             public byte[] Message;
         }
     }
