@@ -74,8 +74,7 @@ namespace Microsoft.AspNetCore.SignalR
             }
 
             var tasks = new List<Task>(count);
-            var message = CreateInvocationMessage(methodName, args);
-
+            var message = new CachedHubMessage(CreateInvocationMessage(methodName, args));
             // TODO: serialize once per format by providing a different stream?
             foreach (var connection in _connections)
             {
@@ -104,7 +103,7 @@ namespace Microsoft.AspNetCore.SignalR
                 return Task.CompletedTask;
             }
 
-            var message = CreateInvocationMessage(methodName, args);
+            var message = new CachedHubMessage(CreateInvocationMessage(methodName, args));
 
             return connection.WriteAsync(message);
         }
@@ -119,7 +118,7 @@ namespace Microsoft.AspNetCore.SignalR
             var group = _groups[groupName];
             if (group != null)
             {
-                var message = CreateInvocationMessage(methodName, args);
+                var message = new CachedHubMessage(CreateInvocationMessage(methodName, args));
                 var tasks = group.Values.Select(c => c.WriteAsync(message));
                 return Task.WhenAll(tasks);
             }
@@ -131,7 +130,7 @@ namespace Microsoft.AspNetCore.SignalR
         {
             // Each task represents the list of tasks for each of the writes within a group
             var tasks = new List<Task>();
-            var message = CreateInvocationMessage(methodName, args);
+            var message = new CachedHubMessage(CreateInvocationMessage(methodName, args));
 
             foreach (var groupName in groupNames)
             {
@@ -160,7 +159,7 @@ namespace Microsoft.AspNetCore.SignalR
             var group = _groups[groupName];
             if (group != null)
             {
-                var message = CreateInvocationMessage(methodName, args);
+                var message = new CachedHubMessage(CreateInvocationMessage(methodName, args));
                 var tasks = group.Values.Where(connection => !excludedIds.Contains(connection.ConnectionId))
                     .Select(c => c.WriteAsync(message));
                 return Task.WhenAll(tasks);

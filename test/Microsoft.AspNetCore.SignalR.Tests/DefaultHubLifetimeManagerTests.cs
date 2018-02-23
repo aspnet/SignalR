@@ -117,7 +117,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var manager = new DefaultHubLifetimeManager<MyHub>();
 
                 var connectionMock = HubConnectionContextUtils.CreateMock(client.Connection);
-                connectionMock.Setup(m => m.WriteAsync(It.IsAny<HubMessage>())).Throws(new Exception("Message"));
+                connectionMock.Setup(m => m.WriteAsync(It.IsAny<CachedHubMessage>())).Throws(new Exception("Message"));
                 var connection = connectionMock.Object;
 
                 await manager.OnConnectedAsync(connection).OrTimeout();

@@ -13,13 +13,13 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 {
     public class HubProtocolReaderWriter
     {
-        private readonly IHubProtocol _hubProtocol;
-        private readonly IDataEncoder _dataEncoder;
+        public readonly IHubProtocol HubProtocol;
+        public readonly IDataEncoder DataEncoder;
 
         public HubProtocolReaderWriter(IHubProtocol hubProtocol, IDataEncoder dataEncoder)
         {
-            _hubProtocol = hubProtocol;
-            _dataEncoder = dataEncoder;
+            HubProtocol = hubProtocol;
+            DataEncoder = dataEncoder;
         }
 
         public bool ReadMessages(ReadOnlyBuffer<byte> buffer, IInvocationBinder binder, out IList<HubMessage> messages, out SequencePosition consumed, out SequencePosition examined)
@@ -35,9 +35,9 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         {
             messages = new List<HubMessage>();
             ReadOnlySpan<byte> span = input;
-            while (span.Length > 0 && _dataEncoder.TryDecode(ref span, out var data))
+            while (span.Length > 0 && DataEncoder.TryDecode(ref span, out var data))
             {
-                _hubProtocol.TryParseMessages(data, binder, messages);
+                HubProtocol.TryParseMessages(data, binder, messages);
             }
             return messages.Count > 0;
         }
@@ -46,8 +46,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         {
             using (var ms = new MemoryStream())
             {
-                _hubProtocol.WriteMessage(hubMessage, ms);
-                return _dataEncoder.Encode(ms.ToArray());
+                HubProtocol.WriteMessage(hubMessage, ms);
+                return DataEncoder.Encode(ms.ToArray());
             }
         }
     }

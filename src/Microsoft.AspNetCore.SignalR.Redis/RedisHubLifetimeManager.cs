@@ -173,7 +173,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             var connection = _connections[connectionId];
             if (connection != null)
             {
-                return connection.WriteAsync(message.CreateInvocation());
+                return connection.WriteAsync(new CachedHubMessage(message.CreateInvocation()));
             }
 
             return PublishAsync(_channelNamePrefix + "." + connectionId, message);
@@ -399,7 +399,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
                     var tasks = new List<Task>(_connections.Count);
 
-                    var invocation = message.CreateInvocation();
+                    var invocation = new CachedHubMessage(message.CreateInvocation());
                     foreach (var connection in _connections)
                     {
                         try
@@ -436,7 +436,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
                     var tasks = new List<Task>(_connections.Count);
 
-                    var invocation = message.CreateInvocation();
+                    var invocation = new CachedHubMessage(message.CreateInvocation());
                     foreach (var connection in _connections)
                     {
                         if (!excludedIds.Contains(connection.ConnectionId))
@@ -528,7 +528,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                 {
                     var message = DeserializeMessage<RedisInvocationMessage>(data);
 
-                    await connection.WriteAsync(message.CreateInvocation());
+                    await connection.WriteAsync(new CachedHubMessage(message.CreateInvocation()));
                 }
                 catch (Exception ex)
                 {
@@ -549,7 +549,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                 {
                     var message = DeserializeMessage<RedisInvocationMessage>(data);
 
-                    await connection.WriteAsync(message.CreateInvocation());
+                    await connection.WriteAsync(new CachedHubMessage(message.CreateInvocation()));
                 }
                 catch (Exception ex)
                 {
@@ -568,7 +568,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                     var message = DeserializeMessage<RedisInvocationMessage>(data);
 
                     var tasks = new List<Task>();
-                    var invocation = message.CreateInvocation();
+                    var invocation = new CachedHubMessage(message.CreateInvocation());
                     foreach (var groupConnection in group.Connections)
                     {
                         if (message.ExcludedIds?.Contains(groupConnection.ConnectionId) == true)
@@ -611,7 +611,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                 // This also saves serializing and deserializing the message!
                 if (connection != null)
                 {
-                    publishTasks.Add(connection.WriteAsync(message.CreateInvocation()));
+                    publishTasks.Add(connection.WriteAsync(new CachedHubMessage(message.CreateInvocation())));
                 }
                 else
                 {
