@@ -491,7 +491,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             {
                 // Force an exception when writing to connection
                 var connectionMock = HubConnectionContextUtils.CreateMock(client.Connection);
-                connectionMock.Setup(m => m.WriteAsync(It.IsAny<CachedHubMessage>())).Throws(new Exception());
+                connectionMock.Setup(m => m.WriteAsync(It.IsAny<HubMessage>())).Throws(new Exception());
                 var connection = connectionMock.Object;
 
                 await manager2.OnConnectedAsync(connection).OrTimeout();
@@ -514,7 +514,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             {
                 // Force an exception when writing to connection
                 var connectionMock = HubConnectionContextUtils.CreateMock(client.Connection);
-                connectionMock.Setup(m => m.WriteAsync(It.IsAny<CachedHubMessage>())).Throws(new Exception("Message"));
+                connectionMock.Setup(m => m.WriteAsync(It.IsAny<HubMessage>())).Throws(new Exception("Message"));
                 var connection = connectionMock.Object;
 
                 await manager.OnConnectedAsync(connection).OrTimeout();
@@ -537,7 +537,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             {
                 // Force an exception when writing to connection
                 var connectionMock = HubConnectionContextUtils.CreateMock(client1.Connection);
-                connectionMock.Setup(m => m.WriteAsync(It.IsAny<CachedHubMessage>())).Throws(new Exception());
+                connectionMock.Setup(m => m.WriteAsync(It.IsAny<HubMessage>())).Throws(new Exception());
 
                 var connection1 = connectionMock.Object;
                 var connection2 = HubConnectionContextUtils.Create(client2.Connection);
