@@ -23,7 +23,6 @@ namespace Microsoft.AspNetCore.SignalR
 
         public HubEndPoint(HubLifetimeManager<THub> lifetimeManager,
                            IHubProtocolResolver protocolResolver,
-                           IHubContext<THub> hubContext,
                            IOptions<HubOptions> hubOptions,
                            ILoggerFactory loggerFactory,
                            IUserIdProvider userIdProvider,
@@ -61,7 +60,15 @@ namespace Microsoft.AspNetCore.SignalR
 
         private async Task RunHubAsync(HubConnectionContext connection)
         {
-            await _dispatcher.OnConnectedAsync(connection);
+            try
+            {
+                await _dispatcher.OnConnectedAsync(connection);
+            }
+            catch (Exception ex)
+            {
+                Log.ErrorDispatchingHubEvent(_logger, "OnConnectedAsync", ex);
+                throw;
+            }
 
             try
             {
@@ -92,7 +99,15 @@ namespace Microsoft.AspNetCore.SignalR
                 Log.AbortFailed(_logger, ex);
             }
 
-            await _dispatcher.OnDisconnectedAsync(connection, exception);
+            try
+            {
+                await _dispatcher.OnDisconnectedAsync(connection, exception);
+            }
+            catch (Exception ex)
+            {
+                Log.ErrorDispatchingHubEvent(_logger, "OnDisconnectedAsync", ex);
+                throw;
+            }
         }
 
         private async Task DispatchMessagesAsync(HubConnectionContext connection)
@@ -143,11 +158,19 @@ namespace Microsoft.AspNetCore.SignalR
 
         private static class Log
         {
+            private static readonly Action<ILogger, string, Exception> _errorDispatchingHubEvent =
+                LoggerMessage.Define<string>(LogLevel.Error, new EventId(1, "ErrorDispatchingHubEvent"), "Error when dispatching '{hubMethod}' on hub.");
+
             private static readonly Action<ILogger, Exception> _errorProcessingRequest =
-                LoggerMessage.Define(LogLevel.Error, new EventId(1, "ErrorProcessingRequest"), "Error when processing requests.");
+                LoggerMessage.Define(LogLevel.Error, new EventId(2, "ErrorProcessingRequest"), "Error when processing requests.");
 
             private static readonly Action<ILogger, Exception> _abortFailed =
-                LoggerMessage.Define(LogLevel.Trace, new EventId(2, "AbortFailed"), "Abort callback failed.");
+                LoggerMessage.Define(LogLevel.Trace, new EventId(3, "AbortFailed"), "Abort callback failed.");
+
+            public static void ErrorDispatchingHubEvent(ILogger logger, string hubMethod, Exception exception)
+            {
+                _errorDispatchingHubEvent(logger, hubMethod, exception);
+            }
 
             public static void ErrorProcessingRequest(ILogger logger, Exception exception)
             {

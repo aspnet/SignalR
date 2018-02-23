@@ -35,53 +35,37 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         public override async Task OnConnectedAsync(HubConnectionContext connection)
         {
-            try
+            using (var scope = _serviceScopeFactory.CreateScope())
             {
-                using (var scope = _serviceScopeFactory.CreateScope())
+                var hubActivator = scope.ServiceProvider.GetRequiredService<IHubActivator<THub>>();
+                var hub = hubActivator.Create();
+                try
                 {
-                    var hubActivator = scope.ServiceProvider.GetRequiredService<IHubActivator<THub>>();
-                    var hub = hubActivator.Create();
-                    try
-                    {
-                        InitializeHub(hub, connection);
-                        await hub.OnConnectedAsync();
-                    }
-                    finally
-                    {
-                        hubActivator.Release(hub);
-                    }
+                    InitializeHub(hub, connection);
+                    await hub.OnConnectedAsync();
                 }
-            }
-            catch (Exception ex)
-            {
-                Log.ErrorInvokingHubMethod(_logger, "OnConnectedAsync", ex);
-                throw;
+                finally
+                {
+                    hubActivator.Release(hub);
+                }
             }
         }
 
         public override async Task OnDisconnectedAsync(HubConnectionContext connection, Exception exception)
         {
-            try
+            using (var scope = _serviceScopeFactory.CreateScope())
             {
-                using (var scope = _serviceScopeFactory.CreateScope())
+                var hubActivator = scope.ServiceProvider.GetRequiredService<IHubActivator<THub>>();
+                var hub = hubActivator.Create();
+                try
                 {
-                    var hubActivator = scope.ServiceProvider.GetRequiredService<IHubActivator<THub>>();
-                    var hub = hubActivator.Create();
-                    try
-                    {
-                        InitializeHub(hub, connection);
-                        await hub.OnDisconnectedAsync(exception);
-                    }
-                    finally
-                    {
-                        hubActivator.Release(hub);
-                    }
+                    InitializeHub(hub, connection);
+                    await hub.OnDisconnectedAsync(exception);
                 }
-            }
-            catch (Exception ex)
-            {
-                Log.ErrorInvokingHubMethod(_logger, "OnDisconnectedAsync", ex);
-                throw;
+                finally
+                {
+                    hubActivator.Release(hub);
+                }
             }
         }
 
