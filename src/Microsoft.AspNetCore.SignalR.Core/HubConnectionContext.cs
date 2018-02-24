@@ -212,7 +212,7 @@ namespace Microsoft.AspNetCore.SignalR
 
                 Log.SentPing(_logger);
 
-                _ = WriteAsync(PingMessage.Instance);
+                //_ = WriteAsync(PingMessage.Instance);
 
                 Interlocked.Exchange(ref _lastSendTimestamp, Stopwatch.GetTimestamp());
             }

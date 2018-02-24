@@ -19,7 +19,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         {
             for (var i = 0; i < _serializedMessages.Count; i++)
             {
-                if (_serializedMessages[i].ProtocolReaderWriter == protocolReaderWriter)
+                if (_serializedMessages[i].ProtocolReaderWriter.Equals(protocolReaderWriter))
                 {
                     return _serializedMessages[i].Message;
                 }

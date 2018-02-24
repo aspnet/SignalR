@@ -59,7 +59,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 return false;
             }
 
-            return _dataEncoder == readerWriter._dataEncoder && _hubProtocol == readerWriter._hubProtocol;
+            return ReferenceEquals(_dataEncoder, readerWriter._dataEncoder) && _hubProtocol.Equals(readerWriter._hubProtocol);
         }
 
         public override int GetHashCode()
