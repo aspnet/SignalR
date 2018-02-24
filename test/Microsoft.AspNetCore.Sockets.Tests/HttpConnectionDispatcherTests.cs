@@ -62,7 +62,6 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         {
             using (StartLog(out var loggerFactory, LogLevel.Debug))
             {
-                while (!System.Diagnostics.Debugger.IsAttached) { }
                 var manager = CreateConnectionManager(loggerFactory);
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
                 var context = new DefaultHttpContext();
@@ -73,7 +72,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 context.Request.Path = "/foo";
                 context.Request.Method = "POST";
                 context.Response.Body = ms;
-                var httpSocketOptions = new HttpSocketOptions { TransportPauseWriterThreshold = 4, ApplicationPauseWriterThreshold = 4 };
+                var httpSocketOptions = new HttpSocketOptions { TransportMaxBufferSize = 4, ApplicationMaxBufferSize = 4 };
                 await dispatcher.ExecuteNegotiateAsync(context, httpSocketOptions);
                 var negotiateResponse = JsonConvert.DeserializeObject<JObject>(Encoding.UTF8.GetString(ms.ToArray()));
                 var connectionId = negotiateResponse.Value<string>("connectionId");
@@ -85,7 +84,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 Assert.False(writeTask.IsCompleted);
 
                 // Reading here puts us below the threshold 
-                await connection.Transport.Input.ReadAsync(5);
+                await connection.Transport.Input.ConsumeAsync(5);
 
                 await writeTask;
             }

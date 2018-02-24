@@ -51,17 +51,19 @@ namespace System.IO.Pipelines
             }
         }
 
-
-        public static async Task ReadAsync(this PipeReader pipeReader, int numBytes)
+        public static async Task ConsumeAsync(this PipeReader pipeReader, int numBytes)
         {
-            var result = await pipeReader.ReadAsync();
-            if (result.Buffer.Length < numBytes)
+            while (true)
             {
-                pipeReader.AdvanceTo(result.Buffer.Start, result.Buffer.End);
-                return;
+                var result = await pipeReader.ReadAsync();
+                if (result.Buffer.Length < numBytes)
+                {
+                    pipeReader.AdvanceTo(result.Buffer.Start, result.Buffer.End);
+                    continue;
+                }
+                pipeReader.AdvanceTo(result.Buffer.GetPosition(result.Buffer.Start, numBytes));
+                break;
             }
-
-            pipeReader.AdvanceTo(result.Buffer.GetPosition(result.Buffer.Start, numBytes));
         }
 
         public static async Task<byte[]> ReadAllAsync(this PipeReader pipeReader)

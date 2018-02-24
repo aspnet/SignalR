@@ -18,8 +18,8 @@ namespace Microsoft.AspNetCore.Sockets
 
         public LongPollingOptions LongPolling { get; } = new LongPollingOptions();
 
-        public long TransportPauseWriterThreshold { get; set; } = PipeOptions.Default.PauseWriterThreshold;
+        public long TransportMaxBufferSize { get; set; } = 0;
 
-        public long ApplicationPauseWriterThreshold{ get; set; } = PipeOptions.Default.ResumeWriterThreshold;
+        public long ApplicationMaxBufferSize { get; set; } = 0;
     }
 }
