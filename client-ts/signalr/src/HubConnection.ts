@@ -85,7 +85,7 @@ export class HubConnection {
                     // Don't care about pings
                     break;
                 default:
-                    this.logger.log(LogLevel.Warning, "Invalid message type: " + data);
+                    this.logger.log(LogLevel.Warning, "Invalid message type: " + message.type);
                     break;
             }
         }
