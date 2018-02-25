@@ -86,7 +86,58 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 // Reading here puts us below the threshold 
                 await connection.Transport.Input.ConsumeAsync(5);
 
-                await writeTask.OrTimeout(); ;
+                await writeTask.OrTimeout();
+            }
+        }
+
+        [Theory]
+        [InlineData(TransportType.LongPolling)]
+        [InlineData(TransportType.ServerSentEvents)]
+        public async Task CheckThatThresholdValuesAreEnforcedWithSends(TransportType transportType)
+        {
+            using (StartLog(out var loggerFactory, LogLevel.Debug))
+            {
+                var manager = CreateConnectionManager(loggerFactory);
+                var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
+                var pipeOptions = new PipeOptions(pauseWriterThreshold: 8, resumeWriterThreshold: 4);
+                var connection = manager.CreateConnection(pipeOptions, pipeOptions);
+                connection.Metadata[ConnectionMetadataNames.Transport] = transportType;
+
+                using (var requestBody = new MemoryStream())
+                using (var responseBody = new MemoryStream())
+                {
+                    var bytes = Encoding.UTF8.GetBytes("EXTRADATA Hi");
+                    requestBody.Write(bytes, 0, bytes.Length);
+                    requestBody.Seek(0, SeekOrigin.Begin);
+
+                    var context = new DefaultHttpContext();
+                    context.Request.Body = requestBody;
+                    context.Response.Body = responseBody;
+
+                    var services = new ServiceCollection();
+                    services.AddEndPoint<TestEndPoint>();
+                    services.AddOptions();
+                    context.Request.Path = "/foo";
+                    context.Request.Method = "POST";
+                    var values = new Dictionary<string, StringValues>();
+                    values["id"] = connection.ConnectionId;
+                    var qs = new QueryCollection(values);
+                    context.Request.Query = qs;
+
+                    var builder = new ConnectionBuilder(services.BuildServiceProvider());
+                    builder.UseEndPoint<TestEndPoint>();
+                    var app = builder.Build();
+
+                    // This task should complete immediately but it exceeds the writer threshold
+                    var executeTask = dispatcher.ExecuteAsync(context, new HttpSocketOptions(), app);
+                    Assert.False(executeTask.IsCompleted);
+                    await connection.Transport.Input.ConsumeAsync(10);
+                    await executeTask.OrTimeout();
+
+                    Assert.True(connection.Transport.Input.TryRead(out var result));
+                    Assert.Equal("Hi", Encoding.UTF8.GetString(result.Buffer.ToArray()));
+                    connection.Transport.Input.AdvanceTo(result.Buffer.End);
+                }
             }
         }
 

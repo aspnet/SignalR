@@ -520,7 +520,7 @@ namespace Microsoft.AspNetCore.Sockets
         {
             var transportPipeOptions = new PipeOptions(pauseWriterThreshold: options.TransportMaxBufferSize, resumeWriterThreshold: options.TransportMaxBufferSize / 2);
             var appPipeOptions = new PipeOptions(pauseWriterThreshold: options.ApplicationMaxBufferSize, resumeWriterThreshold: options.ApplicationMaxBufferSize / 2);
-             return _manager.CreateConnection(transportPipeOptions, appPipeOptions);
+            return _manager.CreateConnection(transportPipeOptions, appPipeOptions);
         }
 
         private async Task<DefaultConnectionContext> GetOrCreateConnectionAsync(HttpContext context, HttpSocketOptions options)
