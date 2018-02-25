@@ -365,9 +365,7 @@ namespace Microsoft.AspNetCore.Sockets
             context.Response.ContentType = "application/json";
 
             // Establish the connection
-            var transportPipeOptions = new PipeOptions(pauseWriterThreshold: options.TransportMaxBufferSize, resumeWriterThreshold: options.TransportMaxBufferSize / 2);
-            var appPipeOptions = new PipeOptions(pauseWriterThreshold: options.ApplicationMaxBufferSize, resumeWriterThreshold: options.ApplicationMaxBufferSize/ 2);
-            var connection = _manager.CreateConnection(transportPipeOptions, appPipeOptions);
+            var connection = CreateConnectionInternal(options);
 
             // Set the Connection ID on the logging scope so that logs from now on will have the
             // Connection ID metadata set.
@@ -518,6 +516,13 @@ namespace Microsoft.AspNetCore.Sockets
             return connection;
         }
 
+        private DefaultConnectionContext CreateConnectionInternal(HttpSocketOptions options)
+        {
+            var transportPipeOptions = new PipeOptions(pauseWriterThreshold: options.TransportMaxBufferSize, resumeWriterThreshold: options.TransportMaxBufferSize / 2);
+            var appPipeOptions = new PipeOptions(pauseWriterThreshold: options.ApplicationMaxBufferSize, resumeWriterThreshold: options.ApplicationMaxBufferSize / 2);
+             return _manager.CreateConnection(transportPipeOptions, appPipeOptions);
+        }
+
         private async Task<DefaultConnectionContext> GetOrCreateConnectionAsync(HttpContext context, HttpSocketOptions options)
         {
             var connectionId = GetConnectionId(context);
@@ -526,9 +531,7 @@ namespace Microsoft.AspNetCore.Sockets
             // There's no connection id so this is a brand new connection
             if (StringValues.IsNullOrEmpty(connectionId))
             {
-                var transportPipeOptions = new PipeOptions(pauseWriterThreshold: options.TransportMaxBufferSize, resumeWriterThreshold: options.TransportMaxBufferSize / 2);
-                var appPipeOptions = new PipeOptions(pauseWriterThreshold: options.ApplicationMaxBufferSize, resumeWriterThreshold: options.ApplicationMaxBufferSize / 2);
-                connection = _manager.CreateConnection(transportPipeOptions, appPipeOptions);
+                connection = CreateConnectionInternal(options);
             }
             else if (!_manager.TryGetConnection(connectionId, out connection))
             {

@@ -86,7 +86,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 // Reading here puts us below the threshold 
                 await connection.Transport.Input.ConsumeAsync(5);
 
-                await writeTask;
+                await writeTask.OrTimeout(); ;
             }
         }
 
