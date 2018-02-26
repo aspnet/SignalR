@@ -22,7 +22,7 @@
     <MicrosoftAspNetCoreHttpPackageVersion>2.1.0-preview2-30187</MicrosoftAspNetCoreHttpPackageVersion>
     <MicrosoftAspNetCoreIdentityEntityFrameworkCorePackageVersion>2.1.0-preview2-30187</MicrosoftAspNetCoreIdentityEntityFrameworkCorePackageVersion>
     <MicrosoftAspNetCoreMvcPackageVersion>2.1.0-preview2-30187</MicrosoftAspNetCoreMvcPackageVersion>
-    <MicrosoftAspNetCoreProtocolsAbstractionsPackageVersion>2.1.0-preview2-30187</MicrosoftAspNetCoreProtocolsAbstractionsPackageVersion>
+    <MicrosoftAspNetCoreProtocolsAbstractionsPackageVersion>2.1.0-preview2-t000</MicrosoftAspNetCoreProtocolsAbstractionsPackageVersion>
     <MicrosoftAspNetCoreRoutingPackageVersion>2.1.0-preview2-30187</MicrosoftAspNetCoreRoutingPackageVersion>
     <MicrosoftAspNetCoreServerIISIntegrationPackageVersion>2.1.0-preview2-30187</MicrosoftAspNetCoreServerIISIntegrationPackageVersion>
     <MicrosoftAspNetCoreServerIntegrationTestingPackageVersion>0.5.0-preview2-30187</MicrosoftAspNetCoreServerIntegrationTestingPackageVersion>
@@ -60,8 +60,7 @@
     <NewtonsoftJsonPackageVersion>10.0.1</NewtonsoftJsonPackageVersion>
     <StackExchangeRedisStrongNamePackageVersion>1.2.4</StackExchangeRedisStrongNamePackageVersion>
     <SystemBuffersPackageVersion>4.5.0-preview2-26224-02</SystemBuffersPackageVersion>
-    <SystemBuffersPrimitivesPackageVersion>0.1.0-preview2-180130-1</SystemBuffersPrimitivesPackageVersion>
-    <SystemIOPipelinesPackageVersion>0.1.0-preview2-180130-1</SystemIOPipelinesPackageVersion>
+    <SystemIOPipelinesPackageVersion>4.5.0-preview2-26224-02</SystemIOPipelinesPackageVersion>
     <SystemMemoryPackageVersion>4.5.0-preview2-26224-02</SystemMemoryPackageVersion>
     <SystemNumericsVectorsPackageVersion>4.5.0-preview2-26224-02</SystemNumericsVectorsPackageVersion>
     <SystemReactiveLinqPackageVersion>3.1.1</SystemReactiveLinqPackageVersion>
