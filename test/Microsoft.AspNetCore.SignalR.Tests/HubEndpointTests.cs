@@ -1326,10 +1326,15 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(StreamingMethodAndHubProtocols))]
         public async Task HubsCanStreamResponses(string method, IHubProtocol protocol)
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
+            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider(services =>
+            {
+                //services.AddSignalR(options =>
+                //{
+                //    options.SupportedProtocols.Add("messagepack");
+                //});
+            });
 
             var endPoint = serviceProvider.GetService<HubEndPoint<StreamingHub>>();
-
             var invocationBinder = new Mock<IInvocationBinder>();
             invocationBinder.Setup(b => b.GetReturnType(It.IsAny<string>())).Returns(typeof(string));
 
@@ -1711,7 +1716,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         public async Task DoesNotWritePingMessagesIfSufficientOtherMessagesAreSent()
         {
             var serviceProvider = HubEndPointTestUtils.CreateServiceProvider(services =>
-                services.Configure<HubOptions>(options =>
+                services.Configure<HubOptions<MethodHub>>(options =>
                     options.KeepAliveInterval = TimeSpan.FromMilliseconds(100)));
             var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
 
@@ -1752,7 +1757,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         public async Task WritesPingMessageIfNothingWrittenWhenKeepAliveIntervalElapses()
         {
             var serviceProvider = HubEndPointTestUtils.CreateServiceProvider(services =>
-                services.Configure<HubOptions>(options =>
+                services.Configure<HubOptions<MethodHub>>(options =>
                     options.KeepAliveInterval = TimeSpan.FromMilliseconds(100)));
             var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
 

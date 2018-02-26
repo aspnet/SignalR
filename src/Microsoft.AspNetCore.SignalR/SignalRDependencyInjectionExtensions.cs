@@ -3,6 +3,7 @@
 
 using System;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Options;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
@@ -10,15 +11,17 @@ namespace Microsoft.Extensions.DependencyInjection
     {
         public static ISignalRBuilder AddSignalR(this IServiceCollection services)
         {
-            return AddSignalR(services, _ => { });
-        }
-
-        public static ISignalRBuilder AddSignalR(this IServiceCollection services, Action<HubOptions> configure)
-        {
-            services.Configure(configure);
+            services.AddSingleton<IConfigureOptions<HubOptions>, HubOptionsSetup>();
             services.AddSockets();
             return services.AddSignalRCore()
                 .AddJsonProtocol();
+        }
+
+        public static ISignalRBuilder AddSignalR(this IServiceCollection services, Action<HubOptions> options)
+        {
+            services.Configure(options);
+            return services.AddSignalR();
+            
         }
     }
 }

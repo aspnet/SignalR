@@ -22,18 +22,48 @@ namespace Microsoft.AspNetCore.SignalR.Common.Protocol.Tests
             new MessagePackHubProtocol()
         };
 
+        private static readonly List<string> AllProtocolNames = new List<string> { "json", "messagepack" };
+
         [Theory]
         [MemberData(nameof(HubProtocols))]
-        public void DefaultHubProtocolResolverTestsCanCreateSupportedProtocols(IHubProtocol protocol)
+        public void DefaultHubProtocolResolverTestsCanCreateAllProtocols(IHubProtocol protocol)
         {
 
             var connection = new Mock<ConnectionContext>();
             connection.Setup(m => m.Features).Returns(new FeatureCollection());
             var mockConnection = new Mock<HubConnectionContext>(connection.Object, TimeSpan.FromSeconds(30), NullLoggerFactory.Instance) { CallBase = true };
-            var resolver = new DefaultHubProtocolResolver(Options.Create(new HubOptions()), AllProtocols, NullLogger<DefaultHubProtocolResolver>.Instance);
+            var resolver = new DefaultHubProtocolResolver(AllProtocols, NullLogger<DefaultHubProtocolResolver>.Instance);
             Assert.IsType(
                 protocol.GetType(),
-                resolver.GetProtocol(protocol.Name, mockConnection.Object));
+                resolver.GetProtocol(protocol.Name, AllProtocolNames, mockConnection.Object));
+        }
+
+        [Theory]
+        [MemberData(nameof(HubProtocols))]
+        public void DefaultHubProtocolResolverCreatesProtocolswhenSupoortedProtocolsIsNull(IHubProtocol protocol)
+        {
+            var connection = new Mock<ConnectionContext>();
+            connection.Setup(m => m.Features).Returns(new FeatureCollection());
+            var mockConnection = new Mock<HubConnectionContext>(connection.Object, TimeSpan.FromSeconds(30), NullLoggerFactory.Instance) { CallBase = true };
+            List<string> supportedProtocols = null;
+            var resolver = new DefaultHubProtocolResolver(AllProtocols, NullLogger<DefaultHubProtocolResolver>.Instance);
+            Assert.IsType(
+                protocol.GetType(),
+                resolver.GetProtocol(protocol.Name, supportedProtocols, mockConnection.Object));
+        }
+
+        [Theory]
+        [MemberData(nameof(HubProtocols))]
+        public void DefaultHubProtocolResolverTestsCanCreateSupportedProtocols(IHubProtocol protocol)
+        {
+            var connection = new Mock<ConnectionContext>();
+            connection.Setup(m => m.Features).Returns(new FeatureCollection());
+            var mockConnection = new Mock<HubConnectionContext>(connection.Object, TimeSpan.FromSeconds(30), NullLoggerFactory.Instance) { CallBase = true };
+            var supportedProtocols = new List<string> { protocol.Name };
+            var resolver = new DefaultHubProtocolResolver(AllProtocols, NullLogger<DefaultHubProtocolResolver>.Instance);
+            Assert.IsType(
+                protocol.GetType(),
+                resolver.GetProtocol(protocol.Name, supportedProtocols, mockConnection.Object));
         }
 
         [Fact]
@@ -42,9 +72,9 @@ namespace Microsoft.AspNetCore.SignalR.Common.Protocol.Tests
             var connection = new Mock<ConnectionContext>();
             connection.Setup(m => m.Features).Returns(new FeatureCollection());
             var mockConnection = new Mock<HubConnectionContext>(connection.Object, TimeSpan.FromSeconds(30), NullLoggerFactory.Instance) { CallBase = true };
-            var resolver = new DefaultHubProtocolResolver(Options.Create(new HubOptions()), AllProtocols, NullLogger<DefaultHubProtocolResolver>.Instance);
+            var resolver = new DefaultHubProtocolResolver(AllProtocols, NullLogger<DefaultHubProtocolResolver>.Instance);
             var exception = Assert.Throws<ArgumentNullException>(
-                () => resolver.GetProtocol(null, mockConnection.Object));
+                () => resolver.GetProtocol(null, AllProtocolNames, mockConnection.Object));
 
             Assert.Equal("protocolName", exception.ParamName);
         }
@@ -55,11 +85,25 @@ namespace Microsoft.AspNetCore.SignalR.Common.Protocol.Tests
             var connection = new Mock<ConnectionContext>();
             connection.Setup(m => m.Features).Returns(new FeatureCollection());
             var mockConnection = new Mock<HubConnectionContext>(connection.Object, TimeSpan.FromSeconds(30), NullLoggerFactory.Instance) { CallBase = true };
-            var resolver = new DefaultHubProtocolResolver(Options.Create(new HubOptions()), AllProtocols, NullLogger<DefaultHubProtocolResolver>.Instance);
+            var resolver = new DefaultHubProtocolResolver(AllProtocols, NullLogger<DefaultHubProtocolResolver>.Instance);
             var exception = Assert.Throws<NotSupportedException>(
-                () => resolver.GetProtocol("notARealProtocol", mockConnection.Object));
+                () => resolver.GetProtocol("notARealProtocol", AllProtocolNames, mockConnection.Object));
 
             Assert.Equal("The protocol 'notARealProtocol' is not supported.", exception.Message);
+        }
+
+        [Theory]
+        [MemberData(nameof(HubProtocols))]
+        public void DefaultHubProtocolResolverThrowsWhenNoProtocolsAreSupported(IHubProtocol protocol)
+        {
+            var connection = new Mock<ConnectionContext>();
+            connection.Setup(m => m.Features).Returns(new FeatureCollection());
+            var mockConnection = new Mock<HubConnectionContext>(connection.Object, TimeSpan.FromSeconds(30), NullLoggerFactory.Instance) { CallBase = true };
+            var supportedProtocols= new List<string>();
+            var resolver = new DefaultHubProtocolResolver(AllProtocols, NullLogger<DefaultHubProtocolResolver>.Instance);
+            var exception = Assert.Throws<NotSupportedException>(
+                () => resolver.GetProtocol(protocol.Name, supportedProtocols, mockConnection.Object));
+            Assert.Equal($"The protocol '{protocol.Name}' is not supported.", exception.Message);
         }
 
         [Fact]
@@ -68,7 +112,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Protocol.Tests
             var connection = new Mock<ConnectionContext>();
             connection.Setup(m => m.Features).Returns(new FeatureCollection());
             var mockConnection = new Mock<HubConnectionContext>(connection.Object, TimeSpan.FromSeconds(30), NullLoggerFactory.Instance) { CallBase = true };
-            var exception = Assert.Throws<InvalidOperationException>(() => new DefaultHubProtocolResolver(Options.Create(new HubOptions()), new[] {
+            var exception = Assert.Throws<InvalidOperationException>(() => new DefaultHubProtocolResolver(new[] {
                 new JsonHubProtocol(),
                 new JsonHubProtocol()
             }, NullLogger<DefaultHubProtocolResolver>.Instance));
