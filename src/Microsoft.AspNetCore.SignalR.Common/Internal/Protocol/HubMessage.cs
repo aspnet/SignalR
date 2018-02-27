@@ -2,8 +2,6 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
-using Microsoft.AspNetCore.SignalR.Internal.Encoders;
-using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 
 namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 {
@@ -15,7 +13,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
         private readonly List<SerializedMessage> _serializedMessages = new List<SerializedMessage>(4);
 
-        public byte[] GetMessage(HubProtocolReaderWriter protocolReaderWriter)
+        public byte[] WriteMessage(HubProtocolReaderWriter protocolReaderWriter)
         {
             for (var i = 0; i < _serializedMessages.Count; i++)
             {
