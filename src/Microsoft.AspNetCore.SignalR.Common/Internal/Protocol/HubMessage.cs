@@ -11,6 +11,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         {
         }
 
+        // Initialize with capacity 4 for the 2 built in protocols and 2 data encoders
         private readonly List<SerializedMessage> _serializedMessages = new List<SerializedMessage>(4);
 
         public byte[] WriteMessage(HubProtocolReaderWriter protocolReaderWriter)
@@ -24,19 +25,21 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             }
 
             var bytes = protocolReaderWriter.WriteMessage(this);
-            _serializedMessages.Add(new SerializedMessage
-            {
-                Message = bytes,
-                ProtocolReaderWriter = protocolReaderWriter
-            });
+            _serializedMessages.Add(new SerializedMessage(protocolReaderWriter, bytes));
 
             return bytes;
         }
 
-        private struct SerializedMessage
+        private readonly struct SerializedMessage
         {
-            public HubProtocolReaderWriter ProtocolReaderWriter;
-            public byte[] Message;
+            public readonly HubProtocolReaderWriter ProtocolReaderWriter;
+            public readonly byte[] Message;
+
+            public SerializedMessage(HubProtocolReaderWriter protocolReaderWriter, byte[] message)
+            {
+                ProtocolReaderWriter = protocolReaderWriter;
+                Message = message;
+            }
         }
     }
 }
