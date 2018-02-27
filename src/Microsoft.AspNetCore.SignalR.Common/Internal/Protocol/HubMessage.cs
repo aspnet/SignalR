@@ -25,7 +25,13 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             }
 
             var bytes = protocolReaderWriter.WriteMessage(this);
-            _serializedMessages.Add(new SerializedMessage(protocolReaderWriter, bytes));
+
+            // We don't want to balloon memory if someone writes a poor IHubProtocolResolver
+            // So we cap how many caches we store and worst case just serialize the message for every connection
+            if (_serializedMessages.Count < 10)
+            {
+                _serializedMessages.Add(new SerializedMessage(protocolReaderWriter, bytes));
+            }
 
             return bytes;
         }

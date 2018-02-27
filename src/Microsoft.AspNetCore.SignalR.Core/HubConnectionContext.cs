@@ -110,6 +110,7 @@ namespace Microsoft.AspNetCore.SignalR
 
             try
             {
+                Debug.Assert(_cachedPingMessage != null);
                 _connectionContext.Transport.Output.Write(_cachedPingMessage);
 
                 Interlocked.Exchange(ref _lastSendTimestamp, Stopwatch.GetTimestamp());
