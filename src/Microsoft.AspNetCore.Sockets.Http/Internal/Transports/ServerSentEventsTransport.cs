@@ -53,7 +53,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                     {
                         if (!buffer.IsEmpty)
                         {
-                            _logger.SSEWritingMessage(buffer.Length);
+                            Log.SSEWritingMessage(_logger, buffer.Length);
 
                             await ServerSentEventsMessageFormatter.WriteMessageAsync(buffer, context.Response.Body);
                         }
@@ -77,12 +77,12 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
         private static class Log
         {
             private static readonly Action<ILogger, long, Exception> _sseWritingMessage =
-                LoggerMessage.Define<long>(LogLevel.Debug, new EventId(1, nameof(SSEWritingMessage)), "Writing a {count} byte message.");
+                LoggerMessage.Define<long>(LogLevel.Trace, new EventId(1, "SSEWritingMessage"), "Writing a {count} byte message.");
 
-        public static void SSEWritingMessage(this ILogger logger, long count)
-        {
-            _sseWritingMessage(logger, count, null);
-        }
+            public static void SSEWritingMessage(ILogger logger, long count)
+            {
+                _sseWritingMessage(logger, count, null);
+            }
         }
     }
 }
