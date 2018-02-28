@@ -267,6 +267,9 @@ export class HubConnection {
         const removeIdx = handlers.indexOf(method);
         if (removeIdx !== -1) {
             handlers.splice(removeIdx, 1);
+            if(handles.length === 0) {
+                handles.delete(methodName);
+            }
         }
     }
 
