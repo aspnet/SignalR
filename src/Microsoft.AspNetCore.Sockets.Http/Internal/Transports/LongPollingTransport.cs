@@ -97,5 +97,48 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                 throw;
             }
         }
+
+        private static class Log
+        {
+            private static readonly Action<ILogger, Exception> _longPolling204 =
+                LoggerMessage.Define(LogLevel.Information, new EventId(1, nameof(LongPolling204)), "Terminating Long Polling connection by sending 204 response.");
+
+            private static readonly Action<ILogger, Exception> _pollTimedOut =
+                LoggerMessage.Define(LogLevel.Information, new EventId(2, nameof(PollTimedOut)), "Poll request timed out. Sending 200 response to connection.");
+
+            private static readonly Action<ILogger, long, Exception> _longPollingWritingMessage =
+                LoggerMessage.Define<long>(LogLevel.Debug, new EventId(3, nameof(LongPollingWritingMessage)), "Writing a {count} byte message to connection.");
+
+            private static readonly Action<ILogger, Exception> _longPollingDisconnected =
+                LoggerMessage.Define(LogLevel.Debug, new EventId(4, nameof(LongPollingDisconnected)), "Client disconnected from Long Polling endpoint for connection.");
+
+            private static readonly Action<ILogger, Exception> _longPollingTerminated =
+                LoggerMessage.Define(LogLevel.Error, new EventId(5, nameof(LongPollingTerminated)), "Long Polling transport was terminated due to an error on connection.");
+
+            public static void LongPolling204(this ILogger logger)
+            {
+                _longPolling204(logger, null);
+            }
+
+            public static void PollTimedOut(this ILogger logger)
+            {
+                _pollTimedOut(logger, null);
+            }
+
+            public static void LongPollingWritingMessage(this ILogger logger, long count)
+            {
+                _longPollingWritingMessage(logger, count, null);
+            }
+
+            public static void LongPollingDisconnected(this ILogger logger)
+            {
+                _longPollingDisconnected(logger, null);
+            }
+
+            public static void LongPollingTerminated(this ILogger logger, Exception ex)
+            {
+                _longPollingTerminated(logger, ex);
+            }
+        }
     }
 }

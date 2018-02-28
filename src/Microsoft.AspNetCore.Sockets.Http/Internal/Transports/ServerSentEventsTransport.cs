@@ -73,5 +73,16 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                 // Closed connection
             }
         }
+
+        private static class Log
+        {
+            private static readonly Action<ILogger, long, Exception> _sseWritingMessage =
+                LoggerMessage.Define<long>(LogLevel.Debug, new EventId(1, nameof(SSEWritingMessage)), "Writing a {count} byte message.");
+
+        public static void SSEWritingMessage(this ILogger logger, long count)
+        {
+            _sseWritingMessage(logger, count, null);
+        }
+        }
     }
 }
