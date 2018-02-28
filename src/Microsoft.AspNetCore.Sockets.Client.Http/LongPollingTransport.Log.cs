@@ -28,16 +28,16 @@ namespace Microsoft.AspNetCore.Sockets.Client
             private static readonly Action<ILogger, Exception> _transportStopping =
                 LoggerMessage.Define(LogLevel.Information, new EventId(6, "TransportStopping"), "Transport is stopping.");
 
-            // EventId's 7 - 13 used in SendUtils
-
             private static readonly Action<ILogger, Exception> _closingConnection =
-                LoggerMessage.Define(LogLevel.Debug, new EventId(14, "ClosingConnection"), "The server is closing the connection.");
+                LoggerMessage.Define(LogLevel.Debug, new EventId(7, "ClosingConnection"), "The server is closing the connection.");
 
             private static readonly Action<ILogger, Exception> _receivedMessages =
-                LoggerMessage.Define(LogLevel.Debug, new EventId(15, "ReceivedMessages"), "Received messages from the server.");
+                LoggerMessage.Define(LogLevel.Debug, new EventId(8, "ReceivedMessages"), "Received messages from the server.");
 
             private static readonly Action<ILogger, Uri, Exception> _errorPolling =
-                LoggerMessage.Define<Uri>(LogLevel.Error, new EventId(16, "ErrorPolling"), "Error while polling '{pollUrl}'.");
+                LoggerMessage.Define<Uri>(LogLevel.Error, new EventId(9, "ErrorPolling"), "Error while polling '{pollUrl}'.");
+
+            // EventId's 100 - 106 used in SendUtils
 
             public static void StartTransport(ILogger logger, TransferMode transferMode)
             {

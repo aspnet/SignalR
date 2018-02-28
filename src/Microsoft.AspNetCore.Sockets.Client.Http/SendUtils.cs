@@ -122,25 +122,27 @@ namespace Microsoft.AspNetCore.Sockets.Client
         private static class Log
         {
             private static readonly Action<ILogger, Exception> _sendStarted =
-                LoggerMessage.Define(LogLevel.Debug, new EventId(7, "SendStarted"), "Starting the send loop.");
+                LoggerMessage.Define(LogLevel.Debug, new EventId(100, "SendStarted"), "Starting the send loop.");
 
             private static readonly Action<ILogger, Exception> _sendStopped =
-                LoggerMessage.Define(LogLevel.Debug, new EventId(8, "SendStopped"), "Send loop stopped.");
+                LoggerMessage.Define(LogLevel.Debug, new EventId(101, "SendStopped"), "Send loop stopped.");
 
             private static readonly Action<ILogger, Exception> _sendCanceled =
-                LoggerMessage.Define(LogLevel.Debug, new EventId(9, "SendCanceled"), "Send loop canceled.");
+                LoggerMessage.Define(LogLevel.Debug, new EventId(102, "SendCanceled"), "Send loop canceled.");
 
             private static readonly Action<ILogger, long, Uri, Exception> _sendingMessages =
-                LoggerMessage.Define<long, Uri>(LogLevel.Debug, new EventId(10, "SendingMessages"), "Sending {count} bytes to the server using url: {url}.");
+                LoggerMessage.Define<long, Uri>(LogLevel.Debug, new EventId(103, "SendingMessages"), "Sending {count} bytes to the server using url: {url}.");
 
             private static readonly Action<ILogger, Exception> _sentSuccessfully =
-                LoggerMessage.Define(LogLevel.Debug, new EventId(11, "SentSuccessfully"), "Message(s) sent successfully.");
+                LoggerMessage.Define(LogLevel.Debug, new EventId(104, "SentSuccessfully"), "Message(s) sent successfully.");
 
             private static readonly Action<ILogger, Exception> _noMessages =
-                LoggerMessage.Define(LogLevel.Debug, new EventId(12, "NoMessages"), "No messages in batch to send.");
+                LoggerMessage.Define(LogLevel.Debug, new EventId(105, "NoMessages"), "No messages in batch to send.");
 
             private static readonly Action<ILogger, Uri, Exception> _errorSending =
-                LoggerMessage.Define<Uri>(LogLevel.Error, new EventId(13, "ErrorSending"), "Error while sending to '{url}'.");
+                LoggerMessage.Define<Uri>(LogLevel.Error, new EventId(106, "ErrorSending"), "Error while sending to '{url}'.");
+
+            // When adding a new log message make sure to check with the other locations that share these logs to not have conflicting event ids
 
             public static void SendStarted(ILogger logger)
             {
