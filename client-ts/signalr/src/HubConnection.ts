@@ -268,7 +268,7 @@ export class HubConnection {
         if (removeIdx !== -1) {
             handlers.splice(removeIdx, 1);
             if(handles.length === 0) {
-                handles.delete(methodName);
+                this.methods.delete(methodName);
             }
         }
     }
