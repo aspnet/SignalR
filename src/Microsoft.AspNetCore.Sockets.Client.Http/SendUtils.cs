@@ -10,7 +10,6 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Sockets.Client.Http;
-using Microsoft.AspNetCore.Sockets.Client.Internal;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.Sockets.Client
@@ -20,7 +19,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
         public static async Task SendMessages(Uri sendUrl, IDuplexPipe application, HttpClient httpClient,
             HttpOptions httpOptions, CancellationTokenSource transportCts, ILogger logger)
         {
-            logger.SendStarted();
+            Log.SendStarted(logger);
 
             try
             {
@@ -31,12 +30,12 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
                     try
                     {
-                        // Grab as many messages as we can from the channel
+                        // Grab as many messages as we can from the pipe
 
                         transportCts.Token.ThrowIfCancellationRequested();
                         if (!buffer.IsEmpty)
                         {
-                            logger.SendingMessages(buffer.Length, sendUrl);
+                            Log.SendingMessages(logger, buffer.Length, sendUrl);
 
                             // Send them in a single post
                             var request = new HttpRequestMessage(HttpMethod.Post, sendUrl);
@@ -47,7 +46,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                             var response = await httpClient.SendAsync(request, transportCts.Token);
                             response.EnsureSuccessStatusCode();
 
-                            logger.SentSuccessfully();
+                            Log.SentSuccessfully(logger);
                         }
                         else if (result.IsCompleted)
                         {
@@ -55,7 +54,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                         }
                         else
                         {
-                            logger.NoMessages();
+                            Log.NoMessages(logger);
                         }
                     }
                     finally
@@ -66,11 +65,11 @@ namespace Microsoft.AspNetCore.Sockets.Client
             }
             catch (OperationCanceledException)
             {
-                logger.SendCanceled();
+                Log.SendCanceled(logger);
             }
             catch (Exception ex)
             {
-                logger.ErrorSending(sendUrl, ex);
+                Log.ErrorSending(logger, sendUrl, ex);
                 throw;
             }
             finally
@@ -79,7 +78,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 transportCts.Cancel();
             }
 
-            logger.SendStopped();
+            Log.SendStopped(logger);
         }
 
         public static void PrepareHttpRequest(HttpRequestMessage request, HttpOptions httpOptions)
@@ -117,6 +116,65 @@ namespace Microsoft.AspNetCore.Sockets.Client
             {
                 length = _buffer.Length;
                 return true;
+            }
+        }
+
+        private static class Log
+        {
+            private static readonly Action<ILogger, Exception> _sendStarted =
+                LoggerMessage.Define(LogLevel.Debug, new EventId(7, "SendStarted"), "Starting the send loop.");
+
+            private static readonly Action<ILogger, Exception> _sendStopped =
+                LoggerMessage.Define(LogLevel.Debug, new EventId(8, "SendStopped"), "Send loop stopped.");
+
+            private static readonly Action<ILogger, Exception> _sendCanceled =
+                LoggerMessage.Define(LogLevel.Debug, new EventId(9, "SendCanceled"), "Send loop canceled.");
+
+            private static readonly Action<ILogger, long, Uri, Exception> _sendingMessages =
+                LoggerMessage.Define<long, Uri>(LogLevel.Debug, new EventId(10, "SendingMessages"), "Sending {count} bytes to the server using url: {url}.");
+
+            private static readonly Action<ILogger, Exception> _sentSuccessfully =
+                LoggerMessage.Define(LogLevel.Debug, new EventId(11, "SentSuccessfully"), "Message(s) sent successfully.");
+
+            private static readonly Action<ILogger, Exception> _noMessages =
+                LoggerMessage.Define(LogLevel.Debug, new EventId(12, "NoMessages"), "No messages in batch to send.");
+
+            private static readonly Action<ILogger, Uri, Exception> _errorSending =
+                LoggerMessage.Define<Uri>(LogLevel.Error, new EventId(13, "ErrorSending"), "Error while sending to '{url}'.");
+
+            public static void SendStarted(ILogger logger)
+            {
+                _sendStarted(logger, null);
+            }
+
+            public static void SendCanceled(ILogger logger)
+            {
+                _sendCanceled(logger, null);
+            }
+
+            public static void SendStopped(ILogger logger)
+            {
+                _sendStopped(logger, null);
+            }
+
+            public static void SendingMessages(ILogger logger, long count, Uri url)
+            {
+                _sendingMessages(logger, count, url, null);
+            }
+
+            public static void SentSuccessfully(ILogger logger)
+            {
+                _sentSuccessfully(logger, null);
+            }
+
+            public static void NoMessages(ILogger logger)
+            {
+                _noMessages(logger, null);
+            }
+
+            public static void ErrorSending(ILogger logger, Uri url, Exception exception)
+            {
+                _errorSending(logger, url, exception);
             }
         }
     }
