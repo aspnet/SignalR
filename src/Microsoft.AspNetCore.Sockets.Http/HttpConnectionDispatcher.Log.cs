@@ -17,7 +17,7 @@ namespace Microsoft.AspNetCore.Sockets
                 LoggerMessage.Define<string, string>(LogLevel.Debug, new EventId(2, "ConnectionAlreadyActive"), "Connection Id {connectionId} is already active via {requestId}.");
 
             private static readonly Action<ILogger, string, string, Exception> _pollCanceled =
-                LoggerMessage.Define<string, string>(LogLevel.Debug, new EventId(3, "PollCanceled"), "Previous poll canceled for {connectionId} on {requestId}.");
+                LoggerMessage.Define<string, string>(LogLevel.Trace, new EventId(3, "PollCanceled"), "Previous poll canceled for {connectionId} on {requestId}.");
 
             private static readonly Action<ILogger, Exception> _establishedConnection =
                 LoggerMessage.Define(LogLevel.Debug, new EventId(4, "EstablishedConnection"), "Establishing new connection.");
@@ -32,7 +32,7 @@ namespace Microsoft.AspNetCore.Sockets
                 LoggerMessage.Define<TransportType>(LogLevel.Debug, new EventId(7, "TransportNotSupported"), "{transportType} transport not supported by this endpoint type.");
 
             private static readonly Action<ILogger, TransportType, TransportType, Exception> _cannotChangeTransport =
-                LoggerMessage.Define<TransportType, TransportType>(LogLevel.Debug, new EventId(8, "CannotChangeTransport"), "Cannot change transports mid-connection; currently using {transportType}, requesting {requestedTransport}.");
+                LoggerMessage.Define<TransportType, TransportType>(LogLevel.Error, new EventId(8, "CannotChangeTransport"), "Cannot change transports mid-connection; currently using {transportType}, requesting {requestedTransport}.");
 
             private static readonly Action<ILogger, Exception> _postNotallowedForWebsockets =
                 LoggerMessage.Define(LogLevel.Debug, new EventId(9, "PostNotAllowedForWebSockets"), "POST requests are not allowed for websocket connections.");

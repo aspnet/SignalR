@@ -48,7 +48,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                 LoggerMessage.Define(LogLevel.Error, new EventId(12, "ErrorWritingFrame"), "Error writing frame.");
 
             private static readonly Action<ILogger, Exception> _sendFailed =
-                LoggerMessage.Define(LogLevel.Debug, new EventId(13, "SendFailed"), "Socket failed to send.");
+                LoggerMessage.Define(LogLevel.Error, new EventId(13, "SendFailed"), "Socket failed to send.");
 
             public static void SocketOpened(ILogger logger)
             {
