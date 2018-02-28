@@ -142,7 +142,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
             private static readonly Action<ILogger, Uri, Exception> _errorSending =
                 LoggerMessage.Define<Uri>(LogLevel.Error, new EventId(106, "ErrorSending"), "Error while sending to '{url}'.");
 
-            // When adding a new log message make sure to check with the other locations that share these logs to not have conflicting event ids
+            // When adding a new log message make sure to check with LongPollingTransport and ServerSentEventsTransport that share these logs to not have conflicting EventIds
+            // We start the IDs at 100 to make it easy to avoid conflicting IDs
 
             public static void SendStarted(ILogger logger)
             {

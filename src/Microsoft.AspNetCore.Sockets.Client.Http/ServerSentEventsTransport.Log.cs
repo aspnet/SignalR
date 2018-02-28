@@ -37,7 +37,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             private static readonly Action<ILogger, long, Exception> _parsingSSE =
                 LoggerMessage.Define<long>(LogLevel.Debug, new EventId(9, "ParsingSSE"), "Received {count} bytes. Parsing SSE frame.");
 
-            // EventId's 100 - 106 used in SendUtils
+            // EventIds 100 - 106 used in SendUtils
 
             public static void StartTransport(ILogger logger, TransferMode transferMode)
             {
