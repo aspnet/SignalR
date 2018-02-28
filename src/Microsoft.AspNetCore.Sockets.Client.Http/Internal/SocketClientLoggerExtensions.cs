@@ -37,15 +37,15 @@ namespace Microsoft.AspNetCore.Sockets.Client.Internal
         private static readonly Action<ILogger, Exception> _sendCanceled =
             LoggerMessage.Define(LogLevel.Debug, new EventId(9, nameof(SendCanceled)), "Send loop canceled.");
 
+        private static readonly Action<ILogger, int, Exception> _messageToApp =
+            LoggerMessage.Define<int>(LogLevel.Debug, new EventId(10, nameof(MessageToApp)), "Passing message to application. Payload size: {count}.");
+
         // Category: WebSocketsTransport
         private static readonly Action<ILogger, WebSocketCloseStatus?, Exception> _webSocketClosed =
-            LoggerMessage.Define<WebSocketCloseStatus?>(LogLevel.Information, new EventId(10, nameof(WebSocketClosed)), "Websocket closed by the server. Close status {closeStatus}.");
+            LoggerMessage.Define<WebSocketCloseStatus?>(LogLevel.Information, new EventId(11, nameof(WebSocketClosed)), "Websocket closed by the server. Close status {closeStatus}.");
 
         private static readonly Action<ILogger, WebSocketMessageType, int, bool, Exception> _messageReceived =
-            LoggerMessage.Define<WebSocketMessageType, int, bool>(LogLevel.Debug, new EventId(11, nameof(MessageReceived)), "Message received. Type: {messageType}, size: {count}, EndOfMessage: {endOfMessage}.");
-
-        private static readonly Action<ILogger, int, Exception> _messageToApp =
-            LoggerMessage.Define<int>(LogLevel.Debug, new EventId(12, nameof(MessageToApp)), "Passing message to application. Payload size: {count}.");
+            LoggerMessage.Define<WebSocketMessageType, int, bool>(LogLevel.Debug, new EventId(12, nameof(MessageReceived)), "Message received. Type: {messageType}, size: {count}, EndOfMessage: {endOfMessage}.");
 
         private static readonly Action<ILogger, long, Exception> _receivedFromApp =
             LoggerMessage.Define<long>(LogLevel.Debug, new EventId(13, nameof(ReceivedFromApp)), "Received message from application. Payload size: {count}.");
@@ -67,30 +67,33 @@ namespace Microsoft.AspNetCore.Sockets.Client.Internal
 
         // Category: ServerSentEventsTransport and LongPollingTransport
         private static readonly Action<ILogger, long, Uri, Exception> _sendingMessages =
-            LoggerMessage.Define<long, Uri>(LogLevel.Debug, new EventId(10, nameof(SendingMessages)), "Sending {count} bytes to the server using url: {url}.");
+            LoggerMessage.Define<long, Uri>(LogLevel.Debug, new EventId(11, nameof(SendingMessages)), "Sending {count} bytes to the server using url: {url}.");
 
         private static readonly Action<ILogger, Exception> _sentSuccessfully =
-            LoggerMessage.Define(LogLevel.Debug, new EventId(11, nameof(SentSuccessfully)), "Message(s) sent successfully.");
+            LoggerMessage.Define(LogLevel.Debug, new EventId(12, nameof(SentSuccessfully)), "Message(s) sent successfully.");
 
         private static readonly Action<ILogger, Exception> _noMessages =
-            LoggerMessage.Define(LogLevel.Debug, new EventId(12, nameof(NoMessages)), "No messages in batch to send.");
+            LoggerMessage.Define(LogLevel.Debug, new EventId(13, nameof(NoMessages)), "No messages in batch to send.");
 
         private static readonly Action<ILogger, Uri, Exception> _errorSending =
-            LoggerMessage.Define<Uri>(LogLevel.Error, new EventId(13, nameof(ErrorSending)), "Error while sending to '{url}'.");
+            LoggerMessage.Define<Uri>(LogLevel.Error, new EventId(14, nameof(ErrorSending)), "Error while sending to '{url}'.");
 
         // Category: ServerSentEventsTransport
         private static readonly Action<ILogger, Exception> _eventStreamEnded =
-            LoggerMessage.Define(LogLevel.Debug, new EventId(14, nameof(EventStreamEnded)), "Server-Sent Event Stream ended.");
+            LoggerMessage.Define(LogLevel.Debug, new EventId(15, nameof(EventStreamEnded)), "Server-Sent Event Stream ended.");
+
+        private static readonly Action<ILogger, long, Exception> _parsingSSE =
+            LoggerMessage.Define<long>(LogLevel.Debug, new EventId(16, nameof(ParsingSSE)), "Received {count} bytes. Parsing SSE frame.");
 
         // Category: LongPollingTransport
         private static readonly Action<ILogger, Exception> _closingConnection =
-            LoggerMessage.Define(LogLevel.Debug, new EventId(14, nameof(ClosingConnection)), "The server is closing the connection.");
+            LoggerMessage.Define(LogLevel.Debug, new EventId(15, nameof(ClosingConnection)), "The server is closing the connection.");
 
         private static readonly Action<ILogger, Exception> _receivedMessages =
-            LoggerMessage.Define(LogLevel.Debug, new EventId(15, nameof(ReceivedMessages)), "Received messages from the server.");
+            LoggerMessage.Define(LogLevel.Debug, new EventId(16, nameof(ReceivedMessages)), "Received messages from the server.");
 
         private static readonly Action<ILogger, Uri, Exception> _errorPolling =
-            LoggerMessage.Define<Uri>(LogLevel.Error, new EventId(16, nameof(ErrorPolling)), "Error while polling '{pollUrl}'.");
+            LoggerMessage.Define<Uri>(LogLevel.Error, new EventId(17, nameof(ErrorPolling)), "Error while polling '{pollUrl}'.");
 
         // Category: HttpConnection
         private static readonly Action<ILogger, Exception> _httpConnectionStarting =
@@ -284,6 +287,11 @@ namespace Microsoft.AspNetCore.Sockets.Client.Internal
         public static void EventStreamEnded(this ILogger logger)
         {
             _eventStreamEnded(logger, null);
+        }
+
+        public static void ParsingSSE(this ILogger logger, long bytes)
+        {
+            _parsingSSE(logger, bytes, null);
         }
 
         public static void ClosingConnection(this ILogger logger)

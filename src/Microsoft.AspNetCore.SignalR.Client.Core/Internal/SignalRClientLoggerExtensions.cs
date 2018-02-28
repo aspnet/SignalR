@@ -91,6 +91,21 @@ namespace Microsoft.AspNetCore.SignalR.Client.Internal
         private static readonly Action<ILogger, Exception> _errorDuringClosedEvent =
             LoggerMessage.Define(LogLevel.Error, new EventId(27, nameof(ErrorDuringClosedEvent)), "An exception was thrown in the handler for the Closed event.");
 
+        private static readonly Action<ILogger, Exception> _sendingHubNegotiate =
+            LoggerMessage.Define(LogLevel.Debug, new EventId(28, nameof(SendingHubNegotiate)), "Sending Hub Negotiation.");
+
+        private static readonly Action<ILogger, long, Exception> _parsingMessages =
+            LoggerMessage.Define<long>(LogLevel.Debug, new EventId(29, nameof(ParsingMessages), "Received {count} bytes. Parsing message(s).");
+
+        private static readonly Action<ILogger, int, Exception> _receivingMessages  =
+            LoggerMessage.Define<int>(LogLevel.Debug, new EventId(30, nameof(ReceivingMessages)), "Received {messageCount} message(s).");
+
+        private static readonly Action<ILogger, Exception> _receivedPing  =
+            LoggerMessage.Define(LogLevel.Trace, new EventId(31, nameof(ReceivedPing)), "Received a ping message.");
+
+        private static readonly Action<ILogger, int, Exception> _processedMessages  =
+            LoggerMessage.Define<int>(LogLevel.Debug, new EventId(32, nameof(ProcessedMessages)), "Finished processing {messageCount} message(s).");
+
         // Category: Streaming and NonStreaming
         private static readonly Action<ILogger, string, Exception> _invocationCreated =
             LoggerMessage.Define<string>(LogLevel.Trace, new EventId(1, nameof(InvocationCreated)), "Invocation {invocationId} created.");
@@ -299,6 +314,31 @@ namespace Microsoft.AspNetCore.SignalR.Client.Internal
         public static void ErrorDuringClosedEvent(this ILogger logger, Exception exception)
         {
             _errorDuringClosedEvent(logger, exception);
+        }
+
+        public static void SendingHubNegotiate(this ILogger logger)
+        {
+            _sendingHubNegotiate(logger, null);
+        }
+
+        public static void ParsingMessages(this ILogger logger, long byteCount)
+        {
+            _parsingMessages(logger, byteCount, null);
+        }
+
+        public static void ReceivingMessages(this ILogger logger, int messageCount)
+        {
+            _receivingMessages(logger, messageCount, null);
+        }
+
+        public static void ReceivedPing(this ILogger logger)
+        {
+            _receivedPing(logger, null);
+        }
+
+        public static void ProcessedMessages(this ILogger logger, int messageCount)
+        {
+            _processedMessages(logger, messageCount, null);
         }
     }
 }
