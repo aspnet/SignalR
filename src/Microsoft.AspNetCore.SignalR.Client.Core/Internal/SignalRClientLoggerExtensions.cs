@@ -95,7 +95,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Internal
             LoggerMessage.Define(LogLevel.Debug, new EventId(28, nameof(SendingHubNegotiate)), "Sending Hub Negotiation.");
 
         private static readonly Action<ILogger, long, Exception> _parsingMessages =
-            LoggerMessage.Define<long>(LogLevel.Debug, new EventId(29, nameof(ParsingMessages), "Received {count} bytes. Parsing message(s).");
+            LoggerMessage.Define<long>(LogLevel.Debug, new EventId(29, nameof(ParsingMessages)), "Received {count} bytes. Parsing message(s).");
 
         private static readonly Action<ILogger, int, Exception> _receivingMessages  =
             LoggerMessage.Define<int>(LogLevel.Debug, new EventId(30, nameof(ReceivingMessages)), "Received {messageCount} message(s).");
