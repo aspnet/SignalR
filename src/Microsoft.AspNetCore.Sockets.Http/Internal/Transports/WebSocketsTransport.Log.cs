@@ -12,10 +12,10 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
         private static class Log
         {
             private static readonly Action<ILogger, Exception> _socketOpened =
-                LoggerMessage.Define(LogLevel.Information, new EventId(1, "SocketOpened"), "Socket opened.");
+                LoggerMessage.Define(LogLevel.Debug, new EventId(1, "SocketOpened"), "Socket opened.");
 
             private static readonly Action<ILogger, Exception> _socketClosed =
-                LoggerMessage.Define(LogLevel.Information, new EventId(2, "SocketClosed"), "Socket closed.");
+                LoggerMessage.Define(LogLevel.Debug, new EventId(2, "SocketClosed"), "Socket closed.");
 
             private static readonly Action<ILogger, WebSocketCloseStatus?, string, Exception> _clientClosed =
                 LoggerMessage.Define<WebSocketCloseStatus?, string>(LogLevel.Debug, new EventId(3, "ClientClosed"), "Client closed connection with status code '{status}' ({description}). Signaling end-of-input to application.");
@@ -36,10 +36,10 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                 LoggerMessage.Define(LogLevel.Debug, new EventId(8, "CloseTimedOut"), "Timed out waiting for client to send the close frame, aborting the connection.");
 
             private static readonly Action<ILogger, WebSocketMessageType, int, bool, Exception> _messageReceived =
-                LoggerMessage.Define<WebSocketMessageType, int, bool>(LogLevel.Debug, new EventId(9, "MessageReceived"), "Message received. Type: {messageType}, size: {size}, EndOfMessage: {endOfMessage}.");
+                LoggerMessage.Define<WebSocketMessageType, int, bool>(LogLevel.Trace, new EventId(9, "MessageReceived"), "Message received. Type: {messageType}, size: {size}, EndOfMessage: {endOfMessage}.");
 
             private static readonly Action<ILogger, int, Exception> _messageToApplication =
-                LoggerMessage.Define<int>(LogLevel.Debug, new EventId(10, "MessageToApplication"), "Passing message to application. Payload size: {size}.");
+                LoggerMessage.Define<int>(LogLevel.Trace, new EventId(10, "MessageToApplication"), "Passing message to application. Payload size: {size}.");
 
             private static readonly Action<ILogger, long, Exception> _sendPayload =
                 LoggerMessage.Define<long>(LogLevel.Trace, new EventId(11, "SendPayload"), "Sending payload: {size} bytes.");
@@ -48,7 +48,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                 LoggerMessage.Define(LogLevel.Error, new EventId(12, "ErrorWritingFrame"), "Error writing frame.");
 
             private static readonly Action<ILogger, Exception> _sendFailed =
-                LoggerMessage.Define(LogLevel.Trace, new EventId(13, "SendFailed"), "Socket failed to send.");
+                LoggerMessage.Define(LogLevel.Debug, new EventId(13, "SendFailed"), "Socket failed to send.");
 
             public static void SocketOpened(ILogger logger)
             {

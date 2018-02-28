@@ -26,7 +26,7 @@ namespace Microsoft.AspNetCore.Sockets
                 LoggerMessage.Define(LogLevel.Debug, new EventId(5, "ResumingConnection"), "Resuming existing connection.");
 
             private static readonly Action<ILogger, long, Exception> _receivedBytes =
-                LoggerMessage.Define<long>(LogLevel.Debug, new EventId(6, "ReceivedBytes"), "Received {count} bytes.");
+                LoggerMessage.Define<long>(LogLevel.Trace, new EventId(6, "ReceivedBytes"), "Received {count} bytes.");
 
             private static readonly Action<ILogger, TransportType, Exception> _transportNotSupported =
                 LoggerMessage.Define<TransportType>(LogLevel.Debug, new EventId(7, "TransportNotSupported"), "{transportType} transport not supported by this endpoint type.");

@@ -99,10 +99,10 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
         private static class Log
         {
             private static readonly Action<ILogger, Exception> _longPolling204 =
-                LoggerMessage.Define(LogLevel.Information, new EventId(1, "LongPolling204"), "Terminating Long Polling connection by sending 204 response.");
+                LoggerMessage.Define(LogLevel.Debug, new EventId(1, "LongPolling204"), "Terminating Long Polling connection by sending 204 response.");
 
             private static readonly Action<ILogger, Exception> _pollTimedOut =
-                LoggerMessage.Define(LogLevel.Information, new EventId(2, "PollTimedOut"), "Poll request timed out. Sending 200 response to connection.");
+                LoggerMessage.Define(LogLevel.Debug, new EventId(2, "PollTimedOut"), "Poll request timed out. Sending 200 response to connection.");
 
             private static readonly Action<ILogger, long, Exception> _longPollingWritingMessage =
                 LoggerMessage.Define<long>(LogLevel.Trace, new EventId(3, "LongPollingWritingMessage"), "Writing a {count} byte message to connection.");
