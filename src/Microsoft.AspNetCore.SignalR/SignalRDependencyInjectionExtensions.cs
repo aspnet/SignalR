@@ -11,17 +11,16 @@ namespace Microsoft.Extensions.DependencyInjection
     {
         public static ISignalRBuilder AddSignalR(this IServiceCollection services)
         {
-            services.AddSingleton<IConfigureOptions<HubOptions>, HubOptionsSetup>();
             services.AddSockets();
+            services.AddSingleton<IConfigureOptions<HubOptions>, HubOptionsSetup>();
             return services.AddSignalRCore()
                 .AddJsonProtocol();
         }
 
         public static ISignalRBuilder AddSignalR(this IServiceCollection services, Action<HubOptions> options)
         {
-            services.Configure(options);
-            return services.AddSignalR();
-            
+            return services.Configure(options)
+                .AddSignalR();
         }
     }
 }

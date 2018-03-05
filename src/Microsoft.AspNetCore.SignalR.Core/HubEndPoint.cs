@@ -18,11 +18,13 @@ namespace Microsoft.AspNetCore.SignalR
         private readonly ILogger<HubEndPoint<THub>> _logger;
         private readonly IHubProtocolResolver _protocolResolver;
         private readonly HubOptions<THub> _hubOptions;
+        private readonly HubOptions _globalHubOptions;
         private readonly IUserIdProvider _userIdProvider;
         private readonly HubDispatcher<THub> _dispatcher;
 
         public HubEndPoint(HubLifetimeManager<THub> lifetimeManager,
                            IHubProtocolResolver protocolResolver,
+                           IOptions<HubOptions> globalHubOptions,
                            IOptions<HubOptions<THub>> hubOptions,
                            ILoggerFactory loggerFactory,
                            IUserIdProvider userIdProvider,
@@ -32,6 +34,7 @@ namespace Microsoft.AspNetCore.SignalR
             _lifetimeManager = lifetimeManager;
             _loggerFactory = loggerFactory;
             _hubOptions = hubOptions.Value;
+            _globalHubOptions = globalHubOptions.Value;
             _logger = loggerFactory.CreateLogger<HubEndPoint<THub>>();
             _userIdProvider = userIdProvider;
             _dispatcher = dispatcher;
@@ -39,14 +42,22 @@ namespace Microsoft.AspNetCore.SignalR
 
         public async Task OnConnectedAsync(ConnectionContext connection)
         {
-            if (_hubOptions.SupportedProtocols != null && _hubOptions.SupportedProtocols.Count == 0)
+            var keepAlive = _hubOptions.KeepAliveInterval ?? _globalHubOptions.KeepAliveInterval;
+            var negotiateTimeout = _hubOptions.NegotiateTimeout ?? _globalHubOptions.NegotiateTimeout;
+            var supportedProtocols = _hubOptions.SupportedProtocols;
+            if (supportedProtocols == null && _globalHubOptions.SupportedProtocols != null)
+            {
+                supportedProtocols = _globalHubOptions.SupportedProtocols;
+            }
+
+            if (supportedProtocols != null && supportedProtocols.Count == 0)
             {
                 throw new InvalidOperationException("There are no supported protocols");
             }
 
-            var connectionContext = new HubConnectionContext(connection, _hubOptions.KeepAliveInterval, _loggerFactory);
+            var connectionContext = new HubConnectionContext(connection, keepAlive, _loggerFactory);
 
-            if (!await connectionContext.NegotiateAsync(_hubOptions.NegotiateTimeout, _hubOptions.SupportedProtocols, _protocolResolver, _userIdProvider))
+            if (!await connectionContext.NegotiateAsync(negotiateTimeout, supportedProtocols, _protocolResolver, _userIdProvider))
             {
                 return;
             }

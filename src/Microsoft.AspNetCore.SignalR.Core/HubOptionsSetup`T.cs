@@ -16,14 +16,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public void Configure(HubOptions<THub> options)
         {
-            if(_hubOptions.SupportedProtocols == null)
-            {
-                options.SupportedProtocols = new List<string>();
-            }
-            else
-            {
-                options.SupportedProtocols = _hubOptions.SupportedProtocols;
-            }
+            options.SupportedProtocols = _hubOptions.SupportedProtocols;
             options.KeepAliveInterval = _hubOptions.KeepAliveInterval;
             options.NegotiateTimeout = _hubOptions.NegotiateTimeout;
         }
