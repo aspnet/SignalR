@@ -170,6 +170,13 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                     return;
                 }
 
+                if (hubMethodInvocationMessage.ArgumentBindingException != null)
+                {
+                    Log.FailedInvokingHubMethod(_logger, hubMethodInvocationMessage.Target, hubMethodInvocationMessage.ArgumentBindingException);
+                    await SendInvocationError(hubMethodInvocationMessage, connection, $"Failed to invoke '{hubMethodInvocationMessage.Target}'. {hubMethodInvocationMessage.ArgumentBindingException.Message}");
+                    return;
+                }
+
                 var hubActivator = scope.ServiceProvider.GetRequiredService<IHubActivator<THub>>();
                 var hub = hubActivator.Create();
 
@@ -181,7 +188,15 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
                     if (isStreamedInvocation)
                     {
-                        var enumerator = GetStreamingEnumerator(connection, hubMethodInvocationMessage.InvocationId, methodExecutor, result, methodExecutor.MethodReturnType);
+                        if (!TryGetStreamingEnumerator(connection, hubMethodInvocationMessage.InvocationId, methodExecutor, result, methodExecutor.MethodReturnType, out var enumerator))
+                        {
+                            Log.InvalidReturnValueFromStreamingMethod(_logger, methodExecutor.MethodInfo.Name);
+
+                            await SendInvocationError(hubMethodInvocationMessage, connection,
+                                $"The value returned by the streaming method '{methodExecutor.MethodInfo.Name}' is null, does not implement the IObservable<> interface or is not a ReadableChannel<>.");
+                            return;
+                        }
+
                         Log.StreamingResult(_logger, hubMethodInvocationMessage.InvocationId, methodExecutor);
                         await StreamResultsAsync(hubMethodInvocationMessage.InvocationId, connection, enumerator);
                     }
@@ -374,7 +389,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             return false;
         }
 
-        private IAsyncEnumerator<object> GetStreamingEnumerator(HubConnectionContext connection, string invocationId, ObjectMethodExecutor methodExecutor, object result, Type resultType)
+        private bool TryGetStreamingEnumerator(HubConnectionContext connection, string invocationId, ObjectMethodExecutor methodExecutor, object result, Type resultType, out IAsyncEnumerator<object> enumerator)
         {
             if (result != null)
             {
@@ -383,17 +398,19 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                     resultType.GetInterfaces().FirstOrDefault(IsIObservable);
                 if (observableInterface != null)
                 {
-                    return AsyncEnumeratorAdapters.FromObservable(result, observableInterface, CreateCancellation());
+                    enumerator = AsyncEnumeratorAdapters.FromObservable(result, observableInterface, CreateCancellation());
+                    return true;
                 }
 
                 if (IsChannel(resultType, out var payloadType))
                 {
-                    return AsyncEnumeratorAdapters.FromChannel(result, payloadType, CreateCancellation());
+                    enumerator = AsyncEnumeratorAdapters.FromChannel(result, payloadType, CreateCancellation());
+                    return true;
                 }
             }
 
-            Log.InvalidReturnValueFromStreamingMethod(_logger, methodExecutor.MethodInfo.Name);
-            throw new InvalidOperationException($"The value returned by the streaming method '{methodExecutor.MethodInfo.Name}' is null, does not implement the IObservable<> interface or is not a ReadableChannel<>.");
+            enumerator = null;
+            return false;
 
             CancellationToken CreateCancellation()
             {
