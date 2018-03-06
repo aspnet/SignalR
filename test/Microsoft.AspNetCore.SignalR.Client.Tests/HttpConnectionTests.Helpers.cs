@@ -14,7 +14,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 {
     public partial class HttpConnectionTests
     {
-        private static HttpConnection CreateConnection(HttpMessageHandler httpHandler = null, ILoggerFactory loggerFactory = null, string url = null, ITransport transport = null)
+        private static HttpConnection CreateConnection(HttpMessageHandler httpHandler = null, ILoggerFactory loggerFactory = null, string url = null, ITransport transport = null, ITransportFactory transportFactory = null)
         {
             var httpOptions = new HttpOptions()
             {
@@ -29,11 +29,18 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
             var uri = new Uri(url ?? "http://fakeuri.org/");
 
-            var connection = (transport != null) ?
-                new HttpConnection(uri, new TestTransportFactory(transport), loggerFactory, httpOptions) :
-                new HttpConnection(uri, TransportType.LongPolling, loggerFactory, httpOptions);
-
-            return connection;
+            if (transportFactory != null)
+            {
+                return new HttpConnection(uri, transportFactory, loggerFactory, httpOptions);
+            }
+            else if (transport != null)
+            {
+                return new HttpConnection(uri, new TestTransportFactory(transport), loggerFactory, httpOptions);
+            }
+            else
+            {
+                return new HttpConnection(uri, TransportType.LongPolling, loggerFactory, httpOptions);
+            }
         }
 
         private static async Task WithConnectionAsync(HttpConnection connection, Func<HttpConnection, Task, Task> body)
