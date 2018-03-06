@@ -35,7 +35,7 @@ namespace Microsoft.AspNetCore.SignalR
                 options.KeepAliveInterval = TimeSpan.FromSeconds(15);
             }
 
-            if(options.NegotiateTimeout == null)
+            if (options.NegotiateTimeout == null)
             {
                 options.NegotiateTimeout = TimeSpan.FromSeconds(5);
             }
