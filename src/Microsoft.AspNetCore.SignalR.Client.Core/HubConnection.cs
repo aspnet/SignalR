@@ -614,6 +614,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             internal InvocationHandlerList(InvocationHandler handler)
             {
                 this._invocationHandlers = new List<InvocationHandler>() { handler};
+                CopiedHandlers = _invocationHandlers.ToArray();
             }
 
             internal InvocationHandlerList Add(InvocationHandler handler)
