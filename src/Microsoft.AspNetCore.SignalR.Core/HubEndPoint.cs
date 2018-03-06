@@ -46,11 +46,7 @@ namespace Microsoft.AspNetCore.SignalR
             // Then set the keepAlive and negotiateTimeout values to the defaults in HubOptionsSetup incase they were explicitly set to null.
             var keepAlive = _hubOptions.KeepAliveInterval ?? _globalHubOptions.KeepAliveInterval ?? HubOptionsSetup.DefaultKeepAliveInterval;
             var negotiateTimeout = _hubOptions.NegotiateTimeout ?? _globalHubOptions.NegotiateTimeout ?? HubOptionsSetup.DefaultNegotiateTimeout;
-            var supportedProtocols = _hubOptions.SupportedProtocols;
-            if (supportedProtocols == null && _globalHubOptions.SupportedProtocols != null)
-            {
-                supportedProtocols = _globalHubOptions.SupportedProtocols;
-            }
+            var supportedProtocols = _hubOptions.SupportedProtocols ?? _globalHubOptions.SupportedProtocols;
 
             if (supportedProtocols != null && supportedProtocols.Count == 0)
             {
@@ -74,7 +70,6 @@ namespace Microsoft.AspNetCore.SignalR
                 await _lifetimeManager.OnDisconnectedAsync(connectionContext);
             }
         }
-
 
         private async Task RunHubAsync(HubConnectionContext connection)
         {
