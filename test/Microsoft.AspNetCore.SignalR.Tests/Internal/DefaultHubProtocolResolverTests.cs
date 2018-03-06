@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Protocols;
 using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
@@ -16,13 +15,14 @@ namespace Microsoft.AspNetCore.SignalR.Common.Protocol.Tests
 {
     public class DefaultHubProtocolResolverTests
     {
+        private static readonly List<string> AllProtocolNames = new List<string> { "json", "messagepack" };
+
         private static readonly IList<IHubProtocol> AllProtocols = new List<IHubProtocol>()
         {
             new JsonHubProtocol(),
             new MessagePackHubProtocol()
         };
 
-        private static readonly List<string> AllProtocolNames = new List<string> { "json", "messagepack" };
 
         [Theory]
         [MemberData(nameof(HubProtocols))]

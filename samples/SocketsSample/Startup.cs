@@ -20,7 +20,8 @@ namespace SocketsSample
         {
             services.AddSockets();
 
-            services.AddSignalR(options => {
+            services.AddSignalR(options =>
+            {
                 // Faster pings for testing
                 options.KeepAliveInterval = TimeSpan.FromSeconds(5);
             })
