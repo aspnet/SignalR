@@ -11,6 +11,10 @@ namespace Microsoft.AspNetCore.SignalR
 {
     public class HubOptionsSetup : IConfigureOptions<HubOptions>
     {
+        internal static TimeSpan DefaultNegotiateTimeout => TimeSpan.FromSeconds(5);
+
+        internal static TimeSpan DefaultKeepAliveInterval => TimeSpan.FromSeconds(15);
+
         private readonly List<string> _protocols = new List<string>();
 
         public HubOptionsSetup(IEnumerable<IHubProtocol> protocols)
@@ -32,12 +36,12 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 // The default keep - alive interval.This is set to exactly half of the default client timeout window,
                 // to ensure a ping can arrive in time to satisfy the client timeout.
-                options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+                options.KeepAliveInterval = DefaultKeepAliveInterval;
             }
 
             if (options.NegotiateTimeout == null)
             {
-                options.NegotiateTimeout = TimeSpan.FromSeconds(5);
+                options.NegotiateTimeout = DefaultNegotiateTimeout;
             }
             options.SupportedProtocols.AddRange(_protocols);
         }

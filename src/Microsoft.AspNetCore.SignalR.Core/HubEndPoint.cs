@@ -43,8 +43,9 @@ namespace Microsoft.AspNetCore.SignalR
         public async Task OnConnectedAsync(ConnectionContext connection)
         {
             // We check to see if HubOptions<THub> are set because those take precedence over global hub options.
-            var keepAlive = _hubOptions.KeepAliveInterval ?? _globalHubOptions.KeepAliveInterval;
-            var negotiateTimeout = _hubOptions.NegotiateTimeout ?? _globalHubOptions.NegotiateTimeout;
+            // Then set the keepAlive and negotiateTimeout values to the defaults in HubOptionsSetup incase they were explicitly set to null.
+            var keepAlive = _hubOptions.KeepAliveInterval ?? _globalHubOptions.KeepAliveInterval ?? HubOptionsSetup.DefaultKeepAliveInterval;
+            var negotiateTimeout = _hubOptions.NegotiateTimeout ?? _globalHubOptions.NegotiateTimeout ?? HubOptionsSetup.DefaultNegotiateTimeout;
             var supportedProtocols = _hubOptions.SupportedProtocols;
             if (supportedProtocols == null && _globalHubOptions.SupportedProtocols != null)
             {
@@ -56,9 +57,9 @@ namespace Microsoft.AspNetCore.SignalR
                 throw new InvalidOperationException("There are no supported protocols");
             }
 
-            var connectionContext = new HubConnectionContext(connection, keepAlive.Value, _loggerFactory);
+            var connectionContext = new HubConnectionContext(connection, keepAlive, _loggerFactory);
 
-            if (!await connectionContext.NegotiateAsync(negotiateTimeout.Value, supportedProtocols, _protocolResolver, _userIdProvider))
+            if (!await connectionContext.NegotiateAsync(negotiateTimeout, supportedProtocols, _protocolResolver, _userIdProvider))
             {
                 return;
             }
