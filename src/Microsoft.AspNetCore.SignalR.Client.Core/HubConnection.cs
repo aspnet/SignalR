@@ -30,7 +30,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private readonly object _pendingCallsLock = new object();
         private readonly Dictionary<string, InvocationRequest> _pendingCalls = new Dictionary<string, InvocationRequest>();
-        private readonly ConcurrentDictionary<string, List<InvocationHandler>> _handlers = new ConcurrentDictionary<string, List<InvocationHandler>>();
+        private readonly ConcurrentDictionary<string, InvocationHandlerList> _handlers = new ConcurrentDictionary<string, InvocationHandlerList>();
         private CancellationTokenSource _connectionActive;
 
         private int _nextId = 0;
@@ -143,15 +143,9 @@ namespace Microsoft.AspNetCore.SignalR.Client
         public IDisposable On(string methodName, Type[] parameterTypes, Func<object[], object, Task> handler, object state)
         {
             var invocationHandler = new InvocationHandler(parameterTypes, handler, state);
-            var invocationList = _handlers.AddOrUpdate(methodName, _ => new List<InvocationHandler> { invocationHandler },
-                (_, invocations) =>
-                {
-                    lock (invocations)
-                    {
-                        invocations.Add(invocationHandler);
-                    }
-                    return invocations;
-                });
+            var invocationList = _handlers.AddOrUpdate(methodName,
+                _ => new InvocationHandlerList(invocationHandler),
+                (_, invocations) => invocations.Add(invocationHandler));
 
             return new Subscription(invocationHandler, invocationList);
         }
@@ -404,14 +398,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 return;
             }
 
-            // TODO: Optimize this!
-            // Copying the callbacks to avoid concurrency issues
-            InvocationHandler[] copiedHandlers;
-            lock (handlers)
-            {
-                copiedHandlers = new InvocationHandler[handlers.Count];
-                handlers.CopyTo(copiedHandlers);
-            }
+            InvocationHandler[] copiedHandlers = handlers.CopiedHandlers;
 
             foreach (var handler in copiedHandlers)
             {
@@ -513,9 +500,9 @@ namespace Microsoft.AspNetCore.SignalR.Client
         private class Subscription : IDisposable
         {
             private readonly InvocationHandler _handler;
-            private readonly List<InvocationHandler> _handlerList;
+            private readonly InvocationHandlerList _handlerList;
 
-            public Subscription(InvocationHandler handler, List<InvocationHandler> handlerList)
+            public Subscription(InvocationHandler handler, InvocationHandlerList handlerList)
             {
                 _handler = handler;
                 _handlerList = handlerList;
@@ -523,10 +510,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             public void Dispose()
             {
-                lock (_handlerList)
-                {
-                    _handlerList.Remove(_handler);
-                }
+                _handlerList.Remove(_handler);
             }
         }
 
@@ -560,9 +544,9 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 // We use the parameter types of the first handler
                 lock (handlers)
                 {
-                    if (handlers.Count > 0)
+                    if (handlers.CopiedHandlers.Length > 0)
                     {
-                        return handlers[0].ParameterTypes;
+                        return handlers.CopiedHandlers[0].ParameterTypes;
                     }
                     throw new InvalidOperationException($"There are no callbacks registered for the method '{methodName}'");
                 }
@@ -585,6 +569,38 @@ namespace Microsoft.AspNetCore.SignalR.Client
             public Task InvokeAsync(object[] parameters)
             {
                 return _callback(parameters, _state);
+            }
+        }
+
+        private class InvocationHandlerList
+        {
+            private readonly List<InvocationHandler> _invocationHandlers;
+            internal InvocationHandler[] CopiedHandlers;
+
+            internal InvocationHandlerList(InvocationHandler handler)
+            {
+                this._invocationHandlers = new List<InvocationHandler>() { handler};
+            }
+
+            internal InvocationHandlerList Add(InvocationHandler handler)
+            {
+                lock (_invocationHandlers)
+                {
+                    _invocationHandlers.Add(handler);
+                    CopiedHandlers = _invocationHandlers.ToArray();
+                }
+                return this;
+            }
+
+            internal void Remove(InvocationHandler handler)
+            {
+                lock (_invocationHandlers)
+                {
+                    if (_invocationHandlers.Remove(handler))
+                    {
+                        this.CopiedHandlers = _invocationHandlers.ToArray();
+                    }
+                }
             }
         }
     }
