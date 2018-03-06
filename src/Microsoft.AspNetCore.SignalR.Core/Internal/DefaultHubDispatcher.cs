@@ -195,18 +195,23 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 catch (TargetInvocationException ex)
                 {
                     Log.FailedInvokingHubMethod(_logger, hubMethodInvocationMessage.Target, ex);
-                    await SendInvocationError(hubMethodInvocationMessage, connection, ex.InnerException.Message);
+                    await SendInvocationError(hubMethodInvocationMessage, connection, BuildUnexpectedErrorMessage(hubMethodInvocationMessage.Target, ex.InnerException));
                 }
                 catch (Exception ex)
                 {
                     Log.FailedInvokingHubMethod(_logger, hubMethodInvocationMessage.Target, ex);
-                    await SendInvocationError(hubMethodInvocationMessage, connection, ex.Message);
+                    await SendInvocationError(hubMethodInvocationMessage, connection, BuildUnexpectedErrorMessage(hubMethodInvocationMessage.Target, ex));
                 }
                 finally
                 {
                     hubActivator.Release(hub);
                 }
             }
+        }
+
+        private string BuildUnexpectedErrorMessage(string methodName, Exception exception)
+        {
+            return $"An unexpected error occurred invoking '{methodName}' on the server. {exception.GetType().Name}: {exception.Message}";
         }
 
         private async Task StreamResultsAsync(string invocationId, HubConnectionContext connection, IAsyncEnumerator<object> enumerator)
