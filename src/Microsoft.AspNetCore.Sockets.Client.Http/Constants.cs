@@ -13,12 +13,20 @@ namespace Microsoft.AspNetCore.Sockets.Client.Http
 
         static Constants()
         {
+            var userAgent = "Microsoft.AspNetCore.Sockets.Client.Http";
+
             var assemblyVersion = (AssemblyInformationalVersionAttribute)typeof(Constants)
                 .Assembly
                 .GetCustomAttributes(typeof(AssemblyInformationalVersionAttribute))
-                .Single();
+                .FirstOrDefault();
 
-            var userAgent = "Microsoft.AspNetCore.Sockets.Client.Http/" + assemblyVersion.InformationalVersion;
+            // assembly version attribute should always be present
+            // but in case it isn't then don't include version in user-agent
+            if (assemblyVersion != null)
+            {
+                userAgent += "/" + assemblyVersion.InformationalVersion;
+            }
+
             UserAgentHeader = ProductInfoHeaderValue.Parse(userAgent);
         }
     }
