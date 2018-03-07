@@ -34,7 +34,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
         {
             _webSocket = new ClientWebSocket();
 
-            _webSocket.Options.SetRequestHeader("User-Agent", Constants.UserAgentHeader.ToString());
+            // Issue in ClientWebSocket prevents user-agent being set - https://github.com/dotnet/corefx/issues/26627
+            //_webSocket.Options.SetRequestHeader("User-Agent", Constants.UserAgentHeader.ToString());
 
             if (httpOptions?.Headers != null)
             {

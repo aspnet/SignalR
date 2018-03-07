@@ -50,7 +50,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
-        [ConditionalFact]
+        [ConditionalFact(Skip = "Issue in ClientWebSocket prevents user-agent being set - https://github.com/dotnet/corefx/issues/26627")]
         [OSSkipCondition(OperatingSystems.Windows, WindowsVersions.Win7, WindowsVersions.Win2008R2, SkipReason = "No WebSockets Client for this platform")]
         public async Task WebSocketsTransportSendsUserAgent()
         {
