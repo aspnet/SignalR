@@ -135,7 +135,7 @@ namespace Microsoft.AspNetCore.SignalR
             Task.Factory.StartNew(_abortedCallback, this);
         }
 
-        internal async Task<bool> NegotiateAsync(TimeSpan timeout, List<string> supportedProtocols, IHubProtocolResolver protocolResolver, IUserIdProvider userIdProvider)
+        internal async Task<bool> NegotiateAsync(TimeSpan timeout, IList<string> supportedProtocols, IHubProtocolResolver protocolResolver, IUserIdProvider userIdProvider)
         {
             try
             {

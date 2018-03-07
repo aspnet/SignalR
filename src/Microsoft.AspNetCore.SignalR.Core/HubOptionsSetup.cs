@@ -43,7 +43,11 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 options.NegotiateTimeout = DefaultNegotiateTimeout;
             }
-            options.SupportedProtocols.AddRange(_protocols);
+
+            foreach (var protocol in _protocols)
+            {
+                options.SupportedProtocols.Add(protocol);
+            }
         }
     }
 }
