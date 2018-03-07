@@ -34,6 +34,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
         {
             _webSocket = new ClientWebSocket();
 
+            _webSocket.Options.SetRequestHeader("User-Agent", Constants.UserAgentHeader.ToString());
+
             if (httpOptions?.Headers != null)
             {
                 foreach (var header in httpOptions.Headers)
