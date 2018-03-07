@@ -10,8 +10,9 @@ using System.Runtime.InteropServices;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.SignalR.Internal.Formatters;
 using Microsoft.Extensions.Options;
-using MsgPack;
-using MsgPack.Serialization;
+//using MsgPack;
+//using MsgPack.Serialization;
+using MessagePack;
 
 namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 {
@@ -24,7 +25,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         public static readonly string ProtocolName = "messagepack";
         public static readonly int ProtocolVersion = 1;
 
-        public SerializationContext SerializationContext { get; }
+        //public SerializationContext SerializationContext { get; }
 
         public string Name => ProtocolName;
 
@@ -38,7 +39,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
         public MessagePackHubProtocol(IOptions<MessagePackHubProtocolOptions> options)
         {
-            SerializationContext = options.Value.SerializationContext;
+            //SerializationContext = options.Value.SerializationContext;
         }
 
         public bool IsVersionSupported(int version)
@@ -65,24 +66,26 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
         private static HubMessage ParseMessage(byte[] input, int startOffset, IInvocationBinder binder)
         {
-            using (var unpacker = Unpacker.Create(input, startOffset))
+            _ = MessagePack.MessagePackBinary.ReadArrayHeader(input);
+            //using (var unpacker = Unpacker.Create(input, startOffset))
             {
-                _ = ReadArrayLength(unpacker, "elementCount");
+                //_ = ReadArrayLength(unpacker, "elementCount");
 
-                var messageType = ReadInt32(unpacker, "messageType");
+                var messageType = MessagePackBinary.ReadInt32(input);
+                //var messageType = ReadInt32(unpacker, "messageType");
 
                 switch (messageType)
                 {
                     case HubProtocolConstants.InvocationMessageType:
-                        return CreateInvocationMessage(unpacker, binder);
+                        return CreateInvocationMessage(input, binder);
                     case HubProtocolConstants.StreamInvocationMessageType:
-                        return CreateStreamInvocationMessage(unpacker, binder);
+                        return CreateStreamInvocationMessage(input, binder);
                     case HubProtocolConstants.StreamItemMessageType:
-                        return CreateStreamItemMessage(unpacker, binder);
+                        return CreateStreamItemMessage(input, binder);
                     case HubProtocolConstants.CompletionMessageType:
-                        return CreateCompletionMessage(unpacker, binder);
+                        return CreateCompletionMessage(input, binder);
                     case HubProtocolConstants.CancelInvocationMessageType:
-                        return CreateCancelInvocationMessage(unpacker);
+                        return CreateCancelInvocationMessage(input);
                     case HubProtocolConstants.PingMessageType:
                         return PingMessage.Instance;
                     case HubProtocolConstants.CloseMessageType:
@@ -94,7 +97,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             }
         }
 
-        private static InvocationMessage CreateInvocationMessage(Unpacker unpacker, IInvocationBinder binder)
+        private static InvocationMessage CreateInvocationMessage(Stream unpacker, IInvocationBinder binder)
         {
             var headers = ReadHeaders(unpacker);
             var invocationId = ReadInvocationId(unpacker);
@@ -120,7 +123,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             }
         }
 
-        private static StreamInvocationMessage CreateStreamInvocationMessage(Unpacker unpacker, IInvocationBinder binder)
+        private static StreamInvocationMessage CreateStreamInvocationMessage(Stream unpacker, IInvocationBinder binder)
         {
             var headers = ReadHeaders(unpacker);
             var invocationId = ReadInvocationId(unpacker);
@@ -138,7 +141,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             }
         }
 
-        private static StreamItemMessage CreateStreamItemMessage(Unpacker unpacker, IInvocationBinder binder)
+        private static StreamItemMessage CreateStreamItemMessage(Stream unpacker, IInvocationBinder binder)
         {
             var headers = ReadHeaders(unpacker);
             var invocationId = ReadInvocationId(unpacker);
@@ -147,7 +150,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             return ApplyHeaders(headers, new StreamItemMessage(invocationId, value));
         }
 
-        private static CompletionMessage CreateCompletionMessage(Unpacker unpacker, IInvocationBinder binder)
+        private static CompletionMessage CreateCompletionMessage(Stream unpacker, IInvocationBinder binder)
         {
             var headers = ReadHeaders(unpacker);
             var invocationId = ReadInvocationId(unpacker);
@@ -177,20 +180,20 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             return ApplyHeaders(headers, new CompletionMessage(invocationId, error, result, hasResult));
         }
 
-        private static CancelInvocationMessage CreateCancelInvocationMessage(Unpacker unpacker)
+        private static CancelInvocationMessage CreateCancelInvocationMessage(Stream unpacker)
         {
             var headers = ReadHeaders(unpacker);
             var invocationId = ReadInvocationId(unpacker);
             return ApplyHeaders(headers, new CancelInvocationMessage(invocationId));
         }
 
-        private static CloseMessage CreateCloseMessage(Unpacker unpacker)
+        private static CloseMessage CreateCloseMessage(Stream unpacker)
         {
             var error = ReadString(unpacker, "error");
             return new CloseMessage(error);
         }
 
-        private static Dictionary<string, string> ReadHeaders(Unpacker unpacker)
+        private static Dictionary<string, string> ReadHeaders(Stream unpacker)
         {
             var headerCount = ReadMapLength(unpacker, "headers");
             if (headerCount > 0)
@@ -212,7 +215,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             }
         }
 
-        private static object[] BindArguments(Unpacker unpacker, IReadOnlyList<Type> parameterTypes)
+        private static object[] BindArguments(Stream unpacker, IReadOnlyList<Type> parameterTypes)
         {
             var argumentCount = ReadArrayLength(unpacker, "arguments");
 
@@ -269,11 +272,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             }
         }
 
-        private void WriteMessageCore(HubMessage message, Stream output)
+        private void WriteMessageCore(HubMessage message, Stream packer)
         {
             // PackerCompatibilityOptions.None prevents from serializing byte[] as strings
             // and allows extended objects
-            var packer = Packer.Create(output, PackerCompatibilityOptions.None);
+            //var packer = Packer.Create(output, PackerCompatibilityOptions.None);
             switch (message)
             {
                 case InvocationMessage invocationMessage:
@@ -302,127 +305,162 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             }
         }
 
-        private void WriteInvocationMessage(InvocationMessage message, Packer packer)
+        private void WriteInvocationMessage(InvocationMessage message, Stream packer)
         {
-            packer.PackArrayHeader(5);
-            packer.Pack(HubProtocolConstants.InvocationMessageType);
+            MessagePackBinary.WriteArrayHeader(packer, 5);
+            //packer.PackArrayHeader(5);
+            //packer.Pack(HubProtocolConstants.InvocationMessageType);
+            MessagePackBinary.WriteInt16(packer, HubProtocolConstants.InvocationMessageType);
             PackHeaders(packer, message.Headers);
             if (string.IsNullOrEmpty(message.InvocationId))
             {
-                packer.PackNull();
+                //packer.PackNull();
+                MessagePackBinary.WriteNil(packer);
             }
             else
             {
-                packer.PackString(message.InvocationId);
+                //packer.PackString(message.InvocationId);
+                MessagePackBinary.WriteString(packer, message.InvocationId);
             }
-            packer.PackString(message.Target);
-            packer.PackObject(message.Arguments, SerializationContext);
+            //packer.PackString(message.Target);
+            MessagePackBinary.WriteString(packer, message.Target);
+            //packer.PackObject(message.Arguments, SerializationContext);
+            MessagePackSerializer.Serialize(packer, message.Arguments);
         }
 
-        private void WriteStreamInvocationMessage(StreamInvocationMessage message, Packer packer)
+        private void WriteStreamInvocationMessage(StreamInvocationMessage message, Stream packer)
         {
-            packer.PackArrayHeader(5);
-            packer.Pack(HubProtocolConstants.StreamInvocationMessageType);
+            MessagePackBinary.WriteMapHeader(packer, 5);
+            //packer.PackArrayHeader(5);
+            //packer.Pack(HubProtocolConstants.StreamInvocationMessageType);
+            MessagePackBinary.WriteInt16(packer, HubProtocolConstants.StreamInvocationMessageType);
             PackHeaders(packer, message.Headers);
-            packer.PackString(message.InvocationId);
-            packer.PackString(message.Target);
-            packer.PackObject(message.Arguments, SerializationContext);
+            //packer.PackString(message.InvocationId);
+            MessagePackBinary.WriteString(packer, message.InvocationId);
+            //packer.PackString(message.Target);
+            MessagePackBinary.WriteString(packer, message.Target);
+            //packer.PackObject(message.Arguments, SerializationContext);
+            MessagePackSerializer.Serialize(packer, message.Arguments);
         }
 
-        private void WriteStreamingItemMessage(StreamItemMessage message, Packer packer)
+        private void WriteStreamingItemMessage(StreamItemMessage message, Stream packer)
         {
-            packer.PackArrayHeader(4);
-            packer.Pack(HubProtocolConstants.StreamItemMessageType);
+            //packer.PackArrayHeader(4);
+            MessagePackBinary.WriteArrayHeader(packer, 4);
+            //packer.Pack(HubProtocolConstants.StreamItemMessageType);
+            MessagePackBinary.WriteInt16(packer, HubProtocolConstants.StreamItemMessageType);
             PackHeaders(packer, message.Headers);
-            packer.PackString(message.InvocationId);
-            packer.PackObject(message.Item, SerializationContext);
+            //packer.PackString(message.InvocationId);
+            MessagePackBinary.WriteString(packer, message.InvocationId);
+            //packer.PackObject(message.Item, SerializationContext);
+            MessagePackSerializer.Serialize(packer, message.Item);
         }
 
-        private void WriteCompletionMessage(CompletionMessage message, Packer packer)
+        private void WriteCompletionMessage(CompletionMessage message, Stream packer)
         {
             var resultKind =
                 message.Error != null ? ErrorResult :
                 message.HasResult ? NonVoidResult :
                 VoidResult;
 
-            packer.PackArrayHeader(4 + (resultKind != VoidResult ? 1 : 0));
-            packer.Pack(HubProtocolConstants.CompletionMessageType);
+            //packer.PackArrayHeader(4 + (resultKind != VoidResult ? 1 : 0));
+            MessagePackBinary.WriteArrayHeader(packer, 4 + (resultKind != VoidResult ? 1 : 0));
+            //packer.Pack(HubProtocolConstants.CompletionMessageType);
+            MessagePackBinary.WriteInt16(packer, HubProtocolConstants.CompletionMessageType);
             PackHeaders(packer, message.Headers);
-            packer.PackString(message.InvocationId);
-            packer.Pack(resultKind);
+            //packer.PackString(message.InvocationId);
+            MessagePackBinary.WriteString(packer, message.InvocationId);
+            //packer.Pack(resultKind);
+            MessagePackBinary.WriteInt32(packer, resultKind);
             switch (resultKind)
             {
                 case ErrorResult:
-                    packer.PackString(message.Error);
+                    //packer.PackString(message.Error);
+                    MessagePackBinary.WriteString(packer, message.Error);
                     break;
                 case NonVoidResult:
-                    packer.PackObject(message.Result, SerializationContext);
+                    //packer.PackObject(message.Result, SerializationContext);
+                    MessagePackSerializer.Serialize(packer, message.Result);
                     break;
             }
         }
 
-        private void WriteCancelInvocationMessage(CancelInvocationMessage message, Packer packer)
+        private void WriteCancelInvocationMessage(CancelInvocationMessage message, Stream packer)
         {
-            packer.PackArrayHeader(3);
-            packer.Pack(HubProtocolConstants.CancelInvocationMessageType);
+            //packer.PackArrayHeader(3);
+            MessagePackBinary.WriteArrayHeader(packer, 3);
+            //packer.Pack(HubProtocolConstants.CancelInvocationMessageType);
+            MessagePackBinary.WriteInt16(packer, HubProtocolConstants.CancelInvocationMessageType);
             PackHeaders(packer, message.Headers);
-            packer.PackString(message.InvocationId);
+            //packer.PackString(message.InvocationId);
+            MessagePackBinary.WriteString(packer, message.InvocationId);
         }
 
-        private void WriteCloseMessage(CloseMessage message, Packer packer)
+        private void WriteCloseMessage(CloseMessage message, Stream packer)
         {
-            packer.PackArrayHeader(2);
-            packer.Pack(HubProtocolConstants.CloseMessageType);
+            //packer.PackArrayHeader(2);
+            MessagePackBinary.WriteArrayHeader(packer, 2);
+            //packer.Pack(HubProtocolConstants.CloseMessageType);
+            MessagePackBinary.WriteInt16(packer, HubProtocolConstants.CloseMessageType);
             if (string.IsNullOrEmpty(message.Error))
             {
-                packer.PackNull();
+                //packer.PackNull();
+                MessagePackBinary.WriteNil();
             }
             else
             {
-                packer.PackString(message.Error);
+                //packer.PackString(message.Error);
+                MessagePackBinary.WriteString(message.Error);
             }
         }
 
-        private void WritePingMessage(PingMessage pingMessage, Packer packer)
+        private void WritePingMessage(PingMessage pingMessage, Stream packer)
         {
-            packer.PackArrayHeader(1);
-            packer.Pack(HubProtocolConstants.PingMessageType);
+            //packer.PackArrayHeader(1);
+            MessagePackBinary.WriteArrayHeader(packer, 1);
+            //packer.Pack(HubProtocolConstants.PingMessageType);
+            MessagePackBinary.WriteInt16(packer, HubProtocolConstants.PingMessageType);
         }
 
-        private void PackHeaders(Packer packer, IDictionary<string, string> headers)
+        private void PackHeaders(Stream packer, IDictionary<string, string> headers)
         {
             if (headers != null)
             {
-                packer.PackMapHeader(headers.Count);
+                MessagePackBinary.WriteArrayHeader(packer, headers.Count);
+                //packer.PackMapHeader(headers.Count);
                 if (headers.Count > 0)
                 {
                     foreach (var header in headers)
                     {
-                        packer.PackString(header.Key);
-                        packer.PackString(header.Value);
+                        //packer.PackString(header.Key);
+                        MessagePackBinary.WriteString(packer, header.Key);
+                        //packer.PackString(header.Value);
+                        MessagePackBinary.WriteString(packer, header.Value);
                     }
                 }
             }
             else
             {
-                packer.PackMapHeader(0);
+                //packer.PackMapHeader(0);
+                MessagePackBinary.WriteArrayHeader(packer, 0);
             }
         }
 
-        private static string ReadInvocationId(Unpacker unpacker)
+        private static string ReadInvocationId(Stream unpacker)
         {
             return ReadString(unpacker, "invocationId");
         }
 
-        private static int ReadInt32(Unpacker unpacker, string field)
+        private static int ReadInt32(Stream unpacker, string field)
         {
             Exception msgPackException = null;
             try
             {
-                if (unpacker.ReadInt32(out var value))
+                return MessagePackBinary.ReadInt32(unpacker);
+                /*if (unpacker.ReadInt32(out var value))
                 {
                     return value;
-                }
+                }*/
             }
             catch (Exception e)
             {
@@ -432,12 +470,13 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             throw new FormatException($"Reading '{field}' as Int32 failed.", msgPackException);
         }
 
-        private static string ReadString(Unpacker unpacker, string field)
+        private static string ReadString(Stream unpacker, string field)
         {
             Exception msgPackException = null;
             try
             {
-                if (unpacker.Read())
+                return MessagePackBinary.ReadString(unpacker);
+                /*if (unpacker.Read())
                 {
                     if (unpacker.LastReadData.IsNil)
                     {
@@ -447,7 +486,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                     {
                         return unpacker.LastReadData.AsString();
                     }
-                }
+                }*/
             }
             catch (Exception e)
             {
@@ -457,15 +496,16 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             throw new FormatException($"Reading '{field}' as String failed.", msgPackException);
         }
 
-        private static bool ReadBoolean(Unpacker unpacker, string field)
+        private static bool ReadBoolean(Stream unpacker, string field)
         {
             Exception msgPackException = null;
             try
             {
-                if (unpacker.ReadBoolean(out var value))
-                {
-                    return value;
-                }
+                return MessagePackBinary.ReadBoolean(unpacker);
+                //if (unpacker.ReadBoolean(out var value))
+                //{
+                //    return value;
+                //}
             }
             catch (Exception e)
             {
@@ -475,14 +515,15 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             throw new FormatException($"Reading '{field}' as Boolean failed.", msgPackException);
         }
 
-        private static long ReadMapLength(Unpacker unpacker, string field)
+        private static long ReadMapLength(Stream unpacker, string field)
         {
             Exception msgPackException = null;
             try
             {
-                if (unpacker.ReadMapLength(out var value))
+                return MessagePackBinary.ReadMapHeader(unpacker);
+                //if (unpacker.ReadMapLength(out var value))
                 {
-                    return value;
+                  //  return value;
                 }
             }
             catch (Exception e)
@@ -493,15 +534,16 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             throw new FormatException($"Reading map length for '{field}' failed.", msgPackException);
         }
 
-        private static long ReadArrayLength(Unpacker unpacker, string field)
+        private static long ReadArrayLength(Stream unpacker, string field)
         {
             Exception msgPackException = null;
             try
             {
-                if (unpacker.ReadArrayLength(out var value))
-                {
-                    return value;
-                }
+                return MessagePackBinary.ReadArrayHeader(unpacker);
+                //if (unpacker.ReadArrayLength(out var value))
+                //{
+                //    return value;
+                //}
             }
             catch (Exception e)
             {
@@ -511,16 +553,17 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             throw new FormatException($"Reading array length for '{field}' failed.", msgPackException);
         }
 
-        private static object DeserializeObject(Unpacker unpacker, Type type, string field)
+        private static object DeserializeObject(Stream unpacker, Type type, string field)
         {
             Exception msgPackException = null;
             try
             {
-                if (unpacker.Read())
-                {
-                    var serializer = MessagePackSerializer.Get(type);
-                    return serializer.UnpackFrom(unpacker);
-                }
+                return MessagePackSerializer.Deserialize<object>(unpacker);
+                //if (unpacker.Read())
+                //{
+                //    var serializer = MessagePackSerializer.Get(type);
+                //    return serializer.UnpackFrom(unpacker);
+                //}
             }
             catch (Exception ex)
             {
@@ -530,14 +573,14 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             throw new FormatException($"Deserializing object of the `{type.Name}` type for '{field}' failed.", msgPackException);
         }
 
-        internal static SerializationContext CreateDefaultSerializationContext()
-        {
-            // serializes objects (here: arguments and results) as maps so that property names are preserved
-            var serializationContext = new SerializationContext { SerializationMethod = SerializationMethod.Map };
+        //internal static SerializationContext CreateDefaultSerializationContext()
+        //{
+        //    // serializes objects (here: arguments and results) as maps so that property names are preserved
+        //    var serializationContext = new SerializationContext { SerializationMethod = SerializationMethod.Map };
 
-            // allows for serializing objects that cannot be deserialized due to the lack of the default ctor etc.
-            serializationContext.CompatibilityOptions.AllowAsymmetricSerializer = true;
-            return serializationContext;
-        }
+        //    // allows for serializing objects that cannot be deserialized due to the lack of the default ctor etc.
+        //    serializationContext.CompatibilityOptions.AllowAsymmetricSerializer = true;
+        //    return serializationContext;
+        //}
     }
 }

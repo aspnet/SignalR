@@ -12,7 +12,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MsgPack.Cli" Version="$(MsgPackCliPackageVersion)" />
+    <!--<PackageReference Include="MsgPack.Cli" Version="$(MsgPackCliPackageVersion)" />-->
+  <PackageReference Include="MessagePack" Version="$(MessagePackPackageVersion)" />
   </ItemGroup>
 
   <ItemGroup>

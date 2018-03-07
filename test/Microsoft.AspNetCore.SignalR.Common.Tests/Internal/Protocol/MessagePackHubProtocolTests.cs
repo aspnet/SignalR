@@ -8,7 +8,7 @@ using System.Linq;
 using System.Text;
 using Microsoft.AspNetCore.SignalR.Internal.Formatters;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
-using MsgPack;
+//using MsgPack;
 using Xunit;
 
 namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
