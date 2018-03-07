@@ -513,9 +513,10 @@ namespace Microsoft.AspNetCore.SignalR.Tests.HubEndpointTestUtils
             return new CountingObservable(count);
         }
 
-        public Task<IObservable<string>> CounterObservableAsync(int count)
+        public async Task<IObservable<string>> CounterObservableAsync(int count)
         {
-            return Task.FromResult(CounterObservable(count));
+            await Task.Yield();
+            return CounterObservable(count);
         }
 
         public ChannelReader<string> CounterChannel(int count)
@@ -534,9 +535,10 @@ namespace Microsoft.AspNetCore.SignalR.Tests.HubEndpointTestUtils
             return channel.Reader;
         }
 
-        public Task<ChannelReader<string>> CounterChannelAsync(int count)
+        public async Task<ChannelReader<string>> CounterChannelAsync(int count)
         {
-            return Task.FromResult(CounterChannel(count));
+            await Task.Yield();
+            return CounterChannel(count);
         }
 
         public ChannelReader<string> BlockingStream()
