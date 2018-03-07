@@ -16,9 +16,9 @@ namespace Microsoft.AspNetCore.Sockets.Client.Http
         {
             var userAgent = "Microsoft.AspNetCore.Sockets.Client.Http";
 
-            var assemblyVersion = (AssemblyInformationalVersionAttribute)typeof(Constants)
+            var assemblyVersion = typeof(Constants)
                 .Assembly
-                .GetCustomAttributes(typeof(AssemblyInformationalVersionAttribute))
+                .GetCustomAttributes<AssemblyInformationalVersionAttribute>()
                 .FirstOrDefault();
 
             Debug.Assert(assemblyVersion != null);

@@ -331,10 +331,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             Assert.Equal("Microsoft.AspNetCore.Sockets.Client.Http", userAgentHeader.Product.Name);
 
             // user agent version should come from version embedded in assembly metadata
-            var assemblyVersion = (AssemblyInformationalVersionAttribute)typeof(Constants)
+            var assemblyVersion = typeof(Constants)
                 .Assembly
-                .GetCustomAttributes(typeof(AssemblyInformationalVersionAttribute))
-                .Single();
+                .GetCustomAttribute<AssemblyInformationalVersionAttribute>();
 
             Assert.Equal(assemblyVersion.InformationalVersion, userAgentHeader.Product.Version);
         }

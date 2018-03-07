@@ -71,10 +71,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 string userAgent = Encoding.UTF8.GetString(result.Buffer.ToArray());
 
                 // user agent version should come from version embedded in assembly metadata
-                var assemblyVersion = (AssemblyInformationalVersionAttribute)typeof(Constants)
+                var assemblyVersion = typeof(Constants)
                     .Assembly
-                    .GetCustomAttributes(typeof(AssemblyInformationalVersionAttribute))
-                    .Single();
+                    .GetCustomAttribute<AssemblyInformationalVersionAttribute>();
 
                 Assert.Equal("Microsoft.AspNetCore.Sockets.Client.Http/" + assemblyVersion.InformationalVersion, userAgent);
             }
