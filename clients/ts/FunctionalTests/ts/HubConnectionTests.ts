@@ -373,9 +373,7 @@ describe("hubConnection", () => {
                     ByteArray: protocol.name === "json"
                         ? "aGVsbG8="
                         : new Uint8Array([0x68, 0x65, 0x6c, 0x6c, 0x6f]),
-                    GUID: protocol.name === "json"
-                        ? "00010203-0405-0607-0706-050403020100"
-                        : new Uint8Array([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00]),
+                    GUID: "00010203-0405-0607-0706-050403020100",
                     IntArray: [0x01, 0x02, 0x03, 0xff],
                     String: "Hello, World!",
                 };
@@ -389,9 +387,6 @@ describe("hubConnection", () => {
                             // msgpack creates a Buffer for byte arrays and jasmine fails to compare a Buffer
                             // and a Uint8Array even though Buffer instances are also Uint8Array instances
                             value.ByteArray = new Uint8Array(value.ByteArray);
-
-                            // GUIDs are serialized as Buffer as well.
-                            value.GUID = new Uint8Array(value.GUID);
                         }
                         expect(value).toEqual(complexObject);
                     })
