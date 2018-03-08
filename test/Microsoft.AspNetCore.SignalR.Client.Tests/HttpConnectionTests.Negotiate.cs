@@ -40,7 +40,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             [InlineData(TransportType.ServerSentEvents)]
             public Task ConnectionCannotBeStartedIfNoCommonTransportsBetweenClientAndServer(TransportType serverTransports)
             {
-                return RunInvalidNegotiateResponseTest<InvalidOperationException>(ResponseUtils.CreateNegotiationContent(transportTypes: serverTransports), "No transport was created.");
+                return RunInvalidNegotiateResponseTest<InvalidOperationException>(ResponseUtils.CreateNegotiationContent(transportTypes: serverTransports), "Unable to connect to the server with any of the available transports.");
             }
 
             [Theory]

@@ -165,7 +165,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                         async (connection, closed) =>
                         {
                             var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => connection.StartAsync());
-                            Assert.Equal("No transport was created.", ex.Message);
+                            Assert.Equal("Unable to connect to the server with any of the available transports.", ex.Message);
                             Assert.Equal(3, startCounter);
                         });
                 }
