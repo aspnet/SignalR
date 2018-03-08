@@ -3,17 +3,24 @@
 
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Http;
 using System.Net.WebSockets;
+using System.Security.Cryptography.X509Certificates;
 
 namespace Microsoft.AspNetCore.Sockets.Client.Http
 {
     public class HttpOptions
     {
-        public HttpMessageHandler HttpMessageHandler { get; set; }
+        public Func<HttpMessageHandler, HttpMessageHandler> HttpMessageHandler { get; set; }
         public IReadOnlyCollection<KeyValuePair<string, string>> Headers { get; set; }
         public Func<string> AccessTokenFactory { get; set; }
         public TimeSpan CloseTimeout { get; set; } = TimeSpan.FromSeconds(5);
+        public ICredentials Credentials { get; set; }
+        public X509CertificateCollection ClientCertificates { get; set; }
+        public CookieContainer Cookies { get; set; }
+        public IWebProxy Proxy { get; set; }
+        public bool? UseDefaultCredentials { get; set; }
 
         /// <summary>
         /// Gets or sets a delegate that will be invoked with the <see cref="ClientWebSocketOptions"/> object used

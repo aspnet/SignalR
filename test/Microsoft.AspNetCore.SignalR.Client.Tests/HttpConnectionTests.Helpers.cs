@@ -19,7 +19,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
             var httpOptions = new HttpOptions()
             {
-                HttpMessageHandler = httpHandler ?? TestHttpMessageHandler.CreateDefault(),
+                HttpMessageHandler = (httpMessageHandler) => httpHandler ?? TestHttpMessageHandler.CreateDefault(),
             };
             var uri = new Uri(url ?? "http://fakeuri.org/");
 

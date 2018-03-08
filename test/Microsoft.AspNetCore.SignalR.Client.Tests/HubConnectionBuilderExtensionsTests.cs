@@ -1,6 +1,7 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using System;
 using System.Net.Http;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.Sockets;
@@ -60,10 +61,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         [Fact]
         public void WithMsgHandlerRegistersGivenMessageHandler()
         {
+            var messageHandler = new Func<HttpMessageHandler, HttpMessageHandler>(httpMessageHandler => default);
+
             var connectionBuilder = new HubConnectionBuilder();
-            var msgHandler = Mock.Of<HttpMessageHandler>();
-            connectionBuilder.WithMessageHandler(msgHandler);
-            Assert.Same(msgHandler, connectionBuilder.GetMessageHandler());
+            connectionBuilder.WithMessageHandler(messageHandler);
+            Assert.Same(messageHandler, connectionBuilder.GetMessageHandler());
         }
 
         [Theory]
