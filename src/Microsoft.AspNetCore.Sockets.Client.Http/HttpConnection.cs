@@ -209,7 +209,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 
                 if (_transport == null)
                 {
-                    throw new InvalidOperationException("No transport was created.");
+                    throw new InvalidOperationException("Unable to connect to the server with any of the available transports.");
                 }
             }
 
