@@ -163,7 +163,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 if (_requestedTransportType == TransportType.WebSockets)
                 {
                     Log.StartingTransport(_logger, _requestedTransportType, connectUrl);
-                    _logger.StartingTransport(_requestedTransportType, connectUrl);
                     await StartTransport(connectUrl, _requestedTransportType);
                 }
                 else
@@ -194,7 +193,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                                     connectUrl = CreateConnectUrl(Url, negotiationResponse.ConnectionId);
                                 }
 
-                                _logger.StartingTransport(transport, connectUrl);
+                                Log.StartingTransport(_logger, transport, connectUrl);
                                 await StartTransport(connectUrl, transport);
                                 break;
                             }
@@ -389,7 +388,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
             catch (Exception ex)
             {
                 Log.ErrorStartingTransport(_logger, _transport, ex);
-                _logger.ErrorStartingTransport(_transport, ex);
                 _transport = null;
                 throw;
             }

@@ -419,9 +419,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             public TransferMode? Mode => TransferMode.Text;
             public string prevConnectionId = null;
             private int tries = 0;
+            private IDuplexPipe _application;
 
             public Task StartAsync(Uri url, IDuplexPipe application, TransferMode requestedTransferMode, IConnection connection)
             {
+                _application = application;
                 tries++;
                 Assert.True(QueryHelpers.ParseQuery(url.Query.ToString()).TryGetValue("id", out var id)); 
                 if (prevConnectionId == null)
@@ -446,6 +448,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
             public Task StopAsync()
             {
+                _application.Output.Complete();
+                _application.Input.Complete();
                 return Task.CompletedTask;
             }
         }
