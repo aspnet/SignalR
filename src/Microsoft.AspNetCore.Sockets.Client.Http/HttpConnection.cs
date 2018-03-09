@@ -299,6 +299,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
                 using (var request = new HttpRequestMessage(HttpMethod.Post, urlBuilder.Uri))
                 {
+                    // Corefx changed the default version and High Sierra curlhandler tries to upgrade request
                     request.Version = new Version(1, 1);
                     SendUtils.PrepareHttpRequest(request, _httpOptions);
 
