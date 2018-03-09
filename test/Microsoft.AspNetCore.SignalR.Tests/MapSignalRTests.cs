@@ -24,6 +24,20 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Fact]
+        public void NotAddingSignalRServiceThrows()
+        {
+            var ex = Assert.Throws<InvalidOperationException>(() =>
+            {
+                using (var builder = BuildWebHostWithOutSignalR(options => options.MapHub<AuthHub>("/overloads")))
+                {
+                    builder.Start();
+                }
+            });
+
+            Assert.Equal("The SignalR service needs to be registered", ex.Message);
+        }
+
+        [Fact]
         public void MapHubFindsAuthAttributeOnHub()
         {
             var authCount = 0;
@@ -101,6 +115,17 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 {
                     services.AddSignalR();
                 })
+                .Configure(app =>
+                {
+                    app.UseSignalR(options => configure(options));
+                })
+                .Build();
+        }
+
+        private IWebHost BuildWebHostWithOutSignalR(Action<HubRouteBuilder> configure)
+        {
+            return new WebHostBuilder()
+                .UseKestrel()
                 .Configure(app =>
                 {
                     app.UseSignalR(options => configure(options));
