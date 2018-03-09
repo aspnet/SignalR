@@ -55,7 +55,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
                 if (httpOptions.ClientCertificates != null)
                 {
-                    httpOptions.ClientCertificates.AddRange(httpOptions.ClientCertificates);
+                    _webSocket.Options.ClientCertificates.AddRange(httpOptions.ClientCertificates);
                 }
 
                 if (httpOptions.Credentials != null)
