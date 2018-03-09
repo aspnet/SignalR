@@ -101,7 +101,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         public static IHubConnectionBuilder WithUseDefaultCredentials(this IHubConnectionBuilder hubConnectionBuilder, bool useDefaultCredentials)
         {
-            hubConnectionBuilder.AddSetting(UseDefaultCredentialsKey, useDefaultCredentials);
+            hubConnectionBuilder.AddSetting<bool?>(UseDefaultCredentialsKey, useDefaultCredentials);
             return hubConnectionBuilder;
         }
 

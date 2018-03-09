@@ -4,6 +4,7 @@
 using System;
 using System.Diagnostics;
 using System.IO.Pipelines;
+using System.Net;
 using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -54,7 +55,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
                 if (httpOptions.ClientCertificates != null)
                 {
-                    _webSocket.Options.ClientCertificates.AddRange(httpOptions.ClientCertificates);
+                    httpOptions.ClientCertificates.AddRange(httpOptions.ClientCertificates);
                 }
 
                 if (httpOptions.Credentials != null)

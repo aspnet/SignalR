@@ -116,6 +116,11 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 {
                     httpClientHandler.UseDefaultCredentials = _httpOptions.UseDefaultCredentials.Value;
                 }
+                if (_httpOptions.Credentials != null)
+                {
+                    httpClientHandler.Credentials = _httpOptions.Credentials;
+                }
+
                 httpMessageHandler = httpClientHandler;
                 if (_httpOptions.HttpMessageHandler != null)
                 {

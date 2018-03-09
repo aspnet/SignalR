@@ -17,8 +17,8 @@ namespace Microsoft.AspNetCore.Sockets.Client.Http
         public Func<string> AccessTokenFactory { get; set; }
         public TimeSpan CloseTimeout { get; set; } = TimeSpan.FromSeconds(5);
         public ICredentials Credentials { get; set; }
-        public X509CertificateCollection ClientCertificates { get; set; }
-        public CookieContainer Cookies { get; set; }
+        public X509CertificateCollection ClientCertificates { get; set; } = new X509CertificateCollection();
+        public CookieContainer Cookies { get; set; } = new CookieContainer();
         public IWebProxy Proxy { get; set; }
         public bool? UseDefaultCredentials { get; set; }
 
