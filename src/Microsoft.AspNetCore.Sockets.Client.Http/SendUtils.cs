@@ -39,6 +39,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
                             // Send them in a single post
                             var request = new HttpRequestMessage(HttpMethod.Post, sendUrl);
+                            request.Version = new Version(1, 1);
                             PrepareHttpRequest(request, httpOptions);
 
                             request.Content = new ReadOnlySequenceContent(buffer);

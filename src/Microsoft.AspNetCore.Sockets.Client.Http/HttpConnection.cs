@@ -299,6 +299,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
                 using (var request = new HttpRequestMessage(HttpMethod.Post, urlBuilder.Uri))
                 {
+                    request.Version = new Version(1, 1);
                     SendUtils.PrepareHttpRequest(request, _httpOptions);
 
                     using (var response = await httpClient.SendAsync(request))
