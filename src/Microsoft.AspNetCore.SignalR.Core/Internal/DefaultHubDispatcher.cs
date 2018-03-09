@@ -116,8 +116,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         public override IReadOnlyList<Type> GetParameterTypes(string methodName)
         {
-            HubMethodDescriptor descriptor;
-            if (!_methods.TryGetValue(methodName, out descriptor))
+            if (!_methods.TryGetValue(methodName, out var descriptor))
             {
                 return Type.EmptyTypes;
             }
@@ -372,10 +371,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         private static bool IsStreamed(ObjectMethodExecutor methodExecutor)
         {
-            var resultType = (!methodExecutor.IsMethodAsync)
-                ? methodExecutor.MethodReturnType
-                : methodExecutor.AsyncResultType;
+            var resultType = (methodExecutor.IsMethodAsync)
+                ? methodExecutor.AsyncResultType
+                : methodExecutor.MethodReturnType;
 
+            // TODO: cache reflection for performance, on HubMethodDescriptor maybe?
             var observableInterface = IsIObservable(resultType) ?
                 resultType :
                 resultType.GetInterfaces().FirstOrDefault(IsIObservable);
@@ -397,11 +397,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         {
             if (result != null)
             {
-                // TODO: cache reflection for performance, on HubMethodDescriptor maybe?
-                var resultType = (!methodExecutor.IsMethodAsync)
-                    ? methodExecutor.MethodReturnType
-                    : methodExecutor.AsyncResultType;
+                var resultType = (methodExecutor.IsMethodAsync)
+                    ? methodExecutor.AsyncResultType
+                    : methodExecutor.MethodReturnType;
 
+                // TODO: cache reflection for performance, on HubMethodDescriptor maybe?
                 var observableInterface = IsIObservable(resultType) ?
                     resultType :
                     resultType.GetInterfaces().FirstOrDefault(IsIObservable);
