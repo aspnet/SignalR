@@ -14,7 +14,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Http
     {
         /// <summary>
         /// Gets or sets a delegate for wrapping or replacing the <see cref="HttpMessageHandler"/>
-        /// used to make HTTP requests the server.
+        /// that will make HTTP requests the server.
         /// </summary>
         public Func<HttpMessageHandler, HttpMessageHandler> HttpMessageHandler { get; set; }
 

@@ -74,6 +74,12 @@ namespace Microsoft.AspNetCore.SignalR.Client
             return hubConnectionBuilder;
         }
 
+        /// <summary>
+        /// Sets a delegate for wrapping or replacing the <see cref="HttpMessageHandler"/> that will make HTTP requests the server.
+        /// </summary>
+        /// <param name="hubConnectionBuilder">The <see cref="IHubConnectionBuilder"/>.</param>
+        /// <param name="httpMessageHandler">A delegate for wrapping or replacing the <see cref="HttpMessageHandler"/> that will make HTTP requests the server.</param>
+        /// <returns>The <see cref="IHubConnectionBuilder"/>.</returns>
         public static IHubConnectionBuilder WithMessageHandler(this IHubConnectionBuilder hubConnectionBuilder, Func<HttpMessageHandler, HttpMessageHandler> httpMessageHandler)
         {
             hubConnectionBuilder.AddSetting(HttpMessageHandlerKey, httpMessageHandler);
@@ -189,6 +195,11 @@ namespace Microsoft.AspNetCore.SignalR.Client
             return TransportType.All;
         }
 
+        /// <summary>
+        /// Gets a delegate for wrapping or replacing the <see cref="HttpMessageHandler"/> that will make HTTP requests the server.
+        /// </summary>
+        /// <param name="hubConnectionBuilder">The <see cref="IHubConnectionBuilder"/>.</param>
+        /// <returns>A delegate for wrapping or replacing the <see cref="HttpMessageHandler"/> that will make HTTP requests the server.</returns>
         public static Func<HttpMessageHandler, HttpMessageHandler> GetMessageHandler(this IHubConnectionBuilder hubConnectionBuilder)
         {
             hubConnectionBuilder.TryGetSetting<Func<HttpMessageHandler, HttpMessageHandler>>(HttpMessageHandlerKey, out var messageHandler);
