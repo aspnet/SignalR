@@ -12,7 +12,12 @@ namespace Microsoft.AspNetCore.Sockets.Client.Http
 {
     public class HttpOptions
     {
+        /// <summary>
+        /// Gets or sets a delegate for wrapping or replacing the <see cref="HttpMessageHandler"/>
+        /// used to make HTTP requests the server.
+        /// </summary>
         public Func<HttpMessageHandler, HttpMessageHandler> HttpMessageHandler { get; set; }
+
         public IReadOnlyCollection<KeyValuePair<string, string>> Headers { get; set; }
         public Func<string> AccessTokenFactory { get; set; }
         public TimeSpan CloseTimeout { get; set; } = TimeSpan.FromSeconds(5);
