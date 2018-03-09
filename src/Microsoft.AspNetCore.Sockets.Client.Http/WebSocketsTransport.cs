@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Net;
 using System.Net.WebSockets;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Sockets.Client.Http;
@@ -181,7 +182,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 #if NETCOREAPP2_1
                     var receiveResult = await socket.ReceiveAsync(memory, CancellationToken.None);
 #else
-                    var isArray = memory.TryGetArray(out var arraySegment);
+                    var isArray = MemoryMarshal.TryGetArray<byte>(memory, out var arraySegment);
                     Debug.Assert(isArray);
 
                     // Exceptions are handled above where the send and receive tasks are being run.
