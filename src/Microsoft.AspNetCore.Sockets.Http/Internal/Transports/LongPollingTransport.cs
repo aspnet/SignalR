@@ -17,27 +17,45 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
         private readonly ILogger _logger;
         private readonly CancellationToken _timeoutToken;
         private readonly string _connectionId;
+        private readonly bool _isFirstRequest;
 
-        public LongPollingTransport(CancellationToken timeoutToken, PipeReader application, string connectionId, ILoggerFactory loggerFactory)
+        public LongPollingTransport(CancellationToken timeoutToken, PipeReader application, string connectionId, ILoggerFactory loggerFactory, bool isFirstRequest = false)
         {
             _timeoutToken = timeoutToken;
             _application = application;
             _connectionId = connectionId;
             _logger = loggerFactory.CreateLogger<LongPollingTransport>();
+            _isFirstRequest = isFirstRequest;
         }
 
         public async Task ProcessRequestAsync(HttpContext context, CancellationToken token)
         {
             try
             {
+                if (_isFirstRequest)
+                {
+                    await context.Response.Body.FlushAsync();
+                }
+
                 var result = await _application.ReadAsync(token);
                 var buffer = result.Buffer;
 
+
+                // IF the buffer is empty and the read result is completed on the first request
+                // we still have to send a 200 because the headers have already been flushed.
                 if (buffer.IsEmpty && result.IsCompleted)
                 {
-                    Log.LongPolling204(_logger);
-                    context.Response.ContentType = "text/plain";
-                    context.Response.StatusCode = StatusCodes.Status204NoContent;
+                    // Complete the ReadAsync by indicating we haven't processed any data yet
+                    // (of course, there is no data because the buffer is empty, but we have to 
+                    // call AdvanceTo after every ReadAsync even if we don't have any data)
+                    _application.AdvanceTo(buffer.Start);
+
+                    if (!_isFirstRequest)
+                    {
+                        Log.LongPolling204(_logger);
+                        context.Response.ContentType = "text/plain";
+                        context.Response.StatusCode = StatusCodes.Status204NoContent;
+                    }
                     return;
                 }
 
@@ -45,10 +63,11 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                 // but it's too late to emit the 204 required by being cancelled.
 
                 Log.LongPollingWritingMessage(_logger, buffer.Length);
-
-                context.Response.ContentLength = buffer.Length;
-                context.Response.ContentType = "application/octet-stream";
-
+                if (!_isFirstRequest)
+                {
+                    context.Response.ContentLength = buffer.Length;
+                    context.Response.ContentType = "application/octet-stream";
+                }
                 try
                 {
                     await context.Response.Body.WriteAsync(buffer);
@@ -73,10 +92,9 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                     Log.LongPollingDisconnected(_logger);
                 }
                 // Case 2
-                else if (_timeoutToken.IsCancellationRequested)
+                else if (_timeoutToken.IsCancellationRequested && !_isFirstRequest)
                 {
                     Log.PollTimedOut(_logger);
-
                     context.Response.ContentLength = 0;
                     context.Response.ContentType = "text/plain";
                     context.Response.StatusCode = StatusCodes.Status200OK;
@@ -84,9 +102,12 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                 else
                 {
                     // Case 3
-                    Log.LongPolling204(_logger);
-                    context.Response.ContentType = "text/plain";
-                    context.Response.StatusCode = StatusCodes.Status204NoContent;
+                    if (!_isFirstRequest)
+                    {
+                        Log.LongPolling204(_logger);
+                        context.Response.ContentType = "text/plain";
+                        context.Response.StatusCode = StatusCodes.Status204NoContent;
+                    }
                 }
             }
             catch (Exception ex)

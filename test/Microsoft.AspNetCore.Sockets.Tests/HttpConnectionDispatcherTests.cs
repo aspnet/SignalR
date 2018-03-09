@@ -397,7 +397,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         }
 
         [Theory]
-        [InlineData(TransportType.LongPolling, 204)]
+        [InlineData(TransportType.LongPolling, 200)]
         [InlineData(TransportType.WebSockets, 404)]
         [InlineData(TransportType.ServerSentEvents, 404)]
         public async Task EndPointThatOnlySupportsLongPollingRejectsOtherTransports(TransportType transportType, int status)
@@ -514,6 +514,9 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 var app = builder.Build();
                 await dispatcher.ExecuteAsync(context, new HttpSocketOptions(), app);
 
+                Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
+
+                await dispatcher.ExecuteAsync(context, new HttpSocketOptions(), app);
                 Assert.Equal(StatusCodes.Status204NoContent, context.Response.StatusCode);
 
                 bool exists = manager.TryGetConnection(connection.ConnectionId, out _);
@@ -636,13 +639,15 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 builder.UseEndPoint<TestEndPoint>();
                 var app = builder.Build();
                 var options = new HttpSocketOptions();
+                _ = dispatcher.ExecuteAsync(context1, options, app);
+
+                Assert.Equal(StatusCodes.Status200OK, context1.Response.StatusCode);
+
                 var request1 = dispatcher.ExecuteAsync(context1, options, app);
                 var request2 = dispatcher.ExecuteAsync(context2, options, app);
-
                 await request1;
 
                 Assert.Equal(StatusCodes.Status204NoContent, context1.Response.StatusCode);
-                Assert.Equal(DefaultConnectionContext.ConnectionStatus.Active, connection.Status);
 
                 Assert.False(request2.IsCompleted);
 
@@ -774,9 +779,18 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 // Write to the application
                 await connection.Application.Output.WriteAsync(buffer);
 
-                await task;
+                // The first request will produce a response with a status code of 200.
+                Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
+
+                task = dispatcher.ExecuteAsync(context, options, app);
+
+                await connection.Application.Output.WriteAsync(buffer);
+
 
                 Assert.Equal(StatusCodes.Status204NoContent, context.Response.StatusCode);
+
+                await task;
+
                 bool exists = manager.TryGetConnection(connection.ConnectionId, out _);
                 Assert.False(exists);
             }
@@ -813,7 +827,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 await task2.OrTimeout();
 
                 // Verify the results
-                Assert.Equal(StatusCodes.Status204NoContent, context1.Response.StatusCode);
+                Assert.Equal(StatusCodes.Status200OK, context1.Response.StatusCode);
                 Assert.Equal(string.Empty, GetContentAsString(context1.Response.Body));
                 Assert.Equal(StatusCodes.Status200OK, context2.Response.StatusCode);
                 Assert.Equal("Hello, World", GetContentAsString(context2.Response.Body));

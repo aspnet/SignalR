@@ -10,6 +10,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
     public class TestHttpMessageHandler : HttpMessageHandler
     {
         private Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> _handler;
+        public bool IsFirstRequest = true;
 
         public TestHttpMessageHandler(bool autoNegotiate = true)
         {
@@ -28,20 +29,28 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             return await _handler(request, cancellationToken);
         }
 
-        public static HttpMessageHandler CreateDefault()
+        public static TestHttpMessageHandler CreateDefault(bool handleSend = true)
         {
             var testHttpMessageHandler = new TestHttpMessageHandler();
 
-            testHttpMessageHandler.OnSocketSend((_, __) => ResponseUtils.CreateResponse(HttpStatusCode.Accepted));
+            if (handleSend)
+            {
+                testHttpMessageHandler.OnSocketSend((_, __) => ResponseUtils.CreateResponse(HttpStatusCode.Accepted));
+            }
             testHttpMessageHandler.OnLongPoll(async cancellationToken =>
             {
-                // Just block until canceled
-                var tcs = new TaskCompletionSource<object>();
-                using (cancellationToken.Register(() => tcs.TrySetResult(null)))
+                if (!testHttpMessageHandler.IsFirstRequest)
                 {
-                    await tcs.Task;
+                    // Just block until canceled
+                    var tcs = new TaskCompletionSource<object>();
+                    using (cancellationToken.Register(() => tcs.TrySetResult(null)))
+                    {
+                        await tcs.Task;
+                    }
+                    return ResponseUtils.CreateResponse(HttpStatusCode.NoContent);
                 }
-                return ResponseUtils.CreateResponse(HttpStatusCode.NoContent);
+                testHttpMessageHandler.IsFirstRequest = false;
+                return ResponseUtils.CreateResponse(HttpStatusCode.OK);
             });
 
             return testHttpMessageHandler;
@@ -80,6 +89,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
         public void OnNegotiate(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> handler)
         {
+            IsFirstRequest = true;
             OnRequest((request, next, cancellationToken) =>
             {
                 if (ResponseUtils.IsNegotiateRequest(request))
@@ -99,12 +109,16 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         {
             OnRequest((request, next, cancellationToken) =>
             {
-                if (request.Method.Equals(HttpMethod.Get) && request.RequestUri.PathAndQuery.StartsWith("/?id="))
+                if (request.Method.Equals(HttpMethod.Get) && request.RequestUri.Query.Contains("id="))
                 {
                     return handler(cancellationToken);
                 }
                 else
                 {
+                    if (request.Method.Equals(HttpMethod.Post) && request.RequestUri.OriginalString.Contains("negotiate"))
+                    {
+                        IsFirstRequest = true;
+                    }
                     return next();
                 }
             });
@@ -116,7 +130,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         {
             OnRequest(async (request, next, cancellationToken) =>
             {
-                if (request.Method.Equals(HttpMethod.Post) && request.RequestUri.PathAndQuery.StartsWith("/?id="))
+                if (request.Method.Equals(HttpMethod.Post) && request.RequestUri.PathAndQuery.Contains("id="))
                 {
                     var data = await request.Content.ReadAsByteArrayAsync();
                     return await handler(data, cancellationToken);

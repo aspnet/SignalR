@@ -149,7 +149,7 @@ namespace Microsoft.AspNetCore.Client.Tests
         }
 
         [Fact]
-        public async Task LongPollingTransportStopsWhenPollRequestFails()
+        public async Task LongPollingTransportFailsToStartWhenPollRequestFails()
         {
             var mockHttpHandler = new Mock<HttpMessageHandler>();
             mockHttpHandler.Protected()
@@ -166,17 +166,11 @@ namespace Microsoft.AspNetCore.Client.Tests
                 try
                 {
                     var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
-                    await longPollingTransport.StartAsync(new Uri("http://fakeuri.org"), pair.Application, TransferFormat.Binary, connection: new TestConnection());
 
                     var exception =
                         await Assert.ThrowsAsync<HttpRequestException>(async () =>
                         {
-                            async Task ReadAsync()
-                            {
-                                await pair.Transport.Input.ReadAsync();
-                            }
-
-                            await ReadAsync().OrTimeout();
+                            await longPollingTransport.StartAsync(new Uri("http://fakeuri.org"), pair.Application, TransferFormat.Binary, connection: new TestConnection()).OrTimeout();
                         });
                     Assert.Contains(" 500 ", exception.Message);
                 }

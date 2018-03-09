@@ -176,6 +176,7 @@ namespace Microsoft.AspNetCore.Sockets
                         return;
                     }
 
+                    var isFirstRequest = false;
                     if (connection.Status == DefaultConnectionContext.ConnectionStatus.Active)
                     {
                         var existing = connection.GetHttpContext();
@@ -199,6 +200,8 @@ namespace Microsoft.AspNetCore.Sockets
                     // Raise OnConnected for new connections only since polls happen all the time
                     if (connection.ApplicationTask == null)
                     {
+                        isFirstRequest = true;
+
                         Log.EstablishedConnection(_logger);
 
                         connection.Items[ConnectionMetadataNames.Transport] = TransportType.LongPolling;
@@ -220,7 +223,7 @@ namespace Microsoft.AspNetCore.Sockets
                     context.Response.RegisterForDispose(timeoutSource);
                     context.Response.RegisterForDispose(tokenSource);
 
-                    var longPolling = new LongPollingTransport(timeoutSource.Token, connection.Application.Input, connection.ConnectionId, _loggerFactory);
+                    var longPolling = new LongPollingTransport(timeoutSource.Token, connection.Application.Input, connection.ConnectionId, _loggerFactory, isFirstRequest);
 
                     // Start the transport
                     connection.TransportTask = longPolling.ProcessRequestAsync(context, tokenSource.Token);

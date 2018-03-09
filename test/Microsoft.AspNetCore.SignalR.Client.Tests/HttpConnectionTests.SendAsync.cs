@@ -21,12 +21,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 var data = new byte[] { 1, 1, 2, 3, 5, 8 };
 
-                var testHttpHandler = new TestHttpMessageHandler();
+                var testHttpHandler = TestHttpMessageHandler.CreateDefault(handleSend: false);
 
                 var sendTcs = new TaskCompletionSource<byte[]>();
                 var longPollTcs = new TaskCompletionSource<HttpResponseMessage>();
 
-                testHttpHandler.OnLongPoll(cancellationToken => longPollTcs.Task);
 
                 testHttpHandler.OnSocketSend((buf, cancellationToken) =>
                 {
@@ -96,16 +95,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             [Fact]
             public async Task ExceptionOnSendAsyncClosesWithError()
             {
-                var testHttpHandler = new TestHttpMessageHandler();
-
-                var longPollTcs = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-                testHttpHandler.OnLongPoll(cancellationToken =>
-                {
-                    cancellationToken.Register(() => longPollTcs.TrySetResult(null));
-
-                    return longPollTcs.Task;
-                });
+                var testHttpHandler = TestHttpMessageHandler.CreateDefault(handleSend:false);
 
                 testHttpHandler.OnSocketSend((buf, cancellationToken) =>
                 {
