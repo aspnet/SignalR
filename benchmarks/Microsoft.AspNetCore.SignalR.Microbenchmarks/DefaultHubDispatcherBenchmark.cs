@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.IO.Pipelines;
 using System.Reactive.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Attributes.Jobs;
+using BenchmarkDotNet.Engines;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Protocols;
 using Microsoft.AspNetCore.SignalR.Internal;
@@ -13,10 +16,12 @@ using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 using DefaultConnectionContext = Microsoft.AspNetCore.Sockets.DefaultConnectionContext;
 
 namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
 {
+    //[SimpleJob(RunStrategy.Throughput, launchCount: 1, invocationCount: 10)]
     public class DefaultHubDispatcherBenchmark
     {
         private DefaultHubDispatcher<TestHub> _dispatcher;
@@ -41,12 +46,32 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             var pair = DuplexPipe.CreateConnectionPair(options, options);
             var connection = new DefaultConnectionContext(Guid.NewGuid().ToString(), pair.Transport, pair.Application);
 
-            _connectionContext = new HubConnectionContext(connection, TimeSpan.Zero, NullLoggerFactory.Instance);
+            _connectionContext = new NoErrorHubConnectionContext(connection, TimeSpan.Zero, NullLoggerFactory.Instance);
 
-            var hubProtocol = Moq.Mock.Of<IHubProtocol>();
-            var dataEncoder = Moq.Mock.Of<IDataEncoder>();
+            var hubProtocolMock = new Mock<IHubProtocol>();
+            var dataEncoder = Mock.Of<IDataEncoder>();
 
-            _connectionContext.ProtocolReaderWriter = new HubProtocolReaderWriter(hubProtocol, dataEncoder);
+            _connectionContext.ProtocolReaderWriter = new HubProtocolReaderWriter(hubProtocolMock.Object, dataEncoder);
+        }
+
+        public class NoErrorHubConnectionContext : HubConnectionContext
+        {
+            public NoErrorHubConnectionContext(ConnectionContext connectionContext, TimeSpan keepAliveInterval, ILoggerFactory loggerFactory) : base(connectionContext, keepAliveInterval, loggerFactory)
+            {
+            }
+
+            public override Task WriteAsync(HubMessage message)
+            {
+                if (message is CompletionMessage completionMessage)
+                {
+                    if (!string.IsNullOrEmpty(completionMessage.Error))
+                    {
+                        throw new Exception("Error invoking hub method: " + completionMessage.Error);
+                    }
+                }
+
+                return Task.CompletedTask;
+            }
         }
 
         public class TestHub : Hub
@@ -55,9 +80,9 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             {
             }
 
-            public async Task InvocationAsync()
+            public Task InvocationAsync()
             {
-                await Task.Yield();
+                return Task.CompletedTask;
             }
 
             public int InvocationReturnValue()
@@ -65,16 +90,14 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
                 return 1;
             }
 
-            public async Task<int> InvocationReturnAsync()
+            public Task<int> InvocationReturnAsync()
             {
-                await Task.Yield();
-                return 1;
+                return Task.FromResult(1);
             }
 
-            public async ValueTask<int> InvocationValueTaskAsync()
+            public ValueTask<int> InvocationValueTaskAsync()
             {
-                await Task.Yield();
-                return 1;
+                return new ValueTask<int>(1);
             }
 
             public IObservable<int> SteamObservable()
@@ -82,16 +105,14 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
                 return Observable.Empty<int>();
             }
 
-            public async Task<IObservable<int>> SteamObservableAsync()
+            public Task<IObservable<int>> SteamObservableAsync()
             {
-                await Task.Yield();
-                return Observable.Empty<int>();
+                return Task.FromResult(Observable.Empty<int>());
             }
 
-            public async ValueTask<IObservable<int>> SteamObservableValueTaskAsync()
+            public ValueTask<IObservable<int>> SteamObservableValueTaskAsync()
             {
-                await Task.Yield();
-                return Observable.Empty<int>();
+                return new ValueTask<IObservable<int>>(Observable.Empty<int>());
             }
         }
 
