@@ -267,7 +267,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         private static async Task<object> ExecuteHubMethod(ObjectMethodExecutor methodExecutor, THub hub, object[] arguments)
         {
-            // ReadableChannel is awaitable but we don't want to await it.
             if (methodExecutor.IsMethodAsync)
             {
                 if (methodExecutor.MethodReturnType == typeof(Task))
