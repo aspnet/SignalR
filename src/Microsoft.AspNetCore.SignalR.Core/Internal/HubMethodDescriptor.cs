@@ -13,14 +13,13 @@ using Microsoft.Extensions.Internal;
 
 namespace Microsoft.AspNetCore.SignalR.Internal
 {
-    // REVIEW: We can decide to move this out of here if we want pluggable hub discovery
     internal class HubMethodDescriptor
     {
-        private static readonly MethodInfo _fromObservableMethod = typeof(AsyncEnumeratorAdapters)
+        private static readonly MethodInfo FromObservableMethod = typeof(AsyncEnumeratorAdapters)
             .GetRuntimeMethods()
-            .Single(m => m.Name.Equals(nameof(FromObservable)) && m.IsGenericMethod);
+            .Single(m => m.Name.Equals(nameof(AsyncEnumeratorAdapters.FromObservable)) && m.IsGenericMethod);
 
-        private static readonly MethodInfo _getAsyncEnumeratorMethod = typeof(AsyncEnumeratorAdapters)
+        private static readonly MethodInfo GetAsyncEnumeratorMethod = typeof(AsyncEnumeratorAdapters)
             .GetRuntimeMethods()
             .Single(m => m.Name.Equals(nameof(AsyncEnumeratorAdapters.GetAsyncEnumerator)) && m.IsGenericMethod);
 
@@ -45,6 +44,24 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 StreamReturnType = channelItemType;
             }
         }
+
+        private Func<object, CancellationToken, IAsyncEnumerator<object>> _convertToEnumerator;
+
+        public ObjectMethodExecutor MethodExecutor { get; }
+
+        public IReadOnlyList<Type> ParameterTypes { get; }
+
+        public Type NonAsyncReturnType { get; }
+
+        public bool IsObservable { get; }
+
+        public bool IsChannel { get; }
+
+        public bool IsStreamable => IsObservable || IsChannel;
+
+        public Type StreamReturnType { get; }
+
+        public IList<IAuthorizeData> Policies { get; }
 
         private static bool IsChannelType(Type type, out Type payloadType)
         {
@@ -81,7 +98,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         {
             if (_convertToEnumerator == null)
             {
-                _convertToEnumerator = CreateConversionMethod(_fromObservableMethod.MakeGenericMethod(StreamReturnType));
+                _convertToEnumerator = CompileConvertToEnumerator(FromObservableMethod);
             }
 
             return _convertToEnumerator.Invoke(observable, cancellationToken);
@@ -91,46 +108,42 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         {
             if (_convertToEnumerator == null)
             {
-                _convertToEnumerator = CreateConversionMethod(_getAsyncEnumeratorMethod.MakeGenericMethod(StreamReturnType));
+                _convertToEnumerator = CompileConvertToEnumerator(GetAsyncEnumeratorMethod);
             }
 
             return _convertToEnumerator.Invoke(channel, cancellationToken);
         }
 
-        private Func<object, CancellationToken, IAsyncEnumerator<object>> CreateConversionMethod(MethodInfo methodInfo)
+        private Func<object, CancellationToken, IAsyncEnumerator<object>> CompileConvertToEnumerator(MethodInfo methodInfo)
         {
-            var methodParameters = methodInfo.GetParameters();
+            // This will call one of two methods to wrap the passed in streamable value
+            // and cancellation token to an IAsyncEnumerator<object>
+            //
+            // IObservable<T>:
+            // AsyncEnumeratorAdapters.FromObservable<T>(observable, cancellationToken);
+            //
+            // ChannelReader<T>
+            // AsyncEnumeratorAdapters.GetAsyncEnumerator<T>(channelReader, cancellationToken);
+
+            var genericMethodInfo = methodInfo.MakeGenericMethod(StreamReturnType);
+
+            var methodParameters = genericMethodInfo.GetParameters();
 
             var targetParameter = Expression.Parameter(typeof(object), "arg1");
             var parametersParameter = Expression.Parameter(typeof(CancellationToken), "arg2");
 
             var parameters = new List<Expression>
-                {
-                    Expression.Convert(targetParameter, methodParameters[0].ParameterType),
-                    parametersParameter
-                };
+            {
+                Expression.Convert(targetParameter, methodParameters[0].ParameterType),
+                parametersParameter
+            };
 
-            var methodCall = Expression.Call(null, methodInfo, parameters);
+            var methodCall = Expression.Call(null, genericMethodInfo, parameters);
 
             var castMethodCall = Expression.Convert(methodCall, typeof(IAsyncEnumerator<object>));
+
             var lambda = Expression.Lambda<Func<object, CancellationToken, IAsyncEnumerator<object>>>(castMethodCall, targetParameter, parametersParameter);
             return lambda.Compile();
         }
-
-        private Func<object, CancellationToken, IAsyncEnumerator<object>> _convertToEnumerator;
-
-        public ObjectMethodExecutor MethodExecutor { get; }
-
-        public IReadOnlyList<Type> ParameterTypes { get; }
-
-        public Type NonAsyncReturnType { get; }
-
-        public bool IsObservable { get; }
-
-        public bool IsChannel { get; }
-
-        public Type StreamReturnType { get; }
-
-        public IList<IAuthorizeData> Policies { get; }
     }
 }

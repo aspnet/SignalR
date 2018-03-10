@@ -327,8 +327,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         private async Task<bool> ValidateInvocationMode(HubMethodDescriptor hubMethodDescriptor, bool isStreamedInvocation,
             HubMethodInvocationMessage hubMethodInvocationMessage, HubConnectionContext connection)
         {
-            var isStreamedResult = hubMethodDescriptor.IsObservable || hubMethodDescriptor.IsChannel;
-            if (isStreamedResult && !isStreamedInvocation)
+            if (hubMethodDescriptor.IsStreamable && !isStreamedInvocation)
             {
                 // Non-null/empty InvocationId? Blocking
                 if (!string.IsNullOrEmpty(hubMethodInvocationMessage.InvocationId))
@@ -341,7 +340,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 return false;
             }
 
-            if (!isStreamedResult && isStreamedInvocation)
+            if (!hubMethodDescriptor.IsStreamable && isStreamedInvocation)
             {
                 Log.NonStreamingMethodCalledWithStream(_logger, hubMethodInvocationMessage);
                 await connection.WriteAsync(CompletionMessage.WithError(hubMethodInvocationMessage.InvocationId,
