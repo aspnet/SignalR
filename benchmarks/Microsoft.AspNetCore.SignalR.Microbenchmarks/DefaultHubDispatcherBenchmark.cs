@@ -22,7 +22,6 @@ using DefaultConnectionContext = Microsoft.AspNetCore.Sockets.DefaultConnectionC
 
 namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
 {
-    //[SimpleJob(RunStrategy.Throughput, launchCount: 1, invocationCount: 10)]
     public class DefaultHubDispatcherBenchmark
     {
         private DefaultHubDispatcher<TestHub> _dispatcher;
