@@ -26,15 +26,22 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public void NotAddingSignalRServiceThrows()
         {
-            var ex = Assert.Throws<InvalidOperationException>(() =>
+            Exception ex = null;
+            var t = new WebHostBuilder()
+            .UseKestrel()
+            .Configure(app =>
             {
-                using (var builder = BuildWebHostWithOutSignalR(options => options.MapHub<AuthHub>("/overloads")))
-                {
-                    builder.Start();
-                }
-            });
+                ex = Assert.Throws<InvalidOperationException>(() => {
+                    app.UseSignalR(options =>
+                    {
+                        options.MapHub<AuthHub>("/overloads");
+                    });
+                });
 
-            Assert.Equal("The SignalR service needs to be registered", ex.Message);
+                Assert.Equal("Unable to find the SignalR service. Please add it by calling 'IServiceCollection.AddSignalR()'.", ex.Message);
+            })
+            .Build();
+
         }
 
         [Fact]

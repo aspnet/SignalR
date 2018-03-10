@@ -14,7 +14,8 @@ namespace Microsoft.AspNetCore.Builder
             var marker = app.ApplicationServices.GetService(typeof(SignalRMarkerService));
             if (marker == null)
             {
-                throw new InvalidOperationException("The SignalR service needs to be registered");
+                throw new InvalidOperationException("Unable to find the SignalR service. Please add it by " +
+                    "calling 'IServiceCollection.AddSignalR()'");
             }
 
             app.UseSockets(routes =>

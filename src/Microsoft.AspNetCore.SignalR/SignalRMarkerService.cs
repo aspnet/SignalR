@@ -3,7 +3,7 @@
 
 namespace Microsoft.Extensions.DependencyInjection
 {
-    class SignalRMarkerService
+    internal class SignalRMarkerService
     {
     }
 }
