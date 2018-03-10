@@ -26,12 +26,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public void NotAddingSignalRServiceThrows()
         {
-            Exception ex = null;
             var t = new WebHostBuilder()
             .UseKestrel()
             .Configure(app =>
             {
-                ex = Assert.Throws<InvalidOperationException>(() => {
+                var ex = Assert.Throws<InvalidOperationException>(() => {
                     app.UseSignalR(options =>
                     {
                         options.MapHub<AuthHub>("/overloads");
@@ -122,17 +121,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 {
                     services.AddSignalR();
                 })
-                .Configure(app =>
-                {
-                    app.UseSignalR(options => configure(options));
-                })
-                .Build();
-        }
-
-        private IWebHost BuildWebHostWithOutSignalR(Action<HubRouteBuilder> configure)
-        {
-            return new WebHostBuilder()
-                .UseKestrel()
                 .Configure(app =>
                 {
                     app.UseSignalR(options => configure(options));

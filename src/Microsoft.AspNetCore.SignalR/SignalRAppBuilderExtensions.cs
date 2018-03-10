@@ -15,7 +15,7 @@ namespace Microsoft.AspNetCore.Builder
             if (marker == null)
             {
                 throw new InvalidOperationException("Unable to find the SignalR service. Please add it by " +
-                    "calling 'IServiceCollection.AddSignalR()'");
+                    "calling 'IServiceCollection.AddSignalR()'.");
             }
 
             app.UseSockets(routes =>
