@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
+using System;
 using System.IO.Pipelines;
 using System.Reactive.Linq;
 using System.Threading.Channels;
@@ -71,7 +74,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         public class TestHub : Hub
         {
             private static readonly IObservable<int> ObservableInstance = Observable.Empty<int>();
-            private static readonly ChannelReader<int> ChannelReaderInstance = Channel.CreateBounded<int>(0);
+            private static readonly ChannelReader<int> ChannelReaderInstance = Channel.CreateUnbounded<int>();
 
             public void Invocation()
             {
@@ -97,32 +100,32 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
                 return new ValueTask<int>(1);
             }
 
-            public IObservable<int> SteamObservable()
+            public IObservable<int> StreamObservable()
             {
                 return ObservableInstance;
             }
 
-            public Task<IObservable<int>> SteamObservableAsync()
+            public Task<IObservable<int>> StreamObservableAsync()
             {
                 return Task.FromResult(ObservableInstance);
             }
 
-            public ValueTask<IObservable<int>> SteamObservableValueTaskAsync()
+            public ValueTask<IObservable<int>> StreamObservableValueTaskAsync()
             {
                 return new ValueTask<IObservable<int>>(ObservableInstance);
             }
 
-            public ChannelReader<int> SteamChannelReader()
+            public ChannelReader<int> StreamChannelReader()
             {
                 return ChannelReaderInstance;
             }
 
-            public Task<ChannelReader<int>> SteamChannelReaderAsync()
+            public Task<ChannelReader<int>> StreamChannelReaderAsync()
             {
                 return Task.FromResult(ChannelReaderInstance);
             }
 
-            public ValueTask<ChannelReader<int>> SteamChannelReaderValueTaskAsync()
+            public ValueTask<ChannelReader<int>> StreamChannelReaderValueTaskAsync()
             {
                 return new ValueTask<ChannelReader<int>>(ChannelReaderInstance);
             }
@@ -159,39 +162,39 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         }
 
         [Benchmark]
-        public Task SteamObservable()
+        public Task StreamObservable()
         {
-            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "SteamObservable", null));
+            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "StreamObservable", null));
         }
 
         [Benchmark]
-        public Task SteamObservableAsync()
+        public Task StreamObservableAsync()
         {
-            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "SteamObservableAsync", null));
+            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "StreamObservableAsync", null));
         }
 
         [Benchmark]
-        public Task SteamObservableValueTaskAsync()
+        public Task StreamObservableValueTaskAsync()
         {
-            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "SteamObservableValueTaskAsync", null));
+            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "StreamObservableValueTaskAsync", null));
         }
 
         [Benchmark]
-        public Task SteamChannelReader()
+        public Task StreamChannelReader()
         {
-            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "SteamObservable", null));
+            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "StreamObservable", null));
         }
 
         [Benchmark]
-        public Task SteamChannelReaderAsync()
+        public Task StreamChannelReaderAsync()
         {
-            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "SteamObservableAsync", null));
+            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "StreamObservableAsync", null));
         }
 
         [Benchmark]
-        public Task SteamChannelReaderValueTaskAsync()
+        public Task StreamChannelReaderValueTaskAsync()
         {
-            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "SteamObservableValueTaskAsync", null));
+            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "StreamObservableValueTaskAsync", null));
         }
     }
 }
