@@ -4,6 +4,7 @@ using System.IO;
 using System.IO.Pipelines;
 using System.Reactive.Linq;
 using System.Text;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Attributes.Jobs;
@@ -76,6 +77,9 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
 
         public class TestHub : Hub
         {
+            private static readonly IObservable<int> ObservableInstance = Observable.Empty<int>();
+            private static readonly ChannelReader<int> ChannelReaderInstance = Channel.CreateBounded<int>(0);
+
             public void Invocation()
             {
             }
@@ -102,25 +106,32 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
 
             public IObservable<int> SteamObservable()
             {
-                return Observable.Empty<int>();
+                return ObservableInstance;
             }
 
             public Task<IObservable<int>> SteamObservableAsync()
             {
-                return Task.FromResult(Observable.Empty<int>());
+                return Task.FromResult(ObservableInstance);
             }
 
             public ValueTask<IObservable<int>> SteamObservableValueTaskAsync()
             {
-                return new ValueTask<IObservable<int>>(Observable.Empty<int>());
+                return new ValueTask<IObservable<int>>(ObservableInstance);
             }
-        }
 
-        public class TestServiceScopeFactory : IServiceScopeFactory
-        {
-            public IServiceScope CreateScope()
+            public ChannelReader<int> SteamChannelReader()
             {
-                return null;
+                return ChannelReaderInstance;
+            }
+
+            public Task<ChannelReader<int>> SteamChannelReaderAsync()
+            {
+                return Task.FromResult(ChannelReaderInstance);
+            }
+
+            public ValueTask<ChannelReader<int>> SteamChannelReaderValueTaskAsync()
+            {
+                return new ValueTask<ChannelReader<int>>(ChannelReaderInstance);
             }
         }
 
@@ -172,11 +183,22 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "SteamObservableValueTaskAsync", null));
         }
 
-        //public IObservable<int> Stream(int count) => TestHubMethodsImpl.Stream(count);
+        [Benchmark]
+        public Task SteamChannelReader()
+        {
+            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "SteamObservable", null));
+        }
 
-        //public ChannelReader<int> StreamException() => TestHubMethodsImpl.StreamException();
+        [Benchmark]
+        public Task SteamChannelReaderAsync()
+        {
+            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "SteamObservableAsync", null));
+        }
 
-        //public ChannelReader<string> StreamBroken() => TestHubMethodsImpl.StreamBroken();
-
+        [Benchmark]
+        public Task SteamChannelReaderValueTaskAsync()
+        {
+            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "SteamObservableValueTaskAsync", null));
+        }
     }
 }
