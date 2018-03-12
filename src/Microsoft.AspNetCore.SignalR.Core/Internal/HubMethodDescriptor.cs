@@ -96,9 +96,10 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         public IAsyncEnumerator<object> FromObservable(object observable, CancellationToken cancellationToken)
         {
+            // there is the potential for compile to be called times but this has no harmful effect other than perf
             if (_convertToEnumerator == null)
             {
-                _convertToEnumerator = CompileConvertToEnumerator(FromObservableMethod);
+                _convertToEnumerator = CompileConvertToEnumerator(FromObservableMethod, StreamReturnType);
             }
 
             return _convertToEnumerator.Invoke(observable, cancellationToken);
@@ -106,17 +107,18 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         public IAsyncEnumerator<object> FromChannel(object channel, CancellationToken cancellationToken)
         {
+            // there is the potential for compile to be called times but this has no harmful effect other than perf
             if (_convertToEnumerator == null)
             {
-                _convertToEnumerator = CompileConvertToEnumerator(GetAsyncEnumeratorMethod);
+                _convertToEnumerator = CompileConvertToEnumerator(GetAsyncEnumeratorMethod, StreamReturnType);
             }
 
             return _convertToEnumerator.Invoke(channel, cancellationToken);
         }
 
-        private Func<object, CancellationToken, IAsyncEnumerator<object>> CompileConvertToEnumerator(MethodInfo methodInfo)
+        private static Func<object, CancellationToken, IAsyncEnumerator<object>> CompileConvertToEnumerator(MethodInfo adapterMethodInfo, Type streamReturnType)
         {
-            // This will call one of two methods to wrap the passed in streamable value
+            // This will call one of two adapter methods to wrap the passed in streamable value
             // and cancellation token to an IAsyncEnumerator<object>
             //
             // IObservable<T>:
@@ -125,10 +127,12 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             // ChannelReader<T>
             // AsyncEnumeratorAdapters.GetAsyncEnumerator<T>(channelReader, cancellationToken);
 
-            var genericMethodInfo = methodInfo.MakeGenericMethod(StreamReturnType);
+            var genericMethodInfo = adapterMethodInfo.MakeGenericMethod(streamReturnType);
 
             var methodParameters = genericMethodInfo.GetParameters();
 
+            // arg1 and arg2 are the parameter names on Func<T1, T2, TReturn>
+            // we reference these values and then use them to call adaptor method
             var targetParameter = Expression.Parameter(typeof(object), "arg1");
             var parametersParameter = Expression.Parameter(typeof(CancellationToken), "arg2");
 

@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.IO.Pipelines;
 using System.Reactive.Linq;
 using System.Threading.Channels;
@@ -45,10 +47,35 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
 
             _connectionContext = new NoErrorHubConnectionContext(connection, TimeSpan.Zero, NullLoggerFactory.Instance);
 
-            var hubProtocolMock = new Mock<IHubProtocol>();
-            var dataEncoder = Mock.Of<IDataEncoder>();
+            _connectionContext.ProtocolReaderWriter = new HubProtocolReaderWriter(new FakeHubProtocol(), new FakeDataEncoder());
+        }
 
-            _connectionContext.ProtocolReaderWriter = new HubProtocolReaderWriter(hubProtocolMock.Object, dataEncoder);
+        public class FakeHubProtocol : IHubProtocol
+        {
+            public string Name { get; }
+            public ProtocolType Type { get; }
+
+            public bool TryParseMessages(ReadOnlySpan<byte> input, IInvocationBinder binder, IList<HubMessage> messages)
+            {
+                return false;
+            }
+
+            public void WriteMessage(HubMessage message, Stream output)
+            {
+            }
+        }
+
+        public class FakeDataEncoder : IDataEncoder
+        {
+            public byte[] Encode(byte[] payload)
+            {
+                return null;
+            }
+
+            public bool TryDecode(ref ReadOnlySpan<byte> buffer, out ReadOnlySpan<byte> data)
+            {
+                return false;
+            }
         }
 
         public class NoErrorHubConnectionContext : HubConnectionContext
@@ -74,7 +101,6 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         public class TestHub : Hub
         {
             private static readonly IObservable<int> ObservableInstance = Observable.Empty<int>();
-            private static readonly ChannelReader<int> ChannelReaderInstance = Channel.CreateUnbounded<int>();
 
             public void Invocation()
             {
@@ -117,17 +143,26 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
 
             public ChannelReader<int> StreamChannelReader()
             {
-                return ChannelReaderInstance;
+                var channel = Channel.CreateUnbounded<int>();
+                channel.Writer.Complete();
+
+                return channel;
             }
 
             public Task<ChannelReader<int>> StreamChannelReaderAsync()
             {
-                return Task.FromResult(ChannelReaderInstance);
+                var channel = Channel.CreateUnbounded<int>();
+                channel.Writer.Complete();
+
+                return Task.FromResult<ChannelReader<int>>(channel);
             }
 
             public ValueTask<ChannelReader<int>> StreamChannelReaderValueTaskAsync()
             {
-                return new ValueTask<ChannelReader<int>>(ChannelReaderInstance);
+                var channel = Channel.CreateUnbounded<int>();
+                channel.Writer.Complete();
+
+                return new ValueTask<ChannelReader<int>>(channel);
             }
         }
 
@@ -182,19 +217,19 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         [Benchmark]
         public Task StreamChannelReader()
         {
-            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "StreamObservable", null));
+            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "StreamChannelReader", null));
         }
 
         [Benchmark]
         public Task StreamChannelReaderAsync()
         {
-            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "StreamObservableAsync", null));
+            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "StreamChannelReaderAsync", null));
         }
 
         [Benchmark]
         public Task StreamChannelReaderValueTaskAsync()
         {
-            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "StreamObservableValueTaskAsync", null));
+            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "StreamChannelReaderValueTaskAsync", null));
         }
     }
 }
