@@ -86,10 +86,10 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 LoggerMessage.Define<string, string>(LogLevel.Debug, new EventId(25, "ConnectionStateChanged"), "Connection state changed from {previousState} to {newState}.");
 
             private static readonly Action<ILogger, string, Exception> _transportNotSupported =
-                LoggerMessage.Define<string>(LogLevel.Debug, new EventId(26, "TransportNotSupported"), "Skipping transport {transportName} because it is not supported by this client");
+                LoggerMessage.Define<string>(LogLevel.Debug, new EventId(26, "TransportNotSupported"), "Skipping transport {transportName} because it is not supported by this client.");
 
             private static readonly Action<ILogger, string, string, Exception> _transportDoesNotSupportTransferFormat =
-                LoggerMessage.Define<string, string>(LogLevel.Debug, new EventId(27, "TransportDoesNotSupportTransferFormat"), "Skipping transport {transportName} because it does not support the requested transfer format '{transferFormat}'");
+                LoggerMessage.Define<string, string>(LogLevel.Debug, new EventId(27, "TransportDoesNotSupportTransferFormat"), "Skipping transport {transportName} because it does not support the requested transfer format '{transferFormat}'.");
 
             private static readonly Action<ILogger, string, Exception> _transportDisabledByClient =
                 LoggerMessage.Define<string>(LogLevel.Debug, new EventId(28, "TransportDisabledByClient"), "Skipping transport {transportName} because it was disabled by the client.");
