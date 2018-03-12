@@ -21,10 +21,10 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 HttpMessageHandler = (httpMessageHandler) => httpHandler ?? TestHttpMessageHandler.CreateDefault(),
             };
 
-            return CreateConnection(httpOptions, loggerFactory, url, transport);
+            return CreateConnection(httpOptions, loggerFactory, url, transport, transportFactory);
         }
 
-        private static HttpConnection CreateConnection(HttpOptions httpOptions, ILoggerFactory loggerFactory = null, string url = null, ITransport transport = null)
+        private static HttpConnection CreateConnection(HttpOptions httpOptions, ILoggerFactory loggerFactory = null, string url = null, ITransport transport = null, ITransportFactory transportFactory = null)
         {
             loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
             var uri = new Uri(url ?? "http://fakeuri.org/");

@@ -163,7 +163,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 CreateConnection(httpOptions, url: "http://fakeuri.org/"),
                 async (connection, closed) =>
                 {
-                    await connection.StartAsync().OrTimeout();
+                    await connection.StartAsync(TransferFormat.Text).OrTimeout();
                 });
 
             Assert.NotNull(httpClientHandler);
