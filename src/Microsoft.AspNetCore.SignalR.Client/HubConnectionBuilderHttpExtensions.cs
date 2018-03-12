@@ -78,11 +78,11 @@ namespace Microsoft.AspNetCore.SignalR.Client
         /// Sets a delegate for wrapping or replacing the <see cref="HttpMessageHandler"/> that will make HTTP requests the server.
         /// </summary>
         /// <param name="hubConnectionBuilder">The <see cref="IHubConnectionBuilder"/>.</param>
-        /// <param name="httpMessageHandler">A delegate for wrapping or replacing the <see cref="HttpMessageHandler"/> that will make HTTP requests the server.</param>
+        /// <param name="configurehttpMessageHandler">A delegate for wrapping or replacing the <see cref="HttpMessageHandler"/> that will make HTTP requests the server.</param>
         /// <returns>The <see cref="IHubConnectionBuilder"/>.</returns>
-        public static IHubConnectionBuilder WithMessageHandler(this IHubConnectionBuilder hubConnectionBuilder, Func<HttpMessageHandler, HttpMessageHandler> httpMessageHandler)
+        public static IHubConnectionBuilder WithMessageHandler(this IHubConnectionBuilder hubConnectionBuilder, Func<HttpMessageHandler, HttpMessageHandler> configurehttpMessageHandler)
         {
-            hubConnectionBuilder.AddSetting(HttpMessageHandlerKey, httpMessageHandler);
+            hubConnectionBuilder.AddSetting(HttpMessageHandlerKey, configurehttpMessageHandler);
             return hubConnectionBuilder;
         }
 
