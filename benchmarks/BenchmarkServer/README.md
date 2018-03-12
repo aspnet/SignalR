@@ -11,4 +11,5 @@ It makes it easier to test local changes than having the App in the Benchmarks r
 4. Use the following command as a guideline for running a test using your changes
 
 `dotnet run --clientName signalr --path "/default" --server <server-endpoint> --client <client-endpoint> --properties "Transport=WebSockets" --properties "HubProtocol=messagepack" --connections 10 --duration 20 --warmup 5 --repository signalr@branch-name --projectFile benchmarks/BenchmarkServer/BenchmarkServer.csproj`
+
 5. For more info/commands see https://github.com/aspnet/benchmarks/blob/dev/src/BenchmarksDriver/README.md
