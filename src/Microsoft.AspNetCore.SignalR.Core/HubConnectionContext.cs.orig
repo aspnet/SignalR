@@ -164,6 +164,17 @@ namespace Microsoft.AspNetCore.SignalR
                                 {
                                     Protocol = protocolResolver.GetProtocol(negotiationMessage.Protocol, supportedProtocols, this);
 
+<<<<<<< HEAD
+                                    var transportCapabilities = Features.Get<IConnectionTransportFeature>()?.TransportCapabilities
+                                                                ?? throw new InvalidOperationException("Unable to read transport capabilities.");
+
+                                    var dataEncoder = (protocol.Type == ProtocolType.Binary && (transportCapabilities & TransferMode.Binary) == 0)
+                                        ? (IDataEncoder) Base64Encoder
+                                        : PassThroughEncoder;
+
+                                    var transferModeFeature = Features.Get<ITransferModeFeature>() ??
+                                                              throw new InvalidOperationException("Unable to read transfer mode.");
+=======
                                     // If there's a transfer format feature, we need to check if we're compatible and set the active format.
                                     // If there isn't a feature, it means that the transport supports binary data and doesn't need us to tell them
                                     // what format we're writing.
@@ -174,14 +185,18 @@ namespace Microsoft.AspNetCore.SignalR
                                         {
                                             throw new InvalidOperationException($"Cannot use the '{Protocol.Name}' protocol on the current transport. The transport does not support the '{Protocol.TransferFormat}' transfer mode.");
                                         }
+>>>>>>> dev
 
                                         transferFormatFeature.ActiveFormat = Protocol.TransferFormat;
                                     }
 
                                     _cachedPingMessage = Protocol.WriteToArray(PingMessage.Instance);
 
+<<<<<<< HEAD
+=======
                                     Log.UsingHubProtocol(_logger, Protocol.Name);
 
+>>>>>>> dev
                                     UserIdentifier = userIdProvider.GetUserId(this);
 
                                     if (Features.Get<IConnectionInherentKeepAliveFeature>() == null)

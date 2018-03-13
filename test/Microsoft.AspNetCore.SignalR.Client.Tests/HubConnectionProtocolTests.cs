@@ -96,7 +96,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 await hubConnection.StartAsync();
 
-                var channel = await hubConnection.StreamAsync<object>("Foo");
+                var channel = await hubConnection.StreamAsChannelAsync<object>("Foo");
 
                 // skip negotiation
                 await connection.ReadSentTextMessageAsync().OrTimeout();
@@ -146,7 +146,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 await hubConnection.StartAsync();
 
-                var channel = await hubConnection.StreamAsync<int>("Foo");
+                var channel = await hubConnection.StreamAsChannelAsync<int>("Foo");
 
                 await connection.ReceiveJsonMessage(new { invocationId = "1", type = 3 }).OrTimeout();
 
@@ -213,7 +213,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 await hubConnection.StartAsync();
 
-                var channel = await hubConnection.StreamAsync<string>("Foo");
+                var channel = await hubConnection.StreamAsChannelAsync<string>("Foo");
 
                 await connection.ReceiveJsonMessage(new { invocationId = "1", type = 3, result = "Oops" }).OrTimeout();
 
@@ -236,7 +236,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 await hubConnection.StartAsync();
 
-                var channel = await hubConnection.StreamAsync<int>("Foo");
+                var channel = await hubConnection.StreamAsChannelAsync<int>("Foo");
 
                 await connection.ReceiveJsonMessage(new { invocationId = "1", type = 3, error = "An error occurred" }).OrTimeout();
 
@@ -264,7 +264,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 await connection.ReceiveJsonMessage(new { invocationId = "1", type = 2, item = 42 }).OrTimeout();
 
                 var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => invokeTask).OrTimeout();
-                Assert.Equal("Streaming hub methods must be invoked with the 'HubConnection.StreamAsync' method.", ex.Message);
+                Assert.Equal("Streaming hub methods must be invoked with the 'HubConnection.StreamAsChannelAsync' method.", ex.Message);
             }
             finally
             {
@@ -282,7 +282,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 await hubConnection.StartAsync();
 
-                var channel = await hubConnection.StreamAsync<string>("Foo");
+                var channel = await hubConnection.StreamAsChannelAsync<string>("Foo");
 
                 await connection.ReceiveJsonMessage(new { invocationId = "1", type = 2, item = "1" }).OrTimeout();
                 await connection.ReceiveJsonMessage(new { invocationId = "1", type = 2, item = "2" }).OrTimeout();
@@ -325,75 +325,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         }
 
         [Fact]
-        public async Task MessagesEncodedWhenUsingBinaryProtocolOverTextTransport()
-        {
-            var connection = new TestConnection(TransferMode.Text);
-
-            var hubConnection = new HubConnection(connection,
-                new MessagePackHubProtocol(), new LoggerFactory());
-            try
-            {
-                await hubConnection.StartAsync().OrTimeout();
-                await hubConnection.SendAsync("MyMethod", 42).OrTimeout();
-
-                await connection.ReadSentTextMessageAsync().OrTimeout();
-                var invokeMessage = await connection.ReadSentTextMessageAsync().OrTimeout();
-
-                // The message is in the following format `size:payload;`
-                var parts = invokeMessage.Split(':');
-                Assert.Equal(2, parts.Length);
-                Assert.True(int.TryParse(parts[0], out var payloadSize));
-                Assert.Equal(payloadSize, parts[1].Length - 1);
-                Assert.EndsWith(";", parts[1]);
-
-                // this throws if the message is not a valid base64 string
-                Convert.FromBase64String(parts[1].Substring(0, payloadSize));
-            }
-            finally
-            {
-                await hubConnection.DisposeAsync().OrTimeout();
-                await connection.DisposeAsync().OrTimeout();
-            }
-        }
-
-        [Fact]
-        public async Task MessagesDecodedWhenUsingBinaryProtocolOverTextTransport()
-        {
-            var connection = new TestConnection(TransferMode.Text);
-            var hubConnection = new HubConnection(connection,
-                new MessagePackHubProtocol(), new LoggerFactory());
-
-            var invocationTcs = new TaskCompletionSource<int>();
-            try
-            {
-                await hubConnection.StartAsync().OrTimeout();
-                hubConnection.On<int>("MyMethod", result => invocationTcs.SetResult(result));
-
-                using (var ms = new MemoryStream())
-                {
-                    new MessagePackHubProtocol()
-                        .WriteMessage(new InvocationMessage(null, "MyMethod", null, 42), ms);
-
-                    var invokeMessage = Convert.ToBase64String(ms.ToArray());
-                    var payloadSize = invokeMessage.Length.ToString(CultureInfo.InvariantCulture);
-                    var message = $"{payloadSize}:{invokeMessage};";
-
-                    connection.ReceivedMessages.TryWrite(Encoding.UTF8.GetBytes(message));
-                }
-
-                Assert.Equal(42, await invocationTcs.Task.OrTimeout());
-            }
-            finally
-            {
-                await hubConnection.DisposeAsync().OrTimeout();
-                await connection.DisposeAsync().OrTimeout();
-            }
-        }
-
-        [Fact]
         public async Task AcceptsPingMessages()
         {
-            var connection = new TestConnection(TransferMode.Text);
+            var connection = new TestConnection();
             var hubConnection = new HubConnection(connection,
                 new JsonHubProtocol(), new LoggerFactory());
 

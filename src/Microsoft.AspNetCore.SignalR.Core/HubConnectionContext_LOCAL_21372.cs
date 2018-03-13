@@ -17,7 +17,9 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Protocols;
 using Microsoft.AspNetCore.SignalR.Core;
 using Microsoft.AspNetCore.SignalR.Internal;
+using Microsoft.AspNetCore.SignalR.Internal.Encoders;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
+using Microsoft.AspNetCore.Sockets;
 using Microsoft.AspNetCore.Sockets.Features;
 using Microsoft.Extensions.Logging;
 
@@ -26,6 +28,8 @@ namespace Microsoft.AspNetCore.SignalR
     public class HubConnectionContext
     {
         private static Action<object> _abortedCallback = AbortConnection;
+        private static readonly Base64Encoder Base64Encoder = new Base64Encoder();
+        private static readonly PassThroughEncoder PassThroughEncoder = new PassThroughEncoder();
 
         private readonly ConnectionContext _connectionContext;
         private readonly ILogger _logger;
@@ -59,7 +63,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public string UserIdentifier { get; private set; }
 
-        internal virtual IHubProtocol Protocol { get; set; }
+        internal virtual HubProtocolReaderWriter ProtocolReaderWriter { get; set; }
 
         internal ExceptionDispatchInfo AbortException { get; private set; }
 
@@ -82,7 +86,7 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 // This will internally cache the buffer for each unique HubProtocol/DataEncoder combination
                 // So that we don't serialize the HubMessage for every single connection
-                var buffer = message.WriteMessage(Protocol);
+                var buffer = message.WriteMessage(ProtocolReaderWriter);
                 _connectionContext.Transport.Output.Write(buffer);
 
                 Interlocked.Exchange(ref _lastSendTimestamp, Stopwatch.GetTimestamp());
@@ -162,25 +166,25 @@ namespace Microsoft.AspNetCore.SignalR
                             {
                                 if (NegotiationProtocol.TryParseRequestMessage(buffer, out var negotiationMessage, out consumed, out examined))
                                 {
-                                    Protocol = protocolResolver.GetProtocol(negotiationMessage.Protocol, supportedProtocols, this);
+                                    var protocol = protocolResolver.GetProtocol(negotiationMessage.Protocol, supportedProtocols, this);
 
-                                    // If there's a transfer format feature, we need to check if we're compatible and set the active format.
-                                    // If there isn't a feature, it means that the transport supports binary data and doesn't need us to tell them
-                                    // what format we're writing.
-                                    var transferFormatFeature = Features.Get<ITransferFormatFeature>();
-                                    if (transferFormatFeature != null)
-                                    {
-                                        if ((transferFormatFeature.SupportedFormats & Protocol.TransferFormat) == 0)
-                                        {
-                                            throw new InvalidOperationException($"Cannot use the '{Protocol.Name}' protocol on the current transport. The transport does not support the '{Protocol.TransferFormat}' transfer mode.");
-                                        }
+                                    var transportCapabilities = Features.Get<IConnectionTransportFeature>()?.TransportCapabilities
+                                                                ?? throw new InvalidOperationException("Unable to read transport capabilities.");
 
-                                        transferFormatFeature.ActiveFormat = Protocol.TransferFormat;
-                                    }
+                                    var dataEncoder = (protocol.Type == ProtocolType.Binary && (transportCapabilities & TransferMode.Binary) == 0)
+                                        ? (IDataEncoder) Base64Encoder
+                                        : PassThroughEncoder;
 
-                                    _cachedPingMessage = Protocol.WriteToArray(PingMessage.Instance);
+                                    var transferModeFeature = Features.Get<ITransferModeFeature>() ??
+                                                              throw new InvalidOperationException("Unable to read transfer mode.");
 
-                                    Log.UsingHubProtocol(_logger, Protocol.Name);
+                                    transferModeFeature.TransferMode =
+                                        (protocol.Type == ProtocolType.Binary && (transportCapabilities & TransferMode.Binary) != 0)
+                                            ? TransferMode.Binary
+                                            : TransferMode.Text;
+
+                                    ProtocolReaderWriter = new HubProtocolReaderWriter(protocol, dataEncoder);
+                                    _cachedPingMessage = ProtocolReaderWriter.WriteMessage(PingMessage.Instance);
 
                                     UserIdentifier = userIdProvider.GetUserId(this);
 

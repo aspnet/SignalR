@@ -6,7 +6,6 @@ using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.IO.Pipelines;
 using System.Net;
 using System.Runtime.ExceptionServices;
@@ -17,7 +16,9 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Protocols;
 using Microsoft.AspNetCore.SignalR.Core;
 using Microsoft.AspNetCore.SignalR.Internal;
+using Microsoft.AspNetCore.SignalR.Internal.Encoders;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
+using Microsoft.AspNetCore.Sockets;
 using Microsoft.AspNetCore.Sockets.Features;
 using Microsoft.Extensions.Logging;
 
@@ -26,6 +27,8 @@ namespace Microsoft.AspNetCore.SignalR
     public class HubConnectionContext
     {
         private static Action<object> _abortedCallback = AbortConnection;
+        private static readonly Base64Encoder Base64Encoder = new Base64Encoder();
+        private static readonly PassThroughEncoder PassThroughEncoder = new PassThroughEncoder();
 
         private readonly ConnectionContext _connectionContext;
         private readonly ILogger _logger;
@@ -59,7 +62,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public string UserIdentifier { get; private set; }
 
-        internal virtual IHubProtocol Protocol { get; set; }
+        internal virtual HubProtocolReaderWriter ProtocolReaderWriter { get; set; }
 
         internal ExceptionDispatchInfo AbortException { get; private set; }
 
@@ -82,7 +85,7 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 // This will internally cache the buffer for each unique HubProtocol/DataEncoder combination
                 // So that we don't serialize the HubMessage for every single connection
-                var buffer = message.WriteMessage(Protocol);
+                var buffer = message.WriteMessage(ProtocolReaderWriter);
                 _connectionContext.Transport.Output.Write(buffer);
 
                 Interlocked.Exchange(ref _lastSendTimestamp, Stopwatch.GetTimestamp());
@@ -119,15 +122,6 @@ namespace Microsoft.AspNetCore.SignalR
             }
         }
 
-        private async Task WriteNegotiateResponseAsync(NegotiationResponseMessage message)
-        {
-            MemoryStream ms = new MemoryStream();
-            NegotiationProtocol.WriteResponseMessage(message, ms);
-
-            _connectionContext.Transport.Output.Write(ms.ToArray());
-            await _connectionContext.Transport.Output.FlushAsync();
-        }
-
         public virtual void Abort()
         {
             // If we already triggered the token then noop, this isn't thread safe but it's good enough
@@ -160,47 +154,44 @@ namespace Microsoft.AspNetCore.SignalR
                         {
                             if (!buffer.IsEmpty)
                             {
-                                if (NegotiationProtocol.TryParseRequestMessage(buffer, out var negotiationMessage, out consumed, out examined))
+                                if (NegotiationProtocol.TryParseMessage(buffer, out var negotiationMessage, out consumed, out examined))
                                 {
-                                    Protocol = protocolResolver.GetProtocol(negotiationMessage.Protocol, supportedProtocols, this);
+                                    var protocol = protocolResolver.GetProtocol(negotiationMessage.Protocol, supportedProtocols, this);
 
-                                    // If there's a transfer format feature, we need to check if we're compatible and set the active format.
-                                    // If there isn't a feature, it means that the transport supports binary data and doesn't need us to tell them
-                                    // what format we're writing.
-                                    var transferFormatFeature = Features.Get<ITransferFormatFeature>();
-                                    if (transferFormatFeature != null)
-                                    {
-                                        if ((transferFormatFeature.SupportedFormats & Protocol.TransferFormat) == 0)
-                                        {
-                                            throw new InvalidOperationException($"Cannot use the '{Protocol.Name}' protocol on the current transport. The transport does not support the '{Protocol.TransferFormat}' transfer mode.");
-                                        }
+                                    var transportCapabilities = Features.Get<IConnectionTransportFeature>()?.TransportCapabilities
+                                        ?? throw new InvalidOperationException("Unable to read transport capabilities.");
 
-                                        transferFormatFeature.ActiveFormat = Protocol.TransferFormat;
-                                    }
+                                    var dataEncoder = (protocol.Type == ProtocolType.Binary && (transportCapabilities & TransferMode.Binary) == 0)
+                                        ? (IDataEncoder)Base64Encoder
+                                        : PassThroughEncoder;
 
-                                    _cachedPingMessage = Protocol.WriteToArray(PingMessage.Instance);
+                                    var transferModeFeature = Features.Get<ITransferModeFeature>() ??
+                                        throw new InvalidOperationException("Unable to read transfer mode.");
 
-                                    Log.UsingHubProtocol(_logger, Protocol.Name);
+                                    transferModeFeature.TransferMode =
+                                        (protocol.Type == ProtocolType.Binary && (transportCapabilities & TransferMode.Binary) != 0)
+                                            ? TransferMode.Binary
+                                            : TransferMode.Text;
+
+                                    ProtocolReaderWriter = new HubProtocolReaderWriter(protocol, dataEncoder);
+                                    _cachedPingMessage = ProtocolReaderWriter.WriteMessage(PingMessage.Instance);
+
+                                    Log.UsingHubProtocol(_logger, protocol.Name);
 
                                     UserIdentifier = userIdProvider.GetUserId(this);
 
                                     if (Features.Get<IConnectionInherentKeepAliveFeature>() == null)
                                     {
                                         // Only register KeepAlive after protocol negotiated otherwise KeepAliveTick could try to write without having a ProtocolReaderWriter
-                                        Features.Get<IConnectionHeartbeatFeature>()?.OnHeartbeat(state => ((HubConnectionContext) state).KeepAliveTick(), this);
+                                        Features.Get<IConnectionHeartbeatFeature>()?.OnHeartbeat(state => ((HubConnectionContext)state).KeepAliveTick(), this);
                                     }
 
-                                    Log.NegotiateComplete(_logger, protocol.Name);
-                                    await WriteNegotiateResponseAsync(new NegotiationResponseMessage(null));
                                     return true;
                                 }
                             }
                             else if (result.IsCompleted)
                             {
-                                // connection was closed before we every received a response
-                                // can't send a negotiate response because there is no longer a connection
-                                Log.NegotiateFailed(_logger, null);
-                                return false;
+                                break;
                             }
                         }
                         finally
@@ -213,15 +204,9 @@ namespace Microsoft.AspNetCore.SignalR
             catch (OperationCanceledException)
             {
                 Log.NegotiateCanceled(_logger);
-                await WriteNegotiateResponseAsync(new NegotiationResponseMessage("Negotiate was canceled."));
-                return false;
             }
-            catch (Exception ex)
-            {
-                Log.NegotiateFailed(_logger, ex);
-                await WriteNegotiateResponseAsync(new NegotiationResponseMessage($"An unexpected error occurred negotiating connection. {ex.GetType().Name}: {ex.Message}"));
-                return false;
-            }
+
+            return false;
         }
 
         internal void Abort(Exception exception)
@@ -278,8 +263,8 @@ namespace Microsoft.AspNetCore.SignalR
         private static class Log
         {
             // Category: HubConnectionContext
-            private static readonly Action<ILogger, string, Exception> _negotiateComplete =
-                LoggerMessage.Define<string>(LogLevel.Information, new EventId(1, "NegotiateComplete"), "Successfully negotiated connection. Using HubProtocol '{protocol}'.");
+            private static readonly Action<ILogger, string, Exception> _usingHubProtocol =
+                LoggerMessage.Define<string>(LogLevel.Information, new EventId(1, "UsingHubProtocol"), "Using HubProtocol '{protocol}'.");
 
             private static readonly Action<ILogger, Exception> _negotiateCanceled =
                 LoggerMessage.Define(LogLevel.Debug, new EventId(2, "NegotiateCanceled"), "Negotiate was canceled.");
@@ -290,12 +275,9 @@ namespace Microsoft.AspNetCore.SignalR
             private static readonly Action<ILogger, Exception> _transportBufferFull =
                 LoggerMessage.Define(LogLevel.Debug, new EventId(4, "TransportBufferFull"), "Unable to send Ping message to client, the transport buffer is full.");
 
-            private static readonly Action<ILogger, Exception> _negotiateFailed =
-                LoggerMessage.Define(LogLevel.Error, new EventId(5, "NegotiateFailed"), "Failed to negotiate connection.");
-
-            public static void NegotiateComplete(ILogger logger, string hubProtocol)
+            public static void UsingHubProtocol(ILogger logger, string hubProtocol)
             {
-                _negotiateComplete(logger, hubProtocol, null);
+                _usingHubProtocol(logger, hubProtocol, null);
             }
 
             public static void NegotiateCanceled(ILogger logger)
@@ -311,11 +293,6 @@ namespace Microsoft.AspNetCore.SignalR
             public static void TransportBufferFull(ILogger logger)
             {
                 _transportBufferFull(logger, null);
-            }
-
-            public static void NegotiateFailed(ILogger logger, Exception exception)
-            {
-                _negotiateFailed(logger, exception);
             }
         }
 

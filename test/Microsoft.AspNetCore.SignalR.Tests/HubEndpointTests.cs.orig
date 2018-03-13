@@ -1659,8 +1659,15 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             var msgPackOptions = serviceProvider.GetRequiredService<IOptions<MessagePackHubProtocolOptions>>();
             using (var client = new TestClient(synchronousCallbacks: false, protocol: new MessagePackHubProtocol(msgPackOptions)))
             {
-                client.Connection.SupportedFormats = TransferFormat.Binary;
+<<<<<<< HEAD
+                var transportFeature = new Mock<IConnectionTransportFeature>();
+                transportFeature.SetupGet(f => f.TransportCapabilities).Returns(TransferMode.Binary);
+                client.Connection.Features.Set(transportFeature.Object);
                 Task endPointTask = await client.ConnectAsync(endPoint);
+=======
+                client.Connection.SupportedFormats = TransferFormat.Binary;
+                var endPointLifetime = endPoint.OnConnectedAsync(client.Connection);
+>>>>>>> dev
 
                 await client.Connected.OrTimeout();
 
