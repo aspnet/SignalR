@@ -83,7 +83,11 @@ namespace Microsoft.AspNetCore.SignalR
                     continue;
                 }
 
-                tasks.Add(connection.WriteAsync(message));
+                try
+                {
+                    tasks.Add(connection.WriteAsync(message));
+                }
+                catch { }
             }
 
             return Task.WhenAll(tasks);
@@ -119,7 +123,14 @@ namespace Microsoft.AspNetCore.SignalR
             if (group != null)
             {
                 var message = CreateInvocationMessage(methodName, args);
-                var tasks = group.Values.Select(c => c.WriteAsync(message));
+                var tasks = group.Values.Select(async c =>
+                {
+                    try
+                    {
+                        await c.WriteAsync(message);
+                    }
+                    catch { }
+                });
                 return Task.WhenAll(tasks);
             }
 
@@ -142,7 +153,14 @@ namespace Microsoft.AspNetCore.SignalR
                 var group = _groups[groupName];
                 if (group != null)
                 {
-                    tasks.Add(Task.WhenAll(group.Values.Select(c => c.WriteAsync(message))));
+                    tasks.Add(Task.WhenAll(group.Values.Select(async c =>
+                    {
+                        try
+                        {
+                            await c.WriteAsync(message);
+                        }
+                        catch { }
+                    })));
                 }
             }
 
@@ -161,7 +179,14 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 var message = CreateInvocationMessage(methodName, args);
                 var tasks = group.Values.Where(connection => !excludedIds.Contains(connection.ConnectionId))
-                    .Select(c => c.WriteAsync(message));
+                    .Select(async c =>
+                    {
+                        try
+                        {
+                            await c.WriteAsync(message);
+                        }
+                        catch { }
+                    });
                 return Task.WhenAll(tasks);
             }
 

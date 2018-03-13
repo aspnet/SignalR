@@ -611,7 +611,14 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                 // This also saves serializing and deserializing the message!
                 if (connection != null)
                 {
-                    publishTasks.Add(connection.WriteAsync(message.CreateInvocation()));
+                    try
+                    {
+                        publishTasks.Add(connection.WriteAsync(message.CreateInvocation()));
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.FailedWritingMessage(ex);
+                    }
                 }
                 else
                 {
