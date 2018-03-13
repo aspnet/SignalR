@@ -10,7 +10,12 @@ namespace Microsoft.AspNetCore.Builder
 {
     public static class ConnectionsAppBuilderExtensions
     {
-        public static IApplicationBuilder UseConnections(this IApplicationBuilder app, Action<ConnectionsRouteBuilder> callback)
+        // 14 is the maximum websocket frame header size
+        // See https://github.com/dotnet/corefx/blob/1df4a4866a90f22f861156b8ff496c24103d39cc/src/Common/src/System/Net/WebSockets/ManagedWebSocket.cs#L61
+        // And where it is used https://github.com/dotnet/corefx/blob/1df4a4866a90f22f861156b8ff496c24103d39cc/src/Common/src/System/Net/WebSockets/ManagedWebSocket.cs#L188
+        private const int ReceiveBufferSize = 14;
+
+        public static IApplicationBuilder UseConnections(this IApplicationBuilder app, Action<SocketRouteBuilder> callback)
         {
             var dispatcher = app.ApplicationServices.GetRequiredService<HttpConnectionDispatcher>();
 
@@ -18,7 +23,10 @@ namespace Microsoft.AspNetCore.Builder
 
             callback(new ConnectionsRouteBuilder(routes, dispatcher));
 
-            app.UseWebSockets();
+            app.UseWebSockets(new WebSocketOptions()
+            {
+                ReceiveBufferSize = ReceiveBufferSize
+            });
             app.UseRouter(routes.Build());
             return app;
         }
