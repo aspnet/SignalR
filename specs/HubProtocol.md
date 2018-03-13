@@ -26,8 +26,7 @@ In the SignalR protocol, the following types of messages can be sent:
 | `Invocation`       | Caller         | Indicates a request to invoke a particular method (the Target) with provided Arguments on the remote endpoint.         |
 | `StreamInvocation` | Caller         | Indicates a request to invoke a streaming method (the Target) with provided Arguments on the remote endpoint.          |
 | `StreamItem`       | Callee         | Indicates individual items of streamed response data from a previous `StreamInvocation` message.                       |
-| `Completion`       | Callee         |
-Indicates a previous `Invocation` or `StreamInvocation` has completed. Contains an error if the invocation concluded
+| `Completion`       | Callee         | Indicates a previous `Invocation` or `StreamInvocation` has completed. Contains an error if the invocation concluded
 with an error or the result of a non-streaming method invocation. The result will be absent for `void` methods.
 In case of streaming invocations no further `StreamItem` messages will be received.                                                                            |
 | `CancelInvocation` | Caller         | Sent by the client to cancel a streaming invocation on the server.                                                     |
