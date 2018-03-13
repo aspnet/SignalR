@@ -233,10 +233,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
             public static void TransportNotSupported(ILogger logger, string transport)
             {
-                if (logger.IsEnabled(LogLevel.Debug))
-                {
-                    _transportNotSupported(logger, transport, null);
-                }
+                _transportNotSupported(logger, transport, null);
             }
 
             public static void TransportDoesNotSupportTransferFormat(ILogger logger, TransportType transport, TransferFormat transferFormat)

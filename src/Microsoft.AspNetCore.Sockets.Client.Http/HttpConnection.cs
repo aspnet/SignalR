@@ -150,6 +150,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             _scopeDisposable = _logger.BeginScope(_logScope);
         }
 
+        public Task StartAsync() => StartAsync(TransferFormat.Binary);
         public async Task StartAsync(TransferFormat transferFormat) => await StartAsyncCore(transferFormat).ForceAsync();
 
         private Task StartAsyncCore(TransferFormat transferFormat)
