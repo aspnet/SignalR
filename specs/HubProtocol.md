@@ -23,7 +23,7 @@ In the SignalR protocol, the following types of messages can be sent:
 | Message Name          | Sender         | Description                                                                                                                    |
 | ------------------    | -------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | `NegotiationRequest`  | Caller         | Sent by the client to negotiate the message format.                                                                            |
-| `NegotiationResponse` | Caller         | Sent by the server as an acknowledgment of the previous `NegotiationRequest` message. Contains an error if negotiation failed. |
+| `NegotiationResponse` | Callee         | Sent by the server as an acknowledgment of the previous `NegotiationRequest` message. Contains an error if negotiation failed. |
 | `Close`               | Callee         | Sent by the server when a connection is closed. Contains an error if the connection was closed because of an error.            |
 | `Invocation`          | Caller         | Indicates a request to invoke a particular method (the Target) with provided Arguments on the remote endpoint.                 |
 | `StreamInvocation`    | Caller         | Indicates a request to invoke a streaming method (the Target) with provided Arguments on the remote endpoint.                  |
