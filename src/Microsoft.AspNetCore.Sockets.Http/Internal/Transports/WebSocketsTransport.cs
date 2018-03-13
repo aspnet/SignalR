@@ -16,6 +16,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
 {
     public partial class WebSocketsTransport : IHttpTransport
     {
+        private static readonly ArraySegment<byte> _emptySegment = new ArraySegment<byte>(new byte[0]);
         private readonly WebSocketOptions _options;
         private readonly ILogger _logger;
         private readonly IDuplexPipe _application;
@@ -138,8 +139,23 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
         {
             try
             {
+                var endOfMessage = true;
                 while (true)
                 {
+                    // If there was a read that had a 'false' EndOfMessage then we should skip the 0 byte read since there is an in progress frame
+                    if (endOfMessage)
+                    {
+#if NETCOREAPP2_1
+                        var result = await socket.ReceiveAsync(Memory<byte>.Empty, CancellationToken.None);
+#else
+                        var result = await socket.ReceiveAsync(_emptySegment, CancellationToken.None);
+#endif
+                        if (result.MessageType == WebSocketMessageType.Close)
+                        {
+                            return;
+                        }
+                    }
+
                     var memory = _application.Output.GetMemory();
 
 #if NETCOREAPP2_1
@@ -151,16 +167,13 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                     // Exceptions are handled above where the send and receive tasks are being run.
                     var receiveResult = await socket.ReceiveAsync(arraySegment, CancellationToken.None);
 #endif
-                    if (receiveResult.MessageType == WebSocketMessageType.Close)
-                    {
-                        return;
-                    }
 
-                    Log.MessageReceived(_logger, receiveResult.MessageType, receiveResult.Count, receiveResult.EndOfMessage);
+                    endOfMessage = receiveResult.EndOfMessage;
+                    Log.MessageReceived(_logger, receiveResult.MessageType, receiveResult.Count, endOfMessage);
 
                     _application.Output.Advance(receiveResult.Count);
 
-                    if (receiveResult.EndOfMessage)
+                    if (endOfMessage)
                     {
                         var flushResult = await _application.Output.FlushAsync();
 

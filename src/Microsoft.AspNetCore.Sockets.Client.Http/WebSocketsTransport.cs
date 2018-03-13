@@ -18,6 +18,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 {
     public partial class WebSocketsTransport : ITransport
     {
+        private static readonly ArraySegment<byte> _emptySegment = new ArraySegment<byte>(new byte[0]);
         private readonly ClientWebSocket _webSocket;
         private IDuplexPipe _application;
         private WebSocketMessageType _webSocketMessageType;
@@ -180,18 +181,12 @@ namespace Microsoft.AspNetCore.Sockets.Client
             {
                 while (true)
                 {
-                    var memory = _application.Output.GetMemory();
-
 #if NETCOREAPP2_1
-                    var receiveResult = await socket.ReceiveAsync(memory, CancellationToken.None);
+                    var result = await socket.ReceiveAsync(Memory<byte>.Empty, CancellationToken.None);
 #else
-                    var isArray = MemoryMarshal.TryGetArray<byte>(memory, out var arraySegment);
-                    Debug.Assert(isArray);
-
-                    // Exceptions are handled above where the send and receive tasks are being run.
-                    var receiveResult = await socket.ReceiveAsync(arraySegment, CancellationToken.None);
+                    var result = await socket.ReceiveAsync(_emptySegment, CancellationToken.None);
 #endif
-                    if (receiveResult.MessageType == WebSocketMessageType.Close)
+                    if (result.MessageType == WebSocketMessageType.Close)
                     {
                         Log.WebSocketClosed(_logger, _webSocket.CloseStatus);
 
@@ -202,20 +197,33 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
                         return;
                     }
-
-                    Log.MessageReceived(_logger, receiveResult.MessageType, receiveResult.Count, receiveResult.EndOfMessage);
-
-                    _application.Output.Advance(receiveResult.Count);
-
-                    if (receiveResult.EndOfMessage)
+                    else
                     {
-                        var flushResult = await _application.Output.FlushAsync();
+                        var memory = _application.Output.GetMemory();
+#if NETCOREAPP2_1
+                        var receiveResult = await socket.ReceiveAsync(memory, CancellationToken.None);
+#else
+                        var isArray = MemoryMarshal.TryGetArray<byte>(memory, out var arraySegment);
+                        Debug.Assert(isArray);
 
-                        // We canceled in the middle of applying back pressure
-                        // or if the consumer is done
-                        if (flushResult.IsCanceled || flushResult.IsCompleted)
+                        // Exceptions are handled above where the send and receive tasks are being run.
+                        var receiveResult = await socket.ReceiveAsync(arraySegment, CancellationToken.None);
+#endif
+
+                        Log.MessageReceived(_logger, receiveResult.MessageType, receiveResult.Count, receiveResult.EndOfMessage);
+
+                        _application.Output.Advance(receiveResult.Count);
+
+                        if (receiveResult.EndOfMessage)
                         {
-                            break;
+                            var flushResult = await _application.Output.FlushAsync();
+
+                            // We canceled in the middle of applying back pressure
+                            // or if the consumer is done
+                            if (flushResult.IsCanceled || flushResult.IsCompleted)
+                            {
+                                break;
+                            }
                         }
                     }
                 }
