@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipelines;
@@ -20,11 +21,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         private static int _id;
         private readonly HubProtocolReaderWriter _protocolReaderWriter;
         private readonly IInvocationBinder _invocationBinder;
+        private readonly IHubProtocol _protocol;
         private CancellationTokenSource _cts;
         private Queue<HubMessage> _messages = new Queue<HubMessage>();
 
         public DefaultConnectionContext Connection { get; }
         public Task Connected => ((TaskCompletionSource<bool>)Connection.Metadata["ConnectedTask"]).Task;
+        public NegotiationResponseMessage NegotiationResponseMessage { get; private set; }
 
         public TestClient(bool synchronousCallbacks = false, IHubProtocol protocol = null, IDataEncoder dataEncoder = null, IInvocationBinder invocationBinder = null, bool addClaimId = false)
         {
@@ -42,18 +45,31 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             Connection.User = new ClaimsPrincipal(new ClaimsIdentity(claims));
             Connection.Metadata["ConnectedTask"] = new TaskCompletionSource<bool>();
 
-            protocol = protocol ?? new JsonHubProtocol();
+            _protocol = protocol ?? new JsonHubProtocol();
             dataEncoder = dataEncoder ?? new PassThroughEncoder();
-            _protocolReaderWriter = new HubProtocolReaderWriter(protocol, dataEncoder);
+            _protocolReaderWriter = new HubProtocolReaderWriter(_protocol, dataEncoder);
             _invocationBinder = invocationBinder ?? new DefaultInvocationBinder();
 
             _cts = new CancellationTokenSource();
 
-            using (var memoryStream = new MemoryStream())
+        }
+
+        public async Task<Task> ConnectAsync(dynamic endPoint, bool sendNegotiateMessage = true)
+        {
+            if (sendNegotiateMessage)
             {
-                NegotiationProtocol.WriteMessage(new NegotiationMessage(protocol.Name), memoryStream);
-                Connection.Application.Output.WriteAsync(memoryStream.ToArray());
+                using (var memoryStream = new MemoryStream())
+                {
+                    NegotiationProtocol.WriteRequestMessage(new NegotiationRequestMessage(_protocol.Name), memoryStream);
+                    await Connection.Application.Output.WriteAsync(memoryStream.ToArray());
+                }
             }
+
+            var connection = (Task)endPoint.OnConnectedAsync(Connection);
+
+            NegotiationResponseMessage = (NegotiationResponseMessage)TryRead(true);
+
+            return connection;
         }
 
         public async Task<IList<HubMessage>> StreamAsync(string methodName, params object[] args)
@@ -183,7 +199,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
-        public HubMessage TryRead()
+        public HubMessage TryRead(bool isNegotiate = false)
         {
             if (_messages.Count > 0)
             {
@@ -201,14 +217,28 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
             try
             {
-                if (_protocolReaderWriter.ReadMessages(result.Buffer, _invocationBinder, out var messages, out consumed, out examined))
+                if (!isNegotiate)
                 {
-                    foreach (var m in messages)
+                    if (_protocolReaderWriter.ReadMessages(result.Buffer, _invocationBinder, out var messages, out consumed, out examined))
                     {
-                        _messages.Enqueue(m);
-                    }
+                        foreach (var m in messages)
+                        {
+                            _messages.Enqueue(m);
+                        }
 
-                    return _messages.Dequeue();
+                        return _messages.Dequeue();
+                    }
+                }
+                else
+                {
+                    if (NegotiationProtocol.TryParseResponseMessage(result.Buffer, out var negotiationMessage, out consumed, out examined))
+                    {
+                        return negotiationMessage;
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException("Unable to read negotiate response.");
+                    }
                 }
             }
             finally

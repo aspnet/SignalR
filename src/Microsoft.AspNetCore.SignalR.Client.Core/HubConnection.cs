@@ -139,7 +139,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             using (var memoryStream = new MemoryStream())
             {
                 Log.SendingHubNegotiate(_logger);
-                NegotiationProtocol.WriteMessage(new NegotiationMessage(_protocol.Name), memoryStream);
+                NegotiationProtocol.WriteRequestMessage(new NegotiationRequestMessage(_protocol.Name), memoryStream);
                 await _connection.SendAsync(memoryStream.ToArray(), _connectionActive.Token);
             }
 

@@ -3,13 +3,13 @@
 
 namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 {
-    public class NegotiationMessage
+    public class NegotiationResponseMessage : HubMessage
     {
-        public NegotiationMessage(string protocol)
+        public NegotiationResponseMessage(string error)
         {
-            Protocol = protocol;
+            Error = error;
         }
 
-        public string Protocol { get; }
+        public string Error { get; }
     }
 }
