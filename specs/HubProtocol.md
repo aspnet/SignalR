@@ -28,6 +28,7 @@ In the SignalR protocol, the following types of messages can be sent:
 | `StreamItem`       | Callee         | Indicates individual items of streamed response data from a previous `StreamInvocation` message.                       |
 | `Completion`       | Callee         | Indicates a previous `Invocation` or `StreamInvocation` has completed. Contains an error if the invocation concluded with an error or the result of a non-streaming method invocation. The result will be absent for `void` methods. In case of streaming invocations no further `StreamItem` messages will be received. |
 | `CancelInvocation` | Caller         | Sent by the client to cancel a streaming invocation on the server.                                                     |
+| `Close`            | Callee         | Sent by the server when a connection is closed. Contains an error if the connection was closed because of an error.    |
 | `Ping`             | Caller, Callee | Sent by either party to check if the connection is active.                                                             |
 
 After opening a connection to the server the client must send a `Negotiation` message to the server as its first message. The negotiation message is **always** a JSON message and contains the name of the format (protocol) that will be used for the duration of the connection. If the server does not support the protocol requested by the client or the first message received from the client is not a `Negotiation` message the server must close the connection.
