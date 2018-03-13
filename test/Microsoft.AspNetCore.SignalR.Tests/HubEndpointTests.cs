@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Security.Claims;
@@ -447,9 +448,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 var endPointTask = endPoint.OnConnectedAsync(client.Connection);
 
-                var result = (await client.InvokeAsync(methodName).OrTimeout());
+                var message = await client.InvokeAsync(methodName).OrTimeout();
 
-                Assert.Equal($"An unexpected error occurred invoking '{methodName}' on the server. InvalidOperationException: BOOM!", result.Error);
+                Assert.Equal($"An unexpected error occurred invoking '{methodName}' on the server. InvalidOperationException: BOOM!", message.Error);
 
                 // kill the connection
                 client.Dispose();
@@ -1028,6 +1029,33 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 thirdClient.Dispose();
 
                 await Task.WhenAll(firstEndPointTask, secondEndPointTask, thirdEndPointTask).OrTimeout();
+            }
+        }
+
+        private class TestProtocol : IHubProtocol
+        {
+            public string Name { get; } = "CustomProtocol";
+            public ProtocolType Type { get; }
+
+            public bool TryParseMessages(ReadOnlySpan<byte> input, IInvocationBinder binder, IList<HubMessage> messages)
+            {
+                throw new NotImplementedException();
+            }
+
+            public void WriteMessage(HubMessage message, Stream output)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        [Fact]
+        public async Task fgh()
+        {
+            dynamic endPoint = HubEndPointTestUtils.GetHubEndpoint(typeof(HubT));
+
+            using (var firstClient = new TestClient(protocol: new TestProtocol()))
+            {
+                Task firstEndPointTask = endPoint.OnConnectedAsync(firstClient.Connection);
             }
         }
 
