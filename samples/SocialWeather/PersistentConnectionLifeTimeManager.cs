@@ -32,7 +32,7 @@ namespace SocialWeather
                 var transferFormatFeature = connection.Features.Get<ITransferFormatFeature>();
                 if (transferFormatFeature != null)
                 {
-                    transferFormatFeature.ActiveFormat = Microsoft.AspNetCore.Sockets.TransferFormat.Binary;
+                    transferFormatFeature.ActiveFormat = TransferFormat.Binary;
                 }
             }
             _connectionList.Add(connection);
