@@ -76,12 +76,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                     // PERF: Could probably use the JsonTextReader directly for better perf and fewer allocations
                     var token = JToken.ReadFrom(reader);
 
-                    if (token == null || token.Type != JTokenType.Object)
-                    {
-                        throw new InvalidDataException($"Unexpected JSON Token Type '{token?.Type}'. Expected a JSON Object.");
-                    }
-
-                    var json = (JObject)token;
+                    var json = JsonUtils.GetObject(token);
 
                     // Determine the type of the message
                     var type = JsonUtils.GetRequiredProperty<int>(json, TypePropertyName, JTokenType.Integer);

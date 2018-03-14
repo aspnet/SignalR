@@ -124,8 +124,7 @@ namespace Microsoft.AspNetCore.SignalR
             MemoryStream ms = new MemoryStream();
             NegotiationProtocol.WriteResponseMessage(message, ms);
 
-            _connectionContext.Transport.Output.Write(ms.ToArray());
-            await _connectionContext.Transport.Output.FlushAsync();
+            await _connectionContext.Transport.Output.WriteAsync(ms.ToArray());
         }
 
         public virtual void Abort()
@@ -189,7 +188,7 @@ namespace Microsoft.AspNetCore.SignalR
                                     }
 
                                     Log.NegotiateComplete(_logger, Protocol.Name);
-                                    await WriteNegotiateResponseAsync(new NegotiationResponseMessage(null));
+                                    await WriteNegotiateResponseAsync(NegotiationResponseMessage.Empty());
                                     return true;
                                 }
                             }
@@ -211,13 +210,13 @@ namespace Microsoft.AspNetCore.SignalR
             catch (OperationCanceledException)
             {
                 Log.NegotiateCanceled(_logger);
-                await WriteNegotiateResponseAsync(new NegotiationResponseMessage("Negotiate was canceled."));
+                await WriteNegotiateResponseAsync(NegotiationResponseMessage.WithError("Negotiate was canceled."));
                 return false;
             }
             catch (Exception ex)
             {
                 Log.NegotiateFailed(_logger, ex);
-                await WriteNegotiateResponseAsync(new NegotiationResponseMessage($"An unexpected error occurred negotiating connection. {ex.GetType().Name}: {ex.Message}"));
+                await WriteNegotiateResponseAsync(NegotiationResponseMessage.WithError($"An unexpected error occurred negotiating connection. {ex.GetType().Name}: {ex.Message}"));
                 return false;
             }
         }
