@@ -166,7 +166,7 @@ namespace Microsoft.AspNetCore.Sockets
                 {
                     await connection.Lock.WaitAsync();
 
-                    if (connection.Status == DefaultConnectionContext.ConnectionStatus.Disposed)
+                    if (connection.Status == HttpConnectionContext.ConnectionStatus.Disposed)
                     {
                         Log.ConnectionDisposed(_logger, connection.ConnectionId);
 
@@ -176,7 +176,7 @@ namespace Microsoft.AspNetCore.Sockets
                         return;
                     }
 
-                    if (connection.Status == DefaultConnectionContext.ConnectionStatus.Active)
+                    if (connection.Status == HttpConnectionContext.ConnectionStatus.Active)
                     {
                         var existing = connection.GetHttpContext();
                         Log.ConnectionAlreadyActive(_logger, connection.ConnectionId, existing.TraceIdentifier);
@@ -194,7 +194,7 @@ namespace Microsoft.AspNetCore.Sockets
                     }
 
                     // Mark the connection as active
-                    connection.Status = DefaultConnectionContext.ConnectionStatus.Active;
+                    connection.Status = HttpConnectionContext.ConnectionStatus.Active;
 
                     // Raise OnConnected for new connections only since polls happen all the time
                     if (connection.ApplicationTask == null)
@@ -269,12 +269,12 @@ namespace Microsoft.AspNetCore.Sockets
                     {
                         await connection.Lock.WaitAsync();
 
-                        if (connection.Status == DefaultConnectionContext.ConnectionStatus.Active)
+                        if (connection.Status == HttpConnectionContext.ConnectionStatus.Active)
                         {
                             // Mark the connection as inactive
                             connection.LastSeenUtc = DateTime.UtcNow;
 
-                            connection.Status = DefaultConnectionContext.ConnectionStatus.Inactive;
+                            connection.Status = HttpConnectionContext.ConnectionStatus.Inactive;
 
                             connection.SetHttpContext(null);
 
@@ -295,13 +295,13 @@ namespace Microsoft.AspNetCore.Sockets
         private async Task DoPersistentConnection(ConnectionDelegate ConnectionDelegate,
                                                   IHttpTransport transport,
                                                   HttpContext context,
-                                                  DefaultConnectionContext connection)
+                                                  HttpConnectionContext connection)
         {
             try
             {
                 await connection.Lock.WaitAsync();
 
-                if (connection.Status == DefaultConnectionContext.ConnectionStatus.Disposed)
+                if (connection.Status == HttpConnectionContext.ConnectionStatus.Disposed)
                 {
                     Log.ConnectionDisposed(_logger, connection.ConnectionId);
 
@@ -311,7 +311,7 @@ namespace Microsoft.AspNetCore.Sockets
                 }
 
                 // There's already an active request
-                if (connection.Status == DefaultConnectionContext.ConnectionStatus.Active)
+                if (connection.Status == HttpConnectionContext.ConnectionStatus.Active)
                 {
                     Log.ConnectionAlreadyActive(_logger, connection.ConnectionId, connection.GetHttpContext().TraceIdentifier);
 
@@ -321,7 +321,7 @@ namespace Microsoft.AspNetCore.Sockets
                 }
 
                 // Mark the connection as active
-                connection.Status = DefaultConnectionContext.ConnectionStatus.Active;
+                connection.Status = HttpConnectionContext.ConnectionStatus.Active;
 
                 // Call into the end point passing the connection
                 connection.ApplicationTask = ExecuteApplication(ConnectionDelegate, connection);
@@ -459,7 +459,7 @@ namespace Microsoft.AspNetCore.Sockets
             await connection.Application.Output.FlushAsync();
         }
 
-        private async Task<bool> EnsureConnectionStateAsync(DefaultConnectionContext connection, HttpContext context, TransportType transportType, TransportType supportedTransports, ConnectionLogScope logScope, HttpSocketOptions options)
+        private async Task<bool> EnsureConnectionStateAsync(HttpConnectionContext connection, HttpContext context, TransportType transportType, TransportType supportedTransports, ConnectionLogScope logScope, HttpSocketOptions options)
         {
             if ((supportedTransports & transportType) == 0)
             {
@@ -505,7 +505,7 @@ namespace Microsoft.AspNetCore.Sockets
             return true;
         }
 
-        private async Task<DefaultConnectionContext> GetConnectionAsync(HttpContext context)
+        private async Task<HttpConnectionContext> GetConnectionAsync(HttpContext context)
         {
             var connectionId = GetConnectionId(context);
 
@@ -530,17 +530,17 @@ namespace Microsoft.AspNetCore.Sockets
             return connection;
         }
 
-        private DefaultConnectionContext CreateConnectionInternal(HttpSocketOptions options)
+        private HttpConnectionContext CreateConnectionInternal(HttpSocketOptions options)
         {
             var transportPipeOptions = new PipeOptions(pauseWriterThreshold: options.TransportMaxBufferSize, resumeWriterThreshold: options.TransportMaxBufferSize / 2, readerScheduler: PipeScheduler.ThreadPool, useSynchronizationContext: false);
             var appPipeOptions = new PipeOptions(pauseWriterThreshold: options.ApplicationMaxBufferSize, resumeWriterThreshold: options.ApplicationMaxBufferSize / 2, readerScheduler: PipeScheduler.ThreadPool, useSynchronizationContext: false);
             return _manager.CreateConnection(transportPipeOptions, appPipeOptions);
         }
 
-        private async Task<DefaultConnectionContext> GetOrCreateConnectionAsync(HttpContext context, HttpSocketOptions options)
+        private async Task<HttpConnectionContext> GetOrCreateConnectionAsync(HttpContext context, HttpSocketOptions options)
         {
             var connectionId = GetConnectionId(context);
-            DefaultConnectionContext connection;
+            HttpConnectionContext connection;
 
             // There's no connection id so this is a brand new connection
             if (StringValues.IsNullOrEmpty(connectionId))

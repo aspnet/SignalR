@@ -14,13 +14,13 @@ using Microsoft.Extensions.Internal;
 
 namespace Microsoft.AspNetCore.Sockets
 {
-    public class DefaultConnectionContext : ConnectionContext,
-                                            IConnectionIdFeature,
-                                            IConnectionMetadataFeature,
-                                            IConnectionTransportFeature,
-                                            IConnectionUserFeature,
-                                            IConnectionHeartbeatFeature,
-                                            ITransferFormatFeature
+    public class HttpConnectionContext : ConnectionContext,
+                                         IConnectionIdFeature,
+                                         IConnectionMetadataFeature,
+                                         IConnectionTransportFeature,
+                                         IConnectionUserFeature,
+                                         IConnectionHeartbeatFeature,
+                                         ITransferFormatFeature
     {
         private List<(Action<object> handler, object state)> _heartbeatHandlers = new List<(Action<object> handler, object state)>();
 
@@ -29,7 +29,7 @@ namespace Microsoft.AspNetCore.Sockets
         private TaskCompletionSource<object> _disposeTcs = new TaskCompletionSource<object>();
         internal ValueStopwatch ConnectionTimer { get; set; }
 
-        public DefaultConnectionContext(string id, IDuplexPipe transport, IDuplexPipe application)
+        public HttpConnectionContext(string id, IDuplexPipe transport, IDuplexPipe application)
         {
             Transport = transport;
             Application = application;
