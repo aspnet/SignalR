@@ -398,7 +398,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 return;
             }
 
-            InvocationHandler[] copiedHandlers = handlers.CopiedHandlers;
+            InvocationHandler[] copiedHandlers = handlers.GetCopiedHandlers();
 
             foreach (var handler in copiedHandlers)
             {
@@ -541,15 +541,12 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     return Type.EmptyTypes;
                 }
 
-                // We use the parameter types of the first handler
-                lock (handlers)
-                {
-                    if (handlers.CopiedHandlers.Length > 0)
-                    {
-                        return handlers.CopiedHandlers[0].ParameterTypes;
-                    }
-                    throw new InvalidOperationException($"There are no callbacks registered for the method '{methodName}'");
+                // We use the parameter types of the first handler                
+                var copiedHandlers = handlers.GetCopiedHandlers();
+                if (copiedHandlers.Length > 0) {
+                    return copiedHandlers[0].ParameterTypes;
                 }
+                throw new InvalidOperationException($"There are no callbacks registered for the method '{methodName}'");
             }
         }
 
@@ -575,12 +572,23 @@ namespace Microsoft.AspNetCore.SignalR.Client
         private class InvocationHandlerList
         {
             private readonly List<InvocationHandler> _invocationHandlers;
-            internal InvocationHandler[] CopiedHandlers;
+            private InvocationHandler[] _CopiedHandlers;
 
             internal InvocationHandlerList(InvocationHandler handler)
             {
-                this._invocationHandlers = new List<InvocationHandler>() { handler};
-                CopiedHandlers = _invocationHandlers.ToArray();
+                _invocationHandlers = new List<InvocationHandler>() { handler };
+            }
+
+            internal InvocationHandler[] GetCopiedHandlers()
+            {
+                if (_CopiedHandlers == null)
+                {
+                    lock(_invocationHandlers)
+                    {
+                        _CopiedHandlers = _invocationHandlers.ToArray();
+                    }
+                }
+                return _CopiedHandlers;
             }
 
             internal InvocationHandlerList Add(InvocationHandler handler)
@@ -588,18 +596,18 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 lock (_invocationHandlers)
                 {
                     _invocationHandlers.Add(handler);
-                    CopiedHandlers = _invocationHandlers.ToArray();
+                    _CopiedHandlers = null;
                 }
                 return this;
             }
-
+            
             internal void Remove(InvocationHandler handler)
             {
                 lock (_invocationHandlers)
                 {
                     if (_invocationHandlers.Remove(handler))
                     {
-                        this.CopiedHandlers = _invocationHandlers.ToArray();
+                        _CopiedHandlers = null;
                     }
                 }
             }
