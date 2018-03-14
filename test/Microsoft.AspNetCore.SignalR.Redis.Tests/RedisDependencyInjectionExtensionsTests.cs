@@ -29,11 +29,11 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             Assert.NotNull(options.Value.Options);
             Assert.Equal(password, options.Value.Options.Password);
             Assert.Collection(options.Value.Options.EndPoints,
-                ep =>
+                endpoint =>
                 {
-                    var dnsep = Assert.IsType<DnsEndPoint>(ep);
-                    Assert.Equal(host, dnsep.Host);
-                    Assert.Equal(port, dnsep.Port);
+                    var dnsEndpoint = Assert.IsType<DnsEndPoint>(endpoint);
+                    Assert.Equal(host, dnsEndpoint.Host);
+                    Assert.Equal(port, dnsEndpoint.Port);
                 });
             Assert.Equal(useSsl, options.Value.Options.Ssl);
         }
