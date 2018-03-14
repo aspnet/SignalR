@@ -179,51 +179,53 @@ namespace Microsoft.AspNetCore.Sockets.Client
         {
             try
             {
+                var endOfMessage = true;
                 while (true)
                 {
-#if NETCOREAPP2_1
-                    var result = await socket.ReceiveAsync(Memory<byte>.Empty, CancellationToken.None);
-#else
-                    var result = await socket.ReceiveAsync(_emptySegment, CancellationToken.None);
-#endif
-                    if (result.MessageType == WebSocketMessageType.Close)
+                    if (endOfMessage)
                     {
-                        Log.WebSocketClosed(_logger, _webSocket.CloseStatus);
-
-                        if (_webSocket.CloseStatus != WebSocketCloseStatus.NormalClosure)
-                        {
-                            throw new InvalidOperationException($"Websocket closed with error: {_webSocket.CloseStatus}.");
-                        }
-
-                        return;
-                    }
-                    else
-                    {
-                        var memory = _application.Output.GetMemory();
 #if NETCOREAPP2_1
-                        var receiveResult = await socket.ReceiveAsync(memory, CancellationToken.None);
+                        var result = await socket.ReceiveAsync(Memory<byte>.Empty, CancellationToken.None);
 #else
-                        var isArray = MemoryMarshal.TryGetArray<byte>(memory, out var arraySegment);
-                        Debug.Assert(isArray);
-
-                        // Exceptions are handled above where the send and receive tasks are being run.
-                        var receiveResult = await socket.ReceiveAsync(arraySegment, CancellationToken.None);
+                        var result = await socket.ReceiveAsync(_emptySegment, CancellationToken.None);
 #endif
-
-                        Log.MessageReceived(_logger, receiveResult.MessageType, receiveResult.Count, receiveResult.EndOfMessage);
-
-                        _application.Output.Advance(receiveResult.Count);
-
-                        if (receiveResult.EndOfMessage)
+                        if (result.MessageType == WebSocketMessageType.Close)
                         {
-                            var flushResult = await _application.Output.FlushAsync();
+                            Log.WebSocketClosed(_logger, _webSocket.CloseStatus);
 
-                            // We canceled in the middle of applying back pressure
-                            // or if the consumer is done
-                            if (flushResult.IsCanceled || flushResult.IsCompleted)
+                            if (_webSocket.CloseStatus != WebSocketCloseStatus.NormalClosure)
                             {
-                                break;
+                                throw new InvalidOperationException($"Websocket closed with error: {_webSocket.CloseStatus}.");
                             }
+
+                            return;
+                        }
+                    }
+
+                    var memory = _application.Output.GetMemory();
+#if NETCOREAPP2_1
+                    var receiveResult = await socket.ReceiveAsync(memory, CancellationToken.None);
+#else
+                    var isArray = MemoryMarshal.TryGetArray<byte>(memory, out var arraySegment);
+                    Debug.Assert(isArray);
+
+                    // Exceptions are handled above where the send and receive tasks are being run.
+                    var receiveResult = await socket.ReceiveAsync(arraySegment, CancellationToken.None);
+#endif
+                    endOfMessage = receiveResult.EndOfMessage;
+                    Log.MessageReceived(_logger, receiveResult.MessageType, receiveResult.Count, endOfMessage);
+
+                    _application.Output.Advance(receiveResult.Count);
+
+                    if (endOfMessage)
+                    {
+                        var flushResult = await _application.Output.FlushAsync();
+
+                        // We canceled in the middle of applying back pressure
+                        // or if the consumer is done
+                        if (flushResult.IsCanceled || flushResult.IsCompleted)
+                        {
+                            break;
                         }
                     }
                 }
