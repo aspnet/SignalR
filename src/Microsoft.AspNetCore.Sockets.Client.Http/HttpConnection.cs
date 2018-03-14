@@ -526,7 +526,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            await Output.WriteAsync(data);
+            await Output.WriteAsync(data, cancellationToken);
         }
 
         // AbortAsync creates a few thread-safety races that we are OK with.

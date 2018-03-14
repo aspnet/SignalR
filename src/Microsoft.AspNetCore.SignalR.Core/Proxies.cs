@@ -111,7 +111,7 @@ namespace Microsoft.AspNetCore.SignalR
     public class AllClientsExceptProxy<THub> : IClientProxy
     {
         private readonly HubLifetimeManager<THub> _lifetimeManager;
-        private IReadOnlyList<string> _excludedIds;
+        private readonly IReadOnlyList<string> _excludedIds;
 
         public AllClientsExceptProxy(HubLifetimeManager<THub> lifetimeManager, IReadOnlyList<string> excludedIds)
         {
@@ -145,7 +145,7 @@ namespace Microsoft.AspNetCore.SignalR
     public class MultipleClientProxy<THub> : IClientProxy
     {
         private readonly HubLifetimeManager<THub> _lifetimeManager;
-        private IReadOnlyList<string> _connectionIds;
+        private readonly IReadOnlyList<string> _connectionIds;
 
         public MultipleClientProxy(HubLifetimeManager<THub> lifetimeManager, IReadOnlyList<string> connectionIds)
         {

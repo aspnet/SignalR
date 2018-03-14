@@ -33,7 +33,7 @@ namespace Microsoft.AspNetCore.Sockets
             _logger = _loggerFactory.CreateLogger<HttpConnectionDispatcher>();
         }
 
-        public async Task ExecuteAsync(HttpContext context, HttpSocketOptions options, ConnectionDelegate ConnectionDelegate)
+        public async Task ExecuteAsync(HttpContext context, HttpSocketOptions options, ConnectionDelegate connectionDelegate)
         {
             // Create the log scope and attempt to pass the Connection ID to it so as many logs as possible contain
             // the Connection ID metadata. If this is the negotiate request then the Connection ID for the scope will
@@ -54,7 +54,7 @@ namespace Microsoft.AspNetCore.Sockets
                 else if (HttpMethods.IsGet(context.Request.Method))
                 {
                     // GET /{path}
-                    await ExecuteEndpointAsync(context, ConnectionDelegate, options, logScope);
+                    await ExecuteEndpointAsync(context, connectionDelegate, options, logScope);
                 }
                 else
                 {
@@ -88,7 +88,7 @@ namespace Microsoft.AspNetCore.Sockets
             }
         }
 
-        private async Task ExecuteEndpointAsync(HttpContext context, ConnectionDelegate ConnectionDelegate, HttpSocketOptions options, ConnectionLogScope logScope)
+        private async Task ExecuteEndpointAsync(HttpContext context, ConnectionDelegate connectionDelegate, HttpSocketOptions options, ConnectionLogScope logScope)
         {
             var supportedTransports = options.Transports;
 
@@ -120,7 +120,7 @@ namespace Microsoft.AspNetCore.Sockets
                 // We only need to provide the Input channel since writing to the application is handled through /send.
                 var sse = new ServerSentEventsTransport(connection.Application.Input, connection.ConnectionId, _loggerFactory);
 
-                await DoPersistentConnection(ConnectionDelegate, sse, context, connection);
+                await DoPersistentConnection(connectionDelegate, sse, context, connection);
             }
             else if (context.WebSockets.IsWebSocketRequest)
             {
@@ -142,7 +142,7 @@ namespace Microsoft.AspNetCore.Sockets
 
                 var ws = new WebSocketsTransport(options.WebSockets, connection.Application, connection, _loggerFactory);
 
-                await DoPersistentConnection(ConnectionDelegate, ws, context, connection);
+                await DoPersistentConnection(connectionDelegate, ws, context, connection);
             }
             else
             {
@@ -203,7 +203,7 @@ namespace Microsoft.AspNetCore.Sockets
 
                         connection.Metadata[ConnectionMetadataNames.Transport] = TransportType.LongPolling;
 
-                        connection.ApplicationTask = ExecuteApplication(ConnectionDelegate, connection);
+                        connection.ApplicationTask = ExecuteApplication(connectionDelegate, connection);
                     }
                     else
                     {

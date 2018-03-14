@@ -24,7 +24,7 @@ namespace Microsoft.AspNetCore.SignalR
 {
     public class HubConnectionContext
     {
-        private static Action<object> _abortedCallback = AbortConnection;
+        private static readonly Action<object> _abortedCallback = AbortConnection;
 
         private readonly ConnectionContext _connectionContext;
         private readonly ILogger _logger;
@@ -75,7 +75,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public virtual async Task WriteAsync(HubMessage message)
         {
-            await _writeLock.WaitAsync();
+            await _writeLock.WaitAsync(ConnectionAbortedToken);
 
             try
             {
@@ -86,7 +86,7 @@ namespace Microsoft.AspNetCore.SignalR
 
                 Interlocked.Exchange(ref _lastSendTimestamp, Stopwatch.GetTimestamp());
 
-                await _connectionContext.Transport.Output.FlushAsync();
+                await _connectionContext.Transport.Output.FlushAsync(ConnectionAbortedToken);
             }
             finally
             {
@@ -110,7 +110,7 @@ namespace Microsoft.AspNetCore.SignalR
 
                 Interlocked.Exchange(ref _lastSendTimestamp, Stopwatch.GetTimestamp());
 
-                await _connectionContext.Transport.Output.FlushAsync();
+                await _connectionContext.Transport.Output.FlushAsync(ConnectionAbortedToken);
             }
             finally
             {
