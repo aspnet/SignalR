@@ -71,6 +71,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                         return CreateCancelInvocationMessage(unpacker);
                     case HubProtocolConstants.PingMessageType:
                         return PingMessage.Instance;
+                    case HubProtocolConstants.CloseMessageType:
+                        return CreateCloseMessage(unpacker);
                     default:
                         throw new FormatException($"Invalid message type: {messageType}.");
                 }
@@ -165,6 +167,12 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             var headers = ReadHeaders(unpacker);
             var invocationId = ReadInvocationId(unpacker);
             return ApplyHeaders(headers, new CancelInvocationMessage(invocationId));
+        }
+
+        private static CloseMessage CreateCloseMessage(Unpacker unpacker)
+        {
+            var error = ReadString(unpacker, "error");
+            return new CloseMessage(error);
         }
 
         private static Dictionary<string, string> ReadHeaders(Unpacker unpacker)
@@ -274,6 +282,9 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 case PingMessage pingMessage:
                     WritePingMessage(pingMessage, packer);
                     break;
+                case CloseMessage closeMessage:
+                    WriteCloseMessage(closeMessage, packer);
+                    break;
                 default:
                     throw new FormatException($"Unexpected message type: {message.GetType().Name}");
             }
@@ -344,6 +355,20 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             packer.Pack(HubProtocolConstants.CancelInvocationMessageType);
             PackHeaders(packer, message.Headers);
             packer.PackString(message.InvocationId);
+        }
+
+        private void WriteCloseMessage(CloseMessage message, Packer packer)
+        {
+            packer.PackArrayHeader(3);
+            packer.Pack(HubProtocolConstants.CloseMessageType);
+            if (string.IsNullOrEmpty(message.Error))
+            {
+                packer.PackNull();
+            }
+            else
+            {
+                packer.PackString(message.Error);
+            }
         }
 
         private void WritePingMessage(PingMessage pingMessage, Packer packer)

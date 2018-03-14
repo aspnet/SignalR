@@ -67,6 +67,12 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 await _lifetimeManager.OnConnectedAsync(connectionContext);
                 await RunHubAsync(connectionContext);
+
+                await connectionContext.WriteAsync(CloseMessage.Empty());
+            }
+            catch (Exception ex)
+            {
+                await connectionContext.WriteAsync(CloseMessage.WithError(ex.Message));
             }
             finally
             {

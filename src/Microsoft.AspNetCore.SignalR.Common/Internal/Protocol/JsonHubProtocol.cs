@@ -95,6 +95,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                             return BindCancelInvocationMessage(json);
                         case HubProtocolConstants.PingMessageType:
                             return PingMessage.Instance;
+                        case HubProtocolConstants.CloseMessageType:
+                            return BindCloseMessage(json);
                         default:
                             throw new InvalidDataException($"Unknown message type: {type}");
                     }
@@ -162,6 +164,10 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                     case PingMessage _:
                         WriteMessageType(writer, HubProtocolConstants.PingMessageType);
                         break;
+                    case CloseMessage m:
+                        WriteMessageType(writer, HubProtocolConstants.CloseMessageType);
+                        WriteCloseMessage(m, writer);
+                        break;
                     default:
                         throw new InvalidOperationException($"Unsupported message type: {message.GetType().FullName}");
                 }
@@ -227,6 +233,15 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             writer.WriteValue(message.Target);
 
             WriteArguments(message.Arguments, writer);
+        }
+
+        private void WriteCloseMessage(CloseMessage message, JsonTextWriter writer)
+        {
+            if (!string.IsNullOrEmpty(message.Error))
+            {
+                writer.WritePropertyName(ErrorPropertyName);
+                writer.WriteValue(message.Error);
+            }
         }
 
         private void WriteArguments(object[] arguments, JsonTextWriter writer)
@@ -343,6 +358,13 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             var invocationId = JsonUtils.GetRequiredProperty<string>(json, InvocationIdPropertyName, JTokenType.String);
             var message = new CancelInvocationMessage(invocationId);
             ReadHeaders(json, message.Headers);
+            return message;
+        }
+
+        private CloseMessage BindCloseMessage(JObject json)
+        {
+            var error = JsonUtils.GetOptionalProperty<string>(json, ErrorPropertyName, JTokenType.String);
+            var message = new CloseMessage(error);
             return message;
         }
 
