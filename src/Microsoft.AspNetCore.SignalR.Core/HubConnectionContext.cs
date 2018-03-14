@@ -180,8 +180,6 @@ namespace Microsoft.AspNetCore.SignalR
 
                                     _cachedPingMessage = Protocol.WriteToArray(PingMessage.Instance);
 
-                                    Log.UsingHubProtocol(_logger, Protocol.Name);
-
                                     UserIdentifier = userIdProvider.GetUserId(this);
 
                                     if (Features.Get<IConnectionInherentKeepAliveFeature>() == null)
@@ -190,7 +188,7 @@ namespace Microsoft.AspNetCore.SignalR
                                         Features.Get<IConnectionHeartbeatFeature>()?.OnHeartbeat(state => ((HubConnectionContext) state).KeepAliveTick(), this);
                                     }
 
-                                    Log.NegotiateComplete(_logger, protocol.Name);
+                                    Log.NegotiateComplete(_logger, Protocol.Name);
                                     await WriteNegotiateResponseAsync(new NegotiationResponseMessage(null));
                                     return true;
                                 }
