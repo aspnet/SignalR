@@ -1,7 +1,7 @@
 ## Purpose
 
 This project is to assist in Benchmarking SignalR.
-It makes it easier to test local changes than having the App in the Benchmarks repo.
+It makes it easier to test local changes than having the App in the Benchmarks repo by letting us make changes in signalr branches and using the example commandline below to run the benchmarks against our branches.
 
 ## Usage
 
@@ -10,6 +10,6 @@ It makes it easier to test local changes than having the App in the Benchmarks r
 3. If cloned go to the BenchmarksDriver project
 4. Use the following command as a guideline for running a test using your changes
 
-`dotnet run --clientName signalr --path "/default" --server <server-endpoint> --client <client-endpoint> --properties "Transport=WebSockets" --properties "HubProtocol=messagepack" --connections 10 --duration 20 --warmup 5 --repository signalr@branch-name --projectFile benchmarks/BenchmarkServer/BenchmarkServer.csproj`
+`dotnet run --server <server-endpoint> --client <client-endpoint> --properties "Transport=WebSockets" --properties "HubProtocol=messagepack" -j <path to signalr.json> --repository signalr@branch-name --projectFile benchmarks/BenchmarkServer/BenchmarkServer.csproj`
 
 5. For more info/commands see https://github.com/aspnet/benchmarks/blob/dev/src/BenchmarksDriver/README.md

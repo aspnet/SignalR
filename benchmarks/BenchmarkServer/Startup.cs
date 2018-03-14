@@ -20,7 +20,7 @@ namespace BenchmarkServer
         {
             app.UseSignalR(routes =>
             {
-                routes.MapHub<EchoHub>("/default");
+                routes.MapHub<EchoHub>("/echo");
             });
         }
     }
