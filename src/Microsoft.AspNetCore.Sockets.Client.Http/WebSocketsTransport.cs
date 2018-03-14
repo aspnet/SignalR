@@ -182,6 +182,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 var endOfMessage = true;
                 while (true)
                 {
+                    // If there was a read that had a 'false' EndOfMessage then we should skip the 0 byte read since there is an in progress frame
                     if (endOfMessage)
                     {
 #if NETCOREAPP2_1
