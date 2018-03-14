@@ -3,6 +3,8 @@
 This project is to assist in Benchmarking SignalR.
 It makes it easier to test local changes than having the App in the Benchmarks repo by letting us make changes in signalr branches and using the example commandline below to run the benchmarks against our branches.
 
+The SignalRWorker that runs against this server is located at https://github.com/aspnet/benchmarks/blob/dev/src/BenchmarksWorkers/Workers/SignalRWorker.cs.
+
 ## Usage
 
 1. Push changes you would like to test to a branch on GitHub
