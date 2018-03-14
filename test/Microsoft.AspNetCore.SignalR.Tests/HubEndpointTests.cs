@@ -68,7 +68,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
-        [Fact(Skip = "Timing out")]
+        [Fact]
         public async Task AbortFromHubMethodForcesClientDisconnect()
         {
             var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
@@ -78,9 +78,19 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 var endPointTask = endPoint.OnConnectedAsync(client.Connection);
 
-                await client.InvokeAsync(nameof(AbortHub.Kill));
+                // aborting will stop the end point but won't complete the connection
+                // send message without waiting for response to avoid hang
+                await client.SendInvocationAsync(nameof(AbortHub.Kill));
 
-                await endPointTask.OrTimeout();
+                try
+                {
+                    await endPointTask.OrTimeout();
+                    Assert.True(false, "Aborting connection should throw cancellation exception.");
+                }
+                catch (TaskCanceledException)
+                {
+                    // eat the cancel exception from aborting the connection
+                }
             }
         }
 
