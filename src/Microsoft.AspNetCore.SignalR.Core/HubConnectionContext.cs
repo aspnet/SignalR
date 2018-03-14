@@ -98,7 +98,7 @@ namespace Microsoft.AspNetCore.SignalR
         {
             // Don't wait for the lock, if it returns false that means someone wrote to the connection
             // and we don't need to send a ping anymore
-            if (!await _writeLock.WaitAsync(0))
+            if (!await _writeLock.WaitAsync(0, ConnectionAbortedToken))
             {
                 return;
             }
@@ -128,7 +128,7 @@ namespace Microsoft.AspNetCore.SignalR
             }
 
             // We fire and forget since this can trigger user code to run
-            Task.Factory.StartNew(_abortedCallback, this);
+            Task.Factory.StartNew(_abortedCallback, this, ConnectionAbortedToken);
         }
 
         internal async Task<bool> NegotiateAsync(TimeSpan timeout, IList<string> supportedProtocols, IHubProtocolResolver protocolResolver, IUserIdProvider userIdProvider)
