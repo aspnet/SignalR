@@ -2,16 +2,20 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Buffers.Text;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipelines;
 using System.Net.WebSockets;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Sockets.Internal;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Internal;
 using Microsoft.Extensions.Logging;
 
@@ -21,6 +25,9 @@ namespace Microsoft.AspNetCore.Sockets
     {
         // TODO: Consider making this configurable? At least for testing?
         private static readonly TimeSpan _heartbeatTickRate = TimeSpan.FromSeconds(1);
+
+        private static readonly HMACSHA256 _hmacHash = new HMACSHA256();
+        private static long _id;
 
         private readonly ConcurrentDictionary<string, (DefaultConnectionContext Connection, ValueStopwatch Timer)> _connections = new ConcurrentDictionary<string, (DefaultConnectionContext Connection, ValueStopwatch Timer)>();
         private Timer _timer;
@@ -71,6 +78,7 @@ namespace Microsoft.AspNetCore.Sockets
             var connectionTimer = SocketEventSource.Log.ConnectionStart(id);
             var pair = DuplexPipe.CreateConnectionPair(transportPipeOptions, appPipeOptions);
 
+            // TODO: We can possibly delay creating connections until we get the first request and check the connectionId
             var connection = new DefaultConnectionContext(id, pair.Application, pair.Transport);
 
             _connections.TryAdd(id, (connection, connectionTimer));
@@ -94,8 +102,10 @@ namespace Microsoft.AspNetCore.Sockets
 
         private static string MakeNewConnectionId()
         {
-            // TODO: We need to sign and encyrpt this
-            return Guid.NewGuid().ToString();
+            var id = Interlocked.Increment(ref _id);
+            // HMAC the id because we want a cryptographically random id, which GUID is not
+            var hashed = _hmacHash.ComputeHash(Encoding.UTF8.GetBytes(id.ToString()));
+            return WebEncoders.Base64UrlEncode(hashed);
         }
 
         private static void Scan(object state)
