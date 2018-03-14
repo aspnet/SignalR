@@ -398,7 +398,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 return;
             }
 
-            InvocationHandler[] copiedHandlers = handlers.GetCopiedHandlers();
+            var copiedHandlers = handlers.GetCopiedHandlers();
 
             foreach (var handler in copiedHandlers)
             {
@@ -581,14 +581,15 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             internal InvocationHandler[] GetCopiedHandlers()
             {
-                if (_CopiedHandlers == null)
+                var copiedHandlers = _CopiedHandlers;
+                if (copiedHandlers == null)
                 {
                     lock(_invocationHandlers)
                     {
-                        _CopiedHandlers = _invocationHandlers.ToArray();
+                        _CopiedHandlers = copiedHandlers = _invocationHandlers.ToArray();
                     }
                 }
-                return _CopiedHandlers;
+                return copiedHandlers;
             }
 
             internal InvocationHandlerList Add(InvocationHandler handler)
