@@ -216,7 +216,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 if (!isNegotiate)
                 {
-                    if (_protocol.ReadMessages(result.Buffer, _invocationBinder, out var messages, out consumed, out examined))
+                    var messages = new List<HubMessage>();
+                    if (_protocol.TryParseMessages(result.Buffer.ToArray(), _invocationBinder, messages))
                     {
                         foreach (var m in messages)
                         {
