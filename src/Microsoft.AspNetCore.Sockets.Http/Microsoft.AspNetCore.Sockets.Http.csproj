@@ -9,6 +9,7 @@
     <Compile Include="..\Common\PipeWriterStream.cs" Link="PipeWriterStream.cs" />
     <Compile Include="..\Common\WebSocketExtensions.cs" Link="WebSocketExtensions.cs" />
     <Compile Include="..\Common\StreamExtensions.cs" Link="StreamExtensions.cs" />
+    <Compile Include="..\Common\ConnectionMetadata.cs" Link="ConnectionMetadata.cs" />
   </ItemGroup>
   
   <ItemGroup>
@@ -22,6 +23,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Routing" Version="$(MicrosoftAspNetCoreRoutingPackageVersion)" />
     <PackageReference Include="Microsoft.AspNetCore.WebSockets" Version="$(MicrosoftAspNetCoreWebSocketsPackageVersion)" />
     <PackageReference Include="Microsoft.Extensions.SecurityHelper.Sources" PrivateAssets="All" Version="$(MicrosoftExtensionsSecurityHelperSourcesPackageVersion)" />
+    <PackageReference Include="Microsoft.Extensions.ValueStopwatch.Sources" Version="$(MicrosoftExtensionsValueStopwatchSourcesPackageVersion)" PrivateAssets="All" />
     <PackageReference Include="Newtonsoft.Json" Version="$(NewtonsoftJsonPackageVersion)" />
   </ItemGroup>
 

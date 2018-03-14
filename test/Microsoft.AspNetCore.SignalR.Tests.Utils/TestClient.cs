@@ -23,14 +23,14 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         private CancellationTokenSource _cts;
         private Queue<HubMessage> _messages = new Queue<HubMessage>();
 
-        public DefaultConnectionContext Connection { get; }
+        public TestConnectionContext Connection { get; }
         public Task Connected => ((TaskCompletionSource<bool>)Connection.Metadata["ConnectedTask"]).Task;
 
         public TestClient(bool synchronousCallbacks = false, IHubProtocol protocol = null, IInvocationBinder invocationBinder = null, bool addClaimId = false)
         {
             var options = new PipeOptions(readerScheduler: synchronousCallbacks ? PipeScheduler.Inline : null);
             var pair = DuplexPipe.CreateConnectionPair(options, options);
-            Connection = new DefaultConnectionContext(Guid.NewGuid().ToString(), pair.Transport, pair.Application);
+            Connection = new TestConnectionContext(Guid.NewGuid().ToString(), pair.Transport, pair.Application);
 
             var claimValue = Interlocked.Increment(ref _id).ToString();
             var claims = new List<Claim> { new Claim(ClaimTypes.Name, claimValue) };

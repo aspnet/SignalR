@@ -4,7 +4,11 @@
     <TargetFrameworks>$(StandardTestTfms)</TargetFrameworks>
     <RootNamespace>Microsoft.AspNetCore.SignalR.Tests</RootNamespace>
   </PropertyGroup>
-
+  
+  <ItemGroup>
+    <Compile Include="..\..\src\Common\ConnectionMetadata.cs" Link="ConnectionMetadata.cs" />
+  </ItemGroup>
+  
   <ItemGroup>
     <ProjectReference Include="..\..\src\Microsoft.AspNetCore.SignalR.Common\Microsoft.AspNetCore.SignalR.Common.csproj" />
     <ProjectReference Include="..\..\src\Microsoft.AspNetCore.SignalR.Core\Microsoft.AspNetCore.SignalR.Core.csproj" />

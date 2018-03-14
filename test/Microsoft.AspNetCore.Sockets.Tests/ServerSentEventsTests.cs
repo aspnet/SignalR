@@ -20,7 +20,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         public async Task SSESetsContentType()
         {
             var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
-            var connection = new DefaultConnectionContext("foo", pair.Transport, pair.Application);
+            var connection = new HttpConnectionContext("foo", pair.Transport, pair.Application);
             var context = new DefaultHttpContext();
 
             var sse = new ServerSentEventsTransport(connection.Application.Input, connectionId: string.Empty, loggerFactory: new LoggerFactory());
@@ -37,7 +37,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         public async Task SSETurnsResponseBufferingOff()
         {
             var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
-            var connection = new DefaultConnectionContext("foo", pair.Transport, pair.Application);
+            var connection = new HttpConnectionContext("foo", pair.Transport, pair.Application);
             var context = new DefaultHttpContext();
 
             var feature = new HttpBufferingFeature();
@@ -55,7 +55,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         public async Task SSEWritesMessages()
         {
             var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, new PipeOptions(readerScheduler: PipeScheduler.Inline));
-            var connection = new DefaultConnectionContext("foo", pair.Transport, pair.Application);
+            var connection = new HttpConnectionContext("foo", pair.Transport, pair.Application);
             var context = new DefaultHttpContext();
 
 
@@ -78,7 +78,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         public async Task SSEAddsAppropriateFraming(string message, string expected)
         {
             var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
-            var connection = new DefaultConnectionContext("foo", pair.Transport, pair.Application);
+            var connection = new HttpConnectionContext("foo", pair.Transport, pair.Application);
             var context = new DefaultHttpContext();
 
             var sse = new ServerSentEventsTransport(connection.Application.Input, connectionId: string.Empty, loggerFactory: new LoggerFactory());

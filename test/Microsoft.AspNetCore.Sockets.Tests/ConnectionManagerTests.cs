@@ -18,7 +18,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var connection = connectionManager.CreateConnection();
 
             Assert.NotNull(connection.ConnectionId);
-            Assert.Equal(DefaultConnectionContext.ConnectionStatus.Inactive, connection.Status);
+            Assert.Equal(HttpConnectionContext.ConnectionStatus.Inactive, connection.Status);
             Assert.Null(connection.ApplicationTask);
             Assert.Null(connection.TransportTask);
             Assert.Null(connection.Cancellation);
@@ -186,7 +186,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             Assert.NotNull(connection.Transport);
 
             await connection.DisposeAsync();
-            Assert.Equal(DefaultConnectionContext.ConnectionStatus.Disposed, connection.Status);
+            Assert.Equal(HttpConnectionContext.ConnectionStatus.Disposed, connection.Status);
         }
 
         [Fact]
