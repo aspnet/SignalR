@@ -106,47 +106,6 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             public override async Task<WebSocketReceiveResult> ReceiveAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken)
             {
-                //try
-                //{
-                //    await _input.WaitToReadAsync();
-
-                //    if (_input.TryRead(out var message))
-                //    {
-                //        if (message.MessageType == WebSocketMessageType.Close)
-                //        {
-                //            _state = WebSocketState.CloseReceived;
-                //            _closeStatus = message.CloseStatus;
-                //            _closeStatusDescription = message.CloseStatusDescription;
-                //            return new WebSocketReceiveResult(0, WebSocketMessageType.Close, true, message.CloseStatus, message.CloseStatusDescription);
-                //        }
-
-                //        if (buffer.Count == 0)
-                //        {
-                //            return new WebSocketReceiveResult(0, message.MessageType, message.EndOfMessage);
-                //        }
-
-                //        // REVIEW: This assumes the buffer passed in is > the buffer received
-                //        Buffer.BlockCopy(message.Buffer, 0, buffer.Array, buffer.Offset, message.Buffer.Length);
-
-                //        return new WebSocketReceiveResult(message.Buffer.Length, message.MessageType, message.EndOfMessage);
-                //    }
-                //}
-                //catch (WebSocketException ex)
-                //{
-                //    switch (ex.WebSocketErrorCode)
-                //    {
-                //        case WebSocketError.ConnectionClosedPrematurely:
-                //            _state = WebSocketState.Aborted;
-                //            break;
-                //    }
-
-                //    // Complete the client side if there's an error
-                //    _output.TryComplete();
-
-                //    throw;
-                //}
-
-                //throw new InvalidOperationException("Unexpected close");
                 try
                 {
                     if (_internalBuffer.Buffer == null || _internalBuffer.Buffer.Length == 0)
