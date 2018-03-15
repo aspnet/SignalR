@@ -16,7 +16,6 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
 {
     public partial class WebSocketsTransport : IHttpTransport
     {
-        private static readonly ArraySegment<byte> _emptySegment = new ArraySegment<byte>(new byte[0]);
         private readonly WebSocketOptions _options;
         private readonly ILogger _logger;
         private readonly IDuplexPipe _application;

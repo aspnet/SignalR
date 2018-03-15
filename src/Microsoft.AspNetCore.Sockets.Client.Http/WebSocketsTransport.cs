@@ -18,7 +18,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
 {
     public partial class WebSocketsTransport : ITransport
     {
-        private static readonly ArraySegment<byte> _emptySegment = new ArraySegment<byte>(new byte[0]);
         private readonly ClientWebSocket _webSocket;
         private IDuplexPipe _application;
         private WebSocketMessageType _webSocketMessageType;
