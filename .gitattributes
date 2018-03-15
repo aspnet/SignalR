@@ -50,3 +50,8 @@
 *.sln text=auto eol=crlf
 
 *.sh eol=lf
+
+# Workaround for npm changing line endings from CRLF to LF on Windows
+# https://github.com/npm/npm/issues/17161#issuecomment-337696678
+package.json text eol=lf
+package-lock.json text eol=lf
