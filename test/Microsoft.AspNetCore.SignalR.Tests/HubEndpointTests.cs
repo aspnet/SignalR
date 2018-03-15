@@ -322,7 +322,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 Task endPointTask = await client.ConnectAsync(endPoint);
 
                 Assert.NotNull(client.HandshakeResponseMessage);
-                Assert.Equal("An unexpected error occurred negotiating connection. NotSupportedException: The protocol 'CustomProtocol' is not supported.", client.HandshakeResponseMessage.Error);
+                Assert.Equal("An unexpected error occurred during connection handshake. NotSupportedException: The protocol 'CustomProtocol' is not supported.", client.HandshakeResponseMessage.Error);
 
                 client.Dispose();
 
