@@ -22,7 +22,8 @@ namespace Microsoft.AspNetCore.Sockets
                                             IConnectionHeartbeatFeature,
                                             ITransferFormatFeature
     {
-        private List<(Action<object> handler, object state)> _heartbeatHandlers = new List<(Action<object> handler, object state)>();
+        private object _heartBeatLock = new object();
+        private List<(Action<object> handler, object state)> _heartbeatHandlers;
 
         // This tcs exists so that multiple calls to DisposeAsync all wait asynchronously
         // on the same task
@@ -80,16 +81,25 @@ namespace Microsoft.AspNetCore.Sockets
 
         public void OnHeartbeat(Action<object> action, object state)
         {
-            lock (_heartbeatHandlers)
+            lock (_heartBeatLock)
             {
+                if (_heartbeatHandlers == null)
+                {
+                    _heartbeatHandlers = new List<(Action<object> handler, object state)>();
+                }
                 _heartbeatHandlers.Add((action, state));
             }
         }
 
         public void TickHeartbeat()
         {
-            lock (_heartbeatHandlers)
+            lock (_heartBeatLock)
             {
+                if (_heartbeatHandlers == null)
+                {
+                    return;
+                }
+
                 foreach (var (handler, state) in _heartbeatHandlers)
                 {
                     handler(state);
