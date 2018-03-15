@@ -83,11 +83,7 @@ namespace Microsoft.AspNetCore.SignalR
                     continue;
                 }
 
-                try
-                {
-                    tasks.Add(connection.WriteAsync(message));
-                }
-                catch { }
+                tasks.Add(SafeWriteAsync(connection, message));
             }
 
             return Task.WhenAll(tasks);
@@ -125,11 +121,7 @@ namespace Microsoft.AspNetCore.SignalR
                 var message = CreateInvocationMessage(methodName, args);
                 var tasks = group.Values.Select(async c =>
                 {
-                    try
-                    {
-                        await c.WriteAsync(message);
-                    }
-                    catch { }
+                    await SafeWriteAsync(c, message);
                 });
                 return Task.WhenAll(tasks);
             }
@@ -155,11 +147,7 @@ namespace Microsoft.AspNetCore.SignalR
                 {
                     tasks.Add(Task.WhenAll(group.Values.Select(async c =>
                     {
-                        try
-                        {
-                            await c.WriteAsync(message);
-                        }
-                        catch { }
+                        await SafeWriteAsync(c, message);
                     })));
                 }
             }
@@ -181,11 +169,7 @@ namespace Microsoft.AspNetCore.SignalR
                 var tasks = group.Values.Where(connection => !excludedIds.Contains(connection.ConnectionId))
                     .Select(async c =>
                     {
-                        try
-                        {
-                            await c.WriteAsync(message);
-                        }
-                        catch { }
+                        await SafeWriteAsync(c, message);
                     });
                 return Task.WhenAll(tasks);
             }
@@ -239,6 +223,18 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 return userIds.Contains(connection.UserIdentifier);
             });
+        }
+
+        private Task SafeWriteAsync(HubConnectionContext connection, InvocationMessage message)
+        {
+            try
+            {
+                return connection.WriteAsync(message);
+            }
+            catch (Exception ex)
+            {
+                return Task.FromException(ex);
+            }
         }
     }
 }
