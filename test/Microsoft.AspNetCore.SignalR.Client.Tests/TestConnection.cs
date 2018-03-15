@@ -75,7 +75,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             throw new ObjectDisposedException("Unable to send message, underlying channel was closed");
         }
 
-        public Task StartAsync(TransferFormat transferFormat)
+        public Task StartAsync(TransferFormat transferFormat, CancellationToken cancellationToken)
         {
             _started.TrySetResult(null);
             return Task.CompletedTask;
