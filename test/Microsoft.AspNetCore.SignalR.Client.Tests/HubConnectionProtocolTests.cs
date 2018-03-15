@@ -24,7 +24,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public async Task SendAsyncSendsANonBlockingInvocationMessage()
         {
             var connection = new TestConnection();
-            var hubConnection = new HubConnection(connection, new JsonHubProtocol(), new LoggerFactory());
+            var hubConnection = new HubConnection(() => connection, new JsonHubProtocol(), new LoggerFactory());
             try
             {
                 await hubConnection.StartAsync();
@@ -48,7 +48,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public async Task ClientSendsHandshakeMessageWhenStartingConnection()
         {
             var connection = new TestConnection();
-            var hubConnection = new HubConnection(connection, new JsonHubProtocol(), new LoggerFactory());
+            var hubConnection = new HubConnection(() => connection, new JsonHubProtocol(), new LoggerFactory());
             try
             {
                 await hubConnection.StartAsync();
@@ -68,7 +68,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public async Task InvokeSendsAnInvocationMessage()
         {
             var connection = new TestConnection();
-            var hubConnection = new HubConnection(connection, new JsonHubProtocol(), new LoggerFactory());
+            var hubConnection = new HubConnection(() => connection, new JsonHubProtocol(), new LoggerFactory());
             try
             {
                 await hubConnection.StartAsync();
@@ -147,7 +147,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public async Task StreamSendsAnInvocationMessage()
         {
             var connection = new TestConnection();
-            var hubConnection = new HubConnection(connection, new JsonHubProtocol(), new LoggerFactory());
+            var hubConnection = new HubConnection(() => connection, new JsonHubProtocol(), new LoggerFactory());
             try
             {
                 await hubConnection.StartAsync();
@@ -175,7 +175,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public async Task InvokeCompletedWhenCompletionMessageReceived()
         {
             var connection = new TestConnection();
-            var hubConnection = new HubConnection(connection, new JsonHubProtocol(), new LoggerFactory());
+            var hubConnection = new HubConnection(() => connection, new JsonHubProtocol(), new LoggerFactory());
             try
             {
                 await hubConnection.StartAsync();
@@ -199,7 +199,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public async Task StreamCompletesWhenCompletionMessageIsReceived()
         {
             var connection = new TestConnection();
-            var hubConnection = new HubConnection(connection, new JsonHubProtocol(), new LoggerFactory());
+            var hubConnection = new HubConnection(() => connection, new JsonHubProtocol(), new LoggerFactory());
             try
             {
                 await hubConnection.StartAsync();
@@ -223,7 +223,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public async Task InvokeYieldsResultWhenCompletionMessageReceived()
         {
             var connection = new TestConnection();
-            var hubConnection = new HubConnection(connection, new JsonHubProtocol(), new LoggerFactory());
+            var hubConnection = new HubConnection(() => connection, new JsonHubProtocol(), new LoggerFactory());
             try
             {
                 await hubConnection.StartAsync();
@@ -247,7 +247,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public async Task InvokeFailsWithExceptionWhenCompletionWithErrorReceived()
         {
             var connection = new TestConnection();
-            var hubConnection = new HubConnection(connection, new JsonHubProtocol(), new LoggerFactory());
+            var hubConnection = new HubConnection(() => connection, new JsonHubProtocol(), new LoggerFactory());
             try
             {
                 await hubConnection.StartAsync();
@@ -272,7 +272,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public async Task StreamFailsIfCompletionMessageHasPayload()
         {
             var connection = new TestConnection();
-            var hubConnection = new HubConnection(connection, new JsonHubProtocol(), new LoggerFactory());
+            var hubConnection = new HubConnection(() => connection, new JsonHubProtocol(), new LoggerFactory());
             try
             {
                 await hubConnection.StartAsync();
@@ -297,7 +297,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public async Task StreamFailsWithExceptionWhenCompletionWithErrorReceived()
         {
             var connection = new TestConnection();
-            var hubConnection = new HubConnection(connection, new JsonHubProtocol(), new LoggerFactory());
+            var hubConnection = new HubConnection(() => connection, new JsonHubProtocol(), new LoggerFactory());
             try
             {
                 await hubConnection.StartAsync();
@@ -322,7 +322,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public async Task InvokeFailsWithErrorWhenStreamingItemReceived()
         {
             var connection = new TestConnection();
-            var hubConnection = new HubConnection(connection, new JsonHubProtocol(), new LoggerFactory());
+            var hubConnection = new HubConnection(() => connection, new JsonHubProtocol(), new LoggerFactory());
             try
             {
                 await hubConnection.StartAsync();
@@ -347,7 +347,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public async Task StreamYieldsItemsAsTheyArrive()
         {
             var connection = new TestConnection();
-            var hubConnection = new HubConnection(connection, new JsonHubProtocol(), new LoggerFactory());
+            var hubConnection = new HubConnection(() => connection, new JsonHubProtocol(), new LoggerFactory());
             try
             {
                 await hubConnection.StartAsync();
@@ -376,7 +376,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public async Task HandlerRegisteredWithOnIsFiredWhenInvocationReceived()
         {
             var connection = new TestConnection();
-            var hubConnection = new HubConnection(connection, new JsonHubProtocol(), new LoggerFactory());
+            var hubConnection = new HubConnection(() => connection, new JsonHubProtocol(), new LoggerFactory());
             var handlerCalled = new TaskCompletionSource<object[]>();
             try
             {
@@ -402,7 +402,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public async Task AcceptsPingMessages()
         {
             var connection = new TestConnection();
-            var hubConnection = new HubConnection(connection,
+            var hubConnection = new HubConnection(() => connection,
                 new JsonHubProtocol(), new LoggerFactory());
 
             try

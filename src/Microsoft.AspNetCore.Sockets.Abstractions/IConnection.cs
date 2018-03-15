@@ -19,7 +19,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         IDisposable OnReceived(Func<byte[], object, Task> callback, object state);
 
-        event Action<Exception> Closed;
+        event Action<IConnection, Exception> Closed;
 
         IFeatureCollection Features { get; }
     }

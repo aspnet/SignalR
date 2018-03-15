@@ -96,7 +96,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         private async Task InvokeOn(Action<HubConnection, TaskCompletionSource<object[]>> onAction, object[] args)
         {
             var connection = new TestConnection();
-            var hubConnection = new HubConnection(connection, new JsonHubProtocol(), new LoggerFactory());
+            var hubConnection = new HubConnection(() => connection, new JsonHubProtocol(), new LoggerFactory());
             var handlerTcs = new TaskCompletionSource<object[]>();
             try
             {
@@ -126,7 +126,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public async Task ConnectionNotClosedOnCallbackArgumentCountMismatch()
         {
             var connection = new TestConnection();
-            var hubConnection = new HubConnection(connection, new JsonHubProtocol(), new LoggerFactory());
+            var hubConnection = new HubConnection(() => connection, new JsonHubProtocol(), new LoggerFactory());
             var receiveTcs = new TaskCompletionSource<int>();
 
             try
@@ -166,7 +166,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public async Task ConnectionNotClosedOnCallbackArgumentTypeMismatch()
         {
             var connection = new TestConnection();
-            var hubConnection = new HubConnection(connection, new JsonHubProtocol(), new LoggerFactory());
+            var hubConnection = new HubConnection(() => connection, new JsonHubProtocol(), new LoggerFactory());
             var receiveTcs = new TaskCompletionSource<int>();
 
             try
