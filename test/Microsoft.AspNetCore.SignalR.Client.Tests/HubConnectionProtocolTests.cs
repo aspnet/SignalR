@@ -31,7 +31,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
                 var invokeTask = hubConnection.SendAsync("Foo");
 
-                // skip negotiation
+                // skip handshake
                 await connection.ReadSentTextMessageAsync().OrTimeout();
                 var invokeMessage = await connection.ReadSentTextMessageAsync().OrTimeout();
 
@@ -45,16 +45,16 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         }
 
         [Fact]
-        public async Task ClientSendsNegotationMessageWhenStartingConnection()
+        public async Task ClientSendsHandshakeMessageWhenStartingConnection()
         {
             var connection = new TestConnection();
             var hubConnection = new HubConnection(connection, new JsonHubProtocol(), new LoggerFactory());
             try
             {
                 await hubConnection.StartAsync();
-                var negotiationMessage = await connection.ReadSentTextMessageAsync().OrTimeout();
+                var handshakeMessage = await connection.ReadSentTextMessageAsync().OrTimeout();
 
-                Assert.Equal("{\"protocol\":\"json\"}\u001e", negotiationMessage);
+                Assert.Equal("{\"protocol\":\"json\"}\u001e", handshakeMessage);
             }
             finally
             {
@@ -74,7 +74,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
                 var invokeTask = hubConnection.InvokeAsync("Foo");
 
-                // skip negotiation
+                // skip handshake
                 await connection.ReadSentTextMessageAsync().OrTimeout();
                 var invokeMessage = await connection.ReadSentTextMessageAsync().OrTimeout();
 
@@ -98,7 +98,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
                 var channel = await hubConnection.StreamAsChannelAsync<object>("Foo");
 
-                // skip negotiation
+                // skip handshake
                 await connection.ReadSentTextMessageAsync().OrTimeout();
                 var invokeMessage = await connection.ReadSentTextMessageAsync().OrTimeout();
 
@@ -335,7 +335,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 await hubConnection.StartAsync().OrTimeout();
 
-                // Ignore negotiate message
+                // Ignore handshake message
                 await connection.ReadSentTextMessageAsync().OrTimeout();
 
                 // Send an invocation

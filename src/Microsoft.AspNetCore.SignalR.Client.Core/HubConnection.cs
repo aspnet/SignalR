@@ -118,8 +118,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
             _connectionActive = new CancellationTokenSource();
             using (var memoryStream = new MemoryStream())
             {
-                Log.SendingHubNegotiate(_logger);
-                NegotiationProtocol.WriteRequestMessage(new NegotiationRequestMessage(_protocol.Name), memoryStream);
+                Log.SendingHubHandshake(_logger);
+                HandshakeProtocol.WriteRequestMessage(new HandshakeRequestMessage(_protocol.Name), memoryStream);
                 await _connection.SendAsync(memoryStream.ToArray(), _connectionActive.Token);
             }
 

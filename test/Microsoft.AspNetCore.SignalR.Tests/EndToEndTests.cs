@@ -355,7 +355,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     catch (OperationCanceledException)
                     {
                         // Due to a race, this can fail with OperationCanceledException in the SendAsync
-                        // call that HubConnection does to send the negotiate message.
+                        // call that HubConnection does to send the handshake message.
                         // This has only been happening on AppVeyor, likely due to a slower CI machine
                         // The closed event will still fire with the exception we care about.
                     }

@@ -250,14 +250,14 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Fact]
-        public async Task MissingNegotiateAndMessageSentFromHubConnectionCanBeDisposedCleanly()
+        public async Task MissingHandshakeAndMessageSentFromHubConnectionCanBeDisposedCleanly()
         {
             var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
             var endPoint = serviceProvider.GetService<HubEndPoint<SimpleHub>>();
 
             using (var client = new TestClient())
             {
-                // TestClient automatically writes negotiate, for this test we want to assume negotiate never gets sent
+                // TestClient automatically writes handshake, for this test we want to assume negotiate never gets sent
                 client.Connection.Transport.Input.TryRead(out var item);
                 client.Connection.Transport.Input.AdvanceTo(item.Buffer.End);
 
@@ -271,13 +271,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Fact]
-        public async Task NegotiateTimesOut()
+        public async Task HandshakeTimesOut()
         {
             var serviceProvider = HubEndPointTestUtils.CreateServiceProvider(services =>
             {
                 services.Configure<HubOptions>(options =>
                 {
-                    options.NegotiateTimeout = TimeSpan.FromMilliseconds(5);
+                    options.HandshakeTimeout = TimeSpan.FromMilliseconds(5);
                 });
             });
             var endPoint = serviceProvider.GetService<HubEndPoint<SimpleHub>>();
@@ -286,8 +286,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 Task endPointTask = await client.ConnectAsync(endPoint, false);
 
-                Assert.NotNull(client.NegotiationResponseMessage);
-                Assert.Equal("Negotiate was canceled.", client.NegotiationResponseMessage.Error);
+                Assert.NotNull(client.HandshakeResponseMessage);
+                Assert.Equal("Handshake was canceled.", client.HandshakeResponseMessage.Error);
 
                 await endPointTask.OrTimeout();
             }
@@ -310,7 +310,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Fact]
-        public async Task NegotiateFailureSendsResponseWithError()
+        public async Task HandshakeFailureSendsResponseWithError()
         {
             var hubProtocolMock = new Mock<IHubProtocol>();
             hubProtocolMock.Setup(m => m.Name).Returns("CustomProtocol");
@@ -321,8 +321,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 Task endPointTask = await client.ConnectAsync(endPoint);
 
-                Assert.NotNull(client.NegotiationResponseMessage);
-                Assert.Equal("An unexpected error occurred negotiating connection. NotSupportedException: The protocol 'CustomProtocol' is not supported.", client.NegotiationResponseMessage.Error);
+                Assert.NotNull(client.HandshakeResponseMessage);
+                Assert.Equal("An unexpected error occurred negotiating connection. NotSupportedException: The protocol 'CustomProtocol' is not supported.", client.HandshakeResponseMessage.Error);
 
                 client.Dispose();
 
@@ -331,7 +331,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Fact]
-        public async Task NegotiateSuccessSendsResponseWithoutError()
+        public async Task HandshakeSuccessSendsResponseWithoutError()
         {
             dynamic endPoint = HubEndPointTestUtils.GetHubEndpoint(typeof(HubT));
 
@@ -339,8 +339,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 Task endPointTask = await client.ConnectAsync(endPoint);
 
-                Assert.NotNull(client.NegotiationResponseMessage);
-                Assert.Null(client.NegotiationResponseMessage.Error);
+                Assert.NotNull(client.HandshakeResponseMessage);
+                Assert.Null(client.HandshakeResponseMessage.Error);
 
                 client.Dispose();
 
@@ -1833,7 +1833,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Fact]
-        public async Task NegotiatingFailsIfMsgPackRequestedOverTextOnlyTransport()
+        public async Task HandshakeFailsIfMsgPackRequestedOverTextOnlyTransport()
         {
             var serviceProvider = HubEndPointTestUtils.CreateServiceProvider(services =>
                 services.Configure<HubOptions>(options =>

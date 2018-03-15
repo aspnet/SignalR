@@ -20,12 +20,12 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         private static int _id;
         private readonly IHubProtocol _protocol;
         private readonly IInvocationBinder _invocationBinder;
-        private CancellationTokenSource _cts;
-        private Queue<HubMessage> _messages = new Queue<HubMessage>();
+        private readonly CancellationTokenSource _cts;
+        private readonly Queue<HubMessage> _messages = new Queue<HubMessage>();
 
         public DefaultConnectionContext Connection { get; }
         public Task Connected => ((TaskCompletionSource<bool>)Connection.Metadata["ConnectedTask"]).Task;
-        public NegotiationResponseMessage NegotiationResponseMessage { get; private set; }
+        public HandshakeResponseMessage HandshakeResponseMessage { get; private set; }
 
         public TestClient(bool synchronousCallbacks = false, IHubProtocol protocol = null, IInvocationBinder invocationBinder = null, bool addClaimId = false)
         {
@@ -50,20 +50,20 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
         }
 
-        public async Task<Task> ConnectAsync(dynamic endPoint, bool sendNegotiateMessage = true)
+        public async Task<Task> ConnectAsync(dynamic endPoint, bool sendHandshakeMessage = true)
         {
-            if (sendNegotiateMessage)
+            if (sendHandshakeMessage)
             {
                 using (var memoryStream = new MemoryStream())
                 {
-                    NegotiationProtocol.WriteRequestMessage(new NegotiationRequestMessage(_protocol.Name), memoryStream);
+                    HandshakeProtocol.WriteRequestMessage(new HandshakeRequestMessage(_protocol.Name), memoryStream);
                     await Connection.Application.Output.WriteAsync(memoryStream.ToArray());
                 }
             }
 
             var connection = (Task)endPoint.OnConnectedAsync(Connection);
 
-            NegotiationResponseMessage = (NegotiationResponseMessage)TryRead(true);
+            HandshakeResponseMessage = (HandshakeResponseMessage)TryRead(true);
 
             return connection;
         }
@@ -196,7 +196,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
-        public HubMessage TryRead(bool isNegotiate = false)
+        public HubMessage TryRead(bool isHandshake = false)
         {
             if (_messages.Count > 0)
             {
@@ -214,7 +214,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
             try
             {
-                if (!isNegotiate)
+                if (!isHandshake)
                 {
                     var messages = new List<HubMessage>();
                     if (_protocol.TryParseMessages(result.Buffer.ToArray(), _invocationBinder, messages))
@@ -229,13 +229,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 }
                 else
                 {
-                    if (NegotiationProtocol.TryParseResponseMessage(result.Buffer, out var negotiationMessage, out consumed, out examined))
+                    if (HandshakeProtocol.TryParseResponseMessage(result.Buffer, out var responseMessage, out consumed, out examined))
                     {
-                        return negotiationMessage;
+                        return responseMessage;
                     }
                     else
                     {
-                        throw new InvalidOperationException("Unable to read negotiate response.");
+                        throw new InvalidOperationException("Unable to read handshake response.");
                     }
                 }
             }

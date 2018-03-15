@@ -12,35 +12,35 @@ using Newtonsoft.Json.Linq;
 
 namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 {
-    public static class NegotiationProtocol
+    public static class HandshakeProtocol
     {
         private static readonly UTF8Encoding _utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
         private const string ProtocolPropertyName = "protocol";
         private const string ErrorPropertyName = "error";
 
-        public static void WriteRequestMessage(NegotiationRequestMessage negotiationMessage, Stream output)
+        public static void WriteRequestMessage(HandshakeRequestMessage requestMessage, Stream output)
         {
             using (var writer = CreateJsonTextWriter(output))
             {
                 writer.WriteStartObject();
                 writer.WritePropertyName(ProtocolPropertyName);
-                writer.WriteValue(negotiationMessage.Protocol);
+                writer.WriteValue(requestMessage.Protocol);
                 writer.WriteEndObject();
             }
 
             TextMessageFormatter.WriteRecordSeparator(output);
         }
 
-        public static void WriteResponseMessage(NegotiationResponseMessage negotiationResponseMessage, Stream output)
+        public static void WriteResponseMessage(HandshakeResponseMessage responseMessage, Stream output)
         {
             using (var writer = CreateJsonTextWriter(output))
             {
                 writer.WriteStartObject();
-                if (!string.IsNullOrEmpty(negotiationResponseMessage.Error))
+                if (!string.IsNullOrEmpty(responseMessage.Error))
                 {
                     writer.WritePropertyName(ErrorPropertyName);
-                    writer.WriteValue(negotiationResponseMessage.Error);
+                    writer.WriteValue(responseMessage.Error);
                 }
                 writer.WriteEndObject();
             }
@@ -53,11 +53,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             return new JsonTextWriter(new StreamWriter(output, _utf8NoBom, 1024, leaveOpen: true));
         }
 
-        public static bool TryParseResponseMessage(ReadOnlySpan<byte> input, out NegotiationResponseMessage negotiationMessage)
+        public static bool TryParseResponseMessage(ReadOnlySpan<byte> input, out HandshakeResponseMessage responseMessage)
         {
             if (!TextMessageParser.TryParseMessage(ref input, out var payload))
             {
-                throw new InvalidDataException("Unable to parse payload as a negotiation message.");
+                throw new InvalidDataException("Unable to parse payload as a handshake message.");
             }
 
             using (var memoryStream = new MemoryStream(payload.ToArray()))
@@ -65,30 +65,30 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 using (var reader = new JsonTextReader(new StreamReader(memoryStream)))
                 {
                     var token = JToken.ReadFrom(reader);
-                    var negotiationJObject = JsonUtils.GetObject(token);
-                    var error = JsonUtils.GetOptionalProperty<string>(negotiationJObject, ErrorPropertyName);
-                    negotiationMessage = new NegotiationResponseMessage(error);
+                    var handshakeJObject = JsonUtils.GetObject(token);
+                    var error = JsonUtils.GetOptionalProperty<string>(handshakeJObject, ErrorPropertyName);
+                    responseMessage = new HandshakeResponseMessage(error);
                 }
             }
             return true;
         }
 
-        public static bool TryParseResponseMessage(ReadOnlySequence<byte> buffer, out NegotiationResponseMessage negotiationMessage, out SequencePosition consumed, out SequencePosition examined)
+        public static bool TryParseResponseMessage(ReadOnlySequence<byte> buffer, out HandshakeResponseMessage responseMessage, out SequencePosition consumed, out SequencePosition examined)
         {
             if (!TryReadMessageIntoSingleSpan(buffer, out consumed, out examined, out var span))
             {
-                negotiationMessage = null;
+                responseMessage = null;
                 return false;
             }
 
-            return TryParseResponseMessage(span, out negotiationMessage);
+            return TryParseResponseMessage(span, out responseMessage);
         }
 
-        public static bool TryParseRequestMessage(ReadOnlySpan<byte> input, out NegotiationRequestMessage negotiationMessage)
+        public static bool TryParseRequestMessage(ReadOnlySpan<byte> input, out HandshakeRequestMessage requestMessage)
         {
             if (!TextMessageParser.TryParseMessage(ref input, out var payload))
             {
-                throw new InvalidDataException("Unable to parse payload as a negotiation message.");
+                throw new InvalidDataException("Unable to parse payload as a handshake message.");
             }
 
             using (var memoryStream = new MemoryStream(payload.ToArray()))
@@ -96,23 +96,23 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 using (var reader = new JsonTextReader(new StreamReader(memoryStream)))
                 {
                     var token = JToken.ReadFrom(reader);
-                    var negotiationJObject = JsonUtils.GetObject(token);
-                    var protocol = JsonUtils.GetRequiredProperty<string>(negotiationJObject, ProtocolPropertyName);
-                    negotiationMessage = new NegotiationRequestMessage(protocol);
+                    var handshakeJObject = JsonUtils.GetObject(token);
+                    var protocol = JsonUtils.GetRequiredProperty<string>(handshakeJObject, ProtocolPropertyName);
+                    requestMessage = new HandshakeRequestMessage(protocol);
                 }
             }
             return true;
         }
 
-        public static bool TryParseRequestMessage(ReadOnlySequence<byte> buffer, out NegotiationRequestMessage negotiationMessage, out SequencePosition consumed, out SequencePosition examined)
+        public static bool TryParseRequestMessage(ReadOnlySequence<byte> buffer, out HandshakeRequestMessage requestMessage, out SequencePosition consumed, out SequencePosition examined)
         {
             if (!TryReadMessageIntoSingleSpan(buffer, out consumed, out examined, out var span))
             {
-                negotiationMessage = null;
+                requestMessage = null;
                 return false;
             }
 
-            return TryParseRequestMessage(span, out negotiationMessage);
+            return TryParseRequestMessage(span, out requestMessage);
         }
 
         private static bool TryReadMessageIntoSingleSpan(ReadOnlySequence<byte> buffer, out SequencePosition consumed, out SequencePosition examined, out ReadOnlySpan<byte> span)
@@ -120,7 +120,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             var separator = buffer.PositionOf(TextMessageFormatter.RecordSeparator);
             if (separator == null)
             {
-                // Haven't seen the entire negotiate message so bail
+                // Haven't seen the entire message so bail
                 consumed = buffer.Start;
                 examined = buffer.End;
                 span = null;

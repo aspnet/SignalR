@@ -3,21 +3,21 @@
 
 namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 {
-    public class NegotiationResponseMessage : HubMessage
+    public class HandshakeResponseMessage : HubMessage
     {
-        private static readonly NegotiationResponseMessage _empty = new NegotiationResponseMessage(null);
+        private static readonly HandshakeResponseMessage _empty = new HandshakeResponseMessage(null);
 
         public string Error { get; }
 
-        public NegotiationResponseMessage(string error)
+        public HandshakeResponseMessage(string error)
         {
             Error = error;
         }
 
         // Static factory methods. Don't want to use constructor overloading because it will break down
         // if you need to send a payload statically-typed as a string. And because a static factory is clearer here
-        public static NegotiationResponseMessage WithError(string error) => new NegotiationResponseMessage(error);
+        public static HandshakeResponseMessage WithError(string error) => new HandshakeResponseMessage(error);
 
-        public static NegotiationResponseMessage Empty() => _empty;
+        public static HandshakeResponseMessage Empty() => _empty;
     }
 }

@@ -92,8 +92,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
             private static readonly Action<ILogger, Exception> _errorDuringClosedEvent =
                 LoggerMessage.Define(LogLevel.Error, new EventId(27, "ErrorDuringClosedEvent"), "An exception was thrown in the handler for the Closed event.");
 
-            private static readonly Action<ILogger, Exception> _sendingHubNegotiate =
-                LoggerMessage.Define(LogLevel.Debug, new EventId(28, "SendingHubNegotiate"), "Sending Hub Negotiation.");
+            private static readonly Action<ILogger, Exception> _sendingHubHandshake =
+                LoggerMessage.Define(LogLevel.Debug, new EventId(28, "SendingHubHandshake"), "Sending Hub Handshake.");
 
             private static readonly Action<ILogger, int, Exception> _parsingMessages =
                 LoggerMessage.Define<int>(LogLevel.Debug, new EventId(29, "ParsingMessages"), "Received {count} bytes. Parsing message(s).");
@@ -256,9 +256,9 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 _errorDuringClosedEvent(logger, exception);
             }
 
-            public static void SendingHubNegotiate(ILogger logger)
+            public static void SendingHubHandshake(ILogger logger)
             {
-                _sendingHubNegotiate(logger, null);
+                _sendingHubHandshake(logger, null);
             }
 
             public static void ParsingMessages(ILogger logger, int byteCount)

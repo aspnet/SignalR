@@ -119,10 +119,10 @@ namespace Microsoft.AspNetCore.SignalR
             }
         }
 
-        private async Task WriteNegotiateResponseAsync(NegotiationResponseMessage message)
+        private async Task WriteHandshakeResponseAsync(HandshakeResponseMessage message)
         {
             MemoryStream ms = new MemoryStream();
-            NegotiationProtocol.WriteResponseMessage(message, ms);
+            HandshakeProtocol.WriteResponseMessage(message, ms);
 
             await _connectionContext.Transport.Output.WriteAsync(ms.ToArray());
         }
@@ -140,7 +140,7 @@ namespace Microsoft.AspNetCore.SignalR
             Task.Factory.StartNew(_abortedCallback, this);
         }
 
-        internal async Task<bool> NegotiateAsync(TimeSpan timeout, IList<string> supportedProtocols, IHubProtocolResolver protocolResolver, IUserIdProvider userIdProvider)
+        internal async Task<bool> HandshakeAsync(TimeSpan timeout, IList<string> supportedProtocols, IHubProtocolResolver protocolResolver, IUserIdProvider userIdProvider)
         {
             try
             {
@@ -159,9 +159,9 @@ namespace Microsoft.AspNetCore.SignalR
                         {
                             if (!buffer.IsEmpty)
                             {
-                                if (NegotiationProtocol.TryParseRequestMessage(buffer, out var negotiationMessage, out consumed, out examined))
+                                if (HandshakeProtocol.TryParseRequestMessage(buffer, out var handshakeRequestMessage, out consumed, out examined))
                                 {
-                                    Protocol = protocolResolver.GetProtocol(negotiationMessage.Protocol, supportedProtocols, this);
+                                    Protocol = protocolResolver.GetProtocol(handshakeRequestMessage.Protocol, supportedProtocols, this);
 
                                     // If there's a transfer format feature, we need to check if we're compatible and set the active format.
                                     // If there isn't a feature, it means that the transport supports binary data and doesn't need us to tell them
@@ -183,20 +183,20 @@ namespace Microsoft.AspNetCore.SignalR
 
                                     if (Features.Get<IConnectionInherentKeepAliveFeature>() == null)
                                     {
-                                        // Only register KeepAlive after protocol negotiated otherwise KeepAliveTick could try to write without having a ProtocolReaderWriter
+                                        // Only register KeepAlive after protocol handshake otherwise KeepAliveTick could try to write without having a ProtocolReaderWriter
                                         Features.Get<IConnectionHeartbeatFeature>()?.OnHeartbeat(state => ((HubConnectionContext) state).KeepAliveTick(), this);
                                     }
 
-                                    Log.NegotiateComplete(_logger, Protocol.Name);
-                                    await WriteNegotiateResponseAsync(NegotiationResponseMessage.Empty());
+                                    Log.HandshakeComplete(_logger, Protocol.Name);
+                                    await WriteHandshakeResponseAsync(HandshakeResponseMessage.Empty());
                                     return true;
                                 }
                             }
                             else if (result.IsCompleted)
                             {
                                 // connection was closed before we every received a response
-                                // can't send a negotiate response because there is no longer a connection
-                                Log.NegotiateFailed(_logger, null);
+                                // can't send a handshake response because there is no longer a connection
+                                Log.HandshakeFailed(_logger, null);
                                 return false;
                             }
                         }
@@ -209,14 +209,14 @@ namespace Microsoft.AspNetCore.SignalR
             }
             catch (OperationCanceledException)
             {
-                Log.NegotiateCanceled(_logger);
-                await WriteNegotiateResponseAsync(NegotiationResponseMessage.WithError("Negotiate was canceled."));
+                Log.HandshakeCanceled(_logger);
+                await WriteHandshakeResponseAsync(HandshakeResponseMessage.WithError("Handshake was canceled."));
                 return false;
             }
             catch (Exception ex)
             {
-                Log.NegotiateFailed(_logger, ex);
-                await WriteNegotiateResponseAsync(NegotiationResponseMessage.WithError($"An unexpected error occurred negotiating connection. {ex.GetType().Name}: {ex.Message}"));
+                Log.HandshakeFailed(_logger, ex);
+                await WriteHandshakeResponseAsync(HandshakeResponseMessage.WithError($"An unexpected error occurred during connection handshake. {ex.GetType().Name}: {ex.Message}"));
                 return false;
             }
         }
@@ -275,11 +275,11 @@ namespace Microsoft.AspNetCore.SignalR
         private static class Log
         {
             // Category: HubConnectionContext
-            private static readonly Action<ILogger, string, Exception> _negotiateComplete =
-                LoggerMessage.Define<string>(LogLevel.Information, new EventId(1, "NegotiateComplete"), "Successfully negotiated connection. Using HubProtocol '{protocol}'.");
+            private static readonly Action<ILogger, string, Exception> _handshakeComplete =
+                LoggerMessage.Define<string>(LogLevel.Information, new EventId(1, "HandshakeComplete"), "Completed connection handshake. Using HubProtocol '{protocol}'.");
 
-            private static readonly Action<ILogger, Exception> _negotiateCanceled =
-                LoggerMessage.Define(LogLevel.Debug, new EventId(2, "NegotiateCanceled"), "Negotiate was canceled.");
+            private static readonly Action<ILogger, Exception> _handshakeCanceled =
+                LoggerMessage.Define(LogLevel.Debug, new EventId(2, "HandshakeCanceled"), "Handshake was canceled.");
 
             private static readonly Action<ILogger, Exception> _sentPing =
                 LoggerMessage.Define(LogLevel.Trace, new EventId(3, "SentPing"), "Sent a ping message to the client.");
@@ -287,17 +287,17 @@ namespace Microsoft.AspNetCore.SignalR
             private static readonly Action<ILogger, Exception> _transportBufferFull =
                 LoggerMessage.Define(LogLevel.Debug, new EventId(4, "TransportBufferFull"), "Unable to send Ping message to client, the transport buffer is full.");
 
-            private static readonly Action<ILogger, Exception> _negotiateFailed =
-                LoggerMessage.Define(LogLevel.Error, new EventId(5, "NegotiateFailed"), "Failed to negotiate connection.");
+            private static readonly Action<ILogger, Exception> _handshakeFailed =
+                LoggerMessage.Define(LogLevel.Error, new EventId(5, "HandshakeFailed"), "Failed connection handshake.");
 
-            public static void NegotiateComplete(ILogger logger, string hubProtocol)
+            public static void HandshakeComplete(ILogger logger, string hubProtocol)
             {
-                _negotiateComplete(logger, hubProtocol, null);
+                _handshakeComplete(logger, hubProtocol, null);
             }
 
-            public static void NegotiateCanceled(ILogger logger)
+            public static void HandshakeCanceled(ILogger logger)
             {
-                _negotiateCanceled(logger, null);
+                _handshakeCanceled(logger, null);
             }
 
             public static void SentPing(ILogger logger)
@@ -310,9 +310,9 @@ namespace Microsoft.AspNetCore.SignalR
                 _transportBufferFull(logger, null);
             }
 
-            public static void NegotiateFailed(ILogger logger, Exception exception)
+            public static void HandshakeFailed(ILogger logger, Exception exception)
             {
-                _negotiateFailed(logger, exception);
+                _handshakeFailed(logger, exception);
             }
         }
 
