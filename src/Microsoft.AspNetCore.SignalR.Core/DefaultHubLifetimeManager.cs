@@ -119,10 +119,7 @@ namespace Microsoft.AspNetCore.SignalR
             if (group != null)
             {
                 var message = CreateInvocationMessage(methodName, args);
-                var tasks = group.Values.Select(async c =>
-                {
-                    await SafeWriteAsync(c, message);
-                });
+                var tasks = group.Values.Select(c => SafeWriteAsync(c, message));
                 return Task.WhenAll(tasks);
             }
 
@@ -145,10 +142,7 @@ namespace Microsoft.AspNetCore.SignalR
                 var group = _groups[groupName];
                 if (group != null)
                 {
-                    tasks.Add(Task.WhenAll(group.Values.Select(async c =>
-                    {
-                        await SafeWriteAsync(c, message);
-                    })));
+                    tasks.Add(Task.WhenAll(group.Values.Select(c =>  SafeWriteAsync(c, message))));
                 }
             }
 
@@ -167,10 +161,7 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 var message = CreateInvocationMessage(methodName, args);
                 var tasks = group.Values.Where(connection => !excludedIds.Contains(connection.ConnectionId))
-                    .Select(async c =>
-                    {
-                        await SafeWriteAsync(c, message);
-                    });
+                    .Select(c => SafeWriteAsync(c, message));
                 return Task.WhenAll(tasks);
             }
 
