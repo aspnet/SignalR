@@ -182,9 +182,10 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 while (true)
                 {
 #if NETCOREAPP2_1
-                    // If there was a read that had a 'false' EndOfMessage then we should skip the 0 byte read since there is an in progress frame
+                    // If there was a read that had a 'false' EndOfMessage then we should skip the 0 byte read since there is an in-progress frame
                     if (endOfMessage)
                     {
+                        // Do a 0 byte read so that idle connections don't allocate a buffer when waiting for a read
                         var result = await socket.ReceiveAsync(Memory<byte>.Empty, CancellationToken.None);
 
                         if (result.MessageType == WebSocketMessageType.Close)
