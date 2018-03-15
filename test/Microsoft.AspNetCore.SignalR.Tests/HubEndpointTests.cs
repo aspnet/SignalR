@@ -85,7 +85,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 try
                 {
                     await endPointTask.OrTimeout();
-                    Assert.True(false, "Aborting connection should throw cancellation exception.");
                 }
                 catch (TaskCanceledException)
                 {
