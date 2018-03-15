@@ -18,7 +18,10 @@ namespace Microsoft.AspNetCore.Builder
 
             callback(new SocketRouteBuilder(routes, dispatcher));
 
-            app.UseWebSockets();
+            app.UseWebSockets(new WebSocketOptions()
+            {
+                ReceiveBufferSize = 14
+            });
             app.UseRouter(routes.Build());
             return app;
         }
