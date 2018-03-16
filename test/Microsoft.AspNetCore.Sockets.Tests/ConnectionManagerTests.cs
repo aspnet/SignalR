@@ -43,10 +43,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         public void AddNewConnection()
         {
             var connectionManager = CreateConnectionManager();
-            var connection = connectionManager.CreateConnection();
-            var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
-            connection.Application = pair.Transport;
-            connection.Transport = pair.Application;
+            var connection = connectionManager.CreateConnection(PipeOptions.Default, PipeOptions.Default);
 
             var transport = connection.Transport;
 
@@ -62,10 +59,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         public void RemoveConnection()
         {
             var connectionManager = CreateConnectionManager();
-            var connection = connectionManager.CreateConnection();
-            var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
-            connection.Application = pair.Transport;
-            connection.Transport = pair.Application;
+            var connection = connectionManager.CreateConnection(PipeOptions.Default, PipeOptions.Default);
 
             var transport = connection.Transport;
 
@@ -84,10 +78,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         public async Task CloseConnectionsEndsAllPendingConnections()
         {
             var connectionManager = CreateConnectionManager();
-            var connection = connectionManager.CreateConnection();
-            var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
-            connection.Application = pair.Transport;
-            connection.Transport = pair.Application;
+            var connection = connectionManager.CreateConnection(PipeOptions.Default, PipeOptions.Default);
 
             connection.ApplicationTask = Task.Run(async () =>
             {
@@ -99,7 +90,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 }
                 finally
                 {
-                    connection.Transport.Input.AdvanceTo(result.Buffer.End);    
+                    connection.Transport.Input.AdvanceTo(result.Buffer.End);
                 }
             });
 
@@ -125,10 +116,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         public async Task DisposingConnectionMultipleTimesWaitsOnConnectionClose()
         {
             var connectionManager = CreateConnectionManager();
-            var connection = connectionManager.CreateConnection();
-            var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
-            connection.Application = pair.Transport;
-            connection.Transport = pair.Application;
+            var connection = connectionManager.CreateConnection(PipeOptions.Default, PipeOptions.Default);
             var tcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             connection.ApplicationTask = tcs.Task;
@@ -148,10 +136,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         public async Task DisposingConnectionMultipleGetsExceptionFromTransportOrApp()
         {
             var connectionManager = CreateConnectionManager();
-            var connection = connectionManager.CreateConnection();
-            var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
-            connection.Application = pair.Transport;
-            connection.Transport = pair.Application;
+            var connection = connectionManager.CreateConnection(PipeOptions.Default, PipeOptions.Default);
             var tcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             connection.ApplicationTask = tcs.Task;
@@ -175,10 +160,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         public async Task DisposingConnectionMultipleGetsCancellation()
         {
             var connectionManager = CreateConnectionManager();
-            var connection = connectionManager.CreateConnection();
-            var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
-            connection.Application = pair.Transport;
-            connection.Transport = pair.Application;
+            var connection = connectionManager.CreateConnection(PipeOptions.Default, PipeOptions.Default);
             var tcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             connection.ApplicationTask = tcs.Task;
@@ -199,10 +181,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         public async Task DisposeInactiveConnection()
         {
             var connectionManager = CreateConnectionManager();
-            var connection = connectionManager.CreateConnection();
-            var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
-            connection.Application = pair.Transport;
-            connection.Transport = pair.Application;
+            var connection = connectionManager.CreateConnection(PipeOptions.Default, PipeOptions.Default);
 
             Assert.NotNull(connection.ConnectionId);
 
@@ -230,10 +209,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
             appLifetime.Start();
 
-            var connection = connectionManager.CreateConnection();
-            var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
-            connection.Application = pair.Transport;
-            connection.Transport = pair.Application;
+            var connection = connectionManager.CreateConnection(PipeOptions.Default, PipeOptions.Default);
 
             connection.Application.Output.OnReaderCompleted((error, state) =>
             {
