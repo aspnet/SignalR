@@ -53,9 +53,15 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             return new JsonTextWriter(new StreamWriter(output, _utf8NoBom, 1024, leaveOpen: true));
         }
 
-        public static bool TryParseResponseMessage(ReadOnlySpan<byte> input, out HandshakeResponseMessage responseMessage)
+        public static bool TryParseResponseMessage(ReadOnlySequence<byte> buffer, out HandshakeResponseMessage responseMessage, out SequencePosition consumed, out SequencePosition examined)
         {
-            if (!TextMessageParser.TryParseMessage(ref input, out var payload))
+            if (!TryReadMessageIntoSingleSpan(buffer, out consumed, out examined, out var span))
+            {
+                responseMessage = null;
+                return false;
+            }
+
+            if (!TextMessageParser.TryParseMessage(ref span, out var payload))
             {
                 throw new InvalidDataException("Unable to parse payload as a handshake message.");
             }
@@ -73,20 +79,15 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             return true;
         }
 
-        public static bool TryParseResponseMessage(ReadOnlySequence<byte> buffer, out HandshakeResponseMessage responseMessage, out SequencePosition consumed, out SequencePosition examined)
+        public static bool TryParseRequestMessage(ReadOnlySequence<byte> buffer, out HandshakeRequestMessage requestMessage, out SequencePosition consumed, out SequencePosition examined)
         {
             if (!TryReadMessageIntoSingleSpan(buffer, out consumed, out examined, out var span))
             {
-                responseMessage = null;
+                requestMessage = null;
                 return false;
             }
 
-            return TryParseResponseMessage(span, out responseMessage);
-        }
-
-        public static bool TryParseRequestMessage(ReadOnlySpan<byte> input, out HandshakeRequestMessage requestMessage)
-        {
-            if (!TextMessageParser.TryParseMessage(ref input, out var payload))
+            if (!TextMessageParser.TryParseMessage(ref span, out var payload))
             {
                 throw new InvalidDataException("Unable to parse payload as a handshake message.");
             }
@@ -102,17 +103,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 }
             }
             return true;
-        }
-
-        public static bool TryParseRequestMessage(ReadOnlySequence<byte> buffer, out HandshakeRequestMessage requestMessage, out SequencePosition consumed, out SequencePosition examined)
-        {
-            if (!TryReadMessageIntoSingleSpan(buffer, out consumed, out examined, out var span))
-            {
-                requestMessage = null;
-                return false;
-            }
-
-            return TryParseRequestMessage(span, out requestMessage);
         }
 
         private static bool TryReadMessageIntoSingleSpan(ReadOnlySequence<byte> buffer, out SequencePosition consumed, out SequencePosition examined, out ReadOnlySpan<byte> span)

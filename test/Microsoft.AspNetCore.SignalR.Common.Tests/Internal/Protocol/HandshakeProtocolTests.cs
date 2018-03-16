@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Buffers;
 using System.IO;
 using System.Text;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
@@ -11,36 +12,42 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
 {
     public class HandshakeProtocolTests
     {
-        [Fact]
-        public void CanRoundtripHandshakeRequest()
+        [Theory]
+        [InlineData("{\"protocol\":\"dummy\"}\u001e", "dummy")]
+        [InlineData("{\"protocol\":\"\"}\u001e", "")]
+        [InlineData("{\"protocol\":null}\u001e", null)]
+        public void ParsingHandshakeRequestMessageSuccessForValidMessages(string json, string protocol)
         {
-            var requestMessage = new HandshakeRequestMessage(protocol: "dummy");
-            using (var ms = new MemoryStream())
-            {
-                HandshakeProtocol.WriteRequestMessage(requestMessage, ms);
-                Assert.True(HandshakeProtocol.TryParseRequestMessage(ms.ToArray(), out var deserializedMessage));
+            var message = Encoding.UTF8.GetBytes(json);
 
-                Assert.NotNull(deserializedMessage);
-                Assert.Equal(requestMessage.Protocol, deserializedMessage.Protocol);
-            }
-        }
+            Assert.True(HandshakeProtocol.TryParseRequestMessage(new ReadOnlySequence<byte>(message), out var deserializedMessage, out _, out _));
 
-        [Fact]
-        public void CanRoundtripHandshakeResponse()
-        {
-            var responseMessage = new HandshakeResponseMessage(error: "dummy");
-            using (var ms = new MemoryStream())
-            {
-                HandshakeProtocol.WriteResponseMessage(responseMessage, ms);
-                Assert.True(HandshakeProtocol.TryParseResponseMessage(ms.ToArray(), out var deserializedMessage));
-
-                Assert.NotNull(deserializedMessage);
-                Assert.Equal(responseMessage.Error, deserializedMessage.Error);
-            }
+            Assert.Equal(protocol, deserializedMessage.Protocol);
         }
 
         [Theory]
-        [InlineData("", "Unable to parse payload as a handshake message.")]
+        [InlineData("{\"error\":\"dummy\"}\u001e", "dummy")]
+        [InlineData("{\"error\":\"\"}\u001e", "")]
+        [InlineData("{\"error\":null}\u001e", null)]
+        [InlineData("{}\u001e", null)]
+        public void ParsingHandshakeResponseMessageSuccessForValidMessages(string json, string error)
+        {
+            var message = Encoding.UTF8.GetBytes(json);
+
+            Assert.True(HandshakeProtocol.TryParseResponseMessage(new ReadOnlySequence<byte>(message), out var deserializedMessage, out _, out _));
+
+            Assert.Equal(error, deserializedMessage.Error);
+        }
+
+        [Fact]
+        public void ParsingHandshakeRequestNotCompleteReturnsFalse()
+        {
+            var message = Encoding.UTF8.GetBytes("42");
+
+            Assert.False(HandshakeProtocol.TryParseRequestMessage(new ReadOnlySequence<byte>(message), out _, out _, out _));
+        }
+
+        [Theory]
         [InlineData("42\u001e", "Unexpected JSON Token Type 'Integer'. Expected a JSON Object.")]
         [InlineData("\"42\"\u001e", "Unexpected JSON Token Type 'String'. Expected a JSON Object.")]
         [InlineData("null\u001e", "Unexpected JSON Token Type 'Null'. Expected a JSON Object.")]
@@ -51,13 +58,20 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             var message = Encoding.UTF8.GetBytes(payload);
 
             var exception = Assert.Throws<InvalidDataException>(() =>
-                Assert.True(HandshakeProtocol.TryParseRequestMessage(message, out var deserializedMessage)));
+                Assert.True(HandshakeProtocol.TryParseRequestMessage(new ReadOnlySequence<byte>(message), out _, out _, out _)));
 
             Assert.Equal(expectedMessage, exception.Message);
         }
 
+        [Fact]
+        public void ParsingHandshakeResponseNotCompleteReturnsFalse()
+        {
+            var message = Encoding.UTF8.GetBytes("42");
+
+            Assert.False(HandshakeProtocol.TryParseResponseMessage(new ReadOnlySequence<byte>(message), out _, out _, out _));
+        }
+
         [Theory]
-        [InlineData("", "Unable to parse payload as a handshake message.")]
         [InlineData("42\u001e", "Unexpected JSON Token Type 'Integer'. Expected a JSON Object.")]
         [InlineData("\"42\"\u001e", "Unexpected JSON Token Type 'String'. Expected a JSON Object.")]
         [InlineData("null\u001e", "Unexpected JSON Token Type 'Null'. Expected a JSON Object.")]
@@ -67,7 +81,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             var message = Encoding.UTF8.GetBytes(payload);
 
             var exception = Assert.Throws<InvalidDataException>(() =>
-                Assert.True(HandshakeProtocol.TryParseResponseMessage(message, out var deserializedMessage)));
+                Assert.True(HandshakeProtocol.TryParseResponseMessage(new ReadOnlySequence<byte>(message), out _, out _, out _)));
 
             Assert.Equal(expectedMessage, exception.Message);
         }

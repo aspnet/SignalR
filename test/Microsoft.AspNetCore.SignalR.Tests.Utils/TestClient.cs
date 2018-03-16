@@ -50,9 +50,12 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
         }
 
-        public async Task<Task> ConnectAsync(dynamic endPoint, bool sendHandshakeMessage = true)
+        public async Task<Task> ConnectAsync(
+            dynamic endPoint,
+            bool sendHandshakeRequestMessage = true,
+            bool expectedHandshakeResponseMessage = true)
         {
-            if (sendHandshakeMessage)
+            if (sendHandshakeRequestMessage)
             {
                 using (var memoryStream = new MemoryStream())
                 {
@@ -63,7 +66,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
             var connection = (Task)endPoint.OnConnectedAsync(Connection);
 
-            HandshakeResponseMessage = (HandshakeResponseMessage)TryRead(true);
+            if (expectedHandshakeResponseMessage)
+            {
+                // note that the handshake response might not immediately be readable
+                // e.g. server is waiting for request, times out after configured duration,
+                // and sends response with timeout error
+                HandshakeResponseMessage = (HandshakeResponseMessage) await ReadAsync(true).OrTimeout();
+            }
 
             return connection;
         }
@@ -161,11 +170,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             return message is HubInvocationMessage hubMessage ? hubMessage.InvocationId : null;
         }
 
-        public async Task<HubMessage> ReadAsync()
+        public async Task<HubMessage> ReadAsync(bool isHandshake = false)
         {
             while (true)
             {
-                var message = TryRead();
+                var message = TryRead(isHandshake);
 
                 if (message == null)
                 {

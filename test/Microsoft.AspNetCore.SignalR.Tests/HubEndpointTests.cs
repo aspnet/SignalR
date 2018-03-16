@@ -256,11 +256,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
             using (var client = new TestClient())
             {
-                // TestClient automatically writes handshake, for this test we want to assume negotiate never gets sent
-                client.Connection.Transport.Input.TryRead(out var item);
-                client.Connection.Transport.Input.AdvanceTo(item.Buffer.End);
-
-                Task endPointTask = await client.ConnectAsync(endPoint);
+                Task endPointTask = await client.ConnectAsync(endPoint, false, false);
 
                 // kill the connection
                 client.Dispose();
@@ -346,7 +342,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 Task endPointTask = await client.ConnectAsync(endPoint);
 
                 Assert.NotNull(client.HandshakeResponseMessage);
-                Assert.Equal("Cannot use the 'messagepack' protocol on the current transport. The transport does not support 'Binary' transfer mode.", client.HandshakeResponseMessage.Error);
+                Assert.Equal("Cannot use the 'messagepack' protocol on the current transport. The transport does not support 'Binary' transfer format.", client.HandshakeResponseMessage.Error);
 
                 client.Dispose();
 
