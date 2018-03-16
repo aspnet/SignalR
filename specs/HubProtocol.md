@@ -339,7 +339,7 @@ Example:
 
 A `StreamItem` message is a JSON object with the following properties:
 
-* `type` - A `Number` with the literal value 2, indicating that this message is a StreamItem.
+* `type` - A `Number` with the literal value 2, indicating that this message is a `StreamItem`.
 * `invocationId` - A `String` encoding the `Invocation ID` for a message.
 * `item` - A `Token` encoding the stream item (see "JSON Payload Encoding" for details).
 
@@ -407,7 +407,7 @@ Example - The following `Completion` message is a protocol error because it has 
 ### CancelInvocation Message Encoding
 A `CancelInvocation` message is a JSON object with the following properties
 
-* `type` - A `Number` with the literal value `5`, indicationg that this is a `CancelInvocation`.
+* `type` - A `Number` with the literal value `5`, indicationg that this message is a `CancelInvocation`.
 * `invocationId` - A `String` encoding the `Invocation ID` for a message.
 
 Example
@@ -421,12 +421,33 @@ Example
 ### Ping Message Encoding
 A `Ping` message is a JSON object with the following properties:
 
-* `type` - A `Number` with the literal value `6`, indicating that this is a `Ping`.
+* `type` - A `Number` with the literal value `6`, indicating that this message is a `Ping`.
 
 Example
 ```json
 {
     "type": 6
+}
+```
+
+### Close Message Encoding
+A `Close` message is a JSON object with the following properties
+
+* `type` - A `Number` with the literal value `7`, indicationg that this message is a `Close`.
+* `error` - A `String` encoding the error message.
+
+Example - A `Close` message without an error
+```json
+{
+    "type": 7
+}
+```
+
+Example - A `Close` message with an error
+```json
+{
+    "type": 7,
+    "error": "Connection closed because of an error!"
 }
 ```
 
@@ -730,8 +751,37 @@ The following payload:
 
 is decoded as follows:
 
-* `0x92` - 2-element array
+* `0x91` - 1-element array
 * `0x06` - `6` (Message Type - `Ping` message)
+
+### Close Message Encoding
+
+`Close` messages have the following structure
+
+```
+[7, Error]
+```
+
+* `7` - Message Type - `7` indicates this is a `Close` message.
+* `Error` - Error - A `String` encoding the error for the message.
+
+Examples:
+
+#### Close message
+
+The following payload:
+```
+0x92 0x07 0xa3 0x78 0x79 0x7a
+```
+
+is decoded as follows:
+
+* `0x92` - 2-element array
+* `0x07` - `7` (Message Type - `Close` message)
+* `0xa3` - string of length 3 (Error)
+* `0x78` - `x`
+* `0x79` - `y`
+* `0x7a` - `z`
 
 ### MessagePack Headers Encoding
 
