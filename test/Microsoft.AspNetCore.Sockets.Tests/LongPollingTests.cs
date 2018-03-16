@@ -19,7 +19,13 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [Fact]
         public async Task Set204StatusCodeWhenChannelComplete()
         {
-            var connection = new DefaultConnectionContext("foo");
+            var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
+            var connection = new DefaultConnectionContext("foo")
+            {
+                Application = pair.Transport,
+                Transport = pair.Application
+            };
+
             var context = new DefaultHttpContext();
 
             var poll = new LongPollingTransport(CancellationToken.None, connection.Application.Input, connectionId: string.Empty, loggerFactory: new LoggerFactory());
@@ -34,7 +40,12 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [Fact]
         public async Task Set200StatusCodeWhenTimeoutTokenFires()
         {
-            var connection = new DefaultConnectionContext("foo");
+            var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
+            var connection = new DefaultConnectionContext("foo")
+            {
+                Application = pair.Transport,
+                Transport = pair.Application
+            };
             var context = new DefaultHttpContext();
 
             var timeoutToken = new CancellationToken(true);
@@ -52,7 +63,12 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [Fact]
         public async Task FrameSentAsSingleResponse()
         {
-            var connection = new DefaultConnectionContext("foo");
+            var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
+            var connection = new DefaultConnectionContext("foo")
+            {
+                Application = pair.Transport,
+                Transport = pair.Application
+            };
             var context = new DefaultHttpContext();
 
             var poll = new LongPollingTransport(CancellationToken.None, connection.Application.Input, connectionId: string.Empty, loggerFactory: new LoggerFactory());
@@ -71,7 +87,12 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [Fact]
         public async Task MultipleFramesSentAsSingleResponse()
         {
-            var connection = new DefaultConnectionContext("foo");
+            var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
+            var connection = new DefaultConnectionContext("foo")
+            {
+                Application = pair.Transport,
+                Transport = pair.Application
+            };
             var context = new DefaultHttpContext();
 
             var poll = new LongPollingTransport(CancellationToken.None, connection.Application.Input, connectionId: string.Empty, loggerFactory: new LoggerFactory());

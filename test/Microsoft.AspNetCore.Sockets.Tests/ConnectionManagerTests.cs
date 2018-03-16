@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.IO.Pipelines;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Logging;
@@ -23,7 +24,6 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             Assert.Null(connection.TransportTask);
             Assert.Null(connection.Cancellation);
             Assert.NotEqual(default(DateTime), connection.LastSeenUtc);
-            Assert.NotNull(connection.Transport);
         }
 
         [Fact]
@@ -43,6 +43,9 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         {
             var connectionManager = CreateConnectionManager();
             var connection = connectionManager.CreateConnection();
+            var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
+            connection.Application = pair.Transport;
+            connection.Transport = pair.Application;
 
             var transport = connection.Transport;
 
@@ -59,6 +62,9 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         {
             var connectionManager = CreateConnectionManager();
             var connection = connectionManager.CreateConnection();
+            var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
+            connection.Application = pair.Transport;
+            connection.Transport = pair.Application;
 
             var transport = connection.Transport;
 
@@ -78,6 +84,9 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         {
             var connectionManager = CreateConnectionManager();
             var connection = connectionManager.CreateConnection();
+            var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
+            connection.Application = pair.Transport;
+            connection.Transport = pair.Application;
 
             connection.ApplicationTask = Task.Run(async () =>
             {
@@ -116,6 +125,9 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         {
             var connectionManager = CreateConnectionManager();
             var connection = connectionManager.CreateConnection();
+            var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
+            connection.Application = pair.Transport;
+            connection.Transport = pair.Application;
             var tcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             connection.ApplicationTask = tcs.Task;
@@ -136,6 +148,9 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         {
             var connectionManager = CreateConnectionManager();
             var connection = connectionManager.CreateConnection();
+            var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
+            connection.Application = pair.Transport;
+            connection.Transport = pair.Application;
             var tcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             connection.ApplicationTask = tcs.Task;
@@ -160,6 +175,9 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         {
             var connectionManager = CreateConnectionManager();
             var connection = connectionManager.CreateConnection();
+            var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
+            connection.Application = pair.Transport;
+            connection.Transport = pair.Application;
             var tcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             connection.ApplicationTask = tcs.Task;
@@ -180,10 +198,12 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         public async Task DisposeInactiveConnection()
         {
             var connectionManager = CreateConnectionManager();
-            var connection = connectionManager.CreateConnection();;
+            var connection = connectionManager.CreateConnection();
+            var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
+            connection.Application = pair.Transport;
+            connection.Transport = pair.Application;
 
             Assert.NotNull(connection.ConnectionId);
-            Assert.NotNull(connection.Transport);
 
             await connection.DisposeAsync();
             Assert.Equal(DefaultConnectionContext.ConnectionStatus.Disposed, connection.Status);
@@ -210,6 +230,9 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             appLifetime.Start();
 
             var connection = connectionManager.CreateConnection();
+            var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
+            connection.Application = pair.Transport;
+            connection.Transport = pair.Application;
 
             connection.Application.Output.OnReaderCompleted((error, state) =>
             {

@@ -67,22 +67,17 @@ namespace Microsoft.AspNetCore.Sockets
             return false;
         }
 
-        public DefaultConnectionContext CreateConnection(PipeOptions transportPipeOptions, PipeOptions appPipeOptions)
+        public DefaultConnectionContext CreateConnection()
         {
             var id = MakeNewConnectionId();
 
             _logger.CreatedNewConnection(id);
             var connectionTimer = SocketEventSource.Log.ConnectionStart(id);
 
-            var connection = new DefaultConnectionContext(id, transportPipeOptions, appPipeOptions);
+            var connection = new DefaultConnectionContext(id);
 
             _connections.TryAdd(id, (connection, connectionTimer));
             return connection;
-        }
-
-        public DefaultConnectionContext CreateConnection()
-        {
-            return CreateConnection(PipeOptions.Default, PipeOptions.Default);
         }
 
         public void RemoveConnection(string id)

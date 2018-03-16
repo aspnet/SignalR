@@ -29,7 +29,12 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         public TestClient(bool synchronousCallbacks = false, IHubProtocol protocol = null, IInvocationBinder invocationBinder = null, bool addClaimId = false)
         {
             var options = new PipeOptions(readerScheduler: synchronousCallbacks ? PipeScheduler.Inline : null);
-            Connection = new DefaultConnectionContext(Guid.NewGuid().ToString(), options, options);
+            var pair = DuplexPipe.CreateConnectionPair(options, options);
+            Connection = new DefaultConnectionContext(Guid.NewGuid().ToString())
+            {
+                Application = pair.Transport,
+                Transport = pair.Application
+            };
 
             var claimValue = Interlocked.Increment(ref _id).ToString();
             var claims = new List<Claim> { new Claim(ClaimTypes.Name, claimValue) };
