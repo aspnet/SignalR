@@ -377,7 +377,16 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
         internal static JsonSerializerSettings CreateDefaultSerializerSettings()
         {
-            return new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
+            return new JsonSerializerSettings
+            {
+                ContractResolver = new DefaultContractResolver()
+                {
+                    NamingStrategy = new CamelCaseNamingStrategy()
+                    {
+                        ProcessDictionaryKeys = true
+                    }
+                }
+            };
         }
     }
 }
