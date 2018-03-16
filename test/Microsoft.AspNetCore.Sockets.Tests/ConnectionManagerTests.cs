@@ -184,6 +184,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             var connection = connectionManager.CreateConnection(PipeOptions.Default, PipeOptions.Default);
 
             Assert.NotNull(connection.ConnectionId);
+            Assert.NotNull(connection.Transport);
 
             await connection.DisposeAsync();
             Assert.Equal(DefaultConnectionContext.ConnectionStatus.Disposed, connection.Status);
