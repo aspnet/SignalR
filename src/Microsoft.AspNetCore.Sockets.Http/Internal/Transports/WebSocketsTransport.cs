@@ -138,7 +138,8 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
         {
             try
             {
-                var endOfMessage = true;
+                // Skip the 0 byte read at first because we will receive the Hub handshake shortly
+                var endOfMessage = false;
                 while (true)
                 {
 #if NETCOREAPP2_1
