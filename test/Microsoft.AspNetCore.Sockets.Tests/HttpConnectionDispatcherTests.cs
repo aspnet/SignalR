@@ -59,7 +59,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         }
 
         [Fact]
-         public async Task CheckThatThresholdValuesAreEnforced()
+        public async Task CheckThatThresholdValuesAreEnforced()
         {
             using (StartLog(out var loggerFactory, LogLevel.Debug))
             {
@@ -104,10 +104,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 var manager = CreateConnectionManager(loggerFactory);
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
                 var pipeOptions = new PipeOptions(pauseWriterThreshold: 8, resumeWriterThreshold: 4);
-                var pair = DuplexPipe.CreateConnectionPair(pipeOptions, pipeOptions);
-                var connection = manager.CreateConnection();
-                connection.Application = pair.Transport;
-                connection.Transport = pair.Application;
+                var connection = manager.CreateConnection(pipeOptions, pipeOptions);
                 connection.Items[ConnectionMetadataNames.Transport] = transportType;
 
                 using (var requestBody = new MemoryStream())
