@@ -10,12 +10,10 @@ using System.IO;
 using System.IO.Pipelines;
 using System.Net.WebSockets;
 using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Sockets.Internal;
-using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Internal;
 using Microsoft.Extensions.Logging;
 
@@ -26,8 +24,7 @@ namespace Microsoft.AspNetCore.Sockets
         // TODO: Consider making this configurable? At least for testing?
         private static readonly TimeSpan _heartbeatTickRate = TimeSpan.FromSeconds(1);
 
-        private static readonly HMACSHA256 _hmacHash = new HMACSHA256();
-        private static long _id;
+        private static readonly RNGCryptoServiceProvider _keyGen = new RNGCryptoServiceProvider();
 
         private readonly ConcurrentDictionary<string, (DefaultConnectionContext Connection, ValueStopwatch Timer)> _connections = new ConcurrentDictionary<string, (DefaultConnectionContext Connection, ValueStopwatch Timer)>();
         private Timer _timer;
@@ -76,10 +73,8 @@ namespace Microsoft.AspNetCore.Sockets
 
             _logger.CreatedNewConnection(id);
             var connectionTimer = SocketEventSource.Log.ConnectionStart(id);
-            var pair = DuplexPipe.CreateConnectionPair(transportPipeOptions, appPipeOptions);
 
-            // TODO: We can possibly delay creating connections until we get the first request and check the connectionId
-            var connection = new DefaultConnectionContext(id, pair.Application, pair.Transport);
+            var connection = new DefaultConnectionContext(id, transportPipeOptions, appPipeOptions);
 
             _connections.TryAdd(id, (connection, connectionTimer));
             return connection;
@@ -102,10 +97,19 @@ namespace Microsoft.AspNetCore.Sockets
 
         private static string MakeNewConnectionId()
         {
-            var id = Interlocked.Increment(ref _id);
-            // HMAC the id because we want a cryptographically random id, which GUID is not
-            var hashed = _hmacHash.ComputeHash(Encoding.UTF8.GetBytes(id.ToString()));
-            return WebEncoders.Base64UrlEncode(hashed);
+#if NETCOREAPP2_1
+            // 128 bit buffer / 8 bits per byte = 16 bytes
+            Span<byte> buffer = stackalloc byte[16];
+            _keyGen.GetBytes(buffer);
+            // Generate the id with RNGCrypto because we want a cryptographically random id, which GUID is not
+            return WebEncoders.Base64UrlEncode(buffer.ToArray());
+#else
+            // 128 bit buffer / 8 bits per byte = 16 bytes
+            var buffer = new byte[16];
+            _keyGen.GetBytes(buffer);
+            // Generate the id with RNGCrypto because we want a cryptographically random id, which GUID is not
+            return WebEncoders.Base64UrlEncode(buffer);
+#endif
         }
 
         private static void Scan(object state)

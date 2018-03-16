@@ -31,8 +31,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         {
             using (StartLog(out var loggerFactory, LogLevel.Debug))
             {
-                var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
-                var connection = new DefaultConnectionContext("foo", pair.Transport, pair.Application);
+                var connection = new DefaultConnectionContext("foo");
 
                 using (var feature = new TestWebSocketConnectionFeature())
                 {
@@ -78,8 +77,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         {
             using (StartLog(out var loggerFactory, LogLevel.Debug))
             {
-                var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
-                var connection = new DefaultConnectionContext("foo", pair.Transport, pair.Application);
+                var connection = new DefaultConnectionContext("foo");
 
                 using (var feature = new TestWebSocketConnectionFeature())
                 {
@@ -115,8 +113,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         {
             using (StartLog(out var loggerFactory, LogLevel.Debug))
             {
-                var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
-                var connection = new DefaultConnectionContext("foo", pair.Transport, pair.Application);
+                var connection = new DefaultConnectionContext("foo");
 
                 using (var feature = new TestWebSocketConnectionFeature())
                 {
@@ -168,8 +165,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         {
             using (StartLog(out var loggerFactory, LogLevel.Debug))
             {
-                var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
-                var connection = new DefaultConnectionContext("foo", pair.Transport, pair.Application);
+                var connection = new DefaultConnectionContext("foo");
 
                 using (var feature = new TestWebSocketConnectionFeature())
                 {
@@ -200,8 +196,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         {
             using (StartLog(out var loggerFactory, LogLevel.Debug))
             {
-                var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
-                var connection = new DefaultConnectionContext("foo", pair.Transport, pair.Application);
+                var connection = new DefaultConnectionContext("foo");
 
                 using (var feature = new TestWebSocketConnectionFeature())
                 {
@@ -235,8 +230,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         {
             using (StartLog(out var loggerFactory, LogLevel.Debug))
             {
-                var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
-                var connection = new DefaultConnectionContext("foo", pair.Transport, pair.Application);
+                var connection = new DefaultConnectionContext("foo");
 
                 using (var feature = new TestWebSocketConnectionFeature())
                 {
@@ -270,8 +264,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         {
             using (StartLog(out var loggerFactory, LogLevel.Debug))
             {
-                var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
-                var connection = new DefaultConnectionContext("foo", pair.Transport, pair.Application);
+                var connection = new DefaultConnectionContext("foo");
 
                 using (var feature = new TestWebSocketConnectionFeature())
                 {
@@ -310,8 +303,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         {
             using (StartLog(out var loggerFactory, LogLevel.Debug))
             {
-                var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
-                var connection = new DefaultConnectionContext("foo", pair.Transport, pair.Application);
+                var connection = new DefaultConnectionContext("foo");
 
                 using (var feature = new TestWebSocketConnectionFeature())
                 {

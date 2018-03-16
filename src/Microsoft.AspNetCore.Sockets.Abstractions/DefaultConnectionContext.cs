@@ -24,15 +24,24 @@ namespace Microsoft.AspNetCore.Sockets
     {
         private object _heartBeatLock = new object();
         private List<(Action<object> handler, object state)> _heartbeatHandlers;
+        private PipeOptions _transportPipeOptions;
+        private PipeOptions _applicationPipeOptions;
+        private IDuplexPipe _transportPipe;
+        private IDuplexPipe _applicationPipe;
 
         // This tcs exists so that multiple calls to DisposeAsync all wait asynchronously
         // on the same task
         private TaskCompletionSource<object> _disposeTcs = new TaskCompletionSource<object>();
 
-        public DefaultConnectionContext(string id, IDuplexPipe transport, IDuplexPipe application)
+        public DefaultConnectionContext(string id)
+            : this(id, PipeOptions.Default, PipeOptions.Default)
         {
-            Transport = transport;
-            Application = application;
+        }
+
+        public DefaultConnectionContext(string id, PipeOptions transportPipeOptions, PipeOptions applicationPipeOptions)
+        {
+            _transportPipeOptions = transportPipeOptions;
+            _applicationPipeOptions = applicationPipeOptions;
             ConnectionId = id;
             LastSeenUtc = DateTime.UtcNow;
 
@@ -71,9 +80,53 @@ namespace Microsoft.AspNetCore.Sockets
 
         public override IDictionary<object, object> Items { get; set; } = new ConnectionMetadata();
 
-        public IDuplexPipe Application { get; set; }
+        public IDuplexPipe Application
+        {
+            get
+            {
+                if (_transportPipe == null)
+                {
+                    lock (_heartBeatLock)
+                    {
+                        if (_transportPipe == null)
+                        {
+                            var duplexPipe = DuplexPipe.CreateConnectionPair(_transportPipeOptions, _applicationPipeOptions);
+                            _transportPipe = duplexPipe.Application;
+                            _applicationPipe = duplexPipe.Transport;
+                        }
+                    }
+                }
+                return _transportPipe;
+            }
+            set
+            {
+                _transportPipe = value;
+            }
+        }
 
-        public override IDuplexPipe Transport { get; set; }
+        public override IDuplexPipe Transport
+        {
+            get
+            {
+                if (_applicationPipe == null)
+                {
+                    lock (_heartBeatLock)
+                    {
+                        if (_applicationPipe == null)
+                        {
+                            var duplexPipe = DuplexPipe.CreateConnectionPair(_transportPipeOptions, _applicationPipeOptions);
+                            _transportPipe = duplexPipe.Application;
+                            _applicationPipe = duplexPipe.Transport;
+                        }
+                    }
+                }
+                return _applicationPipe;
+            }
+            set
+            {
+                _applicationPipe = value;
+            }
+        }
 
         public TransferFormat SupportedFormats { get; set; }
 

@@ -41,8 +41,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
 
             for (var i = 0; i < Connections; ++i)
             {
-                var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
-                var connection = new DefaultConnectionContext(Guid.NewGuid().ToString(), pair.Application, pair.Transport);
+                var connection = new DefaultConnectionContext(Guid.NewGuid().ToString());
                 var hubConnection = new HubConnectionContext(connection, Timeout.InfiniteTimeSpan, NullLoggerFactory.Instance);
                 hubConnection.Protocol = protocol;
                 _hubLifetimeManager.OnConnectedAsync(hubConnection).Wait();

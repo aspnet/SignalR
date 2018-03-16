@@ -19,8 +19,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [Fact]
         public async Task SSESetsContentType()
         {
-            var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
-            var connection = new DefaultConnectionContext("foo", pair.Transport, pair.Application);
+            var connection = new DefaultConnectionContext("foo");
             var context = new DefaultHttpContext();
 
             var sse = new ServerSentEventsTransport(connection.Application.Input, connectionId: string.Empty, loggerFactory: new LoggerFactory());
@@ -36,8 +35,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [Fact]
         public async Task SSETurnsResponseBufferingOff()
         {
-            var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
-            var connection = new DefaultConnectionContext("foo", pair.Transport, pair.Application);
+            var connection = new DefaultConnectionContext("foo");
             var context = new DefaultHttpContext();
 
             var feature = new HttpBufferingFeature();
@@ -54,10 +52,8 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [Fact]
         public async Task SSEWritesMessages()
         {
-            var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, new PipeOptions(readerScheduler: PipeScheduler.Inline));
-            var connection = new DefaultConnectionContext("foo", pair.Transport, pair.Application);
+            var connection = new DefaultConnectionContext("foo", PipeOptions.Default, new PipeOptions(readerScheduler: PipeScheduler.Inline));
             var context = new DefaultHttpContext();
-
 
             var ms = new MemoryStream();
             context.Response.Body = ms;
@@ -77,8 +73,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         [InlineData("Hello\r\nWorld", ":\r\ndata: Hello\r\ndata: World\r\n\r\n")]
         public async Task SSEAddsAppropriateFraming(string message, string expected)
         {
-            var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
-            var connection = new DefaultConnectionContext("foo", pair.Transport, pair.Application);
+            var connection = new DefaultConnectionContext("foo");
             var context = new DefaultHttpContext();
 
             var sse = new ServerSentEventsTransport(connection.Application.Input, connectionId: string.Empty, loggerFactory: new LoggerFactory());
