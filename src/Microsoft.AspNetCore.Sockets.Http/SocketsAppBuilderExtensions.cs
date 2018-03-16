@@ -23,7 +23,7 @@ namespace Microsoft.AspNetCore.Builder
 
             callback(new SocketRouteBuilder(routes, dispatcher));
 
-            app.UseWebSockets(new WebSocketOptions()
+            app.UseWebSockets(new WebSocketOptions
             {
                 ReceiveBufferSize = ReceiveBufferSize
             });
