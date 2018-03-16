@@ -122,7 +122,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
                         var stream = new PipeWriterStream(_application.Output);
                         await response.Content.CopyToAsync(stream);
-                        await _application.Output.FlushAsync();
+                        await _application.Output.FlushAsync(cancellationToken);
                     }
                 }
             }

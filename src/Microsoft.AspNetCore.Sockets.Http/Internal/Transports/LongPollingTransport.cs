@@ -51,7 +51,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
 
                 try
                 {
-                    await context.Response.Body.WriteAsync(buffer);
+                    await context.Response.Body.WriteAsync(buffer, token);
                 }
                 finally
                 {

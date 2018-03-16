@@ -11,7 +11,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 {
     public interface IConnection
     {
-        Task StartAsync(TransferFormat transferFormat);
+        Task StartAsync(TransferFormat transferFormat, CancellationToken cancellationToken);
         Task SendAsync(byte[] data, CancellationToken cancellationToken);
         Task StopAsync();
         Task DisposeAsync();

@@ -109,12 +109,13 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private async Task StartAsyncCore()
         {
-            await _connection.StartAsync(_protocol.TransferFormat);
+            _connectionActive = new CancellationTokenSource();
+
+            await _connection.StartAsync(_protocol.TransferFormat, _connectionActive.Token);
             _needKeepAlive = _connection.Features.Get<IConnectionInherentKeepAliveFeature>() == null;
 
             Log.HubProtocol(_logger, _protocol.Name);
 
-            _connectionActive = new CancellationTokenSource();
             using (var memoryStream = new MemoryStream())
             {
                 Log.SendingHubNegotiate(_logger);

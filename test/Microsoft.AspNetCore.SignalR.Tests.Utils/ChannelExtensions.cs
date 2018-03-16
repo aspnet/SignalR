@@ -11,6 +11,15 @@ namespace System.Threading.Channels
         public static async Task<List<T>> ReadAllAsync<T>(this ChannelReader<T> channel)
         {
             var list = new List<T>();
+
+            await ReadAllIntoListAsync(channel, list);
+
+            return list;
+        }
+
+
+        public static async Task ReadAllIntoListAsync<T>(this ChannelReader<T> channel, List<T> list)
+        {
             while (await channel.WaitToReadAsync())
             {
                 while (channel.TryRead(out var item))
@@ -21,8 +30,6 @@ namespace System.Threading.Channels
 
             // Manifest any error from channel.Completion (which should be completed now)
             await channel.Completion;
-
-            return list;
         }
     }
 }

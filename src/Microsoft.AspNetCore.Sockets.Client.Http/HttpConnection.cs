@@ -151,10 +151,10 @@ namespace Microsoft.AspNetCore.Sockets.Client
             _scopeDisposable = _logger.BeginScope(_logScope);
         }
 
-        public Task StartAsync() => StartAsync(TransferFormat.Binary);
-        public async Task StartAsync(TransferFormat transferFormat) => await StartAsyncCore(transferFormat).ForceAsync();
+        public Task StartAsync(CancellationToken cancellationToken = default) => StartAsync(TransferFormat.Binary, cancellationToken);
+        public async Task StartAsync(TransferFormat transferFormat, CancellationToken cancellationToken = default) => await StartAsyncCore(transferFormat, cancellationToken).ForceAsync();
 
-        private Task StartAsyncCore(TransferFormat transferFormat)
+        private Task StartAsyncCore(TransferFormat transferFormat, CancellationToken cancellationToken)
         {
             if (ChangeState(from: ConnectionState.Disconnected, to: ConnectionState.Connecting) != ConnectionState.Disconnected)
             {
@@ -165,7 +165,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             _startTcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
             _eventQueue = new TaskQueue();
 
-            StartAsyncInternal(transferFormat)
+            StartAsyncInternal(transferFormat, cancellationToken)
                 .ContinueWith(t =>
                 {
                     var abortException = _abortException;
@@ -194,7 +194,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             return negotiationResponse;
         }
 
-        private async Task StartAsyncInternal(TransferFormat transferFormat)
+        private async Task StartAsyncInternal(TransferFormat transferFormat, CancellationToken cancellationToken)
         {
             Log.HttpConnectionStarting(_logger);
 
@@ -307,7 +307,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
                     Log.DrainEvents(_logger);
 
-                    await Task.WhenAny(_eventQueue.Drain().NoThrow(), Task.Delay(_eventQueueDrainTimeout));
+                    // don't use cancellation token with drain queue delay
+                    await Task.WhenAny(_eventQueue.Drain().NoThrow(), Task.Delay(_eventQueueDrainTimeout, CancellationToken.None));
 
                     Log.CompleteClosed(_logger);
                     _logScope.ConnectionId = null;
@@ -316,8 +317,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     // to the Disconnected state only if it was in the Connected state.
                     // From this point on, StartAsync can be called at any time.
                     ChangeState(from: ConnectionState.Connected, to: ConnectionState.Disconnected);
-
-                    _closeTcs.SetResult(null);
 
                     try
                     {
@@ -338,9 +337,11 @@ namespace Microsoft.AspNetCore.Sockets.Client
                         Log.ErrorDuringClosedEvent(_logger, ex);
                     }
 
+                    // signal that close has completed
+                    _closeTcs.SetResult(null);
                 }, null);
 
-                _receiveLoopTask = ReceiveAsync();
+                _receiveLoopTask = ReceiveAsync(cancellationToken);
             }
         }
 
@@ -430,7 +431,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             }
         }
 
-        private async Task ReceiveAsync()
+        private async Task ReceiveAsync(CancellationToken cancellationToken)
         {
             try
             {
@@ -445,7 +446,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                         break;
                     }
 
-                    var result = await Input.ReadAsync();
+                    var result = await Input.ReadAsync(cancellationToken);
                     var buffer = result.Buffer;
 
                     try
@@ -526,7 +527,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            await Output.WriteAsync(data);
+            await Output.WriteAsync(data, cancellationToken);
         }
 
         // AbortAsync creates a few thread-safety races that we are OK with.

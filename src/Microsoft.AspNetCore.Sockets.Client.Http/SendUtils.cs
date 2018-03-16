@@ -43,7 +43,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                             request.Version = new Version(1, 1);
                             PrepareHttpRequest(request, httpOptions);
 
-                            request.Content = new ReadOnlySequenceContent(buffer);
+                            request.Content = new ReadOnlySequenceContent(buffer, transportCts.Token);
 
                             var response = await httpClient.SendAsync(request, transportCts.Token);
                             response.EnsureSuccessStatusCode();
@@ -103,15 +103,17 @@ namespace Microsoft.AspNetCore.Sockets.Client
         private class ReadOnlySequenceContent : HttpContent
         {
             private readonly ReadOnlySequence<byte> _buffer;
+            private readonly CancellationToken _cancellationToken;
 
-            public ReadOnlySequenceContent(ReadOnlySequence<byte> buffer)
+            public ReadOnlySequenceContent(ReadOnlySequence<byte> buffer, CancellationToken cancellationToken)
             {
                 _buffer = buffer;
+                _cancellationToken = cancellationToken;
             }
 
             protected override Task SerializeToStreamAsync(Stream stream, TransportContext context)
             {
-                return stream.WriteAsync(_buffer);
+                return stream.WriteAsync(_buffer, _cancellationToken);
             }
 
             protected override bool TryComputeLength(out long length)

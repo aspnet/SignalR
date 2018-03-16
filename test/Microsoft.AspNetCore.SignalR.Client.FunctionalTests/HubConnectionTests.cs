@@ -336,8 +336,17 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                     await channel.WaitToReadAsync().AsTask().OrTimeout();
                     cts.Cancel();
 
-                    var results = await channel.ReadAllAsync().OrTimeout();
+                    List<int> results = new List<int>();
+                    try
+                    {
+                        await channel.ReadAllIntoListAsync(results).OrTimeout();
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // catch cancellation
+                    }
 
+                    Assert.NotNull(results);
                     Assert.True(results.Count > 0 && results.Count < 1000);
                 }
                 catch (Exception ex)

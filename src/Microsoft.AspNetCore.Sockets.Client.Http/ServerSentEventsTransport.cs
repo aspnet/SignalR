@@ -88,7 +88,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 {
                     while (true)
                     {
-                        var result = await pipelineReader.ReadAsync();
+                        var result = await pipelineReader.ReadAsync(cancellationToken);
                         var input = result.Buffer;
                         if (result.IsCanceled || (input.IsEmpty && result.IsCompleted))
                         {
@@ -107,7 +107,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                             {
                                 case ServerSentEventsMessageParser.ParseResult.Completed:
                                     Log.MessageToApp(_logger, buffer.Length);
-                                    await _application.Output.WriteAsync(buffer);
+                                    await _application.Output.WriteAsync(buffer, cancellationToken);
                                     _parser.Reset();
                                     break;
                                 case ServerSentEventsMessageParser.ParseResult.Incomplete:

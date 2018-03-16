@@ -4,12 +4,12 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Protocols;
 using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
-using Microsoft.AspNetCore.Sockets;
 using Microsoft.AspNetCore.Sockets.Client;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -26,11 +26,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             var protocol = new Mock<IHubProtocol>();
             protocol.SetupGet(p => p.TransferFormat).Returns(TransferFormat.Text);
             connection.SetupGet(p => p.Features).Returns(new FeatureCollection());
-            connection.Setup(m => m.StartAsync(TransferFormat.Text)).Returns(Task.CompletedTask).Verifiable();
+            connection.Setup(m => m.StartAsync(TransferFormat.Text, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask).Verifiable();
             var hubConnection = new HubConnection(connection.Object, protocol.Object, null);
             await hubConnection.StartAsync();
 
-            connection.Verify(c => c.StartAsync(TransferFormat.Text), Times.Once());
+            connection.Verify(c => c.StartAsync(TransferFormat.Text, It.IsAny<CancellationToken>()), Times.Once());
         }
 
         [Fact]
@@ -38,7 +38,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         {
             var connection = new Mock<IConnection>();
             connection.Setup(m => m.Features).Returns(new FeatureCollection());
-            connection.Setup(m => m.StartAsync(TransferFormat.Text)).Verifiable();
+            connection.Setup(m => m.StartAsync(TransferFormat.Text, CancellationToken.None)).Verifiable();
             var hubConnection = new HubConnection(connection.Object, Mock.Of<IHubProtocol>(), null);
             await hubConnection.DisposeAsync();
 

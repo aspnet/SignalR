@@ -24,7 +24,7 @@ namespace Microsoft.AspNetCore.SignalR
 {
     public class HubConnectionContext
     {
-        private static Action<object> _abortedCallback = AbortConnection;
+        private static readonly Action<object> _abortedCallback = AbortConnection;
 
         private readonly ConnectionContext _connectionContext;
         private readonly ILogger _logger;
@@ -75,7 +75,12 @@ namespace Microsoft.AspNetCore.SignalR
 
         public virtual async Task WriteAsync(HubMessage message)
         {
-            await _writeLock.WaitAsync();
+            if (IsConnectionAborted(message))
+            {
+                return;
+            }
+
+            await _writeLock.WaitAsync(ConnectionAbortedToken);
 
             try
             {
@@ -86,7 +91,7 @@ namespace Microsoft.AspNetCore.SignalR
 
                 Interlocked.Exchange(ref _lastSendTimestamp, Stopwatch.GetTimestamp());
 
-                await _connectionContext.Transport.Output.FlushAsync();
+                await _connectionContext.Transport.Output.FlushAsync(ConnectionAbortedToken);
             }
             finally
             {
@@ -96,9 +101,14 @@ namespace Microsoft.AspNetCore.SignalR
 
         private async Task TryWritePingAsync()
         {
+            if (IsConnectionAborted(PingMessage.Instance))
+            {
+                return;
+            }
+
             // Don't wait for the lock, if it returns false that means someone wrote to the connection
             // and we don't need to send a ping anymore
-            if (!await _writeLock.WaitAsync(0))
+            if (!await _writeLock.WaitAsync(0, ConnectionAbortedToken))
             {
                 return;
             }
@@ -110,7 +120,7 @@ namespace Microsoft.AspNetCore.SignalR
 
                 Interlocked.Exchange(ref _lastSendTimestamp, Stopwatch.GetTimestamp());
 
-                await _connectionContext.Transport.Output.FlushAsync();
+                await _connectionContext.Transport.Output.FlushAsync(ConnectionAbortedToken);
             }
             finally
             {
@@ -128,7 +138,7 @@ namespace Microsoft.AspNetCore.SignalR
             }
 
             // We fire and forget since this can trigger user code to run
-            Task.Factory.StartNew(_abortedCallback, this);
+            Task.Factory.StartNew(_abortedCallback, this, ConnectionAbortedToken);
         }
 
         internal async Task<bool> NegotiateAsync(TimeSpan timeout, IList<string> supportedProtocols, IHubProtocolResolver protocolResolver, IUserIdProvider userIdProvider)
@@ -254,6 +264,18 @@ namespace Microsoft.AspNetCore.SignalR
             }
         }
 
+        private bool IsConnectionAborted(HubMessage message)
+        {
+            if (ConnectionAbortedToken.IsCancellationRequested)
+            {
+                // log that the message was not able to be sent because the connection was aborted
+                Log.ConnectionAborted(_logger, message.GetType().Name);
+                return true;
+            }
+
+            return false;
+        }
+
         private static class Log
         {
             // Category: HubConnectionContext
@@ -268,6 +290,9 @@ namespace Microsoft.AspNetCore.SignalR
 
             private static readonly Action<ILogger, Exception> _transportBufferFull =
                 LoggerMessage.Define(LogLevel.Debug, new EventId(4, "TransportBufferFull"), "Unable to send Ping message to client, the transport buffer is full.");
+
+            private static readonly Action<ILogger, string, Exception> _connectionAborted =
+                LoggerMessage.Define<string>(LogLevel.Debug, new EventId(5, "ConnectionAborted"), "Unable to write message '{messageType}', the connection has been aborted.");
 
             public static void UsingHubProtocol(ILogger logger, string hubProtocol)
             {
@@ -288,7 +313,11 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 _transportBufferFull(logger, null);
             }
-        }
 
+            public static void ConnectionAborted(ILogger logger, string messageType)
+            {
+                _connectionAborted(logger, messageType, null);
+            }
+        }
     }
 }

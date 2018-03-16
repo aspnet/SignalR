@@ -55,7 +55,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
 
                 try
                 {
-                    await ProcessSocketAsync(ws);
+                    await ProcessSocketAsync(ws, token);
                 }
                 finally
                 {
@@ -64,11 +64,11 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
             }
         }
 
-        public async Task ProcessSocketAsync(WebSocket socket)
+        internal async Task ProcessSocketAsync(WebSocket socket, CancellationToken cancellationToken)
         {
             // Begin sending and receiving. Receiving must be started first because ExecuteAsync enables SendAsync.
-            var receiving = StartReceiving(socket);
-            var sending = StartSending(socket);
+            var receiving = StartReceiving(socket, cancellationToken);
+            var sending = StartSending(socket, cancellationToken);
 
             // Wait for send or receive to complete
             var trigger = await Task.WhenAny(receiving, sending);
@@ -134,7 +134,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
             }
         }
 
-        private async Task StartReceiving(WebSocket socket)
+        private async Task StartReceiving(WebSocket socket, CancellationToken cancellationToken)
         {
             try
             {
@@ -143,13 +143,13 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                     var memory = _application.Output.GetMemory();
 
 #if NETCOREAPP2_1
-                    var receiveResult = await socket.ReceiveAsync(memory, CancellationToken.None);
+                    var receiveResult = await socket.ReceiveAsync(memory, cancellationToken);
 #else
                     var isArray = MemoryMarshal.TryGetArray<byte>(memory, out var arraySegment);
                     Debug.Assert(isArray);
 
                     // Exceptions are handled above where the send and receive tasks are being run.
-                    var receiveResult = await socket.ReceiveAsync(arraySegment, CancellationToken.None);
+                    var receiveResult = await socket.ReceiveAsync(arraySegment, cancellationToken);
 #endif
                     if (receiveResult.MessageType == WebSocketMessageType.Close)
                     {
@@ -162,7 +162,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
 
                     if (receiveResult.EndOfMessage)
                     {
-                        var flushResult = await _application.Output.FlushAsync();
+                        var flushResult = await _application.Output.FlushAsync(cancellationToken);
 
                         // We canceled in the middle of applying back pressure
                         // or if the consumer is done
@@ -195,7 +195,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
             }
         }
 
-        private async Task StartSending(WebSocket socket)
+        private async Task StartSending(WebSocket socket, CancellationToken cancellationToken)
         {
             Exception error = null;
 
@@ -203,7 +203,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
             {
                 while (true)
                 {
-                    var result = await _application.Input.ReadAsync();
+                    var result = await _application.Input.ReadAsync(cancellationToken);
                     var buffer = result.Buffer;
 
                     // Get a frame from the application
@@ -227,7 +227,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
 
                                 if (WebSocketCanSend(socket))
                                 {
-                                    await socket.SendAsync(buffer, webSocketMessageType);
+                                    await socket.SendAsync(buffer, webSocketMessageType, cancellationToken);
                                 }
                                 else
                                 {
