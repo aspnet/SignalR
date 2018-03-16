@@ -149,7 +149,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 await manager.OnConnectedAsync(connection).OrTimeout();
                 await manager.OnConnectedAsync(connection2).OrTimeout();
 
-                await manager.SendAllAsync("Hello", new object[] { "World" }).OrTimeout();
+                var exception = await Assert.ThrowsAsync<Exception>(() => manager.SendAllAsync("Hello", new object[] { "World" }).OrTimeout());
+                Assert.Equal("Message", exception.Message);
 
                 // Check that all connections were "written" to
                 await tcs.Task.OrTimeout();
