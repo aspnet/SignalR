@@ -1902,7 +1902,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         public async Task ErrorInHubOnConnectSendsCloseMessageWithError()
         {
             var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
-            var endPoint = serviceProvider.GetService<HubEndPoint<OnConnectedErrorHub>>();
+            var endPoint = serviceProvider.GetService<HubEndPoint<OnConnectedThrowsHub>>();
 
             using (var client = new TestClient(false, new JsonHubProtocol()))
             {
@@ -1911,15 +1911,15 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var message = await client.ReadAsync().OrTimeout();
 
                 var closeMessage = Assert.IsType<CloseMessage>(message);
-                Assert.Equal("Connection closed with an error. Exception: An error in OnConnectedAsync!", closeMessage.Error);
+                Assert.Equal("Connection closed with an error. InvalidOperationException: Hub OnConnected failed.", closeMessage.Error);
 
                 var exception =
-                    await Assert.ThrowsAsync<Exception>(
+                    await Assert.ThrowsAsync<InvalidOperationException>(
                         async () =>
                         {
                             await endPointTask.OrTimeout();
                         });
-                Assert.Equal("An error in OnConnectedAsync!", exception.Message);
+                Assert.Equal("Hub OnConnected failed.", exception.Message);
             }
         }
 
