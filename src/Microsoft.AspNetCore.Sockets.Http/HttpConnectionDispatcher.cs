@@ -527,6 +527,14 @@ namespace Microsoft.AspNetCore.Sockets
                 return null;
             }
 
+            EnsureConnectionStateInternal(connection, options);
+
+            return connection;
+        }
+
+        private void EnsureConnectionStateInternal(DefaultConnectionContext connection, HttpSocketOptions options)
+        {
+            // If the connection doesn't have a pipe yet then create one, we lazily create the pipe to save on allocations until the connection actually connects
             if (connection.Transport == null)
             {
                 var transportPipeOptions = new PipeOptions(pauseWriterThreshold: options.TransportMaxBufferSize, resumeWriterThreshold: options.TransportMaxBufferSize / 2, readerScheduler: PipeScheduler.ThreadPool, useSynchronizationContext: false);
@@ -535,8 +543,6 @@ namespace Microsoft.AspNetCore.Sockets
                 connection.Transport = pair.Application;
                 connection.Application = pair.Transport;
             }
-
-            return connection;
         }
 
         // This is only used for WebSockets connections, which can connect directly without negotiating
@@ -558,14 +564,7 @@ namespace Microsoft.AspNetCore.Sockets
                 return null;
             }
 
-            if (connection.Transport == null)
-            {
-                var transportPipeOptions = new PipeOptions(pauseWriterThreshold: options.TransportMaxBufferSize, resumeWriterThreshold: options.TransportMaxBufferSize / 2, readerScheduler: PipeScheduler.ThreadPool, useSynchronizationContext: false);
-                var appPipeOptions = new PipeOptions(pauseWriterThreshold: options.ApplicationMaxBufferSize, resumeWriterThreshold: options.ApplicationMaxBufferSize / 2, readerScheduler: PipeScheduler.ThreadPool, useSynchronizationContext: false);
-                var pair = DuplexPipe.CreateConnectionPair(transportPipeOptions, appPipeOptions);
-                connection.Transport = pair.Application;
-                connection.Application = pair.Transport;
-            }
+            EnsureConnectionStateInternal(connection, options);
 
             return connection;
         }
