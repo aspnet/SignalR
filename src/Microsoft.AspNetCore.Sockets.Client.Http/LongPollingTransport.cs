@@ -86,7 +86,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             }
         }
 
-        private async Task Poll(Uri pollUrl, TaskCompletionSource<object> startTcs,CancellationToken cancellationToken)
+        private async Task Poll(Uri pollUrl, TaskCompletionSource<object> startTcs, CancellationToken cancellationToken)
         {
             Log.StartReceive(_logger);
             try

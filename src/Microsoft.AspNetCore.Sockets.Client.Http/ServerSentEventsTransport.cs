@@ -77,10 +77,11 @@ namespace Microsoft.AspNetCore.Sockets.Client
             var request = new HttpRequestMessage(HttpMethod.Get, url);
             SendUtils.PrepareHttpRequest(request, _httpOptions);
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
-            var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
+            HttpResponseMessage response;
             try
             {
+                response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
                 response.EnsureSuccessStatusCode();
                 tcs.TrySetResult(null);
             }

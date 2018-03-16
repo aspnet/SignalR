@@ -512,6 +512,8 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 var builder = new ConnectionBuilder(services.BuildServiceProvider());
                 builder.UseEndPoint<ImmediatelyCompleteEndPoint>();
                 var app = builder.Build();
+
+                // We need two requests because te first just establishes the transport.
                 await dispatcher.ExecuteAsync(context, new HttpSocketOptions(), app);
 
                 Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
@@ -786,10 +788,9 @@ namespace Microsoft.AspNetCore.Sockets.Tests
 
                 await connection.Application.Output.WriteAsync(buffer);
 
+                await task;
 
                 Assert.Equal(StatusCodes.Status204NoContent, context.Response.StatusCode);
-
-                await task;
 
                 bool exists = manager.TryGetConnection(connection.ConnectionId, out _);
                 Assert.False(exists);
