@@ -158,6 +158,14 @@ namespace Microsoft.AspNetCore.SignalR.Tests.HubEndpointTestUtils
         }
     }
 
+    public class OnConnectedErrorHub : TestHub
+    {
+        public override Task OnConnectedAsync()
+        {
+            throw new Exception("An error in OnConnectedAsync!");
+        }
+    }
+
     public abstract class TestHub : Hub
     {
         public override Task OnConnectedAsync()

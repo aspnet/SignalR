@@ -360,7 +360,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
         private void WriteCloseMessage(CloseMessage message, Packer packer)
         {
-            packer.PackArrayHeader(3);
+            packer.PackArrayHeader(2);
             packer.Pack(HubProtocolConstants.CloseMessageType);
             if (string.IsNullOrEmpty(message.Error))
             {

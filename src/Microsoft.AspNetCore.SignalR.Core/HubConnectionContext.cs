@@ -121,7 +121,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         private async Task WriteHandshakeResponseAsync(HandshakeResponseMessage message)
         {
-            MemoryStream ms = new MemoryStream();
+            var ms = new MemoryStream();
             HandshakeProtocol.WriteResponseMessage(message, ms);
 
             await _connectionContext.Transport.Output.WriteAsync(ms.ToArray());
@@ -162,6 +162,13 @@ namespace Microsoft.AspNetCore.SignalR
                                 if (HandshakeProtocol.TryParseRequestMessage(buffer, out var handshakeRequestMessage, out consumed, out examined))
                                 {
                                     Protocol = protocolResolver.GetProtocol(handshakeRequestMessage.Protocol, supportedProtocols, this);
+                                    if (Protocol == null)
+                                    {
+                                        Log.HandshakeFailed(_logger, null);
+
+                                        await WriteHandshakeResponseAsync(new HandshakeResponseMessage($"The protocol '{handshakeRequestMessage.Protocol}' is not supported."));
+                                        return false;
+                                    }
 
                                     // If there's a transfer format feature, we need to check if we're compatible and set the active format.
                                     // If there isn't a feature, it means that the transport supports binary data and doesn't need us to tell them
@@ -171,7 +178,9 @@ namespace Microsoft.AspNetCore.SignalR
                                     {
                                         if ((transferFormatFeature.SupportedFormats & Protocol.TransferFormat) == 0)
                                         {
-                                            throw new InvalidOperationException($"Cannot use the '{Protocol.Name}' protocol on the current transport. The transport does not support the '{Protocol.TransferFormat}' transfer mode.");
+                                            Log.HandshakeFailed(_logger, null);
+                                            await WriteHandshakeResponseAsync(new HandshakeResponseMessage($"Cannot use the '{Protocol.Name}' protocol on the current transport. The transport does not support '{Protocol.TransferFormat}' transfer format."));
+                                            return false;
                                         }
 
                                         transferFormatFeature.ActiveFormat = Protocol.TransferFormat;
@@ -184,11 +193,11 @@ namespace Microsoft.AspNetCore.SignalR
                                     if (Features.Get<IConnectionInherentKeepAliveFeature>() == null)
                                     {
                                         // Only register KeepAlive after protocol handshake otherwise KeepAliveTick could try to write without having a ProtocolReaderWriter
-                                        Features.Get<IConnectionHeartbeatFeature>()?.OnHeartbeat(state => ((HubConnectionContext) state).KeepAliveTick(), this);
+                                        Features.Get<IConnectionHeartbeatFeature>()?.OnHeartbeat(state => ((HubConnectionContext)state).KeepAliveTick(), this);
                                     }
 
                                     Log.HandshakeComplete(_logger, Protocol.Name);
-                                    await WriteHandshakeResponseAsync(HandshakeResponseMessage.Empty());
+                                    await WriteHandshakeResponseAsync(HandshakeResponseMessage.Empty);
                                     return true;
                                 }
                             }
@@ -210,13 +219,13 @@ namespace Microsoft.AspNetCore.SignalR
             catch (OperationCanceledException)
             {
                 Log.HandshakeCanceled(_logger);
-                await WriteHandshakeResponseAsync(HandshakeResponseMessage.WithError("Handshake was canceled."));
+                await WriteHandshakeResponseAsync(new HandshakeResponseMessage("Handshake was canceled."));
                 return false;
             }
             catch (Exception ex)
             {
                 Log.HandshakeFailed(_logger, ex);
-                await WriteHandshakeResponseAsync(HandshakeResponseMessage.WithError($"An unexpected error occurred during connection handshake. {ex.GetType().Name}: {ex.Message}"));
+                await WriteHandshakeResponseAsync(new HandshakeResponseMessage($"An unexpected error occurred during connection handshake. {ex.GetType().Name}: {ex.Message}"));
                 return false;
             }
         }

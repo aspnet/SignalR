@@ -5,7 +5,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 {
     public class HandshakeResponseMessage : HubMessage
     {
-        private static readonly HandshakeResponseMessage _empty = new HandshakeResponseMessage(null);
+        public static readonly HandshakeResponseMessage Empty = new HandshakeResponseMessage(null);
 
         public string Error { get; }
 
@@ -13,11 +13,5 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         {
             Error = error;
         }
-
-        // Static factory methods. Don't want to use constructor overloading because it will break down
-        // if you need to send a payload statically-typed as a string. And because a static factory is clearer here
-        public static HandshakeResponseMessage WithError(string error) => new HandshakeResponseMessage(error);
-
-        public static HandshakeResponseMessage Empty() => _empty;
     }
 }

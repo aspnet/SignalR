@@ -266,6 +266,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 client.Dispose();
 
                 await endPointTask;
+
+                Assert.Null(client.HandshakeResponseMessage);
             }
         }
 
@@ -309,7 +311,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Fact]
-        public async Task HandshakeFailureSendsResponseWithError()
+        public async Task HandshakeFailureFromUnknownProtocolSendsResponseWithError()
         {
             var hubProtocolMock = new Mock<IHubProtocol>();
             hubProtocolMock.Setup(m => m.Name).Returns("CustomProtocol");
@@ -321,7 +323,30 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 Task endPointTask = await client.ConnectAsync(endPoint);
 
                 Assert.NotNull(client.HandshakeResponseMessage);
-                Assert.Equal("An unexpected error occurred during connection handshake. NotSupportedException: The protocol 'CustomProtocol' is not supported.", client.HandshakeResponseMessage.Error);
+                Assert.Equal("The protocol 'CustomProtocol' is not supported.", client.HandshakeResponseMessage.Error);
+
+                client.Dispose();
+
+                await endPointTask.OrTimeout();
+            }
+        }
+
+        [Fact]
+        public async Task HandshakeFailureFromUnsupportedFormatSendsResponseWithError()
+        {
+            var hubProtocolMock = new Mock<IHubProtocol>();
+            hubProtocolMock.Setup(m => m.Name).Returns("CustomProtocol");
+
+            dynamic endPoint = HubEndPointTestUtils.GetHubEndpoint(typeof(HubT));
+
+            using (var client = new TestClient(protocol: new MessagePackHubProtocol()))
+            {
+                client.Connection.SupportedFormats = TransferFormat.Text;
+
+                Task endPointTask = await client.ConnectAsync(endPoint);
+
+                Assert.NotNull(client.HandshakeResponseMessage);
+                Assert.Equal("Cannot use the 'messagepack' protocol on the current transport. The transport does not support 'Binary' transfer mode.", client.HandshakeResponseMessage.Error);
 
                 client.Dispose();
 
@@ -1821,28 +1846,80 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 // We should have all pings
                 HubMessage message;
-                var counter = 0;
+                var pingCounter = 0;
+                var hasCloseMessage = false;
                 while ((message = await client.ReadAsync().OrTimeout()) != null)
                 {
-                    counter += 1;
-                    Assert.IsType<PingMessage>(message);
+                    if (hasCloseMessage)
+                    {
+                        Assert.True(false, "Received message after close");
+                    }
+
+                    switch (message)
+                    {
+                        case PingMessage _:
+                            pingCounter += 1;
+                            break;
+                        case CloseMessage _:
+                            hasCloseMessage = true;
+                            break;
+                        default:
+                            Assert.True(false, "Unexpected message type: " + message.GetType().Name);
+                            break;
+                    }
                 }
-                Assert.InRange(counter, 1, Int32.MaxValue);
+                Assert.InRange(pingCounter, 1, Int32.MaxValue);
             }
         }
 
         [Fact]
-        public async Task HandshakeFailsIfMsgPackRequestedOverTextOnlyTransport()
+        public async Task EndingConnectionSendsCloseMessageWithNoError()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider(services =>
-                services.Configure<HubOptions>(options =>
-                    options.KeepAliveInterval = TimeSpan.FromMilliseconds(100)));
+            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
             var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
 
-            using (var client = new TestClient(false, new MessagePackHubProtocol()))
+            using (var client = new TestClient(false, new JsonHubProtocol()))
             {
-                client.Connection.SupportedFormats = TransferFormat.Text;
-                var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => endPoint.OnConnectedAsync(client.Connection).OrTimeout());
+                Task endPointTask = await client.ConnectAsync(endPoint);
+
+                await client.Connected.OrTimeout();
+
+                // Shut down
+                client.Dispose();
+
+                await endPointTask.OrTimeout();
+
+                client.Connection.Transport.Output.Complete();
+
+                var message = await client.ReadAsync().OrTimeout();
+
+                var closeMessage = Assert.IsType<CloseMessage>(message);
+                Assert.Null(closeMessage.Error);
+            }
+        }
+
+        [Fact]
+        public async Task ErrorInHubOnConnectSendsCloseMessageWithError()
+        {
+            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
+            var endPoint = serviceProvider.GetService<HubEndPoint<OnConnectedErrorHub>>();
+
+            using (var client = new TestClient(false, new JsonHubProtocol()))
+            {
+                Task endPointTask = await client.ConnectAsync(endPoint);
+
+                var message = await client.ReadAsync().OrTimeout();
+
+                var closeMessage = Assert.IsType<CloseMessage>(message);
+                Assert.Equal("Connection closed with an error. Exception: An error in OnConnectedAsync!", closeMessage.Error);
+
+                var exception =
+                    await Assert.ThrowsAsync<Exception>(
+                        async () =>
+                        {
+                            await endPointTask.OrTimeout();
+                        });
+                Assert.Equal("An error in OnConnectedAsync!", exception.Message);
             }
         }
 
