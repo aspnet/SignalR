@@ -43,7 +43,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             }
 
             // null result indicates protocol is not supported
-            // not null result will be validated by the caller
+            // result will be validated by the caller
             return null;
         }
 
