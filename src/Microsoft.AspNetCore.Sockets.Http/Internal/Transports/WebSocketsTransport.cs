@@ -64,7 +64,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
             }
         }
 
-        public async Task ProcessSocketAsync(WebSocket socket, CancellationToken cancellationToken)
+        internal async Task ProcessSocketAsync(WebSocket socket, CancellationToken cancellationToken)
         {
             // Begin sending and receiving. Receiving must be started first because ExecuteAsync enables SendAsync.
             var receiving = StartReceiving(socket, cancellationToken);
