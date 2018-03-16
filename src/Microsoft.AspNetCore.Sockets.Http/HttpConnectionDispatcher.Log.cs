@@ -11,13 +11,13 @@ namespace Microsoft.AspNetCore.Sockets
         private static class Log
         {
             private static readonly Action<ILogger, string, Exception> _connectionDisposed =
-                LoggerMessage.Define<string>(LogLevel.Debug, new EventId(1, "ConnectionDisposed"), "Connection Id {ConnectionId} was disposed.");
+                LoggerMessage.Define<string>(LogLevel.Debug, new EventId(1, "ConnectionDisposed"), "Connection Id {SocketsConnectionId} was disposed.");
 
             private static readonly Action<ILogger, string, string, Exception> _connectionAlreadyActive =
-                LoggerMessage.Define<string, string>(LogLevel.Debug, new EventId(2, "ConnectionAlreadyActive"), "Connection Id {ConnectionId} is already active via {RequestId}.");
+                LoggerMessage.Define<string, string>(LogLevel.Debug, new EventId(2, "ConnectionAlreadyActive"), "Connection Id {SocketsConnectionId} is already active via {RequestId}.");
 
             private static readonly Action<ILogger, string, string, Exception> _pollCanceled =
-                LoggerMessage.Define<string, string>(LogLevel.Trace, new EventId(3, "PollCanceled"), "Previous poll canceled for {ConnectionId} on {RequestId}.");
+                LoggerMessage.Define<string, string>(LogLevel.Trace, new EventId(3, "PollCanceled"), "Previous poll canceled for {SocketsConnectionId} on {RequestId}.");
 
             private static readonly Action<ILogger, Exception> _establishedConnection =
                 LoggerMessage.Define(LogLevel.Debug, new EventId(4, "EstablishedConnection"), "Establishing new connection.");
