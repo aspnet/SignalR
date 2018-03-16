@@ -20,11 +20,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         public async Task Set204StatusCodeWhenChannelComplete()
         {
             var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
-            var connection = new DefaultConnectionContext("foo")
-            {
-                Application = pair.Transport,
-                Transport = pair.Application
-            };
+            var connection = new DefaultConnectionContext("foo", pair.Transport, pair.Application);
 
             var context = new DefaultHttpContext();
 
@@ -41,11 +37,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         public async Task Set200StatusCodeWhenTimeoutTokenFires()
         {
             var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
-            var connection = new DefaultConnectionContext("foo")
-            {
-                Application = pair.Transport,
-                Transport = pair.Application
-            };
+            var connection = new DefaultConnectionContext("foo", pair.Transport, pair.Application);
             var context = new DefaultHttpContext();
 
             var timeoutToken = new CancellationToken(true);
@@ -64,11 +56,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         public async Task FrameSentAsSingleResponse()
         {
             var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
-            var connection = new DefaultConnectionContext("foo")
-            {
-                Application = pair.Transport,
-                Transport = pair.Application
-            };
+            var connection = new DefaultConnectionContext("foo", pair.Transport, pair.Application);
             var context = new DefaultHttpContext();
 
             var poll = new LongPollingTransport(CancellationToken.None, connection.Application.Input, connectionId: string.Empty, loggerFactory: new LoggerFactory());
@@ -88,11 +76,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         public async Task MultipleFramesSentAsSingleResponse()
         {
             var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
-            var connection = new DefaultConnectionContext("foo")
-            {
-                Application = pair.Transport,
-                Transport = pair.Application
-            };
+            var connection = new DefaultConnectionContext("foo", pair.Transport, pair.Application);
             var context = new DefaultHttpContext();
 
             var poll = new LongPollingTransport(CancellationToken.None, connection.Application.Input, connectionId: string.Empty, loggerFactory: new LoggerFactory());

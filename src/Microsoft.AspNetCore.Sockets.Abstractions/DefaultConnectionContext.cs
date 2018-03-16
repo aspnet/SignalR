@@ -49,6 +49,13 @@ namespace Microsoft.AspNetCore.Sockets
             Features.Set<ITransferFormatFeature>(this);
         }
 
+        public DefaultConnectionContext(string id, IDuplexPipe transport, IDuplexPipe application)
+            : this(id)
+        {
+            Transport = transport;
+            Application = application;
+        }
+
         public CancellationTokenSource Cancellation { get; set; }
 
         public SemaphoreSlim Lock { get; } = new SemaphoreSlim(1, 1);

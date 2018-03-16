@@ -24,7 +24,7 @@ namespace Microsoft.AspNetCore.Sockets
         // TODO: Consider making this configurable? At least for testing?
         private static readonly TimeSpan _heartbeatTickRate = TimeSpan.FromSeconds(1);
 
-        private static readonly RNGCryptoServiceProvider _keyGen = new RNGCryptoServiceProvider();
+        private static readonly RNGCryptoServiceProvider _keyGenerator = new RNGCryptoServiceProvider();
 
         private readonly ConcurrentDictionary<string, (DefaultConnectionContext Connection, ValueStopwatch Timer)> _connections = new ConcurrentDictionary<string, (DefaultConnectionContext Connection, ValueStopwatch Timer)>();
         private Timer _timer;
@@ -92,19 +92,12 @@ namespace Microsoft.AspNetCore.Sockets
 
         private static string MakeNewConnectionId()
         {
-#if NETCOREAPP2_1
-            // 128 bit buffer / 8 bits per byte = 16 bytes
-            Span<byte> buffer = stackalloc byte[16];
-            _keyGen.GetBytes(buffer);
-            // Generate the id with RNGCrypto because we want a cryptographically random id, which GUID is not
-            return WebEncoders.Base64UrlEncode(buffer.ToArray());
-#else
+            // TODO: Use Span when WebEncoders implements Span methods
             // 128 bit buffer / 8 bits per byte = 16 bytes
             var buffer = new byte[16];
-            _keyGen.GetBytes(buffer);
+            _keyGenerator.GetBytes(buffer);
             // Generate the id with RNGCrypto because we want a cryptographically random id, which GUID is not
             return WebEncoders.Base64UrlEncode(buffer);
-#endif
         }
 
         private static void Scan(object state)

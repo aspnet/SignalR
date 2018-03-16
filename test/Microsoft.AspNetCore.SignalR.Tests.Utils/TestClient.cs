@@ -30,11 +30,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             var options = new PipeOptions(readerScheduler: synchronousCallbacks ? PipeScheduler.Inline : null);
             var pair = DuplexPipe.CreateConnectionPair(options, options);
-            Connection = new DefaultConnectionContext(Guid.NewGuid().ToString())
-            {
-                Application = pair.Transport,
-                Transport = pair.Application
-            };
+            Connection = new DefaultConnectionContext(Guid.NewGuid().ToString(), pair.Transport, pair.Application);
 
             var claimValue = Interlocked.Increment(ref _id).ToString();
             var claims = new List<Claim> { new Claim(ClaimTypes.Name, claimValue) };

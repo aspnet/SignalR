@@ -4,7 +4,6 @@
 using System.IO;
 using System.IO.Pipelines;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
@@ -20,11 +19,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         public async Task SSESetsContentType()
         {
             var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
-            var connection = new DefaultConnectionContext("foo")
-            {
-                Application = pair.Transport,
-                Transport = pair.Application
-            };
+            var connection = new DefaultConnectionContext("foo", pair.Transport, pair.Application);
             var context = new DefaultHttpContext();
 
             var sse = new ServerSentEventsTransport(connection.Application.Input, connectionId: string.Empty, loggerFactory: new LoggerFactory());
@@ -41,11 +36,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         public async Task SSETurnsResponseBufferingOff()
         {
             var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
-            var connection = new DefaultConnectionContext("foo")
-            {
-                Application = pair.Transport,
-                Transport = pair.Application
-            };
+            var connection = new DefaultConnectionContext("foo", pair.Transport, pair.Application);
             var context = new DefaultHttpContext();
 
             var feature = new HttpBufferingFeature();
@@ -63,11 +54,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         public async Task SSEWritesMessages()
         {
             var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, new PipeOptions(readerScheduler: PipeScheduler.Inline));
-            var connection = new DefaultConnectionContext("foo")
-            {
-                Application = pair.Transport,
-                Transport = pair.Application
-            };
+            var connection = new DefaultConnectionContext("foo", pair.Transport, pair.Application);
             var context = new DefaultHttpContext();
 
             var ms = new MemoryStream();
@@ -89,11 +76,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         public async Task SSEAddsAppropriateFraming(string message, string expected)
         {
             var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
-            var connection = new DefaultConnectionContext("foo")
-            {
-                Application = pair.Transport,
-                Transport = pair.Application
-            };
+            var connection = new DefaultConnectionContext("foo", pair.Transport, pair.Application);
             var context = new DefaultHttpContext();
 
             var sse = new ServerSentEventsTransport(connection.Application.Input, connectionId: string.Empty, loggerFactory: new LoggerFactory());
