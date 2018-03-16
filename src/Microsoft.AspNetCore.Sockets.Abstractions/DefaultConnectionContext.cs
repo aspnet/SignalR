@@ -22,7 +22,7 @@ namespace Microsoft.AspNetCore.Sockets
                                             IConnectionHeartbeatFeature,
                                             ITransferFormatFeature
     {
-        private object _heartBeatLock = new object();
+        private object _heartbeatLock = new object();
         private List<(Action<object> handler, object state)> _heartbeatHandlers;
 
         // This tcs exists so that multiple calls to DisposeAsync all wait asynchronously
@@ -31,7 +31,7 @@ namespace Microsoft.AspNetCore.Sockets
 
         /// <summary>
         /// Creates the DefaultConnectionContext without Pipes to avoid upfront allocations.
-        /// You'll need to add Transport and Application pipes on your own.
+        /// The caller is expected to set the <see cref="Transport"/> and <see cref="Application"/> pipes manually.
         /// </summary>
         /// <param name="id"></param>
         public DefaultConnectionContext(string id)
@@ -91,7 +91,7 @@ namespace Microsoft.AspNetCore.Sockets
 
         public void OnHeartbeat(Action<object> action, object state)
         {
-            lock (_heartBeatLock)
+            lock (_heartbeatLock)
             {
                 if (_heartbeatHandlers == null)
                 {
@@ -103,7 +103,7 @@ namespace Microsoft.AspNetCore.Sockets
 
         public void TickHeartbeat()
         {
-            lock (_heartBeatLock)
+            lock (_heartbeatLock)
             {
                 if (_heartbeatHandlers == null)
                 {

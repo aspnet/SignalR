@@ -106,7 +106,7 @@ namespace Microsoft.AspNetCore.Sockets
 
         private static string MakeNewConnectionId()
         {
-            // TODO: Use Span when WebEncoders implements Span methods
+            // TODO: Use Span when WebEncoders implements Span methods https://github.com/aspnet/Home/issues/2966
             // 128 bit buffer / 8 bits per byte = 16 bytes
             var buffer = new byte[16];
             _keyGenerator.GetBytes(buffer);

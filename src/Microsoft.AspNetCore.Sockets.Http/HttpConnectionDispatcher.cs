@@ -534,7 +534,7 @@ namespace Microsoft.AspNetCore.Sockets
 
         private void EnsureConnectionStateInternal(DefaultConnectionContext connection, HttpSocketOptions options)
         {
-            // If the connection doesn't have a pipe yet then create one, we lazily create the pipe to save on allocations until the connection actually connects
+            // If the connection doesn't have a pipe yet then create one, we lazily create the pipe to save on allocations until the client actually connects
             if (connection.Transport == null)
             {
                 var transportPipeOptions = new PipeOptions(pauseWriterThreshold: options.TransportMaxBufferSize, resumeWriterThreshold: options.TransportMaxBufferSize / 2, readerScheduler: PipeScheduler.ThreadPool, useSynchronizationContext: false);
