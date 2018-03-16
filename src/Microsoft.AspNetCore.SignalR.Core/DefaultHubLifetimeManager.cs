@@ -216,7 +216,8 @@ namespace Microsoft.AspNetCore.SignalR
             });
         }
 
-        private Task SafeWriteAsync(HubConnectionContext connection, InvocationMessage message)
+        // This method is to protect against connections throwing synchronously when writing to them and preventing other connections from being written to
+        private static Task SafeWriteAsync(HubConnectionContext connection, InvocationMessage message)
         {
             try
             {

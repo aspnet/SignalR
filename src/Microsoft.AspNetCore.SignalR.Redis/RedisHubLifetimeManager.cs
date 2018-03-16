@@ -627,6 +627,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             return Task.CompletedTask;
         }
 
+        // This method is to protect against connections throwing synchronously when writing to them and preventing other connections from being written to
         private Task SafeWriteAsync(HubConnectionContext connection, InvocationMessage message)
         {
             try
