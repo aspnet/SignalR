@@ -15,10 +15,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Protocols;
+using Microsoft.AspNetCore.Protocols.Features;
 using Microsoft.AspNetCore.SignalR.Core;
 using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
-using Microsoft.AspNetCore.Sockets.Features;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.SignalR
@@ -53,7 +53,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public virtual IFeatureCollection Features => _connectionContext.Features;
 
-        public virtual IDictionary<object, object> Metadata => Features.Get<IConnectionMetadataFeature>().Metadata;
+        public virtual IDictionary<object, object> Items => _connectionContext.Items;
 
         public virtual PipeReader Input => _connectionContext.Transport.Input;
 

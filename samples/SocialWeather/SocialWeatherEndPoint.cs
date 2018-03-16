@@ -5,8 +5,8 @@ using System.Buffers;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Protocols;
+using Microsoft.AspNetCore.Protocols.Features;
 using Microsoft.AspNetCore.Sockets;
-using Microsoft.AspNetCore.Sockets.Features;
 using Microsoft.Extensions.Logging;
 
 namespace SocialWeather
@@ -35,7 +35,7 @@ namespace SocialWeather
         public async Task ProcessRequests(ConnectionContext connection)
         {
             var formatter = _formatterResolver.GetFormatter<WeatherReport>(
-                (string)connection.Features.Get<IConnectionMetadataFeature>().Metadata["format"]);
+                (string)connection.Items["format"]);
 
             while (true)
             {

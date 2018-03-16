@@ -9,15 +9,15 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Protocols;
-using Microsoft.AspNetCore.Sockets.Features;
-using Microsoft.Extensions.Internal;
+using Microsoft.AspNetCore.Protocols.Features;
 
 namespace Microsoft.AspNetCore.Sockets
 {
     public class DefaultConnectionContext : ConnectionContext,
                                             IConnectionIdFeature,
-                                            IConnectionMetadataFeature,
+                                            IConnectionItemsFeature,
                                             IConnectionTransportFeature,
+                                            IApplicationTransportFeature,
                                             IConnectionUserFeature,
                                             IConnectionHeartbeatFeature,
                                             ITransferFormatFeature
@@ -27,7 +27,6 @@ namespace Microsoft.AspNetCore.Sockets
         // This tcs exists so that multiple calls to DisposeAsync all wait asynchronously
         // on the same task
         private TaskCompletionSource<object> _disposeTcs = new TaskCompletionSource<object>();
-        internal ValueStopwatch ConnectionTimer { get; set; }
 
         public DefaultConnectionContext(string id, IDuplexPipe transport, IDuplexPipe application)
         {
@@ -43,9 +42,10 @@ namespace Microsoft.AspNetCore.Sockets
             // PERF: This type could just implement IFeatureCollection
             Features = new FeatureCollection();
             Features.Set<IConnectionUserFeature>(this);
-            Features.Set<IConnectionMetadataFeature>(this);
+            Features.Set<IConnectionItemsFeature>(this);
             Features.Set<IConnectionIdFeature>(this);
             Features.Set<IConnectionTransportFeature>(this);
+            Features.Set<IApplicationTransportFeature>(this);
             Features.Set<IConnectionHeartbeatFeature>(this);
             Features.Set<ITransferFormatFeature>(this);
         }
@@ -68,9 +68,9 @@ namespace Microsoft.AspNetCore.Sockets
 
         public ClaimsPrincipal User { get; set; }
 
-        public IDictionary<object, object> Metadata { get; set; } = new ConnectionMetadata();
+        public override IDictionary<object, object> Items { get; set; } = new ConnectionMetadata();
 
-        public IDuplexPipe Application { get; }
+        public IDuplexPipe Application { get; set; }
 
         public override IDuplexPipe Transport { get; set; }
 

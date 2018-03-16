@@ -3,24 +3,23 @@
 
 using System.Buffers;
 using System.Collections.Generic;
-using System.IO.Pipelines;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Protocols;
+using Microsoft.AspNetCore.Protocols.Features;
 using Microsoft.AspNetCore.Sockets;
-using Microsoft.AspNetCore.Sockets.Features;
 
 namespace SocketsSample.EndPoints
 {
     public class MessagesEndPoint : EndPoint
     {
-        public ConnectionList Connections { get; } = new ConnectionList();
+        private ConnectionList Connections { get; } = new ConnectionList();
 
         public override async Task OnConnectedAsync(ConnectionContext connection)
         {
             Connections.Add(connection);
 
-            await Broadcast($"{connection.ConnectionId} connected ({connection.Features.Get<IConnectionMetadataFeature>().Metadata[ConnectionMetadataNames.Transport]})");
+            await Broadcast($"{connection.ConnectionId} connected ({connection.Items[ConnectionMetadataNames.Transport]})");
 
             try
             {
@@ -53,7 +52,7 @@ namespace SocketsSample.EndPoints
             {
                 Connections.Remove(connection);
 
-                await Broadcast($"{connection.ConnectionId} disconnected ({connection.Features.Get<IConnectionMetadataFeature>().Metadata[ConnectionMetadataNames.Transport]})");
+                await Broadcast($"{connection.ConnectionId} disconnected ({connection.Items[ConnectionMetadataNames.Transport]})");
             }
         }
 
