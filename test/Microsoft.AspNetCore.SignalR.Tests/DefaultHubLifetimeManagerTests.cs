@@ -109,7 +109,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Fact]
-        public async Task SendConnectionAsyncThrowsIfConnectionFailsToWrite()
+        public async Task SendConnectionAsyncDoesNotThrowIfConnectionFailsToWrite()
         {
             using (var client = new TestClient())
             {
@@ -122,8 +122,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 await manager.OnConnectedAsync(connection).OrTimeout();
 
-                var exception = await Assert.ThrowsAsync<Exception>(() => manager.SendConnectionAsync(connection.ConnectionId, "Hello", new object[] { "World" }).OrTimeout());
-                Assert.Equal("Message", exception.Message);
+                await manager.SendConnectionAsync(connection.ConnectionId, "Hello", new object[] { "World" }).OrTimeout();
             }
         }
 
@@ -149,8 +148,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 await manager.OnConnectedAsync(connection).OrTimeout();
                 await manager.OnConnectedAsync(connection2).OrTimeout();
 
-                var exception = await Assert.ThrowsAsync<Exception>(() => manager.SendAllAsync("Hello", new object[] { "World" }).OrTimeout());
-                Assert.Equal("Message", exception.Message);
+                await manager.SendAllAsync("Hello", new object[] { "World" }).OrTimeout();
 
                 // Check that all connections were "written" to
                 await tcs.Task.OrTimeout();
