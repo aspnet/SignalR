@@ -203,7 +203,7 @@ namespace Microsoft.AspNetCore.SignalR
                             }
                             else if (result.IsCompleted)
                             {
-                                // connection was closed before we every received a response
+                                // connection was closed before we ever received a response
                                 // can't send a handshake response because there is no longer a connection
                                 Log.HandshakeFailed(_logger, null);
                                 return false;

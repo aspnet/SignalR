@@ -1840,7 +1840,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 client.Connection.Transport.Output.Complete();
 
-                // We should have all pings
+                // We should have all pings (and close message)
                 HubMessage message;
                 var pingCounter = 0;
                 var hasCloseMessage = false;
