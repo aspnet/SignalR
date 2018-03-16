@@ -67,6 +67,10 @@ namespace Microsoft.AspNetCore.Sockets
             return false;
         }
 
+        /// <summary>
+        /// Creates a connection without Pipes setup to allow saving allocations until Pipes are needed.
+        /// </summary>
+        /// <returns></returns>
         public DefaultConnectionContext CreateConnection()
         {
             var id = MakeNewConnectionId();
@@ -77,6 +81,16 @@ namespace Microsoft.AspNetCore.Sockets
             var connection = new DefaultConnectionContext(id);
 
             _connections.TryAdd(id, (connection, connectionTimer));
+            return connection;
+        }
+
+        public DefaultConnectionContext CreateConnection(PipeOptions transportPipeOptions, PipeOptions appPipeOptions)
+        {
+            var connection = CreateConnection();
+            var pair = DuplexPipe.CreateConnectionPair(transportPipeOptions, appPipeOptions);
+            connection.Application = pair.Transport;
+            connection.Transport = pair.Application;
+
             return connection;
         }
 

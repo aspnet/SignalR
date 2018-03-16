@@ -29,6 +29,11 @@ namespace Microsoft.AspNetCore.Sockets
         // on the same task
         private TaskCompletionSource<object> _disposeTcs = new TaskCompletionSource<object>();
 
+        /// <summary>
+        /// Creates the DefaultConnectionContext without Pipes to avoid upfront allocations.
+        /// You'll need to add Transport and Application pipes on your own.
+        /// </summary>
+        /// <param name="id"></param>
         public DefaultConnectionContext(string id)
         {
             ConnectionId = id;

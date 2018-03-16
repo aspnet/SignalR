@@ -58,39 +58,41 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             }
         }
 
-        // TODO: Fix test
-        // [Fact]
-        // public async Task CheckThatThresholdValuesAreEnforced()
-        // {
-        //     using (StartLog(out var loggerFactory, LogLevel.Debug))
-        //     {
-        //         var manager = CreateConnectionManager(loggerFactory);
-        //         var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
-        //         var context = new DefaultHttpContext();
-        //         var services = new ServiceCollection();
-        //         services.AddSingleton<TestEndPoint>();
-        //         services.AddOptions();
-        //         var ms = new MemoryStream();
-        //         context.Request.Path = "/foo";
-        //         context.Request.Method = "POST";
-        //         context.Response.Body = ms;
-        //         var httpSocketOptions = new HttpSocketOptions { TransportMaxBufferSize = 4, ApplicationMaxBufferSize = 4 };
-        //         await dispatcher.ExecuteNegotiateAsync(context, httpSocketOptions);
-        //         var negotiateResponse = JsonConvert.DeserializeObject<JObject>(Encoding.UTF8.GetString(ms.ToArray()));
-        //         var connectionId = negotiateResponse.Value<string>("connectionId");
-        //         Assert.True(manager.TryGetConnection(connectionId, out var connection));
+        [Fact]
+         public async Task CheckThatThresholdValuesAreEnforced()
+        {
+            using (StartLog(out var loggerFactory, LogLevel.Debug))
+            {
+                var manager = CreateConnectionManager(loggerFactory);
+                var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
+                var context = new DefaultHttpContext();
+                var services = new ServiceCollection();
+                services.AddSingleton<TestEndPoint>();
+                services.AddOptions();
+                var ms = new MemoryStream();
+                context.Request.Path = "/foo";
+                context.Request.Method = "POST";
+                context.Response.Body = ms;
+                var httpSocketOptions = new HttpSocketOptions { TransportMaxBufferSize = 4, ApplicationMaxBufferSize = 4 };
+                await dispatcher.ExecuteNegotiateAsync(context, httpSocketOptions);
+                var negotiateResponse = JsonConvert.DeserializeObject<JObject>(Encoding.UTF8.GetString(ms.ToArray()));
+                var connectionId = negotiateResponse.Value<string>("connectionId");
+                context.Request.QueryString = context.Request.QueryString.Add("id", connectionId);
+                Assert.True(manager.TryGetConnection(connectionId, out var connection));
+                // Fake actual connection after negotiate to populate the pipes on the connection
+                await dispatcher.ExecuteAsync(context, httpSocketOptions, c => Task.CompletedTask);
 
-        //         // This write should complete immediately but it exceeds the writer threshold
-        //         var writeTask = connection.Application.Output.WriteAsync(new byte[] { (byte)'b', (byte)'y', (byte)'t', (byte)'e', (byte)'s' });
+                // This write should complete immediately but it exceeds the writer threshold
+                var writeTask = connection.Application.Output.WriteAsync(new byte[] { (byte)'b', (byte)'y', (byte)'t', (byte)'e', (byte)'s' });
 
-        //         Assert.False(writeTask.IsCompleted);
+                Assert.False(writeTask.IsCompleted);
 
-        //         // Reading here puts us below the threshold
-        //         await connection.Transport.Input.ConsumeAsync(5);
+                // Reading here puts us below the threshold
+                await connection.Transport.Input.ConsumeAsync(5);
 
-        //         await writeTask.AsTask().OrTimeout();
-        //     }
-        // }
+                await writeTask.AsTask().OrTimeout();
+            }
+        }
 
         [Theory]
         [InlineData(TransportType.LongPolling)]
