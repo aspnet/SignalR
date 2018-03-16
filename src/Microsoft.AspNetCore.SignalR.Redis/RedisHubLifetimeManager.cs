@@ -173,7 +173,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             var connection = _connections[connectionId];
             if (connection != null)
             {
-                return connection.WriteAsync(message.CreateInvocation());
+                return SafeWriteAsync(connection, message.CreateInvocation());
             }
 
             return PublishAsync(_channelNamePrefix + "." + connectionId, message);
@@ -628,16 +628,15 @@ namespace Microsoft.AspNetCore.SignalR.Redis
         }
 
         // This method is to protect against connections throwing synchronously when writing to them and preventing other connections from being written to
-        private Task SafeWriteAsync(HubConnectionContext connection, InvocationMessage message)
+        private async Task SafeWriteAsync(HubConnectionContext connection, InvocationMessage message)
         {
             try
             {
-                return connection.WriteAsync(message);
+                await connection.WriteAsync(message);
             }
             catch (Exception ex)
             {
                 _logger.FailedWritingMessage(ex);
-                return Task.CompletedTask;
             }
         }
 

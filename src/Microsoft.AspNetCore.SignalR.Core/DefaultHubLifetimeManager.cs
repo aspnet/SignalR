@@ -105,7 +105,7 @@ namespace Microsoft.AspNetCore.SignalR
 
             var message = CreateInvocationMessage(methodName, args);
 
-            return connection.WriteAsync(message);
+            return SafeWriteAsync(connection, message);
         }
 
         public override Task SendGroupAsync(string groupName, string methodName, object[] args)
@@ -217,16 +217,14 @@ namespace Microsoft.AspNetCore.SignalR
         }
 
         // This method is to protect against connections throwing synchronously when writing to them and preventing other connections from being written to
-        private static Task SafeWriteAsync(HubConnectionContext connection, InvocationMessage message)
+        private static async Task SafeWriteAsync(HubConnectionContext connection, InvocationMessage message)
         {
             try
             {
-                return connection.WriteAsync(message);
+                await connection.WriteAsync(message);
             }
-            catch (Exception ex)
-            {
-                return Task.FromException(ex);
-            }
+            // This exception isn't interesting to users
+            catch { }
         }
     }
 }
