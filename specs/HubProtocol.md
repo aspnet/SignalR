@@ -4,8 +4,8 @@ The SignalR Protocol is a protocol for two-way RPC over any Message-based transp
 
 ## Terms
 
-* Caller - The node that is issuing an `Negotiation`, `Invocation`, `StreamInvocation`, `CancelInvocation`, `Ping` messages and receiving `Completion`, `StreamItem` and `Ping` messages (a node can be both Caller and Callee for different invocations simultaneously)
-* Callee - The node that is receiving an `Negotiation`, `Invocation`, `StreamInvocation`, `CancelInvocation`, `Ping` messages and issuing `Completion`, `StreamItem` and `Ping` messages (a node can be both Callee and Caller for different invocations simultaneously)
+* Caller - The node that is issuing an `Invocation`, `StreamInvocation`, `CancelInvocation`, `Ping` messages and receiving `Completion`, `StreamItem` and `Ping` messages (a node can be both Caller and Callee for different invocations simultaneously)
+* Callee - The node that is receiving an `Invocation`, `StreamInvocation`, `CancelInvocation`, `Ping` messages and issuing `Completion`, `StreamItem` and `Ping` messages (a node can be both Callee and Caller for different invocations simultaneously)
 * Binder - The component on each node that handles mapping `Invocation` and `StreamInvocation` messages to method calls and return values to `Completion` and `StreamItem` messages
 
 ## Transport Requirements
@@ -16,14 +16,14 @@ The SignalR Protocol requires the following attributes from the underlying trans
 
 ## Overview
 
-This document describes two encodings of the SignalR protocol: [JSON](http://www.json.org/) and [MessagePack](http://msgpack.org/). Only one format can be used for the duration of a connection, and the format must be negotiated after opening the connection and before sending any other messages. However, each format shares a similar overall structure.
+This document describes two encodings of the SignalR protocol: [JSON](http://www.json.org/) and [MessagePack](http://msgpack.org/). Only one format can be used for the duration of a connection, and the format must be agreed on by both sides after opening the connection and before sending any other messages. However, each format shares a similar overall structure.
 
 In the SignalR protocol, the following types of messages can be sent:
 
 | Message Name          | Sender         | Description                                                                                                                    |
 | ------------------    | -------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `NegotiationRequest`  | Client         | Sent by the client to negotiate the message format.                                                                            |
-| `NegotiationResponse` | Server         | Sent by the server as an acknowledgment of the previous `NegotiationRequest` message. Contains an error if negotiation failed. |
+| `HandshakeRequest`    | Client         | Sent by the client to agree on the message format.                                                                            |
+| `HandshakeResponse`   | Server         | Sent by the server as an acknowledgment of the previous `HandshakeRequest` message. Contains an error if the handshake failed. |
 | `Close`               | Callee, Caller | Sent by the server when a connection is closed. Contains an error if the connection was closed because of an error.            |
 | `Invocation`          | Caller         | Indicates a request to invoke a particular method (the Target) with provided Arguments on the remote endpoint.                 |
 | `StreamInvocation`    | Caller         | Indicates a request to invoke a streaming method (the Target) with provided Arguments on the remote endpoint.                  |
@@ -32,9 +32,9 @@ In the SignalR protocol, the following types of messages can be sent:
 | `CancelInvocation`    | Caller         | Sent by the client to cancel a streaming invocation on the server.                                                             |
 | `Ping`                | Caller, Callee | Sent by either party to check if the connection is active.                                                                     |
 
-After opening a connection to the server the client must send a `Negotiation` message to the server as its first message. The negotiation message is **always** a JSON message and contains the name of the format (protocol) that will be used for the duration of the connection. If the server does not support the protocol requested by the client or the first message received from the client is not a `Negotiation` message the server must close the connection.
+After opening a connection to the server the client must send a `HandshakeRequest` message to the server as its first message. The handshake message is **always** a JSON message and contains the name of the format (protocol) that will be used for the duration of the connection. The server will reply with a `HandshakeResponse`, also always JSON, containing an error if the server does not support the protocol. If the server does not support the protocol requested by the client or the first message received from the client is not a `HandshakeRequest` message the server must close the connection.
 
-The `Negotiation` message contains the following properties:
+The `HandshakeRequest` message contains the following properties:
 
 * `protocol` - the name of the protocol to be used for messages exchanged between the server and the client
 
@@ -43,6 +43,18 @@ Example:
 ```json
 {
     "protocol": "messagepack"
+}
+```
+
+The `HandshakeResponse` message contains the following properties:
+
+* `error` - the optional error message if the server does not support the request protocol
+
+Example:
+
+```json
+{
+    "error": "Requested protocol 'messagepack' is not available."
 }
 ```
 

@@ -8,7 +8,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 {
     public class CloseMessage : HubMessage
     {
-        private static readonly CloseMessage _empty = new CloseMessage(null);
+        public static readonly CloseMessage Empty = new CloseMessage(null);
 
         public string Error { get; }
 
@@ -16,11 +16,5 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         {
             Error = error;
         }
-
-        // Static factory methods. Don't want to use constructor overloading because it will break down
-        // if you need to send a payload statically-typed as a string. And because a static factory is clearer here
-        public static CloseMessage WithError(string error) => new CloseMessage(error);
-
-        public static CloseMessage Empty() => _empty;
     }
 }
