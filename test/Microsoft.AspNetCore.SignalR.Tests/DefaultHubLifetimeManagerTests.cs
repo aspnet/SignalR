@@ -3,6 +3,8 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
@@ -16,7 +18,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             using (var client1 = new TestClient())
             using (var client2 = new TestClient())
             {
-                var manager = new DefaultHubLifetimeManager<MyHub>();
+                var manager = new DefaultHubLifetimeManager<MyHub>(new Logger<DefaultHubLifetimeManager<MyHub>>(NullLoggerFactory.Instance));
                 var connection1 = HubConnectionContextUtils.Create(client1.Connection);
                 var connection2 = HubConnectionContextUtils.Create(client2.Connection);
 
@@ -43,7 +45,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             using (var client1 = new TestClient())
             using (var client2 = new TestClient())
             {
-                var manager = new DefaultHubLifetimeManager<MyHub>();
+                var manager = new DefaultHubLifetimeManager<MyHub>(new Logger<DefaultHubLifetimeManager<MyHub>>(NullLoggerFactory.Instance));
                 var connection1 = HubConnectionContextUtils.Create(client1.Connection);
                 var connection2 = HubConnectionContextUtils.Create(client2.Connection);
 
@@ -69,7 +71,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             using (var client1 = new TestClient())
             using (var client2 = new TestClient())
             {
-                var manager = new DefaultHubLifetimeManager<MyHub>();
+                var manager = new DefaultHubLifetimeManager<MyHub>(new Logger<DefaultHubLifetimeManager<MyHub>>(NullLoggerFactory.Instance));
                 var connection1 = HubConnectionContextUtils.Create(client1.Connection);
                 var connection2 = HubConnectionContextUtils.Create(client2.Connection);
 
@@ -94,7 +96,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             using (var client = new TestClient())
             {
-                var manager = new DefaultHubLifetimeManager<MyHub>();
+                var manager = new DefaultHubLifetimeManager<MyHub>(new Logger<DefaultHubLifetimeManager<MyHub>>(NullLoggerFactory.Instance));
                 var connection = HubConnectionContextUtils.Create(client.Connection);
 
                 await manager.OnConnectedAsync(connection).OrTimeout();
@@ -113,7 +115,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             using (var client = new TestClient())
             {
-                var manager = new DefaultHubLifetimeManager<MyHub>();
+                var manager = new DefaultHubLifetimeManager<MyHub>(new Logger<DefaultHubLifetimeManager<MyHub>>(NullLoggerFactory.Instance));
 
                 var connectionMock = HubConnectionContextUtils.CreateMock(client.Connection);
                 // Force an exception when writing to connection
@@ -132,7 +134,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             using (var client = new TestClient())
             using (var client2 = new TestClient())
             {
-                var manager = new DefaultHubLifetimeManager<MyHub>();
+                var manager = new DefaultHubLifetimeManager<MyHub>(new Logger<DefaultHubLifetimeManager<MyHub>>(NullLoggerFactory.Instance));
 
                 var connectionMock = HubConnectionContextUtils.CreateMock(client.Connection);
                 var connectionMock2 = HubConnectionContextUtils.CreateMock(client2.Connection);
@@ -159,21 +161,21 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task SendConnectionAsyncOnNonExistentConnectionNoops()
         {
-            var manager = new DefaultHubLifetimeManager<MyHub>();
+            var manager = new DefaultHubLifetimeManager<MyHub>(new Logger<DefaultHubLifetimeManager<MyHub>>(NullLoggerFactory.Instance));
             await manager.SendConnectionAsync("NotARealConnectionId", "Hello", new object[] { "World" }).OrTimeout();
         }
 
         [Fact]
         public async Task AddGroupOnNonExistentConnectionNoops()
         {
-            var manager = new DefaultHubLifetimeManager<MyHub>();
+            var manager = new DefaultHubLifetimeManager<MyHub>(new Logger<DefaultHubLifetimeManager<MyHub>>(NullLoggerFactory.Instance));
             await manager.AddGroupAsync("NotARealConnectionId", "MyGroup").OrTimeout();
         }
 
         [Fact]
         public async Task RemoveGroupOnNonExistentConnectionNoops()
         {
-            var manager = new DefaultHubLifetimeManager<MyHub>();
+            var manager = new DefaultHubLifetimeManager<MyHub>(new Logger<DefaultHubLifetimeManager<MyHub>>(NullLoggerFactory.Instance));
             await manager.RemoveGroupAsync("NotARealConnectionId", "MyGroup").OrTimeout();
         }
 
