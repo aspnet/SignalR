@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Protocols;
 using Microsoft.AspNetCore.SignalR.Internal.Formatters;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 
 namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
@@ -51,7 +52,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         {
             while (TextMessageParser.TryParseMessage(ref input, out var payload))
             {
-                messages.Add(ParseMessage(payload, binder));
+                var textReader = new Utf8BufferTextReader(payload);
+                messages.Add(ParseMessage(textReader, binder));
             }
 
             return messages.Count > 0;
@@ -63,22 +65,28 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             TextMessageFormatter.WriteRecordSeparator(output);
         }
 
-        private HubMessage ParseMessage(ReadOnlyMemory<byte> input, IInvocationBinder binder)
+        private HubMessage ParseMessage(TextReader textReader, IInvocationBinder binder)
         {
             try
             {
-                // PERF: This is still inefficient, we can do this in a single pass with a much
-                // more complicated state machine, instead, we're doing 2 passes.
-                // The first pass is for the top level simple properties
-                // The second pass then one to parse arguments and return types (if the message type requires that)
+                // We parse using the JsonTextReader directly but this has a problem. Some of our properties are dependent on other properties
+                // and since reading the json might be unordered, we need to store the parsed content as JToken to re-parse when true types are known.
+                // if we're lucky and the state we need to directly parse is available, then we'll use it.
 
                 int? type = null;
                 string invocationId = null;
                 string target = null;
                 string error = null;
+                object item = null;
+                JToken itemToken = null;
+                object result = null;
+                JToken resultToken = null;
+                object[] arguments = null;
+                JArray argumentToken = null;
+                ExceptionDispatchInfo argumentBindingException = null;
                 Dictionary<string, string> headers = null;
 
-                using (var reader = new JsonTextReader(new Utf8BufferTextReader(input)))
+                using (var reader = new JsonTextReader(textReader))
                 {
                     reader.ArrayPool = JsonArrayPool<char>.Shared;
 
@@ -128,6 +136,61 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                                     {
                                         error = reader.ReadAsString();
                                     }
+                                    else if (string.Equals(memberName, ResultPropertyName, StringComparison.Ordinal))
+                                    {
+                                        reader.Read();
+
+                                        if (string.IsNullOrEmpty(invocationId))
+                                        {
+                                            // If we don't have an invocation id then we need to store it as a JToken so we can parse it later
+                                            resultToken = JToken.Load(reader);
+                                        }
+                                        else
+                                        {
+                                            // If we have an invocation id already we can parse the end result
+                                            var returnType = binder.GetReturnType(invocationId);
+                                            result = PayloadSerializer.Deserialize(reader);
+                                        }
+                                    }
+                                    else if (string.Equals(memberName, ItemPropertyName, StringComparison.Ordinal))
+                                    {
+                                        reader.Read();
+
+                                        if (string.IsNullOrEmpty(invocationId))
+                                        {
+                                            // If we don't have an invocation id then we need to store it as a JToken so we can parse it later
+                                            itemToken = JToken.Load(reader);
+                                        }
+                                        else
+                                        {
+                                            var returnType = binder.GetReturnType(invocationId);
+                                            item = PayloadSerializer.Deserialize(reader);
+                                        }
+                                    }
+                                    else if (string.Equals(memberName, ArgumentsPropertyName, StringComparison.Ordinal))
+                                    {
+                                        reader.Read();
+
+                                        JsonUtils.EnsureTokenType(ArgumentsPropertyName, reader.TokenType, JsonToken.StartArray);
+
+                                        if (string.IsNullOrEmpty(target))
+                                        {
+                                            // We don't know the method name yet so just parse an array of generic JArray
+                                            argumentToken = JArray.Load(reader);
+                                        }
+                                        else
+                                        {
+                                            try
+                                            {
+                                                var paramTypes = binder.GetParameterTypes(target);
+                                                arguments = BindArguments(reader, paramTypes);
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                argumentBindingException = ExceptionDispatchInfo.Capture(ex);
+                                            }
+                                        }
+                                    }
                                     else if (string.Equals(memberName, HeadersPropertyName, StringComparison.Ordinal))
                                     {
                                         reader.Read();
@@ -148,40 +211,33 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                     throw new InvalidDataException($"Missing required property '{TypePropertyName}'.");
                 }
 
-                // Now we have the message type, parse again
-                // PERF: We could reset the existing Utf8BufferTextReader so we don't need to allocate twice
-                using (var reader = new JsonTextReader(new Utf8BufferTextReader(input)))
+
+                HubMessage message = null;
+
+                switch (type)
                 {
-                    reader.ArrayPool = JsonArrayPool<char>.Shared;
-                    reader.Read();
-
-                    HubMessage message = null;
-
-                    switch (type)
-                    {
-                        case HubProtocolConstants.InvocationMessageType:
-                            message = BindInvocationMessage(reader, invocationId, target, binder);
-                            break;
-                        case HubProtocolConstants.StreamInvocationMessageType:
-                            message = BindStreamInvocationMessage(reader, invocationId, target, binder);
-                            break;
-                        case HubProtocolConstants.StreamItemMessageType:
-                            message = BindStreamItemMessage(reader, invocationId, binder);
-                            break;
-                        case HubProtocolConstants.CompletionMessageType:
-                            message = BindCompletionMessage(reader, invocationId, error, binder);
-                            break;
-                        case HubProtocolConstants.CancelInvocationMessageType:
-                            message = BindCancelInvocationMessage(reader, invocationId);
-                            break;
-                        case HubProtocolConstants.PingMessageType:
-                            return PingMessage.Instance;
-                        default:
-                            throw new InvalidDataException($"Unknown message type: {type}");
-                    }
-
-                    return ApplyHeaders(message, headers);
+                    case HubProtocolConstants.InvocationMessageType:
+                        message = BindInvocationMessage(invocationId, target, argumentBindingException, argumentToken, arguments, binder);
+                        break;
+                    case HubProtocolConstants.StreamInvocationMessageType:
+                        message = BindStreamInvocationMessage(invocationId, target, argumentBindingException, argumentToken, arguments, binder);
+                        break;
+                    case HubProtocolConstants.StreamItemMessageType:
+                        message = BindStreamItemMessage(invocationId, item, itemToken, binder);
+                        break;
+                    case HubProtocolConstants.CompletionMessageType:
+                        message = BindCompletionMessage(invocationId, error, result, resultToken, binder);
+                        break;
+                    case HubProtocolConstants.CancelInvocationMessageType:
+                        message = BindCancelInvocationMessage(invocationId);
+                        break;
+                    case HubProtocolConstants.PingMessageType:
+                        return PingMessage.Instance;
+                    default:
+                        throw new InvalidDataException($"Unknown message type: {type}");
                 }
+
+                return ApplyHeaders(message, headers);
             }
             catch (JsonReaderException jrex)
             {
@@ -317,7 +373,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             writer.WriteValue(type);
         }
 
-        private HubMessage BindCancelInvocationMessage(JsonTextReader reader, string invocationId)
+        private HubMessage BindCancelInvocationMessage(string invocationId)
         {
             if (string.IsNullOrEmpty(invocationId))
             {
@@ -327,98 +383,52 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             return new CancelInvocationMessage(invocationId);
         }
 
-        private HubMessage BindCompletionMessage(JsonTextReader reader, string invocationId, string error, IInvocationBinder binder)
+        private HubMessage BindCompletionMessage(string invocationId, string error, object result, JToken resultToken, IInvocationBinder binder)
         {
             if (string.IsNullOrEmpty(invocationId))
             {
                 throw new InvalidDataException($"Missing required property '{InvocationIdPropertyName}'.");
             }
 
-            object result = null;
-            bool finished = false;
-
-            do
-            {
-                switch (reader.TokenType)
-                {
-                    case JsonToken.PropertyName:
-                        if (reader.Depth == 1)
-                        {
-                            string memberName = reader.Value.ToString();
-
-                            if (string.Equals(memberName, ResultPropertyName, StringComparison.Ordinal))
-                            {
-                                reader.Read();
-                                var returnType = binder.GetReturnType(invocationId);
-                                result = PayloadSerializer.Deserialize(reader);
-                                finished = true;
-                            }
-                        }
-                        break;
-                    default:
-                        break;
-                }
-            }
-            while (reader.Read() && !finished);
+            bool hasResult = result != null || resultToken != null;
 
             // Finished means we have a result property
-            if (error != null && finished)
+            if (error != null && hasResult)
             {
                 throw new InvalidDataException("The 'error' and 'result' properties are mutually exclusive.");
             }
 
-            if (finished)
+            if (hasResult)
             {
+                if (resultToken != null)
+                {
+                    var returnType = binder.GetReturnType(invocationId);
+                    result = resultToken.ToObject(returnType, PayloadSerializer);
+                }
+
                 return new CompletionMessage(invocationId, error, result, hasResult: true);
             }
 
             return new CompletionMessage(invocationId, error, result: null, hasResult: false);
         }
 
-        private HubMessage BindStreamItemMessage(JsonTextReader reader, string invocationId, IInvocationBinder binder)
+        private HubMessage BindStreamItemMessage(string invocationId, object item, JToken itemToken, IInvocationBinder binder)
         {
             if (string.IsNullOrEmpty(invocationId))
             {
                 throw new InvalidDataException($"Missing required property '{InvocationIdPropertyName}'.");
             }
 
-            object item = null;
-            bool finished = false;
-
-            do
+            if (itemToken != null)
             {
-                switch (reader.TokenType)
-                {
-                    case JsonToken.PropertyName:
-                        if (reader.Depth == 1)
-                        {
-                            string memberName = reader.Value.ToString();
-
-                            if (string.Equals(memberName, ItemPropertyName, StringComparison.Ordinal))
-                            {
-                                reader.Read();
-                                var returnType = binder.GetReturnType(invocationId);
-                                item = PayloadSerializer.Deserialize(reader);
-
-                                finished = true;
-                            }
-                        }
-                        break;
-                    default:
-                        break;
-                }
-            }
-            while (reader.Read() && !finished);
-
-            if (!finished)
-            {
-                throw new InvalidDataException($"Missing required property '{ItemPropertyName}'.");
+                var returnType = binder.GetReturnType(invocationId);
+                item = itemToken.ToObject(returnType, PayloadSerializer);
             }
 
             return new StreamItemMessage(invocationId, item);
         }
 
-        private HubMessage BindStreamInvocationMessage(JsonTextReader reader, string invocationId, string target, IInvocationBinder binder)
+        private HubMessage BindStreamInvocationMessage(string invocationId, string target, ExceptionDispatchInfo argumentBindingException, JArray argumentToken, object[] arguments, IInvocationBinder binder)
         {
             if (string.IsNullOrEmpty(invocationId))
             {
@@ -430,101 +440,42 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 throw new InvalidDataException($"Missing required property '{TargetPropertyName}'.");
             }
 
-            object[] arguments = null;
-            ExceptionDispatchInfo argumentBindingException = null;
-            bool finished = false;
-
-            do
+            if (argumentToken != null)
             {
-                switch (reader.TokenType)
+                // We didn't bind arguments yet since those appeared in the JSON object before the target, lets bind now
+                try
                 {
-                    case JsonToken.PropertyName:
-                        if (reader.Depth == 1)
-                        {
-                            string memberName = reader.Value.ToString();
-
-                            if (string.Equals(memberName, ArgumentsPropertyName, StringComparison.Ordinal))
-                            {
-                                reader.Read();
-
-                                JsonUtils.EnsureTokenType(ArgumentsPropertyName, reader.TokenType, JsonToken.StartArray);
-
-                                try
-                                {
-                                    var paramTypes = binder.GetParameterTypes(target);
-                                    arguments = BindArguments(reader, paramTypes);
-                                }
-                                catch (Exception ex)
-                                {
-                                    argumentBindingException = ExceptionDispatchInfo.Capture(ex);
-                                }
-                                finished = true;
-                            }
-                        }
-                        break;
-                    default:
-                        break;
+                    var paramTypes = binder.GetParameterTypes(target);
+                    arguments = BindArguments(argumentToken, paramTypes);
                 }
-            }
-            while (reader.Read() && !finished);
-
-            if (!finished)
-            {
-                throw new InvalidDataException($"Missing required property '{ArgumentsPropertyName}'.");
+                catch (Exception ex)
+                {
+                    argumentBindingException = ExceptionDispatchInfo.Capture(ex);
+                }
             }
 
             return new StreamInvocationMessage(invocationId, target, argumentBindingException: argumentBindingException, arguments: arguments);
         }
 
-        private HubMessage BindInvocationMessage(JsonTextReader reader, string invocationId, string target, IInvocationBinder binder)
+        private HubMessage BindInvocationMessage(string invocationId, string target, ExceptionDispatchInfo argumentBindingException, JArray argumentToken, object[] arguments, IInvocationBinder binder)
         {
             if (string.IsNullOrEmpty(target))
             {
                 throw new InvalidDataException($"Missing required property '{TargetPropertyName}'.");
             }
 
-            object[] arguments = null;
-            ExceptionDispatchInfo argumentBindingException = null;
-            bool finished = false;
-
-            do
+            if (argumentToken != null)
             {
-                switch (reader.TokenType)
+                // We didn't bind arguments yet since those appeared in the JSON object before the target, lets bind now
+                try
                 {
-                    case JsonToken.PropertyName:
-                        if (reader.Depth == 1)
-                        {
-                            string memberName = reader.Value.ToString();
-
-                            if (string.Equals(memberName, ArgumentsPropertyName, StringComparison.Ordinal))
-                            {
-                                reader.Read();
-
-                                JsonUtils.EnsureTokenType(ArgumentsPropertyName, reader.TokenType, JsonToken.StartArray);
-
-                                try
-                                {
-                                    var paramTypes = binder.GetParameterTypes(target);
-                                    arguments = BindArguments(reader, paramTypes);
-                                }
-                                catch (Exception ex)
-                                {
-                                    argumentBindingException = ExceptionDispatchInfo.Capture(ex);
-                                }
-
-                                finished = true;
-                            }
-                        }
-                        break;
-                    default:
-                        break;
+                    var paramTypes = binder.GetParameterTypes(target);
+                    arguments = BindArguments(argumentToken, paramTypes);
                 }
-            }
-            while (reader.Read() && !finished);
-
-            if (!finished)
-            {
-                throw new InvalidDataException($"Missing required property '{ArgumentsPropertyName}'.");
+                catch (Exception ex)
+                {
+                    argumentBindingException = ExceptionDispatchInfo.Capture(ex);
+                }
             }
 
             return new InvocationMessage(invocationId, target, argumentBindingException: argumentBindingException, arguments: arguments);
@@ -539,8 +490,38 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 for (var i = 0; i < paramTypes.Count; i++)
                 {
                     reader.Read();
+
+                    if (reader.TokenType == JsonToken.EndArray)
+                    {
+                        throw new InvalidDataException($"Invocation provides {i} argument(s) but target expects {paramTypes.Count}.");
+                    }
+
                     var paramType = paramTypes[i];
                     arguments[i] = PayloadSerializer.Deserialize(reader, paramType);
+                }
+
+                return arguments;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidDataException("Error binding arguments. Make sure that the types of the provided values match the types of the hub method being invoked.", ex);
+            }
+        }
+
+        private object[] BindArguments(JArray args, IReadOnlyList<Type> paramTypes)
+        {
+            var arguments = new object[args.Count];
+            if (paramTypes.Count != arguments.Length)
+            {
+                throw new InvalidDataException($"Invocation provides {arguments.Length} argument(s) but target expects {paramTypes.Count}.");
+            }
+
+            try
+            {
+                for (var i = 0; i < paramTypes.Count; i++)
+                {
+                    var paramType = paramTypes[i];
+                    arguments[i] = args[i].ToObject(paramType, PayloadSerializer);
                 }
 
                 return arguments;
