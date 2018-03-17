@@ -213,14 +213,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             }
         }
 
-        private static T ApplyHeaders<T>(IDictionary<string, string> source, T destination) where T: HubInvocationMessage
+        private static T ApplyHeaders<T>(IDictionary<string, string> source, T destination) where T : HubInvocationMessage
         {
-            if(source != null && source.Count > 0)
+            if (source != null && source.Count > 0)
             {
-                foreach(var header in source)
-                {
-                    destination.Headers[header.Key] = header.Value;
-                }
+                destination.Headers = source;
             }
 
             return destination;

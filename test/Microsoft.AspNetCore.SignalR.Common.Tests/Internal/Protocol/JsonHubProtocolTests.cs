@@ -136,7 +136,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         [InlineData("null", "Unexpected JSON Token Type 'Null'. Expected a JSON Object.")]
         [InlineData("42", "Unexpected JSON Token Type 'Integer'. Expected a JSON Object.")]
         [InlineData("'foo'", "Unexpected JSON Token Type 'String'. Expected a JSON Object.")]
-        [InlineData("[42]", "Unexpected JSON Token Type 'Array'. Expected a JSON Object.")]
+        [InlineData("[42]", "Unexpected JSON Token Type 'StartArray'. Expected a JSON Object.")]
         [InlineData("{}", "Missing required property 'type'.")]
 
         [InlineData("{'type':1,'headers':{\"Foo\": 42},'target':'test',arguments:[]}", "Expected header 'Foo' to be of type String.")]
@@ -181,9 +181,9 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         }
 
         [Theory]
-        [InlineData("{'type':1,'invocationId':'42','target':'foo','arguments':[]}", "Invocation provides 0 argument(s) but target expects 2.")]
+        [InlineData("{'type':1,'invocationId':'42','target':'foo','arguments':[]}", "Error binding arguments. Make sure that the types of the provided values match the types of the hub method being invoked.")]
         [InlineData("{'type':1,'invocationId':'42','target':'foo','arguments':[ 'abc', 'xyz']}", "Error binding arguments. Make sure that the types of the provided values match the types of the hub method being invoked.")]
-        [InlineData("{'type':4,'invocationId':'42','target':'foo','arguments':[]}", "Invocation provides 0 argument(s) but target expects 2.")]
+        [InlineData("{'type':4,'invocationId':'42','target':'foo','arguments':[]}", "Error binding arguments. Make sure that the types of the provided values match the types of the hub method being invoked.")]
         [InlineData("{'type':4,'invocationId':'42','target':'foo','arguments':[ 'abc', 'xyz']}", "Error binding arguments. Make sure that the types of the provided values match the types of the hub method being invoked.")]
         public void ArgumentBindingErrors(string input, string expectedMessage)
         {

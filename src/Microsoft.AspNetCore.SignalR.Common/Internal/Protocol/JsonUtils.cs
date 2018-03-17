@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
@@ -40,6 +41,14 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 throw new InvalidDataException($"Expected '{property}' to be of type {expectedType}.");
             }
             return prop.Value<T>();
+        }
+
+        internal static void EnsureTokenType(string property, JsonToken tokenType, JsonToken expectedTokenType)
+        {
+            if (expectedTokenType != JsonToken.None && tokenType != expectedTokenType)
+            {
+                throw new InvalidDataException($"Expected '{property}' to be of type {expectedTokenType}.");
+            }
         }
     }
 }
