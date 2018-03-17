@@ -18,15 +18,17 @@ namespace SocketsSample
     {
         public static void Main(string[] args)
         {
+            var json = new JsonHubProtocol();
+            var message = new InvocationMessage(target: "Target", argumentBindingException: null, new string('F', 10240), new byte[10240]);
+            var bytes = json.WriteToArray(message);
+
             System.Console.WriteLine("Waiting to start");
 
             System.Console.ReadLine();
 
-            var json = new JsonHubProtocol();
-            var bytes = json.WriteToArray(new InvocationMessage(target: "Target", argumentBindingException: null, 1, "Foo"));
             int messageCount = 1000;
             var messages = new List<HubMessage>(messageCount);
-            var binder = new Binder(new[] { typeof(int), typeof(string) }, typeof(void));
+            var binder = new Binder(new[] { typeof(string), typeof(byte[]) }, typeof(void));
             for (int i = 0; i < messageCount; i++)
             {
                 json.TryParseMessages(bytes, binder, messages);

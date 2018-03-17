@@ -17,10 +17,10 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         private TestBinder _binder;
         private HubMessage _hubMessage;
 
-        [Params(Message.NoArguments, Message.FewArguments, Message.ManyArguments, Message.LargeArguments)]
+        [Params(Message.LargeArguments)]
         public Message Input { get; set; }
 
-        [Params(Protocol.MsgPack, Protocol.Json)]
+        [Params(Protocol.Json)]
         public Protocol HubProtocol { get; set; }
 
         [GlobalSetup]
@@ -66,15 +66,15 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             }
         }
 
-        [Benchmark]
-        public void WriteSingleMessage()
-        {
-            var bytes = _hubProtocol.WriteToArray(_hubMessage);
-            if (bytes.Length != _binaryInput.Length)
-            {
-                throw new InvalidOperationException("Failed to write message");
-            }
-        }
+        //[Benchmark]
+        //public void WriteSingleMessage()
+        //{
+        //    var bytes = _hubProtocol.WriteToArray(_hubMessage);
+        //    if (bytes.Length != _binaryInput.Length)
+        //    {
+        //        throw new InvalidOperationException("Failed to write message");
+        //    }
+        //}
 
         public enum Protocol
         {
