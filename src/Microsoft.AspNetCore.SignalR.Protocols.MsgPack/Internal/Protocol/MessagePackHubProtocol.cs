@@ -37,7 +37,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             SerializationContext = options.Value.SerializationContext;
         }
 
-        public bool TryParseMessages(ReadOnlySpan<byte> input, IInvocationBinder binder, IList<HubMessage> messages)
+        public bool TryParseMessages(ReadOnlyMemory<byte> input, IInvocationBinder binder, IList<HubMessage> messages)
         {
             while (BinaryMessageParser.TryParseMessage(ref input, out var payload))
             {

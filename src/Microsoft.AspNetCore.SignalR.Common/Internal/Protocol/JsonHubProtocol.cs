@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.ExceptionServices;
@@ -47,15 +48,13 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
         public TransferFormat TransferFormat => TransferFormat.Text;
 
-        public bool TryParseMessages(ReadOnlySpan<byte> input, IInvocationBinder binder, IList<HubMessage> messages)
+        public bool TryParseMessages(ReadOnlyMemory<byte> input, IInvocationBinder binder, IList<HubMessage> messages)
         {
             while (TextMessageParser.TryParseMessage(ref input, out var payload))
             {
-                // TODO: Need a span-native JSON parser!
-                using (var memoryStream = new MemoryStream(payload.ToArray()))
-                {
-                    messages.Add(ParseMessage(memoryStream, binder));
-                }
+                var textReader = new Utf8BufferTextReader(payload);
+                messages.Add(ParseMessage(textReader, binder));
+
             }
 
             return messages.Count > 0;
@@ -67,10 +66,12 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             TextMessageFormatter.WriteRecordSeparator(output);
         }
 
-        private HubMessage ParseMessage(Stream input, IInvocationBinder binder)
+        private HubMessage ParseMessage(TextReader input, IInvocationBinder binder)
         {
-            using (var reader = new JsonTextReader(new StreamReader(input)))
+            using (var reader = new JsonTextReader(input))
             {
+                reader.ArrayPool = JsonArrayPool<char>.Shared;
+
                 try
                 {
                     // PERF: Could probably use the JsonTextReader directly for better perf and fewer allocations
