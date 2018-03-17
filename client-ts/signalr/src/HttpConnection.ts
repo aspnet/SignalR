@@ -100,8 +100,8 @@ export class HttpConnection implements IConnection {
                 if (this.connectionState === ConnectionState.Disconnected) {
                     return;
                 }
-                // tslint:disable-next-line:forin
-                for (const transport in this.allTransports) {
+
+                for (const transport of this.allTransports) {
 
                     if (this.negotiateResponse == null) {
                         await this.setNegotiationResponse(headers);
