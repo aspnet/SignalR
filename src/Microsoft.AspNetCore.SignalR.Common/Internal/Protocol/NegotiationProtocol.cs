@@ -37,7 +37,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 throw new InvalidDataException("Unable to parse payload as a negotiation message.");
             }
 
-            var textReader = new CharArrayTextReader(payload);
+            var textReader = new Utf8BufferTextReader(payload);
             using (var reader = new JsonTextReader(textReader))
             {
                 var token = JToken.ReadFrom(reader);

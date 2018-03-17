@@ -51,7 +51,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         {
             while (TextMessageParser.TryParseMessage(ref input, out var payload))
             {
-                var textReader = new CharArrayTextReader(payload);
+                var textReader = new Utf8BufferTextReader(payload);
                 messages.Add(ParseMessage(textReader, binder));
 
             }
