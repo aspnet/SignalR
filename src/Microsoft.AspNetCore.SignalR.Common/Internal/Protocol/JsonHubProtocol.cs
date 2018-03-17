@@ -47,15 +47,13 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
         public TransferFormat TransferFormat => TransferFormat.Text;
 
-        public bool TryParseMessages(ReadOnlySpan<byte> input, IInvocationBinder binder, IList<HubMessage> messages)
+        public bool TryParseMessages(ReadOnlyMemory<byte> input, IInvocationBinder binder, IList<HubMessage> messages)
         {
             while (TextMessageParser.TryParseMessage(ref input, out var payload))
             {
-                // TODO: Need a span-native JSON parser!
-                using (var memoryStream = new MemoryStream(payload.ToArray()))
-                {
-                    messages.Add(ParseMessage(memoryStream, binder));
-                }
+                var textReader = new CharArrayTextReader(payload);
+                messages.Add(ParseMessage(textReader, binder));
+
             }
 
             return messages.Count > 0;
@@ -67,9 +65,9 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             TextMessageFormatter.WriteRecordSeparator(output);
         }
 
-        private HubMessage ParseMessage(Stream input, IInvocationBinder binder)
+        private HubMessage ParseMessage(TextReader input, IInvocationBinder binder)
         {
-            using (var reader = new JsonTextReader(new StreamReader(input)))
+            using (var reader = new JsonTextReader(input))
             {
                 try
                 {
