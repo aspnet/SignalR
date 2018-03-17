@@ -113,6 +113,18 @@ namespace Microsoft.AspNetCore.SignalR.Client
             private static readonly Action<ILogger, string, Exception> _errorInvokingClientSideMethod =
                 LoggerMessage.Define<string>(LogLevel.Error, new EventId(34, "ErrorInvokingClientSideMethod"), "Invoking client side method '{methodName}' failed.");
 
+            private static readonly Action<ILogger, Exception> _errorProcessingHandshakeResponse =
+                LoggerMessage.Define(LogLevel.Error, new EventId(35, "ErrorReceivingHandshakeResponse"), "Error processing the handshake response.");
+
+            private static readonly Action<ILogger, string, Exception> _handshakeServerError =
+                LoggerMessage.Define<string>(LogLevel.Error, new EventId(36, "HandshakeServerError"), "Server returned handshake error: {Error}");
+
+            private static readonly Action<ILogger, Exception> _receivedClose =
+                LoggerMessage.Define(LogLevel.Debug, new EventId(37, "ReceivedClose"), "Received close message.");
+
+            private static readonly Action<ILogger, string, Exception> _receivedCloseWithError =
+                LoggerMessage.Define<string>(LogLevel.Error, new EventId(38, "ReceivedCloseWithError"), "Received close message with an error: {Error}");
+
             public static void PreparingNonBlockingInvocation(ILogger logger, string target, int count)
             {
                 _preparingNonBlockingInvocation(logger, target, count, null);
@@ -289,6 +301,26 @@ namespace Microsoft.AspNetCore.SignalR.Client
             public static void ErrorInvokingClientSideMethod(ILogger logger, string methodName, Exception exception)
             {
                 _errorInvokingClientSideMethod(logger, methodName, exception);
+            }
+
+            public static void ErrorReceivingHandshakeResponse(ILogger logger, Exception exception)
+            {
+                _errorProcessingHandshakeResponse(logger, exception);
+            }
+
+            public static void HandshakeServerError(ILogger logger, string error)
+            {
+                _handshakeServerError(logger, error, null);
+            }
+
+            public static void ReceivedClose(ILogger logger)
+            {
+                _receivedClose(logger, null);
+            }
+
+            public static void ReceivedCloseWithError(ILogger logger, string error)
+            {
+                _receivedCloseWithError(logger, error, null);
             }
         }
     }

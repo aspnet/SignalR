@@ -238,14 +238,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 }
                 else
                 {
-                    if (HandshakeProtocol.TryParseResponseMessage(result.Buffer, out var responseMessage, out consumed, out examined))
-                    {
-                        return responseMessage;
-                    }
-                    else
-                    {
-                        throw new InvalidOperationException("Unable to read handshake response.");
-                    }
+                    return HandshakeProtocol.ParseResponseMessage(result.Buffer.ToArray());
                 }
             }
             finally

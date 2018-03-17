@@ -96,10 +96,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 await hubConnection.StartAsync();
 
+                await connection.ReadHandshakeAndSendResponseAsync().OrTimeout();
+
                 var channel = await hubConnection.StreamAsChannelAsync<object>("Foo");
 
                 // skip handshake
-                await connection.ReadSentTextMessageAsync().OrTimeout();
                 var invokeMessage = await connection.ReadSentTextMessageAsync().OrTimeout();
 
                 Assert.Equal("{\"type\":4,\"invocationId\":\"1\",\"target\":\"Foo\",\"arguments\":[]}\u001e", invokeMessage);
@@ -124,6 +125,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 await hubConnection.StartAsync();
 
+                await connection.ReadHandshakeAndSendResponseAsync().OrTimeout();
+
                 var invokeTask = hubConnection.InvokeAsync("Foo");
 
                 await connection.ReceiveJsonMessage(new { invocationId = "1", type = 3 }).OrTimeout();
@@ -145,6 +148,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             try
             {
                 await hubConnection.StartAsync();
+
+                await connection.ReadHandshakeAndSendResponseAsync().OrTimeout();
 
                 var channel = await hubConnection.StreamAsChannelAsync<int>("Foo");
 
@@ -168,6 +173,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 await hubConnection.StartAsync();
 
+                await connection.ReadHandshakeAndSendResponseAsync().OrTimeout();
+
                 var invokeTask = hubConnection.InvokeAsync<int>("Foo");
 
                 await connection.ReceiveJsonMessage(new { invocationId = "1", type = 3, result = 42 }).OrTimeout();
@@ -189,6 +196,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             try
             {
                 await hubConnection.StartAsync();
+
+                await connection.ReadHandshakeAndSendResponseAsync().OrTimeout();
 
                 var invokeTask = hubConnection.InvokeAsync<int>("Foo");
 
@@ -213,6 +222,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 await hubConnection.StartAsync();
 
+                await connection.ReadHandshakeAndSendResponseAsync().OrTimeout();
+
                 var channel = await hubConnection.StreamAsChannelAsync<string>("Foo");
 
                 await connection.ReceiveJsonMessage(new { invocationId = "1", type = 3, result = "Oops" }).OrTimeout();
@@ -235,6 +246,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             try
             {
                 await hubConnection.StartAsync();
+
+                await connection.ReadHandshakeAndSendResponseAsync().OrTimeout();
 
                 var channel = await hubConnection.StreamAsChannelAsync<int>("Foo");
 
@@ -259,6 +272,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 await hubConnection.StartAsync();
 
+                await connection.ReadHandshakeAndSendResponseAsync().OrTimeout();
+
                 var invokeTask = hubConnection.InvokeAsync<int>("Foo");
 
                 await connection.ReceiveJsonMessage(new { invocationId = "1", type = 2, item = 42 }).OrTimeout();
@@ -281,6 +296,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             try
             {
                 await hubConnection.StartAsync();
+
+                await connection.ReadHandshakeAndSendResponseAsync().OrTimeout();
 
                 var channel = await hubConnection.StreamAsChannelAsync<string>("Foo");
 
@@ -310,6 +327,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 await hubConnection.StartAsync();
 
+                await connection.ReadHandshakeAndSendResponseAsync().OrTimeout();
+
                 hubConnection.On<int, string, float>("Foo", (r1, r2, r3) => handlerCalled.TrySetResult(new object[] { r1, r2, r3 }));
 
                 var args = new object[] { 1, "Foo", 2.0f };
@@ -336,7 +355,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 await hubConnection.StartAsync().OrTimeout();
 
                 // Ignore handshake message
-                await connection.ReadSentTextMessageAsync().OrTimeout();
+                await connection.ReadHandshakeAndSendResponseAsync().OrTimeout();
 
                 // Send an invocation
                 var invokeTask = hubConnection.InvokeAsync("Foo");
