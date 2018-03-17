@@ -99,8 +99,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                     {
                         switch (reader.TokenType)
                         {
-                            case JsonToken.StartObject:
-                                break;
                             case JsonToken.PropertyName:
                                 // We only care about parsing top level properties
                                 if (reader.Depth == 1)
@@ -137,10 +135,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                                     }
                                 }
 
-                                break;
-                            case JsonToken.Comment:
-                                break;
-                            case JsonToken.EndObject:
                                 break;
                             default:
                                 break;
@@ -361,10 +355,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                             }
                         }
                         break;
-                    case JsonToken.Comment:
-                        break;
-                    case JsonToken.EndObject:
-                        break;
                     default:
                         break;
                 }
@@ -413,10 +403,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                                 finished = true;
                             }
                         }
-                        break;
-                    case JsonToken.Comment:
-                        break;
-                    case JsonToken.EndObject:
                         break;
                     default:
                         break;
@@ -476,10 +462,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                             }
                         }
                         break;
-                    case JsonToken.Comment:
-                        break;
-                    case JsonToken.EndObject:
-                        break;
                     default:
                         break;
                 }
@@ -533,10 +515,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                                 finished = true;
                             }
                         }
-                        break;
-                    case JsonToken.Comment:
-                        break;
-                    case JsonToken.EndObject:
                         break;
                     default:
                         break;
