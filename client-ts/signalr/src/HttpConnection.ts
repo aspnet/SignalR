@@ -102,7 +102,6 @@ export class HttpConnection implements IConnection {
                 }
 
                 for (const transport of this.allTransports) {
-
                     if (this.negotiateResponse == null) {
                         await this.setNegotiationResponse(headers);
                         this.connectionId = this.negotiateResponse.connectionId;
@@ -112,7 +111,6 @@ export class HttpConnection implements IConnection {
                     try {
                             this.transport.onreceive = this.onreceive;
                             this.transport.onclose = (e) => this.stopConnection(true, e);
-
                             await this.transport.connect(this.url, transferFormat, this);
                             break;
                     } catch (error) {
