@@ -285,7 +285,7 @@ namespace Microsoft.AspNetCore.SignalR
         {
             // Category: HubConnectionContext
             private static readonly Action<ILogger, string, Exception> _handshakeComplete =
-                LoggerMessage.Define<string>(LogLevel.Information, new EventId(1, "HandshakeComplete"), "Completed connection handshake. Using HubProtocol '{protocol}'.");
+                LoggerMessage.Define<string>(LogLevel.Information, new EventId(1, "HandshakeComplete"), "Completed connection handshake. Using HubProtocol '{Protocol}'.");
 
             private static readonly Action<ILogger, Exception> _handshakeCanceled =
                 LoggerMessage.Define(LogLevel.Debug, new EventId(2, "HandshakeCanceled"), "Handshake was canceled.");
