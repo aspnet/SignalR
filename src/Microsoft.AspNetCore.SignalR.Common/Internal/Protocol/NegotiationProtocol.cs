@@ -40,6 +40,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             var textReader = new Utf8BufferTextReader(payload);
             using (var reader = new JsonTextReader(textReader))
             {
+                reader.ArrayPool = JsonArrayPool<char>.Shared;
+
                 var token = JToken.ReadFrom(reader);
                 if (token == null || token.Type != JTokenType.Object)
                 {

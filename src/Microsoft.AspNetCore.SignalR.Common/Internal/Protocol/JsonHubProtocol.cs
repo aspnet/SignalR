@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.ExceptionServices;
@@ -69,6 +70,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         {
             using (var reader = new JsonTextReader(input))
             {
+                reader.ArrayPool = JsonArrayPool<char>.Shared;
+
                 try
                 {
                     // PERF: Could probably use the JsonTextReader directly for better perf and fewer allocations
