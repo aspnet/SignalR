@@ -76,10 +76,13 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 string invocationId = null;
                 string target = null;
                 string error = null;
+                var hasItem = false;
                 object item = null;
                 JToken itemToken = null;
+                var hasResult = false;
                 object result = null;
                 JToken resultToken = null;
+                bool hasArguments = false;
                 object[] arguments = null;
                 JArray argumentsToken = null;
                 ExceptionDispatchInfo argumentBindingException = null;
@@ -95,7 +98,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                     // We're always parsing a JSON object
                     if (reader.TokenType != JsonToken.StartObject)
                     {
-                        throw new InvalidDataException($"Unexpected JSON Token Type '{reader.TokenType}'. Expected a JSON Object.");
+                        throw new InvalidDataException($"Unexpected JSON Token Type '{GetTokenString(reader.TokenType)}'. Expected a JSON Object.");
                     }
 
                     do
@@ -108,7 +111,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                                 switch (memberName)
                                 {
                                     case TypePropertyName:
-                                        var messageType = reader.ReadAsInt32();
+                                        var messageType = ReadAsInt32(reader, TypePropertyName);
 
                                         if (messageType == null)
                                         {
@@ -118,16 +121,18 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                                         type = messageType.Value;
                                         break;
                                     case InvocationIdPropertyName:
-                                        invocationId = reader.ReadAsString();
+                                        invocationId = ReadAsString(reader, InvocationIdPropertyName);
                                         break;
                                     case TargetPropertyName:
-                                        target = reader.ReadAsString();
+                                        target = ReadAsString(reader, TargetPropertyName);
                                         break;
                                     case ErrorPropertyName:
-                                        error = reader.ReadAsString();
+                                        error = ReadAsString(reader, ErrorPropertyName);
                                         break;
                                     case ResultPropertyName:
                                         CheckRead(reader);
+
+                                        hasResult = true;
 
                                         if (string.IsNullOrEmpty(invocationId))
                                         {
@@ -144,6 +149,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                                     case ItemPropertyName:
                                         CheckRead(reader);
 
+                                        hasItem = true;
+
                                         if (string.IsNullOrEmpty(invocationId))
                                         {
                                             // If we don't have an invocation id then we need to store it as a JToken so we can parse it later
@@ -158,7 +165,12 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                                     case ArgumentsPropertyName:
                                         CheckRead(reader);
 
-                                        JsonUtils.EnsureTokenType(ArgumentsPropertyName, reader.TokenType, JsonToken.StartArray);
+                                        if (reader.TokenType != JsonToken.StartArray)
+                                        {
+                                            throw new InvalidDataException($"Expected '{ArgumentsPropertyName}' to be of type {JTokenType.Array}.");
+                                        }
+
+                                        hasArguments = true;
 
                                         if (string.IsNullOrEmpty(target))
                                         {
@@ -200,11 +212,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                     while (reader.Read() && !completed);
                 }
 
-                if (type == null)
-                {
-                    throw new InvalidDataException($"Missing required property '{TypePropertyName}'.");
-                }
-
                 HubMessage message = null;
 
                 switch (type)
@@ -224,7 +231,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                                 }
                             }
 
-                            message = BindInvocationMessage(invocationId, target, argumentBindingException, arguments, binder);
+                            message = BindInvocationMessage(invocationId, target, argumentBindingException, arguments, hasArguments, binder);
                         }
                         break;
                     case HubProtocolConstants.StreamInvocationMessageType:
@@ -242,7 +249,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                                 }
                             }
 
-                            message = BindStreamInvocationMessage(invocationId, target, argumentBindingException, arguments, binder);
+                            message = BindStreamInvocationMessage(invocationId, target, argumentBindingException, arguments, hasArguments, binder);
                         }
                         break;
                     case HubProtocolConstants.StreamItemMessageType:
@@ -252,7 +259,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                             item = itemToken.ToObject(returnType, PayloadSerializer);
                         }
 
-                        message = BindStreamItemMessage(invocationId, item, binder);
+                        message = BindStreamItemMessage(invocationId, item, hasItem, binder);
                         break;
                     case HubProtocolConstants.CompletionMessageType:
                         if (resultToken != null)
@@ -261,13 +268,15 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                             result = resultToken.ToObject(returnType, PayloadSerializer);
                         }
 
-                        message = BindCompletionMessage(invocationId, error, result, binder);
+                        message = BindCompletionMessage(invocationId, error, result, hasResult, binder);
                         break;
                     case HubProtocolConstants.CancelInvocationMessageType:
                         message = BindCancelInvocationMessage(invocationId);
                         break;
                     case HubProtocolConstants.PingMessageType:
                         return PingMessage.Instance;
+                    case null:
+                        throw new InvalidDataException($"Missing required property '{TypePropertyName}'.");
                     default:
                         throw new InvalidDataException($"Unknown message type: {type}");
                 }
@@ -278,6 +287,53 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             {
                 throw new InvalidDataException("Error reading JSON.", jrex);
             }
+        }
+
+        private string GetTokenString(JsonToken tokenType)
+        {
+            switch (tokenType)
+            {
+                case JsonToken.None:
+                    break;
+                case JsonToken.StartObject:
+                    return JTokenType.Object.ToString();
+                case JsonToken.StartArray:
+                    return JTokenType.Array.ToString();
+                case JsonToken.PropertyName:
+                    return JTokenType.Property.ToString();
+                default:
+                    break;
+            }
+            return tokenType.ToString();
+        }
+
+        private int? ReadAsInt32(JsonTextReader reader, string propertyName)
+        {
+            reader.Read();
+
+            if (reader.TokenType != JsonToken.Integer)
+            {
+                throw new InvalidDataException($"Expected '{propertyName}' to be of type {JTokenType.Integer}.");
+            }
+
+            if (reader.Value == null)
+            {
+                return null;
+            }
+
+            return Convert.ToInt32(reader.Value);
+        }
+
+        private static string ReadAsString(JsonTextReader reader, string propertyName)
+        {
+            reader.Read();
+
+            if (reader.TokenType != JsonToken.String)
+            {
+                throw new InvalidDataException($"Expected '{propertyName}' to be of type {JTokenType.String}.");
+            }
+
+            return reader.Value?.ToString();
         }
 
         private static void CheckRead(JsonTextReader reader)
@@ -294,7 +350,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
             if (reader.TokenType != JsonToken.StartObject)
             {
-                throw new InvalidDataException($"Expected '{HeadersPropertyName}' to be of type {JsonToken.StartObject}.");
+                throw new InvalidDataException($"Expected '{HeadersPropertyName}' to be of type {JTokenType.Object}.");
             }
 
             while (reader.Read())
@@ -306,7 +362,10 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
                         CheckRead(reader);
 
-                        JsonUtils.EnsureTokenType(propertyName, reader.TokenType, JsonToken.String);
+                        if (reader.TokenType != JsonToken.String)
+                        {
+                            throw new InvalidDataException($"Expected header '{propertyName}' to be of type {JTokenType.String}.");
+                        }
 
                         headers[propertyName] = reader.Value.ToString();
                         break;
@@ -458,19 +517,19 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             return new CancelInvocationMessage(invocationId);
         }
 
-        private HubMessage BindCompletionMessage(string invocationId, string error, object result, IInvocationBinder binder)
+        private HubMessage BindCompletionMessage(string invocationId, string error, object result, bool hasResult, IInvocationBinder binder)
         {
             if (string.IsNullOrEmpty(invocationId))
             {
                 throw new InvalidDataException($"Missing required property '{InvocationIdPropertyName}'.");
             }
 
-            if (error != null && result != null)
+            if (error != null && hasResult)
             {
                 throw new InvalidDataException("The 'error' and 'result' properties are mutually exclusive.");
             }
 
-            if (result != null)
+            if (hasResult)
             {
                 return new CompletionMessage(invocationId, error, result, hasResult: true);
             }
@@ -478,21 +537,31 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             return new CompletionMessage(invocationId, error, result: null, hasResult: false);
         }
 
-        private HubMessage BindStreamItemMessage(string invocationId, object item, IInvocationBinder binder)
+        private HubMessage BindStreamItemMessage(string invocationId, object item, bool hasItem, IInvocationBinder binder)
         {
             if (string.IsNullOrEmpty(invocationId))
             {
                 throw new InvalidDataException($"Missing required property '{InvocationIdPropertyName}'.");
             }
 
+            if (!hasItem)
+            {
+                throw new InvalidDataException($"Missing required property '{ItemPropertyName}'.");
+            }
+
             return new StreamItemMessage(invocationId, item);
         }
 
-        private HubMessage BindStreamInvocationMessage(string invocationId, string target, ExceptionDispatchInfo argumentBindingException, object[] arguments, IInvocationBinder binder)
+        private HubMessage BindStreamInvocationMessage(string invocationId, string target, ExceptionDispatchInfo argumentBindingException, object[] arguments, bool hasArguments, IInvocationBinder binder)
         {
             if (string.IsNullOrEmpty(invocationId))
             {
                 throw new InvalidDataException($"Missing required property '{InvocationIdPropertyName}'.");
+            }
+
+            if (!hasArguments)
+            {
+                throw new InvalidDataException($"Missing required property '{ArgumentsPropertyName}'.");
             }
 
             if (string.IsNullOrEmpty(target))
@@ -503,11 +572,16 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             return new StreamInvocationMessage(invocationId, target, argumentBindingException: argumentBindingException, arguments: arguments);
         }
 
-        private HubMessage BindInvocationMessage(string invocationId, string target, ExceptionDispatchInfo argumentBindingException, object[] arguments, IInvocationBinder binder)
+        private HubMessage BindInvocationMessage(string invocationId, string target, ExceptionDispatchInfo argumentBindingException, object[] arguments, bool hasArguments, IInvocationBinder binder)
         {
             if (string.IsNullOrEmpty(target))
             {
                 throw new InvalidDataException($"Missing required property '{TargetPropertyName}'.");
+            }
+
+            if (!hasArguments)
+            {
+                throw new InvalidDataException($"Missing required property '{ArgumentsPropertyName}'.");
             }
 
             return new InvocationMessage(invocationId, target, argumentBindingException: argumentBindingException, arguments: arguments);

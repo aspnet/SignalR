@@ -136,7 +136,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         [InlineData("null", "Unexpected JSON Token Type 'Null'. Expected a JSON Object.")]
         [InlineData("42", "Unexpected JSON Token Type 'Integer'. Expected a JSON Object.")]
         [InlineData("'foo'", "Unexpected JSON Token Type 'String'. Expected a JSON Object.")]
-        [InlineData("[42]", "Unexpected JSON Token Type 'StartArray'. Expected a JSON Object.")]
+        [InlineData("[42]", "Unexpected JSON Token Type 'Array'. Expected a JSON Object.")]
         [InlineData("{}", "Missing required property 'type'.")]
 
         [InlineData("{'type':1,'headers':{\"Foo\": 42},'target':'test',arguments:[]}", "Expected header 'Foo' to be of type String.")]

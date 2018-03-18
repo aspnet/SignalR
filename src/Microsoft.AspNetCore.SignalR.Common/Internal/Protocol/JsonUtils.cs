@@ -42,13 +42,5 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             }
             return prop.Value<T>();
         }
-
-        internal static void EnsureTokenType(string property, JsonToken tokenType, JsonToken expectedTokenType)
-        {
-            if (expectedTokenType != JsonToken.None && tokenType != expectedTokenType)
-            {
-                throw new InvalidDataException($"Expected '{property}' to be of type {expectedTokenType}.");
-            }
-        }
     }
 }
