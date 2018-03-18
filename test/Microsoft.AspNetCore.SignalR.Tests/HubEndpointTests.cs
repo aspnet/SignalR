@@ -635,10 +635,14 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 // kill the connection
                 client.Dispose();
 
-                // Nothing should have been written
-                bool checkForContent = client.Connection.Application.Input.TryRead(out var buffer);
-
-                Assert.False(checkForContent, "Expected no content but got: " + Encoding.UTF8.GetString(buffer.Buffer.ToArray()));
+                // this test will differ slightly depending on the speed of the computer it is run on
+                // may or may not receive a close message so wait a second to check before exiting
+                var readTask = client.ReadAsync();
+                if ((await Task.WhenAny(readTask, Task.Delay(TimeSpan.FromSeconds(1)))) == readTask)
+                {
+                    var hubMessage = readTask.Result;
+                    Assert.IsType<CloseMessage>(hubMessage);
+                }
 
                 await endPointTask.OrTimeout();
             }
