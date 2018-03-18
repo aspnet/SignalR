@@ -7,7 +7,7 @@ using System.Collections.Generic;
 
 namespace Microsoft.AspNetCore.SignalR
 {
-    public class HubConnectionList : IReadOnlyCollection<HubConnectionContext>
+    public class HubConnectionList
     {
         private readonly ConcurrentDictionary<string, HubConnectionContext> _connections = new ConcurrentDictionary<string, HubConnectionContext>();
 
@@ -32,14 +32,29 @@ namespace Microsoft.AspNetCore.SignalR
             _connections.TryRemove(connection.ConnectionId, out _);
         }
 
-        public IEnumerator<HubConnectionContext> GetEnumerator()
+        public Enumerator GetEnumerator()
         {
-            return _connections.Values.GetEnumerator();
+            return new Enumerator(this);
         }
 
-        IEnumerator IEnumerable.GetEnumerator()
+        public struct Enumerator : IEnumerator<HubConnectionContext>
         {
-            return GetEnumerator();
+            private IEnumerator<KeyValuePair<string, HubConnectionContext>> _enumerator;
+
+            public Enumerator(HubConnectionList hubConnectionList)
+            {
+                _enumerator = hubConnectionList._connections.GetEnumerator();
+            }
+
+            public HubConnectionContext Current => _enumerator.Current.Value;
+
+            object IEnumerator.Current => Current;
+
+            public void Dispose() => _enumerator.Dispose();
+
+            public bool MoveNext() => _enumerator.MoveNext();
+
+            public void Reset() => _enumerator.Reset();
         }
     }
 }
