@@ -121,10 +121,19 @@ namespace Microsoft.AspNetCore.SignalR
 
         private async Task WriteHandshakeResponseAsync(HandshakeResponseMessage message)
         {
-            var ms = new MemoryStream();
-            HandshakeProtocol.WriteResponseMessage(message, ms);
+            await _writeLock.WaitAsync();
 
-            await _connectionContext.Transport.Output.WriteAsync(ms.ToArray());
+            try
+            {
+                var ms = new MemoryStream();
+                HandshakeProtocol.WriteResponseMessage(message, ms);
+
+                await _connectionContext.Transport.Output.WriteAsync(ms.ToArray());
+            }
+            finally
+            {
+                _writeLock.Release();
+            }
         }
 
         public virtual void Abort()
