@@ -143,7 +143,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                                         {
                                             // If we have an invocation id already we can parse the end result
                                             var returnType = binder.GetReturnType(invocationId);
-                                            result = PayloadSerializer.Deserialize(reader);
+                                            result = PayloadSerializer.Deserialize(reader, returnType);
                                         }
                                         break;
                                     case ItemPropertyName:
@@ -159,7 +159,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                                         else
                                         {
                                             var returnType = binder.GetReturnType(invocationId);
-                                            item = PayloadSerializer.Deserialize(reader);
+                                            item = PayloadSerializer.Deserialize(reader, returnType);
                                         }
                                         break;
                                     case ArgumentsPropertyName:
@@ -590,20 +590,31 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         private object[] BindArguments(JsonTextReader reader, IReadOnlyList<Type> paramTypes)
         {
             var arguments = new object[paramTypes.Count];
+            var paramIndex = 0;
+            var argumentsCount = 0;
 
-            for (var i = 0; i < paramTypes.Count; i++)
+            while (reader.Read())
             {
-                CheckRead(reader);
-
                 if (reader.TokenType == JsonToken.EndArray)
                 {
-                    throw new InvalidDataException($"Invocation provides {i} argument(s) but target expects {paramTypes.Count}.");
+                    if (argumentsCount != paramTypes.Count)
+                    {
+                        throw new InvalidDataException($"Invocation provides {argumentsCount} argument(s) but target expects {paramTypes.Count}.");
+                    }
+
+                    return arguments;
                 }
 
                 try
                 {
-                    var paramType = paramTypes[i];
-                    arguments[i] = PayloadSerializer.Deserialize(reader, paramType);
+                    if (paramIndex < paramTypes.Count)
+                    {
+                        // Set all known arguments
+                        arguments[paramIndex] = PayloadSerializer.Deserialize(reader, paramTypes[paramIndex]);
+                    }
+
+                    argumentsCount++;
+                    paramIndex++;
                 }
                 catch (Exception ex)
                 {
@@ -611,7 +622,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 }
             }
 
-            return arguments;
+            // Throw the unexpected end of JSON error
+            CheckRead(reader);
+
+            // The above line throws so we never get here
+            return null;
         }
 
         private object[] BindArguments(JArray args, IReadOnlyList<Type> paramTypes)
