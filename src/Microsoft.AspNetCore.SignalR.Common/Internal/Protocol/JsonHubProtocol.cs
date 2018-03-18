@@ -367,7 +367,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                             throw new InvalidDataException($"Expected header '{propertyName}' to be of type {JTokenType.String}.");
                         }
 
-                        headers[propertyName] = reader.Value.ToString();
+                        headers[propertyName] = reader.Value?.ToString();
                         break;
                     case JsonToken.Comment:
                         break;
