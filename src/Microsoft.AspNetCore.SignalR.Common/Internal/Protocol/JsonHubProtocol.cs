@@ -591,27 +591,27 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         {
             var arguments = new object[paramTypes.Count];
 
-            try
+            for (var i = 0; i < paramTypes.Count; i++)
             {
-                for (var i = 0; i < paramTypes.Count; i++)
+                CheckRead(reader);
+
+                if (reader.TokenType == JsonToken.EndArray)
                 {
-                    CheckRead(reader);
+                    throw new InvalidDataException($"Invocation provides {i} argument(s) but target expects {paramTypes.Count}.");
+                }
 
-                    if (reader.TokenType == JsonToken.EndArray)
-                    {
-                        throw new InvalidDataException($"Invocation provides {i} argument(s) but target expects {paramTypes.Count}.");
-                    }
-
+                try
+                {
                     var paramType = paramTypes[i];
                     arguments[i] = PayloadSerializer.Deserialize(reader, paramType);
                 }
+                catch (Exception ex)
+                {
+                    throw new InvalidDataException("Error binding arguments. Make sure that the types of the provided values match the types of the hub method being invoked.", ex);
+                }
+            }
 
-                return arguments;
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidDataException("Error binding arguments. Make sure that the types of the provided values match the types of the hub method being invoked.", ex);
-            }
+            return arguments;
         }
 
         private object[] BindArguments(JArray args, IReadOnlyList<Type> paramTypes)
