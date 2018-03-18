@@ -4,7 +4,7 @@
 import { ConnectionClosed } from "./Common";
 import { HttpConnection, IHttpConnectionOptions } from "./HttpConnection";
 import { IConnection } from "./IConnection";
-import { CancelInvocationMessage, CompletionMessage, HubMessage, IHubProtocol, InvocationMessage, MessageType, NegotiationMessage, StreamInvocationMessage, StreamItemMessage } from "./IHubProtocol";
+import { CancelInvocationMessage, CompletionMessage, HandshakeRequestMessage, HubMessage, IHubProtocol, InvocationMessage, MessageType, StreamInvocationMessage, StreamItemMessage } from "./IHubProtocol";
 import { ILogger, LogLevel } from "./ILogger";
 import { JsonHubProtocol } from "./JsonHubProtocol";
 import { ConsoleLogger, LoggerFactory, NullLogger } from "./Loggers";
@@ -31,6 +31,7 @@ export class HubConnection {
     private closedCallbacks: ConnectionClosed[];
     private timeoutHandle: NodeJS.Timer;
     private timeoutInMilliseconds: number;
+    private receivedHandshakeResponse: boolean;
 
     constructor(url: string, options?: IHubConnectionOptions);
     constructor(connection: IConnection, options?: IHubConnectionOptions);
@@ -63,30 +64,40 @@ export class HubConnection {
             clearTimeout(this.timeoutHandle);
         }
 
-        // Parse the messages
-        const messages = this.protocol.parseMessages(data);
+        if (!this.receivedHandshakeResponse) {
+            if (data instanceof ArrayBuffer) {
+                // Format is binary but still need to read text from handshake response
+                data = String.fromCharCode.apply(null, new Uint8Array(data));
+            }
+            this.receivedHandshakeResponse = true;
+        } else {
+            // Parse the messages
+            const messages = this.protocol.parseMessages(data);
 
-        for (const message of messages) {
-            switch (message.type) {
-                case MessageType.Invocation:
-                    this.invokeClientMethod(message);
-                    break;
-                case MessageType.StreamItem:
-                case MessageType.Completion:
-                    const callback = this.callbacks.get(message.invocationId);
-                    if (callback != null) {
-                        if (message.type === MessageType.Completion) {
-                            this.callbacks.delete(message.invocationId);
+            for (const message of messages) {
+                switch (message.type) {
+                    case MessageType.Invocation:
+                        this.invokeClientMethod(message);
+                        break;
+                    case MessageType.StreamItem:
+                    case MessageType.Completion:
+                        const callback = this.callbacks.get(message.invocationId);
+                        if (callback != null) {
+                            if (message.type === MessageType.Completion) {
+                                this.callbacks.delete(message.invocationId);
+                            }
+                            callback(message);
                         }
-                        callback(message);
-                    }
-                    break;
-                case MessageType.Ping:
-                    // Don't care about pings
-                    break;
-                default:
-                    this.logger.log(LogLevel.Warning, "Invalid message type: " + data);
-                    break;
+                        break;
+                    case MessageType.Ping:
+                        // Don't care about pings
+                        break;
+                    case MessageType.Close:
+                        break;
+                    default:
+                        this.logger.log(LogLevel.Warning, "Invalid message type: " + data);
+                        break;
+                }
             }
         }
 
@@ -133,11 +144,14 @@ export class HubConnection {
     }
 
     public async start(): Promise<void> {
+        this.receivedHandshakeResponse = false;
+
         await this.connection.start(this.protocol.transferFormat);
 
+        // Handshake request is always JSON
         await this.connection.send(
             TextMessageFormat.write(
-                JSON.stringify({ protocol: this.protocol.name } as NegotiationMessage)));
+                JSON.stringify({ protocol: this.protocol.name } as HandshakeRequestMessage)));
 
         this.logger.log(LogLevel.Information, `Using HubProtocol '${this.protocol.name}'.`);
 
