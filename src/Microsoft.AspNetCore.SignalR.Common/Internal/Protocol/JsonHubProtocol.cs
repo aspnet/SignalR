@@ -84,21 +84,20 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 JArray argumentsToken = null;
                 ExceptionDispatchInfo argumentBindingException = null;
                 Dictionary<string, string> headers = null;
+                var completed = false;
 
                 using (var reader = new JsonTextReader(textReader))
                 {
                     reader.ArrayPool = JsonArrayPool<char>.Shared;
 
-                    reader.Read();
+                    if (!reader.Read())
+                    {
+                        throw new JsonReaderException("Error reading JSON.");
+                    }
 
                     // We're always parsing a JSON object
                     if (reader.TokenType != JsonToken.StartObject)
                     {
-                        if (reader.TokenType == JsonToken.None)
-                        {
-                            throw new InvalidDataException("Error reading JSON.");
-                        }
-
                         throw new InvalidDataException($"Unexpected JSON Token Type '{reader.TokenType}'. Expected a JSON Object.");
                     }
 
@@ -107,99 +106,116 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                         switch (reader.TokenType)
                         {
                             case JsonToken.PropertyName:
-                                // We only care about parsing top level properties
-                                if (reader.Depth == 1)
+                                string memberName = reader.Value.ToString();
+
+                                switch (memberName)
                                 {
-                                    string memberName = reader.Value.ToString();
+                                    case TypePropertyName:
+                                        var messageType = reader.ReadAsInt32();
 
-                                    switch (memberName)
-                                    {
-                                        case TypePropertyName:
-                                            var messageType = reader.ReadAsInt32();
+                                        if (messageType == null)
+                                        {
+                                            throw new InvalidDataException($"Missing required property '{TypePropertyName}'.");
+                                        }
 
-                                            if (messageType == null)
-                                            {
-                                                throw new InvalidDataException($"Missing required property '{TypePropertyName}'.");
-                                            }
+                                        type = messageType.Value;
+                                        break;
+                                    case InvocationIdPropertyName:
+                                        invocationId = reader.ReadAsString();
+                                        break;
+                                    case TargetPropertyName:
+                                        target = reader.ReadAsString();
+                                        break;
+                                    case ErrorPropertyName:
+                                        error = reader.ReadAsString();
+                                        break;
+                                    case ResultPropertyName:
+                                        if (!reader.Read())
+                                        {
+                                            throw new JsonReaderException("Unexpected end when reading JSON");
+                                        }
 
-                                            type = messageType.Value;
-                                            break;
-                                        case InvocationIdPropertyName:
-                                            invocationId = reader.ReadAsString();
-                                            break;
-                                        case TargetPropertyName:
-                                            target = reader.ReadAsString();
-                                            break;
-                                        case ErrorPropertyName:
-                                            error = reader.ReadAsString();
-                                            break;
-                                        case ResultPropertyName:
-                                            reader.Read();
+                                        if (string.IsNullOrEmpty(invocationId))
+                                        {
+                                            // If we don't have an invocation id then we need to store it as a JToken so we can parse it later
+                                            resultToken = JToken.Load(reader);
+                                        }
+                                        else
+                                        {
+                                            // If we have an invocation id already we can parse the end result
+                                            var returnType = binder.GetReturnType(invocationId);
+                                            result = PayloadSerializer.Deserialize(reader);
+                                        }
+                                        break;
+                                    case ItemPropertyName:
+                                        if (!reader.Read())
+                                        {
+                                            throw new JsonReaderException("Unexpected end when reading JSON");
+                                        }
 
-                                            if (string.IsNullOrEmpty(invocationId))
-                                            {
-                                                // If we don't have an invocation id then we need to store it as a JToken so we can parse it later
-                                                resultToken = JToken.Load(reader);
-                                            }
-                                            else
-                                            {
-                                                // If we have an invocation id already we can parse the end result
-                                                var returnType = binder.GetReturnType(invocationId);
-                                                result = PayloadSerializer.Deserialize(reader);
-                                            }
-                                            break;
-                                        case ItemPropertyName:
-                                            reader.Read();
+                                        if (string.IsNullOrEmpty(invocationId))
+                                        {
+                                            // If we don't have an invocation id then we need to store it as a JToken so we can parse it later
+                                            itemToken = JToken.Load(reader);
+                                        }
+                                        else
+                                        {
+                                            var returnType = binder.GetReturnType(invocationId);
+                                            item = PayloadSerializer.Deserialize(reader);
+                                        }
+                                        break;
+                                    case ArgumentsPropertyName:
+                                        if (!reader.Read())
+                                        {
+                                            throw new JsonReaderException("Unexpected end when reading JSON");
+                                        }
 
-                                            if (string.IsNullOrEmpty(invocationId))
-                                            {
-                                                // If we don't have an invocation id then we need to store it as a JToken so we can parse it later
-                                                itemToken = JToken.Load(reader);
-                                            }
-                                            else
-                                            {
-                                                var returnType = binder.GetReturnType(invocationId);
-                                                item = PayloadSerializer.Deserialize(reader);
-                                            }
-                                            break;
-                                        case ArgumentsPropertyName:
-                                            reader.Read();
+                                        JsonUtils.EnsureTokenType(ArgumentsPropertyName, reader.TokenType, JsonToken.StartArray);
 
-                                            JsonUtils.EnsureTokenType(ArgumentsPropertyName, reader.TokenType, JsonToken.StartArray);
-
-                                            if (string.IsNullOrEmpty(target))
+                                        if (string.IsNullOrEmpty(target))
+                                        {
+                                            // We don't know the method name yet so just parse an array of generic JArray
+                                            argumentsToken = JArray.Load(reader);
+                                        }
+                                        else
+                                        {
+                                            try
                                             {
-                                                // We don't know the method name yet so just parse an array of generic JArray
-                                                argumentsToken = JArray.Load(reader);
+                                                var paramTypes = binder.GetParameterTypes(target);
+                                                arguments = BindArguments(reader, paramTypes);
                                             }
-                                            else
+                                            catch (Exception ex)
                                             {
-                                                try
-                                                {
-                                                    var paramTypes = binder.GetParameterTypes(target);
-                                                    arguments = BindArguments(reader, paramTypes);
-                                                }
-                                                catch (Exception ex)
-                                                {
-                                                    argumentBindingException = ExceptionDispatchInfo.Capture(ex);
-                                                }
+                                                argumentBindingException = ExceptionDispatchInfo.Capture(ex);
                                             }
-                                            break;
-                                        case HeadersPropertyName:
-                                            reader.Read();
-                                            headers = ReadHeaders(reader);
-                                            break;
-                                        default:
-                                            break;
-                                    }
+                                        }
+                                        break;
+                                    case HeadersPropertyName:
+                                        if (!reader.Read())
+                                        {
+                                            throw new JsonReaderException("Unexpected end when reading JSON");
+                                        }
+                                        headers = ReadHeaders(reader);
+                                        break;
+                                    default:
+                                        // Skip read the property name
+                                        if (!reader.Read())
+                                        {
+                                            throw new JsonReaderException("Unexpected end when reading JSON");
+                                        }
+                                        // Skip the value for this property
+                                        reader.Skip();
+                                        break;
                                 }
-
+                                break;
+                            case JsonToken.EndObject:
+                                completed = true;
                                 break;
                             default:
                                 break;
                         }
                     }
-                    while (reader.Read());
+                    while (reader.Read() && !completed);
                 }
 
                 if (type == null)
@@ -231,7 +247,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                         break;
                     case HubProtocolConstants.StreamInvocationMessageType:
                         {
-                            if (argumentsToken!= null)
+                            if (argumentsToken != null)
                             {
                                 try
                                 {
@@ -248,7 +264,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                         }
                         break;
                     case HubProtocolConstants.StreamItemMessageType:
-                        if (itemToken !=null)
+                        if (itemToken != null)
                         {
                             var returnType = binder.GetReturnType(invocationId);
                             item = itemToken.ToObject(returnType, PayloadSerializer);
@@ -300,7 +316,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
                         if (!reader.Read())
                         {
-                            throw new JsonSerializationException("Unexpected end when reading message headers");
+                            throw new JsonReaderException("Unexpected end when reading message headers");
                         }
 
                         JsonUtils.EnsureTokenType(propertyName, reader.TokenType, JsonToken.String);
@@ -314,7 +330,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 }
             }
 
-            throw new JsonSerializationException("Unexpected end when reading message headers");
+            throw new JsonReaderException("Unexpected end when reading message headers");
         }
 
         private void WriteMessageCore(HubMessage message, Stream stream)
