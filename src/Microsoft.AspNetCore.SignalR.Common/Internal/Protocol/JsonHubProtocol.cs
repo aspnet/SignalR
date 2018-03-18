@@ -90,10 +90,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 {
                     reader.ArrayPool = JsonArrayPool<char>.Shared;
 
-                    if (!reader.Read())
-                    {
-                        throw new JsonReaderException("Error reading JSON.");
-                    }
+                    CheckRead(reader);
 
                     // We're always parsing a JSON object
                     if (reader.TokenType != JsonToken.StartObject)
@@ -307,10 +304,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                     case JsonToken.PropertyName:
                         string propertyName = reader.Value.ToString();
 
-                        if (!reader.Read())
-                        {
-                            throw new JsonReaderException("Unexpected end when reading message headers");
-                        }
+                        CheckRead(reader);
 
                         JsonUtils.EnsureTokenType(propertyName, reader.TokenType, JsonToken.String);
 
@@ -519,7 +513,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             return new InvocationMessage(invocationId, target, argumentBindingException: argumentBindingException, arguments: arguments);
         }
 
-        private object[] BindArguments(JsonReader reader, IReadOnlyList<Type> paramTypes)
+        private object[] BindArguments(JsonTextReader reader, IReadOnlyList<Type> paramTypes)
         {
             var arguments = new object[paramTypes.Count];
 
@@ -527,7 +521,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             {
                 for (var i = 0; i < paramTypes.Count; i++)
                 {
-                    reader.Read();
+                    CheckRead(reader);
 
                     if (reader.TokenType == JsonToken.EndArray)
                     {
