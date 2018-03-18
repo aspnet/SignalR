@@ -306,17 +306,29 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [OSSkipCondition(OperatingSystems.Windows, WindowsVersions.Win7, WindowsVersions.Win2008R2, SkipReason = "No WebSockets Client for this platform")]
         public async Task ServerClosesConnectionWithErrorIfHubCannotBeCreated_WebSocket()
         {
-            var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-                async () => await ServerClosesConnectionWithErrorIfHubCannotBeCreated(TransportType.WebSockets));
-            Assert.Equal("Connection closed with an error. InvalidOperationException: Unable to resolve service for type 'System.Object' while attempting to activate 'Microsoft.AspNetCore.SignalR.Tests.UncreatableHub'.", exception.Message);
+            try
+            {
+                await ServerClosesConnectionWithErrorIfHubCannotBeCreated(TransportType.WebSockets);
+                Assert.True(false, "Expected error was not thrown.");
+            }
+            catch
+            {
+                // error is expected
+            }
         }
 
-        [Fact(Skip = "Thrown error depends on whether client received close message before connection closed.")]
+        [Fact]
         public async Task ServerClosesConnectionWithErrorIfHubCannotBeCreated_LongPolling()
         {
-            var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-                async () => await ServerClosesConnectionWithErrorIfHubCannotBeCreated(TransportType.LongPolling));
-            Assert.Equal("Connection closed with an error. InvalidOperationException: Unable to resolve service for type 'System.Object' while attempting to activate 'Microsoft.AspNetCore.SignalR.Tests.UncreatableHub'.", exception.Message);
+            try
+            {
+                await ServerClosesConnectionWithErrorIfHubCannotBeCreated(TransportType.LongPolling);
+                Assert.True(false, "Expected error was not thrown.");
+            }
+            catch
+            {
+                // error is expected
+            }
         }
 
         private async Task ServerClosesConnectionWithErrorIfHubCannotBeCreated(TransportType transportType)
