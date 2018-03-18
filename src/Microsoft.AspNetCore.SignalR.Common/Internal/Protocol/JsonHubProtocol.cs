@@ -567,11 +567,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 }
             }
 
-            // Throw the unexpected end of JSON error
-            JsonUtils.CheckRead(reader);
-
-            // The above line throws so we never get here
-            return null;
+            throw new JsonReaderException("Unexpected end when reading JSON");
         }
 
         private object[] BindArguments(JArray args, IReadOnlyList<Type> paramTypes)

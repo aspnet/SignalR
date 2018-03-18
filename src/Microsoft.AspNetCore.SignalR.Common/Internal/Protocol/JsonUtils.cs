@@ -43,7 +43,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             return prop.Value<T>();
         }
 
-
         public static string GetTokenString(JsonToken tokenType)
         {
             switch (tokenType)
@@ -97,7 +96,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             {
                 throw new JsonReaderException("Unexpected end when reading JSON");
             }
-            
+
             return true;
         }
     }
