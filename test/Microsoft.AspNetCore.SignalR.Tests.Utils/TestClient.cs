@@ -10,6 +10,7 @@ using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Internal;
+using Microsoft.AspNetCore.SignalR.Internal.Formatters;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.Sockets;
 
@@ -238,7 +239,15 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 }
                 else
                 {
-                    return HandshakeProtocol.ParseResponseMessage(result.Buffer.ToArray());
+                    HandshakeProtocol.TryReadMessageIntoSingleSpan(buffer, out consumed, out examined, out var data);
+
+                    // read first message out of the incoming data
+                    if (!TextMessageParser.TryParseMessage(ref data, out var payload))
+                    {
+                        throw new InvalidDataException("Unable to parse payload as a handshake response message.");
+                    }
+
+                    return HandshakeProtocol.ParseResponseMessage(payload);
                 }
             }
             finally

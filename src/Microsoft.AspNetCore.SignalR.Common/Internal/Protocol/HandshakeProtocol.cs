@@ -103,7 +103,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             return true;
         }
 
-        private static bool TryReadMessageIntoSingleSpan(ReadOnlySequence<byte> buffer, out SequencePosition consumed, out SequencePosition examined, out ReadOnlySpan<byte> span)
+        internal static bool TryReadMessageIntoSingleSpan(ReadOnlySequence<byte> buffer, out SequencePosition consumed, out SequencePosition examined, out ReadOnlySpan<byte> span)
         {
             var separator = buffer.PositionOf(TextMessageFormatter.RecordSeparator);
             if (separator == null)

@@ -308,15 +308,15 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(
                 async () => await ServerClosesConnectionWithErrorIfHubCannotBeCreated(TransportType.WebSockets));
-            Assert.Equal("Websocket closed with error: InternalServerError.", exception.Message);
+            Assert.Equal("Connection closed with an error. InvalidOperationException: Unable to resolve service for type 'System.Object' while attempting to activate 'Microsoft.AspNetCore.SignalR.Tests.UncreatableHub'.", exception.Message);
         }
 
         [Fact]
         public async Task ServerClosesConnectionWithErrorIfHubCannotBeCreated_LongPolling()
         {
-            var exception = await Assert.ThrowsAsync<HttpRequestException>(
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(
                 async () => await ServerClosesConnectionWithErrorIfHubCannotBeCreated(TransportType.LongPolling));
-            Assert.Equal("Response status code does not indicate success: 500 (Internal Server Error).", exception.Message);
+            Assert.Equal("Connection closed with an error. InvalidOperationException: Unable to resolve service for type 'System.Object' while attempting to activate 'Microsoft.AspNetCore.SignalR.Tests.UncreatableHub'.", exception.Message);
         }
 
         private async Task ServerClosesConnectionWithErrorIfHubCannotBeCreated(TransportType transportType)

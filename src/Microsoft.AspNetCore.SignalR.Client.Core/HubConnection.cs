@@ -325,6 +325,10 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 }
 
                 _receivedHandshakeResponse = true;
+                if (currentData.IsEmpty)
+                {
+                    return;
+                }
             }
 
             var messages = new List<HubMessage>();
@@ -367,10 +371,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
                             else
                             {
                                 Log.ReceivedCloseWithError(_logger, close.Error);
+                                Shutdown(new InvalidOperationException(close.Error));
                             }
-
-                            // Server considers connection close so shutdown client
-                            Shutdown();
                             break;
                         case PingMessage _:
                             Log.ReceivedPing(_logger);
