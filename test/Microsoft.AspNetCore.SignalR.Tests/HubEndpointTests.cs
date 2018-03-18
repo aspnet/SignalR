@@ -635,14 +635,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 // kill the connection
                 client.Dispose();
 
-                // this test will differ slightly depending on the speed of the computer it is run on
-                // may or may not receive a close message so wait a second to check before exiting
-                var readTask = client.ReadAsync();
-                if ((await Task.WhenAny(readTask, Task.Delay(TimeSpan.FromSeconds(1)))) == readTask)
-                {
-                    var hubMessage = readTask.Result;
-                    Assert.IsType<CloseMessage>(hubMessage);
-                }
+                // only thing written should be close message
+                var closeMessage = await client.ReadAsync().OrTimeout();
+                Assert.IsType<CloseMessage>(closeMessage);
 
                 await endPointTask.OrTimeout();
             }
