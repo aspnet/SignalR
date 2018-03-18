@@ -2,10 +2,12 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Claims;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Protocols;
@@ -634,7 +636,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 client.Dispose();
 
                 // Nothing should have been written
-                Assert.False(client.Connection.Application.Input.TryRead(out var buffer));
+                bool checkForContent = client.Connection.Application.Input.TryRead(out var buffer);
+
+                Assert.False(checkForContent, "Expected no content but got: " + Encoding.UTF8.GetString(buffer.Buffer.ToArray()));
 
                 await endPointTask.OrTimeout();
             }
