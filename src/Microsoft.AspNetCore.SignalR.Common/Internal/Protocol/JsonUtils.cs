@@ -91,12 +91,14 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             return reader.Value?.ToString();
         }
 
-        public static void CheckRead(JsonTextReader reader)
+        public static bool CheckRead(JsonTextReader reader)
         {
             if (!reader.Read())
             {
                 throw new JsonReaderException("Unexpected end when reading JSON");
             }
+            
+            return true;
         }
     }
 }
