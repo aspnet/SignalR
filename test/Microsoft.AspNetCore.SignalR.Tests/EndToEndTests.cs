@@ -311,7 +311,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             Assert.Equal("Connection closed with an error. InvalidOperationException: Unable to resolve service for type 'System.Object' while attempting to activate 'Microsoft.AspNetCore.SignalR.Tests.UncreatableHub'.", exception.Message);
         }
 
-        [Fact]
+        [Fact(Skip = "Thrown error depends on whether client received close message before connection closed.")]
         public async Task ServerClosesConnectionWithErrorIfHubCannotBeCreated_LongPolling()
         {
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(
