@@ -113,6 +113,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         {
             await _connection.StartAsync(_protocol.TransferFormat);
             _needKeepAlive = _connection.Features.Get<IConnectionInherentKeepAliveFeature>() == null;
+            _receivedHandshakeResponse = false;
 
             Log.HubProtocol(_logger, _protocol.Name);
 
