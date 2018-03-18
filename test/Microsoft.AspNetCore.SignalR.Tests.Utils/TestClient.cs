@@ -239,7 +239,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 }
                 else
                 {
-                    HandshakeProtocol.TryReadMessageIntoSingleSpan(buffer, out consumed, out examined, out var data);
+                    HandshakeProtocol.TryReadMessageIntoSingleMemory(buffer, out consumed, out examined, out var data);
 
                     // read first message out of the incoming data
                     if (!TextMessageParser.TryParseMessage(ref data, out var payload))
@@ -247,7 +247,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                         throw new InvalidDataException("Unable to parse payload as a handshake response message.");
                     }
 
-                    return HandshakeProtocol.ParseResponseMessage(payload);
+                    return HandshakeProtocol.ParseResponseMessage(payload.Span);
                 }
             }
             finally

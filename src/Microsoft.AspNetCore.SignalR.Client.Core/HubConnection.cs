@@ -333,7 +333,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
 
             var messages = new List<HubMessage>();
-            if (_protocol.TryParseMessages(currentData.Span, _binder, messages))
+            if (_protocol.TryParseMessages(currentData, _binder, messages))
             {
                 Log.ReceivingMessages(_logger, messages.Count);
                 foreach (var message in messages)

@@ -79,13 +79,13 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
         public static bool TryParseRequestMessage(ReadOnlySequence<byte> buffer, out HandshakeRequestMessage requestMessage, out SequencePosition consumed, out SequencePosition examined)
         {
-            if (!TryReadMessageIntoSingleSpan(buffer, out consumed, out examined, out var span))
+            if (!TryReadMessageIntoSingleMemory(buffer, out consumed, out examined, out var memory))
             {
                 requestMessage = null;
                 return false;
             }
 
-            if (!TextMessageParser.TryParseMessage(ref span, out var payload))
+            if (!TextMessageParser.TryParseMessage(ref memory, out var payload))
             {
                 throw new InvalidDataException("Unable to parse payload as a handshake request message.");
             }
@@ -103,7 +103,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             return true;
         }
 
-        internal static bool TryReadMessageIntoSingleSpan(ReadOnlySequence<byte> buffer, out SequencePosition consumed, out SequencePosition examined, out ReadOnlySpan<byte> span)
+        internal static bool TryReadMessageIntoSingleMemory(ReadOnlySequence<byte> buffer, out SequencePosition consumed, out SequencePosition examined, out ReadOnlyMemory<byte> memory)
         {
             var separator = buffer.PositionOf(TextMessageFormatter.RecordSeparator);
             if (separator == null)
@@ -111,13 +111,13 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 // Haven't seen the entire message so bail
                 consumed = buffer.Start;
                 examined = buffer.End;
-                span = null;
+                memory = null;
                 return false;
             }
 
             consumed = buffer.GetPosition(1, separator.Value);
             examined = consumed;
-            span = buffer.IsSingleSegment ? buffer.First.Span : buffer.ToArray();
+            memory = buffer.IsSingleSegment ? buffer.First : buffer.ToArray();
             return true;
         }
     }
