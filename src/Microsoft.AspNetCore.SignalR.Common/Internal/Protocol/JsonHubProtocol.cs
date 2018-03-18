@@ -93,12 +93,12 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 {
                     reader.ArrayPool = JsonArrayPool<char>.Shared;
 
-                    CheckRead(reader);
+                    JsonUtils.CheckRead(reader);
 
                     // We're always parsing a JSON object
                     if (reader.TokenType != JsonToken.StartObject)
                     {
-                        throw new InvalidDataException($"Unexpected JSON Token Type '{GetTokenString(reader.TokenType)}'. Expected a JSON Object.");
+                        throw new InvalidDataException($"Unexpected JSON Token Type '{JsonUtils.GetTokenString(reader.TokenType)}'. Expected a JSON Object.");
                     }
 
                     do
@@ -111,7 +111,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                                 switch (memberName)
                                 {
                                     case TypePropertyName:
-                                        var messageType = ReadAsInt32(reader, TypePropertyName);
+                                        var messageType = JsonUtils.ReadAsInt32(reader, TypePropertyName);
 
                                         if (messageType == null)
                                         {
@@ -121,16 +121,16 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                                         type = messageType.Value;
                                         break;
                                     case InvocationIdPropertyName:
-                                        invocationId = ReadAsString(reader, InvocationIdPropertyName);
+                                        invocationId = JsonUtils.ReadAsString(reader, InvocationIdPropertyName);
                                         break;
                                     case TargetPropertyName:
-                                        target = ReadAsString(reader, TargetPropertyName);
+                                        target = JsonUtils.ReadAsString(reader, TargetPropertyName);
                                         break;
                                     case ErrorPropertyName:
-                                        error = ReadAsString(reader, ErrorPropertyName);
+                                        error = JsonUtils.ReadAsString(reader, ErrorPropertyName);
                                         break;
                                     case ResultPropertyName:
-                                        CheckRead(reader);
+                                        JsonUtils.CheckRead(reader);
 
                                         hasResult = true;
 
@@ -147,7 +147,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                                         }
                                         break;
                                     case ItemPropertyName:
-                                        CheckRead(reader);
+                                        JsonUtils.CheckRead(reader);
 
                                         hasItem = true;
 
@@ -163,7 +163,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                                         }
                                         break;
                                     case ArgumentsPropertyName:
-                                        CheckRead(reader);
+                                        JsonUtils.CheckRead(reader);
 
                                         if (reader.TokenType != JsonToken.StartArray)
                                         {
@@ -191,12 +191,12 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                                         }
                                         break;
                                     case HeadersPropertyName:
-                                        CheckRead(reader);
+                                        JsonUtils.CheckRead(reader);
                                         headers = ReadHeaders(reader);
                                         break;
                                     default:
                                         // Skip read the property name
-                                        CheckRead(reader);
+                                        JsonUtils.CheckRead(reader);
                                         // Skip the value for this property
                                         reader.Skip();
                                         break;
@@ -289,61 +289,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             }
         }
 
-        private string GetTokenString(JsonToken tokenType)
-        {
-            switch (tokenType)
-            {
-                case JsonToken.None:
-                    break;
-                case JsonToken.StartObject:
-                    return JTokenType.Object.ToString();
-                case JsonToken.StartArray:
-                    return JTokenType.Array.ToString();
-                case JsonToken.PropertyName:
-                    return JTokenType.Property.ToString();
-                default:
-                    break;
-            }
-            return tokenType.ToString();
-        }
-
-        private int? ReadAsInt32(JsonTextReader reader, string propertyName)
-        {
-            reader.Read();
-
-            if (reader.TokenType != JsonToken.Integer)
-            {
-                throw new InvalidDataException($"Expected '{propertyName}' to be of type {JTokenType.Integer}.");
-            }
-
-            if (reader.Value == null)
-            {
-                return null;
-            }
-
-            return Convert.ToInt32(reader.Value);
-        }
-
-        private static string ReadAsString(JsonTextReader reader, string propertyName)
-        {
-            reader.Read();
-
-            if (reader.TokenType != JsonToken.String)
-            {
-                throw new InvalidDataException($"Expected '{propertyName}' to be of type {JTokenType.String}.");
-            }
-
-            return reader.Value?.ToString();
-        }
-
-        private static void CheckRead(JsonTextReader reader)
-        {
-            if (!reader.Read())
-            {
-                throw new JsonReaderException("Unexpected end when reading JSON");
-            }
-        }
-
         private Dictionary<string, string> ReadHeaders(JsonTextReader reader)
         {
             var headers = new Dictionary<string, string>();
@@ -360,7 +305,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                     case JsonToken.PropertyName:
                         string propertyName = reader.Value.ToString();
 
-                        CheckRead(reader);
+                        JsonUtils.CheckRead(reader);
 
                         if (reader.TokenType != JsonToken.String)
                         {
@@ -623,7 +568,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             }
 
             // Throw the unexpected end of JSON error
-            CheckRead(reader);
+            JsonUtils.CheckRead(reader);
 
             // The above line throws so we never get here
             return null;
