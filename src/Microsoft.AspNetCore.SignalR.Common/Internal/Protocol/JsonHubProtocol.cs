@@ -130,10 +130,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                                         error = reader.ReadAsString();
                                         break;
                                     case ResultPropertyName:
-                                        if (!reader.Read())
-                                        {
-                                            throw new JsonReaderException("Unexpected end when reading JSON");
-                                        }
+                                        CheckRead(reader);
 
                                         if (string.IsNullOrEmpty(invocationId))
                                         {
@@ -148,10 +145,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                                         }
                                         break;
                                     case ItemPropertyName:
-                                        if (!reader.Read())
-                                        {
-                                            throw new JsonReaderException("Unexpected end when reading JSON");
-                                        }
+                                        CheckRead(reader);
 
                                         if (string.IsNullOrEmpty(invocationId))
                                         {
@@ -165,10 +159,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                                         }
                                         break;
                                     case ArgumentsPropertyName:
-                                        if (!reader.Read())
-                                        {
-                                            throw new JsonReaderException("Unexpected end when reading JSON");
-                                        }
+                                        CheckRead(reader);
 
                                         JsonUtils.EnsureTokenType(ArgumentsPropertyName, reader.TokenType, JsonToken.StartArray);
 
@@ -191,18 +182,12 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                                         }
                                         break;
                                     case HeadersPropertyName:
-                                        if (!reader.Read())
-                                        {
-                                            throw new JsonReaderException("Unexpected end when reading JSON");
-                                        }
+                                        CheckRead(reader);
                                         headers = ReadHeaders(reader);
                                         break;
                                     default:
                                         // Skip read the property name
-                                        if (!reader.Read())
-                                        {
-                                            throw new JsonReaderException("Unexpected end when reading JSON");
-                                        }
+                                        CheckRead(reader);
                                         // Skip the value for this property
                                         reader.Skip();
                                         break;
@@ -295,6 +280,14 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             catch (JsonReaderException jrex)
             {
                 throw new InvalidDataException("Error reading JSON.", jrex);
+            }
+        }
+
+        private static void CheckRead(JsonTextReader reader)
+        {
+            if (!reader.Read())
+            {
+                throw new JsonReaderException("Unexpected end when reading JSON");
             }
         }
 
