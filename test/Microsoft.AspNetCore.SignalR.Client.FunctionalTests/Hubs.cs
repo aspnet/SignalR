@@ -37,8 +37,15 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
         public IEnumerable<string> GetHeaderValues(string[] headerNames)
         {
-            var headers = Context.Connection.GetHttpContext().Request.Headers;
-            return headerNames.Select(h => (string)headers[h]);
+            try
+            {
+                var headers = Context.Connection.GetHttpContext().Request.Headers;
+                return headerNames.Select(h => (string)headers[h]);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("Error getting header values in method.", ex);
+            }
         }
 
         public string GetCookieValue(string cookieName)
