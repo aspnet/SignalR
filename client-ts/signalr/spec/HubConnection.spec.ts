@@ -86,6 +86,8 @@ describe("HubConnection", () => {
             const hubConnection = new HubConnection(connection, commonOptions);
             const invokePromise = hubConnection.invoke("testMethod", "arg", 42);
 
+            connection.receiveHandshakeResponse();
+            
             connection.receive({ type: MessageType.Completion, invocationId: connection.lastInvocationId, error: "foo" });
 
             const ex = await captureException(async () => invokePromise);
@@ -97,6 +99,8 @@ describe("HubConnection", () => {
 
             const hubConnection = new HubConnection(connection, commonOptions);
             const invokePromise = hubConnection.invoke("testMethod", "arg", 42);
+
+            connection.receiveHandshakeResponse();
 
             connection.receive({ type: MessageType.Completion, invocationId: connection.lastInvocationId, result: "foo" });
 
@@ -140,6 +144,8 @@ describe("HubConnection", () => {
             const connection = new TestConnection();
             const hubConnection = new HubConnection(connection, { logger });
 
+            connection.receiveHandshakeResponse();
+
             connection.receive({
                 arguments: ["test"],
                 invocationId: 0,
@@ -163,6 +169,8 @@ describe("HubConnection", () => {
             const connection = new TestConnection();
             const hubConnection = new HubConnection(connection, { logger });
 
+            connection.receiveHandshakeResponse();
+
             const handler = () => { };
             hubConnection.on('message', handler);
             hubConnection.off('message', handler);
@@ -181,6 +189,9 @@ describe("HubConnection", () => {
         it("callback invoked when servers invokes a method on the client", async () => {
             const connection = new TestConnection();
             const hubConnection = new HubConnection(connection, commonOptions);
+ 
+            connection.receiveHandshakeResponse();
+
             let value = "";
             hubConnection.on("message", (v) => value = v);
 
@@ -198,6 +209,9 @@ describe("HubConnection", () => {
         it("can have multiple callbacks", async () => {
             const connection = new TestConnection();
             const hubConnection = new HubConnection(connection, commonOptions);
+   
+            connection.receiveHandshakeResponse();
+
             let numInvocations1 = 0;
             let numInvocations2 = 0;
             hubConnection.on("message", () => numInvocations1++);
@@ -218,6 +232,8 @@ describe("HubConnection", () => {
         it("can unsubscribe from on", async () => {
             const connection = new TestConnection();
             const hubConnection = new HubConnection(connection, commonOptions);
+
+            connection.receiveHandshakeResponse();
 
             let numInvocations = 0;
             const callback = () => numInvocations++;
@@ -266,6 +282,8 @@ describe("HubConnection", () => {
 
             const connection = new TestConnection();
             const hubConnection = new HubConnection(connection, { logger });
+
+            connection.receiveHandshakeResponse();
 
             hubConnection.on(null, undefined);
             hubConnection.on(undefined, null);
@@ -319,8 +337,10 @@ describe("HubConnection", () => {
 
         it("completes with an error when an error is yielded", async () => {
             const connection = new TestConnection();
-
             const hubConnection = new HubConnection(connection, commonOptions);
+
+            connection.receiveHandshakeResponse();
+
             const observer = new TestObserver();
             hubConnection.stream<any>("testMethod", "arg", 42)
                 .subscribe(observer);
@@ -333,8 +353,10 @@ describe("HubConnection", () => {
 
         it("completes the observer when a completion is received", async () => {
             const connection = new TestConnection();
-
             const hubConnection = new HubConnection(connection, commonOptions);
+      
+            connection.receiveHandshakeResponse();
+
             const observer = new TestObserver();
             hubConnection.stream<any>("testMethod", "arg", 42)
                 .subscribe(observer);
@@ -374,8 +396,10 @@ describe("HubConnection", () => {
 
         it("yields items as they arrive", async () => {
             const connection = new TestConnection();
-
             const hubConnection = new HubConnection(connection, commonOptions);
+
+            connection.receiveHandshakeResponse();
+
             const observer = new TestObserver();
             hubConnection.stream<any>("testMethod")
                 .subscribe(observer);
@@ -421,8 +445,10 @@ describe("HubConnection", () => {
 
         it("can be canceled", () => {
             const connection = new TestConnection();
-
             const hubConnection = new HubConnection(connection, commonOptions);
+
+            connection.receiveHandshakeResponse();
+
             const observer = new TestObserver();
             const subscription = hubConnection.stream("testMethod")
                 .subscribe(observer);
@@ -560,6 +586,10 @@ class TestConnection implements IConnection {
             this.onclose(error);
         }
         return Promise.resolve();
+    }
+
+    public receiveHandshakeResponse(): void {
+        this.receive({});
     }
 
     public receive(data: any): void {

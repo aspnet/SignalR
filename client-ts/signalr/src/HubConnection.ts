@@ -4,7 +4,7 @@
 import { ConnectionClosed } from "./Common";
 import { HttpConnection, IHttpConnectionOptions } from "./HttpConnection";
 import { IConnection } from "./IConnection";
-import { CancelInvocationMessage, CompletionMessage, HandshakeRequestMessage, HubMessage, IHubProtocol, InvocationMessage, MessageType, StreamInvocationMessage, StreamItemMessage } from "./IHubProtocol";
+import { CancelInvocationMessage, CompletionMessage, HandshakeResponseMessage, HandshakeRequestMessage, HubMessage, IHubProtocol, InvocationMessage, MessageType, StreamInvocationMessage, StreamItemMessage } from "./IHubProtocol";
 import { ILogger, LogLevel } from "./ILogger";
 import { JsonHubProtocol } from "./JsonHubProtocol";
 import { ConsoleLogger, LoggerFactory, NullLogger } from "./Loggers";
@@ -65,10 +65,7 @@ export class HubConnection {
         }
 
         if (!this.receivedHandshakeResponse) {
-            if (data instanceof ArrayBuffer) {
-                // Format is binary but still need to read text from handshake response
-                data = String.fromCharCode.apply(null, new Uint8Array(data));
-            }
+            this.processHandshakeResponse(data);
             this.receivedHandshakeResponse = true;
         } else {
             // Parse the messages
@@ -102,6 +99,22 @@ export class HubConnection {
         }
 
         this.configureTimeout();
+    }
+
+    private processHandshakeResponse(data: any) {
+        if (data instanceof ArrayBuffer) {
+            // Format is binary but still need to read JSON text from handshake response
+            data = String.fromCharCode.apply(null, new Uint8Array(data));
+        }
+        const messages = TextMessageFormat.parse(data);
+        const responseMessage: HandshakeResponseMessage = JSON.parse(messages[0]);
+        if (responseMessage.error) {
+            const message = "Server returned handshake error: " + responseMessage.error;
+            this.logger.log(LogLevel.Error, message);
+            this.connection.stop(new Error(message));
+        } else {
+            this.logger.log(LogLevel.Trace, "Server handshake complete.");
+        }
     }
 
     private configureTimeout() {
