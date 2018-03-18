@@ -177,6 +177,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         [InlineData("{'type':'foo'}", "Expected 'type' to be of type Integer.")]
 
         [InlineData("{'type':3,'invocationId':'42','error':'foo','result':true}", "The 'error' and 'result' properties are mutually exclusive.")]
+        [InlineData("{'type':3,'invocationId':'42','result':true", "Error reading JSON.")]
         public void InvalidMessages(string input, string expectedMessage)
         {
             input = Frame(input);

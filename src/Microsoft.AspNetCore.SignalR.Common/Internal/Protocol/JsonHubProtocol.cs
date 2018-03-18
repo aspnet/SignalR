@@ -210,6 +210,12 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                         }
                     }
                     while (reader.Read() && !completed);
+
+                    if (!completed)
+                    {
+                        // This should throw if we stopped parsing before we found EndObject
+                        JsonUtils.CheckRead(reader);
+                    }
                 }
 
                 HubMessage message = null;
