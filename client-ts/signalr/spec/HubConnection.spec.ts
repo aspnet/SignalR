@@ -206,6 +206,51 @@ describe("HubConnection", () => {
             expect(value).toBe("test");
         });
 
+        it("stop on handshake error", async () => {
+            const connection = new TestConnection();
+            const hubConnection = new HubConnection(connection, commonOptions);
+   
+            let closeError: Error = null;
+            hubConnection.onclose((e) => closeError = e);
+
+            connection.receiveHandshakeResponse("Error!");
+
+            expect(closeError.message).toEqual("Server returned handshake error: Error!");
+        });
+
+        it("stop on close message", async () => {
+            const connection = new TestConnection();
+            const hubConnection = new HubConnection(connection, commonOptions);
+   
+            let closeError: Error = null;
+            hubConnection.onclose((e) => closeError = e);
+
+            connection.receiveHandshakeResponse();
+
+            connection.receive({
+                type: MessageType.Close,
+            });
+
+            expect(closeError).toEqual(null);
+        });
+
+        it("stop on error close message", async () => {
+            const connection = new TestConnection();
+            const hubConnection = new HubConnection(connection, commonOptions);
+   
+            let closeError: Error = null;
+            hubConnection.onclose((e) => closeError = e);
+
+            connection.receiveHandshakeResponse();
+
+            connection.receive({
+                error: "Error!",
+                type: MessageType.Close,
+            });
+
+            expect(closeError.message).toEqual("Server returned an error on close: Error!");
+        });
+
         it("can have multiple callbacks", async () => {
             const connection = new TestConnection();
             const hubConnection = new HubConnection(connection, commonOptions);
@@ -588,8 +633,8 @@ class TestConnection implements IConnection {
         return Promise.resolve();
     }
 
-    public receiveHandshakeResponse(): void {
-        this.receive({});
+    public receiveHandshakeResponse(error?: string): void {
+        this.receive({error: error});
     }
 
     public receive(data: any): void {

@@ -63,6 +63,7 @@ export interface PingMessage extends HubMessageBase {
 
 export interface CloseMessage extends HubMessageBase {
     readonly type: MessageType.Close;
+    readonly error?: string;
 }
 
 export interface CancelInvocationMessage extends HubInvocationMessage {

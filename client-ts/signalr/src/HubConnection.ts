@@ -90,6 +90,8 @@ export class HubConnection {
                         // Don't care about pings
                         break;
                     case MessageType.Close:
+                        this.logger.log(LogLevel.Information, "Close message received from server.");
+                        this.connection.stop(message.error ? new Error("Server returned an error on close: " + message.error) : null);
                         break;
                     default:
                         this.logger.log(LogLevel.Warning, "Invalid message type: " + data);
