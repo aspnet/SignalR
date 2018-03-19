@@ -237,7 +237,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 using (StartLog(out var loggerFactory))
                 {
-                    var httpHandler = TestHttpMessageHandler.CreateDefault(handleSend:false);
+                    var httpHandler = TestHttpMessageHandler.CreateDefault(handleSend: false);
 
                     httpHandler.OnSocketSend((data, _) =>
                     {

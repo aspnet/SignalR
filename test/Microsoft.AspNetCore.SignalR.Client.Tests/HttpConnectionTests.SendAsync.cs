@@ -95,7 +95,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             [Fact]
             public async Task ExceptionOnSendAsyncClosesWithError()
             {
-                var testHttpHandler = TestHttpMessageHandler.CreateDefault(handleSend:false);
+                var testHttpHandler = TestHttpMessageHandler.CreateDefault(handleSend: false);
 
                 testHttpHandler.OnSocketSend((buf, cancellationToken) =>
                 {

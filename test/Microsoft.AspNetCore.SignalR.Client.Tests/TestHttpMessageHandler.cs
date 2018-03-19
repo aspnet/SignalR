@@ -10,7 +10,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
     public class TestHttpMessageHandler : HttpMessageHandler
     {
         private Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> _handler;
-        public bool IsFirstRequest = true;
+        public bool IsFirstLongPoll = true;
 
         public TestHttpMessageHandler(bool autoNegotiate = true)
         {
@@ -39,7 +39,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             }
             testHttpMessageHandler.OnLongPoll(async cancellationToken =>
             {
-                if (!testHttpMessageHandler.IsFirstRequest)
+                if (!testHttpMessageHandler.IsFirstLongPoll)
                 {
                     // Just block until canceled
                     var tcs = new TaskCompletionSource<object>();
@@ -49,7 +49,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     }
                     return ResponseUtils.CreateResponse(HttpStatusCode.NoContent);
                 }
-                testHttpMessageHandler.IsFirstRequest = false;
+                // If this is the first request we just flip the FirstLongPoll flag and send a 200.
+                testHttpMessageHandler.IsFirstLongPoll = false;
                 return ResponseUtils.CreateResponse(HttpStatusCode.OK);
             });
 
@@ -89,7 +90,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
         public void OnNegotiate(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> handler)
         {
-            IsFirstRequest = true;
+            IsFirstLongPoll = true;
             OnRequest((request, next, cancellationToken) =>
             {
                 if (ResponseUtils.IsNegotiateRequest(request))
@@ -117,7 +118,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 {
                     if (request.Method.Equals(HttpMethod.Post) && request.RequestUri.OriginalString.Contains("negotiate"))
                     {
-                        IsFirstRequest = true;
+                        IsFirstLongPoll = true;
                     }
                     return next();
                 }

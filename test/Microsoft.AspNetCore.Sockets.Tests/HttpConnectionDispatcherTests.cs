@@ -513,7 +513,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 builder.UseEndPoint<ImmediatelyCompleteEndPoint>();
                 var app = builder.Build();
 
-                // We need two requests because te first just establishes the transport.
+                // We need two requests because the first just establishes the transport.
                 await dispatcher.ExecuteAsync(context, new HttpSocketOptions(), app);
 
                 Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);

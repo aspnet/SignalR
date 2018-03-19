@@ -99,15 +99,12 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                     context.Response.ContentType = "text/plain";
                     context.Response.StatusCode = StatusCodes.Status200OK;
                 }
-                else
+                else if (!_isFirstRequest)
                 {
                     // Case 3
-                    if (!_isFirstRequest)
-                    {
-                        Log.LongPolling204(_logger);
-                        context.Response.ContentType = "text/plain";
-                        context.Response.StatusCode = StatusCodes.Status204NoContent;
-                    }
+                    Log.LongPolling204(_logger);
+                    context.Response.ContentType = "text/plain";
+                    context.Response.StatusCode = StatusCodes.Status204NoContent;
                 }
             }
             catch (Exception ex)
