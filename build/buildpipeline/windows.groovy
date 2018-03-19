@@ -7,6 +7,14 @@ simpleNode('Windows_NT','latest') {
         checkout scm
     }
     stage ('Build') {
-        bat '.\\run.cmd -CI default-build'
+        def environment = 'set ASPNETCORE_TEST_LOG_DIR=.\testlogs'
+        try
+        {
+            bat "${environment} & .\\run.cmd -CI default-build"
+        }
+        finally
+        {
+            archiveArtifacts artifacts: 'testlogs.zip', fingerprint: true
+        }
     }
 }
