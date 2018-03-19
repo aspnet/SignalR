@@ -222,8 +222,12 @@ describe("HubConnection", () => {
             const connection = new TestConnection();
             const hubConnection = new HubConnection(connection, commonOptions);
    
+            let isClosed = false;
             let closeError: Error = null;
-            hubConnection.onclose((e) => closeError = e);
+            hubConnection.onclose((e) => {
+                isClosed = true;
+                closeError = e;
+            });
 
             connection.receiveHandshakeResponse();
 
@@ -231,6 +235,7 @@ describe("HubConnection", () => {
                 type: MessageType.Close,
             });
 
+            expect(isClosed).toEqual(true);
             expect(closeError).toEqual(null);
         });
 
@@ -238,8 +243,12 @@ describe("HubConnection", () => {
             const connection = new TestConnection();
             const hubConnection = new HubConnection(connection, commonOptions);
    
+            let isClosed = false;
             let closeError: Error = null;
-            hubConnection.onclose((e) => closeError = e);
+            hubConnection.onclose((e) => {
+                isClosed = true;
+                closeError = e;
+            });
 
             connection.receiveHandshakeResponse();
 
@@ -248,6 +257,7 @@ describe("HubConnection", () => {
                 type: MessageType.Close,
             });
 
+            expect(isClosed).toEqual(true);
             expect(closeError.message).toEqual("Server returned an error on close: Error!");
         });
 

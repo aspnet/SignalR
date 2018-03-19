@@ -29,10 +29,10 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 await hubConnection.StartAsync();
 
+                await connection.ReadHandshakeAndSendResponseAsync().OrTimeout();
+
                 var invokeTask = hubConnection.SendAsync("Foo");
 
-                // skip handshake
-                await connection.ReadSentTextMessageAsync().OrTimeout();
                 var invokeMessage = await connection.ReadSentTextMessageAsync().OrTimeout();
 
                 Assert.Equal("{\"type\":1,\"target\":\"Foo\",\"arguments\":[]}\u001e", invokeMessage);
@@ -52,6 +52,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             try
             {
                 await hubConnection.StartAsync();
+
                 var handshakeMessage = await connection.ReadSentTextMessageAsync().OrTimeout();
 
                 Assert.Equal("{\"protocol\":\"json\"}\u001e", handshakeMessage);
@@ -72,13 +73,68 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 await hubConnection.StartAsync();
 
+                await connection.ReadHandshakeAndSendResponseAsync().OrTimeout();
+
                 var invokeTask = hubConnection.InvokeAsync("Foo");
 
-                // skip handshake
-                await connection.ReadSentTextMessageAsync().OrTimeout();
                 var invokeMessage = await connection.ReadSentTextMessageAsync().OrTimeout();
 
                 Assert.Equal("{\"type\":1,\"invocationId\":\"1\",\"target\":\"Foo\",\"arguments\":[]}\u001e", invokeMessage);
+            }
+            finally
+            {
+                await hubConnection.DisposeAsync().OrTimeout();
+                await connection.DisposeAsync().OrTimeout();
+            }
+        }
+
+        [Fact]
+        public async Task ReceiveCloseMessageWithoutErrorWillCloseHubConnection()
+        {
+            TaskCompletionSource<Exception> closedTcs = new TaskCompletionSource<Exception>();
+
+            var connection = new TestConnection();
+            var hubConnection = new HubConnection(connection, new JsonHubProtocol(), new LoggerFactory());
+            hubConnection.Closed += e => closedTcs.SetResult(e);
+
+            try
+            {
+                await hubConnection.StartAsync();
+
+                await connection.ReadHandshakeAndSendResponseAsync().OrTimeout();
+
+                await connection.ReceiveJsonMessage(new { type = 7 }).OrTimeout();
+
+                Exception closeException = await closedTcs.Task.OrTimeout();
+                Assert.Null(closeException);
+            }
+            finally
+            {
+                await hubConnection.DisposeAsync().OrTimeout();
+                await connection.DisposeAsync().OrTimeout();
+            }
+        }
+
+        [Fact]
+        public async Task ReceiveCloseMessageWithErrorWillCloseHubConnection()
+        {
+            TaskCompletionSource<Exception> closedTcs = new TaskCompletionSource<Exception>();
+
+            var connection = new TestConnection();
+            var hubConnection = new HubConnection(connection, new JsonHubProtocol(), new LoggerFactory());
+            hubConnection.Closed += e => closedTcs.SetResult(e);
+
+            try
+            {
+                await hubConnection.StartAsync();
+
+                await connection.ReadHandshakeAndSendResponseAsync().OrTimeout();
+
+                await connection.ReceiveJsonMessage(new { type = 7, error = "Error!" }).OrTimeout();
+
+                Exception closeException = await closedTcs.Task.OrTimeout();
+                Assert.NotNull(closeException);
+                Assert.Equal("Error!", closeException.Message);
             }
             finally
             {
@@ -100,7 +156,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
                 var channel = await hubConnection.StreamAsChannelAsync<object>("Foo");
 
-                // skip handshake
                 var invokeMessage = await connection.ReadSentTextMessageAsync().OrTimeout();
 
                 Assert.Equal("{\"type\":4,\"invocationId\":\"1\",\"target\":\"Foo\",\"arguments\":[]}\u001e", invokeMessage);

@@ -407,7 +407,7 @@ Example - The following `Completion` message is a protocol error because it has 
 ### CancelInvocation Message Encoding
 A `CancelInvocation` message is a JSON object with the following properties
 
-* `type` - A `Number` with the literal value `5`, indicationg that this message is a `CancelInvocation`.
+* `type` - A `Number` with the literal value `5`, indicating that this message is a `CancelInvocation`.
 * `invocationId` - A `String` encoding the `Invocation ID` for a message.
 
 Example

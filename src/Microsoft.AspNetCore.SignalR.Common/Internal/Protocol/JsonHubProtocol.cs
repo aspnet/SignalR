@@ -585,6 +585,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
         private CloseMessage BindCloseMessage(string error)
         {
+            if (string.IsNullOrEmpty(error))
+            {
+                return CloseMessage.Empty;
+            }
+
             var message = new CloseMessage(error);
             return message;
         }

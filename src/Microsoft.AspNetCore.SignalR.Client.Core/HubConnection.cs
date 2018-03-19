@@ -368,6 +368,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                             if (string.IsNullOrEmpty(close.Error))
                             {
                                 Log.ReceivedClose(_logger);
+                                Shutdown();
                             }
                             else
                             {
