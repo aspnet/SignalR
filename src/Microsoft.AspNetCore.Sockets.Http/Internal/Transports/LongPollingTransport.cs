@@ -37,9 +37,18 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                     await context.Response.Body.FlushAsync();
                 }
 
-                var result = await _application.ReadAsync(token);
-                var buffer = result.Buffer;
+                ReadResult result;
+                try
+                {
+                    result = await _application.ReadAsync(token);
+                }
+                catch (Exception) when (_isFirstRequest)
+                {
+                    // We can't let the exception escape because we've already written headers, so
+                    // ASP.NET Core will just terminate the HTTP connection, which is bad.
+                }
 
+                var buffer = result.Buffer;
 
                 // IF the buffer is empty and the read result is completed on the first request
                 // we still have to send a 200 because the headers have already been flushed.

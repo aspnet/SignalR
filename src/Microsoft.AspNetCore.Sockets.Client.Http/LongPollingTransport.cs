@@ -24,7 +24,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
         private Task _sender;
         private Task _poller;
         private HttpResponseMessage _response;
-
         private readonly CancellationTokenSource _transportCts = new CancellationTokenSource();
 
         public Task Running { get; private set; } = Task.CompletedTask;
@@ -123,11 +122,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                         Log.ReceivedMessages(_logger);
 
                         var stream = new PipeWriterStream(_application.Output);
-                        try
-                        {
-                            await _response.Content.CopyToAsync(stream);
-                        }
-                        catch { /*First request*/};
+                        await _response.Content.CopyToAsync(stream);
                         await _application.Output.FlushAsync();
                     }
                 }
