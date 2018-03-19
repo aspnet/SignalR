@@ -108,8 +108,18 @@ export class HubConnection {
             // Format is binary but still need to read JSON text from handshake response
             data = String.fromCharCode.apply(null, new Uint8Array(data));
         }
-        const messages = TextMessageFormat.parse(data);
-        const responseMessage: HandshakeResponseMessage = JSON.parse(messages[0]);
+        let responseMessage: HandshakeResponseMessage;
+        try {
+            const messages = TextMessageFormat.parse(data);
+            responseMessage = JSON.parse(messages[0]);
+        } catch (e) {
+            const message = "Error parsing handshake response: " + e;
+            this.logger.log(LogLevel.Error, message);
+
+            const error = new Error(message);
+            this.connection.stop(error);
+            throw error;
+        }
         if (responseMessage.error) {
             const message = "Server returned handshake error: " + responseMessage.error;
             this.logger.log(LogLevel.Error, message);
