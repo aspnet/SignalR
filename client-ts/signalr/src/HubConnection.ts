@@ -4,7 +4,7 @@
 import { ConnectionClosed } from "./Common";
 import { HttpConnection, IHttpConnectionOptions } from "./HttpConnection";
 import { IConnection } from "./IConnection";
-import { CancelInvocationMessage, CompletionMessage, HandshakeResponseMessage, HandshakeRequestMessage, HubMessage, IHubProtocol, InvocationMessage, MessageType, StreamInvocationMessage, StreamItemMessage } from "./IHubProtocol";
+import { CancelInvocationMessage, CompletionMessage, HandshakeRequestMessage, HandshakeResponseMessage, HubMessage, IHubProtocol, InvocationMessage, MessageType, StreamInvocationMessage, StreamItemMessage } from "./IHubProtocol";
 import { ILogger, LogLevel } from "./ILogger";
 import { JsonHubProtocol } from "./JsonHubProtocol";
 import { ConsoleLogger, LoggerFactory, NullLogger } from "./Loggers";

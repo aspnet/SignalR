@@ -205,14 +205,12 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                             case JsonToken.EndObject:
                                 completed = true;
                                 break;
-                            default:
-                                break;
                         }
                     }
                     while (!completed && JsonUtils.CheckRead(reader));
                 }
 
-                HubMessage message = null;
+                HubMessage message;
 
                 switch (type)
                 {
@@ -275,6 +273,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                         break;
                     case HubProtocolConstants.PingMessageType:
                         return PingMessage.Instance;
+                    case HubProtocolConstants.CloseMessageType:
+                        return BindCloseMessage(error);
                     case null:
                         throw new InvalidDataException($"Missing required property '{TypePropertyName}'.");
                     default:
@@ -583,12 +583,12 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             throw new JsonReaderException("Unexpected end when reading JSON");
         }
 
-        private CloseMessage BindCloseMessage(JObject json)
+        private CloseMessage BindCloseMessage(string error)
         {
-            var error = JsonUtils.GetOptionalProperty<string>(json, ErrorPropertyName, JTokenType.String);
             var message = new CloseMessage(error);
             return message;
         }
+
         private object[] BindArguments(JArray args, IReadOnlyList<Type> paramTypes)
         {
             var arguments = new object[args.Count];
