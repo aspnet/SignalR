@@ -70,7 +70,7 @@ export class HubConnection {
         }
 
         // Data may have all been read when processing handshake response
-        if (!data) {
+        if (data) {
             // Parse the messages
             const messages = this.protocol.parseMessages(data);
 
