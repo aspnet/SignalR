@@ -10,6 +10,7 @@ export const JSON_HUB_PROTOCOL_NAME: string = "json";
 export class JsonHubProtocol implements IHubProtocol {
 
     public readonly name: string = JSON_HUB_PROTOCOL_NAME;
+    public readonly version: number = 1;
 
     public readonly transferFormat: TransferFormat = TransferFormat.Text;
 

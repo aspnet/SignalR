@@ -50,7 +50,14 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         public class FakeHubProtocol : IHubProtocol
         {
             public string Name { get; }
+            public int Version => 1;
             public TransferFormat TransferFormat { get; }
+
+            public bool CheckVersionSupport(int version, out int minimumSupportedVersion)
+            {
+                minimumSupportedVersion = Version;
+                return true;
+            }
 
             public bool TryParseMessages(ReadOnlyMemory<byte> input, IInvocationBinder binder, IList<HubMessage> messages)
             {

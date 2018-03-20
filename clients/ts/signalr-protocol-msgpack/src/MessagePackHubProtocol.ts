@@ -9,6 +9,7 @@ import { BinaryMessageFormat } from "./BinaryMessageFormat";
 export class MessagePackHubProtocol implements IHubProtocol {
 
     public readonly name: string = "messagepack";
+    public readonly version: number = 1;
 
     public readonly transferFormat: TransferFormat = TransferFormat.Binary;
 
@@ -46,7 +47,8 @@ export class MessagePackHubProtocol implements IHubProtocol {
     }
 
     private createCloseMessage(properties: any[]): HubMessage {
-        if (properties.length !== 2) {
+        // check minimum length to allow protocol to add items to the end of objects in future releases
+        if (properties.length < 2) {
             throw new Error("Invalid payload for Close message.");
         }
 
@@ -58,7 +60,8 @@ export class MessagePackHubProtocol implements IHubProtocol {
     }
 
     private createPingMessage(properties: any[]): HubMessage {
-        if (properties.length !== 1) {
+        // check minimum length to allow protocol to add items to the end of objects in future releases
+        if (properties.length < 1) {
             throw new Error("Invalid payload for Ping message.");
         }
 
@@ -69,7 +72,8 @@ export class MessagePackHubProtocol implements IHubProtocol {
     }
 
     private createInvocationMessage(headers: MessageHeaders, properties: any[]): InvocationMessage {
-        if (properties.length !== 5) {
+        // check minimum length to allow protocol to add items to the end of objects in future releases
+        if (properties.length < 5) {
             throw new Error("Invalid payload for Invocation message.");
         }
 
@@ -94,7 +98,8 @@ export class MessagePackHubProtocol implements IHubProtocol {
     }
 
     private createStreamItemMessage(headers: MessageHeaders, properties: any[]): StreamItemMessage {
-        if (properties.length !== 4) {
+        // check minimum length to allow protocol to add items to the end of objects in future releases
+        if (properties.length < 4) {
             throw new Error("Invalid payload for stream Result message.");
         }
 
@@ -107,6 +112,7 @@ export class MessagePackHubProtocol implements IHubProtocol {
     }
 
     private createCompletionMessage(headers: MessageHeaders, properties: any[]): CompletionMessage {
+        // check minimum length to allow protocol to add items to the end of objects in future releases
         if (properties.length < 4) {
             throw new Error("Invalid payload for Completion message.");
         }
@@ -117,8 +123,7 @@ export class MessagePackHubProtocol implements IHubProtocol {
 
         const resultKind = properties[3];
 
-        if ((resultKind === voidResult && properties.length !== 4) ||
-            (resultKind !== voidResult && properties.length !== 5)) {
+        if (resultKind !== voidResult && properties.length < 5) {
             throw new Error("Invalid payload for Completion message.");
         }
 

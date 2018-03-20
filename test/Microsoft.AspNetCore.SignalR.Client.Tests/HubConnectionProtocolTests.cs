@@ -55,7 +55,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
                 var handshakeMessage = await connection.ReadSentTextMessageAsync().OrTimeout();
 
-                Assert.Equal("{\"protocol\":\"json\"}\u001e", handshakeMessage);
+                Assert.Equal("{\"protocol\":\"json\",\"version\":1}\u001e", handshakeMessage);
             }
             finally
             {

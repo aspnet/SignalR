@@ -211,7 +211,7 @@ export class HubConnection {
         // Handshake request is always JSON
         await this.connection.send(
             TextMessageFormat.write(
-                JSON.stringify({ protocol: this.protocol.name } as HandshakeRequestMessage)));
+                JSON.stringify({ protocol: this.protocol.name, version: this.protocol.version } as HandshakeRequestMessage)));
 
         this.logger.log(LogLevel.Information, `Using HubProtocol '${this.protocol.name}'.`);
 

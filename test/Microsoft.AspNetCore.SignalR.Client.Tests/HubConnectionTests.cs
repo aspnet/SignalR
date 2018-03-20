@@ -252,8 +252,15 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             }
 
             public string Name => "MockHubProtocol";
+            public int Version => 1;
 
             public TransferFormat TransferFormat => TransferFormat.Binary;
+
+            public bool CheckVersionSupport(int version, out int minimumSupportedVersion)
+            {
+                minimumSupportedVersion = Version;
+                return true;
+            }
 
             public bool TryParseMessages(ReadOnlyMemory<byte> input, IInvocationBinder binder, IList<HubMessage> messages)
             {

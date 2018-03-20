@@ -51,6 +51,7 @@ export interface CompletionMessage extends HubInvocationMessage {
 
 export interface HandshakeRequestMessage {
     readonly protocol: string;
+    readonly version: number;
 }
 
 export interface HandshakeResponseMessage {
@@ -72,6 +73,7 @@ export interface CancelInvocationMessage extends HubInvocationMessage {
 
 export interface IHubProtocol {
     readonly name: string;
+    readonly version: number;
     readonly transferFormat: TransferFormat;
     parseMessages(input: any): HubMessage[];
     writeMessage(message: HubMessage): any;

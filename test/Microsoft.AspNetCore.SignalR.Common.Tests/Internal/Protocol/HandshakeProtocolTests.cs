@@ -13,9 +13,9 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
     public class HandshakeProtocolTests
     {
         [Theory]
-        [InlineData("{\"protocol\":\"dummy\"}\u001e", "dummy")]
-        [InlineData("{\"protocol\":\"\"}\u001e", "")]
-        [InlineData("{\"protocol\":null}\u001e", null)]
+        [InlineData("{\"protocol\":\"dummy\",\"version\":1}\u001e", "dummy")]
+        [InlineData("{\"protocol\":\"\",\"version\":1}\u001e", "")]
+        [InlineData("{\"protocol\":null,\"version\":1}\u001e", null)]
         public void ParsingHandshakeRequestMessageSuccessForValidMessages(string json, string protocol)
         {
             var message = Encoding.UTF8.GetBytes(json);

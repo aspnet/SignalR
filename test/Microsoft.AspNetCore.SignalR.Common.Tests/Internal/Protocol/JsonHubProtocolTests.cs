@@ -204,6 +204,19 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         }
 
         [Theory]
+        [InlineData("{'type':1,'invocationId':'42','target':'foo','arguments':[],'extraParameter':'1'}")]
+        public void ExtraItemsInMessageAreIgnored(string input)
+        {
+            input = Frame(input);
+
+            var binder = new TestBinder(paramTypes: new[] { typeof(int), typeof(string) }, returnType: typeof(bool));
+            var protocol = new JsonHubProtocol();
+            var messages = new List<HubMessage>();
+            Assert.True(protocol.TryParseMessages(Encoding.UTF8.GetBytes(input), binder, messages));
+            Assert.Single(messages);
+        }
+
+        [Theory]
         [InlineData("{'type':1,'invocationId':'42','target':'foo','arguments':[]}", "Invocation provides 0 argument(s) but target expects 2.")]
         [InlineData("{'type':1,'arguments':[], 'invocationId':'42','target':'foo'}", "Invocation provides 0 argument(s) but target expects 2.")]
         [InlineData("{'type':1,'invocationId':'42','target':'foo','arguments':[ 'abc', 'xyz']}", "Error binding arguments. Make sure that the types of the provided values match the types of the hub method being invoked.")]
