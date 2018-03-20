@@ -54,26 +54,32 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             return new JsonTextWriter(new StreamWriter(output, _utf8NoBom, 1024, leaveOpen: true));
         }
 
-        public static HandshakeResponseMessage ParseResponseMessage(ReadOnlySpan<byte> buffer)
+        private static JsonTextReader CreateJsonTextReader(ReadOnlyMemory<byte> payload)
         {
-            using (var memoryStream = new MemoryStream(buffer.ToArray()))
+            var textReader = new Utf8BufferTextReader(payload);
+            var reader = new JsonTextReader(textReader);
+            reader.ArrayPool = JsonArrayPool<char>.Shared;
+
+            return reader;
+        }
+
+        public static HandshakeResponseMessage ParseResponseMessage(ReadOnlyMemory<byte> payload)
+        {
+            using (var reader = CreateJsonTextReader(payload))
             {
-                using (var reader = new JsonTextReader(new StreamReader(memoryStream)))
+                var token = JToken.ReadFrom(reader);
+                var handshakeJObject = JsonUtils.GetObject(token);
+
+                // a handshake response does not have a type
+                // check the incoming message was not any other type of message
+                var type = JsonUtils.GetOptionalProperty<string>(handshakeJObject, TypePropertyName);
+                if (!string.IsNullOrEmpty(type))
                 {
-                    var token = JToken.ReadFrom(reader);
-                    var handshakeJObject = JsonUtils.GetObject(token);
-
-                    // a handshake response does not have a type
-                    // check the incoming message was not any other type of message
-                    var type = JsonUtils.GetOptionalProperty<string>(handshakeJObject, TypePropertyName);
-                    if (!string.IsNullOrEmpty(type))
-                    {
-                        throw new InvalidOperationException("Handshake response should not have a 'type' value.");
-                    }
-
-                    var error = JsonUtils.GetOptionalProperty<string>(handshakeJObject, ErrorPropertyName);
-                    return new HandshakeResponseMessage(error);
+                    throw new InvalidOperationException("Handshake response should not have a 'type' value.");
                 }
+
+                var error = JsonUtils.GetOptionalProperty<string>(handshakeJObject, ErrorPropertyName);
+                return new HandshakeResponseMessage(error);
             }
         }
 
@@ -90,16 +96,14 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 throw new InvalidDataException("Unable to parse payload as a handshake request message.");
             }
 
-            using (var memoryStream = new MemoryStream(payload.ToArray()))
+            using (var reader = CreateJsonTextReader(payload))
             {
-                using (var reader = new JsonTextReader(new StreamReader(memoryStream)))
-                {
-                    var token = JToken.ReadFrom(reader);
-                    var handshakeJObject = JsonUtils.GetObject(token);
-                    var protocol = JsonUtils.GetRequiredProperty<string>(handshakeJObject, ProtocolPropertyName);
-                    requestMessage = new HandshakeRequestMessage(protocol);
-                }
+                var token = JToken.ReadFrom(reader);
+                var handshakeJObject = JsonUtils.GetObject(token);
+                var protocol = JsonUtils.GetRequiredProperty<string>(handshakeJObject, ProtocolPropertyName);
+                requestMessage = new HandshakeRequestMessage(protocol);
             }
+
             return true;
         }
 

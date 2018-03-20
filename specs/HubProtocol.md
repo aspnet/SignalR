@@ -434,7 +434,7 @@ Example
 A `Close` message is a JSON object with the following properties
 
 * `type` - A `Number` with the literal value `7`, indicating that this message is a `Close`.
-* `error` - A `String` encoding the error message.
+* `error` - An optional `String` encoding the error message.
 
 Example - A `Close` message without an error
 ```json

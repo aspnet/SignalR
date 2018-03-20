@@ -247,7 +247,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                         throw new InvalidDataException("Unable to parse payload as a handshake response message.");
                     }
 
-                    return HandshakeProtocol.ParseResponseMessage(payload.Span);
+                    return HandshakeProtocol.ParseResponseMessage(payload);
                 }
             }
             finally

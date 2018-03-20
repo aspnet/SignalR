@@ -404,7 +404,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     throw new InvalidDataException("Unable to parse payload as a handshake response message.");
                 }
 
-                message = HandshakeProtocol.ParseResponseMessage(payload.Span);
+                message = HandshakeProtocol.ParseResponseMessage(payload);
             }
             catch (Exception ex)
             {

@@ -110,6 +110,7 @@ describe("HubConnection", () => {
             const connection = new TestConnection();
             const hubConnection = new HubConnection(connection, { logger: null, protocol: mockProtocol });
 
+            // handshake response + message separator
             const data = [0x7b, 0x7d, 0x1e];
 
             connection.receiveBinary(new Uint8Array(data).buffer);
@@ -127,6 +128,7 @@ describe("HubConnection", () => {
             const connection = new TestConnection();
             const hubConnection = new HubConnection(connection, { logger: null, protocol: mockProtocol });
 
+            // handshake response + message separator + message pack message
             const data = [
                 0x7b, 0x7d, 0x1e, 0x65, 0x95, 0x03, 0x80, 0xa1, 0x30, 0x01, 0xd9, 0x5d, 0x54, 0x68, 0x65, 0x20, 0x63, 0x6c,
                 0x69, 0x65, 0x6e, 0x74, 0x20, 0x61, 0x74, 0x74, 0x65, 0x6d, 0x70, 0x74, 0x65, 0x64, 0x20, 0x74, 0x6f, 0x20,
@@ -138,6 +140,7 @@ describe("HubConnection", () => {
 
             connection.receiveBinary(new Uint8Array(data).buffer);
 
+            // left over data is the message pack message
             expect(receivedProcotolData.byteLength).toEqual(102);
         });
 
