@@ -119,6 +119,8 @@ export class HubConnection {
                     throw new Error("Message is incomplete.");
                 }
 
+                // content before separator is handshake response
+                // optional content after is additional messages
                 const responseLength = separatorIndex + 1;
                 messageData = String.fromCharCode.apply(null, binaryData.slice(0, responseLength));
                 remainingData = (binaryData.byteLength > responseLength) ? binaryData.slice(responseLength).buffer : null;
@@ -129,6 +131,8 @@ export class HubConnection {
                     throw new Error("Message is incomplete.");
                 }
 
+                // content before separator is handshake response
+                // optional content after is additional messages
                 const responseLength = separatorIndex + 1;
                 messageData = textData.substring(0, responseLength);
                 remainingData = (textData.length > responseLength) ? textData.substring(responseLength) : null;

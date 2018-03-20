@@ -48,7 +48,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             _invocationBinder = invocationBinder ?? new DefaultInvocationBinder();
 
             _cts = new CancellationTokenSource();
-
         }
 
         public async Task<Task> ConnectAsync(
