@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Protocols;
 using Microsoft.AspNetCore.SignalR.Internal.Formatters;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.Sockets.Client;
+using Microsoft.AspNetCore.Sockets.Client.Internal;
 using Newtonsoft.Json;
 
 namespace Microsoft.AspNetCore.SignalR.Client.Tests
@@ -57,6 +58,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
         // TestConnection isn't restartable
         public Task StopAsync() => DisposeAsync();
+
+        private TaskQueue _taskQueue = new TaskQueue();
 
         private async Task DisposeCoreAsync(Exception ex = null)
         {
@@ -144,7 +147,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
                         foreach (var callback in callbackCopies)
                         {
-                            await callback.InvokeAsync(message);
+                            _ = _taskQueue.Enqueue(() => callback.InvokeAsync(message));
                         }
                     }
                 }

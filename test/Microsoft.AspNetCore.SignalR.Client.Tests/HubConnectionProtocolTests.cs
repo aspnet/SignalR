@@ -139,7 +139,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             finally
             {
                 await hubConnection.DisposeAsync().OrTimeout();
-                await connection.DisposeAsync().OrTimeout();
             }
         }
 

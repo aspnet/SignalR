@@ -31,8 +31,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
         private readonly Func<IConnection> _connectionFactory;
         private readonly HubBinder _binder;
 
-        // All the below fields are protected by _connectionLock
-        private SemaphoreSlim _connectionLock = new SemaphoreSlim(1, 1);
+        // This lock protects the connection and the disposed flag to ensure changes to them are seen at the same time.
+        private readonly SemaphoreSlim _connectionLock = new SemaphoreSlim(1, 1);
         private bool _disposed;
         private IConnection _connection;
 
@@ -83,17 +83,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         public async Task StartAsync()
         {
             CheckDisposed();
-
-            await _connectionLock.WaitAsync();
-
-            try
-            {
-                await StartAsyncCore().ForceAsync();
-            }
-            finally
-            {
-                _connectionLock.Release();
-            }
+            await StartAsyncCore().ForceAsync();
         }
 
         private async Task TimeoutElapsed()
@@ -134,35 +124,44 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private async Task StartAsyncCore()
         {
-            SafeAssert(_connectionLock.CurrentCount == 0, "We're not in the Connection Lock!");
-
-            CheckDisposed();
-
-            if (_connection != null)
+            await _connectionLock.WaitAsync();
+            try
             {
-                // We have an existing connection!
-                throw new InvalidOperationException($"The '{nameof(StartAsync)}' method cannot be called if the connection has already been started.");
+                CheckDisposed();
+
+                if (_connection != null)
+                {
+                    // We have an existing connection!
+                    throw new InvalidOperationException($"The '{nameof(StartAsync)}' method cannot be called if the connection has already been started.");
+                }
+
+                _connection = _connectionFactory();
+                _connection.OnReceived((data, state) => ((HubConnection)state).OnDataReceivedAsync(data), this);
+
+                // Bind the closed event. OnClosed is 'async Task' but Closed needs a void-returning method.
+                // We don't want to use 'async void' so we just dump the task on the floor.
+                _connection.Closed += (c, e) => _ = OnClosed(c, e);
+
+                await _connection.StartAsync(_protocol.TransferFormat);
+                _needKeepAlive = _connection.Features.Get<IConnectionInherentKeepAliveFeature>() == null;
+                _receivedHandshakeResponse = false;
+
+                Log.HubProtocol(_logger, _protocol.Name);
+
+                _connectionActive = new CancellationTokenSource();
+                using (var memoryStream = new MemoryStream())
+                {
+                    Log.SendingHubHandshake(_logger);
+                    HandshakeProtocol.WriteRequestMessage(new HandshakeRequestMessage(_protocol.Name), memoryStream);
+                    await _connection.SendAsync(memoryStream.ToArray(), _connectionActive.Token);
+                }
+
+                ResetTimeoutTimer();
             }
-
-            _connection = _connectionFactory();
-            _connection.OnReceived((data, state) => ((HubConnection)state).OnDataReceivedAsync(data), this);
-            _connection.Closed += (c, e) => _ = OnClosed(c, e);
-
-            await _connection.StartAsync(_protocol.TransferFormat);
-            _needKeepAlive = _connection.Features.Get<IConnectionInherentKeepAliveFeature>() == null;
-            _receivedHandshakeResponse = false;
-
-            Log.HubProtocol(_logger, _protocol.Name);
-
-            _connectionActive = new CancellationTokenSource();
-            using (var memoryStream = new MemoryStream())
+            finally
             {
-                Log.SendingHubHandshake(_logger);
-                HandshakeProtocol.WriteRequestMessage(new HandshakeRequestMessage(_protocol.Name), memoryStream);
-                await _connection.SendAsync(memoryStream.ToArray(), _connectionActive.Token);
+                _connectionLock.Release();
             }
-
-            ResetTimeoutTimer();
         }
 
         /// <summary>
@@ -173,32 +172,30 @@ namespace Microsoft.AspNetCore.SignalR.Client
         public async Task StopAsync()
         {
             CheckDisposed();
+            await StopAsyncCore().ForceAsync();
+        }
 
+        private async Task StopAsyncCore()
+        {
             await _connectionLock.WaitAsync();
             try
             {
-                await StopAsyncCore().ForceAsync();
+
+                CheckDisposed();
+
+                if (_connection == null)
+                {
+                    // No-op if we're already stopped.
+                    return;
+                }
+
+                // Stop the connection. We'll clean up immediately, and the HttpConnection.Closed event will fire but we'll just ignore it.
+                await DisposeConnectionAsync();
             }
             finally
             {
                 _connectionLock.Release();
             }
-        }
-
-        private async Task StopAsyncCore()
-        {
-            SafeAssert(_connectionLock.CurrentCount == 0, "We're not in the Connection Lock!");
-
-            CheckDisposed();
-
-            if (_connection == null)
-            {
-                // No-op if we're already stopped.
-                return;
-            }
-
-            // Stop the connection. We'll clean up immediately, and the HttpConnection.Closed event will fire but we'll just ignore it.
-            await DisposeConnectionAsync();
         }
 
         public async Task DisposeAsync()
@@ -209,32 +206,30 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 return;
             }
 
-            await _connectionLock.WaitAsync();
-            try
-            {
-                await DisposeAsyncCore().ForceAsync();
-            }
-            finally
-            {
-                _connectionLock.Release();
-            }
+            await DisposeAsyncCore().ForceAsync();
         }
 
         private async Task DisposeAsyncCore()
         {
-            SafeAssert(_connectionLock.CurrentCount == 0, "We're not in the Connection Lock!");
-
-            if (_disposed)
+            await _connectionLock.WaitAsync();
+            try
             {
-                // We're already disposed
-                return;
+                if (_disposed)
+                {
+                    // We're already disposed
+                    return;
+                }
+
+                _disposed = true;
+
+                if (_connection != null)
+                {
+                    await DisposeConnectionAsync();
+                }
             }
-
-            _disposed = true;
-
-            if (_connection != null)
+            finally
             {
-                await DisposeConnectionAsync();
+                _connectionLock.Release();
             }
         }
 
@@ -267,9 +262,11 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private async Task<ChannelReader<object>> StreamAsChannelAsyncCore(string methodName, Type returnType, object[] args, CancellationToken cancellationToken)
         {
+            CheckDisposed();
             await _connectionLock.WaitAsync();
             try
             {
+                CheckDisposed();
                 if (_connection == null)
                 {
                     throw new InvalidOperationException($"The '{nameof(StreamAsChannelAsync)}' method cannot be called if the connection is not active");
@@ -307,11 +304,13 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private async Task<object> InvokeAsyncCore(string methodName, Type returnType, object[] args, CancellationToken cancellationToken)
         {
+            CheckDisposed();
             await _connectionLock.WaitAsync();
 
             Task<object> invocationTask;
             try
             {
+                CheckDisposed();
                 if (_connection == null)
                 {
                     throw new InvalidOperationException($"The '{nameof(InvokeAsync)}' method cannot be called if the connection is not active");
@@ -331,8 +330,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private async Task InvokeCore(string methodName, InvocationRequest irq, object[] args, CancellationToken cancellationToken)
         {
-            SafeAssert(_connectionLock.CurrentCount == 0, "We're not in the Connection Lock!");
-            SafeAssert(_connection != null, "We don't have a connection!");
+            AssertConnectionValid();
 
             Log.PreparingBlockingInvocation(_logger, irq.InvocationId, methodName, irq.ResultType.FullName, args.Length);
 
@@ -363,8 +361,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private async Task InvokeStreamCore(string methodName, InvocationRequest irq, object[] args, CancellationToken cancellationToken)
         {
-            SafeAssert(_connectionLock.CurrentCount == 0, "We're not in the Connection Lock!");
-            SafeAssert(_connection != null, "We don't have a connection!");
+AssertConnectionValid();
 
             Log.PreparingStreamingInvocation(_logger, irq.InvocationId, methodName, irq.ResultType.FullName, args.Length);
 
@@ -392,8 +389,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private async Task SendHubMessage(HubInvocationMessage hubMessage, CancellationToken cancellationToken)
         {
-            SafeAssert(_connectionLock.CurrentCount == 0, "We're not in the Connection Lock!");
-            SafeAssert(_connection != null, "We don't have a connection!");
+            AssertConnectionValid();
 
             var payload = _protocol.WriteToArray(hubMessage);
             Log.SendInvocation(_logger, hubMessage.InvocationId);
@@ -407,9 +403,12 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private async Task SendAsyncCore(string methodName, object[] args, CancellationToken cancellationToken)
         {
+            CheckDisposed();
+
             await _connectionLock.WaitAsync();
             try
             {
+                CheckDisposed();
                 if (_connection == null)
                 {
                     throw new InvalidOperationException($"The '{nameof(SendAsync)}' method cannot be called if the connection is not active");
@@ -567,7 +566,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             try
             {
                 // Is this still our active connection or was this terminated already?
-                if (ReferenceEquals(_connection, sender))
+                if (sender != null && ReferenceEquals(_connection, sender))
                 {
                     // Clean up this connection
                     await DisposeConnectionAsync(ex);
@@ -585,8 +584,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private async Task DisposeConnectionAsync(Exception exception = null)
         {
-            SafeAssert(_connectionLock.CurrentCount == 0, "We're not in the Connection Lock!");
-            SafeAssert(_connection != null, "We don't have a connection!");
+            AssertConnectionValid();
 
             Log.ShutdownConnection(_logger);
             if (exception != null)
@@ -615,7 +613,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private void CancelOutstandingInvocations(Exception exception)
         {
-            SafeAssert(_connectionLock.CurrentCount == 0, "We're not in the Connection Lock!");
+            AssertInConnectionLock();
 
             lock (_pendingCallsLock)
             {
@@ -711,8 +709,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private void AddInvocation(InvocationRequest irq)
         {
-            SafeAssert(_connectionLock.CurrentCount == 0, "We're not in the Connection Lock!");
-            SafeAssert(_connection != null, "We don't have a connection!");
+AssertConnectionValid();
 
             lock (_pendingCallsLock)
             {
@@ -849,6 +846,16 @@ namespace Microsoft.AspNetCore.SignalR.Client
             {
                 throw new Exception($"Assertion failed in {memberName}, at {fileName}:{lineNumber}: {message}");
             }
+        }
+
+        [Conditional("DEBUG")]
+        private void AssertInConnectionLock() => SafeAssert(_connectionLock.CurrentCount == 0, "We're not in the Connection Lock!");
+
+        [Conditional("DEBUG")]
+        private void AssertConnectionValid()
+        {
+            AssertInConnectionLock();
+            SafeAssert(_connection != null, "We don't have a connection!");
         }
     }
 }

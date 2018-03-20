@@ -17,7 +17,7 @@ using Xunit;
 
 namespace Microsoft.AspNetCore.SignalR.Client.Tests
 {
-    public class HubConnectionTests
+    public partial class HubConnectionTests
     {
         [Fact]
         public async Task InvokeThrowsIfSerializingMessageFails()
@@ -189,7 +189,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             var invokeTask = hubConnection.InvokeAsync<int>("testMethod");
 
             var exception = new InvalidOperationException();
-            mockConnection.Raise(m => m.Closed += null, exception);
+            mockConnection.Raise(m => m.Closed += null, mockConnection.Object, exception);
 
             var actualException = await Assert.ThrowsAsync<InvalidOperationException>(async () => await invokeTask);
             Assert.Equal(exception, actualException);
@@ -213,7 +213,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         }
 
         [Fact]
-        public async Task OnReceivedAfterTimerDisposedDoesNotThrow()
+        public async Task OnReceivedAfterConnectionDisposedDoesNotThrow()
         {
             var connection = new TestConnection();
             var hubConnection = new HubConnection(() => connection, new JsonHubProtocol(), new LoggerFactory());
