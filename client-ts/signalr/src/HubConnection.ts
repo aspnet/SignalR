@@ -67,41 +67,39 @@ export class HubConnection {
         if (!this.receivedHandshakeResponse) {
             data = this.processHandshakeResponse(data);
             this.receivedHandshakeResponse = true;
-
-            if (!data) {
-                // no additional messages sent with handshake response
-                return;
-            }
         }
 
-        // Parse the messages
-        const messages = this.protocol.parseMessages(data);
+        // Data may have all been read when processing handshake response
+        if (!data) {
+            // Parse the messages
+            const messages = this.protocol.parseMessages(data);
 
-        for (const message of messages) {
-            switch (message.type) {
-                case MessageType.Invocation:
-                    this.invokeClientMethod(message);
-                    break;
-                case MessageType.StreamItem:
-                case MessageType.Completion:
-                    const callback = this.callbacks.get(message.invocationId);
-                    if (callback != null) {
-                        if (message.type === MessageType.Completion) {
-                            this.callbacks.delete(message.invocationId);
+            for (const message of messages) {
+                switch (message.type) {
+                    case MessageType.Invocation:
+                        this.invokeClientMethod(message);
+                        break;
+                    case MessageType.StreamItem:
+                    case MessageType.Completion:
+                        const callback = this.callbacks.get(message.invocationId);
+                        if (callback != null) {
+                            if (message.type === MessageType.Completion) {
+                                this.callbacks.delete(message.invocationId);
+                            }
+                            callback(message);
                         }
-                        callback(message);
-                    }
-                    break;
-                case MessageType.Ping:
-                    // Don't care about pings
-                    break;
-                case MessageType.Close:
-                    this.logger.log(LogLevel.Information, "Close message received from server.");
-                    this.connection.stop(message.error ? new Error("Server returned an error on close: " + message.error) : null);
-                    break;
-                default:
-                    this.logger.log(LogLevel.Warning, "Invalid message type: " + data);
-                    break;
+                        break;
+                    case MessageType.Ping:
+                        // Don't care about pings
+                        break;
+                    case MessageType.Close:
+                        this.logger.log(LogLevel.Information, "Close message received from server.");
+                        this.connection.stop(message.error ? new Error("Server returned an error on close: " + message.error) : null);
+                        break;
+                    default:
+                        this.logger.log(LogLevel.Warning, "Invalid message type: " + data);
+                        break;
+                }
             }
         }
 
