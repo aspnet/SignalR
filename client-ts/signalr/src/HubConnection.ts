@@ -65,52 +65,79 @@ export class HubConnection {
         }
 
         if (!this.receivedHandshakeResponse) {
-            this.processHandshakeResponse(data);
+            data = this.processHandshakeResponse(data);
             this.receivedHandshakeResponse = true;
-        } else {
-            // Parse the messages
-            const messages = this.protocol.parseMessages(data);
 
-            for (const message of messages) {
-                switch (message.type) {
-                    case MessageType.Invocation:
-                        this.invokeClientMethod(message);
-                        break;
-                    case MessageType.StreamItem:
-                    case MessageType.Completion:
-                        const callback = this.callbacks.get(message.invocationId);
-                        if (callback != null) {
-                            if (message.type === MessageType.Completion) {
-                                this.callbacks.delete(message.invocationId);
-                            }
-                            callback(message);
+            if (!data) {
+                // no additional messages sent with handshake response
+                return;
+            }
+        }
+
+        // Parse the messages
+        const messages = this.protocol.parseMessages(data);
+
+        for (const message of messages) {
+            switch (message.type) {
+                case MessageType.Invocation:
+                    this.invokeClientMethod(message);
+                    break;
+                case MessageType.StreamItem:
+                case MessageType.Completion:
+                    const callback = this.callbacks.get(message.invocationId);
+                    if (callback != null) {
+                        if (message.type === MessageType.Completion) {
+                            this.callbacks.delete(message.invocationId);
                         }
-                        break;
-                    case MessageType.Ping:
-                        // Don't care about pings
-                        break;
-                    case MessageType.Close:
-                        this.logger.log(LogLevel.Information, "Close message received from server.");
-                        this.connection.stop(message.error ? new Error("Server returned an error on close: " + message.error) : null);
-                        break;
-                    default:
-                        this.logger.log(LogLevel.Warning, "Invalid message type: " + data);
-                        break;
-                }
+                        callback(message);
+                    }
+                    break;
+                case MessageType.Ping:
+                    // Don't care about pings
+                    break;
+                case MessageType.Close:
+                    this.logger.log(LogLevel.Information, "Close message received from server.");
+                    this.connection.stop(message.error ? new Error("Server returned an error on close: " + message.error) : null);
+                    break;
+                default:
+                    this.logger.log(LogLevel.Warning, "Invalid message type: " + data);
+                    break;
             }
         }
 
         this.configureTimeout();
     }
 
-    private processHandshakeResponse(data: any) {
-        if (data instanceof ArrayBuffer) {
-            // Format is binary but still need to read JSON text from handshake response
-            data = String.fromCharCode.apply(null, new Uint8Array(data));
-        }
+    private processHandshakeResponse(data: any): any {
         let responseMessage: HandshakeResponseMessage;
+        let messageData: string;
+        let remainingData: any;
         try {
-            const messages = TextMessageFormat.parse(data);
+            if (data instanceof ArrayBuffer) {
+                // Format is binary but still need to read JSON text from handshake response
+                const binaryData = new Uint8Array(data);
+                const separatorIndex = binaryData.indexOf(TextMessageFormat.RecordSeparatorCode);
+                if (separatorIndex == -1) {
+                    throw new Error("Message is incomplete.");
+                }
+
+                const responseLength = separatorIndex + 1;
+                messageData = String.fromCharCode.apply(null, binaryData.slice(0, responseLength));
+                remainingData = (binaryData.byteLength > responseLength) ? binaryData.slice(responseLength).buffer : null;
+            } else {
+                const textData: string = data;
+                const separatorIndex = textData.indexOf(TextMessageFormat.RecordSeparator);
+                if (separatorIndex == -1) {
+                    throw new Error("Message is incomplete.");
+                }
+
+                const responseLength = separatorIndex + 1;
+                messageData = textData.substring(0, responseLength);
+                remainingData = (textData.length > responseLength) ? textData.substring(responseLength) : null;
+            }
+
+            // At this point we should have just the single handshake message
+            const messages = TextMessageFormat.parse(messageData);
             responseMessage = JSON.parse(messages[0]);
         } catch (e) {
             const message = "Error parsing handshake response: " + e;
@@ -127,6 +154,10 @@ export class HubConnection {
         } else {
             this.logger.log(LogLevel.Trace, "Server handshake complete.");
         }
+
+        // multiple messages could have arrived with handshake
+        // return additional data to be parsed as usual, or null if all parsed
+        return remainingData;
     }
 
     private configureTimeout() {
