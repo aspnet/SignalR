@@ -92,11 +92,11 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 {
                     var request = new HttpRequestMessage(HttpMethod.Get, pollUrl);
                     SendUtils.PrepareHttpRequest(request, _httpOptions);
-                    HttpResponseMessage _response;
+                    HttpResponseMessage response;
 
                     try
                     {
-                        _response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                        response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
                     }
                     catch (OperationCanceledException)
                     {
@@ -106,10 +106,10 @@ namespace Microsoft.AspNetCore.Sockets.Client
                         continue;
                     }
 
-                    _response.EnsureSuccessStatusCode();
+                    response.EnsureSuccessStatusCode();
                     startTcs.TrySetResult(null);
 
-                    if (_response.StatusCode == HttpStatusCode.NoContent || cancellationToken.IsCancellationRequested)
+                    if (response.StatusCode == HttpStatusCode.NoContent || cancellationToken.IsCancellationRequested)
                     {
                         Log.ClosingConnection(_logger);
 
@@ -121,9 +121,9 @@ namespace Microsoft.AspNetCore.Sockets.Client
                         Log.ReceivedMessages(_logger);
 
                         var stream = new PipeWriterStream(_application.Output);
-                        using (cancellationToken.Register(response => { ((HttpResponseMessage)response).Dispose(); }, _response))
+                        using (cancellationToken.Register(res => { ((HttpResponseMessage)res).Dispose(); }, response))
                         {
-                            await _response.Content.CopyToAsync(stream);
+                            await response.Content.CopyToAsync(stream);
                         }
                         await _application.Output.FlushAsync();
                     }
