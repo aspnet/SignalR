@@ -46,6 +46,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                 {
                     // We can't let the exception escape because we've already written headers, so
                     // ASP.NET Core will just terminate the HTTP connection, which is bad.
+                    // The next poll will trigger the catch block below and throw.
                 }
 
                 var buffer = result.Buffer;

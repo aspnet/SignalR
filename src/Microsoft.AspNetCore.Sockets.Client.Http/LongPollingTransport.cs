@@ -23,7 +23,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
         private IDuplexPipe _application;
         private Task _sender;
         private Task _poller;
-        private HttpResponseMessage _response;
         private readonly CancellationTokenSource _transportCts = new CancellationTokenSource();
 
         public Task Running { get; private set; } = Task.CompletedTask;
@@ -76,7 +75,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
             try
             {
-                _response?.Dispose();
                 await Running;
             }
             catch
@@ -94,6 +92,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 {
                     var request = new HttpRequestMessage(HttpMethod.Get, pollUrl);
                     SendUtils.PrepareHttpRequest(request, _httpOptions);
+                    HttpResponseMessage _response;
 
                     try
                     {
@@ -122,7 +121,10 @@ namespace Microsoft.AspNetCore.Sockets.Client
                         Log.ReceivedMessages(_logger);
 
                         var stream = new PipeWriterStream(_application.Output);
-                        await _response.Content.CopyToAsync(stream);
+                        using (cancellationToken.Register(response => { ((HttpResponseMessage)response).Dispose(); }, _response))
+                        {
+                            await _response.Content.CopyToAsync(stream);
+                        }
                         await _application.Output.FlushAsync();
                     }
                 }
