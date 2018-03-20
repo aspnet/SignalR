@@ -314,7 +314,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             var hubProtocolMock = new Mock<IHubProtocol>();
             hubProtocolMock.Setup(m => m.Name).Returns("CustomProtocol");
 
-            dynamic endPoint = HubEndPointTestUtils.GetHubEndpoint(typeof(HubT));
+            EndPoint endPoint = HubEndPointTestUtils.GetHubEndpoint(typeof(HubT));
 
             using (var client = new TestClient(protocol: hubProtocolMock.Object))
             {
@@ -335,7 +335,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             var hubProtocolMock = new Mock<IHubProtocol>();
             hubProtocolMock.Setup(m => m.Name).Returns("CustomProtocol");
 
-            dynamic endPoint = HubEndPointTestUtils.GetHubEndpoint(typeof(HubT));
+            EndPoint endPoint = HubEndPointTestUtils.GetHubEndpoint(typeof(HubT));
 
             using (var client = new TestClient(protocol: new MessagePackHubProtocol()))
             {
@@ -355,7 +355,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task HandshakeSuccessSendsResponseWithoutError()
         {
-            dynamic endPoint = HubEndPointTestUtils.GetHubEndpoint(typeof(HubT));
+            EndPoint endPoint = HubEndPointTestUtils.GetHubEndpoint(typeof(HubT));
 
             using (var client = new TestClient())
             {
@@ -482,7 +482,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(HubTypes))]
         public async Task HubMethodsAreCaseInsensitive(Type hubType)
         {
-            dynamic endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
+            EndPoint endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
 
             using (var client = new TestClient())
             {
@@ -824,7 +824,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(HubTypes))]
         public async Task BroadcastHubMethodSendsToAllClients(Type hubType)
         {
-            dynamic endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
+            EndPoint endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
@@ -894,7 +894,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(HubTypes))]
         public async Task SendToOthers(Type hubType)
         {
-            dynamic endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
+            EndPoint endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
@@ -934,7 +934,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(HubTypes))]
         public async Task SendToCaller(Type hubType)
         {
-            dynamic endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
+            EndPoint endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
@@ -969,7 +969,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(HubTypes))]
         public async Task SendToAllExcept(Type hubType)
         {
-            dynamic endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
+            EndPoint endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
@@ -1012,7 +1012,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(HubTypes))]
         public async Task SendToMultipleClients(Type hubType)
         {
-            dynamic endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
+            EndPoint endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
@@ -1057,7 +1057,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(HubTypes))]
         public async Task SendToMultipleUsers(Type hubType)
         {
-            dynamic endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
+            EndPoint endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
 
             using (var firstClient = new TestClient(addClaimId: true))
             using (var secondClient = new TestClient(addClaimId: true))
@@ -1102,7 +1102,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(HubTypes))]
         public async Task HubsCanAddAndSendToGroup(Type hubType)
         {
-            dynamic endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
+            EndPoint endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
@@ -1143,7 +1143,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(HubTypes))]
         public async Task SendToGroupExcept(Type hubType)
         {
-            dynamic endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
+            EndPoint endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
@@ -1193,7 +1193,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(HubTypes))]
         public async Task SendToOthersInGroup(Type hubType)
         {
-            dynamic endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
+            EndPoint endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
@@ -1241,7 +1241,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(HubTypes))]
         public async Task InvokeMultipleGroups(Type hubType)
         {
-            dynamic endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
+            EndPoint endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
@@ -1301,7 +1301,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(HubTypes))]
         public async Task HubsCanSendToUser(Type hubType)
         {
-            dynamic endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
+            EndPoint endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
 
             using (var firstClient = new TestClient(addClaimId: true))
             using (var secondClient = new TestClient(addClaimId: true))
@@ -1332,7 +1332,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(HubTypes))]
         public async Task HubsCanSendToConnection(Type hubType)
         {
-            dynamic endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
+            EndPoint endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
@@ -1362,7 +1362,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task DelayedSendTest()
         {
-            dynamic endPoint = HubEndPointTestUtils.GetHubEndpoint(typeof(HubT));
+            EndPoint endPoint = HubEndPointTestUtils.GetHubEndpoint(typeof(HubT));
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
