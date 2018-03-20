@@ -424,8 +424,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 Task endPointTask = await client.ConnectAsync(endPoint);
                 client.Dispose();
 
-                var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await endPointTask);
-                Assert.Equal("Hub OnConnected failed.", exception.Message);
+                await endPointTask.OrTimeout();
 
                 mockLifetimeManager.Verify(m => m.OnConnectedAsync(It.IsAny<HubConnectionContext>()), Times.Once);
                 mockLifetimeManager.Verify(m => m.OnDisconnectedAsync(It.IsAny<HubConnectionContext>()), Times.Once);
@@ -1912,13 +1911,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var closeMessage = Assert.IsType<CloseMessage>(message);
                 Assert.Equal("Connection closed with an error. InvalidOperationException: Hub OnConnected failed.", closeMessage.Error);
 
-                var exception =
-                    await Assert.ThrowsAsync<InvalidOperationException>(
-                        async () =>
-                        {
-                            await endPointTask.OrTimeout();
-                        });
-                Assert.Equal("Hub OnConnected failed.", exception.Message);
+                await endPointTask.OrTimeout();
             }
         }
 

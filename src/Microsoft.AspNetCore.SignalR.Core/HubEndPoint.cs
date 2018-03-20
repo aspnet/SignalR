@@ -85,7 +85,9 @@ namespace Microsoft.AspNetCore.SignalR
                 Log.ErrorDispatchingHubEvent(_logger, "OnConnectedAsync", ex);
 
                 await SendCloseAsync(connection, ex);
-                throw;
+
+                // return instead of throw to let close message send successfully
+                return;
             }
 
             try
@@ -97,7 +99,9 @@ namespace Microsoft.AspNetCore.SignalR
                 Log.ErrorProcessingRequest(_logger, ex);
 
                 await HubOnDisconnectedAsync(connection, ex);
-                throw;
+
+                // return instead of throw to let close message send successfully
+                return;
             }
 
             await HubOnDisconnectedAsync(connection, null);
