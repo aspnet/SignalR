@@ -117,7 +117,7 @@ export class HubConnection {
                 // Format is binary but still need to read JSON text from handshake response
                 const binaryData = new Uint8Array(data);
                 const separatorIndex = binaryData.indexOf(TextMessageFormat.RecordSeparatorCode);
-                if (separatorIndex == -1) {
+                if (separatorIndex === -1) {
                     throw new Error("Message is incomplete.");
                 }
 
@@ -127,7 +127,7 @@ export class HubConnection {
             } else {
                 const textData: string = data;
                 const separatorIndex = textData.indexOf(TextMessageFormat.RecordSeparator);
-                if (separatorIndex == -1) {
+                if (separatorIndex === -1) {
                     throw new Error("Message is incomplete.");
                 }
 
