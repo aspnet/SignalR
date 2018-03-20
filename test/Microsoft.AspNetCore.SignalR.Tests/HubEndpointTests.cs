@@ -371,6 +371,28 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Fact]
+        public async Task HandshakeFailureFromIncompatibleProtocolVersionSendsResponseWithError()
+        {
+            var hubProtocolMock = new Mock<IHubProtocol>();
+            hubProtocolMock.Setup(m => m.Name).Returns("json");
+            hubProtocolMock.Setup(m => m.Version).Returns(9001);
+
+            var endPoint = HubEndPointTestUtils.GetHubEndpoint(typeof(HubT));
+
+            using (var client = new TestClient(protocol: hubProtocolMock.Object))
+            {
+                var endPointTask = await client.ConnectAsync(endPoint);
+
+                Assert.NotNull(client.HandshakeResponseMessage);
+                Assert.Equal("The protocol 'json' is supported. But the minimum protocol version allowed is 1 and the client tried version 9001.", client.HandshakeResponseMessage.Error);
+
+                client.Dispose();
+
+                await endPointTask.OrTimeout();
+            }
+        }
+
+        [Fact]
         public async Task LifetimeManagerOnDisconnectedAsyncCalledIfLifetimeManagerOnConnectedAsyncThrows()
         {
             var mockLifetimeManager = new Mock<HubLifetimeManager<Hub>>();
