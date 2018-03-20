@@ -17,7 +17,6 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
         private readonly ILogger _logger;
         private readonly CancellationToken _timeoutToken;
         private readonly string _connectionId;
-        private readonly bool _isFirstRequest;
 
         public LongPollingTransport(CancellationToken timeoutToken, PipeReader application, string connectionId, ILoggerFactory loggerFactory, bool isFirstRequest = false)
         {
@@ -25,30 +24,62 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
             _application = application;
             _connectionId = connectionId;
             _logger = loggerFactory.CreateLogger<LongPollingTransport>();
-            _isFirstRequest = isFirstRequest;
+        }
+
+        public async Task ProcessFirstRequestAsync(HttpContext context, CancellationToken token)
+        {
+            if (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    await context.Response.Body.FlushAsync();
+
+                    ReadResult result;
+                    try
+                    {
+                        result = await _application.ReadAsync(token);
+                    }
+                    catch (Exception)
+                    {
+                        // We can't let the exception escape because we've already written headers, so
+                        // ASP.NET Core will just terminate the HTTP connection, which is bad.
+                        // The next poll will trigger the catch block below and throw.
+                    }
+
+                    var buffer = result.Buffer;
+
+                    Log.LongPollingWritingMessage(_logger, buffer.Length);
+                    try
+                    {
+                        await context.Response.Body.WriteAsync(buffer);
+                    }
+                    finally
+                    {
+                        _application.AdvanceTo(buffer.End);
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    if (context.RequestAborted.IsCancellationRequested)
+                    {
+                        // Don't count this as cancellation, this is normal as the poll can end due to the browser closing.
+                        // The background thread will eventually dispose this connection if it's inactive
+                        Log.LongPollingDisconnected(_logger);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.LongPollingTerminated(_logger, ex);
+                }
+            }
         }
 
         public async Task ProcessRequestAsync(HttpContext context, CancellationToken token)
         {
             try
             {
-                if (_isFirstRequest)
-                {
-                    await context.Response.Body.FlushAsync();
-                }
 
-                ReadResult result;
-                try
-                {
-                    result = await _application.ReadAsync(token);
-                }
-                catch (Exception) when (_isFirstRequest)
-                {
-                    // We can't let the exception escape because we've already written headers, so
-                    // ASP.NET Core will just terminate the HTTP connection, which is bad.
-                    // The next poll will trigger the catch block below and throw.
-                }
-
+                var result = await _application.ReadAsync(token);
                 var buffer = result.Buffer;
 
                 // IF the buffer is empty and the read result is completed on the first request
@@ -58,14 +89,11 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                     // Complete the ReadAsync by indicating we haven't processed any data yet
                     // (of course, there is no data because the buffer is empty, but we have to 
                     // call AdvanceTo after every ReadAsync even if we don't have any data)
-                    _application.AdvanceTo(buffer.Start);
+                    //_application.AdvanceTo(buffer.Start);
 
-                    if (!_isFirstRequest)
-                    {
-                        Log.LongPolling204(_logger);
-                        context.Response.ContentType = "text/plain";
-                        context.Response.StatusCode = StatusCodes.Status204NoContent;
-                    }
+                    Log.LongPolling204(_logger);
+                    context.Response.ContentType = "text/plain";
+                    context.Response.StatusCode = StatusCodes.Status204NoContent;
                     return;
                 }
 
@@ -73,11 +101,9 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                 // but it's too late to emit the 204 required by being cancelled.
 
                 Log.LongPollingWritingMessage(_logger, buffer.Length);
-                if (!_isFirstRequest)
-                {
-                    context.Response.ContentLength = buffer.Length;
-                    context.Response.ContentType = "application/octet-stream";
-                }
+                context.Response.ContentLength = buffer.Length;
+                context.Response.ContentType = "application/octet-stream";
+
                 try
                 {
                     await context.Response.Body.WriteAsync(buffer);
@@ -102,14 +128,14 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                     Log.LongPollingDisconnected(_logger);
                 }
                 // Case 2
-                else if (_timeoutToken.IsCancellationRequested && !_isFirstRequest)
+                else if (_timeoutToken.IsCancellationRequested)
                 {
                     Log.PollTimedOut(_logger);
                     context.Response.ContentLength = 0;
                     context.Response.ContentType = "text/plain";
                     context.Response.StatusCode = StatusCodes.Status200OK;
                 }
-                else if (!_isFirstRequest)
+                else
                 {
                     // Case 3
                     Log.LongPolling204(_logger);
