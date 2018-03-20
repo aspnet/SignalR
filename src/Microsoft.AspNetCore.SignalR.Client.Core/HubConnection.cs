@@ -449,8 +449,9 @@ namespace Microsoft.AspNetCore.SignalR.Client
             if (!_receivedHandshakeResponse)
             {
                 // process handshake and return left over data to parse additional messages
-                if (!ProcessHandshakeResponse(ref currentData))
+                if (!ProcessHandshakeResponse(ref currentData, out var exception))
                 {
+                    await OnClosed(_connection, exception);
                     return;
                 }
 
@@ -494,15 +495,20 @@ namespace Microsoft.AspNetCore.SignalR.Client
                             DispatchInvocationStreamItemAsync(streamItem, irq);
                             break;
                         case CloseMessage close:
+                            // In theory, there's a race here. If a close message arrives, but the user
+                            // restarts the connection, BEFORE it is processed here, we could close the
+                            // new connection when calling OnClosed. I think that's OK since we'll be fixing
+                            // this in later phases
+
                             if (string.IsNullOrEmpty(close.Error))
                             {
                                 Log.ReceivedClose(_logger);
-                                Shutdown();
+                                await OnClosed(_connection, ex: null);
                             }
                             else
                             {
                                 Log.ReceivedCloseWithError(_logger, close.Error);
-                                Shutdown(new InvalidOperationException(close.Error));
+                                await OnClosed(_connection, new InvalidOperationException(close.Error));
                             }
                             break;
                         case PingMessage _:
@@ -521,7 +527,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
         }
 
-        private bool ProcessHandshakeResponse(ref ReadOnlyMemory<byte> data)
+        private bool ProcessHandshakeResponse(ref ReadOnlyMemory<byte> data, out Exception exception)
         {
             HandshakeResponseMessage message;
 
@@ -539,15 +545,16 @@ namespace Microsoft.AspNetCore.SignalR.Client
             {
                 // shutdown if we're unable to read handshake
                 Log.ErrorReceivingHandshakeResponse(_logger, ex);
-                Shutdown(ex);
+                exception = ex;
                 return false;
             }
+
+            exception = null;
 
             if (!string.IsNullOrEmpty(message.Error))
             {
                 // shutdown if handshake returns an error
                 Log.HandshakeServerError(_logger, message.Error);
-                Shutdown();
                 return false;
             }
 

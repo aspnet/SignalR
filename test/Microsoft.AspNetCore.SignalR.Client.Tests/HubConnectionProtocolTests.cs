@@ -94,7 +94,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             TaskCompletionSource<Exception> closedTcs = new TaskCompletionSource<Exception>();
 
             var connection = new TestConnection();
-            var hubConnection = new HubConnection(connection, new JsonHubProtocol(), new LoggerFactory());
+            var hubConnection = new HubConnection(() => connection, new JsonHubProtocol(), new LoggerFactory());
             hubConnection.Closed += e => closedTcs.SetResult(e);
 
             try
@@ -121,7 +121,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             TaskCompletionSource<Exception> closedTcs = new TaskCompletionSource<Exception>();
 
             var connection = new TestConnection();
-            var hubConnection = new HubConnection(connection, new JsonHubProtocol(), new LoggerFactory());
+            var hubConnection = new HubConnection(() => connection, new JsonHubProtocol(), new LoggerFactory());
             hubConnection.Closed += e => closedTcs.SetResult(e);
 
             try
