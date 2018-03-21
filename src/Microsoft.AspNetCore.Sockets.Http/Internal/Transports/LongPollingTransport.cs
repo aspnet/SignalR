@@ -29,7 +29,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
         public async Task ProcessFirstRequestAsync(HttpContext context, CancellationToken token)
         {
             if (!token.IsCancellationRequested)
-            {
+            { 
                 try
                 {
                     await context.Response.Body.FlushAsync();
@@ -78,7 +78,6 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
         {
             try
             {
-
                 var result = await _application.ReadAsync(token);
                 var buffer = result.Buffer;
 
