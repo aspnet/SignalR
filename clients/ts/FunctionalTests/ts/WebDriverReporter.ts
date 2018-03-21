@@ -1,3 +1,5 @@
+import { LogLevel } from "@aspnet/signalr";
+import { TestLogger } from "./TestLogger";
 import { getParameterByName } from "./Utils";
 
 function formatValue(v: any): string {
@@ -37,6 +39,7 @@ class WebDriverReporter implements jasmine.CustomReporter {
     }
 
     public specDone(result: jasmine.CustomReporterResult): void {
+        const messages = TestLogger.getMessagesAndReset();
         if (result.status === "disabled") {
             return;
         } else if (result.status === "failed") {
@@ -44,17 +47,29 @@ class WebDriverReporter implements jasmine.CustomReporter {
 
             // Just report the first failure
             this.taplog("  ---");
-            for (const expectation of result.failedExpectations) {
-                // Include YAML block with failed expectations
-                this.taplog(`    - message: ${expectation.message}`);
-                if (expectation.matcherName) {
-                    this.taplog(`      operator: ${expectation.matcherName}`);
+            if (result.failedExpectations.length > 0) {
+                this.taplog("    - messages:");
+                for (const expectation of result.failedExpectations) {
+                    // Include YAML block with failed expectations
+                    this.taplog(`      - message: ${expectation.message}`);
+                    if (expectation.matcherName) {
+                        this.taplog(`        operator: ${expectation.matcherName}`);
+                    }
+                    if (expectation.expected) {
+                        this.taplog(`        expected: ${formatValue(expectation.expected)}`);
+                    }
+                    if (expectation.actual) {
+                        this.taplog(`        actual: ${formatValue(expectation.actual)}`);
+                    }
                 }
-                if (expectation.expected) {
-                    this.taplog(`      expected: ${formatValue(expectation.expected)}`);
-                }
-                if (expectation.actual) {
-                    this.taplog(`      actual: ${formatValue(expectation.actual)}`);
+            }
+
+            // Report log messages
+            if (messages.length > 0) {
+                this.taplog("    - logs: ");
+                for (const [level, message] of messages) {
+                    this.taplog(`      - level: ${LogLevel[level]}`);
+                    this.taplog(`        message: ${message}`);
                 }
             }
             this.taplog("  ...");
