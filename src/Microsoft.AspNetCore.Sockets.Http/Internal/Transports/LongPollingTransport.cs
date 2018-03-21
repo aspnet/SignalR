@@ -18,7 +18,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
         private readonly CancellationToken _timeoutToken;
         private readonly string _connectionId;
 
-        public LongPollingTransport(CancellationToken timeoutToken, PipeReader application, string connectionId, ILoggerFactory loggerFactory, bool isFirstRequest = false)
+        public LongPollingTransport(CancellationToken timeoutToken, PipeReader application, string connectionId, ILoggerFactory loggerFactory)
         {
             _timeoutToken = timeoutToken;
             _application = application;

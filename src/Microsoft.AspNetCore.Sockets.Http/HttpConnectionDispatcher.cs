@@ -222,7 +222,7 @@ namespace Microsoft.AspNetCore.Sockets
                     // Dispose these tokens when the request is over
                     context.Response.RegisterForDispose(timeoutSource);
                     context.Response.RegisterForDispose(tokenSource);
-                    var longPolling = new LongPollingTransport(timeoutSource.Token, connection.Application.Input, connection.ConnectionId, _loggerFactory, isFirstRequest);
+                    var longPolling = new LongPollingTransport(timeoutSource.Token, connection.Application.Input, connection.ConnectionId, _loggerFactory);
                     if (isFirstRequest)
                     {
                         connection.TransportTask = longPolling.ProcessFirstRequestAsync(context, tokenSource.Token);
