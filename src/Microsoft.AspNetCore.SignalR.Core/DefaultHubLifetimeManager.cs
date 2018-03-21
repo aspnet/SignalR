@@ -111,7 +111,7 @@ namespace Microsoft.AspNetCore.SignalR
 
                 var task = connection.WriteAsync(message);
 
-                if (!task.IsCompleted)
+                if (!task.IsCompletedSuccessfully)
                 {
                     if (tasks == null)
                     {
