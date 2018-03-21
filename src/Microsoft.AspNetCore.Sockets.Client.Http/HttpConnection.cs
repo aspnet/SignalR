@@ -8,6 +8,7 @@ using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
 using System.Net.Http;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http.Features;
@@ -25,6 +26,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
     public partial class HttpConnection : IConnection
     {
         private static readonly TimeSpan HttpClientTimeout = TimeSpan.FromSeconds(120);
+        private static bool? _hasWebSocketsSupport;
 
         private readonly ILoggerFactory _loggerFactory;
         private readonly ILogger _logger;
@@ -203,6 +205,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 var connectUrl = Url;
                 if (_requestedTransportType == TransportType.WebSockets)
                 {
+                    // if we're running on Windows 7 this could throw because the OS does not support web sockets
                     Log.StartingTransport(_logger, _requestedTransportType, connectUrl);
                     await StartTransport(connectUrl, _requestedTransportType, transferFormat);
                 }
@@ -230,6 +233,12 @@ namespace Microsoft.AspNetCore.Sockets.Client
                         if (!Enum.TryParse<TransportType>(transport.Transport, out var transportType))
                         {
                             Log.TransportNotSupported(_logger, transport.Transport);
+                            continue;
+                        }
+
+                        if (transportType == TransportType.WebSockets && !IsWebSocketsSupported())
+                        {
+                            Log.WebSocketsNotSupportedByOS(_logger);
                             continue;
                         }
 
@@ -709,6 +718,31 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 Log.ConnectionStateChanged(_logger, state, to);
                 return state;
             }
+        }
+
+        private static bool IsWebSocketsSupported()
+        {
+            if (_hasWebSocketsSupport == null)
+            {
+#if NETCOREAPP2_1
+                // .NET Core 2.1 and above has a managed implementation
+                _hasWebSocketsSupport = true;
+#else
+                bool isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+                if (!isWindows)
+                {
+                    // Assume other OSes have sockets implementation
+                    _hasWebSocketsSupport = true;
+                }
+                else
+                {
+                    // Window 8 and above has web sockets
+                    _hasWebSocketsSupport = Environment.OSVersion.Version > new Version(6, 1);
+                }
+#endif
+            }
+
+            return _hasWebSocketsSupport.Value;
         }
 
         // Internal because it's used by logging to avoid ToStringing prematurely.

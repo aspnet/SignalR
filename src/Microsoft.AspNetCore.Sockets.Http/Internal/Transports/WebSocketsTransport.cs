@@ -47,7 +47,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
 
         public async Task ProcessRequestAsync(HttpContext context, CancellationToken token)
         {
-            Debug.Assert(context.WebSockets.IsWebSocketRequest, "Not a websocket request");
+            Debug.Assert(context.WebSockets.IsWebSocketRequest, "Not a web socket request");
 
             using (var ws = await context.WebSockets.AcceptWebSocketAsync(_options.SubProtocol))
             {
