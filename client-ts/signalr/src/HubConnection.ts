@@ -194,7 +194,7 @@ export class HubConnection {
 
         Object.keys(callbacks)
             .forEach((key) => {
-                const callback = this.callbacks[key];
+                const callback = callbacks[key];
                 callback(undefined, error ? error : new Error("Invocation canceled due to connection being closed."));
             });
 
