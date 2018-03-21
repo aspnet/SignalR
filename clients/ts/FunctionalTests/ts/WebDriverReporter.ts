@@ -18,6 +18,7 @@ class WebDriverReporter implements jasmine.CustomReporter {
     private element: HTMLDivElement;
     private specCounter: number = 1; // TAP number start at 1
     private recordCounter: number = 0;
+    private concurrentSpecCount: number = 0;
 
     constructor(private document: Document, show: boolean = false) {
         // We write to the DOM because it's the most compatible way for WebDriver to read.
@@ -38,7 +39,15 @@ class WebDriverReporter implements jasmine.CustomReporter {
         this.taplog(`1..${suiteInfo.totalSpecsDefined}`);
     }
 
+    public specStarted(result: jasmine.CustomReporterResult): void {
+        this.concurrentSpecCount += 1;
+        if (this.concurrentSpecCount > 1) {
+            throw new Error("Unexpected concurrent tests!");
+        }
+    }
+
     public specDone(result: jasmine.CustomReporterResult): void {
+        this.concurrentSpecCount -= 1;
         const messages = TestLogger.getMessagesAndReset();
         if (result.status === "disabled") {
             return;
