@@ -28,49 +28,46 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
 
         public async Task ProcessFirstRequestAsync(HttpContext context, CancellationToken token)
         {
-            if (!token.IsCancellationRequested)
-            { 
+            try
+            {
+                await context.Response.Body.FlushAsync();
+
+                ReadResult result;
                 try
                 {
-                    await context.Response.Body.FlushAsync();
-
-                    ReadResult result;
-                    try
-                    {
-                        result = await _application.ReadAsync(token);
-                    }
-                    catch (Exception)
-                    {
-                        // We can't let the exception escape because we've already written headers, so
-                        // ASP.NET Core will just terminate the HTTP connection, which is bad.
-                        // The next poll will trigger the catch block below and throw.
-                    }
-
-                    var buffer = result.Buffer;
-
-                    Log.LongPollingWritingMessage(_logger, buffer.Length);
-                    try
-                    {
-                        await context.Response.Body.WriteAsync(buffer);
-                    }
-                    finally
-                    {
-                        _application.AdvanceTo(buffer.End);
-                    }
+                    result = await _application.ReadAsync(token);
                 }
-                catch (OperationCanceledException)
+                catch (Exception)
                 {
-                    if (context.RequestAborted.IsCancellationRequested)
-                    {
-                        // Don't count this as cancellation, this is normal as the poll can end due to the browser closing.
-                        // The background thread will eventually dispose this connection if it's inactive
-                        Log.LongPollingDisconnected(_logger);
-                    }
+                    // We can't let the exception escape because we've already written headers, so
+                    // ASP.NET Core will just terminate the HTTP connection, which is bad.
+                    // The next poll will trigger the catch block below and throw.
                 }
-                catch (Exception ex)
+
+                var buffer = result.Buffer;
+
+                Log.LongPollingWritingMessage(_logger, buffer.Length);
+                try
                 {
-                    Log.LongPollingTerminated(_logger, ex);
+                    await context.Response.Body.WriteAsync(buffer);
                 }
+                finally
+                {
+                    _application.AdvanceTo(buffer.End);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                if (context.RequestAborted.IsCancellationRequested)
+                {
+                    // Don't count this as cancellation, this is normal as the poll can end due to the browser closing.
+                    // The background thread will eventually dispose this connection if it's inactive
+                    Log.LongPollingDisconnected(_logger);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.LongPollingTerminated(_logger, ex);
             }
         }
 
