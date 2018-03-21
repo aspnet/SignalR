@@ -237,17 +237,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 using (StartLog(out var loggerFactory))
                 {
-                    var httpHandler = new TestHttpMessageHandler();
-
-                    var longPollResult = new TaskCompletionSource<HttpResponseMessage>();
-                    httpHandler.OnLongPoll(cancellationToken =>
-                    {
-                        cancellationToken.Register(() =>
-                        {
-                            longPollResult.TrySetResult(ResponseUtils.CreateResponse(HttpStatusCode.NoContent));
-                        });
-                        return longPollResult.Task;
-                    });
+                    var httpHandler = TestHttpMessageHandler.CreateDefault(handleSend: false);
 
                     httpHandler.OnSocketSend((data, _) =>
                     {
@@ -373,7 +363,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             [Fact]
             public async Task TransportIsStoppedWhenConnectionIsStopped()
             {
-                var testHttpHandler = new TestHttpMessageHandler();
+                var testHttpHandler = TestHttpMessageHandler.CreateDefault();
 
                 // Just keep returning data when polled
                 testHttpHandler.OnLongPoll(_ => ResponseUtils.CreateResponse(HttpStatusCode.OK));

@@ -215,7 +215,10 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 using (var cts = new CancellationTokenSource())
                 {
-                    cts.CancelAfter(timeout);
+                    if (!System.Diagnostics.Debugger.IsAttached)
+                    {
+                        cts.CancelAfter(timeout);
+                    }
 
                     while (true)
                     {

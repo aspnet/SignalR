@@ -23,7 +23,6 @@ namespace Microsoft.AspNetCore.Sockets.Client
         private IDuplexPipe _application;
         private Task _sender;
         private Task _poller;
-
         private readonly CancellationTokenSource _transportCts = new CancellationTokenSource();
 
         public Task Running { get; private set; } = Task.CompletedTask;
@@ -53,7 +52,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
             Log.StartTransport(_logger, transferFormat);
 
             // Start sending and polling (ask for binary if the server supports it)
-            _poller = Poll(url, _transportCts.Token);
+            var startTcs = new TaskCompletionSource<object>(TaskContinuationOptions.RunContinuationsAsynchronously);
+            _poller = Poll(url, startTcs, _transportCts.Token);
             _sender = SendUtils.SendMessages(url, _application, _httpClient, _httpOptions, _transportCts, _logger);
 
             Running = Task.WhenAll(_sender, _poller).ContinueWith(t =>
@@ -64,7 +64,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 return t;
             }).Unwrap();
 
-            return Task.CompletedTask;
+            return startTcs.Task;
         }
 
         public async Task StopAsync()
@@ -83,7 +83,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             }
         }
 
-        private async Task Poll(Uri pollUrl, CancellationToken cancellationToken)
+        private async Task Poll(Uri pollUrl, TaskCompletionSource<object> startTcs, CancellationToken cancellationToken)
         {
             Log.StartReceive(_logger);
             try
@@ -92,12 +92,11 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 {
                     var request = new HttpRequestMessage(HttpMethod.Get, pollUrl);
                     SendUtils.PrepareHttpRequest(request, _httpOptions);
-
                     HttpResponseMessage response;
 
                     try
                     {
-                        response = await _httpClient.SendAsync(request, cancellationToken);
+                        response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
                     }
                     catch (OperationCanceledException)
                     {
@@ -108,6 +107,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     }
 
                     response.EnsureSuccessStatusCode();
+                    startTcs.TrySetResult(null);
 
                     if (response.StatusCode == HttpStatusCode.NoContent || cancellationToken.IsCancellationRequested)
                     {
@@ -121,18 +121,23 @@ namespace Microsoft.AspNetCore.Sockets.Client
                         Log.ReceivedMessages(_logger);
 
                         var stream = new PipeWriterStream(_application.Output);
-                        await response.Content.CopyToAsync(stream);
+                        using (cancellationToken.Register(res => { ((HttpResponseMessage)res).Dispose(); }, response))
+                        {
+                            await response.Content.CopyToAsync(stream);
+                        }
                         await _application.Output.FlushAsync();
                     }
                 }
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException ex)
             {
                 // transport is being closed
+                startTcs.TrySetException(ex);
                 Log.ReceiveCanceled(_logger);
             }
             catch (Exception ex)
             {
+                startTcs.TrySetException(ex);
                 Log.ErrorPolling(_logger, pollUrl, ex);
                 throw;
             }

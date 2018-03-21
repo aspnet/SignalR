@@ -26,6 +26,51 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
             _logger = loggerFactory.CreateLogger<LongPollingTransport>();
         }
 
+        public async Task ProcessFirstRequestAsync(HttpContext context, CancellationToken token)
+        {
+            try
+            {
+                await context.Response.Body.FlushAsync();
+
+                ReadResult result;
+                try
+                {
+                    result = await _application.ReadAsync(token);
+                }
+                catch
+                {
+                    // We can't let the exception escape because we've already written headers, so
+                    // ASP.NET Core will just terminate the HTTP connection, which is bad.
+                    // The next poll will trigger the catch block below and throw.
+                }
+
+                var buffer = result.Buffer;
+
+                Log.LongPollingWritingMessage(_logger, buffer.Length);
+                try
+                {
+                    await context.Response.Body.WriteAsync(buffer);
+                }
+                finally
+                {
+                    _application.AdvanceTo(buffer.End);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                if (context.RequestAborted.IsCancellationRequested)
+                {
+                    // Don't count this as cancellation, this is normal as the poll can end due to the browser closing.
+                    // The background thread will eventually dispose this connection if it's inactive
+                    Log.LongPollingDisconnected(_logger);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.LongPollingTerminated(_logger, ex);
+            }
+        }
+
         public async Task ProcessRequestAsync(HttpContext context, CancellationToken token)
         {
             try
@@ -33,6 +78,8 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                 var result = await _application.ReadAsync(token);
                 var buffer = result.Buffer;
 
+                // IF the buffer is empty and the read result is completed on the first request
+                // we still have to send a 200 because the headers have already been flushed.
                 if (buffer.IsEmpty && result.IsCompleted)
                 {
                     Log.LongPolling204(_logger);
@@ -45,7 +92,6 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                 // but it's too late to emit the 204 required by being cancelled.
 
                 Log.LongPollingWritingMessage(_logger, buffer.Length);
-
                 context.Response.ContentLength = buffer.Length;
                 context.Response.ContentType = "application/octet-stream";
 
@@ -76,7 +122,6 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                 else if (_timeoutToken.IsCancellationRequested)
                 {
                     Log.PollTimedOut(_logger);
-
                     context.Response.ContentLength = 0;
                     context.Response.ContentType = "text/plain";
                     context.Response.StatusCode = StatusCodes.Status200OK;

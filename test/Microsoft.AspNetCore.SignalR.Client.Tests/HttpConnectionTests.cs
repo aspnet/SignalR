@@ -132,7 +132,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         [Fact]
         public async Task HttpOptionsSetOntoHttpClientHandler()
         {
-            var testHttpHandler = new TestHttpMessageHandler();
+            var testHttpHandler = TestHttpMessageHandler.CreateDefault();
 
             var negotiateUrlTcs = new TaskCompletionSource<string>();
             testHttpHandler.OnNegotiate((request, cancellationToken) =>

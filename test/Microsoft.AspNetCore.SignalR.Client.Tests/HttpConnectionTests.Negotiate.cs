@@ -60,7 +60,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 var testHttpHandler = new TestHttpMessageHandler(autoNegotiate: false);
 
                 var negotiateUrlTcs = new TaskCompletionSource<string>();
-                testHttpHandler.OnLongPoll(cancellationToken => ResponseUtils.CreateResponse(HttpStatusCode.NoContent));
+                testHttpHandler.OnLongPoll(cancellationToken => ResponseUtils.CreateResponse(HttpStatusCode.OK));
                 testHttpHandler.OnNegotiate((request, cancellationToken) =>
                 {
                     negotiateUrlTcs.TrySetResult(request.RequestUri.ToString());

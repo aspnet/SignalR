@@ -50,12 +50,13 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 throw new ArgumentException($"The '{transferFormat}' transfer format is not supported by this transport.", nameof(transferFormat));
             }
 
+            var startTcs = new TaskCompletionSource<object>(TaskContinuationOptions.RunContinuationsAsynchronously);
             _application = application;
 
             Log.StartTransport(_logger, transferFormat);
 
             var sendTask = SendUtils.SendMessages(url, _application, _httpClient, _httpOptions, _transportCts, _logger);
-            var receiveTask = OpenConnection(_application, url, _transportCts.Token);
+            var receiveTask = OpenConnection(_application, url, startTcs, _transportCts.Token);
 
             Running = Task.WhenAll(sendTask, receiveTask).ContinueWith(t =>
             {
@@ -66,17 +67,30 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 return t;
             }).Unwrap();
 
-            return Task.CompletedTask;
+            return startTcs.Task;
         }
 
-        private async Task OpenConnection(IDuplexPipe application, Uri url, CancellationToken cancellationToken)
+        private async Task OpenConnection(IDuplexPipe application, Uri url, TaskCompletionSource<object> tcs, CancellationToken cancellationToken)
         {
             Log.StartReceive(_logger);
 
             var request = new HttpRequestMessage(HttpMethod.Get, url);
             SendUtils.PrepareHttpRequest(request, _httpOptions);
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
-            var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+
+            HttpResponseMessage response;
+            try
+            {
+                response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                response.EnsureSuccessStatusCode();
+                tcs.TrySetResult(null);
+            }
+            catch (Exception ex)
+            {
+                Log.TransportStopping(_logger);
+                tcs.TrySetException(ex);
+                return;
+            }
 
             using (var stream = await response.Content.ReadAsStreamAsync())
             {
