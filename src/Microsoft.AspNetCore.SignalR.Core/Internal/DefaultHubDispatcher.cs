@@ -376,7 +376,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             {
                 var streamCts = new CancellationTokenSource();
                 connection.ActiveRequestCancellationSources.TryAdd(invocationId, streamCts);
-                return CancellationTokenSource.CreateLinkedTokenSource(connection.ConnectionAbortedToken, streamCts.Token).Token;
+                return CancellationTokenSource.CreateLinkedTokenSource(connection.ConnectionAborted, streamCts.Token).Token;
             }
         }
 

@@ -623,9 +623,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests.HubEndpointTestUtils
 
         public override Task OnConnectedAsync()
         {
-            _state.TokenStateInConnected = Context.ConnectionAbortedToken.IsCancellationRequested;
+            _state.TokenStateInConnected = Context.ConnectionAborted.IsCancellationRequested;
 
-            Context.ConnectionAbortedToken.Register(() =>
+            Context.ConnectionAborted.Register(() =>
             {
                 _state.TokenCallbackTriggered = true;
             });
@@ -635,7 +635,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests.HubEndpointTestUtils
 
         public override Task OnDisconnectedAsync(Exception exception)
         {
-            _state.TokenStateInDisconnected = Context.ConnectionAbortedToken.IsCancellationRequested;
+            _state.TokenStateInDisconnected = Context.ConnectionAborted.IsCancellationRequested;
 
             return base.OnDisconnectedAsync(exception);
         }

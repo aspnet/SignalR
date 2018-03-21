@@ -41,11 +41,11 @@ namespace Microsoft.AspNetCore.SignalR
         {
             _connectionContext = connectionContext;
             _logger = loggerFactory.CreateLogger<HubConnectionContext>();
-            ConnectionAbortedToken = _connectionAbortedTokenSource.Token;
+            ConnectionAborted = _connectionAbortedTokenSource.Token;
             _keepAliveDuration = (int)keepAliveInterval.TotalMilliseconds * (Stopwatch.Frequency / 1000);
         }
 
-        public virtual CancellationToken ConnectionAbortedToken { get; }
+        public virtual CancellationToken ConnectionAborted { get; }
 
         public virtual string ConnectionId => _connectionContext.ConnectionId;
 

@@ -29,7 +29,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public override IFeatureCollection Features => _connection.Features;
 
-        public override CancellationToken ConnectionAbortedToken => _connection.ConnectionAbortedToken;
+        public override CancellationToken ConnectionAborted => _connection.ConnectionAborted;
 
         public override void Abort() => _connection.Abort();
     }

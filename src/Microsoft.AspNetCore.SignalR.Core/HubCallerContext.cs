@@ -22,7 +22,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public abstract IFeatureCollection Features { get; }
 
-        public abstract CancellationToken ConnectionAbortedToken { get; }
+        public abstract CancellationToken ConnectionAborted { get; }
 
         public abstract void Abort();
     }
