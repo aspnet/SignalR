@@ -37,7 +37,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                 {
                     result = await _application.ReadAsync(token);
                 }
-                catch (Exception)
+                catch
                 {
                     // We can't let the exception escape because we've already written headers, so
                     // ASP.NET Core will just terminate the HTTP connection, which is bad.

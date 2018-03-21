@@ -363,7 +363,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             [Fact]
             public async Task TransportIsStoppedWhenConnectionIsStopped()
             {
-                var testHttpHandler = new TestHttpMessageHandler();
+                var testHttpHandler = TestHttpMessageHandler.CreateDefault();
 
                 // Just keep returning data when polled
                 testHttpHandler.OnLongPoll(_ => ResponseUtils.CreateResponse(HttpStatusCode.OK));
