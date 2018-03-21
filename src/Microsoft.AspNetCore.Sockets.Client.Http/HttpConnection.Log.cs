@@ -98,8 +98,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
             private static readonly Action<ILogger, string, Exception> _transportFailed =
                 LoggerMessage.Define<string>(LogLevel.Debug, new EventId(29, "TransportFailed"), "Skipping transport {TransportName} because it failed to initialize.");
 
-            private static readonly Action<ILogger, Exception> _webSocketsNotSupportedByOS =
-                LoggerMessage.Define(LogLevel.Debug, new EventId(30, "WebSocketsNotSupportedByOS"), "Skipping web sockets because they are not supported by the OS.");
+            private static readonly Action<ILogger, Exception> _webSocketsNotSupportedByOperatingSystem =
+                LoggerMessage.Define(LogLevel.Debug, new EventId(30, "WebSocketsNotSupportedByOperatingSystem"), "Skipping WebSockets because they are not supported by the operating system.");
 
             public static void HttpConnectionStarting(ILogger logger)
             {
@@ -264,9 +264,9 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 }
             }
 
-            public static void WebSocketsNotSupportedByOS(ILogger logger)
+            public static void WebSocketsNotSupportedByOperatingSystem(ILogger logger)
             {
-                _webSocketsNotSupportedByOS(logger, null);
+                _webSocketsNotSupportedByOperatingSystem(logger, null);
             }
         }
     }

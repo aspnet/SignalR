@@ -160,8 +160,9 @@ export class HttpConnection implements IConnection {
             const transferFormats = endpoint.transferFormats.map((s) => TransferFormat[s]);
             if (!requestedTransport || transport === requestedTransport) {
                 if (transferFormats.indexOf(requestedTransferFormat) >= 0) {
-                    if (transport === TransportType.WebSockets && typeof WebSocket === "undefined") {
-                        this.logger.log(LogLevel.Trace, `Skipping transport '${TransportType.WebSockets}' because it is not supported in your environment.'`);
+                    if ((transport === TransportType.WebSockets && typeof WebSocket === "undefined") ||
+                        (transport === TransportType.ServerSentEvents && typeof EventSource === "undefined")) {
+                        this.logger.log(LogLevel.Trace, `Skipping transport '${TransportType[transport]}' because it is not supported in your environment.'`);
                     } else {
                         this.logger.log(LogLevel.Trace, `Selecting transport '${TransportType[transport]}'`);
                         return transport;
