@@ -729,12 +729,12 @@ namespace Microsoft.AspNetCore.Sockets.Client
             bool isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
             if (!isWindows)
             {
-                // Assume other OSes have sockets implementation
+                // Assume other OSes have websockets
                 return true;
             }
             else
             {
-                // Window 8 and above has web sockets
+                // Windows 8 and above has websockets
                 return Environment.OSVersion.Version >= Windows8Version;
             }
 #endif
