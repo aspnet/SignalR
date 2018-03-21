@@ -52,7 +52,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             Log.StartTransport(_logger, transferFormat);
 
             // Start sending and polling (ask for binary if the server supports it)
-            var startTcs = new TaskCompletionSource<object>();
+            var startTcs = new TaskCompletionSource<object>(TaskContinuationOptions.RunContinuationsAsynchronously);
             _poller = Poll(url, startTcs, _transportCts.Token);
             _sender = SendUtils.SendMessages(url, _application, _httpClient, _httpOptions, _transportCts, _logger);
 

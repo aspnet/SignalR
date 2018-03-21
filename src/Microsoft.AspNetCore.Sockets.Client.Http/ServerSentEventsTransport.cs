@@ -50,7 +50,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 throw new ArgumentException($"The '{transferFormat}' transfer format is not supported by this transport.", nameof(transferFormat));
             }
 
-            var startTcs = new TaskCompletionSource<object>();
+            var startTcs = new TaskCompletionSource<object>(TaskContinuationOptions.RunContinuationsAsynchronously);
             _application = application;
 
             Log.StartTransport(_logger, transferFormat);

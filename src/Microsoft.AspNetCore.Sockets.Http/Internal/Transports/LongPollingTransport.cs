@@ -85,7 +85,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal.Transports
                     // Complete the ReadAsync by indicating we haven't processed any data yet
                     // (of course, there is no data because the buffer is empty, but we have to 
                     // call AdvanceTo after every ReadAsync even if we don't have any data)
-                    //_application.AdvanceTo(buffer.Start);
+                    _application.AdvanceTo(buffer.Start);
 
                     Log.LongPolling204(_logger);
                     context.Response.ContentType = "text/plain";
