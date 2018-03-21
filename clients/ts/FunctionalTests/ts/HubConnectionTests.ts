@@ -23,7 +23,6 @@ describe("hubConnection", () => {
                 });
                 hubConnection.onclose((error) => {
                     expect(error).toBe(undefined);
-                    fail("Kaboom!");
                     done();
                 });
 
