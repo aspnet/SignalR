@@ -220,12 +220,12 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     return;
                 }
 
-                _disposed = true;
-
                 if (_connection != null)
                 {
                     await DisposeConnectionAsync();
                 }
+
+                _disposed = true;
             }
             finally
             {
@@ -361,7 +361,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private async Task InvokeStreamCore(string methodName, InvocationRequest irq, object[] args, CancellationToken cancellationToken)
         {
-AssertConnectionValid();
+            AssertConnectionValid();
 
             Log.PreparingStreamingInvocation(_logger, irq.InvocationId, methodName, irq.ResultType.FullName, args.Length);
 
@@ -709,7 +709,7 @@ AssertConnectionValid();
 
         private void AddInvocation(InvocationRequest irq)
         {
-AssertConnectionValid();
+            AssertConnectionValid();
 
             lock (_pendingCallsLock)
             {
