@@ -185,10 +185,10 @@ namespace Microsoft.AspNetCore.SignalR
 
             try
             {
-                var ms = new MemoryStream();
-                HandshakeProtocol.WriteResponseMessage(message, ms);
+                LimitArrayPoolWriteStream stream = new LimitArrayPoolWriteStream();
+                HandshakeProtocol.WriteResponseMessage(message, stream);
 
-                await _connectionContext.Transport.Output.WriteAsync(ms.ToArray());
+                await _connectionContext.Transport.Output.WriteAsync(stream.GetBuffer());
             }
             finally
             {

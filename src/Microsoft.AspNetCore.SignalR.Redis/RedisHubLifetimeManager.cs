@@ -213,7 +213,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
         private async Task PublishAsync(string channel, IRedisMessage message)
         {
             byte[] payload;
-            using (var stream = new MemoryStream())
+            using (var stream = new LimitArrayPoolWriteStream())
             using (var writer = new JsonTextWriter(new StreamWriter(stream)))
             {
                 _serializer.Serialize(writer, message);

@@ -118,7 +118,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             Log.HubProtocol(_logger, _protocol.Name, _protocol.Version);
 
             _connectionActive = new CancellationTokenSource();
-            using (var memoryStream = new MemoryStream())
+            using (var memoryStream = new LimitArrayPoolWriteStream())
             {
                 Log.SendingHubHandshake(_logger);
                 HandshakeProtocol.WriteRequestMessage(new HandshakeRequestMessage(_protocol.Name, _protocol.Version), memoryStream);

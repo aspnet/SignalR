@@ -250,22 +250,13 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
         public void WriteMessage(HubMessage message, Stream output)
         {
-            // We're writing data into the memoryStream so that we can get the length prefix
-            using (var memoryStream = new MemoryStream())
+            using (LimitArrayPoolWriteStream stream = new LimitArrayPoolWriteStream())
             {
-                WriteMessageCore(message, memoryStream);
-                if (memoryStream.TryGetBuffer(out var buffer))
-                {
-                    // Write the buffer directly
-                    BinaryMessageFormatter.WriteLengthPrefix(buffer.Count, output);
-                    output.Write(buffer.Array, buffer.Offset, buffer.Count);
-                }
-                else
-                {
-                    BinaryMessageFormatter.WriteLengthPrefix(memoryStream.Length, output);
-                    memoryStream.Position = 0;
-                    memoryStream.CopyTo(output);
-                }
+                WriteMessageCore(message, stream);
+                var buffer = stream.GetBuffer();
+
+                BinaryMessageFormatter.WriteLengthPrefix(buffer.Count, output);
+                output.Write(buffer.Array, buffer.Offset, buffer.Count);
             }
         }
 
