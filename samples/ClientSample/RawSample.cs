@@ -42,7 +42,7 @@ namespace ClientSample
             try
             {
                 var closeTcs = new TaskCompletionSource<object>();
-                connection.Closed += e => closeTcs.SetResult(null);
+                connection.Closed += (c, e) => closeTcs.SetResult(null);
                 connection.OnReceived(data => Console.Out.WriteLineAsync($"{Encoding.UTF8.GetString(data)}"));
                 await connection.StartAsync(TransferFormat.Text);
 

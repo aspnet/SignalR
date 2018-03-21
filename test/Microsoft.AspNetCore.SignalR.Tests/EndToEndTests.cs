@@ -180,7 +180,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 try
                 {
                     var closeTcs = new TaskCompletionSource<object>();
-                    connection.Closed += e =>
+                    connection.Closed += (_, e) =>
                     {
                         if (e != null)
                         {

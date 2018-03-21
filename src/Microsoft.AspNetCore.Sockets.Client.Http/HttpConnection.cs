@@ -55,7 +55,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         public IFeatureCollection Features { get; } = new FeatureCollection();
 
-        public event Action<Exception> Closed;
+        public event Action<IConnection, Exception> Closed;
 
         public HttpConnection(Uri url)
             : this(url, TransportType.All)
@@ -323,13 +323,13 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     {
                         if (exception != null)
                         {
-                            Closed?.Invoke(exception);
+                            Closed?.Invoke(this, exception);
                         }
                         else
                         {
                             // Call the closed event. If there was an abort exception, it will be flowed forward
                             // However, if there wasn't, this will just be null and we're good
-                            Closed?.Invoke(abortException);
+                            Closed?.Invoke(this, abortException);
                         }
                     }
                     catch (Exception ex)
