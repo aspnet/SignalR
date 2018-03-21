@@ -100,7 +100,7 @@ export class MessagePackHubProtocol implements IHubProtocol {
     private createStreamItemMessage(headers: MessageHeaders, properties: any[]): StreamItemMessage {
         // check minimum length to allow protocol to add items to the end of objects in future releases
         if (properties.length < 4) {
-            throw new Error("Invalid payload for stream Result message.");
+            throw new Error("Invalid payload for StreamItem message.");
         }
 
         return {

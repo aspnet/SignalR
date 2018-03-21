@@ -94,14 +94,15 @@ describe("JsonHubProtocol", () => {
             result: Date.UTC(2018, 0, 1, 11, 24, 0),
             type: MessageType.Completion,
         } as CompletionMessage],
-        // [`{"type":3, "invocationId": "abc", "error": null, "result": null, "headers": {}, "extraParameter":"value"}${TextMessageFormat.RecordSeparator}`,
-        // {
-        //     error: null,
-        //     headers: {},
-        //     invocationId: "abc",
-        //     result: null,
-        //     type: MessageType.Completion,
-        // } as CompletionMessage],
+        [`{"type":3, "invocationId": "abc", "error": null, "result": null, "headers": {}, "extraParameter":"value"}${TextMessageFormat.RecordSeparator}`,
+        {
+            error: null,
+            extraParameter: "value",
+            headers: {},
+            invocationId: "abc",
+            result: null,
+            type: MessageType.Completion,
+        } as CompletionMessage],
     ] as Array<[string, CompletionMessage]>).forEach(([payload, expectedMessage]) =>
         it("can read Completion message", () => {
             const messages = new JsonHubProtocol().parseMessages(payload);
@@ -146,18 +147,13 @@ describe("JsonHubProtocol", () => {
         }));
 
     ([
-        // ["message with no payload", `{}${TextMessageFormat.RecordSeparator}`, new Error("Invalid payload.")],
-        // ["message with empty array", "[0x01, 0x90]", new Error("Invalid payload.")],
-        // ["message without outer array", "[0x01, 0xc2]", new Error("Invalid payload.")],
-        // ["message with out-of-range message type", "[0x03, 0x92, 0x05, 0x80]", new Error("Invalid message type.")],
-        // ["message with non-integer message type", "[0x04, 0x92, 0xa1, 0x78, 0x80]", new Error("Invalid message type.")],
-        // ["message with invalid headers", "[0x03, 0x92, 0x01, 0x05]", new Error("Invalid headers.")],
-        // ["Invocation message with invalid invocation id", "[0x03, 0x92, 0x01, 0x80]", new Error("Invalid payload for Invocation message.")],
-        // ["StreamItem message with invalid invocation id", "[0x03, 0x92, 0x02, 0x80]", new Error("Invalid payload for stream Result message.")],
-        // ["Completion message with invalid invocation id", "[0x04, 0x93, 0x03, 0x80, 0xa0]", new Error("Invalid payload for Completion message.")],
-        // ["Completion message with unexpected result", "[0x05, 0x94, 0x03, 0x80, 0xa0, 0x03]", new Error("Invalid payload for Completion message.")],
-        // ["Completion message with missing result", "[0x05, 0x94, 0x03, 0x80, 0xa0, 0x01]", new Error("Invalid payload for Completion message.")],
-        // ["Completion message with missing error", "[0x05, 0x94, 0x03, 0x80, 0xa0, 0x03]", new Error("Invalid payload for Completion message.")],
+        ["message with empty payload", `{}${TextMessageFormat.RecordSeparator}`, new Error("Invalid payload.")],
+        ["message with out-of-range message type", `{\"type\":5}${TextMessageFormat.RecordSeparator}`, new Error("Invalid message type.")],
+        ["message with non-integer message type", `{\"type\":\"a\"}${TextMessageFormat.RecordSeparator}`, new Error("Invalid message type.")],
+        ["Invocation message with invalid invocation id", `{\"type\":1}${TextMessageFormat.RecordSeparator}`, new Error("Invalid payload for Invocation message.")],
+        ["StreamItem message with invalid invocation id", `{\"type\":2}${TextMessageFormat.RecordSeparator}`, new Error("Invalid payload for StreamItem message.")],
+        ["Completion message with invalid invocation id", `{\"type\":3}${TextMessageFormat.RecordSeparator}`, new Error("Invalid payload for Completion message.")],
+        ["Completion message with result and error", `{\"type\":3,\"invocationId\":\"\",\"result\":2,\"error\":\"error\"}${TextMessageFormat.RecordSeparator}`, new Error("Invalid payload for Completion message.")],
     ] as Array<[string, string, Error]>).forEach(([name, payload, expectedError]) =>
         it("throws for " + name, () => {
             expect(() => new JsonHubProtocol().parseMessages(payload))
