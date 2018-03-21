@@ -99,7 +99,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                 LoggerMessage.Define<string>(LogLevel.Debug, new EventId(29, "TransportFailed"), "Skipping transport {TransportName} because it failed to initialize.");
 
             private static readonly Action<ILogger, Exception> _webSocketsNotSupportedByOS =
-                LoggerMessage.Define(LogLevel.Debug, new EventId(30, "WebSocketsNotSupportedByOS"), "Skipping web sockets they are not supported by the OS.");
+                LoggerMessage.Define(LogLevel.Debug, new EventId(30, "WebSocketsNotSupportedByOS"), "Skipping web sockets because they are not supported by the OS.");
 
             public static void HttpConnectionStarting(ILogger logger)
             {
