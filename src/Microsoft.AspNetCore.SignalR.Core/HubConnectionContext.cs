@@ -91,7 +91,7 @@ namespace Microsoft.AspNetCore.SignalR
                 return new ValueTask(CompleteWriteAsync(task));
             }
 
-            // Otherwise, release the lock
+            // Otherwise, release the lock acquired when entering WriteAsync
             _writeLock.Release();
 
             return default;
@@ -129,6 +129,7 @@ namespace Microsoft.AspNetCore.SignalR
             }
             finally
             {
+                // Release the lock acquired when entering WriteAsync
                 _writeLock.Release();
             }
         }
@@ -137,6 +138,7 @@ namespace Microsoft.AspNetCore.SignalR
         {
             try
             {
+                // Failed to get the lock immediately when entering WriteAsync so await until it is available
                 await _writeLock.WaitAsync();
 
                 await WriteCore(message);

@@ -37,9 +37,9 @@ namespace Microsoft.AspNetCore.SignalR
             return new Enumerator(this);
         }
 
-        public struct Enumerator : IEnumerator<HubConnectionContext>
+        public readonly struct Enumerator : IEnumerator<HubConnectionContext>
         {
-            private IEnumerator<KeyValuePair<string, HubConnectionContext>> _enumerator;
+            private readonly IEnumerator<KeyValuePair<string, HubConnectionContext>> _enumerator;
 
             public Enumerator(HubConnectionStore hubConnectionList)
             {
