@@ -375,7 +375,7 @@ namespace Microsoft.AspNetCore.SignalR
                 LoggerMessage.Define(LogLevel.Error, new EventId(5, "HandshakeFailed"), "Failed connection handshake.");
 
             private static readonly Action<ILogger, Exception> _failedWritingMessage =
-                LoggerMessage.Define(LogLevel.Trace, new EventId(6, "FailedWritingMessage"), "Failed writing message.");
+                LoggerMessage.Define(LogLevel.Debug, new EventId(6, "FailedWritingMessage"), "Failed writing message.");
 
             public static void HandshakeComplete(ILogger logger, string hubProtocol)
             {
