@@ -12,7 +12,7 @@ namespace Microsoft.AspNetCore.SignalR
 {
     public class DefaultHubLifetimeManager<THub> : HubLifetimeManager<THub> where THub : Hub
     {
-        private readonly HubConnectionList _connections = new HubConnectionList();
+        private readonly HubConnectionStore _connections = new HubConnectionStore();
         private readonly HubGroupList _groups = new HubGroupList();
         private readonly ILogger _logger;
 

@@ -7,7 +7,7 @@ using System.Collections.Generic;
 
 namespace Microsoft.AspNetCore.SignalR
 {
-    public class HubConnectionList
+    public class HubConnectionStore
     {
         private readonly ConcurrentDictionary<string, HubConnectionContext> _connections = new ConcurrentDictionary<string, HubConnectionContext>();
 
@@ -41,7 +41,7 @@ namespace Microsoft.AspNetCore.SignalR
         {
             private IEnumerator<KeyValuePair<string, HubConnectionContext>> _enumerator;
 
-            public Enumerator(HubConnectionList hubConnectionList)
+            public Enumerator(HubConnectionStore hubConnectionList)
             {
                 _enumerator = hubConnectionList._connections.GetEnumerator();
             }
