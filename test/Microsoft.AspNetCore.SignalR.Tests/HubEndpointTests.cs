@@ -384,7 +384,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var endPointTask = await client.ConnectAsync(endPoint);
 
                 Assert.NotNull(client.HandshakeResponseMessage);
-                Assert.Equal("The protocol 'json' is supported. But the minimum protocol version allowed is 1 and the client tried version 9001.", client.HandshakeResponseMessage.Error);
+                Assert.Equal("The server does not support version 9001 of the 'json' protocol.", client.HandshakeResponseMessage.Error);
 
                 client.Dispose();
 

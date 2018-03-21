@@ -239,11 +239,11 @@ namespace Microsoft.AspNetCore.SignalR
                                         return false;
                                     }
 
-                                    if (!Protocol.CheckVersionSupport(handshakeRequestMessage.Version, out var minimumSupportedVersion))
+                                    if (!Protocol.IsVersionSupported(handshakeRequestMessage.Version))
                                     {
-                                        Log.ProtocolVersionFailed(_logger, minimumSupportedVersion, handshakeRequestMessage.Protocol, handshakeRequestMessage.Version);
+                                        Log.ProtocolVersionFailed(_logger, handshakeRequestMessage.Protocol, handshakeRequestMessage.Version);
                                         await WriteHandshakeResponseAsync(new HandshakeResponseMessage(
-                                            $"The protocol '{handshakeRequestMessage.Protocol}' is supported. But the minimum protocol version allowed is {minimumSupportedVersion} and the client tried version {handshakeRequestMessage.Version}."));
+                                            $"The server does not support version {handshakeRequestMessage.Version} of the '{handshakeRequestMessage.Protocol}' protocol."));
                                         return false;
                                     }
 
@@ -414,7 +414,7 @@ namespace Microsoft.AspNetCore.SignalR
 
             public static void ProtocolVersionFailed(ILogger logger, int serverVersion, string protocolName, int clientVersion)
             {
-                _protocolVersionFailed(logger, serverVersion, protocolName, clientVersion, null);
+                _protocolVersionFailed(logger, protocolName, version, null);
             }
         }
 

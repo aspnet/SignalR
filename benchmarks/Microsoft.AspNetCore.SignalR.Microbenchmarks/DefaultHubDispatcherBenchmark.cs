@@ -53,9 +53,8 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             public int Version => 1;
             public TransferFormat TransferFormat { get; }
 
-            public bool CheckVersionSupport(int version, out int minimumSupportedVersion)
+            public bool IsVersionSupported(int version)
             {
-                minimumSupportedVersion = Version;
                 return true;
             }
 

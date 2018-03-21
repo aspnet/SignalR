@@ -49,15 +49,9 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
         public TransferFormat TransferFormat => TransferFormat.Text;
 
-        public bool CheckVersionSupport(int version, out int minimumSupportedVersion)
+        public bool IsVersionSupported(int version)
         {
-            minimumSupportedVersion = Version;
-            if (version == Version)
-            {
-                return true;
-            }
-
-            return false;
+            return version == Version;
         }
 
         public bool TryParseMessages(ReadOnlyMemory<byte> input, IInvocationBinder binder, IList<HubMessage> messages)

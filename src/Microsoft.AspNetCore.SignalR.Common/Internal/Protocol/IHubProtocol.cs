@@ -20,6 +20,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
         void WriteMessage(HubMessage message, Stream output);
 
-        bool CheckVersionSupport(int version, out int minimumSupportedVersion);
+        bool IsVersionSupported(int version);
     }
 }

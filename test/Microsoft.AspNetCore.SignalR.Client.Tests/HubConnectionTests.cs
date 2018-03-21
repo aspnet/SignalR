@@ -256,9 +256,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
             public TransferFormat TransferFormat => TransferFormat.Binary;
 
-            public bool CheckVersionSupport(int version, out int minimumSupportedVersion)
+            public bool IsVersionSupported(int version)
             {
-                minimumSupportedVersion = Version;
                 return true;
             }
 

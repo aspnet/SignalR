@@ -37,7 +37,7 @@ After opening a connection to the server the client must send a `HandshakeReques
 The `HandshakeRequest` message contains the following properties:
 
 * `protocol` - the name of the protocol to be used for messages exchanged between the server and the client
-* `version` - the version of the protocol to be used for messages exchanged between the server and the client
+* `version` - the value must always be 1, for both MessagePack and Json protocols
 
 Example:
 

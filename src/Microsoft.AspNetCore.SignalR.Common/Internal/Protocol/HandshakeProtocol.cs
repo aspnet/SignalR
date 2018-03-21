@@ -103,7 +103,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 var token = JToken.ReadFrom(reader);
                 var handshakeJObject = JsonUtils.GetObject(token);
                 var protocol = JsonUtils.GetRequiredProperty<string>(handshakeJObject, ProtocolPropertyName);
-                var protocolVersion = JsonUtils.GetRequiredProperty<int>(handshakeJObject, ProtocolVersionName);
+                var protocolVersion = JsonUtils.GetRequiredProperty<int>(handshakeJObject, ProtocolVersionName, JTokenType.Integer);
                 requestMessage = new HandshakeRequestMessage(protocol, protocolVersion);
             }
 
