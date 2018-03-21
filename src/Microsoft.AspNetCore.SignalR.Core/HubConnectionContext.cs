@@ -66,14 +66,6 @@ namespace Microsoft.AspNetCore.SignalR
         // Currently used only for streaming methods
         internal ConcurrentDictionary<string, CancellationTokenSource> ActiveRequestCancellationSources { get; } = new ConcurrentDictionary<string, CancellationTokenSource>();
 
-        public IPAddress RemoteIpAddress => Features.Get<IHttpConnectionFeature>()?.RemoteIpAddress;
-
-        public IPAddress LocalIpAddress => Features.Get<IHttpConnectionFeature>()?.LocalIpAddress;
-
-        public int? RemotePort => Features.Get<IHttpConnectionFeature>()?.RemotePort;
-
-        public int? LocalPort => Features.Get<IHttpConnectionFeature>()?.LocalPort;
-
         public virtual ValueTask WriteAsync(HubMessage message)
         {
             // We were unable to get the lock so take the slow async path of waiting for the semaphore
