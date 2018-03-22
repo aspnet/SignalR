@@ -233,7 +233,7 @@ describe("HubConnection", () => {
 
             connection.receive({
                 arguments: ["test"],
-                invocationId: 0,
+                invocationId: "0",
                 nonblocking: true,
                 target: "message",
                 type: MessageType.Invocation,
@@ -262,7 +262,7 @@ describe("HubConnection", () => {
 
             connection.receive({
                 arguments: ["test"],
-                invocationId: 0,
+                invocationId: "0",
                 nonblocking: true,
                 target: "message",
                 type: MessageType.Invocation,
@@ -282,7 +282,7 @@ describe("HubConnection", () => {
 
             connection.receive({
                 arguments: ["test"],
-                invocationId: 0,
+                invocationId: "0",
                 nonblocking: true,
                 target: "message",
                 type: MessageType.Invocation,
@@ -359,7 +359,7 @@ describe("HubConnection", () => {
 
             connection.receive({
                 arguments: [],
-                invocationId: 0,
+                invocationId: "0",
                 nonblocking: true,
                 target: "message",
                 type: MessageType.Invocation,
@@ -381,7 +381,7 @@ describe("HubConnection", () => {
 
             connection.receive({
                 arguments: [],
-                invocationId: 0,
+                invocationId: "0",
                 nonblocking: true,
                 target: "message",
                 type: MessageType.Invocation,
@@ -391,7 +391,7 @@ describe("HubConnection", () => {
 
             connection.receive({
                 arguments: [],
-                invocationId: 0,
+                invocationId: "0",
                 nonblocking: true,
                 target: "message",
                 type: MessageType.Invocation,
@@ -435,7 +435,7 @@ describe("HubConnection", () => {
             // invoke a method to make sure we are not trying to use null/undefined
             connection.receive({
                 arguments: [],
-                invocationId: 0,
+                invocationId: "0",
                 nonblocking: true,
                 target: "message",
                 type: MessageType.Invocation,

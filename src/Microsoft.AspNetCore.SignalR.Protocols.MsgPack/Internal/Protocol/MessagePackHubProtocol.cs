@@ -9,6 +9,8 @@ using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using Microsoft.AspNetCore.Protocols;
 using Microsoft.AspNetCore.SignalR.Internal.Formatters;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using MsgPack;
 using MsgPack.Serialization;
@@ -32,13 +34,21 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
         public TransferFormat TransferFormat => TransferFormat.Binary;
 
+        private readonly ILogger _logger;
+
         public MessagePackHubProtocol()
             : this(Options.Create(new MessagePackHubProtocolOptions()))
         { }
 
         public MessagePackHubProtocol(IOptions<MessagePackHubProtocolOptions> options)
+            : this(options, NullLoggerFactory.Instance.CreateLogger<MessagePackHubProtocol>())
+        {
+        }
+
+        public MessagePackHubProtocol(IOptions<MessagePackHubProtocolOptions> options, ILogger<MessagePackHubProtocol> logger)
         {
             SerializationContext = options.Value.SerializationContext;
+            _logger = logger;
         }
 
         public bool IsVersionSupported(int version)
@@ -63,7 +73,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             return messages.Count > 0;
         }
 
-        private static HubMessage ParseMessage(byte[] input, int startOffset, IInvocationBinder binder)
+        private static HubMessage ParseMessage(byte[] input, IInvocationBinder binder, ILogger logger)
         {
             using (var unpacker = Unpacker.Create(input, startOffset))
             {
@@ -89,6 +99,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                         return CreateCloseMessage(unpacker);
                     default:
                         // Future protocol changes can add message types, old clients can ignore them
+                        Log.UnknownMessageType(logger, messageType);
                         return null;
                 }
             }
@@ -538,6 +549,17 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             // allows for serializing objects that cannot be deserialized due to the lack of the default ctor etc.
             serializationContext.CompatibilityOptions.AllowAsymmetricSerializer = true;
             return serializationContext;
+        }
+
+        private static class Log
+        {
+            private static readonly Action<ILogger, int?, Exception> _unknownMessageType =
+                LoggerMessage.Define<int?>(LogLevel.Debug, new EventId(1, "UnknownMessageType"), "Unknown message type '{MessageType}' ignored.");
+
+            public static void UnknownMessageType(ILogger logger, int? messageType)
+            {
+                _unknownMessageType(logger, messageType, null);
+            }
         }
     }
 }

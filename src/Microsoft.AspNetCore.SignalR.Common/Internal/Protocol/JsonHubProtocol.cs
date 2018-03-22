@@ -8,6 +8,8 @@ using System.Runtime.ExceptionServices;
 using System.Text;
 using Microsoft.AspNetCore.Protocols;
 using Microsoft.AspNetCore.SignalR.Internal.Formatters;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -34,13 +36,21 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         // ONLY to be used for application payloads (args, return values, etc.)
         public JsonSerializer PayloadSerializer { get; }
 
+        private readonly ILogger _logger;
+
         public JsonHubProtocol() : this(Options.Create(new JsonHubProtocolOptions()))
         {
         }
 
         public JsonHubProtocol(IOptions<JsonHubProtocolOptions> options)
+            : this(options, NullLoggerFactory.Instance.CreateLogger<JsonHubProtocol>())
+        {
+        }
+
+        public JsonHubProtocol(IOptions<JsonHubProtocolOptions> options, ILogger<JsonHubProtocol> logger)
         {
             PayloadSerializer = JsonSerializer.Create(options.Value.PayloadSerializerSettings);
+            _logger = logger;
         }
 
         public string Name => ProtocolName;
@@ -290,6 +300,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                         throw new InvalidDataException($"Missing required property '{TypePropertyName}'.");
                     default:
                         // Future protocol changes can add message types, old clients can ignore them
+                        Log.UnknownMessageType(_logger, type);
                         return null;
                 }
 
@@ -643,6 +654,17 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         internal static JsonSerializerSettings CreateDefaultSerializerSettings()
         {
             return new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
+        }
+
+        private static class Log
+        {
+            private static readonly Action<ILogger, int?, Exception> _unknownMessageType =
+                LoggerMessage.Define<int?>(LogLevel.Debug, new EventId(1, "UnknownMessageType"), "Unknown message type '{MessageType}' ignored.");
+
+            public static void UnknownMessageType(ILogger logger, int? messageType)
+            {
+                _unknownMessageType(logger, messageType, null);
+            }
         }
     }
 }

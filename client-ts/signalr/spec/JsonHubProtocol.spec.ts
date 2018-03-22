@@ -3,6 +3,7 @@
 
 import { CompletionMessage, InvocationMessage, MessageType, StreamItemMessage } from "../src/IHubProtocol";
 import { JsonHubProtocol } from "../src/JsonHubProtocol";
+import { NullLogger } from "../src/Loggers";
 import { TextMessageFormat } from "../src/TextMessageFormat";
 
 describe("JsonHubProtocol", () => {
@@ -15,7 +16,7 @@ describe("JsonHubProtocol", () => {
         } as InvocationMessage;
 
         const protocol = new JsonHubProtocol();
-        const parsedMessages = protocol.parseMessages(protocol.writeMessage(invocation));
+        const parsedMessages = protocol.parseMessages(protocol.writeMessage(invocation), new NullLogger());
         expect(parsedMessages).toEqual([invocation]);
     });
 
@@ -28,7 +29,7 @@ describe("JsonHubProtocol", () => {
         } as InvocationMessage;
 
         const protocol = new JsonHubProtocol();
-        const parsedMessages = protocol.parseMessages(protocol.writeMessage(invocation));
+        const parsedMessages = protocol.parseMessages(protocol.writeMessage(invocation), new NullLogger());
         expect(parsedMessages).toEqual([invocation]);
     });
 
@@ -43,7 +44,7 @@ describe("JsonHubProtocol", () => {
         } as InvocationMessage;
 
         const protocol = new JsonHubProtocol();
-        const parsedMessages = protocol.parseMessages(protocol.writeMessage(invocation));
+        const parsedMessages = protocol.parseMessages(protocol.writeMessage(invocation), new NullLogger());
         expect(parsedMessages).toEqual([invocation]);
     });
 
@@ -57,7 +58,7 @@ describe("JsonHubProtocol", () => {
         } as InvocationMessage;
 
         const protocol = new JsonHubProtocol();
-        const parsedMessages = protocol.parseMessages(protocol.writeMessage(invocation));
+        const parsedMessages = protocol.parseMessages(protocol.writeMessage(invocation), new NullLogger());
         expect(parsedMessages).toEqual([invocation]);
     });
 
@@ -105,7 +106,7 @@ describe("JsonHubProtocol", () => {
         } as CompletionMessage],
     ] as Array<[string, CompletionMessage]>).forEach(([payload, expectedMessage]) =>
         it("can read Completion message", () => {
-            const messages = new JsonHubProtocol().parseMessages(payload);
+            const messages = new JsonHubProtocol().parseMessages(payload, new NullLogger());
             expect(messages).toEqual([expectedMessage]);
         }));
 
@@ -126,7 +127,7 @@ describe("JsonHubProtocol", () => {
         } as StreamItemMessage],
     ] as Array<[string, StreamItemMessage]>).forEach(([payload, expectedMessage]) =>
         it("can read StreamItem message", () => {
-            const messages = new JsonHubProtocol().parseMessages(payload);
+            const messages = new JsonHubProtocol().parseMessages(payload, new NullLogger());
             expect(messages).toEqual([expectedMessage]);
         }));
 
@@ -142,13 +143,14 @@ describe("JsonHubProtocol", () => {
         } as StreamItemMessage],
     ] as Array<[string, StreamItemMessage]>).forEach(([payload, expectedMessage]) =>
         it("can read message with headers", () => {
-            const messages = new JsonHubProtocol().parseMessages(payload);
+            const messages = new JsonHubProtocol().parseMessages(payload, new NullLogger());
             expect(messages).toEqual([expectedMessage]);
         }));
 
     ([
         ["message with empty payload", `{}${TextMessageFormat.RecordSeparator}`, new Error("Invalid payload.")],
         ["Invocation message with invalid invocation id", `{"type":1,"invocationId":1,"target":"method"}${TextMessageFormat.RecordSeparator}`, new Error("Invalid payload for Invocation message.")],
+        ["Invocation message with empty string invocation id", `{"type":1,"invocationId":"","target":"method"}${TextMessageFormat.RecordSeparator}`, new Error("Invalid payload for Invocation message.")],
         ["Invocation message with invalid target", `{"type":1,"invocationId":"1","target":1}${TextMessageFormat.RecordSeparator}`, new Error("Invalid payload for Invocation message.")],
         ["StreamItem message with missing invocation id", `{"type":2}${TextMessageFormat.RecordSeparator}`, new Error("Invalid payload for StreamItem message.")],
         ["StreamItem message with invalid invocation id", `{"type":2,"invocationId":1}${TextMessageFormat.RecordSeparator}`, new Error("Invalid payload for StreamItem message.")],
@@ -158,13 +160,13 @@ describe("JsonHubProtocol", () => {
         ["Completion message with non-string error", `{"type":3,"invocationId":"1","error":21}${TextMessageFormat.RecordSeparator}`, new Error("Invalid payload for Completion message.")],
     ] as Array<[string, string, Error]>).forEach(([name, payload, expectedError]) =>
         it("throws for " + name, () => {
-            expect(() => new JsonHubProtocol().parseMessages(payload))
+            expect(() => new JsonHubProtocol().parseMessages(payload, new NullLogger()))
                 .toThrow(expectedError);
         }));
 
     it("can read multiple messages", () => {
         const payload = `{"type":2, "invocationId": "abc", "headers": {}, "item": 8}${TextMessageFormat.RecordSeparator}{"type":3, "invocationId": "abc", "headers": {}, "result": "OK", "error": null}${TextMessageFormat.RecordSeparator}`;
-        const messages = new JsonHubProtocol().parseMessages(payload);
+        const messages = new JsonHubProtocol().parseMessages(payload, new NullLogger());
         expect(messages).toEqual([
             {
                 headers: {},
@@ -184,7 +186,7 @@ describe("JsonHubProtocol", () => {
 
     it("can read ping message", () => {
         const payload = `{"type":6}${TextMessageFormat.RecordSeparator}`;
-        const messages = new JsonHubProtocol().parseMessages(payload);
+        const messages = new JsonHubProtocol().parseMessages(payload, new NullLogger());
         expect(messages).toEqual([
             {
                 type: MessageType.Ping,

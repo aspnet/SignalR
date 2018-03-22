@@ -1,7 +1,7 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-import { CompletionMessage, HubMessage, IHubProtocol, InvocationMessage, MessageHeaders, MessageType, StreamInvocationMessage, StreamItemMessage, TransferFormat } from "@aspnet/signalr";
+import { CompletionMessage, HubMessage, IHubProtocol, ILogger, InvocationMessage, LogLevel, MessageHeaders, MessageType, StreamInvocationMessage, StreamItemMessage, TransferFormat } from "@aspnet/signalr";
 import { Buffer } from "buffer";
 import * as msgpack5 from "msgpack5";
 import { BinaryMessageFormat } from "./BinaryMessageFormat";
@@ -13,11 +13,11 @@ export class MessagePackHubProtocol implements IHubProtocol {
 
     public readonly transferFormat: TransferFormat = TransferFormat.Binary;
 
-    public parseMessages(input: ArrayBuffer): HubMessage[] {
-        return BinaryMessageFormat.parse(input).map((m) => this.parseMessage(m));
+    public parseMessages(input: ArrayBuffer, logger: ILogger): HubMessage[] {
+        return BinaryMessageFormat.parse(input).map((m) => this.parseMessage(m, logger));
     }
 
-    private parseMessage(input: Uint8Array): HubMessage {
+    private parseMessage(input: Uint8Array, logger: ILogger): HubMessage {
         if (input.length === 0) {
             throw new Error("Invalid payload.");
         }
@@ -43,6 +43,7 @@ export class MessagePackHubProtocol implements IHubProtocol {
                 return this.createCloseMessage(properties);
             default:
                 // Future protocol changes can add message types, old clients can ignore them
+                logger.log(LogLevel.Information, "Unknown message type '" + messageType + "' ignored.");
                 return null;
         }
     }

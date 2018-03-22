@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 import { CloseMessage, CompletionMessage, HubMessage, IHubProtocol, InvocationMessage, MessageType, PingMessage, StreamItemMessage } from "./IHubProtocol";
+import { ILogger, LogLevel } from "./ILogger";
 import { TextMessageFormat } from "./TextMessageFormat";
 import { TransferFormat } from "./Transports";
 
@@ -14,7 +15,7 @@ export class JsonHubProtocol implements IHubProtocol {
 
     public readonly transferFormat: TransferFormat = TransferFormat.Text;
 
-    public parseMessages(input: string): HubMessage[] {
+    public parseMessages(input: string, logger: ILogger): HubMessage[] {
         if (!input) {
             return [];
         }
@@ -46,6 +47,7 @@ export class JsonHubProtocol implements IHubProtocol {
                     break;
                 default:
                     // Future protocol changes can add message types, old clients can ignore them
+                    logger.log(LogLevel.Information, "Unknown message type '" + parsedMessage.type + "' ignored.");
                     continue;
             }
             hubMessages.push(parsedMessage);
@@ -61,7 +63,7 @@ export class JsonHubProtocol implements IHubProtocol {
     private isInvocationMessage(message: InvocationMessage): void {
         this.assertNotEmptyString(message.target, "Invalid payload for Invocation message.");
 
-        if (message.invocationId) {
+        if (message.invocationId !== undefined) {
             this.assertNotEmptyString(message.invocationId, "Invalid payload for Invocation message.");
         }
     }
@@ -87,11 +89,7 @@ export class JsonHubProtocol implements IHubProtocol {
     }
 
     private assertNotEmptyString(value: any, errorMessage: string): void {
-        if (typeof value !== "string") {
-            throw new Error(errorMessage);
-        }
-
-        if (!value || value === "") {
+        if (typeof value !== "string" || value === "") {
             throw new Error(errorMessage);
         }
     }
