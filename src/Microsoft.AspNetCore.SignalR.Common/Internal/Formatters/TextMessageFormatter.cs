@@ -9,7 +9,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Formatters
     {
         // This record separator is supposed to be used only for JSON payloads where 0x1e character
         // will not occur (is not a valid character) and therefore it is safe to not escape it
-        internal static readonly byte RecordSeparator = 0x1e;
+        public static readonly byte RecordSeparator = 0x1e;
 
         public static void WriteRecordSeparator(Stream output)
         {
