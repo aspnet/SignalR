@@ -25,18 +25,6 @@
     <Folder Include="wwwroot\js\" />
   </ItemGroup>
 
-  <ItemGroup>
-    <TypeScriptCompile Include="selenium\run-ci-tests.ts" />
-    <TypeScriptCompile Include="selenium\run-tests.ts" />
-    <TypeScriptCompile Include="ts\Common.ts" />
-    <TypeScriptCompile Include="ts\ConnectionTests.ts" />
-    <TypeScriptCompile Include="ts\HubConnectionTests.ts" />
-    <TypeScriptCompile Include="ts\index.ts" />
-    <TypeScriptCompile Include="ts\Utils.ts" />
-    <TypeScriptCompile Include="ts\WebDriverReporter.ts" />
-    <TypeScriptCompile Include="ts\WebSocketTests.ts" />
-  </ItemGroup>
-
   <Target Name="ClientBuild" BeforeTargets="AfterBuild">
       <ItemGroup>
         <MsgPack5Files Include="$(MSBuildThisFileDirectory)../signalr-protocol-msgpack/node_modules/msgpack5/dist/*.js" />
