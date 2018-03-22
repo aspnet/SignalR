@@ -497,7 +497,7 @@ namespace Microsoft.AspNetCore.Sockets
                 connection.Features.Set<IConnectionInherentKeepAliveFeature>(new ConnectionInherentKeepAliveFeature(options.LongPolling.PollTimeout));
 
                 // For long polling, the requests come and go but the connection is still alive.
-                // to make the IHttpContextFeature work well, we make a copy of the relevant properties
+                // To make the IHttpContextFeature work well, we make a copy of the relevant properties
                 // to a new HttpContext. This means that it's impossible to affect the context
                 // with subsequent requests.
                 var existing = connection.GetHttpContext();
