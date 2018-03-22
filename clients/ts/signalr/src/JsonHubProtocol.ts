@@ -3,6 +3,7 @@
 
 import { CloseMessage, CompletionMessage, HubMessage, IHubProtocol, InvocationMessage, MessageType, PingMessage, StreamItemMessage } from "./IHubProtocol";
 import { ILogger, LogLevel } from "./ILogger";
+import { NullLogger } from "./Loggers";
 import { TextMessageFormat } from "./TextMessageFormat";
 import { TransferFormat } from "./Transports";
 
@@ -18,6 +19,10 @@ export class JsonHubProtocol implements IHubProtocol {
     public parseMessages(input: string, logger: ILogger): HubMessage[] {
         if (!input) {
             return [];
+        }
+
+        if (logger === null) {
+            logger = new NullLogger();
         }
 
         // Parse the messages
