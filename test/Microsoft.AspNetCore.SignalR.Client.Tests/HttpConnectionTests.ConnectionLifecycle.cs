@@ -401,11 +401,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 {
                     var httpHandler = new TestHttpMessageHandler();
 
-                    var sseStartTcs = new TaskCompletionSource<object>();
-                    httpHandler.OnGet("/?id=00000000-0000-0000-0000-000000000000", (_, __) =>
+                    var connectResponseTcs = new TaskCompletionSource<object>();
+                    httpHandler.OnGet("/?id=00000000-0000-0000-0000-000000000000", async (_, __) =>
                     {
-                        sseStartTcs.TrySetResult(null);
-                        return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.Accepted));
+                        await connectResponseTcs.Task;
+                        return ResponseUtils.CreateResponse(HttpStatusCode.Accepted);
                     });
 
                     var sse = new ServerSentEventsTransport(new HttpClient(httpHandler));
@@ -414,9 +414,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                         CreateConnection(httpHandler, loggerFactory: loggerFactory, url: null, transport: sse),
                         async (connection, closed) =>
                         {
-                            Assert.False(sseStartTcs.Task.IsCompleted);
-                            await connection.StartAsync(TransferFormat.Text).OrTimeout();
-                            Assert.True(sseStartTcs.Task.IsCompleted);
+                            var startTask = connection.StartAsync(TransferFormat.Text).OrTimeout();
+                            Assert.False(connectResponseTcs.Task.IsCompleted);
+                            Assert.False(startTask.IsCompleted);
+                            connectResponseTcs.TrySetResult(null);
+                            await startTask;
                         });
                 }
             }
