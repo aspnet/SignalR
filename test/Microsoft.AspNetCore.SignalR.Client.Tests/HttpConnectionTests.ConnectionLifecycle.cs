@@ -371,6 +371,57 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             }
 
             [Fact]
+            public async Task SSEWontStartIfSuccessfulConnectionIsNotEstablished()
+            {
+                using (StartLog(out var loggerFactory))
+                {
+                    var httpHandler = new TestHttpMessageHandler();
+
+                    httpHandler.OnGet("/?id=00000000-0000-0000-0000-000000000000", (_, __) =>
+                    {
+                        return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.InternalServerError));
+                    });
+
+                    var sse = new ServerSentEventsTransport(new HttpClient(httpHandler));
+
+                    await WithConnectionAsync(
+                        CreateConnection(httpHandler, loggerFactory: loggerFactory, url: null, transport: sse),
+                        async (connection, closed) =>
+                        {
+                            await Assert.ThrowsAsync<InvalidOperationException>(
+                                () => connection.StartAsync(TransferFormat.Text).OrTimeout());
+                        });
+                }
+            }
+
+            [Fact]
+            public async Task SSEWaitsForResponseToStart()
+            {
+                using (StartLog(out var loggerFactory))
+                {
+                    var httpHandler = new TestHttpMessageHandler();
+
+                    var sseStartTcs = new TaskCompletionSource<object>();
+                    httpHandler.OnGet("/?id=00000000-0000-0000-0000-000000000000", (_, __) =>
+                    {
+                        sseStartTcs.TrySetResult(null);
+                        return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.Accepted));
+                    });
+
+                    var sse = new ServerSentEventsTransport(new HttpClient(httpHandler));
+
+                    await WithConnectionAsync(
+                        CreateConnection(httpHandler, loggerFactory: loggerFactory, url: null, transport: sse),
+                        async (connection, closed) =>
+                        {
+                            Assert.False(sseStartTcs.Task.IsCompleted);
+                            await connection.StartAsync(TransferFormat.Text).OrTimeout();
+                            Assert.True(sseStartTcs.Task.IsCompleted);
+                        });
+                }
+            }
+
+            [Fact]
             public async Task TransportIsStoppedWhenConnectionIsStopped()
             {
                 var testHttpHandler = new TestHttpMessageHandler();
