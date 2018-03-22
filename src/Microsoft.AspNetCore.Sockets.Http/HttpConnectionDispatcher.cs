@@ -543,11 +543,15 @@ namespace Microsoft.AspNetCore.Sockets
 
             var existingConnectionFeature = context.Features.Get<IHttpConnectionFeature>();
             var connectionFeature = new HttpConnectionFeature();
-            connectionFeature.ConnectionId = existingConnectionFeature.ConnectionId;
-            connectionFeature.LocalIpAddress = existingConnectionFeature.LocalIpAddress;
-            connectionFeature.LocalPort = existingConnectionFeature.LocalPort;
-            connectionFeature.RemoteIpAddress = existingConnectionFeature.RemoteIpAddress;
-            connectionFeature.RemotePort = existingConnectionFeature.RemotePort;
+
+            if (existingConnectionFeature != null)
+            {
+                connectionFeature.ConnectionId = existingConnectionFeature.ConnectionId;
+                connectionFeature.LocalIpAddress = existingConnectionFeature.LocalIpAddress;
+                connectionFeature.LocalPort = existingConnectionFeature.LocalPort;
+                connectionFeature.RemoteIpAddress = existingConnectionFeature.RemoteIpAddress;
+                connectionFeature.RemotePort = existingConnectionFeature.RemotePort;
+            }
 
             // The response is a dud, you can't do anything with it anyways
             var responseFeature = new HttpResponseFeature();

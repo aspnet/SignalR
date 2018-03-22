@@ -417,7 +417,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                     Assert.Equal(4563, connectionHttpContext.Connection.LocalPort);
                     Assert.Equal(IPAddress.IPv6Any, connectionHttpContext.Connection.RemoteIpAddress);
                     Assert.Equal(43456, connectionHttpContext.Connection.RemotePort);
-                    Assert.Null(connectionHttpContext.RequestServices);
+                    Assert.NotNull(connectionHttpContext.RequestServices);
                 }
             }
         }
@@ -798,7 +798,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 await task;
 
                 Assert.Equal(DefaultConnectionContext.ConnectionStatus.Inactive, connection.Status);
-                Assert.Null(connection.GetHttpContext());
+                Assert.NotNull(connection.GetHttpContext());
 
                 Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
             }
