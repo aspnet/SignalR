@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Protocols;
+using Microsoft.AspNetCore.Protocols.Features;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
@@ -24,7 +25,11 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         [GlobalSetup]
         public void GlobalSetup()
         {
-            _hubConnection = new HubConnection(new TestConnection(), new JsonHubProtocol(), new NullLoggerFactory());
+            var connection = new TestConnection();
+            // prevents keep alive time being activated
+            connection.Features.Set(new ConnectionInherentKeepAliveFeature(TimeSpan.Zero));
+
+            _hubConnection = new HubConnection(connection, new JsonHubProtocol(), new NullLoggerFactory());
         }
 
         [Benchmark]
@@ -67,7 +72,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         }
 
         public event Action<Exception> Closed;
-        public IFeatureCollection Features { get; }
+        public IFeatureCollection Features { get; } = new FeatureCollection();
 
         protected virtual void OnClosed(Exception obj)
         {
