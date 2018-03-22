@@ -42,7 +42,8 @@ export class MessagePackHubProtocol implements IHubProtocol {
             case MessageType.Close:
                 return this.createCloseMessage(properties);
             default:
-                throw new Error("Invalid message type.");
+                // Future protocol changes can add message types, old clients can ignore them
+                return null;
         }
     }
 

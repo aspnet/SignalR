@@ -1,10 +1,9 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-import { HubMessage, IHubProtocol, MessageType } from "./IHubProtocol";
+import { CloseMessage, CompletionMessage, HubMessage, IHubProtocol, InvocationMessage, MessageType, PingMessage, StreamItemMessage } from "./IHubProtocol";
 import { TextMessageFormat } from "./TextMessageFormat";
 import { TransferFormat } from "./Transports";
-import { InvocationMessage, StreamItemMessage, CompletionMessage, PingMessage, CloseMessage } from "./browser-index";
 
 export const JSON_HUB_PROTOCOL_NAME: string = "json";
 
@@ -47,7 +46,8 @@ export class JsonHubProtocol implements IHubProtocol {
                     // All optional values, no need to validate
                     break;
                 default:
-                    throw new Error("Invalid message type.");
+                    // Future protocol changes can add message types, old clients can ignore them
+                    continue;
             }
             hubMessages.push(parsedMessage);
         }

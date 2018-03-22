@@ -53,7 +53,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 var isArray = MemoryMarshal.TryGetArray(payload, out var arraySegment);
                 // This will never be false unless we started using un-managed buffers
                 Debug.Assert(isArray);
-                messages.Add(ParseMessage(arraySegment.Array, arraySegment.Offset, binder));
+                var message = ParseMessage(arraySegment.Array, arraySegment.Offset, binder);
+                if (message != null)
+                {
+                    messages.Add(message);
+                }
             }
 
             return messages.Count > 0;
@@ -84,7 +88,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                     case HubProtocolConstants.CloseMessageType:
                         return CreateCloseMessage(unpacker);
                     default:
-                        throw new FormatException($"Invalid message type: {messageType}.");
+                        // Future protocol changes can add message types, old clients can ignore them
+                        return null;
                 }
             }
         }

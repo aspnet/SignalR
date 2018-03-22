@@ -148,8 +148,6 @@ describe("JsonHubProtocol", () => {
 
     ([
         ["message with empty payload", `{}${TextMessageFormat.RecordSeparator}`, new Error("Invalid payload.")],
-        ["message with out-of-range message type", `{\"type\":5}${TextMessageFormat.RecordSeparator}`, new Error("Invalid message type.")],
-        ["message with non-integer message type", `{\"type\":\"a\"}${TextMessageFormat.RecordSeparator}`, new Error("Invalid message type.")],
         ["Invocation message with invalid invocation id", `{\"type\":1}${TextMessageFormat.RecordSeparator}`, new Error("Invalid payload for Invocation message.")],
         ["StreamItem message with invalid invocation id", `{\"type\":2}${TextMessageFormat.RecordSeparator}`, new Error("Invalid payload for StreamItem message.")],
         ["Completion message with invalid invocation id", `{\"type\":3}${TextMessageFormat.RecordSeparator}`, new Error("Invalid payload for Completion message.")],
