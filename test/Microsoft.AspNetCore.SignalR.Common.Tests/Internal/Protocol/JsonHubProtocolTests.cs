@@ -173,7 +173,6 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         [InlineData("{'type':4,'invocationId':'42','target':'foo'}", "Missing required property 'arguments'.")]
         [InlineData("{'type':4,'invocationId':'42','target':'foo','arguments':{}}", "Expected 'arguments' to be of type Array.")]
 
-        [InlineData("{'type':9}", "Unknown message type: 9")]
         [InlineData("{'type':'foo'}", "Expected 'type' to be of type Integer.")]
 
         [InlineData("{'type':3,'invocationId':'42','error':'foo','result':true}", "The 'error' and 'result' properties are mutually exclusive.")]

@@ -149,8 +149,6 @@ describe("MessageHubProtocol", () => {
         ["message with no payload", [0x00], new Error("Invalid payload.")],
         ["message with empty array", [0x01, 0x90], new Error("Invalid payload.")],
         ["message without outer array", [0x01, 0xc2], new Error("Invalid payload.")],
-        ["message with out-of-range message type", [0x03, 0x92, 0x05, 0x80], new Error("Invalid message type.")],
-        ["message with non-integer message type", [0x04, 0x92, 0xa1, 0x78, 0x80], new Error("Invalid message type.")],
         ["message with invalid headers", [0x03, 0x92, 0x01, 0x05], new Error("Invalid headers.")],
         ["Invocation message with invalid invocation id", [0x03, 0x92, 0x01, 0x80], new Error("Invalid payload for Invocation message.")],
         ["StreamItem message with invalid invocation id", [0x03, 0x92, 0x02, 0x80], new Error("Invalid payload for StreamItem message.")],

@@ -315,7 +315,6 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         {
             // Message Type
             new object[] { new InvalidMessageData("MessageTypeString", Array("foo"), "Reading 'messageType' as Int32 failed.") },
-            new object[] { new InvalidMessageData("MessageTypeOutOfRange", Array(10), "Invalid message type: 10.") },
 
             // Headers
             new object[] { new InvalidMessageData("HeadersNotAMap", Array(HubProtocolConstants.InvocationMessageType, "foo"), "Reading map length for 'headers' failed.") },

@@ -21,12 +21,11 @@ export class JsonHubProtocol implements IHubProtocol {
 
         // Parse the messages
         const messages = TextMessageFormat.parse(input);
-        console.log(messages);
 
         const hubMessages = [];
         for (const message of messages) {
             const parsedMessage = JSON.parse(message) as HubMessage;
-            if (parsedMessage.type === undefined) {
+            if (typeof parsedMessage.type !== "number") {
                 throw new Error("Invalid payload.");
             }
             switch (parsedMessage.type) {
@@ -60,15 +59,16 @@ export class JsonHubProtocol implements IHubProtocol {
     }
 
     private isInvocationMessage(message: InvocationMessage): void {
-        if (message.target === undefined) {
-            throw new Error("Invalid payload for Invocation message.");
+        this.assertNotEmptyString(message.target, "Invalid payload for Invocation message.");
+
+        if (message.invocationId) {
+            this.assertNotEmptyString(message.invocationId, "Invalid payload for Invocation message.");
         }
     }
 
     private isStreamItemMessage(message: StreamItemMessage): void {
-        if (message.invocationId === undefined) {
-            throw new Error("Invalid payload for StreamItem message.");
-        }
+        this.assertNotEmptyString(message.invocationId, "Invalid payload for StreamItem message.");
+
         if (message.item === undefined) {
             throw new Error("Invalid payload for StreamItem message.");
         }
@@ -79,8 +79,20 @@ export class JsonHubProtocol implements IHubProtocol {
             throw new Error("Invalid payload for Completion message.");
         }
 
-        if (message.invocationId === undefined) {
-            throw new Error("Invalid payload for Completion message.");
+        if (!message.result && message.error) {
+            this.assertNotEmptyString(message.error, "Invalid payload for Completion message.");
+        }
+
+        this.assertNotEmptyString(message.invocationId, "Invalid payload for Completion message.");
+    }
+
+    private assertNotEmptyString(value: any, errorMessage: string): void {
+        if (typeof value !== "string") {
+            throw new Error(errorMessage);
+        }
+
+        if (!value || value === "") {
+            throw new Error(errorMessage);
         }
     }
 }

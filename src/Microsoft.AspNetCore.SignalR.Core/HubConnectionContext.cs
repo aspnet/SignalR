@@ -241,7 +241,7 @@ namespace Microsoft.AspNetCore.SignalR
 
                                     if (!Protocol.IsVersionSupported(handshakeRequestMessage.Version))
                                     {
-                                        Log.ProtocolVersionFailed(_logger, handshakeRequestMessage.Protocol, handshakeRequestMessage.Version);
+                                        Log.ProtocolVersionNotSupported(_logger, handshakeRequestMessage.Protocol, handshakeRequestMessage.Version);
                                         await WriteHandshakeResponseAsync(new HandshakeResponseMessage(
                                             $"The server does not support version {handshakeRequestMessage.Version} of the '{handshakeRequestMessage.Protocol}' protocol."));
                                         return false;
