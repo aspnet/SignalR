@@ -501,10 +501,16 @@ namespace Microsoft.AspNetCore.Sockets
                 // to make the IHttpContextFeature work well, we make a copy of the relevant properties
                 // to a new HttpContext. This means that it's impossible to affect the context
                 // with subsequent requests.
-                if (connection.GetHttpContext() == null)
+                var existing = connection.GetHttpContext();
+                if (existing == null)
                 {
                     var httpContext = CloneHttpContext(context);
                     connection.SetHttpContext(httpContext);
+                }
+                else
+                {
+                    // Set the request trace identifier to the current http request handling the poll
+                    existing.TraceIdentifier = context.TraceIdentifier;
                 }
             }
             else
