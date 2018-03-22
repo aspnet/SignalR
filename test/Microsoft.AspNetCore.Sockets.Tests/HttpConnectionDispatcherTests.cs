@@ -391,6 +391,9 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                     // The poll request should end
                     await task;
 
+                    // Make sure the actual response isn't affected
+                    Assert.Equal("application/octet-stream", context.Response.ContentType);
+
                     // Now do a new send again without the poll (that request should have ended)
                     await connection.Application.Output.WriteAsync(buffer);
 
@@ -418,6 +421,9 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                     Assert.Equal(IPAddress.IPv6Any, connectionHttpContext.Connection.RemoteIpAddress);
                     Assert.Equal(43456, connectionHttpContext.Connection.RemotePort);
                     Assert.NotNull(connectionHttpContext.RequestServices);
+                    Assert.Equal(Stream.Null, connectionHttpContext.Response.Body);
+                    Assert.NotNull(connectionHttpContext.Response.Headers);
+                    Assert.Equal("application/xml", connectionHttpContext.Response.ContentType);
                 }
             }
         }
@@ -1496,6 +1502,9 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                     // Make sure we have an http context
                     var context = connection.GetHttpContext();
                     Assert.NotNull(context);
+
+                    // Setting the response headers should have no effect
+                    context.Response.ContentType = "application/xml";
 
                     // Echo the results
                     await connection.Transport.Output.WriteAsync(result.Buffer.ToArray());

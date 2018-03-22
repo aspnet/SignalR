@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipelines;
-using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -575,11 +574,12 @@ namespace Microsoft.AspNetCore.Sockets
             newHttpContext.User = context.User;
 
             // Making request services function property could be tricky and expensive as it would require
-            // DI scope per connection.
+            // DI scope per connection. It would also mean that services resolved in middleware leading up to here
+            // wouldn't be the same instance (but maybe that's fine). For now, we just return an empty service provider
             newHttpContext.RequestServices = EmptyServiceProvider.Instance;
 
             // REVIEW: This extends the lifetime of anything that got put into HttpContext.Items
-            newHttpContext.Items = context.Items.ToDictionary(p => p.Key, p => p.Value);
+            newHttpContext.Items = new Dictionary<object, object>(context.Items);
             return newHttpContext;
         }
 

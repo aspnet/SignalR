@@ -545,8 +545,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 {
                     case CloseMessage close:
                         break;
-                    case null:
-                        break;
                     default:
                         Assert.Null(message);
                         break;
