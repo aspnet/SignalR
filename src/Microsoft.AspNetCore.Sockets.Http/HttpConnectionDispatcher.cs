@@ -2,14 +2,17 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipelines;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Http.Internal;
 using Microsoft.AspNetCore.Protocols;
 using Microsoft.AspNetCore.Protocols.Features;
 using Microsoft.AspNetCore.Sockets.Internal;
@@ -276,8 +279,6 @@ namespace Microsoft.AspNetCore.Sockets
 
                             connection.Status = DefaultConnectionContext.ConnectionStatus.Inactive;
 
-                            connection.SetHttpContext(null);
-
                             // Dispose the cancellation token
                             connection.Cancellation.Dispose();
 
@@ -488,21 +489,88 @@ namespace Microsoft.AspNetCore.Sockets
                 return false;
             }
 
+            // Setup the connection state from the http context
+            connection.User = context.User;
+
             // Configure transport-specific features.
             if (transportType == TransportType.LongPolling)
             {
                 connection.Features.Set<IConnectionInherentKeepAliveFeature>(new ConnectionInherentKeepAliveFeature(options.LongPolling.PollTimeout));
-            }
 
-            // Setup the connection state from the http context
-            connection.User = context.User;
-            connection.SetHttpContext(context);
+                // For long polling, the requests come and go but the connection is still alive.
+                // to make the IHttpContextFeature work well, we make a copy of the relevant properties
+                // to a new HttpContext. This means that it's impossible to affect the context
+                // with subsequent requests.
+                if (connection.GetHttpContext() == null)
+                {
+                    var httpContext = CloneHttpContext(context);
+                    connection.SetHttpContext(httpContext);
+                }
+            }
+            else
+            {
+                connection.SetHttpContext(context);
+            }
 
             // Set the Connection ID on the logging scope so that logs from now on will have the
             // Connection ID metadata set.
             logScope.ConnectionId = connection.ConnectionId;
 
             return true;
+        }
+
+        private static HttpContext CloneHttpContext(HttpContext context)
+        {
+            // The reason we're copying the base features instead of the HttpContext properties is
+            // so that we can get all of the logic built into DefaultHttpContext to extract higher level
+            // structure from the low level properties
+            var existingRequestFeature = context.Features.Get<IHttpRequestFeature>();
+
+            var requestFeature = new HttpRequestFeature();
+            requestFeature.Protocol = existingRequestFeature.Protocol;
+            requestFeature.Method = existingRequestFeature.Method;
+            requestFeature.Scheme = existingRequestFeature.Scheme;
+            requestFeature.Path = existingRequestFeature.Path;
+            requestFeature.PathBase = existingRequestFeature.PathBase;
+            requestFeature.QueryString = existingRequestFeature.QueryString;
+            requestFeature.RawTarget = existingRequestFeature.RawTarget;
+            var requestHeaders = new Dictionary<string, StringValues>(existingRequestFeature.Headers.Count);
+            foreach (var header in existingRequestFeature.Headers)
+            {
+                requestHeaders[header.Key] = header.Value;
+            }
+            requestFeature.Headers = new HeaderDictionary(requestHeaders);
+
+            var existingConnectionFeature = context.Features.Get<IHttpConnectionFeature>();
+            var connectionFeature = new HttpConnectionFeature();
+            connectionFeature.ConnectionId = existingConnectionFeature.ConnectionId;
+            connectionFeature.LocalIpAddress = existingConnectionFeature.LocalIpAddress;
+            connectionFeature.LocalPort = existingConnectionFeature.LocalPort;
+            connectionFeature.RemoteIpAddress = existingConnectionFeature.RemoteIpAddress;
+            connectionFeature.RemotePort = existingConnectionFeature.RemotePort;
+
+            // The response is a dud, you can't do anything with it anyways
+            var responseFeature = new HttpResponseFeature();
+
+            var features = new FeatureCollection();
+            features.Set<IHttpRequestFeature>(requestFeature);
+            features.Set<IHttpResponseFeature>(responseFeature);
+            features.Set<IHttpConnectionFeature>(connectionFeature);
+
+            // REVIEW: We could strategically look at adding other features but it might be better
+            // if the expose a callback that would allow the user to preserve HttpContext properties.
+
+            var newHttpContext = new DefaultHttpContext(features);
+            newHttpContext.TraceIdentifier = context.TraceIdentifier;
+            newHttpContext.User = context.User;
+
+            // Making request services function property could be tricky and expensive as it would require
+            // DI scope per connection.
+            newHttpContext.RequestServices = EmptyServiceProvider.Instance;
+
+            // REVIEW: This extends the lifetime of anything that got put into HttpContext.Items
+            newHttpContext.Items = context.Items.ToDictionary(p => p.Key, p => p.Value);
+            return newHttpContext;
         }
 
         private async Task<DefaultConnectionContext> GetConnectionAsync(HttpContext context, HttpSocketOptions options)
@@ -567,6 +635,12 @@ namespace Microsoft.AspNetCore.Sockets
             EnsureConnectionStateInternal(connection, options);
 
             return connection;
+        }
+
+        private class EmptyServiceProvider : IServiceProvider
+        {
+            public static EmptyServiceProvider Instance { get; } = new EmptyServiceProvider();
+            public object GetService(Type serviceType) => null;
         }
     }
 }
