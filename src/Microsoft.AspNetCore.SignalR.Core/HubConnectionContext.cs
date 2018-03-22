@@ -194,8 +194,7 @@ namespace Microsoft.AspNetCore.SignalR
                 }
                 else
                 {
-                    PipeWriterStream stream = new PipeWriterStream(_connectionContext.Transport.Output);
-                    HandshakeProtocol.WriteResponseMessage(message, stream);
+                    HandshakeProtocol.WriteResponseMessage(message, _connectionContext.Transport.Output);
                 }
 
                 await _connectionContext.Transport.Output.FlushAsync();

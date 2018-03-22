@@ -27,7 +27,8 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
     public class HubConnectionContextBenchmark
     {
         private HubConnectionContext _hubConnectionContext;
-        private TestHubProtocolResolver _hubProtocolResolver;
+        private TestHubProtocolResolver _successHubProtocolResolver;
+        private TestHubProtocolResolver _failureHubProtocolResolver;
         private TestUserIdProvider _userIdProvider;
         private List<string> _supportedProtocols;
 
@@ -40,15 +41,22 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             var connection = new DefaultConnectionContext(Guid.NewGuid().ToString(), pipe, pipe);
             _hubConnectionContext = new HubConnectionContext(connection, Timeout.InfiniteTimeSpan, NullLoggerFactory.Instance);
 
-            _hubProtocolResolver = new TestHubProtocolResolver();
+            _successHubProtocolResolver = new TestHubProtocolResolver(new JsonHubProtocol());
+            _failureHubProtocolResolver = new TestHubProtocolResolver(null);
             _userIdProvider = new TestUserIdProvider();
             _supportedProtocols = new List<string> {"json"};
         }
 
         [Benchmark]
-        public async Task HandshakeAsync()
+        public async Task SuccessHandshakeAsync()
         {
-            await _hubConnectionContext.HandshakeAsync(TimeSpan.FromSeconds(5), _supportedProtocols, _hubProtocolResolver, _userIdProvider);
+            await _hubConnectionContext.HandshakeAsync(TimeSpan.FromSeconds(5), _supportedProtocols, _successHubProtocolResolver, _userIdProvider);
+        }
+
+        [Benchmark]
+        public async Task ErrorHandshakeAsync()
+        {
+            await _hubConnectionContext.HandshakeAsync(TimeSpan.FromSeconds(5), _supportedProtocols, _failureHubProtocolResolver, _userIdProvider);
         }
     }
 
@@ -156,7 +164,12 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
 
     public class TestHubProtocolResolver : IHubProtocolResolver
     {
-        private readonly IHubProtocol _instance = new JsonHubProtocol();
+        private readonly IHubProtocol _instance;
+
+        public TestHubProtocolResolver(IHubProtocol instance)
+        {
+            _instance = instance;
+        }
 
         public IHubProtocol GetProtocol(string protocolName, IList<string> supportedProtocols, HubConnectionContext connection)
         {

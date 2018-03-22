@@ -1,6 +1,7 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using System.Buffers;
 using System.IO;
 
 namespace Microsoft.AspNetCore.SignalR.Internal.Formatters
@@ -14,6 +15,13 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Formatters
         public static void WriteRecordSeparator(Stream output)
         {
             output.WriteByte(RecordSeparator);
+        }
+
+        public static void WriteRecordSeparator(IBufferWriter<byte> output)
+        {
+            var buffer = output.GetSpan(1);
+            buffer[0] = RecordSeparator;
+            output.Advance(1);
         }
     }
 }
