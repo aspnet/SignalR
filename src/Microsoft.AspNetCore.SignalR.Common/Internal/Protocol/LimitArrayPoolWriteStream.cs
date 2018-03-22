@@ -40,10 +40,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
         protected override void Dispose(bool disposing)
         {
-            Debug.Assert(_buffer != null);
-
-            ArrayPool<byte>.Shared.Return(_buffer);
-            _buffer = null;
+            if (_buffer != null)
+            {
+                ArrayPool<byte>.Shared.Return(_buffer);
+                _buffer = null;
+            }
 
             base.Dispose(disposing);
         }

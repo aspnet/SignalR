@@ -122,6 +122,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
             {
                 Log.SendingHubHandshake(_logger);
                 HandshakeProtocol.WriteRequestMessage(new HandshakeRequestMessage(_protocol.Name, _protocol.Version), memoryStream);
+
+                // TODO: when IConnection exposes Output then write the handshake directly to it
                 await _connection.SendAsync(memoryStream.ToArray(), _connectionActive.Token);
             }
 
@@ -263,6 +265,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         {
             try
             {
+                // TODO: when IConnection exposes Output then write the message directly to it
                 var payload = _protocol.WriteToArray(hubMessage);
                 Log.SendInvocation(_logger, hubMessage.InvocationId);
 
@@ -296,6 +299,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             {
                 Log.PreparingNonBlockingInvocation(_logger, methodName, args.Length);
 
+                // TODO: when IConnection exposes Output then write the message directly to it
                 var payload = _protocol.WriteToArray(invocationMessage);
                 Log.SendInvocation(_logger, invocationMessage.InvocationId);
 

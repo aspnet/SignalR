@@ -252,9 +252,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         {
             using (LimitArrayPoolWriteStream stream = new LimitArrayPoolWriteStream())
             {
+                // write message to a buffer so we can get its length
                 WriteMessageCore(message, stream);
                 var buffer = stream.GetBuffer();
 
+                // write length then message to output
                 BinaryMessageFormatter.WriteLengthPrefix(buffer.Count, output);
                 output.Write(buffer.Array, buffer.Offset, buffer.Count);
             }

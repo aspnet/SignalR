@@ -25,7 +25,7 @@ namespace Microsoft.AspNetCore.SignalR
 {
     public class HubConnectionContext
     {
-        private static Action<object> _abortedCallback = AbortConnection;
+        private static readonly Action<object> _abortedCallback = AbortConnection;
 
         private readonly ConnectionContext _connectionContext;
         private readonly ILogger _logger;
@@ -185,10 +185,10 @@ namespace Microsoft.AspNetCore.SignalR
 
             try
             {
-                LimitArrayPoolWriteStream stream = new LimitArrayPoolWriteStream();
+                BufferWriterStream stream = new BufferWriterStream(_connectionContext.Transport.Output);
                 HandshakeProtocol.WriteResponseMessage(message, stream);
 
-                await _connectionContext.Transport.Output.WriteAsync(stream.GetBuffer());
+                await _connectionContext.Transport.Output.FlushAsync();
             }
             finally
             {

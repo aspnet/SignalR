@@ -316,8 +316,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
         {
             var groupChannel = _channelNamePrefix + ".group." + groupName;
 
-            GroupData group;
-            if (!_groups.TryGetValue(groupChannel, out group))
+            if (!_groups.TryGetValue(groupChannel, out var group))
             {
                 return;
             }
