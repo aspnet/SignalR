@@ -293,6 +293,29 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             Assert.Equal(testData.Message, messages[0], TestHubMessageEqualityComparer.Instance);
         }
 
+        [Fact]
+        public void ParseMessageWithExtraData()
+        {
+            ProtocolTestData testData = new ProtocolTestData("name",
+                new InvocationMessage(invocationId: "xyz", target: "method", argumentBindingException: null),
+                Array(HubProtocolConstants.InvocationMessageType, Map(), "xyz", "method", Array(), "ex"),
+                "lgGAo3h5eqZtZXRob2SQomV4");
+
+            // Verify that the input binary string decodes to the expected MsgPack primitives
+            var bytes = Convert.FromBase64String(testData.Binary);
+            var obj = Unpack(bytes);
+            Assert.Equal(testData.Encoded, obj);
+
+            // Parse the input fully now.
+            bytes = Frame(bytes);
+            var protocol = new MessagePackHubProtocol();
+            var messages = new List<HubMessage>();
+            Assert.True(protocol.TryParseMessages(bytes, new TestBinder(testData.Message), messages));
+
+            Assert.Single(messages);
+            Assert.Equal(testData.Message, messages[0], TestHubMessageEqualityComparer.Instance);
+        }
+
         [Theory]
         [MemberData(nameof(TestDataNames))]
         public void WriteMessages(string testDataName)

@@ -13,7 +13,6 @@
 
   <ItemGroup>
     <PackageReference Include="MsgPack.Cli" Version="$(MsgPackCliPackageVersion)" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="$(MicrosoftExtensionsLoggingAbstractionsPackageVersion)" />
   </ItemGroup>
 
   <ItemGroup>
