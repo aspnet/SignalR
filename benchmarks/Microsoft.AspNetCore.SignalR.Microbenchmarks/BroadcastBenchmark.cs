@@ -29,7 +29,6 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         {
             _hubLifetimeManager = new DefaultHubLifetimeManager<Hub>(NullLogger<DefaultHubLifetimeManager<Hub>>.Instance);
 
-
             IHubProtocol protocol;
 
             if (Protocol == "json")
