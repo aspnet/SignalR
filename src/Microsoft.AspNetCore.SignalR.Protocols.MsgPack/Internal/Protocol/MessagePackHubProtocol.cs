@@ -63,7 +63,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 var isArray = MemoryMarshal.TryGetArray(payload, out var arraySegment);
                 // This will never be false unless we started using un-managed buffers
                 Debug.Assert(isArray);
-                var message = ParseMessage(arraySegment.Array, arraySegment.Offset, binder);
+                var message = ParseMessage(arraySegment.Array, arraySegment.Offset, binder, _logger);
                 if (message != null)
                 {
                     messages.Add(message);
@@ -73,7 +73,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             return messages.Count > 0;
         }
 
-        private static HubMessage ParseMessage(byte[] input, IInvocationBinder binder, ILogger logger)
+        private static HubMessage ParseMessage(byte[] input, int startOffset, IInvocationBinder binder, ILogger logger)
         {
             using (var unpacker = Unpacker.Create(input, startOffset))
             {

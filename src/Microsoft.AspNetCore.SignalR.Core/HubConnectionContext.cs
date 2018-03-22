@@ -241,7 +241,7 @@ namespace Microsoft.AspNetCore.SignalR
 
                                     if (!Protocol.IsVersionSupported(handshakeRequestMessage.Version))
                                     {
-                                        Log.ProtocolVersionNotSupported(_logger, handshakeRequestMessage.Protocol, handshakeRequestMessage.Version);
+                                        Log.ProtocolVersionFailed(_logger, handshakeRequestMessage.Protocol, handshakeRequestMessage.Version);
                                         await WriteHandshakeResponseAsync(new HandshakeResponseMessage(
                                             $"The server does not support version {handshakeRequestMessage.Version} of the '{handshakeRequestMessage.Protocol}' protocol."));
                                         return false;
@@ -379,8 +379,8 @@ namespace Microsoft.AspNetCore.SignalR
             private static readonly Action<ILogger, Exception> _failedWritingMessage =
                 LoggerMessage.Define(LogLevel.Debug, new EventId(6, "FailedWritingMessage"), "Failed writing message.");
 
-            private static readonly Action<ILogger, int, string, int, Exception> _protocolVersionFailed =
-                LoggerMessage.Define<int, string, int>(LogLevel.Warning, new EventId(7, "ProtocolVersionFailed"), "Server supports a minimum of version {ServerVersion} of protocol {Protocol}. Client tried to use version {ClientVersion}.");
+            private static readonly Action<ILogger, string, int, Exception> _protocolVersionFailed =
+                LoggerMessage.Define<string, int>(LogLevel.Warning, new EventId(7, "ProtocolVersionFailed"), "Server does not support version {Version} of the {Protocol} protocol.");
 
             public static void HandshakeComplete(ILogger logger, string hubProtocol)
             {
@@ -412,7 +412,7 @@ namespace Microsoft.AspNetCore.SignalR
                 _failedWritingMessage(logger, exception);
             }
 
-            public static void ProtocolVersionFailed(ILogger logger, int serverVersion, string protocolName, int clientVersion)
+            public static void ProtocolVersionFailed(ILogger logger, string protocolName, int version)
             {
                 _protocolVersionFailed(logger, protocolName, version, null);
             }
