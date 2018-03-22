@@ -568,7 +568,7 @@ namespace Microsoft.AspNetCore.Sockets
             features.Set<IHttpConnectionFeature>(connectionFeature);
 
             // REVIEW: We could strategically look at adding other features but it might be better
-            // if the expose a callback that would allow the user to preserve HttpContext properties.
+            // if we expose a callback that would allow the user to preserve HttpContext properties.
 
             var newHttpContext = new DefaultHttpContext(features);
             newHttpContext.TraceIdentifier = context.TraceIdentifier;
