@@ -44,6 +44,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             while (BinaryMessageParser.TryParseMessage(ref input, out var payload))
             {
                 var isArray = MemoryMarshal.TryGetArray(payload, out var arraySegment);
+                // This will never be false unless we started using un-managed buffers
                 Debug.Assert(isArray);
                 messages.Add(ParseMessage(arraySegment.Array, arraySegment.Offset, binder));
             }
