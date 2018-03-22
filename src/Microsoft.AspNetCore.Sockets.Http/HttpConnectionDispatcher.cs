@@ -510,6 +510,7 @@ namespace Microsoft.AspNetCore.Sockets
                 {
                     // Set the request trace identifier to the current http request handling the poll
                     existing.TraceIdentifier = context.TraceIdentifier;
+                    existing.User = context.User;
                 }
             }
             else
