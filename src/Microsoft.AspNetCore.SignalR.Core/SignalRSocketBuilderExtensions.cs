@@ -9,10 +9,9 @@ namespace Microsoft.AspNetCore.SignalR
 {
     public static class SignalRSocketBuilderExtensions
     {
-        public static IConnectionBuilder UseHub<THub>(this IConnectionBuilder socketBuilder) where THub : Hub
+        public static IConnectionBuilder UseHub<THub>(this IConnectionBuilder connectionBuilder) where THub : Hub
         {
-            var endpoint = socketBuilder.ApplicationServices.GetRequiredService<HubConnectionHandler<THub>>();
-            return socketBuilder.Run(connection => endpoint.OnConnectedAsync(connection));
+            return connectionBuilder.UseConnectionHandler<HubConnectionHandler<THub>>();
         }
     }
 }

@@ -313,7 +313,7 @@ namespace Microsoft.AspNetCore.SignalR
             Abort();
         }
 
-        // Used by the HubEndPoint only
+        // Used by the HubConnectionHandler only
         internal Task AbortAsync()
         {
             Abort();

@@ -56,7 +56,7 @@ namespace Microsoft.AspNetCore.Sockets
                 else if (HttpMethods.IsGet(context.Request.Method))
                 {
                     // GET /{path}
-                    await ExecuteEndpointAsync(context, connectionDelegate, options, logScope);
+                    await ExecuteAsync(context, connectionDelegate, options, logScope);
                 }
                 else
                 {
@@ -90,7 +90,7 @@ namespace Microsoft.AspNetCore.Sockets
             }
         }
 
-        private async Task ExecuteEndpointAsync(HttpContext context, ConnectionDelegate connectionDelegate, HttpSocketOptions options, ConnectionLogScope logScope)
+        private async Task ExecuteAsync(HttpContext context, ConnectionDelegate connectionDelegate, HttpSocketOptions options, ConnectionLogScope logScope)
         {
             var supportedTransports = options.Transports;
 

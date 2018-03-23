@@ -1088,10 +1088,10 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 // "authorize" user
                 context.User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "name") }));
 
-                var endPointTask = dispatcher.ExecuteAsync(context, options, app);
+                var connectionHandlerTask = dispatcher.ExecuteAsync(context, options, app);
                 await connection.Transport.Output.WriteAsync(Encoding.UTF8.GetBytes("Hello, World")).AsTask().OrTimeout();
 
-                await endPointTask.OrTimeout();
+                await connectionHandlerTask.OrTimeout();
 
                 Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
                 Assert.Equal("Hello, World", GetContentAsString(context.Response.Body));
@@ -1169,10 +1169,10 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 new Claim(ClaimTypes.StreetAddress, "12345 123rd St. NW")
             }));
 
-                var endPointTask = dispatcher.ExecuteAsync(context, options, app);
+                var connectionHandlerTask = dispatcher.ExecuteAsync(context, options, app);
                 await connection.Transport.Output.WriteAsync(Encoding.UTF8.GetBytes("Hello, World")).AsTask().OrTimeout();
 
-                await endPointTask.OrTimeout();
+                await connectionHandlerTask.OrTimeout();
 
                 Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
                 Assert.Equal("Hello, World", GetContentAsString(context.Response.Body));
@@ -1226,10 +1226,10 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 // "authorize" user
                 context.User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "name") }));
 
-                var endPointTask = dispatcher.ExecuteAsync(context, options, app);
+                var connectionHandlerTask = dispatcher.ExecuteAsync(context, options, app);
                 await connection.Transport.Output.WriteAsync(Encoding.UTF8.GetBytes("Hello, World")).AsTask().OrTimeout();
 
-                await endPointTask.OrTimeout();
+                await connectionHandlerTask.OrTimeout();
 
                 Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
                 Assert.Equal("Hello, World", GetContentAsString(context.Response.Body));

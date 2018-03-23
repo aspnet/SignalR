@@ -7,14 +7,14 @@ using Microsoft.AspNetCore.Sockets;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
-namespace Microsoft.AspNetCore.SignalR.Tests.HubEndpointTestUtils
+namespace Microsoft.AspNetCore.SignalR.Tests
 {
     public class HubConnectionHandlerTestUtils
     {
-        public static Type GetEndPointType(Type hubType)
+        public static Type GetConnectionHandlerType(Type hubType)
         {
-            var endPointType = typeof(HubConnectionHandler<>);
-            return endPointType.MakeGenericType(hubType);
+            var connectionHandlerType = typeof(HubConnectionHandler<>);
+            return connectionHandlerType.MakeGenericType(hubType);
         }
 
         public static Type GetGenericType(Type genericType, Type hubType)
@@ -68,7 +68,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests.HubEndpointTestUtils
         public static Connections.ConnectionHandler GetHubConnectionHandler(Type hubType)
         {
             var serviceProvider = CreateServiceProvider();
-            return (Connections.ConnectionHandler)serviceProvider.GetService(GetEndPointType(hubType));
+            return (Connections.ConnectionHandler)serviceProvider.GetService(GetConnectionHandlerType(hubType));
         }
     }
 
