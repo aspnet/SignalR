@@ -42,6 +42,8 @@ export class HttpConnection implements IConnection {
     private transport: ITransport;
     private connectionId: string;
     private startPromise: Promise<void>;
+    private negotiationResponse: INegotiateResponse;
+    private headers: any;
 
     public readonly features: any = {};
 
@@ -79,6 +81,9 @@ export class HttpConnection implements IConnection {
                 // No need to add a connection ID in this case
                 this.url = this.baseUrl;
                 this.transport = this.constructTransport(TransportType.WebSockets);
+                // We should just call connect directly in this case.
+                // No fallback or negotiate in this case.
+                await this.transport.connect(this.url, transferFormat, this);
             } else {
                 let headers;
                 const token = this.options.accessTokenFactory();
@@ -86,6 +91,7 @@ export class HttpConnection implements IConnection {
                     headers = {
                         ["Authorization"]: `Bearer ${token}`,
                     };
+                    this.headers = headers;
                 }
 
                 const negotiatePayload = await this.httpClient.post(this.resolveNegotiateUrl(this.baseUrl), {
@@ -93,24 +99,16 @@ export class HttpConnection implements IConnection {
                     headers,
                 });
 
-                const negotiateResponse: INegotiateResponse = JSON.parse(negotiatePayload.content as string);
-                this.connectionId = negotiateResponse.connectionId;
-
                 // the user tries to stop the the connection when it is being started
                 if (this.connectionState === ConnectionState.Disconnected) {
                     return;
                 }
-
-                if (this.connectionId) {
-                    this.url = this.baseUrl + (this.baseUrl.indexOf("?") === -1 ? "?" : "&") + `id=${this.connectionId}`;
-                    this.transport = this.createTransport(this.options.transport, negotiateResponse.availableTransports, transferFormat);
-                }
+                await this.setNegotiationResponse(this.headers);
+                return this.createTransport(this.options.transport, transferFormat);
             }
 
             this.transport.onreceive = this.onreceive;
             this.transport.onclose = (e) => this.stopConnection(true, e);
-
-            await this.transport.connect(this.url, transferFormat, this);
 
             // only change the state if we were connecting to not overwrite
             // the state if the connection is already marked as Disconnected
@@ -123,16 +121,48 @@ export class HttpConnection implements IConnection {
         }
     }
 
-    private createTransport(requestedTransport: TransportType | ITransport, availableTransports: IAvailableTransport[], requestedTransferFormat: TransferFormat): ITransport {
+    private async setNegotiationResponse(headers: any): Promise<void> {
+        const response =  await this.httpClient.post(this.resolveNegotiateUrl(this.baseUrl), {
+            content: "",
+            headers,
+        });
+        this.negotiationResponse = JSON.parse(response.content as string);
+        this.connectionId = this.negotiationResponse.connectionId;
+        this.url = this.baseUrl + (this.baseUrl.indexOf("?") === -1 ? "?" : "&") + `id=${this.connectionId}`;
+        return Promise.resolve();
+    }
+
+    private async createTransport(requestedTransport: TransportType | ITransport, requestedTransferFormat: TransferFormat): Promise<void> {
         if (this.isITransport(requestedTransport)) {
             this.logger.log(LogLevel.Trace, "Connection was provided an instance of ITransport, using that directly.");
-            return requestedTransport;
+            this.transport = requestedTransport;
+            this.transport.onreceive = this.onreceive;
+            this.transport.onclose = (e) => this.stopConnection(true, e);
+            await this.transport.connect(this.url, requestedTransferFormat, this);
+
+            // only change the state if we were connecting to not overwrite
+            // the state if the connection is already marked as Disconnected
+            this.changeState(ConnectionState.Connecting, ConnectionState.Connected);
+            return Promise.resolve();
         }
 
-        for (const endpoint of availableTransports) {
+        const transports = this.negotiationResponse.availableTransports;
+        for (const endpoint of transports) {
             const transport = this.resolveTransport(endpoint, requestedTransport, requestedTransferFormat);
             if (typeof transport === "number") {
-                return this.constructTransport(transport);
+                this.transport = this.constructTransport(transport);
+                if (this.negotiationResponse.connectionId == null) {
+                    await this.setNegotiationResponse(this.headers);
+                }
+                try {
+                    await this.transport.connect(this.url, requestedTransferFormat, this);
+                    this.changeState(ConnectionState.Connecting, ConnectionState.Connected);
+                    return Promise.resolve();
+                } catch (ex) {
+                    this.logger.log(LogLevel.Error, "Failed to start the connection: " + ex);
+                    this.connectionState = ConnectionState.Disconnected;
+                    this.negotiationResponse.connectionId = null;
+                }
             }
         }
 
