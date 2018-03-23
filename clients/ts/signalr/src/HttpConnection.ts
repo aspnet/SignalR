@@ -85,25 +85,18 @@ export class HttpConnection implements IConnection {
                 // No fallback or negotiate in this case.
                 await this.transport.connect(this.url, transferFormat, this);
             } else {
-                let headers;
                 const token = this.options.accessTokenFactory();
                 if (token) {
-                    headers = {
+                    this.headers = {
                         ["Authorization"]: `Bearer ${token}`,
                     };
-                    this.headers = headers;
                 }
 
-                const negotiatePayload = await this.httpClient.post(this.resolveNegotiateUrl(this.baseUrl), {
-                    content: "",
-                    headers,
-                });
-
+                await this.setNegotiationResponse(this.headers);
                 // the user tries to stop the the connection when it is being started
                 if (this.connectionState === ConnectionState.Disconnected) {
                     return;
                 }
-                await this.setNegotiationResponse(this.headers);
                 return this.createTransport(this.options.transport, transferFormat);
             }
 
@@ -151,7 +144,7 @@ export class HttpConnection implements IConnection {
             const transport = this.resolveTransport(endpoint, requestedTransport, requestedTransferFormat);
             if (typeof transport === "number") {
                 this.transport = this.constructTransport(transport);
-                if (this.negotiationResponse.connectionId == null) {
+                if (this.negotiationResponse.connectionId === null) {
                     await this.setNegotiationResponse(this.headers);
                 }
                 try {
