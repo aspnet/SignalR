@@ -20,24 +20,24 @@ namespace Microsoft.AspNetCore.SignalR
 
         public void MapHub<THub>(string path) where THub : Hub
         {
-            MapHub<THub>(new PathString(path), socketOptions: null);
+            MapHub<THub>(new PathString(path), configureOptions: null);
         }
 
         public void MapHub<THub>(PathString path) where THub : Hub
         {
-            MapHub<THub>(path, socketOptions: null);
+            MapHub<THub>(path, configureOptions: null);
         }
 
-        public void MapHub<THub>(PathString path, Action<HttpSocketOptions> socketOptions) where THub : Hub
+        public void MapHub<THub>(PathString path, Action<HttpConnectionOptions> configureOptions) where THub : Hub
         {
             // find auth attributes
             var authorizeAttributes = typeof(THub).GetCustomAttributes<AuthorizeAttribute>(inherit: true);
-            var options = new HttpSocketOptions();
+            var options = new HttpConnectionOptions();
             foreach (var attribute in authorizeAttributes)
             {
                 options.AuthorizationData.Add(attribute);
             }
-            socketOptions?.Invoke(options);
+            configureOptions?.Invoke(options);
 
             _routes.MapConnections(path, options, builder =>
             {

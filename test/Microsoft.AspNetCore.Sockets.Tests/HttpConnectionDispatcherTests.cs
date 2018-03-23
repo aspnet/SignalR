@@ -52,7 +52,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 context.Request.Path = "/foo";
                 context.Request.Method = "POST";
                 context.Response.Body = ms;
-                await dispatcher.ExecuteNegotiateAsync(context, new HttpSocketOptions());
+                await dispatcher.ExecuteNegotiateAsync(context, new HttpConnectionOptions());
                 var negotiateResponse = JsonConvert.DeserializeObject<JObject>(Encoding.UTF8.GetString(ms.ToArray()));
                 var connectionId = negotiateResponse.Value<string>("connectionId");
                 Assert.True(manager.TryGetConnection(connectionId, out var connectionContext));
@@ -75,7 +75,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 context.Request.Path = "/foo";
                 context.Request.Method = "POST";
                 context.Response.Body = ms;
-                var httpSocketOptions = new HttpSocketOptions { TransportMaxBufferSize = 4, ApplicationMaxBufferSize = 4 };
+                var httpSocketOptions = new HttpConnectionOptions { TransportMaxBufferSize = 4, ApplicationMaxBufferSize = 4 };
                 await dispatcher.ExecuteNegotiateAsync(context, httpSocketOptions);
                 var negotiateResponse = JsonConvert.DeserializeObject<JObject>(Encoding.UTF8.GetString(ms.ToArray()));
                 var connectionId = negotiateResponse.Value<string>("connectionId");
@@ -135,7 +135,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                     var app = builder.Build();
 
                     // This task should complete immediately but it exceeds the writer threshold
-                    var executeTask = dispatcher.ExecuteAsync(context, new HttpSocketOptions(), app);
+                    var executeTask = dispatcher.ExecuteAsync(context, new HttpConnectionOptions(), app);
                     Assert.False(executeTask.IsCompleted);
                     await connection.Transport.Input.ConsumeAsync(10);
                     await executeTask.OrTimeout();
@@ -167,7 +167,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 context.Request.Path = "/foo";
                 context.Request.Method = "POST";
                 context.Response.Body = ms;
-                await dispatcher.ExecuteNegotiateAsync(context, new HttpSocketOptions { Transports = transports });
+                await dispatcher.ExecuteNegotiateAsync(context, new HttpConnectionOptions { Transports = transports });
 
                 var negotiateResponse = JsonConvert.DeserializeObject<JObject>(Encoding.UTF8.GetString(ms.ToArray()));
                 var availableTransports = (TransportType)0;
@@ -212,7 +212,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                     var builder = new ConnectionBuilder(services.BuildServiceProvider());
                     builder.UseConnectionHandler<TestConnectionHandler>();
                     var app = builder.Build();
-                    await dispatcher.ExecuteAsync(context, new HttpSocketOptions(), app);
+                    await dispatcher.ExecuteAsync(context, new HttpConnectionOptions(), app);
 
                     Assert.Equal(StatusCodes.Status404NotFound, context.Response.StatusCode);
                     await strm.FlushAsync();
@@ -247,7 +247,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                     var builder = new ConnectionBuilder(services.BuildServiceProvider());
                     builder.UseConnectionHandler<TestConnectionHandler>();
                     var app = builder.Build();
-                    await dispatcher.ExecuteAsync(context, new HttpSocketOptions(), app);
+                    await dispatcher.ExecuteAsync(context, new HttpConnectionOptions(), app);
 
                     Assert.Equal(StatusCodes.Status404NotFound, context.Response.StatusCode);
                     await strm.FlushAsync();
@@ -284,7 +284,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                     var builder = new ConnectionBuilder(services.BuildServiceProvider());
                     builder.UseConnectionHandler<TestConnectionHandler>();
                     var app = builder.Build();
-                    await dispatcher.ExecuteAsync(context, new HttpSocketOptions(), app);
+                    await dispatcher.ExecuteAsync(context, new HttpConnectionOptions(), app);
 
                     Assert.Equal(StatusCodes.Status405MethodNotAllowed, context.Response.StatusCode);
                     await strm.FlushAsync();
@@ -330,7 +330,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                     builder.UseConnectionHandler<TestConnectionHandler>();
                     var app = builder.Build();
 
-                    await dispatcher.ExecuteAsync(context, new HttpSocketOptions(), app);
+                    await dispatcher.ExecuteAsync(context, new HttpConnectionOptions(), app);
 
                     Assert.True(connection.Transport.Input.TryRead(out var result));
                     Assert.Equal("Hello World", Encoding.UTF8.GetString(result.Buffer.ToArray()));
@@ -383,7 +383,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                     var app = builder.Build();
 
                     // Start a poll
-                    var task = dispatcher.ExecuteAsync(context, new HttpSocketOptions(), app);
+                    var task = dispatcher.ExecuteAsync(context, new HttpConnectionOptions(), app);
 
                     // Send to the application
                     var buffer = Encoding.UTF8.GetBytes("Hello World");
@@ -454,7 +454,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                     var builder = new ConnectionBuilder(services.BuildServiceProvider());
                     builder.UseConnectionHandler<TestConnectionHandler>();
                     var app = builder.Build();
-                    await dispatcher.ExecuteAsync(context, new HttpSocketOptions(), app);
+                    await dispatcher.ExecuteAsync(context, new HttpConnectionOptions(), app);
 
                     Assert.Equal(StatusCodes.Status400BadRequest, context.Response.StatusCode);
                     await strm.FlushAsync();
@@ -483,7 +483,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                     var builder = new ConnectionBuilder(services.BuildServiceProvider());
                     builder.UseConnectionHandler<TestConnectionHandler>();
                     var app = builder.Build();
-                    await dispatcher.ExecuteAsync(context, new HttpSocketOptions(), app);
+                    await dispatcher.ExecuteAsync(context, new HttpConnectionOptions(), app);
 
                     Assert.Equal(StatusCodes.Status400BadRequest, context.Response.StatusCode);
                     await strm.FlushAsync();
@@ -556,7 +556,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 var builder = new ConnectionBuilder(services.BuildServiceProvider());
                 builder.UseConnectionHandler<ImmediatelyCompleteConnectionHandler>();
                 var app = builder.Build();
-                await dispatcher.ExecuteAsync(context, new HttpSocketOptions(), app);
+                await dispatcher.ExecuteAsync(context, new HttpConnectionOptions(), app);
 
                 Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
 
@@ -582,7 +582,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 var builder = new ConnectionBuilder(services.BuildServiceProvider());
                 builder.UseConnectionHandler<SynchronusExceptionConnectionHandler>();
                 var app = builder.Build();
-                await dispatcher.ExecuteAsync(context, new HttpSocketOptions(), app);
+                await dispatcher.ExecuteAsync(context, new HttpConnectionOptions(), app);
 
                 Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
 
@@ -608,7 +608,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 var builder = new ConnectionBuilder(services.BuildServiceProvider());
                 builder.UseConnectionHandler<ImmediatelyCompleteConnectionHandler>();
                 var app = builder.Build();
-                await dispatcher.ExecuteAsync(context, new HttpSocketOptions(), app);
+                await dispatcher.ExecuteAsync(context, new HttpConnectionOptions(), app);
 
                 Assert.Equal(StatusCodes.Status204NoContent, context.Response.StatusCode);
 
@@ -634,7 +634,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 var builder = new ConnectionBuilder(services.BuildServiceProvider());
                 builder.UseConnectionHandler<TestConnectionHandler>();
                 var app = builder.Build();
-                var options = new HttpSocketOptions();
+                var options = new HttpConnectionOptions();
                 options.LongPolling.PollTimeout = TimeSpan.FromSeconds(2);
                 await dispatcher.ExecuteAsync(context, options, app).OrTimeout();
 
@@ -660,7 +660,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 var builder = new ConnectionBuilder(services.BuildServiceProvider());
                 builder.UseConnectionHandler<ImmediatelyCompleteConnectionHandler>();
                 var app = builder.Build();
-                var options = new HttpSocketOptions();
+                var options = new HttpConnectionOptions();
                 options.WebSockets.CloseTimeout = TimeSpan.FromSeconds(1);
 
                 var task = dispatcher.ExecuteAsync(context, options, app);
@@ -692,7 +692,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 var builder = new ConnectionBuilder(services.BuildServiceProvider());
                 builder.UseConnectionHandler<TestConnectionHandler>();
                 var app = builder.Build();
-                var options = new HttpSocketOptions();
+                var options = new HttpConnectionOptions();
                 var request1 = dispatcher.ExecuteAsync(context1, options, app);
 
                 await dispatcher.ExecuteAsync(context2, options, app);
@@ -731,7 +731,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 var builder = new ConnectionBuilder(services.BuildServiceProvider());
                 builder.UseConnectionHandler<TestConnectionHandler>();
                 var app = builder.Build();
-                var options = new HttpSocketOptions();
+                var options = new HttpConnectionOptions();
                 var request1 = dispatcher.ExecuteAsync(context1, options, app);
                 var request2 = dispatcher.ExecuteAsync(context2, options, app);
 
@@ -769,7 +769,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 var builder = new ConnectionBuilder(services.BuildServiceProvider());
                 builder.UseConnectionHandler<TestConnectionHandler>();
                 var app = builder.Build();
-                var options = new HttpSocketOptions();
+                var options = new HttpConnectionOptions();
                 await dispatcher.ExecuteAsync(context, options, app);
 
 
@@ -794,7 +794,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 var builder = new ConnectionBuilder(services.BuildServiceProvider());
                 builder.UseConnectionHandler<TestConnectionHandler>();
                 var app = builder.Build();
-                var options = new HttpSocketOptions();
+                var options = new HttpConnectionOptions();
                 var task = dispatcher.ExecuteAsync(context, options, app);
 
                 var buffer = Encoding.UTF8.GetBytes("Hello World");
@@ -829,7 +829,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 var builder = new ConnectionBuilder(services.BuildServiceProvider());
                 builder.UseConnectionHandler<BlockingConnectionHandler>();
                 var app = builder.Build();
-                var options = new HttpSocketOptions();
+                var options = new HttpConnectionOptions();
                 var task = dispatcher.ExecuteAsync(context, options, app);
 
                 var buffer = Encoding.UTF8.GetBytes("Hello World");
@@ -862,7 +862,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 var builder = new ConnectionBuilder(services.BuildServiceProvider());
                 builder.UseConnectionHandler<BlockingConnectionHandler>();
                 var app = builder.Build();
-                var options = new HttpSocketOptions();
+                var options = new HttpConnectionOptions();
                 var task = dispatcher.ExecuteAsync(context, options, app);
 
                 var buffer = Encoding.UTF8.GetBytes("Hello World");
@@ -893,7 +893,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 var builder = new ConnectionBuilder(services.BuildServiceProvider());
                 builder.UseConnectionHandler<TestConnectionHandler>();
                 var app = builder.Build();
-                var options = new HttpSocketOptions();
+                var options = new HttpConnectionOptions();
 
                 var context1 = MakeRequest("/foo", connection);
                 var task1 = dispatcher.ExecuteAsync(context1, options, app);
@@ -938,7 +938,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 builder.UseConnectionHandler<ImmediatelyCompleteConnectionHandler>();
                 var app = builder.Build();
 
-                var options = new HttpSocketOptions();
+                var options = new HttpConnectionOptions();
                 options.WebSockets.CloseTimeout = TimeSpan.FromSeconds(0);
                 await dispatcher.ExecuteAsync(context, options, app);
 
@@ -985,7 +985,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 var builder = new ConnectionBuilder(sp);
                 builder.UseConnectionHandler<TestConnectionHandler>();
                 var app = builder.Build();
-                var options = new HttpSocketOptions();
+                var options = new HttpConnectionOptions();
                 options.AuthorizationData.Add(new AuthorizeAttribute("test"));
 
                 // would hang if EndPoint was running
@@ -1030,7 +1030,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 var builder = new ConnectionBuilder(sp);
                 builder.UseConnectionHandler<TestConnectionHandler>();
                 var app = builder.Build();
-                var options = new HttpSocketOptions();
+                var options = new HttpConnectionOptions();
                 options.AuthorizationData.Add(new AuthorizeAttribute("test"));
 
                 context.User = new ClaimsPrincipal(new ClaimsIdentity("authenticated"));
@@ -1082,7 +1082,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 var builder = new ConnectionBuilder(sp);
                 builder.UseConnectionHandler<TestConnectionHandler>();
                 var app = builder.Build();
-                var options = new HttpSocketOptions();
+                var options = new HttpConnectionOptions();
                 options.AuthorizationData.Add(new AuthorizeAttribute("test"));
 
                 // "authorize" user
@@ -1142,7 +1142,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 var builder = new ConnectionBuilder(sp);
                 builder.UseConnectionHandler<TestConnectionHandler>();
                 var app = builder.Build();
-                var options = new HttpSocketOptions();
+                var options = new HttpConnectionOptions();
                 options.AuthorizationData.Add(new AuthorizeAttribute("test"));
                 options.AuthorizationData.Add(new AuthorizeAttribute("secondPolicy"));
 
@@ -1220,7 +1220,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 var builder = new ConnectionBuilder(sp);
                 builder.UseConnectionHandler<TestConnectionHandler>();
                 var app = builder.Build();
-                var options = new HttpSocketOptions();
+                var options = new HttpConnectionOptions();
                 options.AuthorizationData.Add(new AuthorizeAttribute("test"));
 
                 // "authorize" user
@@ -1276,7 +1276,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 var builder = new ConnectionBuilder(sp);
                 builder.UseConnectionHandler<TestConnectionHandler>();
                 var app = builder.Build();
-                var options = new HttpSocketOptions();
+                var options = new HttpConnectionOptions();
                 options.AuthorizationData.Add(new AuthorizeAttribute("test"));
 
                 // "authorize" user
@@ -1306,7 +1306,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 var builder = new ConnectionBuilder(services.BuildServiceProvider());
                 builder.UseConnectionHandler<TestConnectionHandler>();
                 var app = builder.Build();
-                var options = new HttpSocketOptions();
+                var options = new HttpConnectionOptions();
                 options.LongPolling.PollTimeout = TimeSpan.FromMilliseconds(1); // We don't care about the poll itself
 
                 Assert.Null(connection.Features.Get<IConnectionInherentKeepAliveFeature>());
@@ -1334,7 +1334,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 context.Request.Path = "/foo";
                 context.Request.Method = "POST";
                 context.Response.Body = ms;
-                await dispatcher.ExecuteNegotiateAsync(context, new HttpSocketOptions { Transports = TransportType.WebSockets });
+                await dispatcher.ExecuteNegotiateAsync(context, new HttpConnectionOptions { Transports = TransportType.WebSockets });
 
                 var negotiateResponse = JsonConvert.DeserializeObject<JObject>(Encoding.UTF8.GetString(ms.ToArray()));
                 var availableTransports = (JArray)negotiateResponse["availableTransports"];
@@ -1411,7 +1411,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 var builder = new ConnectionBuilder(services.BuildServiceProvider());
                 builder.UseConnectionHandler<ImmediatelyCompleteConnectionHandler>();
                 var app = builder.Build();
-                var options = new HttpSocketOptions();
+                var options = new HttpConnectionOptions();
                 options.Transports = supportedTransports;
 
                 await dispatcher.ExecuteAsync(context, options, app);

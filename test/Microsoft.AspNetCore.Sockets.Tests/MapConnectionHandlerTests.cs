@@ -130,7 +130,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             }
         }
 
-        private IWebHost BuildWebHost<TConnectionHandler>(string path, Action<HttpSocketOptions> configure) where TConnectionHandler : ConnectionHandler
+        private IWebHost BuildWebHost<TConnectionHandler>(string path, Action<HttpConnectionOptions> configureOptions) where TConnectionHandler : ConnectionHandler
         {
             return new WebHostBuilder()
                 .UseUrls("http://127.0.0.1:0")
@@ -138,14 +138,12 @@ namespace Microsoft.AspNetCore.Sockets.Tests
                 .ConfigureServices(services =>
                 {
                     services.AddConnections();
-                    services.AddSingleton<TConnectionHandler>();
                 })
                 .Configure(app =>
                 {
                     app.UseConnections(routes =>
                     {
-                        routes.MapConnectionHandler<TConnectionHandler>(path,
-                            httpSocketOptions => configure(httpSocketOptions));
+                        routes.MapConnectionHandler<TConnectionHandler>(path, configureOptions);
                     });
                 })
                 .ConfigureLogging(factory =>
