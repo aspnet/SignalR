@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server.Features;
-using Microsoft.AspNetCore.Protocols;
+using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Testing.xunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -89,7 +89,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             Assert.Equal(WebSocketMessageType.Close, result.MessageType);
         }
 
-        private class MyEndPoint : EndPoint
+        private class MyEndPoint : ConnectionHandler
         {
             public override async Task OnConnectedAsync(ConnectionContext connection)
             {
@@ -122,7 +122,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         }
 
         [Authorize]
-        private class AuthEndPoint : EndPoint
+        private class AuthEndPoint : ConnectionHandler
         {
             public override Task OnConnectedAsync(ConnectionContext connection)
             {
@@ -130,21 +130,21 @@ namespace Microsoft.AspNetCore.Sockets.Tests
             }
         }
 
-        private IWebHost BuildWebHost<TEndPoint>(string path, Action<HttpSocketOptions> configure) where TEndPoint : EndPoint
+        private IWebHost BuildWebHost<TConnectionHandler>(string path, Action<HttpSocketOptions> configure) where TConnectionHandler : ConnectionHandler
         {
             return new WebHostBuilder()
                 .UseUrls("http://127.0.0.1:0")
                 .UseKestrel()
                 .ConfigureServices(services =>
                 {
-                    services.AddSockets();
-                    services.AddSingleton<TEndPoint>();
+                    services.AddConnections();
+                    services.AddSingleton<TConnectionHandler>();
                 })
                 .Configure(app =>
                 {
-                    app.UseSockets(routes =>
+                    app.UseConnections(routes =>
                     {
-                        routes.MapEndPoint<TEndPoint>(path,
+                        routes.MapConnectionHandler<TConnectionHandler>(path,
                             httpSocketOptions => configure(httpSocketOptions));
                     });
                 })

@@ -9,11 +9,11 @@ using Xunit;
 
 namespace Microsoft.AspNetCore.SignalR.Tests.HubEndpointTestUtils
 {
-    public class HubEndPointTestUtils
+    public class HubConnectionHandlerTestUtils
     {
         public static Type GetEndPointType(Type hubType)
         {
-            var endPointType = typeof(HubEndPoint<>);
+            var endPointType = typeof(HubConnectionHandler<>);
             return endPointType.MakeGenericType(hubType);
         }
 
@@ -65,10 +65,10 @@ namespace Microsoft.AspNetCore.SignalR.Tests.HubEndpointTestUtils
             return services.BuildServiceProvider();
         }
 
-        public static EndPoint GetHubEndpoint(Type hubType)
+        public static Connections.ConnectionHandler GetHubConnectionHandler(Type hubType)
         {
             var serviceProvider = CreateServiceProvider();
-            return (EndPoint)serviceProvider.GetService(GetEndPointType(hubType));
+            return (Connections.ConnectionHandler)serviceProvider.GetService(GetEndPointType(hubType));
         }
     }
 

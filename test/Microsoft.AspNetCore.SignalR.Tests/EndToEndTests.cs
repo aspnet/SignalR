@@ -9,7 +9,7 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Protocols;
+using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.AspNetCore.Sockets;
 using Microsoft.AspNetCore.Sockets.Client;

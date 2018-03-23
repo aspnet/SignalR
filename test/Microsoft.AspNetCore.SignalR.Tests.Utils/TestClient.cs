@@ -51,7 +51,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         public async Task<Task> ConnectAsync(
-            EndPoint endPoint,
+            Connections.ConnectionHandler endPoint,
             bool sendHandshakeRequestMessage = true,
             bool expectedHandshakeResponseMessage = true)
         {

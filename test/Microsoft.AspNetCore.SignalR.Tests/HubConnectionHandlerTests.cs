@@ -10,7 +10,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Protocols;
+using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.SignalR.Tests.HubEndpointTestUtils;
@@ -27,14 +27,14 @@ using Xunit;
 
 namespace Microsoft.AspNetCore.SignalR.Tests
 {
-    public class HubEndpointTests
+    public class HubConnectionHandlerTests
     {
         [Fact]
         public async Task HubsAreDisposed()
         {
             var trackDispose = new TrackDispose();
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider(s => s.AddSingleton(trackDispose));
-            var endPoint = serviceProvider.GetService<HubEndPoint<DisposeTrackingHub>>();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(s => s.AddSingleton(trackDispose));
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<DisposeTrackingHub>>();
 
             using (var client = new TestClient())
             {
@@ -53,8 +53,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         public async Task ConnectionAbortedTokenTriggers()
         {
             var state = new ConnectionLifetimeState();
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider(s => s.AddSingleton(state));
-            var endPoint = serviceProvider.GetService<HubEndPoint<ConnectionLifetimeHub>>();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(s => s.AddSingleton(state));
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<ConnectionLifetimeHub>>();
 
             using (var client = new TestClient())
             {
@@ -74,8 +74,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task AbortFromHubMethodForcesClientDisconnect()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
-            var endPoint = serviceProvider.GetService<HubEndPoint<AbortHub>>();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<AbortHub>>();
 
             using (var client = new TestClient())
             {
@@ -91,8 +91,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         public async Task ObservableHubRemovesSubscriptionsWithInfiniteStreams()
         {
             var observable = new Observable<int>();
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider(s => s.AddSingleton(observable));
-            var endPoint = serviceProvider.GetService<HubEndPoint<ObservableHub>>();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(s => s.AddSingleton(observable));
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<ObservableHub>>();
 
             var waitForSubscribe = new TaskCompletionSource<object>();
             observable.OnSubscribe = o =>
@@ -154,8 +154,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         public async Task ObservableHubRemovesSubscriptions()
         {
             var observable = new Observable<int>();
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider(s => s.AddSingleton(observable));
-            var endPoint = serviceProvider.GetService<HubEndPoint<ObservableHub>>();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(s => s.AddSingleton(observable));
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<ObservableHub>>();
 
             var waitForSubscribe = new TaskCompletionSource<object>();
             observable.OnSubscribe = o =>
@@ -213,8 +213,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         public async Task ObservableHubRemovesSubscriptionWhenCanceledFromClient()
         {
             var observable = new Observable<int>();
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider(s => s.AddSingleton(observable));
-            var endPoint = serviceProvider.GetService<HubEndPoint<ObservableHub>>();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(s => s.AddSingleton(observable));
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<ObservableHub>>();
 
             var waitForSubscribe = new TaskCompletionSource<object>();
             observable.OnSubscribe = o =>
@@ -253,8 +253,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task MissingHandshakeAndMessageSentFromHubConnectionCanBeDisposedCleanly()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
-            var endPoint = serviceProvider.GetService<HubEndPoint<SimpleHub>>();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<SimpleHub>>();
 
             using (var client = new TestClient())
             {
@@ -272,14 +272,14 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task HandshakeTimesOut()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider(services =>
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(services =>
             {
                 services.Configure<HubOptions>(options =>
                 {
                     options.HandshakeTimeout = TimeSpan.FromMilliseconds(5);
                 });
             });
-            var endPoint = serviceProvider.GetService<HubEndPoint<SimpleHub>>();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<SimpleHub>>();
 
             using (var client = new TestClient())
             {
@@ -295,7 +295,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task CanLoadHubContext()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
             var context = serviceProvider.GetRequiredService<IHubContext<SimpleHub>>();
             await context.Clients.All.SendAsync("Send", "test");
         }
@@ -303,7 +303,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task CanLoadTypedHubContext()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
             var context = serviceProvider.GetRequiredService<IHubContext<SimpleTypedHub, ITypedHubClient>>();
             await context.Clients.All.Send("test");
         }
@@ -314,7 +314,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             var hubProtocolMock = new Mock<IHubProtocol>();
             hubProtocolMock.Setup(m => m.Name).Returns("CustomProtocol");
 
-            var endPoint = HubEndPointTestUtils.GetHubEndpoint(typeof(HubT));
+            var endPoint = HubConnectionHandlerTestUtils.GetHubConnectionHandler(typeof(HubT));
 
             using (var client = new TestClient(protocol: hubProtocolMock.Object))
             {
@@ -335,7 +335,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             var hubProtocolMock = new Mock<IHubProtocol>();
             hubProtocolMock.Setup(m => m.Name).Returns("CustomProtocol");
 
-            var endPoint = HubEndPointTestUtils.GetHubEndpoint(typeof(HubT));
+            var endPoint = HubConnectionHandlerTestUtils.GetHubConnectionHandler(typeof(HubT));
 
             using (var client = new TestClient(protocol: new MessagePackHubProtocol()))
             {
@@ -355,7 +355,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task HandshakeSuccessSendsResponseWithoutError()
         {
-            var endPoint = HubEndPointTestUtils.GetHubEndpoint(typeof(HubT));
+            var endPoint = HubConnectionHandlerTestUtils.GetHubConnectionHandler(typeof(HubT));
 
             using (var client = new TestClient())
             {
@@ -377,7 +377,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             hubProtocolMock.Setup(m => m.Name).Returns("json");
             hubProtocolMock.Setup(m => m.Version).Returns(9001);
 
-            var endPoint = HubEndPointTestUtils.GetHubEndpoint(typeof(HubT));
+            var endPoint = HubConnectionHandlerTestUtils.GetHubConnectionHandler(typeof(HubT));
 
             using (var client = new TestClient(protocol: hubProtocolMock.Object))
             {
@@ -401,13 +401,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 .Throws(new InvalidOperationException("Lifetime manager OnConnectedAsync failed."));
             var mockHubActivator = new Mock<IHubActivator<Hub>>();
 
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider(services =>
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(services =>
             {
                 services.AddSingleton(mockLifetimeManager.Object);
                 services.AddSingleton(mockHubActivator.Object);
             });
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<Hub>>();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<Hub>>();
 
             using (var client = new TestClient())
             {
@@ -434,12 +434,12 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         public async Task HubOnDisconnectedAsyncCalledIfHubOnConnectedAsyncThrows()
         {
             var mockLifetimeManager = new Mock<HubLifetimeManager<OnConnectedThrowsHub>>();
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider(services =>
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(services =>
             {
                 services.AddSingleton(mockLifetimeManager.Object);
             });
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<OnConnectedThrowsHub>>();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<OnConnectedThrowsHub>>();
 
             using (var client = new TestClient())
             {
@@ -457,12 +457,12 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         public async Task LifetimeManagerOnDisconnectedAsyncCalledIfHubOnDisconnectedAsyncThrows()
         {
             var mockLifetimeManager = new Mock<HubLifetimeManager<OnDisconnectedThrowsHub>>();
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider(services =>
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(services =>
             {
                 services.AddSingleton(mockLifetimeManager.Object);
             });
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<OnDisconnectedThrowsHub>>();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<OnDisconnectedThrowsHub>>();
 
             using (var client = new TestClient())
             {
@@ -480,9 +480,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task HubMethodCanReturnValueFromTask()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
             using (var client = new TestClient())
             {
@@ -504,7 +504,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(HubTypes))]
         public async Task HubMethodsAreCaseInsensitive(Type hubType)
         {
-            var endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
+            var endPoint = HubConnectionHandlerTestUtils.GetHubConnectionHandler(hubType);
 
             using (var client = new TestClient())
             {
@@ -526,9 +526,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [InlineData(nameof(MethodHub.MethodThatYieldsFailedTask))]
         public async Task HubMethodCanThrowOrYieldFailedTask(string methodName)
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
             using (var client = new TestClient())
             {
@@ -548,9 +548,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task HubMethodDoesNotSendResultWhenInvocationIsNonBlocking()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
             using (var client = new TestClient())
             {
@@ -579,9 +579,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task HubMethodCanBeVoid()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
             using (var client = new TestClient())
             {
@@ -601,9 +601,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task HubMethodCanBeRenamedWithAttribute()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
             using (var client = new TestClient())
             {
@@ -624,9 +624,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task HubMethodNameAttributeIsInherited()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<InheritedHub>>();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<InheritedHub>>();
 
             using (var client = new TestClient())
             {
@@ -650,9 +650,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [InlineData(nameof(MethodHub.ValueMethod))]
         public async Task NonBlockingInvocationDoesNotSendCompletion(string methodName)
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
             using (var client = new TestClient(synchronousCallbacks: true))
             {
@@ -675,9 +675,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task HubMethodWithMultiParam()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
             using (var client = new TestClient())
             {
@@ -697,9 +697,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task CanCallInheritedHubMethodFromInheritingHub()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<InheritedHub>>();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<InheritedHub>>();
 
             using (var client = new TestClient())
             {
@@ -719,9 +719,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task CanCallOverridenVirtualHubMethod()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<InheritedHub>>();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<InheritedHub>>();
 
             using (var client = new TestClient())
             {
@@ -741,9 +741,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task CannotCallOverriddenBaseHubMethod()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
             using (var client = new TestClient())
             {
@@ -763,11 +763,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public void HubsCannotHaveOverloadedMethods()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
 
             try
             {
-                var endPoint = serviceProvider.GetService<HubEndPoint<InvalidHub>>();
+                var endPoint = serviceProvider.GetService<HubConnectionHandler<InvalidHub>>();
                 Assert.True(false);
             }
             catch (NotSupportedException ex)
@@ -779,9 +779,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task CannotCallStaticHubMethods()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
             using (var client = new TestClient())
             {
@@ -801,9 +801,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task CannotCallObjectMethodsOnHub()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
             using (var client = new TestClient())
             {
@@ -831,9 +831,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task CannotCallDisposeMethodOnHub()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
             using (var client = new TestClient())
             {
@@ -854,7 +854,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(HubTypes))]
         public async Task BroadcastHubMethodSendsToAllClients(Type hubType)
         {
-            var endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
+            var endPoint = HubConnectionHandlerTestUtils.GetHubConnectionHandler(hubType);
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
@@ -887,9 +887,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task SendArraySendsArrayToAllClients()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
@@ -924,7 +924,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(HubTypes))]
         public async Task SendToOthers(Type hubType)
         {
-            var endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
+            var endPoint = HubConnectionHandlerTestUtils.GetHubConnectionHandler(hubType);
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
@@ -964,7 +964,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(HubTypes))]
         public async Task SendToCaller(Type hubType)
         {
-            var endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
+            var endPoint = HubConnectionHandlerTestUtils.GetHubConnectionHandler(hubType);
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
@@ -999,7 +999,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(HubTypes))]
         public async Task SendToAllExcept(Type hubType)
         {
-            var endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
+            var endPoint = HubConnectionHandlerTestUtils.GetHubConnectionHandler(hubType);
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
@@ -1042,7 +1042,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(HubTypes))]
         public async Task SendToMultipleClients(Type hubType)
         {
-            var endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
+            var endPoint = HubConnectionHandlerTestUtils.GetHubConnectionHandler(hubType);
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
@@ -1087,7 +1087,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(HubTypes))]
         public async Task SendToMultipleUsers(Type hubType)
         {
-            var endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
+            var endPoint = HubConnectionHandlerTestUtils.GetHubConnectionHandler(hubType);
 
             using (var firstClient = new TestClient(addClaimId: true))
             using (var secondClient = new TestClient(addClaimId: true))
@@ -1132,7 +1132,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(HubTypes))]
         public async Task HubsCanAddAndSendToGroup(Type hubType)
         {
-            var endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
+            var endPoint = HubConnectionHandlerTestUtils.GetHubConnectionHandler(hubType);
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
@@ -1173,7 +1173,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(HubTypes))]
         public async Task SendToGroupExcept(Type hubType)
         {
-            var endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
+            var endPoint = HubConnectionHandlerTestUtils.GetHubConnectionHandler(hubType);
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
@@ -1223,7 +1223,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(HubTypes))]
         public async Task SendToOthersInGroup(Type hubType)
         {
-            var endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
+            var endPoint = HubConnectionHandlerTestUtils.GetHubConnectionHandler(hubType);
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
@@ -1271,7 +1271,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(HubTypes))]
         public async Task InvokeMultipleGroups(Type hubType)
         {
-            var endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
+            var endPoint = HubConnectionHandlerTestUtils.GetHubConnectionHandler(hubType);
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
@@ -1310,9 +1310,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task RemoveFromGroupWhenNotInGroupDoesNotFail()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
             using (var client = new TestClient())
             {
@@ -1331,7 +1331,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(HubTypes))]
         public async Task HubsCanSendToUser(Type hubType)
         {
-            var endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
+            var endPoint = HubConnectionHandlerTestUtils.GetHubConnectionHandler(hubType);
 
             using (var firstClient = new TestClient(addClaimId: true))
             using (var secondClient = new TestClient(addClaimId: true))
@@ -1362,7 +1362,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(HubTypes))]
         public async Task HubsCanSendToConnection(Type hubType)
         {
-            var endPoint = HubEndPointTestUtils.GetHubEndpoint(hubType);
+            var endPoint = HubConnectionHandlerTestUtils.GetHubConnectionHandler(hubType);
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
@@ -1392,7 +1392,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task DelayedSendTest()
         {
-            var endPoint = HubEndPointTestUtils.GetHubEndpoint(typeof(HubT));
+            var endPoint = HubConnectionHandlerTestUtils.GetHubConnectionHandler(typeof(HubT));
 
             using (var firstClient = new TestClient())
             using (var secondClient = new TestClient())
@@ -1423,8 +1423,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(StreamingMethodAndHubProtocols))]
         public async Task HubsCanStreamResponses(string method, IHubProtocol protocol)
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
-            var endPoint = serviceProvider.GetService<HubEndPoint<StreamingHub>>();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<StreamingHub>>();
             var invocationBinder = new Mock<IInvocationBinder>();
             invocationBinder.Setup(b => b.GetReturnType(It.IsAny<string>())).Returns(typeof(string));
 
@@ -1440,11 +1440,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var messages = await client.StreamAsync(method, 4).OrTimeout();
 
                 Assert.Equal(5, messages.Count);
-                HubEndPointTestUtils.AssertHubMessage(new StreamItemMessage(string.Empty, "0"), messages[0]);
-                HubEndPointTestUtils.AssertHubMessage(new StreamItemMessage(string.Empty, "1"), messages[1]);
-                HubEndPointTestUtils.AssertHubMessage(new StreamItemMessage(string.Empty, "2"), messages[2]);
-                HubEndPointTestUtils.AssertHubMessage(new StreamItemMessage(string.Empty, "3"), messages[3]);
-                HubEndPointTestUtils.AssertHubMessage(CompletionMessage.Empty(string.Empty), messages[4]);
+                HubConnectionHandlerTestUtils.AssertHubMessage(new StreamItemMessage(string.Empty, "0"), messages[0]);
+                HubConnectionHandlerTestUtils.AssertHubMessage(new StreamItemMessage(string.Empty, "1"), messages[1]);
+                HubConnectionHandlerTestUtils.AssertHubMessage(new StreamItemMessage(string.Empty, "2"), messages[2]);
+                HubConnectionHandlerTestUtils.AssertHubMessage(new StreamItemMessage(string.Empty, "3"), messages[3]);
+                HubConnectionHandlerTestUtils.AssertHubMessage(CompletionMessage.Empty(string.Empty), messages[4]);
 
                 client.Dispose();
 
@@ -1455,8 +1455,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task NonErrorCompletionSentWhenStreamCanceledFromClient()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
-            var endPoint = serviceProvider.GetService<HubEndPoint<StreamingHub>>();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<StreamingHub>>();
 
             using (var client = new TestClient())
             {
@@ -1484,8 +1484,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task ReceiveCorrectErrorFromStreamThrowing()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
-            var endPoint = serviceProvider.GetService<HubEndPoint<StreamingHub>>();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<StreamingHub>>();
 
             using (var client = new TestClient())
             {
@@ -1509,8 +1509,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task CanSendToConnectionsWithDifferentProtocols()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
             using (var client1 = new TestClient(protocol: new JsonHubProtocol()))
             using (var client2 = new TestClient(protocol: new MessagePackHubProtocol()))
@@ -1564,7 +1564,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task UnauthorizedConnectionCannotInvokeHubMethodWithAuthorization()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider(services =>
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(services =>
             {
                 services.AddAuthorization(options =>
                 {
@@ -1576,7 +1576,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 });
             });
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
             using (var client = new TestClient())
             {
@@ -1597,7 +1597,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task AuthorizedConnectionCanInvokeHubMethodWithAuthorization()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider(services =>
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(services =>
             {
                 services.AddAuthorization(options =>
                 {
@@ -1609,7 +1609,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 });
             });
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
             using (var client = new TestClient())
             {
@@ -1631,7 +1631,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task HubOptionsCanUseCustomJsonSerializerSettings()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider(services =>
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(services =>
             {
                 services
                     .AddSignalR()
@@ -1644,7 +1644,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     });
             });
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
             using (var client = new TestClient())
             {
@@ -1670,8 +1670,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task JsonHubProtocolUsesCamelCasingByDefault()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
             using (var client = new TestClient())
             {
@@ -1697,7 +1697,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task HubOptionsCanUseCustomMessagePackSettings()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider(services =>
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(services =>
             {
                 services.AddSignalR()
                     .AddMessagePackProtocol(options =>
@@ -1706,7 +1706,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     });
             });
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
             var msgPackOptions = serviceProvider.GetRequiredService<IOptions<MessagePackHubProtocolOptions>>();
             using (var client = new TestClient(synchronousCallbacks: false, protocol: new MessagePackHubProtocol(msgPackOptions)))
@@ -1734,9 +1734,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task CanGetHttpContextFromHubConnectionContext()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
             using (var client = new TestClient())
             {
@@ -1758,9 +1758,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task GetHttpContextFromHubConnectionContextHandlesNull()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
 
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
             using (var client = new TestClient())
             {
@@ -1780,8 +1780,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task AcceptsPingMessages()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
             using (var client = new TestClient(false, new JsonHubProtocol()))
             {
@@ -1804,10 +1804,10 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task DoesNotWritePingMessagesIfSufficientOtherMessagesAreSent()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider(services =>
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(services =>
                 services.Configure<HubOptions>(options =>
                     options.KeepAliveInterval = TimeSpan.FromMilliseconds(100)));
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
             using (var client = new TestClient(false, new JsonHubProtocol()))
             {
@@ -1845,10 +1845,10 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task WritesPingMessageIfNothingWrittenWhenKeepAliveIntervalElapses()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider(services =>
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(services =>
                 services.Configure<HubOptions>(options =>
                     options.KeepAliveInterval = TimeSpan.FromMilliseconds(100)));
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
             using (var client = new TestClient(false, new JsonHubProtocol()))
             {
@@ -1903,8 +1903,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task EndingConnectionSendsCloseMessageWithNoError()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
-            var endPoint = serviceProvider.GetService<HubEndPoint<MethodHub>>();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
             using (var client = new TestClient(false, new JsonHubProtocol()))
             {
@@ -1929,8 +1929,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task ErrorInHubOnConnectSendsCloseMessageWithError()
         {
-            var serviceProvider = HubEndPointTestUtils.CreateServiceProvider();
-            var endPoint = serviceProvider.GetService<HubEndPoint<OnConnectedThrowsHub>>();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
+            var endPoint = serviceProvider.GetService<HubConnectionHandler<OnConnectedThrowsHub>>();
 
             using (var client = new TestClient(false, new JsonHubProtocol()))
             {

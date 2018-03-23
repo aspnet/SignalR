@@ -11,9 +11,9 @@ namespace Microsoft.AspNetCore.SignalR
 {
     public class HubRouteBuilder
     {
-        private readonly SocketRouteBuilder _routes;
+        private readonly ConnectionsRouteBuilder _routes;
 
-        public HubRouteBuilder(SocketRouteBuilder routes)
+        public HubRouteBuilder(ConnectionsRouteBuilder routes)
         {
             _routes = routes;
         }
@@ -39,7 +39,7 @@ namespace Microsoft.AspNetCore.SignalR
             }
             socketOptions?.Invoke(options);
 
-            _routes.MapSocket(path, options, builder =>
+            _routes.MapConnections(path, options, builder =>
             {
                 builder.UseHub<THub>();
             });
