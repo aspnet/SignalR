@@ -71,9 +71,7 @@ export class WebSocketTransport implements ITransport {
             };
 
             webSocket.onmessage = (message: MessageEvent) => {
-
                 this.logger.log(LogLevel.Trace, `(WebSockets transport) data received. Length ${getDataLength(message.data)}.`);
-
                 if (this.onreceive) {
                     this.onreceive(message.data);
                 }
