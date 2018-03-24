@@ -117,7 +117,8 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
 
     public class TestPipeWriter : PipeWriter
     {
-        private readonly byte[] _buffer = new byte[100];
+        // huge buffer that should be large enough for writing any content
+        private readonly byte[] _buffer = new byte[10000];
 
         public override void Advance(int bytes)
         {
