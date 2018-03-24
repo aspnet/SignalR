@@ -567,7 +567,6 @@ describe("hubConnection", () => {
         } catch (e) {
             fail(e);
         }
-
     });
 
     function getJwtToken(url): Promise<string> {

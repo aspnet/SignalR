@@ -150,7 +150,6 @@ describe("HttpConnection", () => {
             expect(e.message).toBe("Unable to initialize any of the available transports.");
         }
         done();
-
     });
 
     it("preserves user's query string", async (done) => {
