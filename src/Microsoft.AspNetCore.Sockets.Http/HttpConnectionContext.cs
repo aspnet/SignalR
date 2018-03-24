@@ -25,7 +25,6 @@ namespace Microsoft.AspNetCore.Sockets
                                          IConnectionHeartbeatFeature,
                                          ITransferFormatFeature,
                                          IHttpContextFeature
-
     {
         private object _heartbeatLock = new object();
         private List<(Action<object> handler, object state)> _heartbeatHandlers;
