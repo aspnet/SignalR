@@ -544,7 +544,7 @@ describe("hubConnection", () => {
         }
     });
 
-    it("transport falls back from WebSockets to SSE", async (done) => {
+    it("transport falls back from WebSockets to SSE or LongPolling", async (done) => {
         // Replace Websockets with a function that just
         // throws to force fallback.
         const oldWebSocket = (window as any).WebSocket;
@@ -561,7 +561,7 @@ describe("hubConnection", () => {
             await hubConnection.start();
 
             // Make sure that we connect with SSE.
-            expect(await hubConnection.invoke("GetActiveTransportName")).toEqual("ServerSentEvents");
+            expect(await hubConnection.invoke("GetActiveTransportName")).toEqual("ServerSentEvents" || "LongPolling");
             (window as any).WebSocket = oldWebSocket;
             done();
         } catch (e) {
