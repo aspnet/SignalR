@@ -91,7 +91,7 @@ export class HttpConnection implements IConnection {
                     };
                 }
 
-                const negotiateResponse = await this.setNegotiationResponse(headers);
+                const negotiateResponse = await this.getNegotiationResponse(headers);
                 // the user tries to stop the the connection when it is being started
                 if (this.connectionState === ConnectionState.Disconnected) {
                     return;
@@ -113,7 +113,7 @@ export class HttpConnection implements IConnection {
         }
     }
 
-    private async setNegotiationResponse(headers: any): Promise<INegotiateResponse> {
+    private async getNegotiationResponse(headers: any): Promise<INegotiateResponse> {
         const response =  await this.httpClient.post(this.resolveNegotiateUrl(this.baseUrl), {
             content: "",
             headers,
@@ -136,22 +136,23 @@ export class HttpConnection implements IConnection {
             // only change the state if we were connecting to not overwrite
             // the state if the connection is already marked as Disconnected
             this.changeState(ConnectionState.Connecting, ConnectionState.Connected);
-            return Promise.resolve();
+            return;
         }
 
         const transports = negotiateResponse.availableTransports;
         for (const endpoint of transports) {
+            this.connectionState = ConnectionState.Connecting;
             const transport = this.resolveTransport(endpoint, requestedTransport, requestedTransferFormat);
             if (typeof transport === "number") {
                 this.transport = this.constructTransport(transport);
                 if (negotiateResponse.connectionId === null) {
-                    negotiateResponse = await this.setNegotiationResponse(headers);
+                    negotiateResponse = await this.getNegotiationResponse(headers);
                     this.updateConnectionId(negotiateResponse);
                 }
                 try {
                     await this.transport.connect(this.url, requestedTransferFormat, this);
                     this.changeState(ConnectionState.Connecting, ConnectionState.Connected);
-                    return Promise.resolve();
+                    return;
                 } catch (ex) {
                     this.logger.log(LogLevel.Error, `Failed to start the transport' ${TransportType[transport]}:' transport'${ex}'`);
                     this.connectionState = ConnectionState.Disconnected;
