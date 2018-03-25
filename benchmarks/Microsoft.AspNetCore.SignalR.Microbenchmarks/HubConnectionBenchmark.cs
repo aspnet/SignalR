@@ -7,9 +7,9 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
+using Microsoft.AspNetCore.Connections;
+using Microsoft.AspNetCore.Connections.Features;
 using Microsoft.AspNetCore.Http.Features;
-using Microsoft.AspNetCore.Protocols;
-using Microsoft.AspNetCore.Protocols.Features;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
@@ -27,7 +27,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         {
             var connection = new TestConnection();
             // prevents keep alive time being activated
-            connection.Features.Set(new ConnectionInherentKeepAliveFeature(TimeSpan.Zero));
+            connection.Features.Set(new TestConnectionInherentKeepAliveFeature());
 
             _hubConnection = new HubConnection(connection, new JsonHubProtocol(), new NullLoggerFactory());
         }
@@ -37,6 +37,11 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         {
             return _hubConnection.StartAsync();
         }
+    }
+
+    public class TestConnectionInherentKeepAliveFeature : IConnectionInherentKeepAliveFeature
+    {
+        public TimeSpan KeepAliveInterval { get; } = TimeSpan.Zero;
     }
 
     public class TestConnection : IConnection
