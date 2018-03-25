@@ -210,7 +210,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                                     }
                                     else if (FastEquals(reader.Value, HeadersPropertyName))
                                     {
-
                                         JsonUtils.CheckRead(reader);
                                         headers = ReadHeaders(reader);
                                     }
