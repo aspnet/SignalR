@@ -121,7 +121,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                         {
                             case JsonToken.PropertyName:
                                 {
-                                    if (object.ReferenceEquals(reader.Value, TypePropertyName) || string.Equals(reader.Value.ToString(), TypePropertyName))
+                                    if (FastEquals(reader.Value, TypePropertyName))
                                     {
                                         var messageType = JsonUtils.ReadAsInt32(reader, TypePropertyName);
 
@@ -132,20 +132,19 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
                                         type = messageType.Value;
                                     }
-                                    else if (object.ReferenceEquals(reader.Value, InvocationIdPropertyName) || string.Equals(reader.Value.ToString(), InvocationIdPropertyName))
+                                    else if (FastEquals(reader.Value, InvocationIdPropertyName))
                                     {
                                         invocationId = JsonUtils.ReadAsString(reader, InvocationIdPropertyName);
                                     }
-                                    else if (object.ReferenceEquals(reader.Value, TargetPropertyName) || string.Equals(reader.Value.ToString(), TargetPropertyName))
+                                    else if (FastEquals(reader.Value, TargetPropertyName))
                                     {
                                         target = JsonUtils.ReadAsString(reader, TargetPropertyName);
                                     }
-                                    else if (object.ReferenceEquals(reader.Value, ErrorPropertyName) || string.Equals(reader.Value.ToString(), ErrorPropertyName))
+                                    else if (FastEquals(reader.Value, ErrorPropertyName))
                                     {
-
                                         error = JsonUtils.ReadAsString(reader, ErrorPropertyName);
                                     }
-                                    else if (object.ReferenceEquals(reader.Value, ResultPropertyName) || string.Equals(reader.Value.ToString(), ResultPropertyName))
+                                    else if (FastEquals(reader.Value, ResultPropertyName))
                                     {
                                         JsonUtils.CheckRead(reader);
 
@@ -163,7 +162,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                                             result = PayloadSerializer.Deserialize(reader, returnType);
                                         }
                                     }
-                                    else if (object.ReferenceEquals(reader.Value, ItemPropertyName) || string.Equals(reader.Value.ToString(), ItemPropertyName))
+                                    else if (FastEquals(reader.Value, ItemPropertyName))
                                     {
                                         JsonUtils.CheckRead(reader);
 
@@ -180,7 +179,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                                             item = PayloadSerializer.Deserialize(reader, returnType);
                                         }
                                     }
-                                    else if (object.ReferenceEquals(reader.Value, ArgumentsPropertyName) || string.Equals(reader.Value.ToString(), ArgumentsPropertyName))
+                                    else if (FastEquals(reader.Value, ArgumentsPropertyName))
                                     {
                                         JsonUtils.CheckRead(reader);
 
@@ -209,7 +208,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                                             }
                                         }
                                     }
-                                    else if (object.ReferenceEquals(reader.Value, HeadersPropertyName) || string.Equals(reader.Value.ToString(), HeadersPropertyName))
+                                    else if (FastEquals(reader.Value, HeadersPropertyName))
                                     {
 
                                         JsonUtils.CheckRead(reader);
@@ -310,6 +309,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             {
                 throw new InvalidDataException("Error reading JSON.", jrex);
             }
+        }
+
+        private static bool FastEquals(object left, string right)
+        {
+            return ReferenceEquals(left, right) || string.Equals(left.ToString(), right);
         }
 
         private Dictionary<string, string> ReadHeaders(JsonTextReader reader)
