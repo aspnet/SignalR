@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Linq.Expressions;
 using System.Reflection;
 using Newtonsoft.Json;
 
@@ -14,10 +15,9 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
     internal class JsonNameTable
     {
         // See https://github.com/JamesNK/Newtonsoft.Json/blob/993215529562866719689206e27e413013d4439c/Src/Newtonsoft.Json/Utilities/PropertyNameTable.cs
-        private object _nameTable;
-        private Func<string, string> _addMethod;
-
-        private FieldInfo _nameTableFieldInfo;
+        private readonly object _nameTable;
+        private readonly Action<JsonTextReader, object> _nameTableSetter;
+        private readonly Func<string, string> _addMethod;
 
         public JsonNameTable()
         {
@@ -46,19 +46,35 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                     }
                 }
 
-                // REVIEW: Compile an expression tree?
-                _nameTableFieldInfo = typeof(JsonTextReader).GetField("NameTable", BindingFlags.NonPublic | BindingFlags.Instance);
+                _nameTableSetter = GetJsonNameTableSetter(propertyNameTableType);
             }
         }
 
         public void Apply(JsonTextReader reader)
         {
-            _nameTableFieldInfo.SetValue(reader, _nameTable);
+            _nameTableSetter.Invoke(reader, _nameTable);
         }
 
         public void Add(string key)
         {
             _addMethod.Invoke(key);
+        }
+
+        public static Action<JsonTextReader, object> GetJsonNameTableSetter(Type nameTableType)
+        {
+            // (textReader, nameTable) => textReader.NameTable = (NameTable)nameTable;
+            ParameterExpression textReader = Expression.Parameter(typeof(JsonTextReader), "textReader");
+
+            ParameterExpression nameTable = Expression.Parameter(typeof(object), "nameTable");
+
+            MemberExpression member = Expression.Field(textReader, "NameTable");
+
+            LambdaExpression lambda =
+            Expression.Lambda(typeof(Action<JsonTextReader, object>),
+                Expression.Assign(member, Expression.Convert(nameTable, nameTableType)), textReader, nameTable);
+
+            var compiled = (Action<JsonTextReader, object>)lambda.Compile();
+            return compiled;
         }
     }
 }
