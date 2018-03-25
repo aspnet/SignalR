@@ -16,8 +16,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
     {
         // See https://github.com/JamesNK/Newtonsoft.Json/blob/993215529562866719689206e27e413013d4439c/Src/Newtonsoft.Json/Utilities/PropertyNameTable.cs
         private readonly object _nameTable;
-        private readonly Action<JsonTextReader, object> _nameTableSetter;
-        private readonly Func<string, string> _addMethod;
+        private readonly Action<JsonTextReader, object> _nameTableSetter = (JsonReader, value) => { };
+        private readonly Func<string, string> _addMethod = key => key;
 
         public JsonNameTable()
         {
