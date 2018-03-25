@@ -19,6 +19,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
     {
         private static readonly UTF8Encoding _utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
+        private static readonly JsonNameTable _nameTable = CreateNameTable();
+
         private const string ResultPropertyName = "result";
         private const string ItemPropertyName = "item";
         private const string InvocationIdPropertyName = "invocationId";
@@ -103,6 +105,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 using (var reader = new JsonTextReader(textReader))
                 {
                     reader.ArrayPool = JsonArrayPool<char>.Shared;
+                    _nameTable.Apply(reader);
 
                     JsonUtils.CheckRead(reader);
 
@@ -643,6 +646,21 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         internal static JsonSerializerSettings CreateDefaultSerializerSettings()
         {
             return new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
+        }
+
+        private static JsonNameTable CreateNameTable()
+        {
+            // Creates a name table with all of the known property names
+            var table = new JsonNameTable();
+            table.Add(ResultPropertyName);
+            table.Add(ItemPropertyName);
+            table.Add(InvocationIdPropertyName);
+            table.Add(TypePropertyName);
+            table.Add(ErrorPropertyName);
+            table.Add(TargetPropertyName);
+            table.Add(ArgumentsPropertyName);
+            table.Add(HeadersPropertyName);
+            return table;
         }
     }
 }
