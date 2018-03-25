@@ -52,7 +52,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 // this should be an exceptional case
                 if (_charBuffer == null)
                 {
-                    _charBuffer = new char[1024];
+                    _charBuffer = new char[32];
                 }
 
                 // Run out of buffer space
