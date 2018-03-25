@@ -81,7 +81,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [ConditionalFact]
-        [WebSocketsSkipCondition]
+        [WebSocketsSupportedCondition]
         public async Task WebSocketsTest()
         {
             using (StartLog(out var loggerFactory))
@@ -118,7 +118,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [ConditionalFact]
-        [WebSocketsSkipCondition]
+        [WebSocketsSupportedCondition]
         public async Task HTTPRequestsNotSentWhenWebSocketsTransportRequested()
         {
             using (StartLog(out var loggerFactory))
@@ -251,7 +251,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [ConditionalTheory]
-        [WebSocketsSkipCondition]
+        [WebSocketsSupportedCondition]
         [MemberData(nameof(MessageSizesData))]
         public async Task ConnectionCanSendAndReceiveDifferentMessageSizesWebSocketsTransport(string message)
         {
@@ -303,7 +303,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [ConditionalFact]
-        [WebSocketsSkipCondition]
+        [WebSocketsSupportedCondition]
         public async Task ServerClosesConnectionWithErrorIfHubCannotBeCreated_WebSocket()
         {
             try

@@ -69,7 +69,7 @@ namespace Microsoft.AspNetCore.Sockets.Tests
         }
 
         [ConditionalFact]
-        [WebSocketsSkipCondition]
+        [WebSocketsSupportedCondition]
         public async Task MapConnectionHandlerWithWebSocketSubProtocolSetsProtocol()
         {
             var host = BuildWebHost<MyConnectionHandler>("/socket",

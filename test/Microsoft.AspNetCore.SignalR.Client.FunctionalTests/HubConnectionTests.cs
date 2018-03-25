@@ -724,7 +724,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         }
 
         [ConditionalFact]
-        [WebSocketsSkipCondition]
+        [WebSocketsSupportedCondition]
         public async Task WebSocketOptionsAreApplied()
         {
             using (StartLog(out var loggerFactory, $"{nameof(WebSocketOptionsAreApplied)}"))
