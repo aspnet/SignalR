@@ -27,7 +27,7 @@ namespace Microsoft.AspNetCore.SignalR
     public class HubConnectionContext
     {
         private static readonly Action<object> _abortedCallback = AbortConnection;
-        private static readonly byte[] _successHandshakeResponseData = {(byte)'{', (byte)'}', TextMessageFormatter.RecordSeparator};
+        private static readonly byte[] _successHandshakeResponseData;
 
         private readonly ConnectionContext _connectionContext;
         private readonly ILogger _logger;
@@ -38,6 +38,13 @@ namespace Microsoft.AspNetCore.SignalR
 
         private long _lastSendTimestamp = Stopwatch.GetTimestamp();
         private byte[] _cachedPingMessage;
+
+        static HubConnectionContext()
+        {
+            MemoryStream ms = new MemoryStream();
+            HandshakeProtocol.WriteResponseMessage(HandshakeResponseMessage.Empty, ms);
+            _successHandshakeResponseData = ms.ToArray();
+        }
 
         public HubConnectionContext(ConnectionContext connectionContext, TimeSpan keepAliveInterval, ILoggerFactory loggerFactory)
         {
