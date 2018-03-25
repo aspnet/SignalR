@@ -75,7 +75,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         }
 
         [Fact]
-        public void WriteCharUnicodeAndRunOutOfBufferSpace()
+        public void WriteChar_UnicodeAndRunOutOfBufferSpace()
         {
             TestBufferWriter bufferWriter = new TestBufferWriter(4096);
             Utf8BufferTextWriter textWriter = new Utf8BufferTextWriter(bufferWriter);
@@ -113,6 +113,20 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
 
             Assert.Equal('"', result[2002]);
             Assert.Equal(']', result[2003]);
+        }
+
+        [Fact]
+        public void WriteCharArray_NonZeroStart()
+        {
+            TestBufferWriter bufferWriter = new TestBufferWriter(4096);
+            Utf8BufferTextWriter textWriter = new Utf8BufferTextWriter(bufferWriter);
+
+            char[] chars = "Hello world".ToCharArray();
+
+            textWriter.Write(chars, 6, 1);
+
+            Assert.Equal(1, bufferWriter.Position);
+            Assert.Equal((byte)'w', bufferWriter.Buffer.Span[0]);
         }
     }
 }

@@ -69,17 +69,18 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         {
             var sourceBytesCount = _utf8NoBom.GetByteCount(buffer, index, count);
 
+            var source = buffer.AsSpan(index, count);
             var destination = _bufferWriter.GetSpan(sourceBytesCount);
 
 #if NETCOREAPP2_1
-            _utf8NoBom.GetBytes(buffer.AsSpan(index, count), destination);
+            _utf8NoBom.GetBytes(source, destination);
 #else
             unsafe
             {
-                fixed (char* sourceChars = buffer)
+                fixed (char* sourceChars = &MemoryMarshal.GetReference(source))
                 fixed (byte* destinationBytes = &MemoryMarshal.GetReference(destination))
                 {
-                    _utf8NoBom.GetBytes(sourceChars, buffer.Length, destinationBytes, sourceBytesCount);
+                    _utf8NoBom.GetBytes(sourceChars, count, destinationBytes, sourceBytesCount);
                 }
             }
 #endif
