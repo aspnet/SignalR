@@ -107,10 +107,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                     JsonUtils.CheckRead(reader);
 
                     // We're always parsing a JSON object
-                    if (reader.TokenType != JsonToken.StartObject)
-                    {
-                        throw new InvalidDataException($"Unexpected JSON Token Type '{JsonUtils.GetTokenString(reader.TokenType)}'. Expected a JSON Object.");
-                    }
+                    JsonUtils.EnsureObjectStart(reader);
 
                     do
                     {

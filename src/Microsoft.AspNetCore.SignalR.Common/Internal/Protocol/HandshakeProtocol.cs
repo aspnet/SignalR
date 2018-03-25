@@ -16,7 +16,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         private static readonly UTF8Encoding _utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
         private const string ProtocolPropertyName = "protocol";
-        private const string ProtocolVersionName = "version";
+        private const string ProtocolVersionPropertyName = "version";
         private const string ErrorPropertyName = "error";
         private const string TypePropertyName = "type";
 
@@ -27,7 +27,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 writer.WriteStartObject();
                 writer.WritePropertyName(ProtocolPropertyName);
                 writer.WriteValue(requestMessage.Protocol);
-                writer.WritePropertyName(ProtocolVersionName);
+                writer.WritePropertyName(ProtocolVersionPropertyName);
                 writer.WriteValue(requestMessage.Version);
                 writer.WriteEndObject();
             }
@@ -69,19 +69,38 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         {
             using (var reader = CreateJsonTextReader(payload))
             {
-                var token = JToken.ReadFrom(reader);
-                var handshakeJObject = JsonUtils.GetObject(token);
+                JsonUtils.CheckRead(reader);
+                JsonUtils.EnsureObjectStart(reader);
 
-                // a handshake response does not have a type
-                // check the incoming message was not any other type of message
-                var type = JsonUtils.GetOptionalProperty<string>(handshakeJObject, TypePropertyName);
-                if (!string.IsNullOrEmpty(type))
+                string error = null;
+
+                var completed = false;
+                do
                 {
-                    throw new InvalidOperationException("Handshake response should not have a 'type' value.");
-                }
+                    switch (reader.TokenType)
+                    {
+                        case JsonToken.PropertyName:
+                            string memberName = reader.Value.ToString();
 
-                var error = JsonUtils.GetOptionalProperty<string>(handshakeJObject, ErrorPropertyName);
-                return new HandshakeResponseMessage(error);
+                            switch (memberName)
+                            {
+                                case TypePropertyName:
+                                    // a handshake response does not have a type
+                                    // check the incoming message was not any other type of message
+                                    throw new InvalidOperationException("Handshake response should not have a 'type' value.");
+                                case ErrorPropertyName:
+                                    error = JsonUtils.ReadAsString(reader, ErrorPropertyName);
+                                    break;
+                            }
+                            break;
+                        case JsonToken.EndObject:
+                            completed = true;
+                            break;
+                    }
+                }
+                while (!completed && JsonUtils.CheckRead(reader));
+
+                return (!string.IsNullOrEmpty(error)) ? new HandshakeResponseMessage(error) : HandshakeResponseMessage.Empty;
             }
         }
 
@@ -100,11 +119,47 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
             using (var reader = CreateJsonTextReader(payload))
             {
-                var token = JToken.ReadFrom(reader);
-                var handshakeJObject = JsonUtils.GetObject(token);
-                var protocol = JsonUtils.GetRequiredProperty<string>(handshakeJObject, ProtocolPropertyName);
-                var protocolVersion = JsonUtils.GetRequiredProperty<int>(handshakeJObject, ProtocolVersionName, JTokenType.Integer);
-                requestMessage = new HandshakeRequestMessage(protocol, protocolVersion);
+                JsonUtils.CheckRead(reader);
+                JsonUtils.EnsureObjectStart(reader);
+
+                string protocol = null;
+                int? protocolVersion = null;
+
+                var completed = false;
+                do
+                {
+                    switch (reader.TokenType)
+                    {
+                        case JsonToken.PropertyName:
+                            string memberName = reader.Value.ToString();
+
+                            switch (memberName)
+                            {
+                                case ProtocolPropertyName:
+                                    protocol = JsonUtils.ReadAsString(reader, ProtocolPropertyName);
+                                    break;
+                                case ProtocolVersionPropertyName:
+                                    protocolVersion = JsonUtils.ReadAsInt32(reader, ProtocolVersionPropertyName);
+                                    break;
+                            }
+                            break;
+                        case JsonToken.EndObject:
+                            completed = true;
+                            break;
+                    }
+                }
+                while (!completed && JsonUtils.CheckRead(reader));
+
+                if (protocol == null)
+                {
+                    throw new InvalidDataException($"Missing required property '{ProtocolPropertyName}'.");
+                }
+                if (protocolVersion == null)
+                {
+                    throw new InvalidDataException($"Missing required property '{ProtocolVersionPropertyName}'.");
+                }
+
+                requestMessage = new HandshakeRequestMessage(protocol, protocolVersion.Value);
             }
 
             return true;
