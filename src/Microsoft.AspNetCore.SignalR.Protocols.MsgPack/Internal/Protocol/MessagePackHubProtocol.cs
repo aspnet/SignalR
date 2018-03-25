@@ -250,7 +250,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
         public void WriteMessage(HubMessage message, Stream output)
         {
-            using (LimitArrayPoolWriteStream stream = new LimitArrayPoolWriteStream())
+            using (var stream = new LimitArrayPoolWriteStream())
             {
                 // write message to a buffer so we can get its length
                 WriteMessageCore(message, stream);
