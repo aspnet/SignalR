@@ -1,14 +1,10 @@
 using System;
 using System.IO.Pipelines;
 using System.Threading;
-using System.Threading.Channels;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using Microsoft.AspNetCore.Connections;
-using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
-using Microsoft.AspNetCore.Sockets;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
@@ -45,7 +41,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             for (var i = 0; i < Connections; ++i)
             {
                 var pair = DuplexPipe.CreateConnectionPair(options, options);
-                var connection = new DefaultConnectionContext(Guid.NewGuid().ToString(), pair.Application, pair.Transport);
+                var connection = new DefaultConnectionContext(Guid.NewGuid().ToString(), pair.Transport, pair.Application);
                 var hubConnection = new HubConnectionContext(connection, Timeout.InfiniteTimeSpan, NullLoggerFactory.Instance);
                 hubConnection.Protocol = protocol;
                 _hubLifetimeManager.OnConnectedAsync(hubConnection).GetAwaiter().GetResult();
