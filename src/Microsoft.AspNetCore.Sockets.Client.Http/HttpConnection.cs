@@ -13,6 +13,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Connections;
+using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.Sockets.Client.Http;
 using Microsoft.AspNetCore.Sockets.Client.Internal;
 using Microsoft.AspNetCore.Sockets.Http.Internal;
@@ -388,25 +389,55 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         private static async Task<NegotiationResponse> ParseNegotiateResponse(HttpResponseMessage response, ILogger logger)
         {
-            NegotiationResponse negotiationResponse;
-            using (var reader = new JsonTextReader(new StreamReader(await response.Content.ReadAsStreamAsync())))
+            try
             {
-                try
+                using (var reader = new JsonTextReader(new StreamReader(await response.Content.ReadAsStreamAsync())))
                 {
-                    negotiationResponse = new JsonSerializer().Deserialize<NegotiationResponse>(reader);
-                }
-                catch (Exception ex)
-                {
-                    throw new FormatException("Invalid negotiation response received.", ex);
+                    JsonUtils.CheckRead(reader);
+                    JsonUtils.EnsureObjectStart(reader);
+
+                    string connectionId = null;
+                    List<AvailableTransport> availableTransports = null;
+
+                    var completed = false;
+                    do
+                    {
+                        switch (reader.TokenType)
+                        {
+                            case JsonToken.PropertyName:
+                                string memberName = reader.Value.ToString();
+
+                                switch (memberName)
+                                {
+                                    case "connectionId":
+                                        connectionId = JsonUtils.ReadAsString(reader, "connectionId");
+                                        break;
+                                    case "availableTransports":
+                                        JsonUtils.CheckRead(reader);
+                                        JsonUtils.EnsureArrayStart(reader);
+
+                                        error = JsonUtils.ReadAsString(reader, ErrorPropertyName);
+                                        break;
+                                }
+
+                                break;
+                            case JsonToken.EndObject:
+                                completed = true;
+                                break;
+                        }
+                    } while (!completed && JsonUtils.CheckRead(reader));
+
+                    return new NegotiationResponse
+                    {
+                        ConnectionId = connectionId,
+                        AvailableTransports = availableTransports
+                    };
                 }
             }
-
-            if (negotiationResponse == null)
+            catch (Exception ex)
             {
-                throw new FormatException("Invalid negotiation response received.");
+                throw new FormatException("Invalid negotiation response received.", ex);
             }
-
-            return negotiationResponse;
         }
 
         private static Uri CreateConnectUrl(Uri url, string connectionId)
@@ -752,13 +783,13 @@ namespace Microsoft.AspNetCore.Sockets.Client
         private class NegotiationResponse
         {
             public string ConnectionId { get; set; }
-            public AvailableTransport[] AvailableTransports { get; set; }
+            public List<AvailableTransport> AvailableTransports { get; set; }
         }
 
         private class AvailableTransport
         {
             public string Transport { get; set; }
-            public string[] TransferFormats { get; set; }
+            public List<string> TransferFormats { get; set; }
         }
     }
 }

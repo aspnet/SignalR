@@ -79,6 +79,14 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             }
         }
 
+        public static void EnsureArrayStart(JsonTextReader reader)
+        {
+            if (reader.TokenType != JsonToken.StartArray)
+            {
+                throw new InvalidDataException($"Unexpected JSON Token Type '{GetTokenString(reader.TokenType)}'. Expected a JSON Array.");
+            }
+        }
+
         public static int? ReadAsInt32(JsonTextReader reader, string propertyName)
         {
             reader.Read();
