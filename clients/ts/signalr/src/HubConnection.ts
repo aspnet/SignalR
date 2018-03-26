@@ -319,8 +319,8 @@ export class HubConnection {
         this.methods[methodName].push(method);
     }
 
-    public off(methodName: string, method: (...args: any[]) => void) {
-        if (!methodName || !method) {
+    public off(methodName: string, method?: (...args: any[]) => void) {
+        if (!methodName) {
             return;
         }
 
@@ -329,13 +329,18 @@ export class HubConnection {
         if (!handlers) {
             return;
         }
-        const removeIdx = handlers.indexOf(method);
-        if (removeIdx !== -1) {
-            handlers.splice(removeIdx, 1);
-            if (handlers.length === 0) {
-                delete this.methods[methodName];
+        if (method) {
+            const removeIdx = handlers.indexOf(method);
+            if (removeIdx !== -1) {
+                handlers.splice(removeIdx, 1);
+                if (handlers.length === 0) {
+                    delete this.methods[methodName];
+                }
             }
+        } else {
+            delete this.methods[methodName];
         }
+
     }
 
     public onclose(callback: ConnectionClosed) {

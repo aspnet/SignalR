@@ -271,6 +271,72 @@ describe("HubConnection", () => {
             expect(warnings).toEqual(["No client method with the name 'message' found."]);
         });
 
+        it("all handlers can be unnregistered with just the method name", async () => {
+            const warnings: string[] = [];
+            const connection = new TestConnection();
+            const hubConnection = new HubConnection(connection);
+
+            connection.receiveHandshakeResponse();
+
+            let count = 0;
+            const handler = () => { count++; };
+            hubConnection.on("inc", handler);
+            hubConnection.on("inc", handler);
+
+            connection.receive({
+                arguments: [],
+                invocationId: "0",
+                nonblocking: true,
+                target: "inc",
+                type: MessageType.Invocation,
+            });
+
+            hubConnection.off("inc");
+
+            connection.receive({
+                arguments: [],
+                invocationId: "0",
+                nonblocking: true,
+                target: "inc",
+                type: MessageType.Invocation,
+            });
+
+            expect(count).toBe(2);
+        });
+
+        it("a single handler can be unnregistered with the method name and handler", async () => {
+            const warnings: string[] = [];
+            const connection = new TestConnection();
+            const hubConnection = new HubConnection(connection);
+
+            connection.receiveHandshakeResponse();
+
+            let count = 0;
+            const handler = () => { count++; };
+            hubConnection.on("inc", handler);
+            hubConnection.on("inc", handler);
+
+            connection.receive({
+                arguments: [],
+                invocationId: "0",
+                nonblocking: true,
+                target: "inc",
+                type: MessageType.Invocation,
+            });
+
+            hubConnection.off("inc", handler);
+
+            connection.receive({
+                arguments: [],
+                invocationId: "0",
+                nonblocking: true,
+                target: "inc",
+                type: MessageType.Invocation,
+            });
+
+            expect(count).toBe(3);
+        });
+
         it("callback invoked when servers invokes a method on the client", async () => {
             const connection = new TestConnection();
             const hubConnection = new HubConnection(connection, commonOptions);
