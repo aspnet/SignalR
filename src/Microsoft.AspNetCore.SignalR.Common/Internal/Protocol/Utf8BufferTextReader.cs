@@ -16,6 +16,10 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         [ThreadStatic]
         private static Utf8BufferTextReader _cachedInstance;
 
+#if DEBUG
+        private bool _inUse;
+#endif
+
         public Utf8BufferTextReader()
         {
             _decoder = Encoding.UTF8.GetDecoder();
@@ -28,6 +32,17 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             {
                 reader = new Utf8BufferTextReader();
             }
+
+            // Taken off the the thread static
+            _cachedInstance = null;
+#if DEBUG
+            if (reader._inUse)
+            {
+                throw new InvalidOperationException("The reader wasn't returned!");
+            }
+
+            reader._inUse = true;
+#endif
             reader.SetBuffer(utf8Buffer);
             return reader;
         }
@@ -35,6 +50,9 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         public static void Return(Utf8BufferTextReader reader)
         {
             _cachedInstance = reader;
+#if DEBUG
+            reader._inUse = false;
+#endif
         }
 
         public void SetBuffer(ReadOnlyMemory<byte> utf8Buffer)
@@ -67,7 +85,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             }
 #endif
             _utf8Buffer = _utf8Buffer.Slice(bytesUsed);
-            
+
             return charsUsed;
         }
     }
