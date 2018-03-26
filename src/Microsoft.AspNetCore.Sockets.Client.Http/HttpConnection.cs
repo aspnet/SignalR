@@ -27,7 +27,9 @@ namespace Microsoft.AspNetCore.Sockets.Client
     public partial class HttpConnection : IConnection
     {
         private static readonly TimeSpan HttpClientTimeout = TimeSpan.FromSeconds(120);
+#if !NETCOREAPP2_1
         private static readonly Version Windows8Version = new Version(6, 2);
+#endif
 
         private readonly ILoggerFactory _loggerFactory;
         private readonly ILogger _logger;

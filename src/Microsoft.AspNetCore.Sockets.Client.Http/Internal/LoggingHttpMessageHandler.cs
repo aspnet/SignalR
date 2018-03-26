@@ -16,7 +16,12 @@ namespace Microsoft.AspNetCore.Sockets.Client.Http.Internal
 
         public LoggingHttpMessageHandler(HttpMessageHandler inner, ILoggerFactory loggerFactory) : base(inner)
         {
-            _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<LoggingHttpMessageHandler>();
+            if (loggerFactory == null)
+            {
+                throw new ArgumentNullException(nameof(loggerFactory));
+            }
+
+            _logger = loggerFactory.CreateLogger<LoggingHttpMessageHandler>();
         }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
