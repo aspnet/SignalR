@@ -16,7 +16,8 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         public void ReadingWhenCharBufferBigEnough()
         {
             var buffer = Encoding.UTF8.GetBytes("Hello World");
-            var reader = new Utf8BufferTextReader(buffer);
+            var reader = new Utf8BufferTextReader();
+            reader.SetBuffer(buffer);
 
             var chars = new char[1024];
             int read = reader.Read(chars, 0, chars.Length);
@@ -28,7 +29,8 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         public void ReadingUnicodeWhenCharBufferBigEnough()
         {
             var buffer = Encoding.UTF8.GetBytes("a\u00E4\u00E4\u00a9o");
-            var reader = new Utf8BufferTextReader(buffer);
+            var reader = new Utf8BufferTextReader();
+            reader.SetBuffer(buffer);
 
             var chars = new char[1024];
             int read = reader.Read(chars, 0, chars.Length);
@@ -45,7 +47,8 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         public void ReadingWhenCharBufferBigEnoughAndNotStartingFromZero()
         {
             var buffer = Encoding.UTF8.GetBytes("Hello World");
-            var reader = new Utf8BufferTextReader(buffer);
+            var reader = new Utf8BufferTextReader();
+            reader.SetBuffer(buffer);
 
             var chars = new char[1024];
             int read = reader.Read(chars, 10, chars.Length - 10);
@@ -58,7 +61,8 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         public void ReadingWhenBufferTooSmall()
         {
             var buffer = Encoding.UTF8.GetBytes("Hello World");
-            var reader = new Utf8BufferTextReader(buffer);
+            var reader = new Utf8BufferTextReader();
+            reader.SetBuffer(buffer);
 
             var chars = new char[5];
             int read = reader.Read(chars, 0, chars.Length);
@@ -89,7 +93,8 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         public void ReadingUnicodeWhenBufferTooSmall()
         {
             var buffer = Encoding.UTF8.GetBytes("\u00E4\u00E4\u00E5");
-            var reader = new Utf8BufferTextReader(buffer);
+            var reader = new Utf8BufferTextReader();
+            reader.SetBuffer(buffer);
 
             var chars = new char[2];
             int read = reader.Read(chars, 0, chars.Length);

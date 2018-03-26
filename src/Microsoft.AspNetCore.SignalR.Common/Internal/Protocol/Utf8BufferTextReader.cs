@@ -13,10 +13,34 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         private ReadOnlyMemory<byte> _utf8Buffer;
         private Decoder _decoder;
 
-        public Utf8BufferTextReader(ReadOnlyMemory<byte> utf8Buffer)
+        [ThreadStatic]
+        private static Utf8BufferTextReader _cachedInstance;
+
+        public Utf8BufferTextReader()
+        {
+            _decoder = Encoding.UTF8.GetDecoder();
+        }
+
+        public static Utf8BufferTextReader Get(ReadOnlyMemory<byte> utf8Buffer)
+        {
+            var reader = _cachedInstance;
+            if (reader == null)
+            {
+                reader = new Utf8BufferTextReader();
+            }
+            reader.SetBuffer(utf8Buffer);
+            return reader;
+        }
+
+        public static void Return(Utf8BufferTextReader reader)
+        {
+            _cachedInstance = reader;
+        }
+
+        public void SetBuffer(ReadOnlyMemory<byte> utf8Buffer)
         {
             _utf8Buffer = utf8Buffer;
-            _decoder = Encoding.UTF8.GetDecoder();
+            _decoder.Reset();
         }
 
         public override int Read(char[] buffer, int index, int count)
