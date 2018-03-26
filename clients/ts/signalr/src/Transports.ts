@@ -255,7 +255,7 @@ export class LongPollingTransport implements ITransport {
         while (!this.pollAbort.signal.aborted) {
             try {
                 const pollUrl = `${url}&_=${Date.now()}`;
-                this.logger.log(LogLevel.Trace, `(LongPolling transport) polling: ${pollUrl}`);
+                this.logger.log(LogLevel.Information, `(LongPolling transport) polling: ${pollUrl}`);
                 const response = await this.httpClient.get(pollUrl, pollOptions);
                 if (response.statusCode === 204) {
                     this.logger.log(LogLevel.Information, "(LongPolling transport) Poll terminated by server");
