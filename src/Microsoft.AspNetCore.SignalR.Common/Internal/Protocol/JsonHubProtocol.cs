@@ -19,6 +19,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
     {
         private static readonly UTF8Encoding _utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
+        private static readonly JsonNameTable _nameTable = CreateNameTable();
+
         private const string ResultPropertyName = "result";
         private const string ItemPropertyName = "item";
         private const string InvocationIdPropertyName = "invocationId";
@@ -103,6 +105,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 using (var reader = new JsonTextReader(textReader))
                 {
                     reader.ArrayPool = JsonArrayPool<char>.Shared;
+                    _nameTable.Apply(reader);
 
                     JsonUtils.CheckRead(reader);
 
@@ -117,11 +120,9 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                         switch (reader.TokenType)
                         {
                             case JsonToken.PropertyName:
-                                string memberName = reader.Value.ToString();
-
-                                switch (memberName)
                                 {
-                                    case TypePropertyName:
+                                    if (FastEquals(reader.Value, TypePropertyName))
+                                    {
                                         var messageType = JsonUtils.ReadAsInt32(reader, TypePropertyName);
 
                                         if (messageType == null)
@@ -130,17 +131,21 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                                         }
 
                                         type = messageType.Value;
-                                        break;
-                                    case InvocationIdPropertyName:
+                                    }
+                                    else if (FastEquals(reader.Value, InvocationIdPropertyName))
+                                    {
                                         invocationId = JsonUtils.ReadAsString(reader, InvocationIdPropertyName);
-                                        break;
-                                    case TargetPropertyName:
+                                    }
+                                    else if (FastEquals(reader.Value, TargetPropertyName))
+                                    {
                                         target = JsonUtils.ReadAsString(reader, TargetPropertyName);
-                                        break;
-                                    case ErrorPropertyName:
+                                    }
+                                    else if (FastEquals(reader.Value, ErrorPropertyName))
+                                    {
                                         error = JsonUtils.ReadAsString(reader, ErrorPropertyName);
-                                        break;
-                                    case ResultPropertyName:
+                                    }
+                                    else if (FastEquals(reader.Value, ResultPropertyName))
+                                    {
                                         JsonUtils.CheckRead(reader);
 
                                         hasResult = true;
@@ -156,8 +161,9 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                                             var returnType = binder.GetReturnType(invocationId);
                                             result = PayloadSerializer.Deserialize(reader, returnType);
                                         }
-                                        break;
-                                    case ItemPropertyName:
+                                    }
+                                    else if (FastEquals(reader.Value, ItemPropertyName))
+                                    {
                                         JsonUtils.CheckRead(reader);
 
                                         hasItem = true;
@@ -172,8 +178,9 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                                             var returnType = binder.GetReturnType(invocationId);
                                             item = PayloadSerializer.Deserialize(reader, returnType);
                                         }
-                                        break;
-                                    case ArgumentsPropertyName:
+                                    }
+                                    else if (FastEquals(reader.Value, ArgumentsPropertyName))
+                                    {
                                         JsonUtils.CheckRead(reader);
 
                                         if (reader.TokenType != JsonToken.StartArray)
@@ -200,17 +207,19 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                                                 argumentBindingException = ExceptionDispatchInfo.Capture(ex);
                                             }
                                         }
-                                        break;
-                                    case HeadersPropertyName:
+                                    }
+                                    else if (FastEquals(reader.Value, HeadersPropertyName))
+                                    {
                                         JsonUtils.CheckRead(reader);
                                         headers = ReadHeaders(reader);
-                                        break;
-                                    default:
+                                    }
+                                    else
+                                    {
                                         // Skip read the property name
                                         JsonUtils.CheckRead(reader);
                                         // Skip the value for this property
                                         reader.Skip();
-                                        break;
+                                    }
                                 }
                                 break;
                             case JsonToken.EndObject:
@@ -219,86 +228,91 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                         }
                     }
                     while (!completed && JsonUtils.CheckRead(reader));
-                }
 
-                HubMessage message;
+                    HubMessage message;
 
-                switch (type)
-                {
-                    case HubProtocolConstants.InvocationMessageType:
-                        {
-                            if (argumentsToken != null)
+                    switch (type)
+                    {
+                        case HubProtocolConstants.InvocationMessageType:
                             {
-                                try
+                                if (argumentsToken != null)
                                 {
-                                    var paramTypes = binder.GetParameterTypes(target);
-                                    arguments = BindArguments(argumentsToken, paramTypes);
+                                    try
+                                    {
+                                        var paramTypes = binder.GetParameterTypes(target);
+                                        arguments = BindArguments(argumentsToken, paramTypes);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        argumentBindingException = ExceptionDispatchInfo.Capture(ex);
+                                    }
                                 }
-                                catch (Exception ex)
+
+                                message = BindInvocationMessage(invocationId, target, argumentBindingException, arguments, hasArguments, binder);
+                            }
+                            break;
+                        case HubProtocolConstants.StreamInvocationMessageType:
+                            {
+                                if (argumentsToken != null)
                                 {
-                                    argumentBindingException = ExceptionDispatchInfo.Capture(ex);
+                                    try
+                                    {
+                                        var paramTypes = binder.GetParameterTypes(target);
+                                        arguments = BindArguments(argumentsToken, paramTypes);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        argumentBindingException = ExceptionDispatchInfo.Capture(ex);
+                                    }
                                 }
+
+                                message = BindStreamInvocationMessage(invocationId, target, argumentBindingException, arguments, hasArguments, binder);
+                            }
+                            break;
+                        case HubProtocolConstants.StreamItemMessageType:
+                            if (itemToken != null)
+                            {
+                                var returnType = binder.GetReturnType(invocationId);
+                                item = itemToken.ToObject(returnType, PayloadSerializer);
                             }
 
-                            message = BindInvocationMessage(invocationId, target, argumentBindingException, arguments, hasArguments, binder);
-                        }
-                        break;
-                    case HubProtocolConstants.StreamInvocationMessageType:
-                        {
-                            if (argumentsToken != null)
+                            message = BindStreamItemMessage(invocationId, item, hasItem, binder);
+                            break;
+                        case HubProtocolConstants.CompletionMessageType:
+                            if (resultToken != null)
                             {
-                                try
-                                {
-                                    var paramTypes = binder.GetParameterTypes(target);
-                                    arguments = BindArguments(argumentsToken, paramTypes);
-                                }
-                                catch (Exception ex)
-                                {
-                                    argumentBindingException = ExceptionDispatchInfo.Capture(ex);
-                                }
+                                var returnType = binder.GetReturnType(invocationId);
+                                result = resultToken.ToObject(returnType, PayloadSerializer);
                             }
 
-                            message = BindStreamInvocationMessage(invocationId, target, argumentBindingException, arguments, hasArguments, binder);
-                        }
-                        break;
-                    case HubProtocolConstants.StreamItemMessageType:
-                        if (itemToken != null)
-                        {
-                            var returnType = binder.GetReturnType(invocationId);
-                            item = itemToken.ToObject(returnType, PayloadSerializer);
-                        }
+                            message = BindCompletionMessage(invocationId, error, result, hasResult, binder);
+                            break;
+                        case HubProtocolConstants.CancelInvocationMessageType:
+                            message = BindCancelInvocationMessage(invocationId);
+                            break;
+                        case HubProtocolConstants.PingMessageType:
+                            return PingMessage.Instance;
+                        case HubProtocolConstants.CloseMessageType:
+                            return BindCloseMessage(error);
+                        case null:
+                            throw new InvalidDataException($"Missing required property '{TypePropertyName}'.");
+                        default:
+                            // Future protocol changes can add message types, old clients can ignore them
+                            return null;
+                    }
 
-                        message = BindStreamItemMessage(invocationId, item, hasItem, binder);
-                        break;
-                    case HubProtocolConstants.CompletionMessageType:
-                        if (resultToken != null)
-                        {
-                            var returnType = binder.GetReturnType(invocationId);
-                            result = resultToken.ToObject(returnType, PayloadSerializer);
-                        }
-
-                        message = BindCompletionMessage(invocationId, error, result, hasResult, binder);
-                        break;
-                    case HubProtocolConstants.CancelInvocationMessageType:
-                        message = BindCancelInvocationMessage(invocationId);
-                        break;
-                    case HubProtocolConstants.PingMessageType:
-                        return PingMessage.Instance;
-                    case HubProtocolConstants.CloseMessageType:
-                        return BindCloseMessage(error);
-                    case null:
-                        throw new InvalidDataException($"Missing required property '{TypePropertyName}'.");
-                    default:
-                        // Future protocol changes can add message types, old clients can ignore them
-                        return null;
+                    return ApplyHeaders(message, headers);
                 }
-
-                return ApplyHeaders(message, headers);
             }
             catch (JsonReaderException jrex)
             {
                 throw new InvalidDataException("Error reading JSON.", jrex);
             }
+        }
+
+        private static bool FastEquals(object left, string right)
+        {
+            return ReferenceEquals(left, right) || string.Equals(left.ToString(), right);
         }
 
         private Dictionary<string, string> ReadHeaders(JsonTextReader reader)
@@ -654,6 +668,21 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         internal static JsonSerializerSettings CreateDefaultSerializerSettings()
         {
             return new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() };
+        }
+
+        private static JsonNameTable CreateNameTable()
+        {
+            // Creates a name table with all of the known property names
+            var table = new JsonNameTable();
+            table.Add(ResultPropertyName);
+            table.Add(ItemPropertyName);
+            table.Add(InvocationIdPropertyName);
+            table.Add(TypePropertyName);
+            table.Add(ErrorPropertyName);
+            table.Add(TargetPropertyName);
+            table.Add(ArgumentsPropertyName);
+            table.Add(HeadersPropertyName);
+            return table;
         }
     }
 }
