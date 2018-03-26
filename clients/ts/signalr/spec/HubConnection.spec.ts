@@ -271,7 +271,7 @@ describe("HubConnection", () => {
             expect(warnings).toEqual(["No client method with the name 'message' found."]);
         });
 
-        it("all handlers can be unnregistered with just the method name", async () => {
+        it("all handlers can be unregistered with just the method name", async () => {
             const warnings: string[] = [];
             const connection = new TestConnection();
             const hubConnection = new HubConnection(connection);
