@@ -560,8 +560,9 @@ describe("hubConnection", () => {
         try {
             await hubConnection.start();
 
-            // Make sure that we connect with SSE.
-            expect(await hubConnection.invoke("GetActiveTransportName")).toEqual("ServerSentEvents" || "LongPolling");
+            // Make sure that we connect with SSE or LongPolling after Websockets fail
+            const transportName = await hubConnection.invoke("GetActiveTransportName");
+            expect(transportName === "ServerSentEvents" || transportName === "LongPolling").toBe(true);
             (window as any).WebSocket = oldWebSocket;
             done();
         } catch (e) {
