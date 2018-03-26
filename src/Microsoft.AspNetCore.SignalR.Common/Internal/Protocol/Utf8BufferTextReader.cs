@@ -25,7 +25,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             }
 
             var source = _utf8Buffer.Span;
-            var destination = new Span<char>(buffer, index, count);
             var destinationBytesCount = Encoding.UTF8.GetByteCount(buffer, index, count);
 
             // We have then the destination
@@ -41,14 +40,14 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             }
 
 #if NETCOREAPP2_1
-            return Encoding.UTF8.GetChars(source, destination);
+            return Encoding.UTF8.GetChars(source, new Span<char>(buffer, index, count));
 #else
             unsafe
             {
-                fixed (char* destinationChars = &MemoryMarshal.GetReference(destination))
+                fixed (char* destinationChars = &buffer[index])
                 fixed (byte* sourceBytes = &MemoryMarshal.GetReference(source))
                 {
-                    return Encoding.UTF8.GetChars(sourceBytes, source.Length, destinationChars, destination.Length);
+                    return Encoding.UTF8.GetChars(sourceBytes, source.Length, destinationChars, count);
                 }
             }
 #endif
