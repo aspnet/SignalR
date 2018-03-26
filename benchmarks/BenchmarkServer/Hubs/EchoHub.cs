@@ -10,7 +10,7 @@ namespace BenchmarkServer.Hubs
 {
     public class EchoHub : Hub
     {
-        public async Task Echo(int duration)
+        public async Task Broadcast(int duration)
         {
             try
             {
@@ -27,6 +27,16 @@ namespace BenchmarkServer.Hubs
             }
 
             Console.WriteLine("Echo exited");
+        }
+
+        public Task Echo(DateTime time)
+        {
+            return Clients.Client(Context.ConnectionId).SendAsync("echo", time);
+        }
+
+        public Task EchoAll(DateTime time)
+        {
+            return Clients.All.SendAsync("echo", time);
         }
     }
 }
