@@ -111,6 +111,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 using (var reader = new JsonTextReader(textReader))
                 {
                     reader.ArrayPool = JsonArrayPool<char>.Shared;
+
+                    // Don't close the output, Utf8BufferTextReader is resettable
                     reader.CloseInput = false;
 
                     JsonUtils.CheckRead(reader);
