@@ -304,7 +304,7 @@ describe("HubConnection", () => {
             expect(count).toBe(2);
         });
 
-        it("a single handler can be unnregistered with the method name and handler", async () => {
+        it("a single handler can be unregistered with the method name and handler", async () => {
             const warnings: string[] = [];
             const connection = new TestConnection();
             const hubConnection = new HubConnection(connection);
