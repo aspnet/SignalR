@@ -100,8 +100,8 @@ namespace Microsoft.AspNetCore.Sockets.Client
 
         private HttpClient CreateHttpClient()
         {
-            HttpMessageHandler httpMessageHandler = null;
             var httpClientHandler = new HttpClientHandler();
+            HttpMessageHandler httpMessageHandler = httpClientHandler;
 
             if (_httpOptions != null)
             {
