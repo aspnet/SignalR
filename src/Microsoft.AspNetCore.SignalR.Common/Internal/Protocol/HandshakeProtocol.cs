@@ -56,24 +56,13 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             return new JsonTextWriter(new StreamWriter(output, _utf8NoBom, 1024, leaveOpen: true));
         }
 
-        private static JsonTextReader CreateJsonTextReader(Utf8BufferTextReader textReader)
-        {
-            var reader = new JsonTextReader(textReader);
-            reader.ArrayPool = JsonArrayPool<char>.Shared;
-
-            // Don't close the output, Utf8BufferTextReader is resettable
-            reader.CloseInput = false;
-
-            return reader;
-        }
-
         public static HandshakeResponseMessage ParseResponseMessage(ReadOnlyMemory<byte> payload)
         {
             var textReader = Utf8BufferTextReader.Get(payload);
 
             try
             {
-                using (var reader = CreateJsonTextReader(textReader))
+                using (var reader = JsonUtils.CreateJsonTextReader(textReader))
                 {
                     var token = JToken.ReadFrom(reader);
                     var handshakeJObject = JsonUtils.GetObject(token);
@@ -112,7 +101,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             var textReader = Utf8BufferTextReader.Get(payload);
             try
             {
-                using (var reader = CreateJsonTextReader(textReader))
+                using (var reader = JsonUtils.CreateJsonTextReader(textReader))
                 {
                     var token = JToken.ReadFrom(reader);
                     var handshakeJObject = JsonUtils.GetObject(token);
