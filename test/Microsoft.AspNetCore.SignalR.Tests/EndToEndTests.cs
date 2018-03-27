@@ -57,7 +57,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             await connection.DisposeAsync().OrTimeout();
         }
 
-        [Fact]
+        [Fact(Skip = "https://github.com/aspnet/SignalR/issues/1726")]
         public async Task TransportThatFallsbackCreatesNewConnection()
         {
             var url = _serverFixture.Url + "/echo";

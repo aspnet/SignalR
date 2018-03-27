@@ -110,7 +110,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 }
             }
 
-            [Theory]
+            [Theory(Skip = "https://github.com/aspnet/SignalR/issues/1726")]
             [InlineData(2)]
             [InlineData(3)]
             public async Task TransportThatFailsToStartOnceFallsBack(int passThreshold)
@@ -147,7 +147,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 }
             }
 
-            [Fact]
+            [Fact(Skip = "https://github.com/aspnet/SignalR/issues/1726")]
             public async Task StartThrowsAfterAllTransportsFail()
             {
                 using (StartLog(out var loggerFactory))
