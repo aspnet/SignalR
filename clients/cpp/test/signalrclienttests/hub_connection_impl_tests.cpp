@@ -1052,19 +1052,3 @@ TEST(connection_id, can_get_connection_id)
     ASSERT_EQ(_XPLATSTR("f7707523-307d-4cba-9abf-3eef701241e8"), connection_id);
     ASSERT_EQ(_XPLATSTR("f7707523-307d-4cba-9abf-3eef701241e8"), hub_connection->get_connection_id());
 }
-
-TEST(connection_token, can_get_connection_token)
-{
-    auto websocket_client = create_test_websocket_client(
-        /* receive function */ []() { return pplx::task_from_result(std::string("{ \"C\":\"x\", \"S\":1, \"M\":[] }")); });
-    auto hub_connection = create_hub_connection(websocket_client);
-
-    ASSERT_EQ(_XPLATSTR(""), hub_connection->get_connection_token());
-
-    hub_connection->start().get();
-    auto connection_token = hub_connection->get_connection_token();
-    hub_connection->stop().get();
-
-    ASSERT_EQ(_XPLATSTR("A=="), connection_token);
-    ASSERT_EQ(_XPLATSTR("A=="), hub_connection->get_connection_token());
-}

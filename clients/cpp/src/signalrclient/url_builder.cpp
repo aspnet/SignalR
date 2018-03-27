@@ -100,12 +100,12 @@ namespace signalr
             return builder.append_query(query_string);
         }
 
-        web::uri build_negotiate(const web::uri& base_url, const utility::string_t& connection_data, const utility::string_t& query_string)
+        web::uri build_negotiate(const web::uri& base_url, const utility::string_t& query_string)
         {
             return build_uri(base_url, _XPLATSTR("negotiate"), query_string).to_uri();
         }
 
-        web::uri build_connect(const web::uri& base_url, transport_type transport, const utility::string_t& connection_data, const utility::string_t& query_string)
+        web::uri build_connect(const web::uri& base_url, transport_type transport, const utility::string_t& query_string)
         {
             auto builder = build_uri(base_url, _XPLATSTR(""), query_string);
             return convert_to_websocket_url(builder, transport).to_uri();
@@ -113,16 +113,14 @@ namespace signalr
             //return convert_to_websocket_url(builder, transport).to_uri();
         }
 
-        web::uri build_reconnect(const web::uri& base_url, transport_type transport,
-            const utility::string_t& connection_data, const utility::string_t& last_message_id, const utility::string_t& groups_token,
+        web::uri build_reconnect(const web::uri& base_url, transport_type transport, const utility::string_t& last_message_id, const utility::string_t& groups_token,
             const utility::string_t& query_string)
         {
-            auto builder = build_uri(base_url, _XPLATSTR("reconnect"), transport, connection_data, query_string, last_message_id, groups_token);
+            auto builder = build_uri(base_url, _XPLATSTR("reconnect"), transport, query_string, last_message_id, groups_token);
             return convert_to_websocket_url(builder, transport).to_uri();
         }
 
-        web::uri build_start(const web::uri &base_url, transport_type transport,
-            const utility::string_t& connection_data, const utility::string_t &query_string)
+        web::uri build_start(const web::uri &base_url, const utility::string_t &query_string)
         {
             return build_uri(base_url, _XPLATSTR(""), query_string).to_uri();
         }

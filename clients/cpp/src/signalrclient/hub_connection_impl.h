@@ -41,7 +41,6 @@ namespace signalr
 
         connection_state get_connection_state() const;
         utility::string_t get_connection_id() const;
-        utility::string_t get_connection_token() const;
 
         void set_client_config(const signalr_client_config& config);
         void set_reconnecting(const std::function<void()>& reconnecting);

@@ -12,10 +12,9 @@ namespace signalr
     namespace request_sender
     {
         pplx::task<negotiation_response> negotiate(web_request_factory& request_factory, const web::uri& base_url,
-            const utility::string_t& connection_data, const utility::string_t& query_string,
-            const signalr_client_config& signalr_client_config)
+            const utility::string_t& query_string, const signalr_client_config& signalr_client_config)
         {
-            auto negotiate_url = url_builder::build_negotiate(base_url, connection_data, query_string);
+            auto negotiate_url = url_builder::build_negotiate(base_url, query_string);
 
             return http_sender::post(request_factory, negotiate_url, signalr_client_config)
                 .then([](utility::string_t body)

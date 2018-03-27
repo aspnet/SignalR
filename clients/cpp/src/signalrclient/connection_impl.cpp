@@ -88,7 +88,7 @@ namespace signalr
 
             m_disconnect_cts = pplx::cancellation_token_source();
             m_start_completed_event.reset();
-            m_message_id = m_groups_token = m_connection_id = m_connection_token = _XPLATSTR("");
+            m_message_id = m_groups_token = m_connection_id = _XPLATSTR("");
         }
 
         pplx::task_completion_event<void> start_tce;
@@ -99,8 +99,7 @@ namespace signalr
             .then([connection]()
             {
                 return request_sender::negotiate(*connection->m_web_request_factory, connection->m_base_url,
-                    connection->m_connection_data, connection->m_query_string,
-                    connection->m_signalr_client_config);
+                    connection->m_query_string, connection->m_signalr_client_config);
             }, m_disconnect_cts.get_token())
             .then([connection](negotiation_response negotiation_response)
             {
@@ -245,7 +244,7 @@ namespace signalr
     pplx::task<void> connection_impl::send_connect_request(const std::shared_ptr<transport>& transport, const pplx::task_completion_event<void>& connect_request_tce)
     {
         auto logger = m_logger;
-        auto connect_url = url_builder::build_connect(m_base_url, transport->get_transport_type(), m_connection_data, m_query_string);
+        auto connect_url = url_builder::build_connect(m_base_url, transport->get_transport_type(), m_query_string);
 
         transport->connect(connect_url)
             .then([transport, connect_request_tce, logger](pplx::task<void> connect_task)
@@ -600,7 +599,7 @@ namespace signalr
         }
 
         auto reconnect_url = url_builder::build_reconnect(m_base_url, m_transport->get_transport_type(),
-            m_connection_data, m_message_id, m_groups_token, m_query_string);
+            m_message_id, m_groups_token, m_query_string);
 
         auto weak_connection = std::weak_ptr<connection_impl>(shared_from_this());
 
@@ -745,16 +744,6 @@ namespace signalr
         }
 
         return m_connection_id;
-    }
-
-    utility::string_t connection_impl::get_connection_token() const
-    {
-        if (m_connection_state.load() == connection_state::connecting)
-        {
-            return _XPLATSTR("");
-        }
-
-        return m_connection_token;
     }
 
     void connection_impl::set_message_received_string(const std::function<void(const utility::string_t&)>& message_received)

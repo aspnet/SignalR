@@ -65,9 +65,4 @@ namespace signalr
     {
         return m_pImpl->get_connection_id();
     }
-
-    utility::string_t connection::get_connection_token() const
-    {
-        return m_pImpl->get_connection_token();
-    }
 }

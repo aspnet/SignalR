@@ -220,11 +220,6 @@ namespace signalr
         return m_connection->get_connection_id();
     }
 
-    utility::string_t hub_connection_impl::get_connection_token() const
-    {
-        return m_connection->get_connection_token();
-    }
-
     void hub_connection_impl::set_client_config(const signalr_client_config& config)
     {
         m_connection->set_client_config(config);

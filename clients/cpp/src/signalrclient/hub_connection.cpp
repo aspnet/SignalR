@@ -67,11 +67,6 @@ namespace signalr
         return m_pImpl->get_connection_id();
     }
 
-    utility::string_t hub_connection::get_connection_token() const
-    {
-        return m_pImpl->get_connection_token();
-    }
-
     void hub_connection::set_reconnecting(const std::function<void()>& reconnecting_callback)
     {
         m_pImpl->set_reconnecting(reconnecting_callback);
