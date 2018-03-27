@@ -53,7 +53,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     }
 
                     Application.Input.AdvanceTo(result.Buffer.End);
-                }                
+                }
 
                 // Call the transport stop handler
                 await _stopHandler();
@@ -67,7 +67,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public Task StopAsync()
         {
             Application.Input.CancelPendingRead();
-            return Task.CompletedTask;
+            return Receiving;
         }
     }
 }
