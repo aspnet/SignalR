@@ -306,8 +306,8 @@ export class HubConnection {
         return p;
     }
 
-    public on(methodName: string, method: (...args: any[]) => void) {
-        if (!methodName || !method) {
+    public on(methodName: string, newMethod: (...args: any[]) => void) {
+        if (!methodName || !newMethod) {
             return;
         }
 
@@ -316,7 +316,12 @@ export class HubConnection {
             this.methods[methodName] = [];
         }
 
-        this.methods[methodName].push(method);
+        // Preventing adding the same handler multiple times.
+        for (const method of this.methods[methodName]) {
+            if (method === newMethod) { return; }
+        }
+
+        this.methods[methodName].push(newMethod);
     }
 
     public off(methodName: string, method?: (...args: any[]) => void) {
