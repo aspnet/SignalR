@@ -12,12 +12,12 @@
     "Path": "/echo"
   },
   "SignalRBroadcast": {
-    "Properties": "Scenario=broadcast"
+    "ClientProperties": { "Scenario": "broadcast" }
   },
   "SignalREcho": {
-    "Properties": "Scenario=echo"
+    "ClientProperties": { "Scenario": "echo" }
   },
   "SignalREchoAll": {
-    "Properties": "Scenario=echoAll"
+    "ClientProperties": { "Scenario": "echoAll" }
   }
 }
