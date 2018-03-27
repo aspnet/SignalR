@@ -317,7 +317,9 @@ export class HubConnection {
         }
 
         // Preventing adding the same handler multiple times.
-        if (this.methods[methodName].indexOf(newMethod) !== -1) { return; }
+        if (this.methods[methodName].indexOf(newMethod) !== -1) {
+            return;
+         }
 
         this.methods[methodName].push(newMethod);
     }
