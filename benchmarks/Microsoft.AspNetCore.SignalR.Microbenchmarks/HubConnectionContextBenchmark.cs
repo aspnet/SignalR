@@ -33,7 +33,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         [GlobalSetup]
         public void GlobalSetup()
         {
-            MemoryStream ms = new MemoryStream();
+            var ms = new MemoryStream();
             HandshakeProtocol.WriteRequestMessage(new HandshakeRequestMessage("json", 1), ms);
             var pipe = new TestDuplexPipe(new ReadResult(new ReadOnlySequence<byte>(ms.ToArray()), false, false));
 
