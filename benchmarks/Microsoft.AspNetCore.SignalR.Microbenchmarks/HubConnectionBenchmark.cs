@@ -33,9 +33,10 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         }
 
         [Benchmark]
-        public Task StartAsync()
+        public async Task StartAsync()
         {
-            return _hubConnection.StartAsync();
+            await _hubConnection.StartAsync();
+            await _hubConnection.StopAsync();
         }
     }
 

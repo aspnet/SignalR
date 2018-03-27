@@ -47,6 +47,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                     writer.WriteValue(responseMessage.Error);
                 }
                 writer.WriteEndObject();
+
+                // no need to flush because content is written directly to buffer writer
             }
 
             TextMessageFormatter.WriteRecordSeparator(output);
