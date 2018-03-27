@@ -47,8 +47,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             Application = pair.Application;
             Transport = pair.Transport;
 
-            // When the app completes their writer, make sure we complete ours
-            Application.Input.OnWriterCompleted((_, __) => Application.Output.Complete(), null);
+            Application.Input.OnWriterCompleted((ex, _) => Application.Output.Complete(), null);
         }
 
         public Task DisposeAsync() => DisposeCoreAsync();
@@ -127,11 +126,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             _disposed.TrySetResult(null);
             await _onDispose();
 
-            // Simulate HttpConnection's behavior by Completing the Transport pipe and waiting for the Application pipe to complete
+            // Simulate HttpConnection's behavior by Completing the Transport pipe.
             Transport.Input.Complete();
             Transport.Output.Complete();
-
-            await Application.Input.WaitForWriterToComplete();
         }
 
         private byte[] FormatMessageToArray(byte[] message)
