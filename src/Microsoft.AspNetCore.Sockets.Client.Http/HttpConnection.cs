@@ -383,7 +383,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
                     using (var response = await httpClient.SendAsync(request))
                     {
                         response.EnsureSuccessStatusCode();
-                        return await ParseNegotiateResponse(response, logger);
+                        return await ParseNegotiateResponse(response);
                     }
                 }
             }
@@ -394,7 +394,7 @@ namespace Microsoft.AspNetCore.Sockets.Client
             }
         }
 
-        private static async Task<NegotiationResponse> ParseNegotiateResponse(HttpResponseMessage response, ILogger logger)
+        private static async Task<NegotiationResponse> ParseNegotiateResponse(HttpResponseMessage response)
         {
             try
             {
@@ -423,10 +423,20 @@ namespace Microsoft.AspNetCore.Sockets.Client
                                         JsonUtils.CheckRead(reader);
                                         JsonUtils.EnsureArrayStart(reader);
 
-                                        error = JsonUtils.ReadAsString(reader, ErrorPropertyName);
+                                        availableTransports = new List<AvailableTransport>();
+                                        while (JsonUtils.CheckRead(reader))
+                                        {
+                                            if (reader.TokenType == JsonToken.StartObject)
+                                            {
+                                                availableTransports.Add(ParseAvailableTransport(reader));
+                                            }
+                                            else if (reader.TokenType == JsonToken.EndArray)
+                                            {
+                                                break;
+                                            }
+                                        }
                                         break;
                                 }
-
                                 break;
                             case JsonToken.EndObject:
                                 completed = true;
@@ -445,6 +455,64 @@ namespace Microsoft.AspNetCore.Sockets.Client
             {
                 throw new FormatException("Invalid negotiation response received.", ex);
             }
+        }
+
+        private static AvailableTransport ParseAvailableTransport(JsonTextReader reader)
+        {
+            AvailableTransport availableTransport = new AvailableTransport();
+
+            while (JsonUtils.CheckRead(reader))
+            {
+                switch (reader.TokenType)
+                {
+                    case JsonToken.PropertyName:
+                        string memberName = reader.Value.ToString();
+
+                        switch (memberName)
+                        {
+                            case "transport":
+                                availableTransport.Transport = JsonUtils.ReadAsString(reader, "transport");
+                                break;
+                            case "transferFormats":
+                                JsonUtils.CheckRead(reader);
+                                JsonUtils.EnsureArrayStart(reader);
+
+                                bool completed = false;
+                                availableTransport.TransferFormats = new List<string>();
+                                while (!completed && JsonUtils.CheckRead(reader))
+                                {
+                                    switch (reader.TokenType)
+                                    {
+                                        case JsonToken.String:
+                                            availableTransport.TransferFormats.Add(reader.Value.ToString());
+                                            break;
+                                        case JsonToken.EndArray:
+                                            completed = true;
+                                            break;
+                                        default:
+                                            throw new InvalidOperationException("Unexpected token.");
+                                    }
+                                }
+                                break;
+                        }
+                        break;
+                    case JsonToken.EndObject:
+                        if (availableTransport.Transport == null)
+                        {
+                            throw new InvalidOperationException("No transport.");
+                        }
+                        if (availableTransport.TransferFormats == null)
+                        {
+                            throw new InvalidOperationException("No transfer formats.");
+                        }
+
+                        return availableTransport;
+                    default:
+                        throw new InvalidOperationException("Unexpected token.");
+                }
+            }
+
+            throw new InvalidOperationException("Unexpected end.");
         }
 
         private static Uri CreateConnectUrl(Uri url, string connectionId)
