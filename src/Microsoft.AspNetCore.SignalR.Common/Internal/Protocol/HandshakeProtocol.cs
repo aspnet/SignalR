@@ -40,7 +40,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             using (var writer = CreateJsonTextWriter(output))
             {
                 writer.WriteStartObject();
-                if (responseMessage.Error != null)
+                if (!string.IsNullOrEmpty(responseMessage.Error))
                 {
                     writer.WritePropertyName(ErrorPropertyName);
                     writer.WriteValue(responseMessage.Error);
@@ -56,52 +56,52 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             return new JsonTextWriter(new StreamWriter(output, _utf8NoBom, 1024, leaveOpen: true));
         }
 
-        private static JsonTextReader CreateJsonTextReader(ReadOnlyMemory<byte> payload)
-        {
-            var textReader = new Utf8BufferTextReader();
-            textReader.SetBuffer(payload);
-            var reader = new JsonTextReader(textReader);
-            reader.ArrayPool = JsonArrayPool<char>.Shared;
-
-            return reader;
-        }
-
         public static HandshakeResponseMessage ParseResponseMessage(ReadOnlyMemory<byte> payload)
         {
-            using (var reader = CreateJsonTextReader(payload))
+            var textReader = Utf8BufferTextReader.Get(payload);
+
+            try
             {
-                JsonUtils.CheckRead(reader);
-                JsonUtils.EnsureObjectStart(reader);
-
-                string error = null;
-
-                var completed = false;
-                do
+                using (var reader = JsonUtils.CreateJsonTextReader(textReader))
                 {
-                    switch (reader.TokenType)
+                    JsonUtils.CheckRead(reader);
+                    JsonUtils.EnsureObjectStart(reader);
+
+                    string error = null;
+
+                    var completed = false;
+                    while (!completed && JsonUtils.CheckRead(reader))
                     {
-                        case JsonToken.PropertyName:
-                            string memberName = reader.Value.ToString();
+                        switch (reader.TokenType)
+                        {
+                            case JsonToken.PropertyName:
+                                string memberName = reader.Value.ToString();
 
-                            switch (memberName)
-                            {
-                                case TypePropertyName:
-                                    // a handshake response does not have a type
-                                    // check the incoming message was not any other type of message
-                                    throw new InvalidOperationException("Handshake response should not have a 'type' value.");
-                                case ErrorPropertyName:
-                                    error = JsonUtils.ReadAsString(reader, ErrorPropertyName);
-                                    break;
-                            }
-                            break;
-                        case JsonToken.EndObject:
-                            completed = true;
-                            break;
-                    }
+                                switch (memberName)
+                                {
+                                    case TypePropertyName:
+                                        // a handshake response does not have a type
+                                        // check the incoming message was not any other type of message
+                                        throw new InvalidDataException("Handshake response should not have a 'type' value.");
+                                    case ErrorPropertyName:
+                                        error = JsonUtils.ReadAsString(reader, ErrorPropertyName);
+                                        break;
+                                }
+                                break;
+                            case JsonToken.EndObject:
+                                completed = true;
+                                break;
+                            default:
+                                throw new InvalidDataException($"Unexpected token '{reader.TokenType}' when reading handshake response JSON.");
+                        }
+                    };
+
+                    return (error != null) ? new HandshakeResponseMessage(error) : HandshakeResponseMessage.Empty;
                 }
-                while (!completed && JsonUtils.CheckRead(reader));
-
-                return (error != null) ? new HandshakeResponseMessage(error) : HandshakeResponseMessage.Empty;
+            }
+            finally
+            {
+                Utf8BufferTextReader.Return(textReader);
             }
         }
 
@@ -118,49 +118,59 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 throw new InvalidDataException("Unable to parse payload as a handshake request message.");
             }
 
-            using (var reader = CreateJsonTextReader(payload))
+            var textReader = Utf8BufferTextReader.Get(payload);
+            try
             {
-                JsonUtils.CheckRead(reader);
-                JsonUtils.EnsureObjectStart(reader);
-
-                string protocol = null;
-                int? protocolVersion = null;
-
-                var completed = false;
-                do
+                using (var reader = JsonUtils.CreateJsonTextReader(textReader))
                 {
-                    switch (reader.TokenType)
+                    JsonUtils.CheckRead(reader);
+                    JsonUtils.EnsureObjectStart(reader);
+
+                    string protocol = null;
+                    int? protocolVersion = null;
+
+                    var completed = false;
+                    do
                     {
-                        case JsonToken.PropertyName:
-                            string memberName = reader.Value.ToString();
+                        switch (reader.TokenType)
+                        {
+                            case JsonToken.PropertyName:
+                                string memberName = reader.Value.ToString();
 
-                            switch (memberName)
-                            {
-                                case ProtocolPropertyName:
-                                    protocol = JsonUtils.ReadAsString(reader, ProtocolPropertyName);
-                                    break;
-                                case ProtocolVersionPropertyName:
-                                    protocolVersion = JsonUtils.ReadAsInt32(reader, ProtocolVersionPropertyName);
-                                    break;
-                            }
-                            break;
-                        case JsonToken.EndObject:
-                            completed = true;
-                            break;
+                                switch (memberName)
+                                {
+                                    case ProtocolPropertyName:
+                                        protocol = JsonUtils.ReadAsString(reader, ProtocolPropertyName);
+                                        break;
+                                    case ProtocolVersionPropertyName:
+                                        protocolVersion = JsonUtils.ReadAsInt32(reader, ProtocolVersionPropertyName);
+                                        break;
+                                }
+                                break;
+                            case JsonToken.EndObject:
+                                completed = true;
+                                break;
+                            default:
+                                throw new InvalidDataException($"Unexpected token '{reader.TokenType}' when reading handshake request JSON.");
+                        }
                     }
-                }
-                while (!completed && JsonUtils.CheckRead(reader));
+                    while (!completed && JsonUtils.CheckRead(reader));
 
-                if (protocol == null)
-                {
-                    throw new InvalidDataException($"Missing required property '{ProtocolPropertyName}'.");
-                }
-                if (protocolVersion == null)
-                {
-                    throw new InvalidDataException($"Missing required property '{ProtocolVersionPropertyName}'.");
-                }
+                    if (protocol == null)
+                    {
+                        throw new InvalidDataException($"Missing required property '{ProtocolPropertyName}'.");
+                    }
+                    if (protocolVersion == null)
+                    {
+                        throw new InvalidDataException($"Missing required property '{ProtocolVersionPropertyName}'.");
+                    }
 
-                requestMessage = new HandshakeRequestMessage(protocol, protocolVersion.Value);
+                    requestMessage = new HandshakeRequestMessage(protocol, protocolVersion.Value);
+                }
+            }
+            finally
+            {
+                Utf8BufferTextReader.Return(textReader);
             }
 
             return true;
