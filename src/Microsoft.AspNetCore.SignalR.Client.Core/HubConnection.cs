@@ -414,7 +414,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 return false;
             }
 
-            if (!string.IsNullOrEmpty(message.Error))
+            if (message.Error != null)
             {
                 // shutdown if handshake returns an error
                 Log.HandshakeServerError(_logger, message.Error);

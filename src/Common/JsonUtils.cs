@@ -6,9 +6,9 @@ using System.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
+namespace Microsoft.AspNetCore.SignalR.Internal
 {
-    public static class JsonUtils
+    internal static class JsonUtils
     {
         public static JObject GetObject(JToken token)
         {
@@ -120,7 +120,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         {
             if (!reader.Read())
             {
-                throw new JsonReaderException("Unexpected end when reading JSON");
+                throw new InvalidDataException("Unexpected end when reading JSON.");
             }
 
             return true;

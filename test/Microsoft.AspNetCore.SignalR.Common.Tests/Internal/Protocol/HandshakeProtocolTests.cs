@@ -27,7 +27,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
 
         [Theory]
         [InlineData("{\"error\":\"dummy\"}\u001e", "dummy")]
-        [InlineData("{\"error\":\"\"}\u001e", null)]
+        [InlineData("{\"error\":\"\"}\u001e", "")]
         [InlineData("{}\u001e", null)]
         public void ParsingHandshakeResponseMessageSuccessForValidMessages(string json, string error)
         {

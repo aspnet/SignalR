@@ -40,7 +40,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             using (var writer = CreateJsonTextWriter(output))
             {
                 writer.WriteStartObject();
-                if (!string.IsNullOrEmpty(responseMessage.Error))
+                if (responseMessage.Error != null)
                 {
                     writer.WritePropertyName(ErrorPropertyName);
                     writer.WriteValue(responseMessage.Error);
@@ -101,7 +101,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 }
                 while (!completed && JsonUtils.CheckRead(reader));
 
-                return (!string.IsNullOrEmpty(error)) ? new HandshakeResponseMessage(error) : HandshakeResponseMessage.Empty;
+                return (error != null) ? new HandshakeResponseMessage(error) : HandshakeResponseMessage.Empty;
             }
         }
 
