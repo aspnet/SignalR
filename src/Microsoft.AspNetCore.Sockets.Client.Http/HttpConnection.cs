@@ -86,7 +86,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Http
             Url = url ?? throw new ArgumentNullException(nameof(url));
             _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
 
-            _logger = loggerFactory.CreateLogger<HttpConnection>();
+            _logger = _loggerFactory.CreateLogger<HttpConnection>();
             _httpOptions = httpOptions;
 
             _requestedTransportType = transportType;
@@ -95,7 +95,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Http
                 _httpClient = CreateHttpClient();
             }
 
-            _transportFactory = new DefaultTransportFactory(transportType, loggerFactory, _httpClient, httpOptions);
+            _transportFactory = new DefaultTransportFactory(transportType, _loggerFactory, _httpClient, httpOptions);
             _logScope = new ConnectionLogScope();
             _scopeDisposable = _logger.BeginScope(_logScope);
         }
@@ -103,8 +103,8 @@ namespace Microsoft.AspNetCore.Sockets.Client.Http
         public HttpConnection(Uri url, ITransportFactory transportFactory, ILoggerFactory loggerFactory, HttpOptions httpOptions)
         {
             Url = url ?? throw new ArgumentNullException(nameof(url));
-            var loggerFactory1 = loggerFactory ?? NullLoggerFactory.Instance;
-            _logger = loggerFactory1.CreateLogger<HttpConnection>();
+            _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
+            _logger = _loggerFactory.CreateLogger<HttpConnection>();
             _httpOptions = httpOptions;
             _httpClient = CreateHttpClient();
             _transportFactory = transportFactory ?? throw new ArgumentNullException(nameof(transportFactory));

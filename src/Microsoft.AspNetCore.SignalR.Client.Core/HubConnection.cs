@@ -630,6 +630,19 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 Log.ServerDisconnectedWithError(_logger, ex);
                 closeException = ex;
             }
+            
+            // Clear the connectionState field
+            await WaitConnectionLockAsync();
+            try
+            {
+                SafeAssert(ReferenceEquals(_connectionState, connectionState),
+                    "Someone other than ReceiveLoop cleared the connection state!");
+                _connectionState = null;
+            }
+            finally
+            {
+                ReleaseConnectionLock();
+            }
 
             // Stop the timeout timer.
             timeoutTimer?.Dispose();
