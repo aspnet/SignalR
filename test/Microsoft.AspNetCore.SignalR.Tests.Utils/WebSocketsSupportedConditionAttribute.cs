@@ -1,4 +1,7 @@
-﻿using System;
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
+using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -17,19 +20,14 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 // .NET Core 2.1 and greater has sockets
                 return true;
 #else
-                // Non-Windows platforms have sockets
+                // Non-Windows platforms have Websockets
                 if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
                     return true;
                 }
 
-                // Windows 8 and greater has sockets
-                if (Environment.Version >= new Version(6, 2))
-                {
-                    return true;
-                }
-
-                return false;
+                // Windows 8 and greater has Websockets
+                return Environment.OSVersion.Version >= new Version(6, 2);
 #endif
             }
         }

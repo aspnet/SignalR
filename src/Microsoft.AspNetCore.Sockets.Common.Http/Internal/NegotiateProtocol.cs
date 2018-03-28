@@ -95,6 +95,9 @@ namespace Microsoft.AspNetCore.Sockets.Internal
                                             }
                                         }
                                         break;
+                                    default:
+                                        reader.Skip();
+                                        break;
                                 }
                                 break;
                             case JsonToken.EndObject:
@@ -164,6 +167,9 @@ namespace Microsoft.AspNetCore.Sockets.Internal
                                             throw new InvalidDataException($"Unexpected token '{reader.TokenType}' when reading transfer formats JSON.");
                                     }
                                 }
+                                break;
+                            default:
+                                reader.Skip();
                                 break;
                         }
                         break;

@@ -13,51 +13,77 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 {
     public static class HandshakeProtocol
     {
-        private static readonly UTF8Encoding _utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-
         private const string ProtocolPropertyName = "protocol";
         private const string ProtocolVersionPropertyName = "version";
         private const string ErrorPropertyName = "error";
         private const string TypePropertyName = "type";
 
-        public static void WriteRequestMessage(HandshakeRequestMessage requestMessage, Stream output)
+        public static void WriteRequestMessage(HandshakeRequestMessage requestMessage, IBufferWriter<byte> output)
         {
-            using (var writer = CreateJsonTextWriter(output))
+            var textWriter = Utf8BufferTextWriter.Get(output);
+            try
             {
-                writer.WriteStartObject();
-                writer.WritePropertyName(ProtocolPropertyName);
-                writer.WriteValue(requestMessage.Protocol);
-                writer.WritePropertyName(ProtocolVersionPropertyName);
-                writer.WriteValue(requestMessage.Version);
-                writer.WriteEndObject();
-            }
-
-            TextMessageFormatter.WriteRecordSeparator(output);
-        }
-
-        public static void WriteResponseMessage(HandshakeResponseMessage responseMessage, Stream output)
-        {
-            using (var writer = CreateJsonTextWriter(output))
-            {
-                writer.WriteStartObject();
-                if (!string.IsNullOrEmpty(responseMessage.Error))
+                using (var writer = CreateJsonTextWriter(textWriter))
                 {
-                    writer.WritePropertyName(ErrorPropertyName);
-                    writer.WriteValue(responseMessage.Error);
+                    writer.WriteStartObject();
+                    writer.WritePropertyName(ProtocolPropertyName);
+                    writer.WriteValue(requestMessage.Protocol);
+                	writer.WritePropertyName(ProtocolVersionPropertyName);
+                    writer.WriteValue(requestMessage.Version);
+                    writer.WriteEndObject();
+                    writer.Flush();
                 }
-                writer.WriteEndObject();
+            }
+            finally
+            {
+                Utf8BufferTextWriter.Return(textWriter);
             }
 
             TextMessageFormatter.WriteRecordSeparator(output);
         }
 
-        private static JsonTextWriter CreateJsonTextWriter(Stream output)
+        public static void WriteResponseMessage(HandshakeResponseMessage responseMessage, IBufferWriter<byte> output)
         {
-            return new JsonTextWriter(new StreamWriter(output, _utf8NoBom, 1024, leaveOpen: true));
+            var textWriter = Utf8BufferTextWriter.Get(output);
+            try
+            {
+                using (var writer = CreateJsonTextWriter(textWriter))
+                {
+                    writer.WriteStartObject();
+                    if (!string.IsNullOrEmpty(responseMessage.Error))
+                    {
+                        writer.WritePropertyName(ErrorPropertyName);
+                        writer.WriteValue(responseMessage.Error);
+                    }
+
+                    writer.WriteEndObject();
+                    writer.Flush();
+                }
+            }
+            finally
+            {
+                Utf8BufferTextWriter.Return(textWriter);
+            }
+
+            TextMessageFormatter.WriteRecordSeparator(output);
         }
 
-        public static HandshakeResponseMessage ParseResponseMessage(ReadOnlyMemory<byte> payload)
+        private static JsonTextWriter CreateJsonTextWriter(TextWriter textWriter)
         {
+            var writer = new JsonTextWriter(textWriter);
+            writer.CloseOutput = false;
+
+            return writer;
+        }
+
+        public static bool TryParseResponseMessage(ref ReadOnlySequence<byte> buffer, out HandshakeResponseMessage responseMessage)
+        {
+            if (!TextMessageParser.TryParseMessage(ref buffer, out var payload))
+            {
+                responseMessage = null;
+                return false;
+            }
+
             var textReader = Utf8BufferTextReader.Get(payload);
 
             try
@@ -86,6 +112,9 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                                     case ErrorPropertyName:
                                         error = JsonUtils.ReadAsString(reader, ErrorPropertyName);
                                         break;
+                                    default:
+                                        reader.Skip();
+                                        break;
                                 }
                                 break;
                             case JsonToken.EndObject:
@@ -96,7 +125,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                         }
                     };
 
-                    return (error != null) ? new HandshakeResponseMessage(error) : HandshakeResponseMessage.Empty;
+                    responseMessage = (error != null) ? new HandshakeResponseMessage(error) : HandshakeResponseMessage.Empty;
+                    return true;
                 }
             }
             finally
@@ -105,17 +135,12 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             }
         }
 
-        public static bool TryParseRequestMessage(ReadOnlySequence<byte> buffer, out HandshakeRequestMessage requestMessage, out SequencePosition consumed, out SequencePosition examined)
+        public static bool TryParseRequestMessage(ref ReadOnlySequence<byte> buffer, out HandshakeRequestMessage requestMessage)
         {
-            if (!TryReadMessageIntoSingleMemory(buffer, out consumed, out examined, out var memory))
+            if (!TextMessageParser.TryParseMessage(ref buffer, out var payload))
             {
                 requestMessage = null;
                 return false;
-            }
-
-            if (!TextMessageParser.TryParseMessage(ref memory, out var payload))
-            {
-                throw new InvalidDataException("Unable to parse payload as a handshake request message.");
             }
 
             var textReader = Utf8BufferTextReader.Get(payload);
@@ -130,7 +155,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                     int? protocolVersion = null;
 
                     var completed = false;
-                    do
+                    while (!completed && JsonUtils.CheckRead(reader))
                     {
                         switch (reader.TokenType)
                         {
@@ -145,6 +170,9 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                                     case ProtocolVersionPropertyName:
                                         protocolVersion = JsonUtils.ReadAsInt32(reader, ProtocolVersionPropertyName);
                                         break;
+                                    default:
+                                        reader.Skip();
+                                        break;
                                 }
                                 break;
                             case JsonToken.EndObject:
@@ -154,7 +182,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                                 throw new InvalidDataException($"Unexpected token '{reader.TokenType}' when reading handshake request JSON.");
                         }
                     }
-                    while (!completed && JsonUtils.CheckRead(reader));
 
                     if (protocol == null)
                     {
@@ -173,24 +200,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 Utf8BufferTextReader.Return(textReader);
             }
 
-            return true;
-        }
-
-        internal static bool TryReadMessageIntoSingleMemory(ReadOnlySequence<byte> buffer, out SequencePosition consumed, out SequencePosition examined, out ReadOnlyMemory<byte> memory)
-        {
-            var separator = buffer.PositionOf(TextMessageFormatter.RecordSeparator);
-            if (separator == null)
-            {
-                // Haven't seen the entire message so bail
-                consumed = buffer.Start;
-                examined = buffer.End;
-                memory = null;
-                return false;
-            }
-
-            consumed = buffer.GetPosition(1, separator.Value);
-            examined = consumed;
-            memory = buffer.IsSingleSegment ? buffer.First : buffer.ToArray();
             return true;
         }
     }
