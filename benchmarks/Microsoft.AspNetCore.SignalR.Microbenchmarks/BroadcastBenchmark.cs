@@ -1,14 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.IO.Pipelines;
 using System.Threading;
-using System.Threading.Channels;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using Microsoft.AspNetCore.Connections;
-using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
-using Microsoft.AspNetCore.Sockets;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
@@ -17,6 +14,8 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
     {
         private DefaultHubLifetimeManager<Hub> _hubLifetimeManager;
         private HubContext<Hub> _hubContext;
+        private List<DefaultConnectionContext> _connections;
+        private List<HubConnectionContext> _hubConnections;
 
         [Params(1, 10, 1000)]
         public int Connections;
@@ -29,7 +28,6 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         {
             _hubLifetimeManager = new DefaultHubLifetimeManager<Hub>(NullLogger<DefaultHubLifetimeManager<Hub>>.Instance);
 
-
             IHubProtocol protocol;
 
             if (Protocol == "json")
@@ -41,6 +39,8 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
                 protocol = new MessagePackHubProtocol();
             }
 
+            _hubConnections = new List<HubConnectionContext>(Connections);
+            _connections = new List<DefaultConnectionContext>(Connections);
             var options = new PipeOptions();
             for (var i = 0; i < Connections; ++i)
             {
@@ -49,11 +49,36 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
                 var hubConnection = new HubConnectionContext(connection, Timeout.InfiniteTimeSpan, NullLoggerFactory.Instance);
                 hubConnection.Protocol = protocol;
                 _hubLifetimeManager.OnConnectedAsync(hubConnection).GetAwaiter().GetResult();
-
-                _ = ConsumeAsync(connection.Application);
+                _connections.Add(connection);
+                _hubConnections.Add(hubConnection);
+                //_ = ConsumeAsync(connection.Application);
             }
 
             _hubContext = new HubContext<Hub>(_hubLifetimeManager);
+
+            _hubContext.Clients.All.SendAsync("Method").GetAwaiter().GetResult();
+        }
+
+        [GlobalCleanup]
+        public void GlobalCleanup()
+        {
+            foreach (var connection in _connections)
+            {
+                connection.Transport.Output.Complete();
+                connection.Transport.Input.CancelPendingRead();
+                connection.Transport.Input.Complete();
+
+                connection.Application.Output.Complete();
+                connection.Application.Input.CancelPendingRead();
+                connection.Application.Input.Complete();
+            }
+            _connections.Clear();
+
+            foreach (var hubConnection in _hubConnections)
+            {
+                _hubLifetimeManager.OnDisconnectedAsync(hubConnection).GetAwaiter().GetResult();
+            }
+            _hubConnections.Clear();
         }
 
         [Benchmark]
@@ -62,25 +87,23 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             return _hubContext.Clients.All.SendAsync("Method");
         }
 
-        // Consume the data written to the transport
-        private static async Task ConsumeAsync(IDuplexPipe application)
+        [IterationCleanup]
+        // Consume the data written to the transports
+        public void ConsumeAsync()
         {
-            while (true)
+            foreach (var connection in _connections)
             {
-                var result = await application.Input.ReadAsync();
-                var buffer = result.Buffer;
+                var readResult = connection.Application.Input.ReadAsync();
+                if (readResult.IsCompleted)
+                {
+                    var buffer = readResult.Result.Buffer;
 
-                if (!buffer.IsEmpty)
-                {
-                    application.Input.AdvanceTo(buffer.End);
-                }
-                else if (result.IsCompleted)
-                {
-                    break;
+                    if (!buffer.IsEmpty)
+                    {
+                        connection.Application.Input.AdvanceTo(buffer.End);
+                    }
                 }
             }
-
-            application.Input.Complete();
         }
     }
 }
