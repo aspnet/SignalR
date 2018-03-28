@@ -28,7 +28,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                     writer.WriteStartObject();
                     writer.WritePropertyName(ProtocolPropertyName);
                     writer.WriteValue(requestMessage.Protocol);
-                	writer.WritePropertyName(ProtocolVersionPropertyName);
+                    writer.WritePropertyName(ProtocolVersionPropertyName);
                     writer.WriteValue(requestMessage.Version);
                     writer.WriteEndObject();
                     writer.Flush();

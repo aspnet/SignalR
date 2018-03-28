@@ -217,7 +217,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             using (var writer = new JsonTextWriter(new StreamWriter(stream)))
             {
                 _serializer.Serialize(writer, message);
-                await writer.FlushAsync();
+                writer.Flush();
                 payload = stream.ToArray();
             }
 
