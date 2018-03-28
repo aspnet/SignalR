@@ -221,6 +221,8 @@ namespace Microsoft.AspNetCore.SignalR
                     {
                         var result = await _connectionContext.Transport.Input.ReadAsync(cts.Token);
                         var buffer = result.Buffer;
+                        var consumed = buffer.Start;
+                        var examined = buffer.End;
 
                         try
                         {
@@ -228,6 +230,10 @@ namespace Microsoft.AspNetCore.SignalR
                             {
                                 if (HandshakeProtocol.TryParseRequestMessage(ref buffer, out var handshakeRequestMessage))
                                 {
+                                    // We parsed the handshake
+                                    consumed = buffer.Start;
+                                    examined = consumed;
+
                                     Protocol = protocolResolver.GetProtocol(handshakeRequestMessage.Protocol, supportedProtocols);
                                     if (Protocol == null)
                                     {
@@ -275,6 +281,10 @@ namespace Microsoft.AspNetCore.SignalR
                                     await WriteHandshakeResponseAsync(HandshakeResponseMessage.Empty);
                                     return true;
                                 }
+                                else
+                                {
+                                    _logger.LogInformation("Didn't parse the handshake");
+                                }
                             }
                             else if (result.IsCompleted)
                             {
@@ -286,10 +296,7 @@ namespace Microsoft.AspNetCore.SignalR
                         }
                         finally
                         {
-                            // The buffer was sliced up to where it was consumed, so we can just advance to the start.
-                            // We mark examined as buffer.End so that if we didn't receive a full frame, we'll wait for more data
-                            // before yielding the read again.
-                            _connectionContext.Transport.Input.AdvanceTo(buffer.Start, buffer.End);
+                            _connectionContext.Transport.Input.AdvanceTo(consumed, examined);
                         }
                     }
                 }
