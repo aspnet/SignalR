@@ -35,8 +35,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         {
             var message = new ReadOnlySequence<byte>(Encoding.UTF8.GetBytes(json));
 
-            var response = HandshakeProtocol.ParseResponseMessage(message);
-
+            Assert.True(HandshakeProtocol.TryParseResponseMessage(ref message, out var response));
             Assert.Equal(error, response.Error);
         }
 
@@ -68,16 +67,16 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         }
 
         [Theory]
-        [InlineData("42", "Unexpected JSON Token Type 'Integer'. Expected a JSON Object.")]
-        [InlineData("\"42\"", "Unexpected JSON Token Type 'String'. Expected a JSON Object.")]
-        [InlineData("null", "Unexpected JSON Token Type 'Null'. Expected a JSON Object.")]
-        [InlineData("[]", "Unexpected JSON Token Type 'Array'. Expected a JSON Object.")]
+        [InlineData("42\u001e", "Unexpected JSON Token Type 'Integer'. Expected a JSON Object.")]
+        [InlineData("\"42\"\u001e", "Unexpected JSON Token Type 'String'. Expected a JSON Object.")]
+        [InlineData("null\u001e", "Unexpected JSON Token Type 'Null'. Expected a JSON Object.")]
+        [InlineData("[]\u001e", "Unexpected JSON Token Type 'Array'. Expected a JSON Object.")]
         public void ParsingHandshakeResponseMessageThrowsForInvalidMessages(string payload, string expectedMessage)
         {
             var message = new ReadOnlySequence<byte>(Encoding.UTF8.GetBytes(payload));
 
             var exception = Assert.Throws<InvalidDataException>(() =>
-                HandshakeProtocol.ParseResponseMessage(message));
+                HandshakeProtocol.TryParseRequestMessage(ref message, out _));
 
             Assert.Equal(expectedMessage, exception.Message);
         }

@@ -519,18 +519,19 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     try
                     {
                         // Read first message out of the incoming data
-                        if (!buffer.IsEmpty && TextMessageParser.TryParseMessage(ref buffer, out var payload))
+                        if (!buffer.IsEmpty)
                         {
-                            var message = HandshakeProtocol.ParseResponseMessage(payload);
-
-                            if (!string.IsNullOrEmpty(message.Error))
+                            if (HandshakeProtocol.TryParseResponseMessage(ref buffer, out var message))
                             {
-                                Log.HandshakeServerError(_logger, message.Error);
-                                throw new HubException(
-                                    $"Unable to complete handshake with the server due to an error: {message.Error}");
-                            }
+                                if (!string.IsNullOrEmpty(message.Error))
+                                {
+                                    Log.HandshakeServerError(_logger, message.Error);
+                                    throw new HubException(
+                                        $"Unable to complete handshake with the server due to an error: {message.Error}");
+                                }
 
-                            break;
+                                break;
+                            }
                         }
                         else if (result.IsCompleted)
                         {

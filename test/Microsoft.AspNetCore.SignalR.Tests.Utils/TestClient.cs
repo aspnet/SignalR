@@ -83,7 +83,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 // note that the handshake response might not immediately be readable
                 // e.g. server is waiting for request, times out after configured duration,
                 // and sends response with timeout error
-                HandshakeResponseMessage = (HandshakeResponseMessage) await ReadAsync(true).OrTimeout();
+                HandshakeResponseMessage = (HandshakeResponseMessage)await ReadAsync(true).OrTimeout();
             }
 
             return connection;
@@ -237,13 +237,12 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 }
                 else
                 {
-                    // read first message out of the incoming data
-                    if (!TextMessageParser.TryParseMessage(ref buffer, out var payload))
+                    // read first message out of the incoming data 
+                    if (!HandshakeProtocol.TryParseResponseMessage(ref buffer, out var responseMessage))
                     {
                         throw new InvalidDataException("Unable to parse payload as a handshake response message.");
                     }
-
-                    return HandshakeProtocol.ParseResponseMessage(payload);
+                    return responseMessage;
                 }
             }
             finally

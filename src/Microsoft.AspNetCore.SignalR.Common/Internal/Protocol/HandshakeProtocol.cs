@@ -56,8 +56,14 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             return new JsonTextWriter(new StreamWriter(output, _utf8NoBom, 1024, leaveOpen: true));
         }
 
-        public static HandshakeResponseMessage ParseResponseMessage(in ReadOnlySequence<byte> payload)
+        public static bool TryParseResponseMessage(ref ReadOnlySequence<byte> buffer, out HandshakeResponseMessage responseMessage)
         {
+            if (!TextMessageParser.TryParseMessage(ref buffer, out var payload))
+            {
+                responseMessage = null;
+                return false;
+            }
+
             var textReader = Utf8BufferTextReader.Get(payload);
 
             try
@@ -76,7 +82,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                     }
 
                     var error = JsonUtils.GetOptionalProperty<string>(handshakeJObject, ErrorPropertyName);
-                    return new HandshakeResponseMessage(error);
+                    responseMessage = new HandshakeResponseMessage(error);
+                    return true;
                 }
             }
             finally
