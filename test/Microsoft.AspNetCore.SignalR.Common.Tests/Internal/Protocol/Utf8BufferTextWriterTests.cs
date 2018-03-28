@@ -73,10 +73,10 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             Assert.Equal((byte)'"', bufferWriter.CurrentBuffer.Span[1]);
 
             textWriter.Write('\u00A3');
-            Assert.Equal(2, bufferWriter.Position);
+            Assert.Equal(4, bufferWriter.Position);
 
             textWriter.Write('\u00A3');
-            Assert.Equal(2, bufferWriter.Position);
+            Assert.Equal(6, bufferWriter.Position);
 
             textWriter.Write('"');
             Assert.Equal(7, bufferWriter.Position);
@@ -100,10 +100,8 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                 textWriter.SetWriter(bufferWriter);
 
                 textWriter.Write('\u00A3');
-                Assert.Equal(0, bufferWriter.Position);
+                Assert.Equal(2, bufferWriter.Position);
             }
-
-            Assert.Equal(2, bufferWriter.Position);
 
             Assert.Equal((byte)0xC2, bufferWriter.CurrentBuffer.Span[0]);
             Assert.Equal((byte)0xA3, bufferWriter.CurrentBuffer.Span[1]);
@@ -168,6 +166,33 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             Assert.Equal(0, bufferWriter.Position);
 
             textWriter.Write(chars, 1, 1);
+
+            Assert.Equal(4, bufferWriter.Position);
+
+            byte[] expectedData = Encoding.UTF8.GetBytes(fourCircles);
+
+            byte[] actualData = bufferWriter.CurrentBuffer.Slice(0, 4).ToArray();
+
+            Assert.Equal(expectedData, actualData);
+        }
+
+        [Fact]
+        public void WriteChar_SurrogatePairInMultipleCalls()
+        {
+            string fourCircles = char.ConvertFromUtf32(0x1F01C);
+
+            char[] chars = fourCircles.ToCharArray();
+
+            TestBufferWriter bufferWriter = new TestBufferWriter(4096);
+            Utf8BufferTextWriter textWriter = new Utf8BufferTextWriter();
+            textWriter.SetWriter(bufferWriter);
+
+            textWriter.Write(chars[0]);
+
+            // Surrogate buffered
+            Assert.Equal(0, bufferWriter.Position);
+
+            textWriter.Write(chars[1]);
 
             Assert.Equal(4, bufferWriter.Position);
 

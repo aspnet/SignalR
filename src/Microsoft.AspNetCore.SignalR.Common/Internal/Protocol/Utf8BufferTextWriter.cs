@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -18,8 +19,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
         private readonly Encoder _encoder;
         private IBufferWriter<byte> _bufferWriter;
-        private char[] _charBuffer;
-        private int _charBufferPosition;
 
 #if DEBUG
         private bool _inUse;
@@ -70,15 +69,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
         public override void Write(char[] buffer, int index, int count)
         {
-            FlushBuffer();
-
             WriteInternal(buffer, index, count);
         }
 
         public override void Write(char[] buffer)
         {
-            FlushBuffer();
-
             WriteInternal(buffer, 0, buffer.Length);
         }
 
@@ -86,8 +81,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         {
             if (value <= 127)
             {
-                FlushBuffer();
-
                 var destination = _bufferWriter.GetSpan(1);
 
                 destination[0] = (byte)value;
@@ -97,18 +90,27 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             {
                 // Json.NET only writes ASCII characters by themselves, e.g. {}[], etc
                 // this should be an exceptional case
-                if (_charBuffer == null)
-                {
-                    _charBuffer = new char[32];
-                }
+                var destination = _bufferWriter.GetSpan();
 
-                // Run out of buffer space
-                if (_charBufferPosition == _charBuffer.Length)
+                var bytesUsed = 0;
+                var charsUsed = 0;
+                unsafe
                 {
-                    FlushBuffer();
+#if NETCOREAPP2_1
+                    _encoder.Convert(new Span<char>(&value, 1), destination, false, out charsUsed, out bytesUsed, out _);
+#else
+                    fixed (byte* destinationBytes = &MemoryMarshal.GetReference(destination))
+                    {
+                        _encoder.Convert(&value, 1, destinationBytes, destination.Length, false, out charsUsed, out bytesUsed, out _);
+                    }
+#endif
                 }
+                Debug.Assert(charsUsed == 1);
 
-                _charBuffer[_charBufferPosition++] = value;
+                if (bytesUsed > 0)
+                {
+                    _bufferWriter.Advance(bytesUsed);
+                }
             }
         }
 
@@ -139,30 +141,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 charsRemaining -= charsUsed;
                 currentIndex += charsUsed;
                 _bufferWriter.Advance(bytesUsed);
-            }
-        }
-
-        private void FlushBuffer()
-        {
-            if (_charBufferPosition > 0)
-            {
-                WriteInternal(_charBuffer, 0, _charBufferPosition);
-                _charBufferPosition = 0;
-            }
-        }
-
-        public override void Flush()
-        {
-            FlushBuffer();
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            base.Dispose(disposing);
-
-            if (disposing)
-            {
-                FlushBuffer();
             }
         }
     }
