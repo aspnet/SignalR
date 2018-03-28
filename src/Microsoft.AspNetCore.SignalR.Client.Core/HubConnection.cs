@@ -517,17 +517,17 @@ namespace Microsoft.AspNetCore.SignalR.Client
         private async Task HandshakeAsync()
         {
             // Send the Handshake request
-            using (var memoryStream = new MemoryStream())
-            {
-                Log.SendingHubHandshake(_logger);
-                HandshakeProtocol.WriteRequestMessage(new HandshakeRequestMessage(_protocol.Name, _protocol.Version), memoryStream);
-                var result = await WriteAsync(memoryStream.ToArray(), CancellationToken.None);
+            Log.SendingHubHandshake(_logger);
 
-                if (result.IsCompleted)
-                {
-                    // The other side disconnected
-                    throw new InvalidOperationException("The server disconnected before the handshake was completed");
-                }
+            var handshakeRequest = new HandshakeRequestMessage(_protocol.Name, _protocol.Version);
+            HandshakeProtocol.WriteRequestMessage(handshakeRequest, _connectionState.Connection.Transport.Output);
+
+            var sendHandshakeResult = await _connectionState.Connection.Transport.Output.FlushAsync(CancellationToken.None);
+
+            if (sendHandshakeResult.IsCompleted)
+            {
+                // The other side disconnected
+                throw new InvalidOperationException("The server disconnected before the handshake was completed");
             }
 
             try

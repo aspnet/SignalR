@@ -34,9 +34,9 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         [GlobalSetup]
         public void GlobalSetup()
         {
-            var ms = new MemoryStream();
-            HandshakeProtocol.WriteRequestMessage(new HandshakeRequestMessage("json", 1), ms);
-            var pipe = new TestDuplexPipe(new ReadResult(new ReadOnlySequence<byte>(ms.ToArray()), false, false));
+            var memoryBufferWriter = new MemoryBufferWriter();
+            HandshakeProtocol.WriteRequestMessage(new HandshakeRequestMessage("json", 1), memoryBufferWriter);
+            var pipe = new TestDuplexPipe(new ReadResult(new ReadOnlySequence<byte>(memoryBufferWriter.ToArray()), false, false));
 
             var connection = new DefaultConnectionContext(Guid.NewGuid().ToString(), pipe, pipe);
             _hubConnectionContext = new HubConnectionContext(connection, Timeout.InfiniteTimeSpan, NullLoggerFactory.Instance);
