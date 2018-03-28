@@ -55,102 +55,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         }
 
         [Fact]
-        public async Task CannotCallInvokeOnNotStartedHubConnection()
-        {
-            var hubConnection = CreateHubConnection(new TestConnection());
-
-            var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-                () => hubConnection.InvokeAsync<int>("test").OrTimeout());
-
-            Assert.Equal($"The '{nameof(HubConnection.InvokeAsync)}' method cannot be called if the connection is not active", exception.Message);
-        }
-
-        [Fact]
-        public async Task CannotCallInvokeOnClosedHubConnection()
-        {
-            var hubConnection = CreateHubConnection(new TestConnection());
-
-            await hubConnection.StartAsync().OrTimeout();
-            await hubConnection.StopAsync().OrTimeout();
-            var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-                () => hubConnection.InvokeAsync<int>("test").OrTimeout());
-
-            Assert.Equal($"The '{nameof(HubConnection.InvokeAsync)}' method cannot be called if the connection is not active", exception.Message);
-        }
-
-        [Fact]
-        public async Task CannotCallSendOnNotStartedHubConnection()
-        {
-            var hubConnection = CreateHubConnection(new TestConnection());
-
-            var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-                () => hubConnection.SendAsync("test").OrTimeout());
-
-            Assert.Equal($"The '{nameof(HubConnection.SendAsync)}' method cannot be called if the connection is not active", exception.Message);
-        }
-
-        [Fact]
-        public async Task CannotCallSendOnClosedHubConnection()
-        {
-            var hubConnection = CreateHubConnection(new TestConnection());
-
-            await hubConnection.StartAsync().OrTimeout();
-            await hubConnection.StopAsync().OrTimeout();
-            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => hubConnection.SendAsync("test").OrTimeout());
-
-            Assert.Equal($"The '{nameof(HubConnection.SendAsync)}' method cannot be called if the connection is not active", exception.Message);
-        }
-
-        [Fact]
-        public async Task CannotCallStreamOnClosedHubConnection()
-        {
-            var hubConnection = CreateHubConnection(new TestConnection());
-
-            await hubConnection.StartAsync().OrTimeout();
-            await hubConnection.StopAsync().OrTimeout();
-            var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-                () => hubConnection.StreamAsChannelAsync<int>("test").OrTimeout());
-
-            Assert.Equal($"The '{nameof(HubConnection.StreamAsChannelAsync)}' method cannot be called if the connection is not active", exception.Message);
-        }
-
-        [Fact]
-        public async Task CannotCallSendOnDisposedHubConnection()
-        {
-            var hubConnection = CreateHubConnection(new TestConnection());
-
-            await hubConnection.StartAsync().OrTimeout();
-            await hubConnection.DisposeAsync().OrTimeout();
-            var exception = await Assert.ThrowsAsync<ObjectDisposedException>(() => hubConnection.SendAsync("test").OrTimeout());
-
-            Assert.Equal(nameof(HubConnection), exception.ObjectName);
-        }
-
-        [Fact]
-        public async Task CannotCallStreamOnDisposedHubConnection()
-        {
-            var hubConnection = CreateHubConnection(new TestConnection());
-
-            await hubConnection.StartAsync().OrTimeout();
-            await hubConnection.DisposeAsync().OrTimeout();
-            var exception = await Assert.ThrowsAsync<ObjectDisposedException>(
-                () => hubConnection.StreamAsChannelAsync<int>("test").OrTimeout());
-
-            Assert.Equal(nameof(HubConnection), exception.ObjectName);
-        }
-
-        [Fact]
-        public async Task CannotCallStreamOnNotStartedHubConnection()
-        {
-            var hubConnection = CreateHubConnection(new TestConnection());
-
-            var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-                () => hubConnection.StreamAsChannelAsync<int>("test").OrTimeout());
-
-            Assert.Equal($"The '{nameof(HubConnection.StreamAsChannelAsync)}' method cannot be called if the connection is not active", exception.Message);
-        }
-
-        [Fact]
         public async Task PendingInvocationsAreCancelledWhenConnectionClosesCleanly()
         {
             var hubConnection = CreateHubConnection(new TestConnection());
@@ -190,6 +94,21 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             await hubConnection.StartAsync().OrTimeout();
 
             var exception = Assert.IsType<TimeoutException>(await closeTcs.Task.OrTimeout());
+            Assert.Equal("Server timeout (100.00ms) elapsed without receiving a message from the server.", exception.Message);
+        }
+
+        [Fact]
+        public async Task PendingInvocationsAreTerminatedIfServerTimeoutIntervalElapsesWithNoMessages()
+        {
+            var hubConnection = CreateHubConnection(new TestConnection());
+            hubConnection.ServerTimeout = TimeSpan.FromMilliseconds(100);
+
+            await hubConnection.StartAsync().OrTimeout();
+            
+            // Start an invocation (but we won't complete it)
+            var invokeTask = hubConnection.InvokeAsync("Method").OrTimeout();
+
+            var exception = await Assert.ThrowsAsync<TimeoutException>(() => invokeTask);
             Assert.Equal("Server timeout (100.00ms) elapsed without receiving a message from the server.", exception.Message);
         }
 

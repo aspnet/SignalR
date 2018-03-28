@@ -69,8 +69,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
             private static readonly Action<ILogger, string, Exception> _cancelingInvocationCompletion =
                 LoggerMessage.Define<string>(LogLevel.Trace, new EventId(19, "CancelingInvocationCompletion"), "Canceling dispatch of Completion message for Invocation {InvocationId}. The invocation was canceled.");
 
-            private static readonly Action<ILogger, Exception> _timedOutWaitingForReceiveLoop =
-                LoggerMessage.Define(LogLevel.Debug, new EventId(20, "TimedOutWaitingForReceiveLoop"), "Timed out waiting for receive loop.");
+            private static readonly Action<ILogger, string, string, int, Exception> _releasingConnectionLock =
+                LoggerMessage.Define<string, string, int>(LogLevel.Trace, new EventId(20, "ReleasingConnectionLock"), "Releasing Connection Lock in {MethodName} ({FilePath}:{LineNumber}).");
 
             private static readonly Action<ILogger, Exception> _stopped =
                 LoggerMessage.Define(LogLevel.Debug, new EventId(21, "Stopped"), "HubConnection stopped.");
@@ -135,8 +135,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
             private static readonly Action<ILogger, Exception> _starting =
                 LoggerMessage.Define(LogLevel.Debug, new EventId(41, "Starting"), "Starting HubConnection.");
 
-            private static readonly Action<ILogger, Exception> _waitingForPreviousStop =
-                LoggerMessage.Define(LogLevel.Debug, new EventId(42, "WaitingForPreviousStop"), $"Waiting for previous {nameof(StopAsync)} to complete before restarting.");
+            private static readonly Action<ILogger, string, string, int, Exception> _waitingOnConnectionLock =
+                LoggerMessage.Define<string, string, int>(LogLevel.Trace, new EventId(42, "WaitingOnConnectionLock"), "Waiting on Connection Lock in {MethodName} ({FilePath}:{LineNumber}).");
 
             private static readonly Action<ILogger, Exception> _errorStartingConnection =
                 LoggerMessage.Define(LogLevel.Error, new EventId(43, "ErrorStartingConnection"), "Error starting connection.");
@@ -168,26 +168,17 @@ namespace Microsoft.AspNetCore.SignalR.Client
             private static readonly Action<ILogger, Exception> _stopping =
                 LoggerMessage.Define(LogLevel.Debug, new EventId(52, "Stopping"), "Stopping HubConnection.");
 
-            private static readonly Action<ILogger, Exception> _completingTransportPipe =
-                LoggerMessage.Define(LogLevel.Debug, new EventId(53, "CompletingTransportPipe"), "Completing transport pipe.");
+            private static readonly Action<ILogger, Exception> _terminatingReceiveLoop =
+                LoggerMessage.Define(LogLevel.Debug, new EventId(53, "TerminatingReceiveLoop"), "Terminating receive loop.");
 
             private static readonly Action<ILogger, Exception> _waitingForReceiveLoopToTerminate =
                 LoggerMessage.Define(LogLevel.Debug, new EventId(54, "WaitingForReceiveLoopToTerminate"), "Waiting for the receive loop to terminate.");
 
-            private static readonly Action<ILogger, Exception> _waitingForCanceledReceiveLoop =
-                LoggerMessage.Define(LogLevel.Debug, new EventId(55, "WaitingForCanceledReceiveLoop"), "Waiting for the canceled receive loop to terminate.");
+            private static readonly Action<ILogger, string, Exception> _unableToSendCancellation =
+                LoggerMessage.Define<string>(LogLevel.Trace, new EventId(55, "UnableToSendCancellation"), "Unable to send cancellation for invocation '{InvocationId}'. The connection is inactive.");
 
             private static readonly Action<ILogger, long, Exception> _processingMessage =
                 LoggerMessage.Define<long>(LogLevel.Debug, new EventId(56, "ProcessingMessage"), "Processing {MessageLength} byte message from server.");
-
-            private static readonly Action<ILogger, string, string, int, Exception> _waitingOnConnectionLock =
-                LoggerMessage.Define<string, string, int>(LogLevel.Trace, new EventId(57, "WaitingOnConnectionLock"), "Waiting on Connection Lock in {MethodName} ({FilePath}:{LineNumber}).");
-
-            private static readonly Action<ILogger, string, string, int, Exception> _releasingConnectionLock =
-                LoggerMessage.Define<string, string, int>(LogLevel.Trace, new EventId(58, "ReleasingConnectionLock"), "Releasing Connection Lock in {MethodName} ({FilePath}:{LineNumber}).");
-
-            private static readonly Action<ILogger, string, Exception> _unableToSendCancellation =
-                LoggerMessage.Define<string>(LogLevel.Trace, new EventId(59, "UnableToSendCancellation"), "Unable to send cancellation for invocation '{InvocationId}'. The connection is inactive.");
 
             public static void PreparingNonBlockingInvocation(ILogger logger, string target, int count)
             {
@@ -303,11 +294,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 _cancelingInvocationCompletion(logger, invocationId, null);
             }
 
-            public static void TimedOutWaitingForReceiveLoop(ILogger logger)
-            {
-                _timedOutWaitingForReceiveLoop(logger, null);
-            }
-
             public static void Stopped(ILogger logger)
             {
                 _stopped(logger, null);
@@ -408,11 +394,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 _starting(logger, null);
             }
 
-            public static void WaitingForPreviousStop(ILogger logger)
-            {
-                _waitingForPreviousStop(logger, null);
-            }
-
             public static void ErrorStartingConnection(ILogger logger, Exception ex)
             {
                 _errorStartingConnection(logger, ex);
@@ -466,19 +447,14 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 _stopping(logger, null);
             }
 
-            public static void CompletingTransportPipe(ILogger logger)
+            public static void TerminatingReceiveLoop(ILogger logger)
             {
-                _completingTransportPipe(logger, null);
+                _terminatingReceiveLoop(logger, null);
             }
 
             public static void WaitingForReceiveLoopToTerminate(ILogger logger)
             {
                 _waitingForReceiveLoopToTerminate(logger, null);
-            }
-
-            public static void WaitingForCanceledReceiveLoop(ILogger logger)
-            {
-                _waitingForCanceledReceiveLoop(logger, null);
             }
 
             public static void ProcessingMessage(ILogger logger, long length)

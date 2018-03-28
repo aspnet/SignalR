@@ -178,6 +178,13 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
                 CheckDisposed();
                 connectionState = _connectionState;
+                
+                // Set the stopping flag so that any invocations after this get a useful error message instead of
+                // silently failing or throwing an error about the pipe being completed.
+                if (connectionState != null)
+                {
+                    connectionState.Stopping = true;
+                }
 
                 if (disposing)
                 {
@@ -581,8 +588,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             var timeoutTimer = StartTimeoutTimer(connectionState);
 
-            Exception closeException = null;
-
             try
             {
                 while (true)
@@ -596,9 +601,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     {
                         if (result.IsCanceled)
                         {
-                            // We aborted because the server timed-out
-                            closeException = new TimeoutException(
-                                $"Server timeout ({ServerTimeout.TotalMilliseconds:0.00}ms) elapsed without receiving a message from the server.");
+                            // We were cancelled. Possibly because we were stopped gracefully
                             break;
                         }
                         else if (!buffer.IsEmpty)
@@ -610,7 +613,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                             if (close)
                             {
                                 // Closing because we got a close frame, possibly with an error in it.
-                                closeException = exception;
+                                connectionState.CloseException = exception;
                                 break;
                             }
                         }
@@ -628,7 +631,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             catch (Exception ex)
             {
                 Log.ServerDisconnectedWithError(_logger, ex);
-                closeException = ex;
+                connectionState.CloseException = ex;
             }
             
             // Clear the connectionState field
@@ -651,11 +654,11 @@ namespace Microsoft.AspNetCore.SignalR.Client
             await connectionState.Connection.DisposeAsync();
 
             // Cancel any outstanding invocations within the connection lock
-            connectionState.CancelOutstandingInvocations(closeException);
+            connectionState.CancelOutstandingInvocations(connectionState.CloseException);
 
-            if (closeException != null)
+            if (connectionState.CloseException != null)
             {
-                Log.ShutdownWithError(_logger, closeException);
+                Log.ShutdownWithError(_logger, connectionState.CloseException);
             }
             else
             {
@@ -663,7 +666,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
 
             // Fire-and-forget the closed event
-            RunClosedEvent(closeException);
+            RunClosedEvent(connectionState.CloseException);
         }
 
         private void RunClosedEvent(Exception closeException)
@@ -698,13 +701,11 @@ namespace Microsoft.AspNetCore.SignalR.Client
             if (connectionState.Connection.Features.Get<IConnectionInherentKeepAliveFeature>() == null)
             {
                 Log.StartingServerTimeoutTimer(_logger, ServerTimeout);
-                timeoutTimer = new Timer(state =>
-                {
-                    if (!Debugger.IsAttached)
-                    {
-                        ((IConnection)state).Transport.Input.CancelPendingRead();
-                    }
-                }, connectionState.Connection, ServerTimeout, Timeout.InfiniteTimeSpan);
+                timeoutTimer = new Timer(
+                    state => OnTimeout((ConnectionState)state),
+                    connectionState,
+                    dueTime: ServerTimeout,
+                    period: Timeout.InfiniteTimeSpan);
             }
             else
             {
@@ -714,33 +715,25 @@ namespace Microsoft.AspNetCore.SignalR.Client
             return timeoutTimer;
         }
 
+        private void OnTimeout(ConnectionState connectionState)
+        {
+            if (!Debugger.IsAttached)
+            {
+                connectionState.CloseException = new TimeoutException(
+                    $"Server timeout ({ServerTimeout.TotalMilliseconds:0.00}ms) elapsed without receiving a message from the server.");
+                connectionState.Connection.Transport.Input.CancelPendingRead();
+            }
+        }
+
         private ValueTask<FlushResult> WriteAsync(byte[] payload, CancellationToken cancellationToken = default)
         {
             AssertConnectionValid();
             return _connectionState.Connection.Transport.Output.WriteAsync(payload, cancellationToken);
         }
 
-
-        private void CompletePipes()
-        {
-            if (_connectionState == null)
-            {
-                // No-op if we're already stopped.
-                return;
-            }
-
-            Log.Stopping(_logger);
-
-            // Complete our write pipe, which should cause everything to shut down
-            Log.CompletingTransportPipe(_logger);
-            _connectionState.Connection.Transport.Output.Complete();
-
-            _connectionState = null;
-        }
-
         private void CheckConnectionActive(string methodName)
         {
-            if (_connectionState == null)
+            if (_connectionState == null || _connectionState.Stopping)
             {
                 throw new InvalidOperationException($"The '{methodName}' method cannot be called if the connection is not active");
             }
@@ -822,15 +815,23 @@ namespace Microsoft.AspNetCore.SignalR.Client
         // This includes binding information because return type binding depends upon _pendingCalls
         private class ConnectionState : IInvocationBinder
         {
+            private volatile bool _stopping;
             private readonly HubConnection _hubConnection;
 
             private TaskCompletionSource<object> _stopTcs;
             private readonly object _lock = new object();
             private readonly Dictionary<string, InvocationRequest> _pendingCalls = new Dictionary<string, InvocationRequest>();
             private int _nextId;
-
+                
             public IConnection Connection { get; }
             public Task ReceiveTask { get; set; }
+            public Exception CloseException { get; set; }
+
+            public bool Stopping
+            {
+                get => _stopping;
+                set => _stopping = value;
+            }
 
             public ConnectionState(IConnection connection, HubConnection hubConnection)
             {
@@ -922,10 +923,10 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 Log.Stopping(_hubConnection._logger);
 
                 // Complete our write pipe, which should cause everything to shut down
-                Log.CompletingTransportPipe(_hubConnection._logger);
+                Log.TerminatingReceiveLoop(_hubConnection._logger);
                 try
                 {
-                    Connection.Transport.Output.Complete();
+                    Connection.Transport.Input.CancelPendingRead();
                 }
                 catch (Exception ex)
                 {
@@ -933,25 +934,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 }
 
                 // Wait ServerTimeout for the server or transport to shut down.
-                var delayCts = new CancellationTokenSource();
                 Log.WaitingForReceiveLoopToTerminate(_hubConnection._logger);
-                var trigger = await Task.WhenAny(ReceiveTask, Task.Delay(timeout, delayCts.Token));
-                if (ReferenceEquals(trigger, ReceiveTask))
-                {
-                    // Stop the timer.
-                    delayCts.Cancel();
-                }
-                else
-                {
-                    Log.TimedOutWaitingForReceiveLoop(_hubConnection._logger);
-                    // We timed out waiting for the server/transport to shut down, cancel it, this will cause
-                    // a TimeoutException indicating the server timeout elapsed to be signalled as
-                    // the exception in the Closed event.
-                    Connection.Transport.Input.CancelPendingRead();
-
-                    Log.WaitingForCanceledReceiveLoop(_hubConnection._logger);
-                    await ReceiveTask;
-                }
+                await ReceiveTask;
 
                 Log.Stopped(_hubConnection._logger);
                 _stopTcs.TrySetResult(null);
