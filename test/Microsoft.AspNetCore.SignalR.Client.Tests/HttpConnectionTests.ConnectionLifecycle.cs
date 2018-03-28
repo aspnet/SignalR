@@ -149,8 +149,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                         {
                             passThreshold -= 1;
                         }
-                        Assert.Equal(passThreshold, startCounter);
 
+                        Assert.Equal(passThreshold, startCounter);
                     });
                 }
             }
@@ -183,11 +183,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                             {
                                 availableTransports -= 1;
                             }
+
                             Assert.Equal(availableTransports, startCounter);
                         });
                 }
             }
-
 
             [Fact]
             public async Task CanStartStoppedConnection()
