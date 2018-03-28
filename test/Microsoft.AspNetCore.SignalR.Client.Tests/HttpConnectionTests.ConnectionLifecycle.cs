@@ -4,6 +4,7 @@
 using System;
 using System.Net;
 using System.Net.Http;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Client.Tests;
 using Microsoft.AspNetCore.Connections;
@@ -17,6 +18,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 {
     public partial class HttpConnectionTests
     {
+        private static readonly Version Windows8Version = new Version(6, 2);
+
         public class ConnectionLifecycle : LoggedTest
         {
             public ConnectionLifecycle(ITestOutputHelper output) : base(output)
@@ -142,7 +145,13 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     {
                         Assert.Equal(0, startCounter);
                         await connection.StartAsync(TransferFormat.Text);
+                        if (!IsWebSocketsSupported())
+                        {
+                            Assert.Equal(passThreshold - 1, startCounter);
+                            return;
+                        }
                         Assert.Equal(passThreshold, startCounter);
+
                     });
                 }
             }
@@ -153,6 +162,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 using (StartLog(out var loggerFactory))
                 {
                     var startCounter = 0;
+                    var availableTransports = 3;
                     var expected = new Exception("Transport failed to start");
                     Task OnTransportStart()
                     {
@@ -168,9 +178,36 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                         {
                             var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => connection.StartAsync(TransferFormat.Text));
                             Assert.Equal("Unable to connect to the server with any of the available transports.", ex.Message);
-                            Assert.Equal(3, startCounter);
+
+                            // If websockets aren't supported then we expect one less attmept to start.
+                            if (!IsWebSocketsSupported())
+                            {
+                                Assert.Equal(availableTransports - 1, startCounter);
+                                return;
+                            }
+                            Assert.Equal(availableTransports, startCounter);
                         });
                 }
+            }
+
+            private static bool IsWebSocketsSupported()
+            {
+#if NETCOREAPP2_1
+            // .NET Core 2.1 and above has a managed implementation
+            return true;
+#else
+                bool isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+                if (!isWindows)
+                {
+                    // Assume other OSes have websockets
+                    return true;
+                }
+                else
+                {
+                    // Windows 8 and above has websockets
+                    return Environment.OSVersion.Version >= Windows8Version;
+                }
+#endif
             }
 
             [Fact]
