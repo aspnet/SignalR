@@ -227,9 +227,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             }
 
             [Fact]
-            public async Task ClosedEventWhileShuttingDownIsNoOp()
+            public async Task TransportCompletionWhileShuttingDownIsNoOp()
             {
-                var testConnection = new TestConnection(onDispose: SyncPoint.Create(out var syncPoint));
+                var testConnection = new TestConnection();
                 var testConnectionClosed = new TaskCompletionSource<object>();
                 var connectionClosed = new TaskCompletionSource<object>();
                 await AsyncUsing(new HubConnection(() => testConnection, new JsonHubProtocol()), async connection =>
@@ -241,17 +241,14 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     await connection.StartAsync().OrTimeout();
                     Assert.True(testConnection.Started.IsCompleted);
 
-                    // Start shutting down, but hold at the sync point
+                    // Start shutting down and complete the transport side
                     var stopTask = connection.StopAsync().OrTimeout();
-                    Assert.False(stopTask.IsCompleted);
-                    await syncPoint.WaitForSyncPoint();
-
-                    // Complete the transport side and wait for the connection to close
                     testConnection.CompleteFromTransport();
+
+                    // Wait for the connection to close.
                     await testConnectionClosed.Task.OrTimeout();
 
-                    // Now, complete the StopAsync
-                    syncPoint.Continue();
+                    // The stop should be completed.
                     await stopTask;
 
                     // The HubConnection should now be closed.
@@ -268,7 +265,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             [Fact]
             public async Task StopAsyncDuringUnderlyingConnectionCloseWaitsAndNoOps()
             {
-                var testConnection = new TestConnection(onDispose: SyncPoint.Create(out var syncPoint));
+                var testConnection = new TestConnection();
                 var connectionClosed = new TaskCompletionSource<object>();
                 await AsyncUsing(new HubConnection(() => testConnection, new JsonHubProtocol()), async connection =>
                 {
@@ -280,15 +277,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     // Complete the transport side and wait for the connection to close
                     testConnection.CompleteFromTransport();
 
-                    // Wait for the HubConnection to start disposing the underlying connection (in response to the Closed event firing)
-                    await syncPoint.WaitForSyncPoint();
-
-                    // Start stopping manually
+                    // Start stopping manually (these can't be synchronized by a Sync Point because the transport is disposed outside the lock)
                     var stopTask = connection.StopAsync().OrTimeout();
-                    Assert.False(stopTask.IsCompleted);
 
-                    // Now, complete the StopAsync and wait for TestConnection to be fully disposed
-                    syncPoint.Continue();
                     await testConnection.Disposed.OrTimeout();
 
                     // Wait for the stop task to complete and the closed event to fire
@@ -313,13 +304,10 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 {
                     await connection.StartAsync().OrTimeout();
 
-                    // Stop, but wait at the sync point.
+                    // Stop and invoke the method. These two aren't synchronizable via a Sync Point any more because the transport is disposed
+                    // outside the lock :(
                     var disposeTask = connection.StopAsync().OrTimeout();
-                    await syncPoint.WaitForSyncPoint();
-
-                    // Now start invoking the method under test
                     var targetTask = method(connection).OrTimeout();
-                    Assert.False(targetTask.IsCompleted);
 
                     // Release the sync point
                     syncPoint.Continue();
