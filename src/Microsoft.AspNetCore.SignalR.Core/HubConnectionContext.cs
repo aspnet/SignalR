@@ -286,6 +286,7 @@ namespace Microsoft.AspNetCore.SignalR
                         }
                         finally
                         {
+                            // The buffer was sliced up to where it was consumed, so we can just advance to the start
                             _connectionContext.Transport.Input.AdvanceTo(buffer.Start);
                         }
                     }

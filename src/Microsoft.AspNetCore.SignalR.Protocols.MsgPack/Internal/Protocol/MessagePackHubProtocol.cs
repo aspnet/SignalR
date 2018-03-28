@@ -49,10 +49,9 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
         public bool TryParseMessage(ref ReadOnlySequence<byte> input, IInvocationBinder binder, out HubMessage message)
         {
-            message = null;
-
             if (!BinaryMessageParser.TryParseMessage(ref input, out var payload))
             {
+                message = null;
                 return false;
             }
 
