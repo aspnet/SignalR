@@ -22,20 +22,25 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             textWriter.SetWriter(bufferWriter);
 
             textWriter.Write('[');
+            textWriter.Flush();
             Assert.Equal(1, bufferWriter.Position);
             Assert.Equal((byte)'[', bufferWriter.CurrentSegment.Span[0]);
 
             textWriter.Write('"');
+            textWriter.Flush();
             Assert.Equal(2, bufferWriter.Position);
             Assert.Equal((byte)'"', bufferWriter.CurrentSegment.Span[1]);
 
             textWriter.Write('\u00A3');
+            textWriter.Flush();
             Assert.Equal(4, bufferWriter.Position);
 
             textWriter.Write('\u00A3');
+            textWriter.Flush();
             Assert.Equal(6, bufferWriter.Position);
 
             textWriter.Write('"');
+            textWriter.Flush();
             Assert.Equal(7, bufferWriter.Position);
             Assert.Equal((byte)0xC2, bufferWriter.CurrentSegment.Span[2]);
             Assert.Equal((byte)0xA3, bufferWriter.CurrentSegment.Span[3]);
@@ -44,6 +49,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             Assert.Equal((byte)'"', bufferWriter.CurrentSegment.Span[6]);
 
             textWriter.Write(']');
+            textWriter.Flush();
             Assert.Equal(8, bufferWriter.Position);
             Assert.Equal((byte)']', bufferWriter.CurrentSegment.Span[7]);
         }
@@ -57,9 +63,9 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                 textWriter.SetWriter(bufferWriter);
 
                 textWriter.Write('\u00A3');
-                Assert.Equal(2, bufferWriter.Position);
             }
 
+            Assert.Equal(2, bufferWriter.Position);
             Assert.Equal((byte)0xC2, bufferWriter.CurrentSegment.Span[0]);
             Assert.Equal((byte)0xA3, bufferWriter.CurrentSegment.Span[1]);
         }
@@ -72,10 +78,12 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             textWriter.SetWriter(bufferWriter);
 
             textWriter.Write('[');
+            textWriter.Flush();
             Assert.Equal(1, bufferWriter.Position);
             Assert.Equal((byte)'[', bufferWriter.CurrentSegment.Span[0]);
 
             textWriter.Write('"');
+            textWriter.Flush();
             Assert.Equal(2, bufferWriter.Position);
             Assert.Equal((byte)'"', bufferWriter.CurrentSegment.Span[1]);
 
@@ -83,12 +91,15 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             {
                 textWriter.Write('\u00A3');
             }
+            textWriter.Flush();
 
             textWriter.Write('"');
+            textWriter.Flush();
             Assert.Equal(4003, bufferWriter.Position);
             Assert.Equal((byte)'"', bufferWriter.CurrentSegment.Span[4002]);
 
             textWriter.Write(']');
+            textWriter.Flush();
             Assert.Equal(4004, bufferWriter.Position);
 
             string result = Encoding.UTF8.GetString(bufferWriter.CurrentSegment.Slice(0, bufferWriter.Position).ToArray());
@@ -118,11 +129,13 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             textWriter.SetWriter(bufferWriter);
 
             textWriter.Write(chars, 0, 1);
+            textWriter.Flush();
 
             // Surrogate buffered
             Assert.Equal(0, bufferWriter.Position);
 
             textWriter.Write(chars, 1, 1);
+            textWriter.Flush();
 
             Assert.Equal(4, bufferWriter.Position);
 
@@ -145,11 +158,13 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             textWriter.SetWriter(bufferWriter);
 
             textWriter.Write(chars[0]);
+            textWriter.Flush();
 
             // Surrogate buffered
             Assert.Equal(0, bufferWriter.Position);
 
             textWriter.Write(chars[1]);
+            textWriter.Flush();
 
             Assert.Equal(4, bufferWriter.Position);
 
@@ -170,6 +185,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             char[] chars = "Hello world".ToCharArray();
 
             textWriter.Write(chars, 6, 1);
+            textWriter.Flush();
 
             Assert.Equal(1, bufferWriter.Position);
             Assert.Equal((byte)'w', bufferWriter.CurrentSegment.Span[0]);
@@ -185,6 +201,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             char[] chars = "Hello world".ToCharArray();
 
             textWriter.Write(chars);
+            textWriter.Flush();
 
             Assert.Equal(6, bufferWriter.Segments.Count);
             Assert.Equal(1, bufferWriter.Position);
@@ -205,15 +222,23 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         [Fact]
         public void GetAndReturnCachedBufferTextWriter()
         {
-            MemoryBufferWriter bufferWriter1 = new MemoryBufferWriter(2);
+            MemoryBufferWriter bufferWriter1 = new MemoryBufferWriter();
 
             var textWriter1 = Utf8BufferTextWriter.Get(bufferWriter1);
+            textWriter1.Write("Hello");
+            textWriter1.Flush();
             Utf8BufferTextWriter.Return(textWriter1);
 
-            MemoryBufferWriter bufferWriter2 = new MemoryBufferWriter(2);
+            Assert.Equal("Hello", Encoding.UTF8.GetString(bufferWriter1.ToArray()));
+
+            MemoryBufferWriter bufferWriter2 = new MemoryBufferWriter();
 
             var textWriter2 = Utf8BufferTextWriter.Get(bufferWriter2);
+            textWriter2.Write("World");
+            textWriter2.Flush();
             Utf8BufferTextWriter.Return(textWriter2);
+
+            Assert.Equal("World", Encoding.UTF8.GetString(bufferWriter2.ToArray()));
 
             Assert.Same(textWriter1, textWriter2);
         }

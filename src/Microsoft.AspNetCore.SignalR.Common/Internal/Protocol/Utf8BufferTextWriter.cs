@@ -20,6 +20,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
         private readonly Encoder _encoder;
         private IBufferWriter<byte> _bufferWriter;
+        private Memory<byte> _memory;
+        private int _memoryUsed;
 
 #if DEBUG
         private bool _inUse;
@@ -57,6 +59,12 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         public static void Return(Utf8BufferTextWriter writer)
         {
             _cachedInstance = writer;
+
+            writer._encoder.Reset();
+            writer._memory = Memory<byte>.Empty;
+            writer._memoryUsed = 0;
+            writer._bufferWriter = null;
+
 #if DEBUG
             writer._inUse = false;
 #endif
@@ -65,7 +73,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         public void SetWriter(IBufferWriter<byte> bufferWriter)
         {
             _bufferWriter = bufferWriter;
-            _encoder.Reset();
         }
 
         public override void Write(char[] buffer, int index, int count)
@@ -80,19 +87,17 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
         public override void Write(char value)
         {
+            var destination = GetBuffer();
+
             if (value <= 127)
             {
-                var destination = _bufferWriter.GetSpan(1);
-
                 destination[0] = (byte)value;
-                _bufferWriter.Advance(1);
+                _memoryUsed++;
             }
             else
             {
                 // Json.NET only writes ASCII characters by themselves, e.g. {}[], etc
                 // this should be an exceptional case
-                var destination = _bufferWriter.GetSpan();
-
                 var bytesUsed = 0;
                 var charsUsed = 0;
                 unsafe
@@ -110,8 +115,30 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
                 if (bytesUsed > 0)
                 {
-                    _bufferWriter.Advance(bytesUsed);
+                    _memoryUsed += bytesUsed;
                 }
+            }
+        }
+
+        private Span<byte> GetBuffer()
+        {
+            EnsureBuffer();
+
+            return _memory.Span.Slice(_memoryUsed, _memory.Length - _memoryUsed);
+        }
+
+        private void EnsureBuffer()
+        {
+            if (_memoryUsed == _memory.Length)
+            {
+                // Used up the memory from the buffer writer so advance and get more
+                if (_memoryUsed > 0)
+                {
+                    _bufferWriter.Advance(_memoryUsed);
+                }
+
+                _memory = _bufferWriter.GetMemory();
+                _memoryUsed = 0;
             }
         }
 
@@ -122,7 +149,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             while (charsRemaining > 0)
             {
                 // The destination byte array might not be large enough so multiple writes are sometimes required
-                var destination = _bufferWriter.GetSpan();
+                var destination = GetBuffer();
 
                 var bytesUsed = 0;
                 var charsUsed = 0;
@@ -141,7 +168,27 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
                 charsRemaining -= charsUsed;
                 currentIndex += charsUsed;
-                _bufferWriter.Advance(bytesUsed);
+                _memoryUsed += bytesUsed;
+            }
+        }
+
+        public override void Flush()
+        {
+            if (_memoryUsed > 0)
+            {
+                _bufferWriter.Advance(_memoryUsed);
+                _memory = _memory.Slice(_memoryUsed, _memory.Length - _memoryUsed);
+                _memoryUsed = 0;
+            }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+
+            if (disposing)
+            {
+                Flush();
             }
         }
     }
