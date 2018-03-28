@@ -2,8 +2,10 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Pipelines;
 using System.Threading;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
@@ -13,6 +15,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
+using Microsoft.AspNetCore.SignalR.Microbenchmarks.Shared;
 using Microsoft.AspNetCore.Sockets.Client;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -25,11 +28,16 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         [GlobalSetup]
         public void GlobalSetup()
         {
+            var ms = new MemoryStream();
+            HandshakeProtocol.WriteResponseMessage(HandshakeResponseMessage.Empty, ms);
+            var pipe = new TestDuplexPipe(new ReadResult(new ReadOnlySequence<byte>(ms.ToArray()), false, false));
+
             var connection = new TestConnection();
             // prevents keep alive time being activated
-            connection.Features.Set(new TestConnectionInherentKeepAliveFeature());
+            connection.Features.Set<IConnectionInherentKeepAliveFeature>(new TestConnectionInherentKeepAliveFeature());
+            connection.Transport = pipe;
 
-            _hubConnection = new HubConnection(connection, new JsonHubProtocol(), new NullLoggerFactory());
+            _hubConnection = new HubConnection(() => connection, new JsonHubProtocol(), new NullLoggerFactory());
         }
 
         [Benchmark]
@@ -47,17 +55,12 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
 
     public class TestConnection : IConnection
     {
+        public Task StartAsync()
+        {
+            throw new NotImplementedException();
+        }
+
         public Task StartAsync(TransferFormat transferFormat)
-        {
-            return Task.CompletedTask;
-        }
-
-        public Task SendAsync(byte[] data, CancellationToken cancellationToken)
-        {
-            return Task.CompletedTask;
-        }
-
-        public Task StopAsync()
         {
             return Task.CompletedTask;
         }
@@ -67,22 +70,8 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             return Task.CompletedTask;
         }
 
-        public Task AbortAsync(Exception ex)
-        {
-            return Task.CompletedTask;
-        }
+        public IDuplexPipe Transport { get; set; }
 
-        public IDisposable OnReceived(Func<byte[], object, Task> callback, object state)
-        {
-            return Task.CompletedTask;
-        }
-
-        public event Action<Exception> Closed;
         public IFeatureCollection Features { get; } = new FeatureCollection();
-
-        protected virtual void OnClosed(Exception obj)
-        {
-            Closed?.Invoke(obj);
-        }
     }
 }
