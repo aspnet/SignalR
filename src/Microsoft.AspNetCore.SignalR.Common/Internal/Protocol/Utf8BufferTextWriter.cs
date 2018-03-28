@@ -13,15 +13,59 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
     {
         private static readonly UTF8Encoding _utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
-        private readonly IBufferWriter<byte> _bufferWriter;
+        [ThreadStatic]
+        private static Utf8BufferTextWriter _cachedInstance;
+
+        private readonly Encoder _encoder;
+        private IBufferWriter<byte> _bufferWriter;
         private char[] _charBuffer;
         private int _charBufferPosition;
 
+#if DEBUG
+        private bool _inUse;
+#endif
+
         public override Encoding Encoding => _utf8NoBom;
 
-        public Utf8BufferTextWriter(IBufferWriter<byte> bufferWriter)
+        public Utf8BufferTextWriter()
+        {
+            _encoder = _utf8NoBom.GetEncoder();
+        }
+
+        public static Utf8BufferTextWriter Get(IBufferWriter<byte> bufferWriter)
+        {
+            var writer = _cachedInstance;
+            if (writer == null)
+            {
+                writer = new Utf8BufferTextWriter();
+            }
+
+            // Taken off the the thread static
+            _cachedInstance = null;
+#if DEBUG
+            if (writer._inUse)
+            {
+                throw new InvalidOperationException("The writer wasn't returned!");
+            }
+
+            writer._inUse = true;
+#endif
+            writer.SetWriter(bufferWriter);
+            return writer;
+        }
+
+        public static void Return(Utf8BufferTextWriter writer)
+        {
+            _cachedInstance = writer;
+#if DEBUG
+            writer._inUse = false;
+#endif
+        }
+
+        public void SetWriter(IBufferWriter<byte> bufferWriter)
         {
             _bufferWriter = bufferWriter;
+            _encoder.Reset();
         }
 
         public override void Write(char[] buffer, int index, int count)
@@ -70,24 +114,32 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
         private void WriteInternal(char[] buffer, int index, int count)
         {
-            var sourceBytesCount = _utf8NoBom.GetByteCount(buffer, index, count);
-
-            var destination = _bufferWriter.GetSpan(sourceBytesCount);
-
-#if NETCOREAPP2_1
-            _utf8NoBom.GetBytes(buffer.AsSpan(index, count), destination);
-#else
-            unsafe
+            var currentIndex = index;
+            var charsRemaining = count;
+            while (charsRemaining > 0)
             {
-                fixed (char* sourceChars = &buffer[index])
-                fixed (byte* destinationBytes = &MemoryMarshal.GetReference(destination))
+                // The destination byte array might not be large enough so multiple writes are sometimes required
+                var destination = _bufferWriter.GetSpan();
+
+                var bytesUsed = 0;
+                var charsUsed = 0;
+#if NETCOREAPP2_1
+                _encoder.Convert(buffer.AsSpan(currentIndex, charsRemaining), destination, false, out charsUsed, out bytesUsed, out _);
+#else
+                unsafe
                 {
-                    _utf8NoBom.GetBytes(sourceChars, count, destinationBytes, sourceBytesCount);
+                    fixed (char* sourceChars = &buffer[currentIndex])
+                    fixed (byte* destinationBytes = &MemoryMarshal.GetReference(destination))
+                    {
+                        _encoder.Convert(sourceChars, charsRemaining, destinationBytes, destination.Length, false, out charsUsed, out bytesUsed, out _);
+                    }
                 }
-            }
 #endif
 
-            _bufferWriter.Advance(sourceBytesCount);
+                charsRemaining -= charsUsed;
+                currentIndex += charsUsed;
+                _bufferWriter.Advance(bytesUsed);
+            }
         }
 
         private void FlushBuffer()
@@ -96,6 +148,21 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             {
                 WriteInternal(_charBuffer, 0, _charBufferPosition);
                 _charBufferPosition = 0;
+            }
+        }
+
+        public override void Flush()
+        {
+            FlushBuffer();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+
+            if (disposing)
+            {
+                FlushBuffer();
             }
         }
     }

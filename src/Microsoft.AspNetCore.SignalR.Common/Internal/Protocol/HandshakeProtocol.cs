@@ -38,17 +38,24 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
         public static void WriteResponseMessage(HandshakeResponseMessage responseMessage, IBufferWriter<byte> output)
         {
-            using (var writer = CreateJsonTextWriter(output))
+            var textWriter = Utf8BufferTextWriter.Get(output);
+            try
             {
-                writer.WriteStartObject();
-                if (!string.IsNullOrEmpty(responseMessage.Error))
+                using (var writer = CreateJsonTextWriter(textWriter))
                 {
-                    writer.WritePropertyName(ErrorPropertyName);
-                    writer.WriteValue(responseMessage.Error);
+                    writer.WriteStartObject();
+                    if (!string.IsNullOrEmpty(responseMessage.Error))
+                    {
+                        writer.WritePropertyName(ErrorPropertyName);
+                        writer.WriteValue(responseMessage.Error);
+                    }
+                    writer.WriteEndObject();
+                    writer.Flush();
                 }
-                writer.WriteEndObject();
-
-                // no need to flush because content is written directly to buffer writer
+            }
+            finally
+            {
+                Utf8BufferTextWriter.Return(textWriter);
             }
 
             TextMessageFormatter.WriteRecordSeparator(output);
@@ -71,9 +78,9 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             TextMessageFormatter.WriteRecordSeparator(output);
         }
 
-        private static JsonTextWriter CreateJsonTextWriter(IBufferWriter<byte> output)
+        private static JsonTextWriter CreateJsonTextWriter(TextWriter textWriter)
         {
-            var writer = new JsonTextWriter(new Utf8BufferTextWriter(output));
+            var writer = new JsonTextWriter(textWriter);
             writer.CloseOutput = false;
 
             return writer;
