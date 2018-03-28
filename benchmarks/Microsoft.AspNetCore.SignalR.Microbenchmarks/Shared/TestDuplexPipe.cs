@@ -7,13 +7,21 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks.Shared
 {
     public class TestDuplexPipe : IDuplexPipe
     {
-        public PipeReader Input { get; }
+        private readonly TestPipeReader _input;
+
+        public PipeReader Input => _input;
+
         public PipeWriter Output { get; }
 
-        public TestDuplexPipe(ReadResult readResult = default)
+        public TestDuplexPipe()
         {
-            Input = new TestPipeReader(readResult);
+            _input = new TestPipeReader();
             Output = new TestPipeWriter();
+        }
+
+        public void AddReadResult(ReadResult readResult)
+        {
+            _input.ReadResults.Add(readResult);
         }
     }
 }

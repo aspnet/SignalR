@@ -11,15 +11,11 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks.Shared
 {
     public class TestPipeReader : PipeReader
     {
-        private readonly List<ReadResult> _readResults;
+        public List<ReadResult> ReadResults { get; }
 
-        public TestPipeReader(ReadResult? readResult = null)
+        public TestPipeReader()
         {
-            _readResults = new List<ReadResult>();
-            if (readResult != null)
-            {
-                _readResults.Add(readResult.Value);
-            }
+            ReadResults = new List<ReadResult>();
         }
 
         public override void AdvanceTo(SequencePosition consumed)
@@ -47,13 +43,13 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks.Shared
 
         public override ValueTask<ReadResult> ReadAsync(CancellationToken cancellationToken = new CancellationToken())
         {
-            if (_readResults.Count == 0)
+            if (ReadResults.Count == 0)
             {
                 return new ValueTask<ReadResult>(new ReadResult(default, false, true));
             }
 
-            var result = _readResults[0];
-            _readResults.RemoveAt(0);
+            var result = ReadResults[0];
+            ReadResults.RemoveAt(0);
 
             return new ValueTask<ReadResult>(result);
         }

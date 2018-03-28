@@ -667,18 +667,24 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private void RunClosedEvent(Exception closeException)
         {
-            _ = Task.Run(() =>
+            var closed = Closed;
+
+            // There is no need to start a new task if there is no Closed event registered
+            if (closed != null)
             {
-                try
+                _ = Task.Run(() =>
                 {
-                    Log.InvokingClosedEventHandler(_logger);
-                    Closed?.Invoke(closeException);
-                }
-                catch (Exception ex)
-                {
-                    Log.ErrorDuringClosedEvent(_logger, ex);
-                }
-            });
+                    try
+                    {
+                        Log.InvokingClosedEventHandler(_logger);
+                        closed.Invoke(closeException);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.ErrorDuringClosedEvent(_logger, ex);
+                    }
+                });
+            }
         }
 
         private void ResetTimeoutTimer(Timer timeoutTimer)

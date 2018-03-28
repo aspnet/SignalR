@@ -24,25 +24,36 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
     public class HubConnectionBenchmark
     {
         private HubConnection _hubConnection;
+        private TestDuplexPipe _pipe;
+        private ReadResult _handshakeResponseResult;
 
         [GlobalSetup]
         public void GlobalSetup()
         {
             var ms = new MemoryBufferWriter();
             HandshakeProtocol.WriteResponseMessage(HandshakeResponseMessage.Empty, ms);
-            var pipe = new TestDuplexPipe(new ReadResult(new ReadOnlySequence<byte>(ms.ToArray()), false, false));
+            _handshakeResponseResult = new ReadResult(new ReadOnlySequence<byte>(ms.ToArray()), false, false);
+
+            _pipe = new TestDuplexPipe();
 
             var connection = new TestConnection();
             // prevents keep alive time being activated
             connection.Features.Set<IConnectionInherentKeepAliveFeature>(new TestConnectionInherentKeepAliveFeature());
-            connection.Transport = pipe;
+            connection.Transport = _pipe;
 
             _hubConnection = new HubConnection(() => connection, new JsonHubProtocol(), new NullLoggerFactory());
+        }
+
+        private void AddHandshakeResponse()
+        {
+            _pipe.AddReadResult(_handshakeResponseResult);
         }
 
         [Benchmark]
         public async Task StartAsync()
         {
+            AddHandshakeResponse();
+
             await _hubConnection.StartAsync();
             await _hubConnection.StopAsync();
         }
