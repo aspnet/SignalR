@@ -27,7 +27,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 }
 
                 // Windows 8 and greater has sockets
-                if (Environment.Version >= new Version(6, 2))
+                if (Environment.OSVersion.Version >= new Version(6, 2))
                 {
                     return true;
                 }
