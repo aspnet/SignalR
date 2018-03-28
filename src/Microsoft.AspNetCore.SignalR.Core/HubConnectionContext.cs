@@ -286,8 +286,10 @@ namespace Microsoft.AspNetCore.SignalR
                         }
                         finally
                         {
-                            // The buffer was sliced up to where it was consumed, so we can just advance to the start
-                            _connectionContext.Transport.Input.AdvanceTo(buffer.Start);
+                            // The buffer was sliced up to where it was consumed, so we can just advance to the start.
+                            // We mark examined as buffer.End so that if we didn't receive a full frame, we'll wait for more data
+                            // before yielding the read again.
+                            _connectionContext.Transport.Input.AdvanceTo(buffer.Start, buffer.End);
                         }
                     }
                 }

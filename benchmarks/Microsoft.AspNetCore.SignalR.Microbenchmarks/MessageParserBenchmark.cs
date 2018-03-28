@@ -51,8 +51,8 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         [Benchmark]
         public void SingleTextMessage()
         {
-            ReadOnlyMemory<byte> buffer = _textInput;
-            if (!TextMessageParser.TryParseMessage(ref buffer, out _))
+            var data = new ReadOnlySequence<byte>(_textInput);
+            if (!TextMessageParser.TryParseMessage(ref data, out _))
             {
                 throw new InvalidOperationException("Failed to parse");
             }
