@@ -147,8 +147,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                         await connection.StartAsync(TransferFormat.Text);
                         if (!IsWebSocketsSupported())
                         {
-                            Assert.Equal(passThreshold - 1, startCounter);
-                            return;
+                            passThreshold -= 1;
                         }
                         Assert.Equal(passThreshold, startCounter);
 
@@ -182,33 +181,13 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                             // If websockets aren't supported then we expect one less attmept to start.
                             if (!IsWebSocketsSupported())
                             {
-                                Assert.Equal(availableTransports - 1, startCounter);
-                                return;
+                                availableTransports -= 1;
                             }
                             Assert.Equal(availableTransports, startCounter);
                         });
                 }
             }
 
-            private static bool IsWebSocketsSupported()
-            {
-#if NETCOREAPP2_1
-            // .NET Core 2.1 and above has a managed implementation
-            return true;
-#else
-                bool isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-                if (!isWindows)
-                {
-                    // Assume other OSes have websockets
-                    return true;
-                }
-                else
-                {
-                    // Windows 8 and above has websockets
-                    return Environment.OSVersion.Version >= Windows8Version;
-                }
-#endif
-            }
 
             [Fact]
             public async Task CanStartStoppedConnection()
@@ -484,6 +463,23 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                             await longPollingTransport.Running.OrTimeout();
                         });
                 }
+            }
+
+            private static bool IsWebSocketsSupported()
+            {
+#if NETCOREAPP2_1
+                // .NET Core 2.1 and greater has sockets
+                return true;
+#else
+                // Non-Windows platforms have sockets
+                if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    return true;
+                }
+
+                // Windows 8 and greater has sockets
+                return Environment.OSVersion.Version >= new Version(6, 2);
+#endif
             }
         }
     }
