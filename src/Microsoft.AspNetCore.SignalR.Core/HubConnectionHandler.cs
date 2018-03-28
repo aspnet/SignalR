@@ -164,24 +164,16 @@ namespace Microsoft.AspNetCore.SignalR
                 {
                     var result = await connection.Input.ReadAsync(connection.ConnectionAborted);
                     var buffer = result.Buffer;
-                    var consumed = buffer.End;
-                    var examined = buffer.End;
 
                     try
                     {
                         if (!buffer.IsEmpty)
                         {
-                            var hubMessages = new List<HubMessage>();
-
-                            // TODO: Make this incremental
-                            if (connection.Protocol.TryParseMessages(buffer.ToArray(), _dispatcher, hubMessages))
+                            while (connection.Protocol.TryParseMessage(ref buffer, _dispatcher, out var message))
                             {
-                                foreach (var hubMessage in hubMessages)
-                                {
-                                    // Don't wait on the result of execution, continue processing other
-                                    // incoming messages on this connection.
-                                    _ = _dispatcher.DispatchMessageAsync(connection, hubMessage);
-                                }
+                                // Don't wait on the result of execution, continue processing other
+                                // incoming messages on this connection.
+                                _ = _dispatcher.DispatchMessageAsync(connection, message);
                             }
                         }
                         else if (result.IsCompleted)
@@ -191,7 +183,7 @@ namespace Microsoft.AspNetCore.SignalR
                     }
                     finally
                     {
-                        connection.Input.AdvanceTo(consumed, examined);
+                        connection.Input.AdvanceTo(buffer.Start);
                     }
                 }
             }

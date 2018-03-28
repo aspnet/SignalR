@@ -221,14 +221,12 @@ namespace Microsoft.AspNetCore.SignalR
                     {
                         var result = await _connectionContext.Transport.Input.ReadAsync(cts.Token);
                         var buffer = result.Buffer;
-                        var consumed = buffer.End;
-                        var examined = buffer.End;
 
                         try
                         {
                             if (!buffer.IsEmpty)
                             {
-                                if (HandshakeProtocol.TryParseRequestMessage(buffer, out var handshakeRequestMessage, out consumed, out examined))
+                                if (HandshakeProtocol.TryParseRequestMessage(ref buffer, out var handshakeRequestMessage))
                                 {
                                     Protocol = protocolResolver.GetProtocol(handshakeRequestMessage.Protocol, supportedProtocols);
                                     if (Protocol == null)
@@ -288,7 +286,7 @@ namespace Microsoft.AspNetCore.SignalR
                         }
                         finally
                         {
-                            _connectionContext.Transport.Input.AdvanceTo(consumed, examined);
+                            _connectionContext.Transport.Input.AdvanceTo(buffer.Start);
                         }
                     }
                 }
