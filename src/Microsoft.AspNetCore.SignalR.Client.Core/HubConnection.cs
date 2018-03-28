@@ -822,7 +822,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             private readonly object _lock = new object();
             private readonly Dictionary<string, InvocationRequest> _pendingCalls = new Dictionary<string, InvocationRequest>();
             private int _nextId;
-                
+
             public IConnection Connection { get; }
             public Task ReceiveTask { get; set; }
             public Exception CloseException { get; set; }
@@ -924,14 +924,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
                 // Complete our write pipe, which should cause everything to shut down
                 Log.TerminatingReceiveLoop(_hubConnection._logger);
-                try
-                {
-                    Connection.Transport.Input.CancelPendingRead();
-                }
-                catch (Exception ex)
-                {
-                    throw ex;
-                }
+                Connection.Transport.Input.CancelPendingRead();
 
                 // Wait ServerTimeout for the server or transport to shut down.
                 Log.WaitingForReceiveLoopToTerminate(_hubConnection._logger);

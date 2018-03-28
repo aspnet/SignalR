@@ -101,7 +101,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public async Task PendingInvocationsAreTerminatedIfServerTimeoutIntervalElapsesWithNoMessages()
         {
             var hubConnection = CreateHubConnection(new TestConnection());
-            hubConnection.ServerTimeout = TimeSpan.FromMilliseconds(100);
+            hubConnection.ServerTimeout = TimeSpan.FromMilliseconds(500);
 
             await hubConnection.StartAsync().OrTimeout();
             
@@ -109,7 +109,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             var invokeTask = hubConnection.InvokeAsync("Method").OrTimeout();
 
             var exception = await Assert.ThrowsAsync<TimeoutException>(() => invokeTask);
-            Assert.Equal("Server timeout (100.00ms) elapsed without receiving a message from the server.", exception.Message);
+            Assert.Equal("Server timeout (500.00ms) elapsed without receiving a message from the server.", exception.Message);
         }
 
         // Moq really doesn't handle out parameters well, so to make these tests work I added a manual mock -anurse
