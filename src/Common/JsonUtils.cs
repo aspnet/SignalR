@@ -16,10 +16,24 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             var reader = new JsonTextReader(textReader);
             reader.ArrayPool = JsonArrayPool<char>.Shared;
 
-            // Don't close the output, Utf8BufferTextReader is resettable
+            // Don't close the input, leave closing to the caller
             reader.CloseInput = false;
 
             return reader;
+        }
+
+        internal static JsonTextWriter CreateJsonTextWriter(TextWriter textWriter)
+        {
+            var writer = new JsonTextWriter(textWriter);
+
+            // Don't close the output, leave closing to the caller
+            writer.CloseOutput = false;
+
+            // SignalR will always write a complete message
+            // This setting will prevent an error caused by writing on dispose
+            writer.AutoCompleteOnClose = false;
+
+            return writer;
         }
 
         public static JObject GetObject(JToken token)

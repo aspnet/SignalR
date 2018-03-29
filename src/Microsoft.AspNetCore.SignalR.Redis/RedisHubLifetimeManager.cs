@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.SignalR.Redis.Internal;
 using Microsoft.Extensions.Logging;
@@ -214,7 +215,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
         {
             byte[] payload;
             using (var stream = new LimitArrayPoolWriteStream())
-            using (var writer = new JsonTextWriter(new StreamWriter(stream)))
+            using (var writer = JsonUtils.CreateJsonTextWriter(new StreamWriter(stream)))
             {
                 _serializer.Serialize(writer, message);
                 writer.Flush();

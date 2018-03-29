@@ -21,7 +21,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal
 
         public static void WriteResponse(NegotiationResponse response, Stream output)
         {
-            using (var jsonWriter = new JsonTextWriter(new StreamWriter(output, _utf8NoBom, 1024, leaveOpen: true)))
+            using (var jsonWriter = JsonUtils.CreateJsonTextWriter(new StreamWriter(output, _utf8NoBom, 1024, leaveOpen: true)))
             {
                 jsonWriter.WriteStartObject();
                 jsonWriter.WritePropertyName(ConnectionIdPropertyName);
@@ -29,7 +29,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal
                 jsonWriter.WritePropertyName(AvailableTransportsPropertyName);
                 jsonWriter.WriteStartArray();
 
-                foreach (AvailableTransport availableTransport in response.AvailableTransports)
+                foreach (var availableTransport in response.AvailableTransports)
                 {
                     jsonWriter.WriteStartObject();
                     jsonWriter.WritePropertyName(TransportPropertyName);
@@ -37,7 +37,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal
                     jsonWriter.WritePropertyName(TransferFormatsPropertyName);
                     jsonWriter.WriteStartArray();
 
-                    foreach (string transferFormat in availableTransport.TransferFormats)
+                    foreach (var transferFormat in availableTransport.TransferFormats)
                     {
                         jsonWriter.WriteValue(transferFormat);
                     }
@@ -57,7 +57,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal
         {
             try
             {
-                using (var reader = new JsonTextReader(new StreamReader(content)))
+                using (var reader = JsonUtils.CreateJsonTextReader(new StreamReader(content)))
                 {
                     JsonUtils.CheckRead(reader);
                     JsonUtils.EnsureObjectStart(reader);
@@ -133,7 +133,7 @@ namespace Microsoft.AspNetCore.Sockets.Internal
 
         private static AvailableTransport ParseAvailableTransport(JsonTextReader reader)
         {
-            AvailableTransport availableTransport = new AvailableTransport();
+            var availableTransport = new AvailableTransport();
 
             while (JsonUtils.CheckRead(reader))
             {

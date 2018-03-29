@@ -23,7 +23,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             var textWriter = Utf8BufferTextWriter.Get(output);
             try
             {
-                using (var writer = CreateJsonTextWriter(textWriter))
+                using (var writer = JsonUtils.CreateJsonTextWriter(textWriter))
                 {
                     writer.WriteStartObject();
                     writer.WritePropertyName(ProtocolPropertyName);
@@ -47,7 +47,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             var textWriter = Utf8BufferTextWriter.Get(output);
             try
             {
-                using (var writer = CreateJsonTextWriter(textWriter))
+                using (var writer = JsonUtils.CreateJsonTextWriter(textWriter))
                 {
                     writer.WriteStartObject();
                     if (!string.IsNullOrEmpty(responseMessage.Error))
@@ -66,14 +66,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             }
 
             TextMessageFormatter.WriteRecordSeparator(output);
-        }
-
-        private static JsonTextWriter CreateJsonTextWriter(TextWriter textWriter)
-        {
-            var writer = new JsonTextWriter(textWriter);
-            writer.CloseOutput = false;
-
-            return writer;
         }
 
         public static bool TryParseResponseMessage(ref ReadOnlySequence<byte> buffer, out HandshakeResponseMessage responseMessage)
