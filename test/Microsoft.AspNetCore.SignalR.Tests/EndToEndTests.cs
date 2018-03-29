@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO.Pipelines;
 using System.Net.Http;
 using System.Net.WebSockets;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -370,6 +371,15 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             private int _tries;
             private string _prevConnectionId = null;
             private IDuplexPipe _application;
+            private int availableTransports = 3;
+
+            public FakeTransport()
+            {
+                if (!IsWebSocketsSupported())
+                {
+                    availableTransports -= 1;
+                }
+            }
 
             public Task StartAsync(Uri url, IDuplexPipe application, TransferFormat transferFormat, IConnection connection)
             {
@@ -386,7 +396,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     _prevConnectionId = id;
                 }
 
-                if (_tries < 3)
+                if (_tries < availableTransports)
                 {
                     throw new Exception();
                 }
@@ -402,6 +412,23 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 _application.Input.Complete();
                 return Task.CompletedTask;
             }
+        }
+
+        private static bool IsWebSocketsSupported()
+        {
+#if NETCOREAPP2_1
+            // .NET Core 2.1 and greater has sockets
+            return true;
+#else
+                // Non-Windows platforms have sockets
+                if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    return true;
+                }
+
+                // Windows 8 and greater has sockets
+                return Environment.OSVersion.Version >= new Version(6, 2);
+#endif
         }
 
         public static IEnumerable<object[]> TransportTypes
