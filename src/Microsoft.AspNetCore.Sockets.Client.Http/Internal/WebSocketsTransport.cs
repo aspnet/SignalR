@@ -14,7 +14,7 @@ using Microsoft.AspNetCore.Http.Connections.Client;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
+namespace Microsoft.AspNetCore.Http.Connections.Internal
 {
     public partial class WebSocketsTransport : ITransport
     {

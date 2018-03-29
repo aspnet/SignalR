@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
+namespace Microsoft.AspNetCore.Http.Connections.Internal
 {
     public class LoggingHttpMessageHandler : DelegatingHandler
     {
