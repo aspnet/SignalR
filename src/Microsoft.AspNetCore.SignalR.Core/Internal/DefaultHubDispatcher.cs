@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Internal;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Microsoft.AspNetCore.SignalR.Internal
 {
@@ -24,11 +25,13 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly IHubContext<THub> _hubContext;
         private readonly ILogger<HubDispatcher<THub>> _logger;
+        private readonly HubOptions<THub> _hubOptions;
 
-        public DefaultHubDispatcher(IServiceScopeFactory serviceScopeFactory, IHubContext<THub> hubContext, ILogger<DefaultHubDispatcher<THub>> logger)
+        public DefaultHubDispatcher(IServiceScopeFactory serviceScopeFactory, IHubContext<THub> hubContext, IOptions<HubOptions<THub>> hubOptions, ILogger<DefaultHubDispatcher<THub>> logger)
         {
             _serviceScopeFactory = serviceScopeFactory;
             _hubContext = hubContext;
+            _hubOptions = hubOptions.Value;
             _logger = logger;
             DiscoverHubMethods();
         }
@@ -172,7 +175,16 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 if (hubMethodInvocationMessage.ArgumentBindingException != null)
                 {
                     Log.FailedInvokingHubMethod(_logger, hubMethodInvocationMessage.Target, hubMethodInvocationMessage.ArgumentBindingException);
-                    await SendInvocationError(hubMethodInvocationMessage, connection, $"Failed to invoke '{hubMethodInvocationMessage.Target}'. {hubMethodInvocationMessage.ArgumentBindingException.Message}");
+                    var errorMessage = string.Empty;
+                    if (!_hubOptions.EnableDetailedErrors)
+                    {
+                        errorMessage = "some error here";
+                    }
+                    else
+                    {
+                        errorMessage = $"Failed to invoke '{hubMethodInvocationMessage.Target}'. {hubMethodInvocationMessage.ArgumentBindingException.Message}";
+                    }
+                    await SendInvocationError(hubMethodInvocationMessage, connection, errorMessage);
                     return;
                 }
 
@@ -225,6 +237,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         private string BuildUnexpectedErrorMessage(string methodName, Exception exception)
         {
+            if (!_hubOptions.EnableDetailedErrors)
+            {
+                return "write an error";
+            }
+
             return $"An unexpected error occurred invoking '{methodName}' on the server. {exception.GetType().Name}: {exception.Message}";
         }
 
@@ -256,6 +273,10 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             }
             finally
             {
+                if (!_hubOptions.EnableDetailedErrors)
+                {
+                    error = "todo, but some generic error here";
+                }
                 await connection.WriteAsync(new CompletionMessage(invocationId, error: error, result: null, hasResult: false));
 
                 if (connection.ActiveRequestCancellationSources.TryRemove(invocationId, out var cts))
