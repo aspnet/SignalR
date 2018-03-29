@@ -375,7 +375,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
             public FakeTransport()
             {
-                if (!IsWebSocketsSupported())
+                if (!TestHelpers.IsWebSocketsSupported())
                 {
                     availableTransports -= 1;
                 }
