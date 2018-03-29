@@ -22,6 +22,7 @@ namespace Microsoft.AspNetCore.SignalR
         private readonly HubOptions _globalHubOptions;
         private readonly IUserIdProvider _userIdProvider;
         private readonly HubDispatcher<THub> _dispatcher;
+        private readonly bool _enableDetailedErrors;
 
         public HubConnectionHandler(HubLifetimeManager<THub> lifetimeManager,
                                     IHubProtocolResolver protocolResolver,
@@ -39,6 +40,8 @@ namespace Microsoft.AspNetCore.SignalR
             _logger = loggerFactory.CreateLogger<HubConnectionHandler<THub>>();
             _userIdProvider = userIdProvider;
             _dispatcher = dispatcher;
+
+            _enableDetailedErrors = _hubOptions.EnableDetailedErrors ?? _globalHubOptions.EnableDetailedErrors ?? false;
         }
 
         public override async Task OnConnectedAsync(ConnectionContext connection)
@@ -56,7 +59,7 @@ namespace Microsoft.AspNetCore.SignalR
 
             var connectionContext = new HubConnectionContext(connection, keepAlive, _loggerFactory);
 
-            if (!await connectionContext.HandshakeAsync(handshakeTimeout, supportedProtocols, _protocolResolver, _userIdProvider, _hubOptions.EnableDetailedErrors))
+            if (!await connectionContext.HandshakeAsync(handshakeTimeout, supportedProtocols, _protocolResolver, _userIdProvider, _enableDetailedErrors))
             {
                 return;
             }
@@ -137,10 +140,10 @@ namespace Microsoft.AspNetCore.SignalR
         private async Task SendCloseAsync(HubConnectionContext connection, Exception exception)
         {
             var closeMessage = CloseMessage.Empty;
-            
+
             if (exception != null)
             {
-                closeMessage = _hubOptions.EnableDetailedErrors
+                closeMessage = _enableDetailedErrors
                     ? new CloseMessage($"Connection closed with an error. {exception.GetType().Name}: {exception.Message}")
                     : new CloseMessage($"Connection closed with an error.");
             }

@@ -25,13 +25,14 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly IHubContext<THub> _hubContext;
         private readonly ILogger<HubDispatcher<THub>> _logger;
-        private readonly HubOptions<THub> _hubOptions;
+        private readonly bool _enableDetailedErrors;
 
-        public DefaultHubDispatcher(IServiceScopeFactory serviceScopeFactory, IHubContext<THub> hubContext, IOptions<HubOptions<THub>> hubOptions, ILogger<DefaultHubDispatcher<THub>> logger)
+        public DefaultHubDispatcher(IServiceScopeFactory serviceScopeFactory, IHubContext<THub> hubContext, IOptions<HubOptions<THub>> hubOptions,
+            IOptions<HubOptions> globalHubOptions, ILogger<DefaultHubDispatcher<THub>> logger)
         {
             _serviceScopeFactory = serviceScopeFactory;
             _hubContext = hubContext;
-            _hubOptions = hubOptions.Value;
+            _enableDetailedErrors = hubOptions.Value.EnableDetailedErrors ?? globalHubOptions.Value.EnableDetailedErrors ?? false;
             _logger = logger;
             DiscoverHubMethods();
         }
@@ -176,13 +177,13 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 {
                     Log.FailedInvokingHubMethod(_logger, hubMethodInvocationMessage.Target, hubMethodInvocationMessage.ArgumentBindingException);
                     var errorMessage = string.Empty;
-                    if (!_hubOptions.EnableDetailedErrors)
+                    if (!_enableDetailedErrors)
                     {
-                        errorMessage = "some error here";
+                        errorMessage = $"Failed to invoke '{hubMethodInvocationMessage.Target}' due to an error on the server.";
                     }
                     else
                     {
-                        errorMessage = $"Failed to invoke '{hubMethodInvocationMessage.Target}'. {hubMethodInvocationMessage.ArgumentBindingException.Message}";
+                        errorMessage = $"Failed to invoke '{hubMethodInvocationMessage.Target}' due to an error on the server: {hubMethodInvocationMessage.ArgumentBindingException.Message}";
                     }
                     await SendInvocationError(hubMethodInvocationMessage, connection, errorMessage);
                     return;
@@ -237,9 +238,9 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         private string BuildUnexpectedErrorMessage(string methodName, Exception exception)
         {
-            if (!_hubOptions.EnableDetailedErrors)
+            if (!_enableDetailedErrors)
             {
-                return "write an error";
+                return $"An unexpected error occurred invoking '{methodName}' on the server.";
             }
 
             return $"An unexpected error occurred invoking '{methodName}' on the server. {exception.GetType().Name}: {exception.Message}";
@@ -273,9 +274,9 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             }
             finally
             {
-                if (error != string.Empty && !_hubOptions.EnableDetailedErrors)
+                if (!string.IsNullOrEmpty(error) && !_enableDetailedErrors)
                 {
-                    error = "todo, put some generic error here";
+                    error = "An error occurred on the server while streaming results.";
                 }
                 await connection.WriteAsync(new CompletionMessage(invocationId, error: error, result: null, hasResult: false));
 

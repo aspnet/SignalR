@@ -18,6 +18,6 @@ namespace Microsoft.AspNetCore.SignalR
 
         public IList<string> SupportedProtocols { get; set; } = null;
 
-        public bool EnableDetailedErrors { get; set; } = false;
+        public bool? EnableDetailedErrors { get; set; } = null;
     }
 }

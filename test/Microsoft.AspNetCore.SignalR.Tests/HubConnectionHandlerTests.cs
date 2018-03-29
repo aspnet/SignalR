@@ -522,11 +522,17 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Theory]
-        [InlineData(nameof(MethodHub.MethodThatThrows))]
-        [InlineData(nameof(MethodHub.MethodThatYieldsFailedTask))]
-        public async Task HubMethodCanThrowOrYieldFailedTask(string methodName)
+        [InlineData(nameof(MethodHub.MethodThatThrows), true)]
+        [InlineData(nameof(MethodHub.MethodThatYieldsFailedTask), false)]
+        public async Task HubMethodCanThrowOrYieldFailedTask(string methodName, bool detailedErrors)
         {
-            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(builder =>
+            {
+                builder.AddSignalR(options =>
+                {
+                    options.EnableDetailedErrors = detailedErrors;
+                });
+            });
 
             var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
@@ -536,7 +542,14 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 var message = await client.InvokeAsync(methodName).OrTimeout();
 
-                Assert.Equal($"An unexpected error occurred invoking '{methodName}' on the server. InvalidOperationException: BOOM!", message.Error);
+                if (detailedErrors)
+                {
+                    Assert.Equal($"An unexpected error occurred invoking '{methodName}' on the server. InvalidOperationException: BOOM!", message.Error);
+                }
+                else
+                {
+                    Assert.Equal($"An unexpected error occurred invoking '{methodName}' on the server.", message.Error);
+                }
 
                 // kill the connection
                 client.Dispose();
@@ -1481,10 +1494,16 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
-        [Fact]
-        public async Task ReceiveCorrectErrorFromStreamThrowing()
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task ReceiveCorrectErrorFromStreamThrowing(bool detailedErrors)
         {
-            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(builder =>
+            builder.AddSignalR(options =>
+            {
+                options.EnableDetailedErrors = detailedErrors;
+            }));
             var connectionHandler = serviceProvider.GetService<HubConnectionHandler<StreamingHub>>();
 
             using (var client = new TestClient())
@@ -1498,7 +1517,14 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 Assert.Equal(1, messages.Count);
                 var completion = messages[0] as CompletionMessage;
                 Assert.NotNull(completion);
-                Assert.Equal("Exception from observable", completion.Error);
+                if (detailedErrors)
+                {
+                    Assert.Equal("Exception from observable", completion.Error);
+                }
+                else
+                {
+                    Assert.Equal("An error occurred on the server while streaming results.", completion.Error);
+                }
 
                 client.Dispose();
 
@@ -1926,10 +1952,18 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
-        [Fact]
-        public async Task ErrorInHubOnConnectSendsCloseMessageWithError()
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task ErrorInHubOnConnectSendsCloseMessageWithError(bool detailedErrors)
         {
-            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(builder =>
+            {
+                builder.AddSignalR(options =>
+                {
+                    options.EnableDetailedErrors = detailedErrors;
+                });
+            });
             var connectionHandler = serviceProvider.GetService<HubConnectionHandler<OnConnectedThrowsHub>>();
 
             using (var client = new TestClient(false, new JsonHubProtocol()))
@@ -1939,7 +1973,14 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var message = await client.ReadAsync().OrTimeout();
 
                 var closeMessage = Assert.IsType<CloseMessage>(message);
-                Assert.Equal("Connection closed with an error. InvalidOperationException: Hub OnConnected failed.", closeMessage.Error);
+                if (detailedErrors)
+                {
+                    Assert.Equal("Connection closed with an error. InvalidOperationException: Hub OnConnected failed.", closeMessage.Error);
+                }
+                else
+                {
+                    Assert.Equal("Connection closed with an error.", closeMessage.Error);
+                }
 
                 await connectionHandlerTask.OrTimeout();
             }
