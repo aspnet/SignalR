@@ -5,7 +5,7 @@ using System;
 using System.Diagnostics.Tracing;
 using Microsoft.Extensions.Internal;
 
-namespace Microsoft.AspNetCore.Sockets.Internal
+namespace Microsoft.AspNetCore.Http.Connections.Internal
 {
     [EventSource(Name = "Microsoft-AspNetCore-Sockets")]
     internal class SocketEventSource : EventSource

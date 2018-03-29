@@ -3,7 +3,7 @@
 
 using System;
 
-namespace Microsoft.AspNetCore.Connections.Features
+namespace Microsoft.AspNetCore.Http.Connections.Features
 {
     public class ConnectionInherentKeepAliveFeature : IConnectionInherentKeepAliveFeature
     {

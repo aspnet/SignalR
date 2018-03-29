@@ -9,7 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Sockets;
-using Microsoft.AspNetCore.Sockets.Http.Features;
+using Microsoft.AspNetCore.Http.Connections.Features;
 
 namespace Microsoft.AspNetCore.SignalR.Tests
 {

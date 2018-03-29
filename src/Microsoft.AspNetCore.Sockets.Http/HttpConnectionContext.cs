@@ -11,10 +11,10 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Connections.Features;
-using Microsoft.AspNetCore.Sockets.Http.Features;
+using Microsoft.AspNetCore.Http.Connections.Features;
 using Microsoft.AspNetCore.Http;
 
-namespace Microsoft.AspNetCore.Sockets
+namespace Microsoft.AspNetCore.Http.Connections
 {
     public class HttpConnectionContext : ConnectionContext,
                                          IConnectionIdFeature,

@@ -3,7 +3,7 @@
 
 using System.Collections.Generic;
 
-namespace Microsoft.AspNetCore.Sockets.Internal
+namespace Microsoft.AspNetCore.Http.Connections.Internal
 {
     public class NegotiationResponse
     {

@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Authorization.Policy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Microsoft.AspNetCore.Sockets.Internal
+namespace Microsoft.AspNetCore.Http.Connections.Internal
 {
     public static class AuthorizeHelper
     {

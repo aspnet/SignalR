@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
-using Microsoft.AspNetCore.Sockets.Internal;
+using Microsoft.AspNetCore.Http.Connections.Internal;
 using Xunit;
 
 namespace Microsoft.AspNetCore.Sockets.Tests

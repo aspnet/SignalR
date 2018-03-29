@@ -14,13 +14,13 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Http.Internal;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Connections.Features;
-using Microsoft.AspNetCore.Sockets.Internal;
-using Microsoft.AspNetCore.Sockets.Internal.Transports;
+using Microsoft.AspNetCore.Http.Connections.Internal;
+using Microsoft.AspNetCore.Http.Connections.Internal.Transports;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using Newtonsoft.Json;
 
-namespace Microsoft.AspNetCore.Sockets
+namespace Microsoft.AspNetCore.Http.Connections
 {
     public partial class HttpConnectionDispatcher
     {

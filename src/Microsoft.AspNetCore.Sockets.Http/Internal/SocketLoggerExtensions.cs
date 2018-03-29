@@ -4,7 +4,7 @@
 using System;
 using Microsoft.Extensions.Logging;
 
-namespace Microsoft.AspNetCore.Sockets.Internal
+namespace Microsoft.AspNetCore.Http.Connections.Internal
 {
     internal static class SocketLoggerExtensions
     {

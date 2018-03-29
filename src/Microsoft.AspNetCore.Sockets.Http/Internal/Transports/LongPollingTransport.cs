@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
-namespace Microsoft.AspNetCore.Sockets.Internal.Transports
+namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
 {
     public class LongPollingTransport : IHttpTransport
     {

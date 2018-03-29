@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Http.Connections.Client.Internal;
 using Microsoft.Extensions.Logging;
 
-namespace Microsoft.AspNetCore.Sockets.Internal.Transports
+namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
 {
     public class ServerSentEventsTransport : IHttpTransport
     {

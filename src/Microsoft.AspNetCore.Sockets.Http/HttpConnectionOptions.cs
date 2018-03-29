@@ -4,7 +4,7 @@
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Authorization;
 
-namespace Microsoft.AspNetCore.Sockets
+namespace Microsoft.AspNetCore.Http.Connections
 {
     public class HttpConnectionOptions
     {
