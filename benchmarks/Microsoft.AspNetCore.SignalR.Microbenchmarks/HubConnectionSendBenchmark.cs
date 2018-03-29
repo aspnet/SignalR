@@ -23,6 +23,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         private HubConnection _hubConnection;
         private TestDuplexPipe _pipe;
         private TaskCompletionSource<ReadResult> _tcs;
+        private object[] _arguments;
 
         [GlobalSetup]
         public void GlobalSetup()
@@ -42,9 +43,22 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             connection.Features.Set<IConnectionInherentKeepAliveFeature>(new TestConnectionInherentKeepAliveFeature());
             connection.Transport = _pipe;
 
-            _hubConnection = new HubConnection(() => connection, new JsonHubProtocol(), new NullLoggerFactory());
+            var protocol = Protocol == "json" ? (IHubProtocol)new JsonHubProtocol() : new MessagePackHubProtocol();
+            _hubConnection = new HubConnection(() => connection, protocol, new NullLoggerFactory());
             _hubConnection.StartAsync().GetAwaiter().GetResult();
+
+            _arguments = new object[ArgumentCount];
+            for (int i = 0; i < _arguments.Length; i++)
+            {
+                _arguments[i] = "Hello world!";
+            }
         }
+
+        [Params(0, 1, 10, 100)]
+        public int ArgumentCount;
+
+        [Params("json", "msgpack")]
+        public string Protocol;
 
         [GlobalCleanup]
         public void GlobalCleanup()
@@ -56,7 +70,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         [Benchmark]
         public Task SendAsync()
         {
-            return _hubConnection.SendAsync("Dummy", Array.Empty<object>());
+            return _hubConnection.SendAsync("Dummy", _arguments);
         }
     }
 }

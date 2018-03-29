@@ -39,7 +39,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
         private bool _disposed;
 
         // Transient state to a connection
-        private readonly object _pendingCallsLock = new object();
         private ConnectionState _connectionState;
 
         public event Action<Exception> Closed;
@@ -343,13 +342,12 @@ namespace Microsoft.AspNetCore.SignalR.Client
         {
             AssertConnectionValid();
 
-            PipeWriterStream pipeWriterStream = new PipeWriterStream(_connectionState.Connection.Transport.Output);
-            _protocol.WriteMessage(hubMessage, pipeWriterStream);
+            _protocol.WriteMessage(hubMessage, _connectionState.OutputStream);
 
             Log.SendingMessage(_logger, hubMessage);
 
             // REVIEW: If a token is passed in and is cancelled during FlushAsync it seems to break .Complete()...
-            await _connectionState.Connection.Transport.Output.FlushAsync(CancellationToken.None);
+            await _connectionState.Connection.Transport.Output.FlushAsync();
 
             Log.MessageSent(_logger, hubMessage);
         }
@@ -825,6 +823,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             public IConnection Connection { get; }
             public Task ReceiveTask { get; set; }
             public Exception CloseException { get; set; }
+            public PipeWriterStream OutputStream { get; }
 
             public bool Stopping
             {
@@ -836,6 +835,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             {
                 _hubConnection = hubConnection;
                 Connection = connection;
+                OutputStream = new PipeWriterStream(Connection.Transport.Output);
             }
 
             public string GetNextId() => Interlocked.Increment(ref _nextId).ToString();
