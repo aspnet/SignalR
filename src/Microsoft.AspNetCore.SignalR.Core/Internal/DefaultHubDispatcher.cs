@@ -273,9 +273,9 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             }
             finally
             {
-                if (!_hubOptions.EnableDetailedErrors)
+                if (error != string.Empty && !_hubOptions.EnableDetailedErrors)
                 {
-                    error = "todo, but some generic error here";
+                    error = "todo, put some generic error here";
                 }
                 await connection.WriteAsync(new CompletionMessage(invocationId, error: error, result: null, hasResult: false));
 

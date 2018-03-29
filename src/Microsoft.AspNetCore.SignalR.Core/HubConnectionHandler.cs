@@ -2,14 +2,11 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
-using System.Buffers;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.SignalR.Core;
 using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
-using Microsoft.AspNetCore.Sockets;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -59,7 +56,7 @@ namespace Microsoft.AspNetCore.SignalR
 
             var connectionContext = new HubConnectionContext(connection, keepAlive, _loggerFactory);
 
-            if (!await connectionContext.HandshakeAsync(handshakeTimeout, supportedProtocols, _protocolResolver, _userIdProvider))
+            if (!await connectionContext.HandshakeAsync(handshakeTimeout, supportedProtocols, _protocolResolver, _userIdProvider, _hubOptions.EnableDetailedErrors))
             {
                 return;
             }
@@ -139,9 +136,14 @@ namespace Microsoft.AspNetCore.SignalR
 
         private async Task SendCloseAsync(HubConnectionContext connection, Exception exception)
         {
-            CloseMessage closeMessage = exception == null
-                ? CloseMessage.Empty
-                : new CloseMessage($"Connection closed with an error. {exception.GetType().Name}: {exception.Message}");
+            var closeMessage = CloseMessage.Empty;
+            
+            if (exception != null)
+            {
+                closeMessage = _hubOptions.EnableDetailedErrors
+                    ? new CloseMessage($"Connection closed with an error. {exception.GetType().Name}: {exception.Message}")
+                    : new CloseMessage($"Connection closed with an error.");
+            }
 
             try
             {
