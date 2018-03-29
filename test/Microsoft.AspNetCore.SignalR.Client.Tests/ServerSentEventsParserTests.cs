@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.IO.Pipelines;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Sockets.Internal.Formatters;
+using Microsoft.AspNetCore.Http.Connections.Client.Internal;
 using Xunit;
 
 namespace Microsoft.AspNetCore.SignalR.Client.Tests

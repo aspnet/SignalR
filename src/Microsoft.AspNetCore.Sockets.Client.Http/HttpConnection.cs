@@ -11,14 +11,14 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Http.Features;
-using Microsoft.AspNetCore.Sockets.Client.Http.Internal;
+using Microsoft.AspNetCore.Http.Connections.Client.Internal;
 using Microsoft.AspNetCore.Sockets.Http.Internal;
 using Microsoft.AspNetCore.Sockets.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Newtonsoft.Json;
 
-namespace Microsoft.AspNetCore.Sockets.Client.Http
+namespace Microsoft.AspNetCore.Http.Connections.Client
 {
     public partial class HttpConnection : IConnection
     {

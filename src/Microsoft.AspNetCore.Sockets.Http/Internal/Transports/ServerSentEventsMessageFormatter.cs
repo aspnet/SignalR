@@ -8,7 +8,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
-namespace Microsoft.AspNetCore.Sockets.Internal.Formatters
+namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
 {
     public static class ServerSentEventsMessageFormatter
     {

@@ -8,7 +8,7 @@ using System.Net.Http;
 using System.Net.WebSockets;
 using System.Security.Cryptography.X509Certificates;
 
-namespace Microsoft.AspNetCore.Sockets.Client.Http
+namespace Microsoft.AspNetCore.Http.Connections.Client
 {
     public class HttpOptions
     {

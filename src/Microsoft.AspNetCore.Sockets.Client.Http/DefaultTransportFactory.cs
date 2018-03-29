@@ -1,13 +1,13 @@
-﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
 using System.Net.Http;
-using Microsoft.AspNetCore.Sockets.Client.Http;
-using Microsoft.AspNetCore.Sockets.Client.Internal;
+using Microsoft.AspNetCore.Http.Connections.Client;
+using Microsoft.AspNetCore.Http.Connections.Client.Internal;
 using Microsoft.Extensions.Logging;
 
-namespace Microsoft.AspNetCore.Sockets.Client
+namespace Microsoft.AspNetCore.Http.Connections.Client
 {
     public class DefaultTransportFactory : ITransportFactory
     {
