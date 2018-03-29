@@ -12,7 +12,9 @@ on_finish:
 - ps: 7z a testlogs.zip testlogs
 - ps: Push-AppveyorArtifact testlogs.zip
 install:
-- ps: (Get-Command chrome).Definition
+- ps: dir "C:\Program Files (x86)\"
+- ps: dir "$env:LOCALAPPDATA\"
+- ps: throw "Just Testing"
 - ps: Install-Product node 8
 clone_depth: 1
 environment:
