@@ -110,7 +110,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     logger.LogInformation("Closing socket");
                     await ws.CloseOutputAsync(WebSocketCloseStatus.Empty, "", CancellationToken.None).OrTimeout();
                     logger.LogInformation("Waiting for close");
-                    result = await ws.ReceiveAsync(buffer, CancellationToken.None).OrTimeout(TimeSpan.FromHours(1));
+                    result = await ws.ReceiveAsync(buffer, CancellationToken.None).OrTimeout();
                     Assert.Equal(WebSocketMessageType.Close, result.MessageType);
                     logger.LogInformation("Closed socket");
                 }

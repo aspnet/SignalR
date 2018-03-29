@@ -91,6 +91,16 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             return Application.Output.WriteAsync(bytes).AsTask();
         }
 
+        public Task ReceiveTextAsync(string rawText)
+        {
+            return ReceiveBytesAsync(Encoding.UTF8.GetBytes(rawText));
+        }
+
+        public Task ReceiveBytesAsync(byte[] bytes)
+        {
+            return Application.Output.WriteAsync(bytes).AsTask();
+        }
+
         public async Task<string> ReadSentTextMessageAsync()
         {
             // Read a single text message from the Application Input pipe

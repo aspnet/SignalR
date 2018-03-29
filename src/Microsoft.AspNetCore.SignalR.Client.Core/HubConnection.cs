@@ -526,7 +526,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                         {
                             if (HandshakeProtocol.TryParseResponseMessage(ref buffer, out var message))
                             {
-                                // Adjust consumed and examined to point to the end of the negotiate
+                                // Adjust consumed and examined to point to the end of the handshake
                                 // response, this handles the case where invocations are sent in the same payload
                                 // as the the negotiate response.
                                 consumed = buffer.Start;

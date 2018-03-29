@@ -413,15 +413,15 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 {
                     var task = hubConnection.StartAsync();
 
-                    await connection.Application.Output.WriteAsync(new byte[] { (byte)'{' });
+                    await connection.ReceiveTextAsync("{");
 
                     Assert.False(task.IsCompleted);
 
-                    await connection.Application.Output.WriteAsync(new byte[] { (byte)'}' });
+                    await connection.ReceiveTextAsync("}");
 
                     Assert.False(task.IsCompleted);
 
-                    await connection.Application.Output.WriteAsync(new byte[] { (byte)'\u001e' });
+                    await connection.ReceiveTextAsync("\u001e");
 
                     await task.OrTimeout();
                 }
@@ -435,7 +435,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             [Fact]
             public async Task HandshakeAndInvocationInSameBufferWorks()
             {
-                var payload = Encoding.UTF8.GetBytes("{}\u001e{\"type\":1, \"target\": \"Echo\", \"arguments\":[\"hello\"]}\u001e");
+                var payload = "{}\u001e{\"type\":1, \"target\": \"Echo\", \"arguments\":[\"hello\"]}\u001e";
                 var connection = new TestConnection(synchronousCallbacks: true, autoNegotiate: false);
                 var hubConnection = CreateHubConnection(connection);
                 try
@@ -446,7 +446,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                         tcs.TrySetResult(data);
                     });
 
-                    await connection.Application.Output.WriteAsync(payload);
+                    await connection.ReceiveTextAsync(payload);
 
                     await hubConnection.StartAsync();
 
@@ -462,11 +462,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
             [Fact]
             public async Task PartialInvocationWorks()
-            {
-                var part1 = Encoding.UTF8.GetBytes("{\"type\":1, ");
-                var part2 = Encoding.UTF8.GetBytes("\"target\": \"Echo\", \"arguments\"");
-                var part3 = Encoding.UTF8.GetBytes(":[\"hello\"]}\u001e");
-                
+            {                
                 var connection = new TestConnection(synchronousCallbacks: true);
                 var hubConnection = CreateHubConnection(connection);
                 try
@@ -479,15 +475,15 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
                     await hubConnection.StartAsync().OrTimeout();
 
-                    await connection.Application.Output.WriteAsync(part1);
+                    await connection.ReceiveTextAsync("{\"type\":1, ");
 
                     Assert.False(tcs.Task.IsCompleted);
 
-                    await connection.Application.Output.WriteAsync(part2);
+                    await connection.ReceiveTextAsync("\"target\": \"Echo\", \"arguments\"");
 
                     Assert.False(tcs.Task.IsCompleted);
 
-                    await connection.Application.Output.WriteAsync(part3);
+                    await connection.ReceiveTextAsync(":[\"hello\"]}\u001e");
 
                     Assert.True(tcs.Task.IsCompleted);
 
