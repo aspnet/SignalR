@@ -53,7 +53,11 @@ function getChromeBinaryPath(): string {
         switch (process.platform) {
             case "win32":
                 // tslint:disable-next-line:no-string-literal
-                return path.resolve(process.env.LOCALAPPDATA, "Google", "Chrome", "Application", "chrome.exe");
+                let candidatePath = path.resolve(process.env["ProgramFiles(x86)"], "Google", "Chrome", "Application", "chrome.exe");
+                if (!existsSync(candidatePath)) {
+                    candidatePath = path.resolve(process.env.LOCALAPPDATA, "Google", "Chrome", "Application", "chrome.exe");
+                }
+                return candidatePath;
             case "darwin":
                 return path.resolve("/", "Applications", "Google Chrome.app", "Contents", "MacOS", "Google Chrome");
             case "linux":
