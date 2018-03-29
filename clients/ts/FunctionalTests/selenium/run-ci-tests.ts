@@ -2,9 +2,6 @@ import { ChildProcess, spawn, spawnSync } from "child_process";
 import { existsSync } from "fs";
 import * as path from "path";
 
-import * as tapTeamCity from "tap-teamcity";
-import * as tee from "tee";
-
 const teamcity = !!process.env.TEAMCITY_VERSION;
 
 let force = process.env.ASPNETCORE_SIGNALR_FORCE_BROWSER_TESTS === "true";
@@ -85,9 +82,5 @@ if (verbose) {
 
 const testProcess = spawn("npm", args, { cwd: path.resolve(__dirname, "..") });
 testProcess.stderr.pipe(process.stderr);
-if (teamcity) {
-    testProcess.stdout.pipe(tapTeamCity()).pipe(process.stdout);
-}
-
 testProcess.stdout.pipe(process.stdout);
 testProcess.on("close", (code) => process.exit(code));
