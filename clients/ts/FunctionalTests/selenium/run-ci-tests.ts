@@ -84,7 +84,22 @@ if (verbose) {
     args.push("--verbose");
 }
 
-const testProcess = spawn("npm", args, { cwd: path.resolve(__dirname, "..") });
+let command = "npm";
+
+if (process.platform === "win32") {
+    // NPM is a cmd file, and it's tricky to "spawn". Instead, we'll find the NPM js file and use process.execPath to locate node.exe and run it directly
+    const npmPath = path.resolve(process.execPath, "..", "node_modules", "npm", "bin", "npm-cli.js");
+    if (!existsSync(npmPath)) {
+        failPrereq(`Unable to locate npm command line at '${npmPath}'`);
+    }
+
+    args.unshift(npmPath);
+    command = process.execPath;
+}
+
+console.log(`running: ${command} ${args.join(" ")}`);
+
+const testProcess = spawn(command, args, { cwd: path.resolve(__dirname, "..") });
 testProcess.stderr.pipe(process.stderr);
 testProcess.stdout.pipe(process.stdout);
 testProcess.on("close", (code) => process.exit(code));
