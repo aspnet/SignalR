@@ -296,7 +296,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Http
                     request.Version = new Version(1, 1);
                     SendUtils.PrepareHttpRequest(request, _httpOptions);
 
-                    using (var response = await httpClient.SendAsync(request))
+                    using (var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
                     {
                         response.EnsureSuccessStatusCode();
                         var negotiateResponse = await ParseNegotiateResponse(response);

@@ -9,32 +9,33 @@ using System.IO.Pipelines;
 using System.Threading;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
-using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Connections.Features;
-using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.SignalR.Microbenchmarks.Shared;
-using Microsoft.AspNetCore.Sockets.Client;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
 {
-    public class HubConnectionBenchmark
+    public class HubConnectionSendBenchmark
     {
         private HubConnection _hubConnection;
         private TestDuplexPipe _pipe;
-        private ReadResult _handshakeResponseResult;
+        private TaskCompletionSource<ReadResult> _tcs;
 
         [GlobalSetup]
         public void GlobalSetup()
         {
             var ms = new MemoryBufferWriter();
             HandshakeProtocol.WriteResponseMessage(HandshakeResponseMessage.Empty, ms);
-            _handshakeResponseResult = new ReadResult(new ReadOnlySequence<byte>(ms.ToArray()), false, false);
-
+            var handshakeResponseResult = new ReadResult(new ReadOnlySequence<byte>(ms.ToArray()), false, false);
+                
             _pipe = new TestDuplexPipe();
+            _pipe.AddReadResult(new ValueTask<ReadResult>(handshakeResponseResult));
+
+            _tcs = new TaskCompletionSource<ReadResult>();
+            _pipe.AddReadResult(new ValueTask<ReadResult>(_tcs.Task));
 
             var connection = new TestConnection();
             // prevents keep alive time being activated
@@ -42,47 +43,20 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             connection.Transport = _pipe;
 
             _hubConnection = new HubConnection(() => connection, new JsonHubProtocol(), new NullLoggerFactory());
+            _hubConnection.StartAsync().GetAwaiter().GetResult();
         }
 
-        private void AddHandshakeResponse()
+        [GlobalCleanup]
+        public void GlobalCleanup()
         {
-            _pipe.AddReadResult(_handshakeResponseResult);
+            _tcs.SetResult(new ReadResult(default, false, true));
+            _hubConnection.StopAsync().GetAwaiter().GetResult();
         }
 
         [Benchmark]
-        public async Task StartAsync()
+        public Task SendAsync()
         {
-            AddHandshakeResponse();
-
-            await _hubConnection.StartAsync();
-            await _hubConnection.StopAsync();
+            return _hubConnection.SendAsync("Dummy", Array.Empty<object>());
         }
-    }
-
-    public class TestConnectionInherentKeepAliveFeature : IConnectionInherentKeepAliveFeature
-    {
-        public TimeSpan KeepAliveInterval { get; } = TimeSpan.Zero;
-    }
-
-    public class TestConnection : IConnection
-    {
-        public Task StartAsync()
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task StartAsync(TransferFormat transferFormat)
-        {
-            return Task.CompletedTask;
-        }
-
-        public Task DisposeAsync()
-        {
-            return Task.CompletedTask;
-        }
-
-        public IDuplexPipe Transport { get; set; }
-
-        public IFeatureCollection Features { get; } = new FeatureCollection();
     }
 }

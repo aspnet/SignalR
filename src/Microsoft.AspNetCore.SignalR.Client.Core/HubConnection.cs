@@ -343,11 +343,14 @@ namespace Microsoft.AspNetCore.SignalR.Client
         {
             AssertConnectionValid();
 
-            var payload = _protocol.WriteToArray(hubMessage);
+            PipeWriterStream pipeWriterStream = new PipeWriterStream(_connectionState.Connection.Transport.Output);
+            _protocol.WriteMessage(hubMessage, pipeWriterStream);
 
             Log.SendingMessage(_logger, hubMessage);
+
             // REVIEW: If a token is passed in and is cancelled during FlushAsync it seems to break .Complete()...
-            await WriteAsync(payload, CancellationToken.None);
+            await _connectionState.Connection.Transport.Output.FlushAsync(CancellationToken.None);
+
             Log.MessageSent(_logger, hubMessage);
         }
 
@@ -725,12 +728,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     $"Server timeout ({ServerTimeout.TotalMilliseconds:0.00}ms) elapsed without receiving a message from the server.");
                 connectionState.Connection.Transport.Input.CancelPendingRead();
             }
-        }
-
-        private ValueTask<FlushResult> WriteAsync(byte[] payload, CancellationToken cancellationToken = default)
-        {
-            AssertConnectionValid();
-            return _connectionState.Connection.Transport.Output.WriteAsync(payload, cancellationToken);
         }
 
         private void CheckConnectionActive(string methodName)
