@@ -317,7 +317,7 @@ function getDataLength(data: any): number {
     let length: number = null;
     if (data instanceof ArrayBuffer) {
         length = data.byteLength;
-    } else if (data instanceof String) {
+    } else if (typeof data === "string") {
         length = data.length;
     }
     return length;
