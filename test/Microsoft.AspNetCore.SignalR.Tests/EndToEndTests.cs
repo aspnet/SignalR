@@ -35,7 +35,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
     public class EndToEndTests : LoggedTest
     {
         private readonly ServerFixture<Startup> _serverFixture;
-        private readonly ITestOutputHelper _output;
 
         public EndToEndTests(ServerFixture<Startup> serverFixture, ITestOutputHelper output) : base(output)
         {
@@ -45,7 +44,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
 
             _serverFixture = serverFixture;
-            _output = output;
         }
 
         [Fact]
@@ -202,66 +200,53 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(TransportTypesAndTransferFormats))]
         public async Task ConnectionCanSendAndReceiveMessages(TransportType transportType, TransferFormat requestedTransferFormat)
         {
-            try
+            using (StartLog(out var loggerFactory, minLogLevel: LogLevel.Trace, testName: $"ConnectionCanSendAndReceiveMessages_{transportType.ToString()}_{requestedTransferFormat.ToString()}"))
             {
-                for (int i = 0; i < 1000; i++)
+                var logger = loggerFactory.CreateLogger<EndToEndTests>();
+
+                const string message = "Major Key";
+
+                var url = _serverFixture.Url + "/echo";
+                var connection = new HttpConnection(new Uri(url), transportType, loggerFactory);
+                try
                 {
-                    string testName = $"ConnectionCanSendAndReceiveMessages_{transportType.ToString()}_{requestedTransferFormat.ToString()}";
+                    logger.LogInformation("Starting connection to {url}", url);
+                    await connection.StartAsync(requestedTransferFormat).OrTimeout();
+                    logger.LogInformation("Started connection to {url}", url);
 
-                    _output.WriteLine(testName + " " + i);
-                    using (StartLog(out var loggerFactory, minLogLevel: LogLevel.Trace, testName: testName))
+                    var bytes = Encoding.UTF8.GetBytes(message);
+
+                    logger.LogInformation("Sending {length} byte message", bytes.Length);
+                    try
                     {
-                        var logger = loggerFactory.CreateLogger<EndToEndTests>();
-
-                        const string message = "Major Key";
-
-                        var url = _serverFixture.Url + "/echo";
-                        var connection = new HttpConnection(new Uri(url), transportType, loggerFactory);
-                        try
-                        {
-                            logger.LogInformation("Starting connection to {url}", url);
-                            await connection.StartAsync(requestedTransferFormat).OrTimeout();
-                            logger.LogInformation("Started connection to {url}", url);
-
-                            var bytes = Encoding.UTF8.GetBytes(message);
-
-                            logger.LogInformation("Sending {length} byte message", bytes.Length);
-                            try
-                            {
-                                await connection.Transport.Output.WriteAsync(bytes).OrTimeout();
-                            }
-                            catch (OperationCanceledException)
-                            {
-                                // Because the server and client are run in the same process there is a race where websocket.SendAsync
-                                // can send a message but before returning be suspended allowing the server to run the EchoConnectionHandler and
-                                // send a close frame which triggers a cancellation token on the client and cancels the websocket.SendAsync.
-                                // Our solution to this is to just catch OperationCanceledException from the sent message if the race happens
-                                // because we know the send went through, and its safe to check the response.
-                            }
-                            logger.LogInformation("Sent message");
-
-                            logger.LogInformation("Receiving message");
-                            Assert.Equal(message, Encoding.UTF8.GetString(await connection.Transport.Input.ReadAsync(bytes.Length).OrTimeout()));
-                            logger.LogInformation("Completed receive");
-                        }
-                        catch (Exception ex)
-                        {
-                            logger.LogInformation(ex, "Test threw exception");
-                            throw;
-                        }
-                        finally
-                        {
-                            logger.LogInformation("Disposing Connection");
-                            await connection.DisposeAsync().OrTimeout();
-                            logger.LogInformation("Disposed Connection");
-                        }
+                        await connection.Transport.Output.WriteAsync(bytes).OrTimeout();
                     }
+                    catch (OperationCanceledException)
+                    {
+                        // Because the server and client are run in the same process there is a race where websocket.SendAsync
+                        // can send a message but before returning be suspended allowing the server to run the EchoConnectionHandler and
+                        // send a close frame which triggers a cancellation token on the client and cancels the websocket.SendAsync.
+                        // Our solution to this is to just catch OperationCanceledException from the sent message if the race happens
+                        // because we know the send went through, and its safe to check the response.
+                    }
+
+                    logger.LogInformation("Sent message");
+
+                    logger.LogInformation("Receiving message");
+                    Assert.Equal(message, Encoding.UTF8.GetString(await connection.Transport.Input.ReadAsync(bytes.Length).OrTimeout()));
+                    logger.LogInformation("Completed receive");
                 }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex);
-                throw;
+                catch (Exception ex)
+                {
+                    logger.LogInformation(ex, "Test threw exception");
+                    throw;
+                }
+                finally
+                {
+                    logger.LogInformation("Disposing Connection");
+                    await connection.DisposeAsync().OrTimeout();
+                    logger.LogInformation("Disposed Connection");
+                }
             }
         }
 
