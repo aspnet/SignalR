@@ -48,6 +48,8 @@ export class WebSocketTransport implements ITransport {
             throw new Error("'WebSocket' is not supported in your environment.");
         }
 
+        this.logger.log(LogLevel.Trace, "(WebSockets transport) Connecting");
+
         return new Promise<void>((resolve, reject) => {
             url = url.replace(/^http/, "ws");
             const token = this.accessTokenFactory();
@@ -134,6 +136,8 @@ export class ServerSentEventsTransport implements ITransport {
         if (typeof (EventSource) === "undefined") {
             throw new Error("'EventSource' is not supported in your environment.");
         }
+
+        this.logger.log(LogLevel.Trace, "(SSE transport) Connecting");
 
         this.url = url;
         return new Promise<void>((resolve, reject) => {
@@ -223,6 +227,8 @@ export class LongPollingTransport implements ITransport {
         Arg.isRequired(connection, "connection");
 
         this.url = url;
+
+        this.logger.log(LogLevel.Trace, "(LongPolling transport) Connecting");
 
         // Set a flag indicating we have inherent keep-alive in this transport.
         connection.features.inherentKeepAlive = true;
@@ -335,14 +341,10 @@ async function send(logger: ILogger, transportName: string, httpClient: HttpClie
 
     logger.log(LogLevel.Trace, `(${transportName} transport) sending data. ${getDataDetail(content)}.`);
 
-    try {
-        const response = await httpClient.post(url, {
-            content,
-            headers,
-        });
+    const response = await httpClient.post(url, {
+        content,
+        headers,
+    });
 
-        logger.log(LogLevel.Trace, `(${transportName} transport) request complete. Response status: ${response.statusCode}.`);
-    } catch (e) {
-        logger.log(LogLevel.Warning, `(${transportName} transport) request unsuccessful: ${e}.`);
-    }
+    logger.log(LogLevel.Trace, `(${transportName} transport) request complete. Response status: ${response.statusCode}.`);
 }

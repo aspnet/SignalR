@@ -7,7 +7,7 @@ export class TestLogger implements ILogger {
     public messages: Array<[LogLevel, string]> = [];
 
     public log(logLevel: LogLevel, message: string): void {
-        // Capture log message so it can reported later
+        // Capture log message so it can be reported later
         this.messages.push([logLevel, message]);
 
         // Also write to browser console
