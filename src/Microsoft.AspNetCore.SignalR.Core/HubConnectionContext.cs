@@ -327,15 +327,7 @@ namespace Microsoft.AspNetCore.SignalR
             catch (Exception ex)
             {
                 Log.HandshakeFailed(_logger, ex);
-                var errorMessage = string.Empty;
-                if (enableDetailedErrors)
-                {
-                    errorMessage = $"An unexpected error occurred during connection handshake. {ex.GetType().Name}: {ex.Message}";
-                }
-                else
-                {
-                    errorMessage = "An unexpected error occurred during connection handshake.";
-                }
+                var errorMessage = ErrorMessageHelper.BuildErrorMessage("An unexpected error occurred during connection handshake.", ex, enableDetailedErrors);
                 await WriteHandshakeResponseAsync(new HandshakeResponseMessage(errorMessage));
                 return false;
             }

@@ -1519,7 +1519,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 Assert.NotNull(completion);
                 if (detailedErrors)
                 {
-                    Assert.Equal("Exception from observable", completion.Error);
+                    Assert.Equal("An error occurred on the server while streaming results. Exception: Exception from observable", completion.Error);
                 }
                 else
                 {

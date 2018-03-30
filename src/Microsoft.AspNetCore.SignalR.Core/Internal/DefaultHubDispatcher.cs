@@ -176,15 +176,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 if (hubMethodInvocationMessage.ArgumentBindingException != null)
                 {
                     Log.FailedInvokingHubMethod(_logger, hubMethodInvocationMessage.Target, hubMethodInvocationMessage.ArgumentBindingException);
-                    var errorMessage = string.Empty;
-                    if (!_enableDetailedErrors)
-                    {
-                        errorMessage = $"Failed to invoke '{hubMethodInvocationMessage.Target}' due to an error on the server.";
-                    }
-                    else
-                    {
-                        errorMessage = $"Failed to invoke '{hubMethodInvocationMessage.Target}' due to an error on the server: {hubMethodInvocationMessage.ArgumentBindingException.Message}";
-                    }
+                    var errorMessage = ErrorMessageHelper.BuildErrorMessage($"Failed to invoke '{hubMethodInvocationMessage.Target}' due to an error on the server.",
+                        hubMethodInvocationMessage.ArgumentBindingException, _enableDetailedErrors);
                     await SendInvocationError(hubMethodInvocationMessage, connection, errorMessage);
                     return;
                 }
@@ -222,28 +215,20 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 catch (TargetInvocationException ex)
                 {
                     Log.FailedInvokingHubMethod(_logger, hubMethodInvocationMessage.Target, ex);
-                    await SendInvocationError(hubMethodInvocationMessage, connection, BuildUnexpectedErrorMessage(hubMethodInvocationMessage.Target, ex.InnerException));
+                    await SendInvocationError(hubMethodInvocationMessage, connection,
+                        ErrorMessageHelper.BuildErrorMessage($"An unexpected error occurred invoking '{hubMethodInvocationMessage.Target}' on the server.", ex.InnerException, _enableDetailedErrors));
                 }
                 catch (Exception ex)
                 {
                     Log.FailedInvokingHubMethod(_logger, hubMethodInvocationMessage.Target, ex);
-                    await SendInvocationError(hubMethodInvocationMessage, connection, BuildUnexpectedErrorMessage(hubMethodInvocationMessage.Target, ex));
+                    await SendInvocationError(hubMethodInvocationMessage, connection,
+                        ErrorMessageHelper.BuildErrorMessage($"An unexpected error occurred invoking '{hubMethodInvocationMessage.Target}' on the server.", ex, _enableDetailedErrors));
                 }
                 finally
                 {
                     hubActivator.Release(hub);
                 }
             }
-        }
-
-        private string BuildUnexpectedErrorMessage(string methodName, Exception exception)
-        {
-            if (!_enableDetailedErrors)
-            {
-                return $"An unexpected error occurred invoking '{methodName}' on the server.";
-            }
-
-            return $"An unexpected error occurred invoking '{methodName}' on the server. {exception.GetType().Name}: {exception.Message}";
         }
 
         private async Task StreamResultsAsync(string invocationId, HubConnectionContext connection, IAsyncEnumerator<object> enumerator)
@@ -261,7 +246,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             catch (ChannelClosedException ex)
             {
                 // If the channel closes from an exception in the streaming method, grab the innerException for the error from the streaming method
-                error = ex.InnerException == null ? ex.Message : ex.InnerException.Message;
+                error = ErrorMessageHelper.BuildErrorMessage("An error occurred on the server while streaming results.", ex.InnerException ?? ex, _enableDetailedErrors);
             }
             catch (Exception ex)
             {
@@ -269,15 +254,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 if (!(ex is OperationCanceledException && connection.ActiveRequestCancellationSources.TryGetValue(invocationId, out var cts)
                     && cts.IsCancellationRequested))
                 {
-                    error = ex.Message;
+                    error = ErrorMessageHelper.BuildErrorMessage("An error occurred on the server while streaming results.", ex, _enableDetailedErrors);
                 }
             }
             finally
             {
-                if (!string.IsNullOrEmpty(error) && !_enableDetailedErrors)
-                {
-                    error = "An error occurred on the server while streaming results.";
-                }
                 await connection.WriteAsync(new CompletionMessage(invocationId, error: error, result: null, hasResult: false));
 
                 if (connection.ActiveRequestCancellationSources.TryRemove(invocationId, out var cts))
