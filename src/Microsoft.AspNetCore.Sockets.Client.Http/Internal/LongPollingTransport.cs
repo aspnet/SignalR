@@ -21,6 +21,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Internal
         private readonly HttpOptions _httpOptions;
         private readonly ILogger _logger;
         private IDuplexPipe _application;
+        // Volatile so that the poll loop sees the updated value set from a different thread
         private volatile Exception _error;
 
         private readonly CancellationTokenSource _transportCts = new CancellationTokenSource();

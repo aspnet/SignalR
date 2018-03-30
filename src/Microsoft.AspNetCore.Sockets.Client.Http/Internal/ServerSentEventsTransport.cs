@@ -20,6 +20,8 @@ namespace Microsoft.AspNetCore.Sockets.Client.Internal
         private readonly HttpClient _httpClient;
         private readonly HttpOptions _httpOptions;
         private readonly ILogger _logger;
+
+        // Volatile so that the SSE loop sees the updated value set from a different thread
         private volatile Exception _error;
         private readonly CancellationTokenSource _transportCts = new CancellationTokenSource();
         private readonly ServerSentEventsMessageParser _parser = new ServerSentEventsMessageParser();
@@ -100,7 +102,8 @@ namespace Microsoft.AspNetCore.Sockets.Client.Internal
             SendUtils.PrepareHttpRequest(request, _httpOptions);
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
 
-            HttpResponseMessage response;
+            HttpResponseMessage response = null;
+
             try
             {
                 response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
@@ -112,6 +115,10 @@ namespace Microsoft.AspNetCore.Sockets.Client.Internal
                 Log.TransportStopping(_logger);
                 startTcs.TrySetException(ex);
                 return;
+            }
+            finally
+            {
+                response?.Dispose();
             }
 
             using (response)
