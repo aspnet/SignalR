@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
-using Microsoft.AspNetCore.Connections.Features;
+using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.Sockets;
 
 namespace SocketsSample.ConnectionHandlers

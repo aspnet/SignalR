@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using Microsoft.AspNetCore.SignalR.Internal;
+using Microsoft.AspNetCore.Internal;
 using Newtonsoft.Json;
 
 namespace Microsoft.AspNetCore.Http.Connections.Internal

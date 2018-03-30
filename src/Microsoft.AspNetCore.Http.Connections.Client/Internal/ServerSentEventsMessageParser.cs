@@ -7,9 +7,9 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace Microsoft.AspNetCore.Http.Connections.Internal
+namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
 {
-    public class ServerSentEventsMessageParser
+    internal class ServerSentEventsMessageParser
     {
         private const byte ByteCR = (byte)'\r';
         private const byte ByteLF = (byte)'\n';
