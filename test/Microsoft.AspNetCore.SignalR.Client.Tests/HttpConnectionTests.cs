@@ -104,7 +104,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             var httpOptions = new HttpOptions();
             httpOptions.HttpMessageHandler = inner => testHttpHandler;
 
-            const string loggerName = "Microsoft.AspNetCore.Sockets.Client.Http.Internal.LoggingHttpMessageHandler";
+            const string loggerName = "Microsoft.AspNetCore.Http.Connections.Client.Internal.LoggingHttpMessageHandler";
             var testSink = new TestSink();
             var logger = new TestLogger(loggerName, testSink, true);
 

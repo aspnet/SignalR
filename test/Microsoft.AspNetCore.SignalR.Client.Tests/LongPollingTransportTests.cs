@@ -421,7 +421,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
             Assert.NotNull(userAgentHeaderCollection);
             var userAgentHeader = Assert.Single(userAgentHeaderCollection);
-            Assert.Equal("Microsoft.AspNetCore.Sockets.Client.Http", userAgentHeader.Product.Name);
+            Assert.Equal("Microsoft.AspNetCore.Http.Connections.Client", userAgentHeader.Product.Name);
 
             // user agent version should come from version embedded in assembly metadata
             var assemblyVersion = typeof(Constants)
