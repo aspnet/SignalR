@@ -112,13 +112,10 @@ namespace Microsoft.AspNetCore.Sockets.Client.Internal
             }
             catch (Exception ex)
             {
+                response?.Dispose();
                 Log.TransportStopping(_logger);
                 startTcs.TrySetException(ex);
                 return;
-            }
-            finally
-            {
-                response?.Dispose();
             }
 
             using (response)
