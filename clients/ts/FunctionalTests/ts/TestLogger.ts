@@ -19,7 +19,7 @@ export class TestLog {
 
     public getLogUrl(): string {
         const log = this.getLog();
-        return `data:text/plain;base64,${btoa(log)}`;
+        return `data:text/plain;base64,${escape(btoa(log))}`;
     }
 
     public open(): void {
