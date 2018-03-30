@@ -206,10 +206,10 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 for (int i = 0; i < 100; i++)
                 {
-                    string name = $"ConnectionCanSendAndReceiveMessages_{transportType.ToString()}_{requestedTransferFormat.ToString()}";
+                    string testName = $"ConnectionCanSendAndReceiveMessages_{transportType.ToString()}_{requestedTransferFormat.ToString()}";
 
-                    _output.WriteLine(name + " " + i);
-                    using (StartLog(out var loggerFactory, testName: name))
+                    _output.WriteLine(testName + " " + i);
+                    using (StartLog(out var loggerFactory, testName: testName))
                     {
                         var logger = loggerFactory.CreateLogger<EndToEndTests>();
 
