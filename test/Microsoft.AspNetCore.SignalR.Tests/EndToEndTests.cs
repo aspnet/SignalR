@@ -204,7 +204,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             try
             {
-                for (int i = 0; i < 100; i++)
+                for (int i = 0; i < 1000; i++)
                 {
                     string testName = $"ConnectionCanSendAndReceiveMessages_{transportType.ToString()}_{requestedTransferFormat.ToString()}";
 
