@@ -28,8 +28,6 @@ using Newtonsoft.Json.Linq;
 using Xunit;
 using Xunit.Abstractions;
 
-// Needed to diambiguate with System.Net.TransportType
-
 namespace Microsoft.AspNetCore.Http.Connections.Tests
 {
     public class HttpConnectionDispatcherTests : LoggedTest

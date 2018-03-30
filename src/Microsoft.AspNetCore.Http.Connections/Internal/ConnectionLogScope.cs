@@ -25,7 +25,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
             {
                 if (Count == 1 && index == 0)
                 {
-                    return new KeyValuePair<string, object>("SocketsConnectionId", ConnectionId);
+                    return new KeyValuePair<string, object>("TransportConnectionId", ConnectionId);
                 }
 
                 throw new ArgumentOutOfRangeException(nameof(index));
@@ -55,7 +55,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
                 {
                     _cachedToString = string.Format(
                         CultureInfo.InvariantCulture,
-                        "SocketsConnectionId:{0}",
+                        "TransportConnectionId:{0}",
                         ConnectionId);
                 }
             }

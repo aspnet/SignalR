@@ -10,19 +10,19 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
     {
         // Category: ConnectionManager
         private static readonly Action<ILogger, string, Exception> _createdNewConnection =
-            LoggerMessage.Define<string>(LogLevel.Debug, new EventId(1, nameof(CreatedNewConnection)), "New connection {SocketsConnectionId} created.");
+            LoggerMessage.Define<string>(LogLevel.Debug, new EventId(1, nameof(CreatedNewConnection)), "New connection {TransportConnectionId} created.");
 
         private static readonly Action<ILogger, string, Exception> _removedConnection =
-            LoggerMessage.Define<string>(LogLevel.Debug, new EventId(2, nameof(RemovedConnection)), "Removing connection {SocketsConnectionId} from the list of connections.");
+            LoggerMessage.Define<string>(LogLevel.Debug, new EventId(2, nameof(RemovedConnection)), "Removing connection {TransportConnectionId} from the list of connections.");
 
         private static readonly Action<ILogger, string, Exception> _failedDispose =
-            LoggerMessage.Define<string>(LogLevel.Error, new EventId(3, nameof(FailedDispose)), "Failed disposing connection {SocketsConnectionId}.");
+            LoggerMessage.Define<string>(LogLevel.Error, new EventId(3, nameof(FailedDispose)), "Failed disposing connection {TransportConnectionId}.");
 
         private static readonly Action<ILogger, string, Exception> _connectionReset =
-            LoggerMessage.Define<string>(LogLevel.Trace, new EventId(4, nameof(ConnectionReset)), "Connection {SocketsConnectionId} was reset.");
+            LoggerMessage.Define<string>(LogLevel.Trace, new EventId(4, nameof(ConnectionReset)), "Connection {TransportConnectionId} was reset.");
 
         private static readonly Action<ILogger, string, Exception> _connectionTimedOut =
-            LoggerMessage.Define<string>(LogLevel.Trace, new EventId(5, nameof(ConnectionTimedOut)), "Connection {SocketsConnectionId} timed out.");
+            LoggerMessage.Define<string>(LogLevel.Trace, new EventId(5, nameof(ConnectionTimedOut)), "Connection {TransportConnectionId} timed out.");
 
         private static readonly Action<ILogger, Exception> _scanningConnections =
             LoggerMessage.Define(LogLevel.Trace, new EventId(6, nameof(ScanningConnections)), "Scanning connections.");
