@@ -209,7 +209,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     string testName = $"ConnectionCanSendAndReceiveMessages_{transportType.ToString()}_{requestedTransferFormat.ToString()}";
 
                     _output.WriteLine(testName + " " + i);
-                    using (StartLog(out var loggerFactory, testName: testName))
+                    using (StartLog(out var loggerFactory, minLogLevel: LogLevel.Trace, testName: testName))
                     {
                         var logger = loggerFactory.CreateLogger<EndToEndTests>();
 
