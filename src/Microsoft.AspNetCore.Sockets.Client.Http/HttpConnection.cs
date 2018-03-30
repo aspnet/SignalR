@@ -357,7 +357,7 @@ namespace Microsoft.AspNetCore.Sockets.Client.Http
             _transport = transport;
             _transportPipe = pair.Transport;
 
-            Log.TransportStarted(_logger, transport);
+            Log.TransportStarted(_logger, _transport);
         }
 
         private HttpClient CreateHttpClient()
