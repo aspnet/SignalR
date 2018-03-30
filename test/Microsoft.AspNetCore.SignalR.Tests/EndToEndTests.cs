@@ -241,7 +241,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                             logger.LogInformation("Sent message");
 
                             logger.LogInformation("Receiving message");
-                            Assert.Equal(message, Encoding.UTF8.GetString(await connection.Transport.Input.ReadAsync(bytes.Length)));
+                            Assert.Equal(message, Encoding.UTF8.GetString(await connection.Transport.Input.ReadAsync(bytes.Length).OrTimeout()));
                             logger.LogInformation("Completed receive");
                         }
                         catch (Exception ex)
