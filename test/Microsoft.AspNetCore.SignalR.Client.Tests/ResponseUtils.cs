@@ -10,7 +10,7 @@ using Newtonsoft.Json;
 
 using TransportType = Microsoft.AspNetCore.Http.Connections.TransportType;
 
-namespace Microsoft.AspNetCore.Client.Tests
+namespace Microsoft.AspNetCore.SignalR.Client.Tests
 {
     internal static class ResponseUtils
     {
