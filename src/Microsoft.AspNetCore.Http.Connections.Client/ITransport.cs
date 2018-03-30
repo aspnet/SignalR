@@ -5,7 +5,6 @@ using System;
 using System.IO.Pipelines;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
-using Microsoft.AspNetCore.Sockets.Client;
 
 namespace Microsoft.AspNetCore.Http.Connections.Client
 {

@@ -14,7 +14,6 @@ using Microsoft.AspNetCore.Client.Tests;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Http.Connections.Client;
 using Microsoft.AspNetCore.Http.Connections.Client.Internal;
-using Microsoft.AspNetCore.Sockets.Client;
 using Moq;
 using Moq.Protected;
 using Xunit;

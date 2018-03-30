@@ -14,7 +14,6 @@ using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.Http.Connections.Client;
 using Microsoft.AspNetCore.SignalR.Client;
-using Microsoft.AspNetCore.Sockets.Client;
 using Microsoft.AspNetCore.Testing.xunit;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
