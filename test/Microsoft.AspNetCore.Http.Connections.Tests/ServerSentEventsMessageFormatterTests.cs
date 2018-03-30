@@ -6,7 +6,7 @@ using System.Text;
 using Microsoft.AspNetCore.Http.Connections.Internal;
 using Xunit;
 
-namespace Microsoft.AspNetCore.Sockets.Tests.Internal.Formatters
+namespace Microsoft.AspNetCore.Http.Connections.Tests
 {
     public class ServerSentEventsMessageFormatterTests
     {

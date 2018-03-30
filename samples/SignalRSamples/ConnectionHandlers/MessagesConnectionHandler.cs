@@ -7,9 +7,8 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Http.Connections;
-using Microsoft.AspNetCore.Sockets;
 
-namespace SocketsSample.ConnectionHandlers
+namespace SignalRSamples.ConnectionHandlers
 {
     public class MessagesConnectionHandler : ConnectionHandler
     {

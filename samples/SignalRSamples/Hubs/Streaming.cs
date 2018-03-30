@@ -1,10 +1,10 @@
 using System;
 using System.Reactive.Linq;
-using System.Threading.Tasks;
 using System.Threading.Channels;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 
-namespace SocketsSample.Hubs
+namespace SignalRSamples.Hubs
 {
     public class Streaming : Hub
     {

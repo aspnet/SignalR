@@ -76,7 +76,7 @@ namespace Microsoft.AspNetCore.Http.Connections
             var id = MakeNewConnectionId();
 
             _logger.CreatedNewConnection(id);
-            var connectionTimer = SocketEventSource.Log.ConnectionStart(id);
+            var connectionTimer = HttpConnectionsEventSource.Log.ConnectionStart(id);
 
             var connection = new HttpConnectionContext(id);
 
@@ -99,7 +99,7 @@ namespace Microsoft.AspNetCore.Http.Connections
             if (_connections.TryRemove(id, out var pair))
             {
                 // Remove the connection completely
-                SocketEventSource.Log.ConnectionStop(id, pair.Timer);
+                HttpConnectionsEventSource.Log.ConnectionStop(id, pair.Timer);
                 _logger.RemovedConnection(id);
             }
         }
@@ -142,7 +142,7 @@ namespace Microsoft.AspNetCore.Http.Connections
 
                 // Time the scan so we know if it gets slower than 1sec
                 var timer = ValueStopwatch.StartNew();
-                SocketEventSource.Log.ScanningConnections();
+                HttpConnectionsEventSource.Log.ScanningConnections();
                 _logger.ScanningConnections();
 
                 // Scan the registered connections looking for ones that have timed out
@@ -171,7 +171,7 @@ namespace Microsoft.AspNetCore.Http.Connections
                     if (!Debugger.IsAttached && status == HttpConnectionContext.ConnectionStatus.Inactive && (DateTimeOffset.UtcNow - lastSeenUtc).TotalSeconds > 5)
                     {
                         _logger.ConnectionTimedOut(connection.ConnectionId);
-                        SocketEventSource.Log.ConnectionTimedOut(connection.ConnectionId);
+                        HttpConnectionsEventSource.Log.ConnectionTimedOut(connection.ConnectionId);
                         var ignore = DisposeAndRemoveAsync(connection);
                     }
                     else
@@ -183,7 +183,7 @@ namespace Microsoft.AspNetCore.Http.Connections
 
                 // TODO: We could use this timer to determine if the connection scanner is too slow, but we need an idea of what "too slow" is.
                 var elapsed = timer.GetElapsedTime();
-                SocketEventSource.Log.ScannedConnections(elapsed);
+                HttpConnectionsEventSource.Log.ScannedConnections(elapsed);
                 _logger.ScannedConnections(elapsed);
 
                 // Resume once we finished processing all connections

@@ -104,7 +104,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     .Assembly
                     .GetCustomAttribute<AssemblyInformationalVersionAttribute>();
 
-                Assert.Equal("Microsoft.AspNetCore.Sockets.Client.Http/" + assemblyVersion.InformationalVersion, userAgent);
+                Assert.Equal("Microsoft.AspNetCore.Http.Connections.Client/" + assemblyVersion.InformationalVersion, userAgent);
             }
         }
 

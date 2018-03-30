@@ -17,8 +17,6 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Connections.Features;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Http.Internal;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,9 +29,8 @@ using Xunit;
 using Xunit.Abstractions;
 
 // Needed to diambiguate with System.Net.TransportType
-using TransportType = Microsoft.AspNetCore.Http.Connections.TransportType;
 
-namespace Microsoft.AspNetCore.Sockets.Tests
+namespace Microsoft.AspNetCore.Http.Connections.Tests
 {
     public class HttpConnectionDispatcherTests : LoggedTest
     {

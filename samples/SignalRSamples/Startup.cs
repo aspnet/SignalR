@@ -4,14 +4,12 @@
 using System;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Sockets;
 using Microsoft.Extensions.DependencyInjection;
 using MsgPack.Serialization;
-using SocketsSample.ConnectionHandlers;
-using SocketsSample.Hubs;
-using StackExchange.Redis;
+using SignalRSamples.ConnectionHandlers;
+using SignalRSamples.Hubs;
 
-namespace SocketsSample
+namespace SignalRSamples
 {
     public class Startup
     {

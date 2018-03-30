@@ -12,7 +12,7 @@ using Microsoft.AspNetCore.Http.Connections.Internal.Transports;
 using Microsoft.Extensions.Logging;
 using Xunit;
 
-namespace Microsoft.AspNetCore.Sockets.Tests
+namespace Microsoft.AspNetCore.Http.Connections.Tests
 {
     public class ServerSentEventsTests
     {

@@ -7,17 +7,17 @@ using Microsoft.Extensions.Internal;
 
 namespace Microsoft.AspNetCore.Http.Connections.Internal
 {
-    [EventSource(Name = "Microsoft-AspNetCore-Sockets")]
-    internal class SocketEventSource : EventSource
+    [EventSource(Name = "Microsoft-AspNetCore-Http-Connections")]
+    internal class HttpConnectionsEventSource : EventSource
     {
-        public static readonly SocketEventSource Log = new SocketEventSource();
+        public static readonly HttpConnectionsEventSource Log = new HttpConnectionsEventSource();
 
         private readonly EventCounter _connectionsStarted;
         private readonly EventCounter _connectionsStopped;
         private readonly EventCounter _connectionsTimedOut;
         private readonly EventCounter _connectionDuration;
 
-        private SocketEventSource()
+        private HttpConnectionsEventSource()
         {
             _connectionsStarted = new EventCounter("ConnectionsStarted", this);
             _connectionsStopped = new EventCounter("ConnectionsStopped", this);

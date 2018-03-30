@@ -2,12 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Net.WebSockets;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Threading.Channels;
-using Microsoft.AspNetCore.Http;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http.Features;
 
-namespace Microsoft.AspNetCore.Sockets.Tests
+namespace Microsoft.AspNetCore.Http.Connections.Tests
 {
     internal class TestWebSocketConnectionFeature : IHttpWebSocketFeature, IDisposable
     {
