@@ -35,6 +35,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
     public class EndToEndTests : LoggedTest
     {
         private readonly ServerFixture<Startup> _serverFixture;
+        private readonly ITestOutputHelper _output;
 
         public EndToEndTests(ServerFixture<Startup> serverFixture, ITestOutputHelper output) : base(output)
         {
@@ -44,6 +45,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
 
             _serverFixture = serverFixture;
+            _output = output;
         }
 
         [Fact]
@@ -202,9 +204,12 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             try
             {
-                for (int i = 0; i < 1000; i++)
+                for (int i = 0; i < 100; i++)
                 {
-                    using (StartLog(out var loggerFactory, testName: $"ConnectionCanSendAndReceiveMessages_{transportType.ToString()}"))
+                    string name = $"ConnectionCanSendAndReceiveMessages_{transportType.ToString()}_{requestedTransferFormat.ToString()}";
+
+                    _output.WriteLine(name + " " + i);
+                    using (StartLog(out var loggerFactory, testName: name))
                     {
                         var logger = loggerFactory.CreateLogger<EndToEndTests>();
 
