@@ -143,9 +143,8 @@ namespace Microsoft.AspNetCore.SignalR
 
             if (exception != null)
             {
-                closeMessage = _enableDetailedErrors
-                    ? new CloseMessage($"Connection closed with an error. {exception.GetType().Name}: {exception.Message}")
-                    : new CloseMessage($"Connection closed with an error.");
+                var errorMessage = ErrorMessageHelper.BuildErrorMessage("Connection closed with an error.", exception, _enableDetailedErrors);
+                closeMessage = new CloseMessage(errorMessage);
             }
 
             try

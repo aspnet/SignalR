@@ -581,7 +581,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
                     var channel = await connection.StreamAsChannelAsync<int>("Stream", "xyz");
                     var ex = await Assert.ThrowsAsync<HubException>(() => channel.ReadAllAsync().OrTimeout());
-                    Assert.StartsWith("Failed to invoke 'Stream' due to an error on the server.", ex.Message);
+                    Assert.Equal("Failed to invoke 'Stream' due to an error on the server.", ex.Message);
                 }
                 catch (Exception ex)
                 {

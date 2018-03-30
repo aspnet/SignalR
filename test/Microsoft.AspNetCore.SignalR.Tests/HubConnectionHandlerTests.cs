@@ -1500,10 +1500,10 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         public async Task ReceiveCorrectErrorFromStreamThrowing(bool detailedErrors)
         {
             var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(builder =>
-            builder.AddSignalR(options =>
-            {
-                options.EnableDetailedErrors = detailedErrors;
-            }));
+                builder.AddSignalR(options =>
+                {
+                    options.EnableDetailedErrors = detailedErrors;
+                }));
             var connectionHandler = serviceProvider.GetService<HubConnectionHandler<StreamingHub>>();
 
             using (var client = new TestClient())
