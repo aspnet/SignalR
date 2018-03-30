@@ -7,6 +7,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
     public sealed class MemoryBufferWriter : IBufferWriter<byte>
     {
         private readonly int _segmentSize;
+        private int _bytesWritten;
 
         internal List<Memory<byte>> Segments { get; }
         internal int Position { get; private set; }
@@ -22,6 +23,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         public void Advance(int count)
         {
+            _bytesWritten += count;
             Position += count;
         }
 
@@ -51,10 +53,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 return Array.Empty<byte>();
             }
 
-            var totalLength = (Segments.Count - 1) * _segmentSize;
-            totalLength += Position;
-
-            var result = new byte[totalLength];
+            var result = new byte[_bytesWritten];
 
             var totalWritten = 0;
 

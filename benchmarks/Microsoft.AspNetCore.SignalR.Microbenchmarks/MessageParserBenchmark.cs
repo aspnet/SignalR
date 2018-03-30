@@ -2,6 +2,7 @@ using System;
 using System.Buffers;
 using System.IO;
 using BenchmarkDotNet.Attributes;
+using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Formatters;
 
 namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
@@ -23,19 +24,19 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         {
             var buffer = new byte[MessageLength];
             Random.NextBytes(buffer);
-            var output = new MemoryStream();
-            BinaryMessageFormatter.WriteLengthPrefix(buffer.Length, output);
-            output.Write(buffer, 0, buffer.Length);
+            var writer = new MemoryBufferWriter();
+            BinaryMessageFormatter.WriteLengthPrefix(buffer.Length, writer);
+            writer.Write(buffer);
 
-            _binaryInput = output.ToArray();
+            _binaryInput = writer.ToArray();
 
             buffer = new byte[MessageLength];
             Random.NextBytes(buffer);
-            output = new MemoryStream();
-            output.Write(buffer, 0, buffer.Length);
-            TextMessageFormatter.WriteRecordSeparator(output);
+            writer = new MemoryBufferWriter();
+            writer.Write(buffer);
+            TextMessageFormatter.WriteRecordSeparator(writer);
 
-            _textInput = output.ToArray();
+            _textInput = writer.ToArray();
         }
 
         [Benchmark]

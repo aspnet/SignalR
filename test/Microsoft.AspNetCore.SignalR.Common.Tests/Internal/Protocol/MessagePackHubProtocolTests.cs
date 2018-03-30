@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Formatters;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using MsgPack;
@@ -444,12 +445,10 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
 
         private static byte[] Frame(byte[] input)
         {
-            using (var stream = new MemoryStream())
-            {
-                BinaryMessageFormatter.WriteLengthPrefix(input.Length, stream);
-                stream.Write(input, 0, input.Length);
-                return stream.ToArray();
-            }
+            var stream = new MemoryBufferWriter();
+            BinaryMessageFormatter.WriteLengthPrefix(input.Length, stream);
+            stream.Write(input);
+            return stream.ToArray();
         }
 
         private static MessagePackObject Unpack(byte[] input)
@@ -486,12 +485,9 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         private static byte[] Write(HubMessage message)
         {
             var protocol = new MessagePackHubProtocol();
-            using (var stream = new MemoryStream())
-            {
-                protocol.WriteMessage(message, stream);
-                stream.Flush();
-                return stream.ToArray();
-            }
+            var writer = new MemoryBufferWriter();
+            protocol.WriteMessage(message, writer);
+            return writer.ToArray();
         }
 
         public class InvalidMessageData
