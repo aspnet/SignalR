@@ -4,6 +4,8 @@
 using System.Buffers;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
+using Microsoft.AspNetCore.Connections.Features;
+using Microsoft.AspNetCore.Sockets;
 
 namespace FunctionalTests
 {
