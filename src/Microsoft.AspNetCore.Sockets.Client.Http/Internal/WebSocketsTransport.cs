@@ -344,14 +344,18 @@ namespace Microsoft.AspNetCore.Sockets.Client.Internal
             // Cancel any pending reads from the application, this should start the entire shutdown process
             _application.Input.CancelPendingRead();
 
+            Exception stopException = null;
             try
             {
                 await Running;
             }
-            catch
+            catch (Exception ex)
             {
+                stopException = ex;
                 // exceptions have been handled in the Running task continuation by closing the channel with the exception
             }
+
+            Log.TransportStopped(_logger, stopException);
         }
     }
 }
