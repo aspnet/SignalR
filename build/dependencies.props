@@ -12,7 +12,7 @@
     <MicrosoftAspNetCoreAuthorizationPackageVersion>2.1.0-preview2-30478</MicrosoftAspNetCoreAuthorizationPackageVersion>
     <MicrosoftAspNetCoreAuthorizationPolicyPackageVersion>2.1.0-preview2-30478</MicrosoftAspNetCoreAuthorizationPolicyPackageVersion>
     <MicrosoftAspNetCoreBenchmarkRunnerSourcesPackageVersion>2.1.0-preview2-30478</MicrosoftAspNetCoreBenchmarkRunnerSourcesPackageVersion>
-    <MicrosoftAspNetCoreConnectionsAbstractionsPackageVersion>2.1.0-preview2-30478</MicrosoftAspNetCoreConnectionsAbstractionsPackageVersion>
+    <MicrosoftAspNetCoreConnectionsAbstractionsPackageVersion>2.1.0-a-preview2-iconnection-17630</MicrosoftAspNetCoreConnectionsAbstractionsPackageVersion>
     <MicrosoftAspNetCoreCorsPackageVersion>2.1.0-preview2-30478</MicrosoftAspNetCoreCorsPackageVersion>
     <MicrosoftAspNetCoreDiagnosticsEntityFrameworkCorePackageVersion>2.1.0-preview2-30478</MicrosoftAspNetCoreDiagnosticsEntityFrameworkCorePackageVersion>
     <MicrosoftAspNetCoreDiagnosticsPackageVersion>2.1.0-preview2-30478</MicrosoftAspNetCoreDiagnosticsPackageVersion>
