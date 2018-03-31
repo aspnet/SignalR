@@ -32,14 +32,16 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Formatters
                 Encoding.UTF8.GetBytes("Hello,\r\nWorld!")
             };
 
-            var writer = new MemoryBufferWriter(); // Use small chunks to test Advance/Enlarge and partial payload writing
-            foreach (var message in messages)
+            using (var writer = new MemoryBufferWriter()) // Use small chunks to test Advance/Enlarge and partial payload writing
             {
-                BinaryMessageFormatter.WriteLengthPrefix(message.Length, writer);
-                writer.Write(message);
-            }
+                foreach (var message in messages)
+                {
+                    BinaryMessageFormatter.WriteLengthPrefix(message.Length, writer);
+                    writer.Write(message);
+                }
 
-            Assert.Equal(expectedEncoding, writer.ToArray());
+                Assert.Equal(expectedEncoding, writer.ToArray());
+            }
         }
 
         [Theory]
@@ -71,12 +73,14 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Formatters
         [InlineData(new byte[] { 0x04, 0xAB, 0xCD, 0xEF, 0x12 }, new byte[] { 0xAB, 0xCD, 0xEF, 0x12 })]
         public void WriteBinaryMessage(byte[] encoded, byte[] payload)
         {
-            var writer = new MemoryBufferWriter();
+            using (var writer = new MemoryBufferWriter())
+            {
 
-            BinaryMessageFormatter.WriteLengthPrefix(payload.Length, writer);
-            writer.Write(payload);
+                BinaryMessageFormatter.WriteLengthPrefix(payload.Length, writer);
+                writer.Write(payload);
 
-            Assert.Equal(encoded, writer.ToArray());
+                Assert.Equal(encoded, writer.ToArray());
+            }
         }
 
         [Theory]
@@ -86,24 +90,28 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Formatters
         public void WriteTextMessage(byte[] encoded, string payload)
         {
             var message = Encoding.UTF8.GetBytes(payload);
-            var writer = new MemoryBufferWriter();
+            using (var writer = new MemoryBufferWriter())
+            {
 
-            BinaryMessageFormatter.WriteLengthPrefix(message.Length, writer);
-            writer.Write(message);
+                BinaryMessageFormatter.WriteLengthPrefix(message.Length, writer);
+                writer.Write(message);
 
-            Assert.Equal(encoded, writer.ToArray());
+                Assert.Equal(encoded, writer.ToArray());
+            }
         }
 
         [Theory]
         [MemberData(nameof(RandomPayloads))]
         public void RoundTrippingTest(byte[] payload)
         {
-            var writer = new MemoryBufferWriter();
-            BinaryMessageFormatter.WriteLengthPrefix(payload.Length, writer);
-            writer.Write(payload);
-            var buffer = new ReadOnlySequence<byte>(writer.ToArray());
-            Assert.True(BinaryMessageParser.TryParseMessage(ref buffer, out var roundtripped));
-            Assert.Equal(payload, roundtripped.ToArray());
+            using (var writer = new MemoryBufferWriter())
+            {
+                BinaryMessageFormatter.WriteLengthPrefix(payload.Length, writer);
+                writer.Write(payload);
+                var buffer = new ReadOnlySequence<byte>(writer.ToArray());
+                Assert.True(BinaryMessageParser.TryParseMessage(ref buffer, out var roundtripped));
+                Assert.Equal(payload, roundtripped.ToArray());
+            }
         }
 
         public static IEnumerable<object[]> RandomPayloads()

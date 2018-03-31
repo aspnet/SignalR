@@ -445,10 +445,12 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
 
         private static byte[] Frame(byte[] input)
         {
-            var stream = new MemoryBufferWriter();
-            BinaryMessageFormatter.WriteLengthPrefix(input.Length, stream);
-            stream.Write(input);
-            return stream.ToArray();
+            using (var stream = new MemoryBufferWriter())
+            {
+                BinaryMessageFormatter.WriteLengthPrefix(input.Length, stream);
+                stream.Write(input);
+                return stream.ToArray();
+            }
         }
 
         private static MessagePackObject Unpack(byte[] input)
@@ -485,9 +487,11 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         private static byte[] Write(HubMessage message)
         {
             var protocol = new MessagePackHubProtocol();
-            var writer = new MemoryBufferWriter();
-            protocol.WriteMessage(message, writer);
-            return writer.ToArray();
+            using (var writer = new MemoryBufferWriter())
+            {
+                protocol.WriteMessage(message, writer);
+                return writer.ToArray();
+            }
         }
 
         public class InvalidMessageData

@@ -7,9 +7,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
     {
         public static byte[] WriteToArray(this IHubProtocol hubProtocol, HubMessage message)
         {
-            var writer = new MemoryBufferWriter();
-            hubProtocol.WriteMessage(message, writer);
-            return writer.ToArray();
+            using (var writer = new MemoryBufferWriter())
+            {
+                hubProtocol.WriteMessage(message, writer);
+                return writer.ToArray();
+            }
         }
     }
 }

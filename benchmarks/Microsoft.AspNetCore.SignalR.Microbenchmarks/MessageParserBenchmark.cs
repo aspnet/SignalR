@@ -24,19 +24,22 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         {
             var buffer = new byte[MessageLength];
             Random.NextBytes(buffer);
-            var writer = new MemoryBufferWriter();
-            BinaryMessageFormatter.WriteLengthPrefix(buffer.Length, writer);
-            writer.Write(buffer);
-
-            _binaryInput = writer.ToArray();
+            using (var writer = new MemoryBufferWriter())
+            {
+                BinaryMessageFormatter.WriteLengthPrefix(buffer.Length, writer);
+                writer.Write(buffer);
+                _binaryInput = writer.ToArray();
+            }
 
             buffer = new byte[MessageLength];
             Random.NextBytes(buffer);
-            writer = new MemoryBufferWriter();
-            writer.Write(buffer);
-            TextMessageFormatter.WriteRecordSeparator(writer);
+            using (var writer = new MemoryBufferWriter())
+            {
+                writer.Write(buffer);
+                TextMessageFormatter.WriteRecordSeparator(writer);
 
-            _textInput = writer.ToArray();
+                _textInput = writer.ToArray();
+            }
         }
 
         [Benchmark]
