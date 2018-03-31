@@ -4,8 +4,15 @@ using System.Collections.Generic;
 
 namespace Microsoft.AspNetCore.SignalR.Internal
 {
-    public sealed class MemoryBufferWriter : IBufferWriter<byte>, IDisposable
+    public sealed class MemoryBufferWriter : IBufferWriter<byte>
     {
+        [ThreadStatic]
+        private static MemoryBufferWriter _cachedInstance;
+
+#if DEBUG
+        private bool _inUse;
+#endif
+
         private readonly int _segmentSize;
         private int _bytesWritten;
 
@@ -17,6 +24,41 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             _segmentSize = segmentSize;
 
             Segments = new List<byte[]>();
+        }
+
+        public static MemoryBufferWriter Get()
+        {
+            var writer = _cachedInstance;
+            if (writer == null)
+            {
+                writer = new MemoryBufferWriter();
+            }
+
+            // Taken off the the thread static
+            _cachedInstance = null;
+#if DEBUG
+            if (writer._inUse)
+            {
+                throw new InvalidOperationException("The reader wasn't returned!");
+            }
+
+            writer._inUse = true;
+#endif
+
+            return writer;
+        }
+
+        public static void Return(MemoryBufferWriter writer)
+        {
+            _cachedInstance = writer;
+#if DEBUG
+            writer._inUse = false;
+#endif
+            for (int i = 0; i < writer.Segments.Count; i++)
+            {
+                ArrayPool<byte>.Shared.Return(writer.Segments[i]);
+            }
+            writer.Segments.Clear();
         }
 
         public Memory<byte> CurrentSegment => Segments.Count > 0 ? Segments[Segments.Count - 1] : null;
@@ -68,15 +110,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             CurrentSegment.Slice(0, Position).CopyTo(result.AsMemory(totalWritten, Position));
 
             return result;
-        }
-
-        public void Dispose()
-        {
-            for (int i = 0; i < Segments.Count; i++)
-            {
-                ArrayPool<byte>.Shared.Return(Segments[i]);
-            }
-            Segments.Clear();
         }
     }
 }
