@@ -13,6 +13,8 @@ using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.Http.Connections.Client;
 using Xunit;
 
+using HttpTransportType = Microsoft.AspNetCore.Http.Connections.TransportType;
+
 namespace Microsoft.AspNetCore.SignalR.Client.Tests
 {
     public partial class HttpConnectionTests
@@ -20,8 +22,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public class Transport
         {
             [Theory]
-            [InlineData(TransportType.LongPolling)]
-            [InlineData(TransportType.ServerSentEvents)]
+            [InlineData(HttpTransportType.LongPolling)]
+            [InlineData(HttpTransportType.ServerSentEvents)]
             public async Task HttpConnectionSetsUserAgentOnAllRequests(TransportType transportType)
             {
                 var testHttpHandler = new TestHttpMessageHandler(autoNegotiate: false);
