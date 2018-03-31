@@ -34,7 +34,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 writer = new MemoryBufferWriter();
             }
 
-            // Taken off the the thread static
+            // Taken off the thread static
             _cachedInstance = null;
 #if DEBUG
             if (writer._inUse)
@@ -61,10 +61,9 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             writer.Segments.Clear();
             writer._bytesWritten = 0;
             writer.Position = 0;
-
         }
 
-        public Memory<byte> CurrentSegment => Segments.Count > 0 ? Segments[Segments.Count - 1] : null;
+        public Memory<byte> CurrentSegment => Segments[Segments.Count - 1];
 
         public void Advance(int count)
         {
@@ -82,7 +81,9 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 Position = 0;
             }
 
-            return CurrentSegment.Slice(Position, CurrentSegment.Length - Position);
+            // Cache property access
+            var currentSegment = CurrentSegment;
+            return currentSegment.Slice(Position, currentSegment.Length - Position);
         }
 
         public Span<byte> GetSpan(int sizeHint = 0)
