@@ -19,7 +19,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         internal List<byte[]> Segments { get; }
         internal int Position { get; private set; }
 
-        public MemoryBufferWriter(int segmentSize = 2048)
+        private MemoryBufferWriter(int segmentSize = 2048)
         {
             _segmentSize = segmentSize;
 
@@ -59,6 +59,9 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 ArrayPool<byte>.Shared.Return(writer.Segments[i]);
             }
             writer.Segments.Clear();
+            writer._bytesWritten = 0;
+            writer.Position = 0;
+
         }
 
         public Memory<byte> CurrentSegment => Segments.Count > 0 ? Segments[Segments.Count - 1] : null;
