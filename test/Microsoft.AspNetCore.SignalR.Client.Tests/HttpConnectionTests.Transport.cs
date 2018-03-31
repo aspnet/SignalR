@@ -24,7 +24,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             [Theory]
             [InlineData(HttpTransportType.LongPolling)]
             [InlineData(HttpTransportType.ServerSentEvents)]
-            public async Task HttpConnectionSetsUserAgentOnAllRequests(TransportType transportType)
+            public async Task HttpConnectionSetsUserAgentOnAllRequests(HttpTransportType transportType)
             {
                 var testHttpHandler = new TestHttpMessageHandler(autoNegotiate: false);
                 var requestsExecuted = false;
