@@ -116,57 +116,59 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
             using (response)
             using (var stream = await response.Content.ReadAsStreamAsync())
             {
-                var pipeOptions = new PipeOptions(pauseWriterThreshold: 0, resumeWriterThreshold: 0);
-                var pipelineReader = StreamPipeConnection.CreateReader(pipeOptions, stream);
-                var readCancellationRegistration = cancellationToken.Register(
-                    reader => ((PipeReader)reader).CancelPendingRead(), pipelineReader);
+                var options = new PipeOptions(pauseWriterThreshold: 0, resumeWriterThreshold: 0);
+                var reader = PipeReaderFactory.CreateFromStream(options, stream, cancellationToken);
+
                 try
                 {
                     while (true)
                     {
-                        var result = await pipelineReader.ReadAsync();
-                        var input = result.Buffer;
-                        if (result.IsCanceled || (input.IsEmpty && result.IsCompleted))
-                        {
-                            Log.EventStreamEnded(_logger);
-                            break;
-                        }
+                        var result = await reader.ReadAsync(cancellationToken);
+                        var buffer = result.Buffer;
+                        var consumed = buffer.Start;
+                        var examined = buffer.End;
 
-                        var consumed = input.Start;
-                        var examined = input.End;
                         try
                         {
-                            Log.ParsingSSE(_logger, input.Length);
-                            var parseResult = _parser.ParseMessage(input, out consumed, out examined, out var buffer);
-                            FlushResult flushResult = default;
-
-                            switch (parseResult)
+                            if (!buffer.IsEmpty)
                             {
-                                case ServerSentEventsMessageParser.ParseResult.Completed:
-                                    Log.MessageToApp(_logger, buffer.Length);
+                                Log.ParsingSSE(_logger, buffer.Length);
 
-                                    flushResult = await _application.Output.WriteAsync(buffer);
+                                var parseResult = _parser.ParseMessage(buffer, out consumed, out examined, out var message);
+                                FlushResult flushResult = default;
 
-                                    _parser.Reset();
+                                switch (parseResult)
+                                {
+                                    case ServerSentEventsMessageParser.ParseResult.Completed:
+                                        Log.MessageToApplication(_logger, message.Length);
+
+                                        flushResult = await _application.Output.WriteAsync(message);
+
+                                        _parser.Reset();
+                                        break;
+                                    case ServerSentEventsMessageParser.ParseResult.Incomplete:
+                                        if (result.IsCompleted)
+                                        {
+                                            throw new FormatException("Incomplete message.");
+                                        }
+                                        break;
+                                }
+
+                                // We canceled in the middle of applying back pressure
+                                // or if the consumer is done
+                                if (flushResult.IsCanceled || flushResult.IsCompleted)
+                                {
                                     break;
-                                case ServerSentEventsMessageParser.ParseResult.Incomplete:
-                                    if (result.IsCompleted)
-                                    {
-                                        throw new FormatException("Incomplete message.");
-                                    }
-                                    break;
+                                }
                             }
-
-                            // We canceled in the middle of applying back pressure
-                            // or if the consumer is done
-                            if (flushResult.IsCanceled || flushResult.IsCompleted)
+                            else if (result.IsCompleted)
                             {
                                 break;
                             }
                         }
                         finally
                         {
-                            pipelineReader.AdvanceTo(consumed, examined);
+                            reader.AdvanceTo(consumed, examined);
                         }
                     }
                 }
@@ -181,8 +183,6 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
                 finally
                 {
                     _application.Output.Complete(_error);
-
-                    readCancellationRegistration.Dispose();
 
                     Log.ReceiveStopped(_logger);
                 }
