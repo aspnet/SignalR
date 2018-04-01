@@ -30,7 +30,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
                 LoggerMessage.Define(LogLevel.Information, new EventId(6, "TransportStopping"), "Transport is stopping.");
 
             private static readonly Action<ILogger, int, Exception> _messageToApplication =
-                LoggerMessage.Define<int>(LogLevel.Debug, new EventId(7, "MessageToApp"), "Passing message to application. Payload size: {Count}.");
+                LoggerMessage.Define<int>(LogLevel.Debug, new EventId(7, "MessageToApplication"), "Passing message to application. Payload size: {Count}.");
 
             private static readonly Action<ILogger, Exception> _eventStreamEnded =
                 LoggerMessage.Define(LogLevel.Debug, new EventId(8, "EventStreamEnded"), "Server-Sent Event Stream ended.");

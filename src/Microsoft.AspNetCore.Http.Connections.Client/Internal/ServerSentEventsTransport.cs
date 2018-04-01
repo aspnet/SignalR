@@ -123,13 +123,19 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
                 {
                     while (true)
                     {
-                        var result = await reader.ReadAsync(cancellationToken);
+                        var result = await reader.ReadAsync();
                         var buffer = result.Buffer;
                         var consumed = buffer.Start;
                         var examined = buffer.End;
 
                         try
                         {
+                            if (result.IsCanceled)
+                            {
+                                Log.ReceiveCanceled(_logger);
+                                break;
+                            }
+
                             if (!buffer.IsEmpty)
                             {
                                 Log.ParsingSSE(_logger, buffer.Length);
@@ -171,10 +177,6 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
                             reader.AdvanceTo(consumed, examined);
                         }
                     }
-                }
-                catch (OperationCanceledException)
-                {
-                    Log.ReceiveCanceled(_logger);
                 }
                 catch (Exception ex)
                 {
