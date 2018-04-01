@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
+using System;
 using System.Buffers;
 using System.Collections.Generic;
 
@@ -16,14 +19,14 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         private readonly int _segmentSize;
         private int _bytesWritten;
 
-        internal List<byte[]> Segments { get; }
-        internal int Position { get; private set; }
+        private List<byte[]> _segments;
+        private int _position;
 
         private MemoryBufferWriter(int segmentSize = 2048)
         {
             _segmentSize = segmentSize;
 
-            Segments = new List<byte[]>();
+            _segments = new List<byte[]>();
         }
 
         public static MemoryBufferWriter Get()
@@ -54,36 +57,36 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 #if DEBUG
             writer._inUse = false;
 #endif
-            for (int i = 0; i < writer.Segments.Count; i++)
+            for (int i = 0; i < writer._segments.Count; i++)
             {
-                ArrayPool<byte>.Shared.Return(writer.Segments[i]);
+                ArrayPool<byte>.Shared.Return(writer._segments[i]);
             }
-            writer.Segments.Clear();
+            writer._segments.Clear();
             writer._bytesWritten = 0;
-            writer.Position = 0;
+            writer._position = 0;
         }
 
-        public Memory<byte> CurrentSegment => Segments[Segments.Count - 1];
+        public Memory<byte> CurrentSegment => _segments[_segments.Count - 1];
 
         public void Advance(int count)
         {
             _bytesWritten += count;
-            Position += count;
+            _position += count;
         }
 
         public Memory<byte> GetMemory(int sizeHint = 0)
         {
             // TODO: Use sizeHint
 
-            if (Segments.Count == 0 || Position == _segmentSize)
+            if (_segments.Count == 0 || _position == _segmentSize)
             {
-                Segments.Add(ArrayPool<byte>.Shared.Rent(_segmentSize));
-                Position = 0;
+                _segments.Add(ArrayPool<byte>.Shared.Rent(_segmentSize));
+                _position = 0;
             }
 
             // Cache property access
             var currentSegment = CurrentSegment;
-            return currentSegment.Slice(Position, currentSegment.Length - Position);
+            return currentSegment.Slice(_position, currentSegment.Length - _position);
         }
 
         public Span<byte> GetSpan(int sizeHint = 0)
@@ -93,7 +96,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         public byte[] ToArray()
         {
-            if (Segments.Count == 0)
+            if (_segments.Count == 0)
             {
                 return Array.Empty<byte>();
             }
@@ -103,15 +106,15 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             var totalWritten = 0;
 
             // Copy full segments
-            for (int i = 0; i < Segments.Count - 1; i++)
+            for (int i = 0; i < _segments.Count - 1; i++)
             {
-                Segments[i].AsMemory().CopyTo(result.AsMemory(totalWritten, _segmentSize));
+                _segments[i].AsMemory().CopyTo(result.AsMemory(totalWritten, _segmentSize));
 
                 totalWritten += _segmentSize;
             }
 
             // Copy current incomplete segment
-            CurrentSegment.Slice(0, Position).CopyTo(result.AsMemory(totalWritten, Position));
+            CurrentSegment.Slice(0, _position).CopyTo(result.AsMemory(totalWritten, _position));
 
             return result;
         }
