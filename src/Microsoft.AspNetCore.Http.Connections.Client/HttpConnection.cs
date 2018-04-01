@@ -395,15 +395,32 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
                 }
             }
 
-            // Add the HttpOptions handler, this will apply any modifications to the http request
-            // (like applying headers, or the access token and adding the user agent).
-            httpMessageHandler = new HttpOptionsMessageHandler(httpMessageHandler, _httpOptions);
-
             // Wrap message handler in a logging handler last to ensure it is always present
             httpMessageHandler = new LoggingHttpMessageHandler(httpMessageHandler, _loggerFactory);
 
             var httpClient = new HttpClient(httpMessageHandler);
             httpClient.Timeout = HttpClientTimeout;
+
+            // Start with the user agent header
+            httpClient.DefaultRequestHeaders.UserAgent.Add(Constants.UserAgentHeader);
+
+            if (_httpOptions != null)
+            {
+                // Apply any headers configured on the HttpOptions
+                if (_httpOptions.Headers != null)
+                {
+                    foreach (var header in _httpOptions.Headers)
+                    {
+                        httpClient.DefaultRequestHeaders.Add(header.Key, header.Value);
+                    }
+                }
+
+                // Apply the authorization header
+                if (_httpOptions.AccessTokenFactory != null)
+                {
+                    httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_httpOptions.AccessTokenFactory()}");
+                }
+            }
 
             return httpClient;
         }
