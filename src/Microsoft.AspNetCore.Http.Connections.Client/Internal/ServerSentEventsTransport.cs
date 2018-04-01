@@ -42,7 +42,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
             _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<ServerSentEventsTransport>();
         }
 
-        public Task StartAsync(Uri url, IDuplexPipe application, TransferFormat transferFormat, IConnection connection)
+        public async Task StartAsync(Uri url, IDuplexPipe application, TransferFormat transferFormat, IConnection connection)
         {
             if (transferFormat != TransferFormat.Text)
             {
@@ -53,17 +53,32 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
 
             Log.StartTransport(_logger, transferFormat);
 
-            var startTcs = new TaskCompletionSource<object>(TaskContinuationOptions.RunContinuationsAsynchronously);
+            var request = new HttpRequestMessage(HttpMethod.Get, url);
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
 
-            Running = ProcessAsync(url, startTcs);
+            HttpResponseMessage response = null;
 
-            return startTcs.Task;
+            try
+            {
+                response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, CancellationToken.None);
+                response.EnsureSuccessStatusCode();
+            }
+            catch
+            {
+                response?.Dispose();
+
+                Log.TransportStopping(_logger);
+
+                throw;
+            }
+
+            Running = ProcessAsync(url, response);
         }
 
-        private async Task ProcessAsync(Uri url, TaskCompletionSource<object> startTcs)
+        private async Task ProcessAsync(Uri url, HttpResponseMessage response)
         {
             // Start sending and polling (ask for binary if the server supports it)
-            var receiving = OpenConnection(_application, url, startTcs, _transportCts.Token);
+            var receiving = ProcessEventStream(_application, response, _transportCts.Token);
             var sending = SendUtils.SendMessages(url, _application, _httpClient, _logger);
 
             // Wait for send or receive to complete
@@ -90,28 +105,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
             }
         }
 
-        private async Task OpenConnection(IDuplexPipe application, Uri url, TaskCompletionSource<object> startTcs, CancellationToken cancellationToken)
+        private async Task ProcessEventStream(IDuplexPipe application, HttpResponseMessage response, CancellationToken cancellationToken)
         {
             Log.StartReceive(_logger);
-
-            var request = new HttpRequestMessage(HttpMethod.Get, url);
-            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
-
-            HttpResponseMessage response = null;
-
-            try
-            {
-                response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-                response.EnsureSuccessStatusCode();
-                startTcs.TrySetResult(null);
-            }
-            catch (Exception ex)
-            {
-                response?.Dispose();
-                Log.TransportStopping(_logger);
-                startTcs.TrySetException(ex);
-                return;
-            }
 
             using (response)
             using (var stream = await response.Content.ReadAsStreamAsync())
