@@ -185,6 +185,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
                     _application.Output.Complete(_error);
 
                     Log.ReceiveStopped(_logger);
+
+                    reader.Complete();
                 }
             }
         }
