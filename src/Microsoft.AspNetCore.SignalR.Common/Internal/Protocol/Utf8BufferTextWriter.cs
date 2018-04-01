@@ -90,16 +90,19 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             if (value <= 127)
             {
                 EnsureBuffer();
+
+                // Only need to set one byte
+                // Avoid Memory<T>.Slice overhead for perf
                 _memory.Span[_memoryUsed] = (byte)value;
                 _memoryUsed++;
             }
             else
             {
-                WriteMultibyteChar(value);
+                WriteMultiByteChar(value);
             }
         }
 
-        private unsafe void WriteMultibyteChar(char value)
+        private unsafe void WriteMultiByteChar(char value)
         {
             var destination = GetBuffer();
 
