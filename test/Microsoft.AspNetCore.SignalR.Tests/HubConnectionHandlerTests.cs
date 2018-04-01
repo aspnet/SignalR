@@ -1547,8 +1547,10 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
         [Theory]
         [MemberData(nameof(StreamingMethodAndHubProtocols))]
-        public async Task HubsCanStreamResponses(string method, IHubProtocol protocol)
+        public async Task HubsCanStreamResponses(string method, string protocolName)
         {
+            var protocol = HubProtocolHelpers.GetHubProtocol(protocolName);
+
             var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
             var connectionHandler = serviceProvider.GetService<HubConnectionHandler<StreamingHub>>();
             var invocationBinder = new Mock<IInvocationBinder>();
@@ -1686,15 +1688,16 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             get
             {
+                
                 foreach (var method in new[]
                 {
                     nameof(StreamingHub.CounterChannel), nameof(StreamingHub.CounterChannelAsync), nameof(StreamingHub.CounterChannelValueTaskAsync),
                     nameof(StreamingHub.CounterObservable), nameof(StreamingHub.CounterObservableAsync), nameof(StreamingHub.CounterObservableValueTaskAsync)
                 })
                 {
-                    foreach (var protocol in new IHubProtocol[] { new JsonHubProtocol(), new MessagePackHubProtocol() })
+                    foreach (var protocolName in HubProtocolHelpers.AllProtocolNames)
                     {
-                        yield return new object[] { method, protocol };
+                        yield return new object[] { method, protocolName };
                     }
                 }
             }
