@@ -50,7 +50,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         {
             var buffer = new ReadOnlySequence<byte>(_sseFormattedData);
 
-            if (_parser.ParseMessage(buffer, out var consumed, out var examined, out var message) != ServerSentEventsMessageParser.ParseResult.Completed)
+            if (_parser.ParseMessage(buffer, out _, out _, out _) != ServerSentEventsMessageParser.ParseResult.Completed)
             {
                 throw new InvalidOperationException("Parse failed!");
             }
