@@ -121,10 +121,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
             Debug.Assert(charsUsed == 1);
 
-            if (bytesUsed > 0)
-            {
-                _memoryUsed += bytesUsed;
-            }
+            _memoryUsed += bytesUsed;
         }
 
         public override void Write(string value)
