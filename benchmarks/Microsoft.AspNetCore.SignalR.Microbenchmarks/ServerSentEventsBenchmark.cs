@@ -8,9 +8,11 @@ using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 
 namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
 {
-    public class ServerSentEventsTransportBenchmark
+    public class ServerSentEventsBenchmark
     {
-        private byte[] _data;
+        private ServerSentEventsMessageParser _parser;
+        private byte[] _sseFormattedData;
+        private byte[] _rawData;
 
         [Params(Message.NoArguments, Message.FewArguments, Message.ManyArguments, Message.LargeArguments)]
         public Message Input { get; set; }
@@ -36,22 +38,30 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
                     break;
             }
 
-            var buffer = hubProtocol.WriteToArray(hubMessage);
+            _parser = new ServerSentEventsMessageParser();
+            _rawData = hubProtocol.WriteToArray(hubMessage);
             var ms = new MemoryStream();
-            ServerSentEventsMessageFormatter.WriteMessage(buffer, ms);
-            _data = ms.ToArray();
+            ServerSentEventsMessageFormatter.WriteMessage(_rawData, ms);
+            _sseFormattedData = ms.ToArray();
         }
 
         [Benchmark]
-        public void ParseMessage()
+        public void ReadSingleMessage()
         {
-            var parser = new ServerSentEventsMessageParser();
-            var buffer = new ReadOnlySequence<byte>(_data);
+            var buffer = new ReadOnlySequence<byte>(_sseFormattedData);
 
-            if (parser.ParseMessage(buffer, out var consumed, out var examined, out var message) != ServerSentEventsMessageParser.ParseResult.Completed)
+            if (_parser.ParseMessage(buffer, out var consumed, out var examined, out var message) != ServerSentEventsMessageParser.ParseResult.Completed)
             {
                 throw new InvalidOperationException("Parse failed!");
             }
+
+            _parser.Reset();
+        }
+
+        [Benchmark]
+        public void WriteSingleMessage()
+        {
+            ServerSentEventsMessageFormatter.WriteMessage(_rawData, Stream.Null);
         }
 
         public enum Message
