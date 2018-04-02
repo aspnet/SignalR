@@ -13,8 +13,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
         private object _lock = new object();
         private List<SerializedMessage> _serializedMessages;
-        SerializedMessage message1;
-        SerializedMessage message2;
+        private SerializedMessage _message1;
+        private SerializedMessage _message2;
 
         public byte[] WriteMessage(IHubProtocol protocol)
         {
@@ -25,14 +25,14 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
             lock (_lock)
             {
-                if (ReferenceEquals(message1.Protocol, protocol))
+                if (ReferenceEquals(_message1.Protocol, protocol))
                 {
-                    return message1.Message;
+                    return _message1.Message;
                 }
 
-                if (ReferenceEquals(message2.Protocol, protocol))
+                if (ReferenceEquals(_message2.Protocol, protocol))
                 {
-                    return message2.Message;
+                    return _message2.Message;
                 }
 
                 for (var i = 0; i < _serializedMessages?.Count; i++)
@@ -45,13 +45,13 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
                 var bytes = protocol.WriteToArray(this);
 
-                if (message1.Protocol == null)
+                if (_message1.Protocol == null)
                 {
-                    message1 = new SerializedMessage(protocol, bytes);
+                    _message1 = new SerializedMessage(protocol, bytes);
                 }
-                else if (message2.Protocol == null)
+                else if (_message2.Protocol == null)
                 {
-                    message2 = new SerializedMessage(protocol, bytes);
+                    _message2 = new SerializedMessage(protocol, bytes);
                 }
                 else
                 {
