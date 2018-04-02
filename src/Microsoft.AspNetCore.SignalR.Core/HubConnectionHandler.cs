@@ -219,10 +219,10 @@ namespace Microsoft.AspNetCore.SignalR
                 LoggerMessage.Define(LogLevel.Debug, new EventId(4, "ErrorSendingClose"), "Error when sending Close message.");
 
             private static readonly Action<ILogger, Exception> _onConnectedStarting =
-                LoggerMessage.Define(LogLevel.Debug, new EventId(5, "OnConnectedStarting"), "OnConnectionAsync started.");
+                LoggerMessage.Define(LogLevel.Debug, new EventId(5, "OnConnectedStarting"), "OnConnectedAsync started.");
 
             private static readonly Action<ILogger, Exception> _onConnectedEnding =
-                LoggerMessage.Define(LogLevel.Debug, new EventId(6, "OnConnectedEnding"), "OnConnectionAsync ending.");
+                LoggerMessage.Define(LogLevel.Debug, new EventId(6, "OnConnectedEnding"), "OnConnectedAsync ending.");
 
             public static void ErrorDispatchingHubEvent(ILogger logger, string hubMethod, Exception exception)
             {
