@@ -69,9 +69,9 @@ namespace System.IO.Pipelines
 
         private ValueTask WriteCoreAsync(ReadOnlyMemory<byte> source, CancellationToken cancellationToken = default)
         {
-            if (cancellationToken.CanBeCanceled)
+            if (cancellationToken.IsCancellationRequested)
             {
-                cancellationToken.ThrowIfCancellationRequested();
+                return new ValueTask(Task.FromCanceled(cancellationToken));
             }
 
             _length += source.Length;
