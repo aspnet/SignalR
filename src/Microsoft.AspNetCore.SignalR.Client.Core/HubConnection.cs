@@ -553,7 +553,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!(ex is HubException))
             {
                 // shutdown if we're unable to read handshake
                 Log.ErrorReceivingHandshakeResponse(_logger, ex);

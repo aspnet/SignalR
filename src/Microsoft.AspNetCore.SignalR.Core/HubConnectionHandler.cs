@@ -57,6 +57,8 @@ namespace Microsoft.AspNetCore.SignalR
                 throw new InvalidOperationException("There are no supported protocols");
             }
 
+            Log.OnConnectedStarting(_logger);
+
             var connectionContext = new HubConnectionContext(connection, keepAlive, _loggerFactory);
 
             if (!await connectionContext.HandshakeAsync(handshakeTimeout, supportedProtocols, _protocolResolver, _userIdProvider, _enableDetailedErrors))
@@ -71,6 +73,7 @@ namespace Microsoft.AspNetCore.SignalR
             }
             finally
             {
+                Log.OnConnectedEnding(_logger);
                 await _lifetimeManager.OnDisconnectedAsync(connectionContext);
             }
         }
@@ -215,6 +218,12 @@ namespace Microsoft.AspNetCore.SignalR
             private static readonly Action<ILogger, Exception> _errorSendingClose =
                 LoggerMessage.Define(LogLevel.Debug, new EventId(4, "ErrorSendingClose"), "Error when sending Close message.");
 
+            private static readonly Action<ILogger, Exception> _onConnectedStarting =
+                LoggerMessage.Define(LogLevel.Debug, new EventId(5, "OnConnectedStarting"), "OnConnectionAsync started.");
+
+            private static readonly Action<ILogger, Exception> _onConnectedEnding =
+                LoggerMessage.Define(LogLevel.Debug, new EventId(6, "OnConnectedEnding"), "OnConnectionAsync ending.");
+
             public static void ErrorDispatchingHubEvent(ILogger logger, string hubMethod, Exception exception)
             {
                 _errorDispatchingHubEvent(logger, hubMethod, exception);
@@ -233,6 +242,16 @@ namespace Microsoft.AspNetCore.SignalR
             public static void ErrorSendingClose(ILogger logger, Exception exception)
             {
                 _errorSendingClose(logger, exception);
+            }
+
+            public static void OnConnectedStarting(ILogger logger)
+            {
+                _onConnectedStarting(logger, null);
+            }
+
+            public static void OnConnectedEnding(ILogger logger)
+            {
+                _onConnectedEnding(logger, null);
             }
         }
     }
