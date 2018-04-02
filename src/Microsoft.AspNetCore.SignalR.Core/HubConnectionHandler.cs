@@ -57,7 +57,7 @@ namespace Microsoft.AspNetCore.SignalR
                 throw new InvalidOperationException("There are no supported protocols");
             }
 
-            Log.OnConnectedStarting(_logger);
+            Log.ConnectedStarting(_logger);
 
             var connectionContext = new HubConnectionContext(connection, keepAlive, _loggerFactory);
 
@@ -73,7 +73,7 @@ namespace Microsoft.AspNetCore.SignalR
             }
             finally
             {
-                Log.OnConnectedEnding(_logger);
+                Log.ConnectedEnding(_logger);
                 await _lifetimeManager.OnDisconnectedAsync(connectionContext);
             }
         }
@@ -218,11 +218,11 @@ namespace Microsoft.AspNetCore.SignalR
             private static readonly Action<ILogger, Exception> _errorSendingClose =
                 LoggerMessage.Define(LogLevel.Debug, new EventId(4, "ErrorSendingClose"), "Error when sending Close message.");
 
-            private static readonly Action<ILogger, Exception> _onConnectedStarting =
-                LoggerMessage.Define(LogLevel.Debug, new EventId(5, "OnConnectedStarting"), "OnConnectedAsync started.");
+            private static readonly Action<ILogger, Exception> _connectedStarting =
+                LoggerMessage.Define(LogLevel.Debug, new EventId(5, "ConnectedStarting"), "OnConnectedAsync started.");
 
-            private static readonly Action<ILogger, Exception> _onConnectedEnding =
-                LoggerMessage.Define(LogLevel.Debug, new EventId(6, "OnConnectedEnding"), "OnConnectedAsync ending.");
+            private static readonly Action<ILogger, Exception> _connectedEnding =
+                LoggerMessage.Define(LogLevel.Debug, new EventId(6, "ConnectedEnding"), "OnConnectedAsync ending.");
 
             public static void ErrorDispatchingHubEvent(ILogger logger, string hubMethod, Exception exception)
             {
@@ -244,14 +244,14 @@ namespace Microsoft.AspNetCore.SignalR
                 _errorSendingClose(logger, exception);
             }
 
-            public static void OnConnectedStarting(ILogger logger)
+            public static void ConnectedStarting(ILogger logger)
             {
-                _onConnectedStarting(logger, null);
+                _connectedStarting(logger, null);
             }
 
-            public static void OnConnectedEnding(ILogger logger)
+            public static void ConnectedEnding(ILogger logger)
             {
-                _onConnectedEnding(logger, null);
+                _connectedEnding(logger, null);
             }
         }
     }
