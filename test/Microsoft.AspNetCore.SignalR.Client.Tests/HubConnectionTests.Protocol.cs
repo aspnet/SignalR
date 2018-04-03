@@ -67,24 +67,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             }
 
             [Fact]
-            public async Task ClientTimesoutWhenHandshakeResponseTakesTooLong()
-            {
-                var connection = new TestConnection(autoHandshake: false);
-                var hubConnection = CreateHubConnection(connection);
-                try
-                {
-                    hubConnection.HandshakeTimeout = TimeSpan.FromMilliseconds(1);
-
-                    await Assert.ThrowsAsync<OperationCanceledException>(() => hubConnection.StartAsync().OrTimeout());
-                }
-                finally
-                {
-                    await hubConnection.DisposeAsync().OrTimeout();
-                    await connection.DisposeAsync().OrTimeout();
-                }
-            }
-
-            [Fact]
             public async Task InvokeSendsAnInvocationMessage()
             {
                 var connection = new TestConnection();

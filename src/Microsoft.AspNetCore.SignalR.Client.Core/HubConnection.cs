@@ -58,10 +58,10 @@ namespace Microsoft.AspNetCore.SignalR.Client
             _logger = _loggerFactory.CreateLogger<HubConnection>();
         }
 
-        public async Task StartAsync()
+        public async Task StartAsync(CancellationToken cancellationToken = default)
         {
             CheckDisposed();
-            await StartAsyncCore().ForceAsync();
+            await StartAsyncCore(cancellationToken).ForceAsync();
         }
 
         public async Task StopAsync()
@@ -110,7 +110,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         public async Task SendAsync(string methodName, object[] args, CancellationToken cancellationToken = default) =>
             await SendAsyncCore(methodName, args, cancellationToken).ForceAsync();
 
-        private async Task StartAsyncCore()
+        private async Task StartAsyncCore(CancellationToken cancellationToken)
         {
             await WaitConnectionLockAsync();
             try
@@ -120,6 +120,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     // We're already connected
                     return;
                 }
+
+                cancellationToken.ThrowIfCancellationRequested();
 
                 CheckDisposed();
 
@@ -135,7 +137,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 try
                 {
                     Log.HubProtocol(_logger, _protocol.Name, _protocol.Version);
-                    await HandshakeAsync(startingConnectionState);
+                    await HandshakeAsync(startingConnectionState, cancellationToken);
                 }
                 catch (Exception ex)
                 {
@@ -493,7 +495,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
         }
 
-        private async Task HandshakeAsync(ConnectionState startingConnectionState)
+        private async Task HandshakeAsync(ConnectionState startingConnectionState, CancellationToken cancellationToken)
         {
             // Send the Handshake request
             Log.SendingHubHandshake(_logger);
@@ -509,14 +511,19 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 throw new InvalidOperationException("The server disconnected before the handshake was completed");
             }
 
-            var cancelHandshakeToken = new CancellationTokenSource();
-            cancelHandshakeToken.CancelAfter(HandshakeTimeout);
+            var handshakeCts = new CancellationTokenSource();
+            var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, handshakeCts.Token);
+            linkedCts.Token.Register(s =>
+            {
+                ((PipeReader)s).CancelPendingRead();
+            }, startingConnectionState.Connection.Transport.Input);
+            handshakeCts.CancelAfter(HandshakeTimeout);
 
             try
             {
                 while (true)
                 {
-                    var result = await startingConnectionState.Connection.Transport.Input.ReadAsync(cancelHandshakeToken.Token);
+                    var result = await startingConnectionState.Connection.Transport.Input.ReadAsync();
                     var buffer = result.Buffer;
                     var consumed = buffer.Start;
                     var examined = buffer.End;
@@ -550,6 +557,11 @@ namespace Microsoft.AspNetCore.SignalR.Client
                             throw new InvalidOperationException(
                                 "The server disconnected before sending a handshake response");
                         }
+                        else if (result.IsCanceled)
+                        {
+                            throw new OperationCanceledException(
+                                "Handshake timed out waiting for a response");
+                        }
                     }
                     finally
                     {
@@ -567,7 +579,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
             finally
             {
-                cancelHandshakeToken.Dispose();
+                handshakeCts.Dispose();
+                linkedCts.Dispose();
             }
 
             Log.HandshakeComplete(_logger);
