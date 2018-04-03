@@ -40,9 +40,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         [Fact]
         public void WithJsonHubProtocolSetsHubProtocolToJsonWithProvidedOptions()
         {
-            var expectedOptions = new JsonHubProtocolOptions()
+            var expectedOptions = new JsonHubProtocolOptions
             {
-                PayloadSerializerSettings = new JsonSerializerSettings()
+                PayloadSerializerSettings = new JsonSerializerSettings
                 {
                     DateFormatString = "JUST A TEST"
                 }
@@ -68,9 +68,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         [Fact]
         public void WithMessagePackHubProtocolSetsHubProtocolToMsgPackWithProvidedOptions()
         {
-            var expectedOptions = new MessagePackHubProtocolOptions()
+            var expectedOptions = new MessagePackHubProtocolOptions
             {
-                SerializationContext = new SerializationContext()
+                SerializationContext = new SerializationContext
                 {
                     SerializationMethod = SerializationMethod.Array
                 }

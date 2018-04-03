@@ -8,43 +8,94 @@ using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.Http.Connections.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Microsoft.AspNetCore.SignalR.Client
 {
     public static class HubConnectionBuilderHttpExtensions
     {
-        public static IHubConnectionBuilder WithHttpConnection(this IHubConnectionBuilder hubConnectionBuilder, string url, Action<HttpConnectionOptions> configureHttpConnection = null)
+        public static IHubConnectionBuilder WithHttpConnection(this IHubConnectionBuilder hubConnectionBuilder, string url)
         {
-            hubConnectionBuilder.WithHttpConnection(new Uri(url), configureHttpConnection);
+            hubConnectionBuilder.WithHttpConnection(new Uri(url), null, null);
             return hubConnectionBuilder;
         }
 
-        public static IHubConnectionBuilder WithHttpConnection(this IHubConnectionBuilder hubConnectionBuilder, Uri url, Action<HttpConnectionOptions> configureHttpConnection = null)
+        public static IHubConnectionBuilder WithHttpConnection(this IHubConnectionBuilder hubConnectionBuilder, string url, Action<HttpConnectionOptions> configureHttpConnection)
         {
-            HttpConnectionOptions options = new HttpConnectionOptions();
-            options.Url = url;
+            hubConnectionBuilder.WithHttpConnection(new Uri(url), null, configureHttpConnection);
+            return hubConnectionBuilder;
+        }
 
-            configureHttpConnection?.Invoke(options);
+        public static IHubConnectionBuilder WithHttpConnection(this IHubConnectionBuilder hubConnectionBuilder, string url, TransportType? transportType)
+        {
+            hubConnectionBuilder.WithHttpConnection(new Uri(url), transportType, null);
+            return hubConnectionBuilder;
+        }
 
-            var httpOptions = new HttpOptions
+        public static IHubConnectionBuilder WithHttpConnection(this IHubConnectionBuilder hubConnectionBuilder, string url, TransportType? transportType, Action<HttpConnectionOptions> configureHttpConnection)
+        {
+            hubConnectionBuilder.WithHttpConnection(new Uri(url), transportType, configureHttpConnection);
+            return hubConnectionBuilder;
+        }
+
+        public static IHubConnectionBuilder WithHttpConnection(this IHubConnectionBuilder hubConnectionBuilder, Uri url)
+        {
+            hubConnectionBuilder.WithHttpConnection(url, null, null);
+            return hubConnectionBuilder;
+        }
+
+        public static IHubConnectionBuilder WithHttpConnection(this IHubConnectionBuilder hubConnectionBuilder, Uri url, Action<HttpConnectionOptions> configureHttpConnection)
+        {
+            hubConnectionBuilder.WithHttpConnection(url, null, configureHttpConnection);
+            return hubConnectionBuilder;
+        }
+
+        public static IHubConnectionBuilder WithHttpConnection(this IHubConnectionBuilder hubConnectionBuilder, Uri url, TransportType? transportType)
+        {
+            hubConnectionBuilder.WithHttpConnection(url, null, null);
+            return hubConnectionBuilder;
+        }
+
+        public static IHubConnectionBuilder WithHttpConnection(this IHubConnectionBuilder hubConnectionBuilder, Uri url, TransportType? transportType, Action<HttpConnectionOptions> configureHttpConnection)
+        {
+            hubConnectionBuilder.Services.Configure<HttpConnectionOptions>(o =>
             {
-                HttpMessageHandlerFactory = options.MessageHandlerFactory,
-                Headers = options._headers != null ? new ReadOnlyDictionary<string, string>(options._headers) : null,
-                AccessTokenFactory = options.AccessTokenFactory,
-                WebSocketOptions = options.WebSocketOptions,
-                Cookies = options._cookies,
-                Proxy = options.Proxy,
-                UseDefaultCredentials = options.UseDefaultCredentials,
-                ClientCertificates = options._clientCertificates,
-                Credentials = options.Credentials,
-            };
+                o.Url = url;
+                o.Transport = transportType;
+            });
+            
+            if (configureHttpConnection != null)
+            {
+                hubConnectionBuilder.Services.Configure(configureHttpConnection);
+            }
 
-            Func<IConnection> createConnection = () => new HttpConnection(options.Url,
-                options.Transport ?? TransportType.All,
-                null, // TODO: Pass in logger factory
-                httpOptions);
+            hubConnectionBuilder.Services.AddSingleton(services =>
+            {
+                var value = services.GetService<IOptions<HttpConnectionOptions>>().Value;
 
-            hubConnectionBuilder.Services.AddSingleton(createConnection);
+                var httpOptions = new HttpOptions
+                {
+                    HttpMessageHandlerFactory = value.MessageHandlerFactory,
+                    Headers = value._headers != null ? new ReadOnlyDictionary<string, string>(value._headers) : null,
+                    AccessTokenFactory = value.AccessTokenFactory,
+                    WebSocketOptions = value.WebSocketOptions,
+                    Cookies = value._cookies,
+                    Proxy = value.Proxy,
+                    UseDefaultCredentials = value.UseDefaultCredentials,
+                    ClientCertificates = value._clientCertificates,
+                    Credentials = value.Credentials,
+                };
+
+                Func<IConnection> createConnection = () => new HttpConnection(
+                    value.Url,
+                    value.Transport ?? TransportType.All,
+                    services.GetService<ILoggerFactory>(),
+                    httpOptions);
+
+                return createConnection;
+            });
+
             return hubConnectionBuilder;
         }
     }
