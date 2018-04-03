@@ -85,8 +85,6 @@ export class DefaultHttpClient extends HttpClient {
             }
 
             xhr.onreadystatechange = () => {
-                this.logger.log(LogLevel.Trace, `onreadystatechange(${xhr.readyState}:${xhr.status}:${xhr.statusText})`);
-
                 if (xhr.readyState === 4) {
                     if (request.abortSignal) {
                         request.abortSignal.onabort = null;
@@ -115,7 +113,6 @@ export class DefaultHttpClient extends HttpClient {
                 reject(new TimeoutError());
             };
 
-            this.logger.log(LogLevel.Trace, `xhr.send(${request.content || ""})`);
             xhr.send(request.content || "");
         });
     }
