@@ -4,7 +4,6 @@
 using System;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -14,7 +13,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
     {
         public static IHubConnectionBuilder WithHubProtocol(this IHubConnectionBuilder hubConnectionBuilder, IHubProtocol hubProtocol)
         {
-            hubConnectionBuilder.Services.Replace(new ServiceDescriptor(typeof(IHubProtocol), hubProtocol));
+            hubConnectionBuilder.Services.AddSingleton(hubProtocol);
             return hubConnectionBuilder;
         }
 
@@ -35,7 +34,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 throw new ArgumentNullException(nameof(loggerFactory));
             }
 
-            hubConnectionBuilder.Services.Replace(new ServiceDescriptor(typeof(ILoggerFactory), loggerFactory));
+            hubConnectionBuilder.Services.AddSingleton(loggerFactory);
             return hubConnectionBuilder;
         }
 

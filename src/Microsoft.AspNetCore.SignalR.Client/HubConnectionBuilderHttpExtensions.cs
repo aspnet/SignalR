@@ -36,7 +36,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 null, // TODO: Pass in logger factory
                 httpOptions);
 
-            hubConnectionBuilder.Services.Replace(new ServiceDescriptor(typeof(Func<IConnection>), createConnection));
+            hubConnectionBuilder.Services.AddSingleton(createConnection);
             return hubConnectionBuilder;
         }
     }

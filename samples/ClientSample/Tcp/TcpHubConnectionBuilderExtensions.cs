@@ -12,7 +12,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         public static IHubConnectionBuilder WithEndPoint(this IHubConnectionBuilder builder, IPEndPoint endPoint)
         {
             Func<IConnection> connectionFactory = () => new TcpConnection(endPoint);
-            builder.Services.Replace(new ServiceDescriptor(typeof(Func<IConnection>), connectionFactory));
+            builder.Services.AddSingleton(connectionFactory);
 
             return builder;
         }
