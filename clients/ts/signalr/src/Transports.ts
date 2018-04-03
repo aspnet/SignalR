@@ -331,12 +331,12 @@ function getDataDetail(data: any, includeContent: boolean): string {
     if (data instanceof ArrayBuffer) {
         length = `Binary data of length ${data.byteLength}.`;
         if (includeContent) {
-            length += ` Content: ${formatArrayBuffer(data)}`;
+            length += ` Content: '${formatArrayBuffer(data)}'.`;
         }
     } else if (typeof data === "string") {
         length = `String data of length ${data.length}.`;
         if (includeContent) {
-            length += ` Content: ${data}`;
+            length += ` Content: '${data}'.`;
         }
     }
     return length;

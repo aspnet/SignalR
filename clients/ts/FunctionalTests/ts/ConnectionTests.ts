@@ -14,7 +14,7 @@ describe("connection", () => {
     it("can connect to the server without specifying transport explicitly", (done) => {
         const message = "Hello World!";
         const connection = new HttpConnection(ECHOENDPOINT_URL, {
-            logger: TestLogger.instance,
+            ...commonOptions,
         });
 
         let received = "";
@@ -45,7 +45,7 @@ describe("connection", () => {
                 // the url should be resolved relative to the document.location.host
                 // and the leading '/' should be automatically added to the url
                 const connection = new HttpConnection("echo", {
-                    logger: TestLogger.instance,
+                    ...commonOptions,
                     transport: transportType,
                 });
 
@@ -75,7 +75,6 @@ describe("connection", () => {
 
                 // DON'T use commonOptions because we want to specifically test the scenario where logMessageContent is not set.
                 const connection = new HttpConnection("echo", {
-                    logger: TestLogger.instance,
                     transport: transportType,
                 });
 
