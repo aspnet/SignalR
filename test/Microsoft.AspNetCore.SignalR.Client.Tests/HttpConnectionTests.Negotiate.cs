@@ -11,7 +11,7 @@ using Moq;
 using Newtonsoft.Json;
 using Xunit;
 
-using TransportType = Microsoft.AspNetCore.Http.Connections.TransportType;
+using HttpTransportType = Microsoft.AspNetCore.Http.Connections.HttpTransportType;
 
 namespace Microsoft.AspNetCore.SignalR.Client.Tests
 {
@@ -40,9 +40,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             }
 
             [Theory]
-            [InlineData((TransportType)0)]
-            [InlineData(TransportType.ServerSentEvents)]
-            public Task ConnectionCannotBeStartedIfNoCommonTransportsBetweenClientAndServer(TransportType serverTransports)
+            [InlineData((HttpTransportType)0)]
+            [InlineData(HttpTransportType.ServerSentEvents)]
+            public Task ConnectionCannotBeStartedIfNoCommonTransportsBetweenClientAndServer(HttpTransportType serverTransports)
             {
                 return RunInvalidNegotiateResponseTest<InvalidOperationException>(ResponseUtils.CreateNegotiationContent(transportTypes: serverTransports), "Unable to connect to the server with any of the available transports.");
             }
@@ -112,7 +112,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
                 var transportFactory = new Mock<ITransportFactory>(MockBehavior.Strict);
 
-                transportFactory.Setup(t => t.CreateTransport(TransportType.LongPolling))
+                transportFactory.Setup(t => t.CreateTransport(HttpTransportType.LongPolling))
                     .Returns(new TestTransport(transferFormat: TransferFormat.Text | TransferFormat.Binary));
 
                 await WithConnectionAsync(
@@ -158,7 +158,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
                 var transportFactory = new Mock<ITransportFactory>(MockBehavior.Strict);
 
-                transportFactory.Setup(t => t.CreateTransport(TransportType.LongPolling))
+                transportFactory.Setup(t => t.CreateTransport(HttpTransportType.LongPolling))
                     .Returns(new TestTransport(transferFormat: TransferFormat.Text | TransferFormat.Binary));
 
                 await WithConnectionAsync(

@@ -8,7 +8,7 @@ using System.Net.Http;
 using Microsoft.AspNetCore.Connections;
 using Newtonsoft.Json;
 
-using TransportType = Microsoft.AspNetCore.Http.Connections.TransportType;
+using HttpTransportType = Microsoft.AspNetCore.Http.Connections.HttpTransportType;
 
 namespace Microsoft.AspNetCore.SignalR.Client.Tests
 {
@@ -38,31 +38,31 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         }
 
         public static string CreateNegotiationContent(string connectionId = "00000000-0000-0000-0000-000000000000",
-            TransportType transportTypes = TransportType.All)
+            HttpTransportType transportTypes = HttpTransportType.All)
         {
             var availableTransports = new List<object>();
 
-            if ((transportTypes & TransportType.WebSockets) != 0)
+            if ((transportTypes & HttpTransportType.WebSockets) != 0)
             {
                 availableTransports.Add(new
                 {
-                    transport = nameof(TransportType.WebSockets),
+                    transport = nameof(HttpTransportType.WebSockets),
                     transferFormats = new[] { nameof(TransferFormat.Text), nameof(TransferFormat.Binary) }
                 });
             }
-            if ((transportTypes & TransportType.ServerSentEvents) != 0)
+            if ((transportTypes & HttpTransportType.ServerSentEvents) != 0)
             {
                 availableTransports.Add(new
                 {
-                    transport = nameof(TransportType.ServerSentEvents),
+                    transport = nameof(HttpTransportType.ServerSentEvents),
                     transferFormats = new[] { nameof(TransferFormat.Text) }
                 });
             }
-            if ((transportTypes & TransportType.LongPolling) != 0)
+            if ((transportTypes & HttpTransportType.LongPolling) != 0)
             {
                 availableTransports.Add(new
                 {
-                    transport = nameof(TransportType.LongPolling),
+                    transport = nameof(HttpTransportType.LongPolling),
                     transferFormats = new[] { nameof(TransferFormat.Text), nameof(TransferFormat.Binary) }
                 });
             }

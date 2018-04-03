@@ -16,7 +16,7 @@ using Xunit;
 using Xunit.Abstractions;
 
 // This is needed because there's a System.Net.TransportType in net461 (it's internal in netcoreapp).
-using TransportType = Microsoft.AspNetCore.Http.Connections.TransportType;
+using HttpTransportType = Microsoft.AspNetCore.Http.Connections.HttpTransportType;
 
 namespace Microsoft.AspNetCore.SignalR.Client.Tests
 {
@@ -41,9 +41,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         }
 
         [Theory]
-        [InlineData((TransportType)0)]
-        [InlineData(TransportType.All + 1)]
-        public void CannotStartConnectionWithInvalidTransportType(TransportType requestedTransportType)
+        [InlineData((HttpTransportType)0)]
+        [InlineData(HttpTransportType.All + 1)]
+        public void CannotStartConnectionWithInvalidTransportType(HttpTransportType requestedTransportType)
         {
             Assert.Throws<ArgumentOutOfRangeException>(
                 () => new HttpConnection(new Uri("http://fakeuri.org/"), requestedTransportType));
