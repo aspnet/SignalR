@@ -92,7 +92,7 @@ export class DefaultHttpClient extends HttpClient {
                         request.abortSignal.onabort = null;
                     }
 
-                    // Some browsers report xhr.status == 0 when the 
+                    // Some browsers report xhr.status == 0 when the
                     // response has been cut off or there's been a TCP FIN.
                     // Treat it like a 200 with no response.
                     if (xhr.status === 0) {
