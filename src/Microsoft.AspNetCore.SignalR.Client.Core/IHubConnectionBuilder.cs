@@ -3,14 +3,17 @@
 
 using System;
 using Microsoft.AspNetCore.Connections;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Microsoft.AspNetCore.SignalR.Client
 {
     public interface IHubConnectionBuilder
     {
-        void AddSetting<T>(string name, T value);
-        bool TryGetSetting<T>(string name, out T value);
-        void ConfigureConnectionFactory(Func<IConnection> connectionFactoryDelegate);
+        /// <summary>
+        /// Gets the application service collection.
+        /// </summary>
+        IServiceCollection Services { get; }
+
         HubConnection Build();
     }
 }

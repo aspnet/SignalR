@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Linq;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using MsgPack.Serialization;
 using Newtonsoft.Json;
@@ -16,16 +17,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public void HubConnectionBuiderThrowsIfConnectionFactoryNotConfigured()
         {
             var ex = Assert.Throws<InvalidOperationException>(() => new HubConnectionBuilder().Build());
-            Assert.Equal("Cannot create IConnection instance. The connection factory was not configured.", ex.Message);
-        }
-
-        [Fact]
-        public void WithUrlThrowsForNullUrls()
-        {
-            Assert.Equal("url",
-                Assert.Throws<ArgumentNullException>(() => new HubConnectionBuilder().WithUrl((string)null)).ParamName);
-            Assert.Equal("url",
-                Assert.Throws<ArgumentNullException>(() => new HubConnectionBuilder().WithUrl((Uri)null)).ParamName);
+            Assert.Equal("Cannot create HubConnection instance. A connection was not configured.", ex.Message);
         }
 
         [Fact]
@@ -38,8 +30,10 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         [Fact]
         public void WithJsonHubProtocolSetsHubProtocolToJsonWithDefaultOptions()
         {
-            Assert.True(new HubConnectionBuilder().WithJsonProtocol().TryGetSetting<IHubProtocol>(HubConnectionBuilderDefaults.HubProtocolKey, out var hubProtocol));
-            var actualProtocol = Assert.IsType<JsonHubProtocol>(hubProtocol);
+            var services = new HubConnectionBuilder().WithJsonProtocol().Services;
+            var descriptor = services.Single(s => s.ServiceType == typeof(IHubProtocol));
+
+            var actualProtocol = Assert.IsType<JsonHubProtocol>(descriptor.ImplementationInstance);
             Assert.IsType<CamelCasePropertyNamesContractResolver>(actualProtocol.PayloadSerializer.ContractResolver);
         }
 
@@ -54,16 +48,20 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 }
             };
 
-            Assert.True(new HubConnectionBuilder().WithJsonProtocol(expectedOptions).TryGetSetting<IHubProtocol>(HubConnectionBuilderDefaults.HubProtocolKey, out var hubProtocol));
-            var actualProtocol = Assert.IsType<JsonHubProtocol>(hubProtocol);
+            var services = new HubConnectionBuilder().WithJsonProtocol(expectedOptions).Services;
+            var descriptor = services.Single(s => s.ServiceType == typeof(IHubProtocol));
+
+            var actualProtocol = Assert.IsType<JsonHubProtocol>(descriptor.ImplementationInstance);
             Assert.Equal("JUST A TEST", actualProtocol.PayloadSerializer.DateFormatString);
         }
 
         [Fact]
         public void WithMessagePackHubProtocolSetsHubProtocolToMsgPackWithDefaultOptions()
         {
-            Assert.True(new HubConnectionBuilder().WithMessagePackProtocol().TryGetSetting<IHubProtocol>(HubConnectionBuilderDefaults.HubProtocolKey, out var hubProtocol));
-            var actualProtocol = Assert.IsType<MessagePackHubProtocol>(hubProtocol);
+            var services = new HubConnectionBuilder().WithMessagePackProtocol().Services;
+            var descriptor = services.Single(s => s.ServiceType == typeof(IHubProtocol));
+
+            var actualProtocol = Assert.IsType<MessagePackHubProtocol>(descriptor.ImplementationInstance);
             Assert.Equal(SerializationMethod.Map, actualProtocol.SerializationContext.SerializationMethod);
         }
 
@@ -78,8 +76,10 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 }
             };
 
-            Assert.True(new HubConnectionBuilder().WithMessagePackProtocol(expectedOptions).TryGetSetting<IHubProtocol>(HubConnectionBuilderDefaults.HubProtocolKey, out var hubProtocol));
-            var actualProtocol = Assert.IsType<MessagePackHubProtocol>(hubProtocol);
+            var services = new HubConnectionBuilder().WithMessagePackProtocol(expectedOptions).Services;
+            var descriptor = services.Single(s => s.ServiceType == typeof(IHubProtocol));
+
+            var actualProtocol = Assert.IsType<MessagePackHubProtocol>(descriptor.ImplementationInstance);
             Assert.Equal(SerializationMethod.Array, actualProtocol.SerializationContext.SerializationMethod);
         }
     }

@@ -6,68 +6,54 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 namespace Microsoft.AspNetCore.SignalR.Client
 {
     public class HubConnectionBuilder : IHubConnectionBuilder
     {
-        private readonly Dictionary<KeyValuePair<string, Type>, object> _settings = new Dictionary<KeyValuePair<string, Type>, object>();
-        private Func<IConnection> _connectionFactoryDelegate;
-
-        public void ConfigureConnectionFactory(Func<IConnection> connectionFactoryDelegate) =>
-            _connectionFactoryDelegate = connectionFactoryDelegate;
-
-        public void AddSetting<T>(string name, T value)
-        {
-            _settings[new KeyValuePair<string, Type>(name, typeof(T))] = value;
-        }
-
-        public bool TryGetSetting<T>(string name, out T value)
-        {
-            value = default;
-            if (!_settings.TryGetValue(new KeyValuePair<string, Type>(name, typeof(T)), out var setting))
-            {
-                return false;
-            }
-
-            value = (T)setting;
-            return true;
-        }
+        public IServiceCollection Services { get; } = new ServiceCollection();
 
         public HubConnection Build()
         {
-            if (_connectionFactoryDelegate == null)
+            var provider = Services.BuildServiceProvider();
+
+            var connectionFactory = provider.GetService<Func<IConnection>>();
+            if (connectionFactory == null)
             {
-                throw new InvalidOperationException("Cannot create IConnection instance. The connection factory was not configured.");
+                throw new InvalidOperationException("Cannot create HubConnection instance. A connection was not configured.");
             }
 
-            IHubConnectionBuilder builder = this;
+            var hubProtocol = provider.GetService<IHubProtocol>();
+            var loggerFactory = provider.GetService<ILoggerFactory>();
 
-            var loggerFactory = builder.GetLoggerFactory();
-            var hubProtocol = builder.GetHubProtocol();
-
-            return new HubConnection(_connectionFactoryDelegate, hubProtocol ?? new JsonHubProtocol(), loggerFactory);
+            return new HubConnection(connectionFactory, hubProtocol ?? new JsonHubProtocol(), loggerFactory);
         }
 
+        // Prevents from being displayed in intellisense
         [EditorBrowsable(EditorBrowsableState.Never)]
         public override int GetHashCode()
         {
             return base.GetHashCode();
         }
 
+        // Prevents from being displayed in intellisense
         [EditorBrowsable(EditorBrowsableState.Never)]
         public override bool Equals(object obj)
         {
             return base.Equals(obj);
         }
 
+        // Prevents from being displayed in intellisense
         [EditorBrowsable(EditorBrowsableState.Never)]
         public override string ToString()
         {
             return base.ToString();
         }
 
+        // Prevents from being displayed in intellisense
         [EditorBrowsable(EditorBrowsableState.Never)]
         public new Type GetType()
         {

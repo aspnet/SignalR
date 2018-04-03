@@ -50,10 +50,13 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             using (StartLog(out var loggerFactory, $"{nameof(CheckFixedMessage)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
             {
                 var connection = new HubConnectionBuilder()
-                    .WithUrl(_serverFixture.Url + path)
-                    .WithTransport(transportType)
                     .WithLoggerFactory(loggerFactory)
                     .WithHubProtocol(protocol)
+                    .WithHttpConnection(options =>
+                    {
+                        options.Url = new Uri(_serverFixture.Url + path);
+                        options.Transport = transportType;
+                    })
                     .Build();
 
                 try
@@ -687,10 +690,13 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 var token = await httpResponse.Content.ReadAsStringAsync();
 
                 var hubConnection = new HubConnectionBuilder()
-                    .WithUrl(_serverFixture.Url + "/authorizedhub")
-                    .WithTransport(transportType)
                     .WithLoggerFactory(loggerFactory)
-                    .WithAccessToken(() => token)
+                    .WithHttpConnection(options =>
+                    {
+                        options.Url = new Uri(_serverFixture.Url + "/authorizedhub");
+                        options.Transport = transportType;
+                        options.AccessTokenFactory = () => token;
+                    })
                     .Build();
                 try
                 {
@@ -717,11 +723,14 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             using (StartLog(out var loggerFactory, $"{nameof(ClientCanSendHeaders)}_{transportType}"))
             {
                 var hubConnection = new HubConnectionBuilder()
-                    .WithUrl(_serverFixture.Url + "/default")
-                    .WithTransport(transportType)
                     .WithLoggerFactory(loggerFactory)
-                    .WithHeader("X-test", "42")
-                    .WithHeader("X-42", "test")
+                    .WithHttpConnection(options =>
+                    {
+                        options.Url = new Uri(_serverFixture.Url + "/default");
+                        options.Transport = transportType;
+                        options.AddHeader("X-test", "42");
+                        options.AddHeader("X-42", "test");
+                    })
                     .Build();
                 try
                 {
@@ -752,10 +761,13 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 cookieJar.Add(new System.Net.Cookie("Foo", "Bar", "/", new Uri(_serverFixture.Url).Host));
 
                 var hubConnection = new HubConnectionBuilder()
-                    .WithUrl(_serverFixture.Url + "/default")
-                    .WithTransport(TransportType.WebSockets)
                     .WithLoggerFactory(loggerFactory)
-                    .WithWebSocketOptions(options => options.Cookies = cookieJar)
+                    .WithHttpConnection(options =>
+                    {
+                        options.Url = new Uri(_serverFixture.Url + "/default");
+                        options.Transport = TransportType.WebSockets;
+                        options.WebSocketOptions = o => o.Cookies = cookieJar;
+                    })
                     .Build();
                 try
                 {
@@ -782,9 +794,12 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             using (StartLog(out var loggerFactory, $"{nameof(CheckHttpConnectionFeatures)}_{transportType}"))
             {
                 var hubConnection = new HubConnectionBuilder()
-                    .WithUrl(_serverFixture.Url + "/default")
-                    .WithTransport(transportType)
                     .WithLoggerFactory(loggerFactory)
+                    .WithHttpConnection(options =>
+                    {
+                        options.Url = new Uri(_serverFixture.Url + "/default");
+                        options.Transport = transportType;
+                    })
                     .Build();
                 try
                 {
@@ -819,9 +834,12 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             using (StartLog(out var loggerFactory))
             {
                 var hubConnection = new HubConnectionBuilder()
-                    .WithUrl(_serverFixture.Url + "/default-nowebsockets")
-                    .WithHubProtocol(new MessagePackHubProtocol())
                     .WithLoggerFactory(loggerFactory)
+                    .WithHubProtocol(new MessagePackHubProtocol())
+                    .WithHttpConnection(options =>
+                    {
+                        options.Url = new Uri(_serverFixture.Url + "/default-nowebsockets");
+                    })
                     .Build();
                 try
                 {
