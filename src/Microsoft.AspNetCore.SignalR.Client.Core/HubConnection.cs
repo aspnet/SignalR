@@ -23,6 +23,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
     public partial class HubConnection
     {
         public static readonly TimeSpan DefaultServerTimeout = TimeSpan.FromSeconds(30); // Server ping rate is 15 sec, this is 2 times that.
+        public static readonly TimeSpan DefaultHandshakeTimeout = TimeSpan.FromSeconds(5);
 
         // This lock protects the connection state.
         private readonly SemaphoreSlim _connectionLock = new SemaphoreSlim(1, 1);
@@ -46,7 +47,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         /// will not be applied until the Keep Alive timer is next reset.
         /// </summary>
         public TimeSpan ServerTimeout { get; set; } = DefaultServerTimeout;
-        public TimeSpan HandshakeTimeout { get; set; } = TimeSpan.FromSeconds(5);
+        public TimeSpan HandshakeTimeout { get; set; } = DefaultHandshakeTimeout;
 
         public HubConnection(Func<IConnection> connectionFactory, IHubProtocol protocol, IServiceProvider serviceProvider, ILoggerFactory loggerFactory)
         {

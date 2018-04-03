@@ -398,6 +398,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     return Task.CompletedTask;
                 }, autoHandshake: false);
                 var hubConnection = CreateHubConnection(connection);
+                // We want to make sure the cancellation is because of the token passed to StartAsync
                 hubConnection.HandshakeTimeout = TimeSpan.FromSeconds(20);
                 try
                 {
