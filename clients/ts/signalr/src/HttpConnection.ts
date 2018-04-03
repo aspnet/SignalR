@@ -264,7 +264,7 @@ export class HttpConnection implements IConnection {
 
     private resolveUrl(url: string): string {
         // startsWith is not supported in IE
-        if (url.lastIndexOf("https://", 0) === 0 || url.lastIndexOf("http://", 0) === 0 || url.lastIndexOf("//", 0) === 0) {
+        if (url.lastIndexOf("https://", 0) === 0 || url.lastIndexOf("http://", 0) === 0) {
             return url;
         }
 
@@ -272,20 +272,11 @@ export class HttpConnection implements IConnection {
             throw new Error(`Cannot resolve '${url}'.`);
         }
 
-        const parser = window.document.createElement("a");
-        parser.href = url;
+        const aTag = window.document.createElement("a");
+        aTag.href = url;
 
-        const baseUrl = (!parser.protocol || parser.protocol === ":")
-            ? `${window.document.location.protocol}//${(parser.host || window.document.location.host)}`
-            : `${parser.protocol}//${parser.host}`;
-
-        if (!url || url[0] !== "/") {
-            url = "/" + url;
-        }
-
-        const normalizedUrl = baseUrl + url;
-        this.logger.log(LogLevel.Information, `Normalizing '${url}' to '${normalizedUrl}'.`);
-        return normalizedUrl;
+        this.logger.log(LogLevel.Information, `Normalizing '${url}' to '${aTag.href}'.`);
+        return aTag.href;
     }
 
     private resolveNegotiateUrl(url: string): string {
