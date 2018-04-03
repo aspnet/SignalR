@@ -264,7 +264,7 @@ export class HttpConnection implements IConnection {
 
     private resolveUrl(url: string): string {
         // startsWith is not supported in IE
-        if (url.lastIndexOf("https://", 0) === 0 || url.lastIndexOf("http://", 0) === 0) {
+        if (url.lastIndexOf("https://", 0) === 0 || url.lastIndexOf("http://", 0) === 0 || url.lastIndexOf("//", 0) === 0) {
             return url;
         }
 
