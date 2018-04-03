@@ -46,6 +46,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         /// will not be applied until the Keep Alive timer is next reset.
         /// </summary>
         public TimeSpan ServerTimeout { get; set; } = DefaultServerTimeout;
+        public TimeSpan HandshakeTimeout { get; set; } = TimeSpan.FromSeconds(5);
 
         public HubConnection(Func<IConnection> connectionFactory, IHubProtocol protocol, IServiceProvider serviceProvider, ILoggerFactory loggerFactory)
         {
@@ -508,11 +509,14 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 throw new InvalidOperationException("The server disconnected before the handshake was completed");
             }
 
+            var cancelHandshakeToken = new CancellationTokenSource();
+            cancelHandshakeToken.CancelAfter(HandshakeTimeout);
+
             try
             {
                 while (true)
                 {
-                    var result = await startingConnectionState.Connection.Transport.Input.ReadAsync();
+                    var result = await startingConnectionState.Connection.Transport.Input.ReadAsync(cancelHandshakeToken.Token);
                     var buffer = result.Buffer;
                     var consumed = buffer.Start;
                     var examined = buffer.End;
@@ -560,6 +564,10 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 // shutdown if we're unable to read handshake
                 Log.ErrorReceivingHandshakeResponse(_logger, ex);
                 throw;
+            }
+            finally
+            {
+                cancelHandshakeToken.Dispose();
             }
 
             Log.HandshakeComplete(_logger);
