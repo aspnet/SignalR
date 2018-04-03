@@ -84,15 +84,24 @@ export class DefaultHttpClient extends HttpClient {
                 xhr.timeout = request.timeout;
             }
 
-            xhr.onload = () => {
-                if (request.abortSignal) {
-                    request.abortSignal.onabort = null;
-                }
+            xhr.onreadystatechange = () => {
+                this.logger.log(LogLevel.Trace, `onreadystatechange(${xhr.readyState}:${xhr.status}:${xhr.statusText})`);
 
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    resolve(new HttpResponse(xhr.status, xhr.statusText, xhr.response || xhr.responseText));
-                } else {
-                    reject(new HttpError(xhr.statusText, xhr.status));
+                if (xhr.readyState === 4) {
+                    if (request.abortSignal) {
+                        request.abortSignal.onabort = null;
+                    }
+
+                    // Some browsers report xhr.status == 0 when the 
+                    // response has been cut off or there's been a TCP FIN.
+                    // Treat it like a 200 with no response.
+                    if (xhr.status === 0) {
+                        resolve(new HttpResponse(200, null, null));
+                    } else if (xhr.status >= 200 && xhr.status < 300) {
+                        resolve(new HttpResponse(xhr.status, xhr.statusText, xhr.response || xhr.responseText));
+                    } else {
+                        reject(new HttpError(xhr.statusText, xhr.status));
+                    }
                 }
             };
 
@@ -106,6 +115,7 @@ export class DefaultHttpClient extends HttpClient {
                 reject(new TimeoutError());
             };
 
+            this.logger.log(LogLevel.Trace, `xhr.send(${request.content || ""})`);
             xhr.send(request.content || "");
         });
     }
