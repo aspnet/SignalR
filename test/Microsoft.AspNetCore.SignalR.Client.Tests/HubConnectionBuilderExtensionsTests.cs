@@ -3,13 +3,13 @@
 
 using System;
 using System.Net;
+using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
-using TransportType = Microsoft.AspNetCore.Http.Connections.TransportType;
 
 namespace Microsoft.AspNetCore.SignalR.Client.Tests
 {
@@ -32,13 +32,13 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public void WithHttpConnectionSetsTransport()
         {
             var connectionBuilder = new HubConnectionBuilder();
-            connectionBuilder.WithHttpConnection("http://tempuri.org", TransportType.LongPolling);
+            connectionBuilder.WithHttpConnection("http://tempuri.org", HttpTransportType.LongPolling);
 
             var serviceProvider = connectionBuilder.Services.BuildServiceProvider();
 
             var value = serviceProvider.GetService<IOptions<HttpConnectionOptions>>().Value;
 
-            Assert.Equal(TransportType.LongPolling, value.Transport);
+            Assert.Equal(HttpTransportType.LongPolling, value.Transport);
         }
 
         [Fact]

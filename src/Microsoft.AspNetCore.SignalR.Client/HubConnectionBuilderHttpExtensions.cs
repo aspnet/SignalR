@@ -27,13 +27,13 @@ namespace Microsoft.AspNetCore.SignalR.Client
             return hubConnectionBuilder;
         }
 
-        public static IHubConnectionBuilder WithHttpConnection(this IHubConnectionBuilder hubConnectionBuilder, string url, TransportType? transportType)
+        public static IHubConnectionBuilder WithHttpConnection(this IHubConnectionBuilder hubConnectionBuilder, string url, HttpTransportType? transportType)
         {
             hubConnectionBuilder.WithHttpConnection(new Uri(url), transportType, null);
             return hubConnectionBuilder;
         }
 
-        public static IHubConnectionBuilder WithHttpConnection(this IHubConnectionBuilder hubConnectionBuilder, string url, TransportType? transportType, Action<HttpConnectionOptions> configureHttpConnection)
+        public static IHubConnectionBuilder WithHttpConnection(this IHubConnectionBuilder hubConnectionBuilder, string url, HttpTransportType? transportType, Action<HttpConnectionOptions> configureHttpConnection)
         {
             hubConnectionBuilder.WithHttpConnection(new Uri(url), transportType, configureHttpConnection);
             return hubConnectionBuilder;
@@ -51,13 +51,13 @@ namespace Microsoft.AspNetCore.SignalR.Client
             return hubConnectionBuilder;
         }
 
-        public static IHubConnectionBuilder WithHttpConnection(this IHubConnectionBuilder hubConnectionBuilder, Uri url, TransportType? transportType)
+        public static IHubConnectionBuilder WithHttpConnection(this IHubConnectionBuilder hubConnectionBuilder, Uri url, HttpTransportType? transportType)
         {
             hubConnectionBuilder.WithHttpConnection(url, null, null);
             return hubConnectionBuilder;
         }
 
-        public static IHubConnectionBuilder WithHttpConnection(this IHubConnectionBuilder hubConnectionBuilder, Uri url, TransportType? transportType, Action<HttpConnectionOptions> configureHttpConnection)
+        public static IHubConnectionBuilder WithHttpConnection(this IHubConnectionBuilder hubConnectionBuilder, Uri url, HttpTransportType? transportType, Action<HttpConnectionOptions> configureHttpConnection)
         {
             hubConnectionBuilder.Services.Configure<HttpConnectionOptions>(o =>
             {
@@ -89,7 +89,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
                 Func<IConnection> createConnection = () => new HttpConnection(
                     value.Url,
-                    value.Transport ?? TransportType.All,
+                    value.Transport ?? HttpTransportType.All,
                     services.GetService<ILoggerFactory>(),
                     httpOptions);
 

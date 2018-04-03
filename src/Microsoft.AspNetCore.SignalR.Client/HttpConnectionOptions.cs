@@ -18,7 +18,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         internal CookieContainer _cookies;
 
         public Uri Url { get; set; }
-        public TransportType? Transport { get; set; }
+        public HttpTransportType? Transport { get; set; }
         public Func<HttpMessageHandler, HttpMessageHandler> MessageHandlerFactory { get; set; }
         public bool? UseDefaultCredentials { get; set; }
         public ICredentials Credentials { get; set; }
