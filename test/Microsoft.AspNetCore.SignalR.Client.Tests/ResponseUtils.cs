@@ -6,9 +6,8 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using Microsoft.AspNetCore.Connections;
+using Microsoft.AspNetCore.Http.Connections;
 using Newtonsoft.Json;
-
-using HttpTransportType = Microsoft.AspNetCore.Http.Connections.HttpTransportType;
 
 namespace Microsoft.AspNetCore.SignalR.Client.Tests
 {
