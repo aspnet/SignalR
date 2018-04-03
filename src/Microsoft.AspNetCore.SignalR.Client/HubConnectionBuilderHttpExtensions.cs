@@ -13,10 +13,18 @@ namespace Microsoft.AspNetCore.SignalR.Client
 {
     public static class HubConnectionBuilderHttpExtensions
     {
-        public static IHubConnectionBuilder WithHttpConnection(this IHubConnectionBuilder hubConnectionBuilder, Action<HttpConnectionOptions> configureHttpConnection)
+        public static IHubConnectionBuilder WithHttpConnection(this IHubConnectionBuilder hubConnectionBuilder, string url, Action<HttpConnectionOptions> configureHttpConnection = null)
+        {
+            hubConnectionBuilder.WithHttpConnection(new Uri(url), configureHttpConnection);
+            return hubConnectionBuilder;
+        }
+
+        public static IHubConnectionBuilder WithHttpConnection(this IHubConnectionBuilder hubConnectionBuilder, Uri url, Action<HttpConnectionOptions> configureHttpConnection = null)
         {
             HttpConnectionOptions options = new HttpConnectionOptions();
-            configureHttpConnection(options);
+            options.Url = url;
+
+            configureHttpConnection?.Invoke(options);
 
             var httpOptions = new HttpOptions
             {
