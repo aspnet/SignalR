@@ -346,6 +346,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
             {
                 Log.ErrorStartingTransport(_logger, transport, ex);
                 _transport = null;
+                completePipePair(pair);
                 throw;
             }
 
@@ -354,6 +355,14 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
             _transportPipe = pair.Transport;
 
             Log.TransportStarted(_logger, _transport);
+        }
+
+        private void completePipePair(DuplexPipe.DuplexPipePair duplexPipePair)
+        {
+            duplexPipePair.Transport.Input.Complete();
+            duplexPipePair.Transport.Output.Complete();
+            duplexPipePair.Application.Input.Complete();
+            duplexPipePair.Application.Output.Complete();
         }
 
         private HttpClient CreateHttpClient()
