@@ -18,18 +18,19 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         public HubConnection Build()
         {
-            var provider = Services.BuildServiceProvider();
-
-            var connectionFactory = provider.GetService<Func<IConnection>>();
-            if (connectionFactory == null)
+            using (var provider = Services.BuildServiceProvider())
             {
-                throw new InvalidOperationException("Cannot create HubConnection instance. A connection was not configured.");
+                var connectionFactory = provider.GetService<Func<IConnection>>();
+                if (connectionFactory == null)
+                {
+                    throw new InvalidOperationException("Cannot create HubConnection instance. A connection was not configured.");
+                }
+
+                var hubProtocol = provider.GetService<IHubProtocol>();
+                var loggerFactory = provider.GetService<ILoggerFactory>();
+
+                return new HubConnection(connectionFactory, hubProtocol ?? new JsonHubProtocol(), loggerFactory);
             }
-
-            var hubProtocol = provider.GetService<IHubProtocol>();
-            var loggerFactory = provider.GetService<ILoggerFactory>();
-
-            return new HubConnection(connectionFactory, hubProtocol ?? new JsonHubProtocol(), loggerFactory);
         }
 
         // Prevents from being displayed in intellisense
