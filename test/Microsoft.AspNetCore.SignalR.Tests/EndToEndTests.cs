@@ -340,7 +340,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var url = _serverFixture.Url + "/uncreatable";
                 var connection = new HubConnectionBuilder()
                         .WithLoggerFactory(loggerFactory)
-                        .WithHttpConnection(url, transportType)
+                        .WithUrl(url, transportType)
                         .Build();
                 try
                 {

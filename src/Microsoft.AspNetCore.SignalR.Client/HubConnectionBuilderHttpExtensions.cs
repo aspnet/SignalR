@@ -15,49 +15,49 @@ namespace Microsoft.AspNetCore.SignalR.Client
 {
     public static class HubConnectionBuilderHttpExtensions
     {
-        public static IHubConnectionBuilder WithHttpConnection(this IHubConnectionBuilder hubConnectionBuilder, string url)
+        public static IHubConnectionBuilder WithUrl(this IHubConnectionBuilder hubConnectionBuilder, string url)
         {
-            hubConnectionBuilder.WithHttpConnection(new Uri(url), null, _ => { });
+            hubConnectionBuilder.WithUrl(new Uri(url), null, _ => { });
             return hubConnectionBuilder;
         }
 
-        public static IHubConnectionBuilder WithHttpConnection(this IHubConnectionBuilder hubConnectionBuilder, string url, Action<HttpConnectionOptions> configureHttpConnection)
+        public static IHubConnectionBuilder WithUrl(this IHubConnectionBuilder hubConnectionBuilder, string url, Action<HttpConnectionOptions> configureHttpConnection)
         {
-            hubConnectionBuilder.WithHttpConnection(new Uri(url), null, configureHttpConnection);
+            hubConnectionBuilder.WithUrl(new Uri(url), null, configureHttpConnection);
             return hubConnectionBuilder;
         }
 
-        public static IHubConnectionBuilder WithHttpConnection(this IHubConnectionBuilder hubConnectionBuilder, string url, HttpTransportType? transportType)
+        public static IHubConnectionBuilder WithUrl(this IHubConnectionBuilder hubConnectionBuilder, string url, HttpTransportType? transportType)
         {
-            hubConnectionBuilder.WithHttpConnection(new Uri(url), transportType, _ => { });
+            hubConnectionBuilder.WithUrl(new Uri(url), transportType, _ => { });
             return hubConnectionBuilder;
         }
 
-        public static IHubConnectionBuilder WithHttpConnection(this IHubConnectionBuilder hubConnectionBuilder, string url, HttpTransportType? transportType, Action<HttpConnectionOptions> configureHttpConnection)
+        public static IHubConnectionBuilder WithUrl(this IHubConnectionBuilder hubConnectionBuilder, string url, HttpTransportType? transportType, Action<HttpConnectionOptions> configureHttpConnection)
         {
-            hubConnectionBuilder.WithHttpConnection(new Uri(url), transportType, configureHttpConnection);
+            hubConnectionBuilder.WithUrl(new Uri(url), transportType, configureHttpConnection);
             return hubConnectionBuilder;
         }
 
-        public static IHubConnectionBuilder WithHttpConnection(this IHubConnectionBuilder hubConnectionBuilder, Uri url)
+        public static IHubConnectionBuilder WithUrl(this IHubConnectionBuilder hubConnectionBuilder, Uri url)
         {
-            hubConnectionBuilder.WithHttpConnection(url, null, _ => { });
+            hubConnectionBuilder.WithUrl(url, null, _ => { });
             return hubConnectionBuilder;
         }
 
-        public static IHubConnectionBuilder WithHttpConnection(this IHubConnectionBuilder hubConnectionBuilder, Uri url, Action<HttpConnectionOptions> configureHttpConnection)
+        public static IHubConnectionBuilder WithUrl(this IHubConnectionBuilder hubConnectionBuilder, Uri url, Action<HttpConnectionOptions> configureHttpConnection)
         {
-            hubConnectionBuilder.WithHttpConnection(url, null, configureHttpConnection);
+            hubConnectionBuilder.WithUrl(url, null, configureHttpConnection);
             return hubConnectionBuilder;
         }
 
-        public static IHubConnectionBuilder WithHttpConnection(this IHubConnectionBuilder hubConnectionBuilder, Uri url, HttpTransportType? transportType)
+        public static IHubConnectionBuilder WithUrl(this IHubConnectionBuilder hubConnectionBuilder, Uri url, HttpTransportType? transportType)
         {
-            hubConnectionBuilder.WithHttpConnection(url, null, _ => { });
+            hubConnectionBuilder.WithUrl(url, null, _ => { });
             return hubConnectionBuilder;
         }
 
-        public static IHubConnectionBuilder WithHttpConnection(this IHubConnectionBuilder hubConnectionBuilder, Uri url, HttpTransportType? transportType, Action<HttpConnectionOptions> configureHttpConnection)
+        public static IHubConnectionBuilder WithUrl(this IHubConnectionBuilder hubConnectionBuilder, Uri url, HttpTransportType? transportType, Action<HttpConnectionOptions> configureHttpConnection)
         {
             hubConnectionBuilder.Services.Configure<HttpConnectionOptions>(o =>
             {

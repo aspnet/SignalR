@@ -19,7 +19,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public void WithHttpConnectionSetsUrl()
         {
             var connectionBuilder = new HubConnectionBuilder();
-            connectionBuilder.WithHttpConnection("http://tempuri.org");
+            connectionBuilder.WithUrl("http://tempuri.org");
 
             var serviceProvider = connectionBuilder.Services.BuildServiceProvider();
 
@@ -32,7 +32,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public void WithHttpConnectionSetsTransport()
         {
             var connectionBuilder = new HubConnectionBuilder();
-            connectionBuilder.WithHttpConnection("http://tempuri.org", HttpTransportType.LongPolling);
+            connectionBuilder.WithUrl("http://tempuri.org", HttpTransportType.LongPolling);
 
             var serviceProvider = connectionBuilder.Services.BuildServiceProvider();
 
@@ -47,7 +47,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             var proxy = Mock.Of<IWebProxy>();
 
             var connectionBuilder = new HubConnectionBuilder();
-            connectionBuilder.WithHttpConnection("http://tempuri.org", options => { options.Proxy = proxy; });
+            connectionBuilder.WithUrl("http://tempuri.org", options => { options.Proxy = proxy; });
 
             var serviceProvider = connectionBuilder.Services.BuildServiceProvider();
 

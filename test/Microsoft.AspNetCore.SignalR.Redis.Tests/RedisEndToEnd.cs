@@ -94,7 +94,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             return new HubConnectionBuilder()
                 .WithHubProtocol(protocol)
                 .WithLoggerFactory(loggerFactory)
-                .WithHttpConnection(url, transportType)
+                .WithUrl(url, transportType)
                 .Build();
         }
 
