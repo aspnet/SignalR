@@ -377,7 +377,7 @@ namespace Microsoft.AspNetCore.Http.Connections
         private Task ProcessNegotiate(HttpContext context, HttpConnectionOptions options, ConnectionLogScope logScope)
         {
             context.Response.ContentType = "application/json";
-            
+
             // Establish the connection
             var connection = CreateConnection(options);
 
