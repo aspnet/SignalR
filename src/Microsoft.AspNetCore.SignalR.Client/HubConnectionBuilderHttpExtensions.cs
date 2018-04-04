@@ -64,7 +64,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 o.Url = url;
                 o.Transport = transportType;
             });
-            
+
             if (configureHttpConnection != null)
             {
                 hubConnectionBuilder.Services.Configure(configureHttpConnection);
