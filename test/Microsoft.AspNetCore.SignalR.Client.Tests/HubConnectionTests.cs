@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Xunit;
 
@@ -42,7 +43,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         [Fact]
         public async Task ClosedEventRaisedWhenTheClientIsStopped()
         {
-            var hubConnection = new HubConnection(() => new TestConnection(), Mock.Of<IHubProtocol>(), null);
+            var hubConnection = new HubConnection(() => new TestConnection(), Mock.Of<IHubProtocol>(), new ServiceCollection().BuildServiceProvider(), null);
             var closedEventTcs = new TaskCompletionSource<Exception>();
             hubConnection.Closed += e => closedEventTcs.SetResult(e);
 

@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.SignalR.Microbenchmarks.Shared;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
@@ -44,7 +45,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             connection.Features.Set<IConnectionInherentKeepAliveFeature>(new TestConnectionInherentKeepAliveFeature());
             connection.Transport = _pipe;
 
-            _hubConnection = new HubConnection(() => connection, new JsonHubProtocol(), new NullLoggerFactory());
+            _hubConnection = new HubConnection(() => connection, new JsonHubProtocol(), new ServiceCollection().BuildServiceProvider(), new NullLoggerFactory());
         }
 
         private void AddHandshakeResponse()

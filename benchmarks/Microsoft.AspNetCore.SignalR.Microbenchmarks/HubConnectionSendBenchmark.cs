@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.SignalR.Microbenchmarks.Shared;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
@@ -47,7 +48,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             connection.Transport = _pipe;
 
             var protocol = Protocol == "json" ? (IHubProtocol)new JsonHubProtocol() : new MessagePackHubProtocol();
-            _hubConnection = new HubConnection(() => connection, protocol, new NullLoggerFactory());
+            _hubConnection = new HubConnection(() => connection, protocol, new ServiceCollection().BuildServiceProvider(), new NullLoggerFactory());
             _hubConnection.StartAsync().GetAwaiter().GetResult();
 
             _arguments = new object[ArgumentCount];
