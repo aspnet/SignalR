@@ -23,6 +23,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         {
             Services = new ServiceCollection();
             Services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
+            Services.AddSingleton<IHubProtocol, JsonHubProtocol>();
             Services.AddSingleton<HubConnection>();
         }
 
@@ -35,13 +36,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
 
             _hubConnectionBuilt = true;
-
-            // Need a hub protocol but if one is registered when the builder is created then TryAddEnumerable won't update
-            // the hub protocol with new options specified by the dev. Add one at the last minute
-            if (Services.FirstOrDefault(s => s.ServiceType == typeof(IHubProtocol)) == null)
-            {
-                Services.AddSingleton<IHubProtocol>(new JsonHubProtocol());
-            }
 
             // The service provider is disposed by the HubConnection
             var serviceProvider = Services.BuildServiceProvider();
