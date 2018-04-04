@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using System.IO.Pipelines;
 using System.Linq;
 using System.Net.Http;
@@ -91,6 +92,21 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
             {
                 _httpClient = CreateHttpClient();
             }
+
+            // Set the X-Requested-With header on httpOptions for WebSockets
+            if (httpOptions == null)
+            {
+                httpOptions = new HttpOptions();
+            }
+            if (httpOptions.Headers == null)
+            {
+                httpOptions.Headers = new Dictionary<string, string>();
+            }
+            else
+            {
+                httpOptions.Headers.Remove("X-Requested-With");
+            }
+            httpOptions.Headers.Add("X-Requested-With", "XMLHttpRequest");
 
             _transportFactory = new DefaultTransportFactory(transportType, _loggerFactory, _httpClient, httpOptions);
             _logScope = new ConnectionLogScope();
