@@ -730,8 +730,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                     .WithLoggerFactory(loggerFactory)
                     .WithUrl(_serverFixture.Url + "/default", transportType, options =>
                     {
-                        options.AddHeader("X-test", "42");
-                        options.AddHeader("X-42", "test");
+                        options.Headers["X-test"] = "42";
+                        options.Headers["X-42"] = "test";
                     })
                     .Build();
                 try

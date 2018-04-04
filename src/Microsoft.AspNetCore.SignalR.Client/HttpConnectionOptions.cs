@@ -26,34 +26,43 @@ namespace Microsoft.AspNetCore.SignalR.Client
         public Func<string> AccessTokenFactory { get; set; }
         public Action<ClientWebSocketOptions> WebSocketOptions { get; set; }
 
-        public void AddClientCertificate(X509Certificate clientCertificate)
+        public X509CertificateCollection ClientCertificates
         {
-            if (_clientCertificates == null)
+            get
             {
-                _clientCertificates = new X509CertificateCollection();
-            }
+                if (_clientCertificates == null)
+                {
+                    _clientCertificates = new X509CertificateCollection();
+                }
 
-            _clientCertificates.Add(clientCertificate);
+                return _clientCertificates;
+            }
         }
 
-        public void AddCookie(Cookie cookie)
+        public CookieContainer Cookies
         {
-            if (_cookies == null)
+            get
             {
-                _cookies = new CookieContainer();
-            }
+                if (_cookies == null)
+                {
+                    _cookies = new CookieContainer();
+                }
 
-            _cookies.Add(cookie);
+                return _cookies;
+            }
         }
 
-        public void AddHeader(string name, string value)
+        public IDictionary<string, string> Headers
         {
-            if (_headers == null)
+            get
             {
-                _headers = new Dictionary<string, string>();
-            }
+                if (_headers == null)
+                {
+                    _headers = new Dictionary<string, string>();
+                }
 
-            _headers.Add(name, value);
+                return _headers;
+            }
         }
     }
 }
