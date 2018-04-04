@@ -23,8 +23,6 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
 #if !NETCOREAPP2_1
         private static readonly Version Windows8Version = new Version(6, 2);
 #endif
-        private static readonly string XRequestedWithName = "X-Requested-With";
-        private static readonly string XRequestedWithValue = "XMLHttpRequest";
 
         private readonly ILogger _logger;
 
@@ -430,9 +428,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
                 }
             }
 
-            httpClient.DefaultRequestHeaders.Remove(XRequestedWithName);
+            httpClient.DefaultRequestHeaders.Remove("X-Requested-With");
             // Tell auth middleware to 401 instead of redirecting
-            httpClient.DefaultRequestHeaders.Add(XRequestedWithName, XRequestedWithValue);
+            httpClient.DefaultRequestHeaders.Add("X-Requested-With", "XMLHttpRequest");
 
             return httpClient;
         }
