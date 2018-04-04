@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
-using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.Http.Connections.Client;
@@ -76,7 +76,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 var httpOptions = new HttpOptions
                 {
                     HttpMessageHandlerFactory = value.MessageHandlerFactory,
-                    Headers = value._headers != null ? new Dictionary<string, string>(value._headers) : null,
+                    Headers = value._headers != null ? new ReadOnlyDictionary<string, string>(value._headers) : null,
                     AccessTokenFactory = value.AccessTokenFactory,
                     WebSocketOptions = value.WebSocketOptions,
                     Cookies = value._cookies,

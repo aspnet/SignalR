@@ -18,7 +18,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
         /// </summary>
         public Func<HttpMessageHandler, HttpMessageHandler> HttpMessageHandlerFactory { get; set; }
 
-        public IDictionary<string, string> Headers { get; set; }
+        public IReadOnlyCollection<KeyValuePair<string, string>> Headers { get; set; }
         public Func<string> AccessTokenFactory { get; set; }
         public TimeSpan CloseTimeout { get; set; } = TimeSpan.FromSeconds(5);
         public ICredentials Credentials { get; set; }
