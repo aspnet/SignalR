@@ -5,7 +5,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Channels;
@@ -23,7 +22,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
     public partial class HubConnection
     {
         public static readonly TimeSpan DefaultServerTimeout = TimeSpan.FromSeconds(30); // Server ping rate is 15 sec, this is 2 times that.
-        public static readonly TimeSpan DefaultHandshakeTimeout = TimeSpan.FromSeconds(5);
+        public static readonly TimeSpan DefaultHandshakeTimeout = TimeSpan.FromSeconds(15);
 
         // This lock protects the connection state.
         private readonly SemaphoreSlim _connectionLock = new SemaphoreSlim(1, 1);
@@ -553,11 +552,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
                                 // Not enough data, and we won't be getting any more data.
                                 throw new InvalidOperationException(
                                     "The server disconnected before sending a handshake response");
-                            }
-                            else if (result.IsCanceled)
-                            {
-                                throw new OperationCanceledException(
-                                    "Handshake timed out waiting for a response");
                             }
                         }
                         finally
