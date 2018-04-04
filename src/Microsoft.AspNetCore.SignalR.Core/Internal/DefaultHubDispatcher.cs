@@ -340,7 +340,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 {
                     Log.StreamingMethodCalledWithInvoke(_logger, hubMethodInvocationMessage);
                     await connection.WriteAsync(CompletionMessage.WithError(hubMethodInvocationMessage.InvocationId,
-                        $"The client attempted to invoke the streaming '{hubMethodInvocationMessage.Target}' using a non-streaming invocation."));
+                        $"The client attempted to invoke the streaming '{hubMethodInvocationMessage.Target}' with a non-streaming invocation."));
                 }
 
                 return false;
@@ -350,7 +350,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             {
                 Log.NonStreamingMethodCalledWithStream(_logger, hubMethodInvocationMessage);
                 await connection.WriteAsync(CompletionMessage.WithError(hubMethodInvocationMessage.InvocationId,
-                    $"The client attempted to invoke the non-streaming '{hubMethodInvocationMessage.Target}' using a streaming invocation."));
+                    $"The client attempted to invoke the non-streaming '{hubMethodInvocationMessage.Target}' with a streaming invocation."));
 
                 return false;
             }
