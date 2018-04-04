@@ -53,7 +53,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
 
             var protocol = Protocol == "json" ? (IHubProtocol)new JsonHubProtocol() : new MessagePackHubProtocol();
 
-            HubConnectionBuilder hubConnectionBuilder = new HubConnectionBuilder();
+            var hubConnectionBuilder = new HubConnectionBuilder();
             hubConnectionBuilder.WithHubProtocol(protocol);
             hubConnectionBuilder.Services.AddSingleton(connectionFactory);
 

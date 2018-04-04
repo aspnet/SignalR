@@ -47,7 +47,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
 
             Func<IConnection> connectionFactory = () => connection;
 
-            HubConnectionBuilder hubConnectionBuilder = new HubConnectionBuilder();
+            var hubConnectionBuilder = new HubConnectionBuilder();
             hubConnectionBuilder.WithHubProtocol(new JsonHubProtocol());
             hubConnectionBuilder.Services.AddSingleton(connectionFactory);
 

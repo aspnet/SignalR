@@ -37,11 +37,14 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         public HubConnection Build()
         {
-            if (_serviceProvider == null)
+            // Build can only be used once
+            if (_serviceProvider != null)
             {
-                // The service provider is disposed by the HubConnection
-                _serviceProvider = Services.BuildServiceProvider();
+                throw new InvalidOperationException("HubConnectionBuilder allows creation only of a single instance of HubConnection.");
             }
+
+            // The service provider is disposed by the HubConnection
+            _serviceProvider = Services.BuildServiceProvider();
 
             return _serviceProvider.GetService<HubConnection>();
         }
