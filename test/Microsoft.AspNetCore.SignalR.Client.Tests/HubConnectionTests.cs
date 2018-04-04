@@ -43,10 +43,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         [Fact]
         public async Task ClosedEventRaisedWhenTheClientIsStopped()
         {
-            Func<IConnection> connectionFactory = () => new TestConnection();
-
             var builder = new HubConnectionBuilder();
-            builder.Services.AddSingleton(connectionFactory);
+            builder.WithConnectionFactory(() => new TestConnection());
 
             var hubConnection = builder.Build();
             var closedEventTcs = new TaskCompletionSource<Exception>();

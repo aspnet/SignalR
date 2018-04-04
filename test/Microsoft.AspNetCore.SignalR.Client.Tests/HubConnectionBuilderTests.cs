@@ -3,6 +3,7 @@
 
 using System;
 using System.Linq;
+using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.Extensions.DependencyInjection;
 using MsgPack.Serialization;
@@ -50,6 +51,16 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
             var actualProtocol = Assert.IsType<JsonHubProtocol>(serviceProvider.GetService<IHubProtocol>());
             Assert.Equal("JUST A TEST", actualProtocol.PayloadSerializer.DateFormatString);
+        }
+
+        [Fact]
+        public void WithConnectionFactorySetsConnectionFactory()
+        {
+            Func<IConnection> connectionFactory = () => null;
+
+            var serviceProvider = new HubConnectionBuilder().WithConnectionFactory(connectionFactory).Services.BuildServiceProvider();
+
+            Assert.Equal(connectionFactory, serviceProvider.GetService<Func<IConnection>>());
         }
 
         [Fact]

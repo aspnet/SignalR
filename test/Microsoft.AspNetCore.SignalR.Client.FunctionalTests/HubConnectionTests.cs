@@ -52,7 +52,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             HubConnectionBuilder hubConnectionBuilder = new HubConnectionBuilder();
             hubConnectionBuilder.WithHubProtocol(protocol);
             hubConnectionBuilder.WithLoggerFactory(loggerFactory);
-            hubConnectionBuilder.Services.AddSingleton(GetHttpConnectionFactory(loggerFactory, path, transportType ?? HttpTransportType.All));
+            hubConnectionBuilder.WithConnectionFactory(GetHttpConnectionFactory(loggerFactory, path, transportType ?? HttpTransportType.All));
 
             return hubConnectionBuilder.Build();
         }

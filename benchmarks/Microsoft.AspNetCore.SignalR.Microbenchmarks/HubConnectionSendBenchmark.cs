@@ -49,13 +49,11 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             connection.Features.Set<IConnectionInherentKeepAliveFeature>(new TestConnectionInherentKeepAliveFeature());
             connection.Transport = _pipe;
 
-            Func<IConnection> connectionFactory = () => connection;
-
             var protocol = Protocol == "json" ? (IHubProtocol)new JsonHubProtocol() : new MessagePackHubProtocol();
 
             var hubConnectionBuilder = new HubConnectionBuilder();
             hubConnectionBuilder.WithHubProtocol(protocol);
-            hubConnectionBuilder.Services.AddSingleton(connectionFactory);
+            hubConnectionBuilder.WithConnectionFactory(() => connection);
 
             _hubConnection = hubConnectionBuilder.Build();
             _hubConnection.StartAsync().GetAwaiter().GetResult();

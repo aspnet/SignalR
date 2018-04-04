@@ -12,10 +12,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
     {
         private static HubConnection CreateHubConnection(TestConnection connection, IHubProtocol protocol = null)
         {
-            Func<IConnection> connectionFactory = () => connection;
-
             var builder = new HubConnectionBuilder();
-            builder.Services.AddSingleton(connectionFactory);
+            builder.WithConnectionFactory(() => connection);
             if (protocol != null)
             {
                 builder.WithHubProtocol(protocol);
