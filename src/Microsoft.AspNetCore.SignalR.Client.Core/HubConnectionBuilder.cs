@@ -3,10 +3,13 @@
 
 using System;
 using System.ComponentModel;
+using System.Linq;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Microsoft.AspNetCore.SignalR.Client
 {
@@ -19,20 +22,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
         public HubConnectionBuilder()
         {
             Services = new ServiceCollection();
-            Services.AddSingleton<HubConnection>(serviceProvider =>
-            {
-                var connectionFactory = serviceProvider.GetService<Func<IConnection>>();
-                if (connectionFactory == null)
-                {
-                    throw new InvalidOperationException("Cannot create HubConnection instance. A connection was not configured.");
-                }
-
-                var hubProtocol = serviceProvider.GetService<IHubProtocol>();
-                var loggerFactory = serviceProvider.GetService<ILoggerFactory>();
-
-                // Note that the root service provider that can be disposed is passed to HubConnection
-                return new HubConnection(connectionFactory, hubProtocol ?? new JsonHubProtocol(), _serviceProvider, loggerFactory);
-            });
+            Services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
+            Services.AddSingleton<HubConnection>();
         }
 
         public HubConnection Build()
@@ -43,8 +34,21 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 throw new InvalidOperationException("HubConnectionBuilder allows creation only of a single instance of HubConnection.");
             }
 
+            // Need a hub protocol but if one is registered when the builder is created then TryAddEnumerable won't update
+            // the hub protocol with new options specified by the dev. Add one at the last minute
+            if (Services.FirstOrDefault(s => s.ServiceType == typeof(IHubProtocol)) == null)
+            {
+                Services.AddSingleton<IHubProtocol>(new JsonHubProtocol());
+            }
+
             // The service provider is disposed by the HubConnection
             _serviceProvider = Services.BuildServiceProvider();
+
+            var connectionFactory = _serviceProvider.GetService<Func<IConnection>>();
+            if (connectionFactory == null)
+            {
+                throw new InvalidOperationException("Cannot create HubConnection instance. A connection was not configured.");
+            }
 
             return _serviceProvider.GetService<HubConnection>();
         }

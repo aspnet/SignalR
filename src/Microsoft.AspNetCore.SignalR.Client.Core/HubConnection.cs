@@ -31,7 +31,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         private readonly ILoggerFactory _loggerFactory;
         private readonly ILogger _logger;
         private readonly IHubProtocol _protocol;
-        private readonly ServiceProvider _serviceProvider;
+        private readonly IServiceProvider _serviceProvider;
         private readonly Func<IConnection> _connectionFactory;
         private readonly ConcurrentDictionary<string, List<InvocationHandler>> _handlers = new ConcurrentDictionary<string, List<InvocationHandler>>();
         private bool _disposed;
@@ -47,7 +47,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         /// </summary>
         public TimeSpan ServerTimeout { get; set; } = DefaultServerTimeout;
 
-        internal HubConnection(Func<IConnection> connectionFactory, IHubProtocol protocol, ServiceProvider serviceProvider, ILoggerFactory loggerFactory)
+        public HubConnection(Func<IConnection> connectionFactory, IHubProtocol protocol, IServiceProvider serviceProvider, ILoggerFactory loggerFactory)
         {
             _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
             _protocol = protocol ?? throw new ArgumentNullException(nameof(protocol));
@@ -184,7 +184,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
                 if (disposing)
                 {
-                    _serviceProvider.Dispose();
+                    (_serviceProvider as IDisposable)?.Dispose();
                     _disposed = true;
                 }
             }
