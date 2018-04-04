@@ -1,4 +1,4 @@
-﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 import { HubConnection, IHubConnectionOptions, JsonHubProtocol, LogLevel, TransportType } from "@aspnet/signalr";
@@ -166,7 +166,7 @@ describe("hubConnection", () => {
                         // exception expected but none thrown
                         fail();
                     }).catch((e) => {
-                        expect(e.message).toBe("The client attempted to invoke the streaming 'EmptyStream' method in a non-streaming fashion.");
+                        expect(e.message).toBe("The client attempted to invoke the streaming 'EmptyStream' method with a non-streaming invocation.");
                     }).then(() => {
                         return hubConnection.stop();
                     }).then(() => {
@@ -190,7 +190,7 @@ describe("hubConnection", () => {
                         // exception expected but none thrown
                         fail();
                     }).catch((e) => {
-                        expect(e.message).toBe("The client attempted to invoke the streaming 'Stream' method in a non-streaming fashion.");
+                        expect(e.message).toBe("The client attempted to invoke the streaming 'Stream' method with a non-streaming invocation.");
                     }).then(() => {
                         return hubConnection.stop();
                     }).then(() => {
@@ -246,7 +246,7 @@ describe("hubConnection", () => {
                             fail();
                         },
                         error: function error(err) {
-                            expect(err.message).toEqual("The client attempted to invoke the non-streaming 'Echo' method in a streaming fashion.");
+                            expect(err.message).toEqual("The client attempted to invoke the non-streaming 'Echo' method with a streaming invocation.");
                             hubConnection.stop();
                             done();
                         },

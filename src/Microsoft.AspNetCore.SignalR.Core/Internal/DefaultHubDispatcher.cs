@@ -259,6 +259,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             }
             finally
             {
+                (enumerator as IDisposable)?.Dispose();
+
                 // Dispose the linked CTS for the stream.
                 streamCts.Dispose();
 
@@ -340,7 +342,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 {
                     Log.StreamingMethodCalledWithInvoke(_logger, hubMethodInvocationMessage);
                     await connection.WriteAsync(CompletionMessage.WithError(hubMethodInvocationMessage.InvocationId,
-                        $"The client attempted to invoke the streaming '{hubMethodInvocationMessage.Target}' with a non-streaming invocation."));
+                        $"The client attempted to invoke the streaming '{hubMethodInvocationMessage.Target}' method with a non-streaming invocation."));
                 }
 
                 return false;
@@ -350,7 +352,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             {
                 Log.NonStreamingMethodCalledWithStream(_logger, hubMethodInvocationMessage);
                 await connection.WriteAsync(CompletionMessage.WithError(hubMethodInvocationMessage.InvocationId,
-                    $"The client attempted to invoke the non-streaming '{hubMethodInvocationMessage.Target}' with a streaming invocation."));
+                    $"The client attempted to invoke the non-streaming '{hubMethodInvocationMessage.Target}' method with a streaming invocation."));
 
                 return false;
             }
