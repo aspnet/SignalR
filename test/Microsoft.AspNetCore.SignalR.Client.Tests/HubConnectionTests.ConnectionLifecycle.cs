@@ -352,7 +352,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             public async Task ClientTimesoutWhenHandshakeResponseTakesTooLong()
             {
                 var connection = new TestConnection(autoHandshake: false);
-                var hubConnection = CreateHubConnection(connection);
+                var hubConnection = CreateHubConnection(() => connection);
                 try
                 {
                     hubConnection.HandshakeTimeout = TimeSpan.FromMilliseconds(1);
@@ -375,7 +375,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     onStartCalled = true;
                     return Task.CompletedTask;
                 });
-                var hubConnection = CreateHubConnection(connection);
+                var hubConnection = CreateHubConnection(() => connection);
                 try
                 {
                     await Assert.ThrowsAsync<OperationCanceledException>(() => hubConnection.StartAsync(new CancellationToken(canceled: true)).OrTimeout());
@@ -397,9 +397,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     cts.Cancel();
                     return Task.CompletedTask;
                 }, autoHandshake: false);
-                var hubConnection = CreateHubConnection(connection);
+                var hubConnection = CreateHubConnection(() => connection);
                 // We want to make sure the cancellation is because of the token passed to StartAsync
-                hubConnection.HandshakeTimeout = TimeSpan.FromSeconds(20);
+                hubConnection.HandshakeTimeout = Timeout.InfiniteTimeSpan;
                 try
                 {
                     var startTask = hubConnection.StartAsync(cts.Token);
