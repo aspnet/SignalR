@@ -49,7 +49,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             IHubProtocol protocol = null,
             ILoggerFactory loggerFactory = null)
         {
-            HubConnectionBuilder hubConnectionBuilder = new HubConnectionBuilder();
+            var hubConnectionBuilder = new HubConnectionBuilder();
             hubConnectionBuilder.WithHubProtocol(protocol);
             hubConnectionBuilder.WithLoggerFactory(loggerFactory);
             hubConnectionBuilder.WithConnectionFactory(GetHttpConnectionFactory(loggerFactory, path, transportType ?? HttpTransportType.All));
