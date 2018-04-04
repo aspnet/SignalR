@@ -17,7 +17,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
     {
         public static IHubConnectionBuilder WithHttpConnection(this IHubConnectionBuilder hubConnectionBuilder, string url)
         {
-            hubConnectionBuilder.WithHttpConnection(new Uri(url), null, null);
+            hubConnectionBuilder.WithHttpConnection(new Uri(url), null, _ => { });
             return hubConnectionBuilder;
         }
 
@@ -29,7 +29,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         public static IHubConnectionBuilder WithHttpConnection(this IHubConnectionBuilder hubConnectionBuilder, string url, HttpTransportType? transportType)
         {
-            hubConnectionBuilder.WithHttpConnection(new Uri(url), transportType, null);
+            hubConnectionBuilder.WithHttpConnection(new Uri(url), transportType, _ => { });
             return hubConnectionBuilder;
         }
 
@@ -41,7 +41,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         public static IHubConnectionBuilder WithHttpConnection(this IHubConnectionBuilder hubConnectionBuilder, Uri url)
         {
-            hubConnectionBuilder.WithHttpConnection(url, null, null);
+            hubConnectionBuilder.WithHttpConnection(url, null, _ => { });
             return hubConnectionBuilder;
         }
 
@@ -53,7 +53,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         public static IHubConnectionBuilder WithHttpConnection(this IHubConnectionBuilder hubConnectionBuilder, Uri url, HttpTransportType? transportType)
         {
-            hubConnectionBuilder.WithHttpConnection(url, null, null);
+            hubConnectionBuilder.WithHttpConnection(url, null, _ => { });
             return hubConnectionBuilder;
         }
 

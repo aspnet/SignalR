@@ -87,10 +87,10 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         }
 
         [Fact]
-        public void WithJsonProtocolAddsProtocol()
+        public void AddJsonProtocolAddsProtocol()
         {
             var connectionBuilder = new HubConnectionBuilder();
-            connectionBuilder.WithJsonProtocol();
+            connectionBuilder.AddJsonProtocol();
 
             var serviceProvider = connectionBuilder.Services.BuildServiceProvider();
 
@@ -100,10 +100,10 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         }
 
         [Fact]
-        public void WithMessagePackProtocolAddsProtocol()
+        public void AddMessagePackProtocolAddsProtocol()
         {
             var connectionBuilder = new HubConnectionBuilder();
-            connectionBuilder.WithMessagePackProtocol();
+            connectionBuilder.AddMessagePackProtocol();
 
             var serviceProvider = connectionBuilder.Services.BuildServiceProvider();
 

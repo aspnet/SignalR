@@ -4,6 +4,7 @@
 using System;
 using System.Linq;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
+using Microsoft.Extensions.DependencyInjection;
 using MsgPack.Serialization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -28,58 +29,50 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         }
 
         [Fact]
-        public void WithJsonHubProtocolSetsHubProtocolToJsonWithDefaultOptions()
+        public void AddJsonProtocolSetsHubProtocolToJsonWithDefaultOptions()
         {
-            var services = new HubConnectionBuilder().WithJsonProtocol().Services;
-            var descriptor = services.Single(s => s.ServiceType == typeof(IHubProtocol));
+            var serviceProvider = new HubConnectionBuilder().AddJsonProtocol().Services.BuildServiceProvider();
 
-            var actualProtocol = Assert.IsType<JsonHubProtocol>(descriptor.ImplementationInstance);
+            var actualProtocol = Assert.IsType<JsonHubProtocol>(serviceProvider.GetService<IHubProtocol>());
             Assert.IsType<CamelCasePropertyNamesContractResolver>(actualProtocol.PayloadSerializer.ContractResolver);
         }
 
         [Fact]
-        public void WithJsonHubProtocolSetsHubProtocolToJsonWithProvidedOptions()
+        public void AddJsonProtocolSetsHubProtocolToJsonWithProvidedOptions()
         {
-            var expectedOptions = new JsonHubProtocolOptions
+            var serviceProvider = new HubConnectionBuilder().AddJsonProtocol(options =>
             {
-                PayloadSerializerSettings = new JsonSerializerSettings
+                options.PayloadSerializerSettings = new JsonSerializerSettings
                 {
                     DateFormatString = "JUST A TEST"
-                }
-            };
+                };
+            }).Services.BuildServiceProvider();
 
-            var services = new HubConnectionBuilder().WithJsonProtocol(expectedOptions).Services;
-            var descriptor = services.Single(s => s.ServiceType == typeof(IHubProtocol));
-
-            var actualProtocol = Assert.IsType<JsonHubProtocol>(descriptor.ImplementationInstance);
+            var actualProtocol = Assert.IsType<JsonHubProtocol>(serviceProvider.GetService<IHubProtocol>());
             Assert.Equal("JUST A TEST", actualProtocol.PayloadSerializer.DateFormatString);
         }
 
         [Fact]
-        public void WithMessagePackHubProtocolSetsHubProtocolToMsgPackWithDefaultOptions()
+        public void AddMessagePackProtocolSetsHubProtocolToMsgPackWithDefaultOptions()
         {
-            var services = new HubConnectionBuilder().WithMessagePackProtocol().Services;
-            var descriptor = services.Single(s => s.ServiceType == typeof(IHubProtocol));
+            var serviceProvider = new HubConnectionBuilder().AddMessagePackProtocol().Services.BuildServiceProvider();
 
-            var actualProtocol = Assert.IsType<MessagePackHubProtocol>(descriptor.ImplementationInstance);
+            var actualProtocol = Assert.IsType<MessagePackHubProtocol>(serviceProvider.GetService<IHubProtocol>());
             Assert.Equal(SerializationMethod.Map, actualProtocol.SerializationContext.SerializationMethod);
         }
 
         [Fact]
-        public void WithMessagePackHubProtocolSetsHubProtocolToMsgPackWithProvidedOptions()
+        public void AddMessagePackProtocolSetsHubProtocolToMsgPackWithProvidedOptions()
         {
-            var expectedOptions = new MessagePackHubProtocolOptions
+            var serviceProvider = new HubConnectionBuilder().AddMessagePackProtocol(options =>
             {
-                SerializationContext = new SerializationContext
+                options.SerializationContext = new SerializationContext
                 {
                     SerializationMethod = SerializationMethod.Array
-                }
-            };
+                };
+            }).Services.BuildServiceProvider();
 
-            var services = new HubConnectionBuilder().WithMessagePackProtocol(expectedOptions).Services;
-            var descriptor = services.Single(s => s.ServiceType == typeof(IHubProtocol));
-
-            var actualProtocol = Assert.IsType<MessagePackHubProtocol>(descriptor.ImplementationInstance);
+            var actualProtocol = Assert.IsType<MessagePackHubProtocol>(serviceProvider.GetService<IHubProtocol>());
             Assert.Equal(SerializationMethod.Array, actualProtocol.SerializationContext.SerializationMethod);
         }
     }

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
@@ -16,7 +17,8 @@ namespace Microsoft.Extensions.DependencyInjection
         /// </remarks>
         /// <param name="builder">The <see cref="ISignalRBuilder"/> representing the SignalR server to add JSON protocol support to.</param>
         /// <returns>The value of <paramref name="builder"/></returns>
-        public static ISignalRBuilder AddJsonProtocol(this ISignalRBuilder builder) => AddJsonProtocol(builder, _ => { });
+        public static TBuilder AddJsonProtocol<TBuilder>(this TBuilder builder) where TBuilder : ISignalRBuilder
+            => AddJsonProtocol(builder, _ => { });
 
         /// <summary>
         /// Enables the JSON protocol for SignalR and allows options for the JSON protocol to be configured.
@@ -27,9 +29,10 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <param name="builder">The <see cref="ISignalRBuilder"/> representing the SignalR server to add JSON protocol support to.</param>
         /// <param name="configure">A delegate that can be used to configure the <see cref="JsonHubProtocolOptions"/></param>
         /// <returns>The value of <paramref name="builder"/></returns>
-        public static ISignalRBuilder AddJsonProtocol(this ISignalRBuilder builder, Action<JsonHubProtocolOptions> configure)
+        public static TBuilder AddJsonProtocol<TBuilder>(this TBuilder builder, Action<JsonHubProtocolOptions> configure) where TBuilder : ISignalRBuilder
         {
-            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IHubProtocol, JsonHubProtocol>());
+            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IHubProtocol, JsonHubProtocol>(
+                serviceProvider => new JsonHubProtocol(serviceProvider.GetService<IOptions<JsonHubProtocolOptions>>())));
             builder.Services.Configure(configure);
             return builder;
         }
