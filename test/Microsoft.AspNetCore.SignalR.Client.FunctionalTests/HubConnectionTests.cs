@@ -49,11 +49,12 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             IHubProtocol protocol = null,
             ILoggerFactory loggerFactory = null)
         {
-            var serviceCollection = new ServiceCollection();
-            var serviceProvider = serviceCollection.BuildServiceProvider();
+            HubConnectionBuilder hubConnectionBuilder = new HubConnectionBuilder();
+            hubConnectionBuilder.WithHubProtocol(protocol);
+            hubConnectionBuilder.WithLoggerFactory(loggerFactory);
+            hubConnectionBuilder.Services.AddSingleton(GetHttpConnectionFactory(loggerFactory, path, transportType ?? HttpTransportType.All));
 
-            var connection = new HubConnection(GetHttpConnectionFactory(loggerFactory, path, transportType ?? HttpTransportType.All), protocol, serviceProvider, loggerFactory);
-            return connection;
+            return hubConnectionBuilder.Build();
         }
 
         private Func<IConnection> GetHttpConnectionFactory(ILoggerFactory loggerFactory, string path, HttpTransportType transportType)

@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Options;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
@@ -31,8 +30,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <returns>The value of <paramref name="builder"/></returns>
         public static TBuilder AddJsonProtocol<TBuilder>(this TBuilder builder, Action<JsonHubProtocolOptions> configure) where TBuilder : ISignalRBuilder
         {
-            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IHubProtocol, JsonHubProtocol>(
-                serviceProvider => new JsonHubProtocol(serviceProvider.GetService<IOptions<JsonHubProtocolOptions>>())));
+            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IHubProtocol, JsonHubProtocol>());
             builder.Services.Configure(configure);
             return builder;
         }

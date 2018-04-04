@@ -45,7 +45,13 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             connection.Features.Set<IConnectionInherentKeepAliveFeature>(new TestConnectionInherentKeepAliveFeature());
             connection.Transport = _pipe;
 
-            _hubConnection = new HubConnection(() => connection, new JsonHubProtocol(), new ServiceCollection().BuildServiceProvider(), new NullLoggerFactory());
+            Func<IConnection> connectionFactory = () => connection;
+
+            HubConnectionBuilder hubConnectionBuilder = new HubConnectionBuilder();
+            hubConnectionBuilder.WithHubProtocol(new JsonHubProtocol());
+            hubConnectionBuilder.Services.AddSingleton(connectionFactory);
+
+            _hubConnection = hubConnectionBuilder.Build();
         }
 
         private void AddHandshakeResponse()

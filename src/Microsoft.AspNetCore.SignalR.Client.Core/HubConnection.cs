@@ -47,11 +47,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         /// </summary>
         public TimeSpan ServerTimeout { get; set; } = DefaultServerTimeout;
 
-        public HubConnection(Func<IConnection> connectionFactory, IHubProtocol protocol, ServiceProvider serviceProvider) : this(connectionFactory, protocol, serviceProvider, NullLoggerFactory.Instance)
-        {
-        }
-
-        public HubConnection(Func<IConnection> connectionFactory, IHubProtocol protocol, ServiceProvider serviceProvider, ILoggerFactory loggerFactory)
+        internal HubConnection(Func<IConnection> connectionFactory, IHubProtocol protocol, ServiceProvider serviceProvider, ILoggerFactory loggerFactory)
         {
             _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
             _protocol = protocol ?? throw new ArgumentNullException(nameof(protocol));

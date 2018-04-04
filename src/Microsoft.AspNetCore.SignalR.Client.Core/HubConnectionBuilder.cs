@@ -2,35 +2,48 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 
 namespace Microsoft.AspNetCore.SignalR.Client
 {
     public class HubConnectionBuilder : IHubConnectionBuilder
     {
-        public IServiceCollection Services { get; } = new ServiceCollection();
+        private ServiceProvider _serviceProvider;
+
+        public IServiceCollection Services { get; }
+
+        public HubConnectionBuilder()
+        {
+            Services = new ServiceCollection();
+            Services.AddSingleton<HubConnection>(serviceProvider =>
+            {
+                var connectionFactory = serviceProvider.GetService<Func<IConnection>>();
+                if (connectionFactory == null)
+                {
+                    throw new InvalidOperationException("Cannot create HubConnection instance. A connection was not configured.");
+                }
+
+                var hubProtocol = serviceProvider.GetService<IHubProtocol>();
+                var loggerFactory = serviceProvider.GetService<ILoggerFactory>();
+
+                // Note that the root service provider that can be disposed is passed to HubConnection
+                return new HubConnection(connectionFactory, hubProtocol ?? new JsonHubProtocol(), _serviceProvider, loggerFactory);
+            });
+        }
 
         public HubConnection Build()
         {
-            // The service provider is disposed by the HubConnection
-            var serviceProvider = Services.BuildServiceProvider();
-
-            var connectionFactory = serviceProvider.GetService<Func<IConnection>>();
-            if (connectionFactory == null)
+            if (_serviceProvider == null)
             {
-                throw new InvalidOperationException("Cannot create HubConnection instance. A connection was not configured.");
+                // The service provider is disposed by the HubConnection
+                _serviceProvider = Services.BuildServiceProvider();
             }
 
-            var hubProtocol = serviceProvider.GetService<IHubProtocol>();
-            var loggerFactory = serviceProvider.GetService<ILoggerFactory>();
-
-            return new HubConnection(connectionFactory, hubProtocol ?? new JsonHubProtocol(), serviceProvider, loggerFactory);
+            return _serviceProvider.GetService<HubConnection>();
         }
 
         // Prevents from being displayed in intellisense

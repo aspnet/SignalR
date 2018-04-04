@@ -3,7 +3,6 @@ using System.Linq;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Options;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
@@ -31,8 +30,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <returns>The value of <paramref name="builder"/></returns>
         public static TBuilder AddMessagePackProtocol<TBuilder>(this TBuilder builder, Action<MessagePackHubProtocolOptions> configure) where TBuilder : ISignalRBuilder
         {
-            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IHubProtocol, MessagePackHubProtocol>(
-                serviceProvider => new MessagePackHubProtocol(serviceProvider.GetService<IOptions<MessagePackHubProtocolOptions>>())));
+            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IHubProtocol, MessagePackHubProtocol>());
             builder.Services.Configure(configure);
             return builder;
         }
