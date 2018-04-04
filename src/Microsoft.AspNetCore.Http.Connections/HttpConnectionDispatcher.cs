@@ -377,11 +377,9 @@ namespace Microsoft.AspNetCore.Http.Connections
         private Task ProcessNegotiate(HttpContext context, HttpConnectionOptions options, ConnectionLogScope logScope)
         {
             context.Response.ContentType = "application/json";
-
+            
             // Establish the connection
-            var connection = _manager.CreateConnection();
-
-            EnsureConnectionStateInternal(connection, options);
+            var connection = CreateConnection(options);
 
             // Set the Connection ID on the logging scope so that logs from now on will have the
             // Connection ID metadata set.
@@ -607,19 +605,6 @@ namespace Microsoft.AspNetCore.Http.Connections
             return connection;
         }
 
-        private void EnsureConnectionStateInternal(HttpConnectionContext connection, HttpConnectionOptions options)
-        {
-            // If the connection doesn't have a pipe yet then create one, we lazily create the pipe to save on allocations until the client actually connects
-            if (connection.Transport == null)
-            {
-                var transportPipeOptions = new PipeOptions(pauseWriterThreshold: options.TransportMaxBufferSize, resumeWriterThreshold: options.TransportMaxBufferSize / 2, readerScheduler: PipeScheduler.ThreadPool, useSynchronizationContext: false);
-                var appPipeOptions = new PipeOptions(pauseWriterThreshold: options.ApplicationMaxBufferSize, resumeWriterThreshold: options.ApplicationMaxBufferSize / 2, readerScheduler: PipeScheduler.ThreadPool, useSynchronizationContext: false);
-                var pair = DuplexPipe.CreateConnectionPair(transportPipeOptions, appPipeOptions);
-                connection.Transport = pair.Application;
-                connection.Application = pair.Transport;
-            }
-        }
-
         // This is only used for WebSockets connections, which can connect directly without negotiating
         private async Task<HttpConnectionContext> GetOrCreateConnectionAsync(HttpContext context, HttpConnectionOptions options)
         {
@@ -629,8 +614,7 @@ namespace Microsoft.AspNetCore.Http.Connections
             // There's no connection id so this is a brand new connection
             if (StringValues.IsNullOrEmpty(connectionId))
             {
-                connection = _manager.CreateConnection();
-                EnsureConnectionStateInternal(connection, options);
+                connection = CreateConnection(options);
             }
             else if (!_manager.TryGetConnection(connectionId, out connection))
             {
@@ -641,6 +625,14 @@ namespace Microsoft.AspNetCore.Http.Connections
             }
 
             return connection;
+        }
+
+        private HttpConnectionContext CreateConnection(HttpConnectionOptions options)
+        {
+            var transportPipeOptions = new PipeOptions(pauseWriterThreshold: options.TransportMaxBufferSize, resumeWriterThreshold: options.TransportMaxBufferSize / 2, readerScheduler: PipeScheduler.ThreadPool, useSynchronizationContext: false);
+            var appPipeOptions = new PipeOptions(pauseWriterThreshold: options.ApplicationMaxBufferSize, resumeWriterThreshold: options.ApplicationMaxBufferSize / 2, readerScheduler: PipeScheduler.ThreadPool, useSynchronizationContext: false);
+
+            return _manager.CreateConnection(transportPipeOptions, appPipeOptions);
         }
 
         private class EmptyServiceProvider : IServiceProvider
