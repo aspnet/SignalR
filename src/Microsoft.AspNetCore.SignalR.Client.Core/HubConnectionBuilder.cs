@@ -15,7 +15,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 {
     public class HubConnectionBuilder : IHubConnectionBuilder
     {
-        private ServiceProvider _serviceProvider;
+        private bool _hubConnectionBuilt;
 
         public IServiceCollection Services { get; }
 
@@ -29,10 +29,12 @@ namespace Microsoft.AspNetCore.SignalR.Client
         public HubConnection Build()
         {
             // Build can only be used once
-            if (_serviceProvider != null)
+            if (_hubConnectionBuilt)
             {
                 throw new InvalidOperationException("HubConnectionBuilder allows creation only of a single instance of HubConnection.");
             }
+
+            _hubConnectionBuilt = true;
 
             // Need a hub protocol but if one is registered when the builder is created then TryAddEnumerable won't update
             // the hub protocol with new options specified by the dev. Add one at the last minute
@@ -42,15 +44,15 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
 
             // The service provider is disposed by the HubConnection
-            _serviceProvider = Services.BuildServiceProvider();
+            var serviceProvider = Services.BuildServiceProvider();
 
-            var connectionFactory = _serviceProvider.GetService<Func<IConnection>>();
+            var connectionFactory = serviceProvider.GetService<Func<IConnection>>();
             if (connectionFactory == null)
             {
                 throw new InvalidOperationException("Cannot create HubConnection instance. A connection was not configured.");
             }
 
-            return _serviceProvider.GetService<HubConnection>();
+            return serviceProvider.GetService<HubConnection>();
         }
 
         // Prevents from being displayed in intellisense

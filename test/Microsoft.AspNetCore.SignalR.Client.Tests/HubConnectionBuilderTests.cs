@@ -64,6 +64,17 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         }
 
         [Fact]
+        public void BuildCanOnlyBeCalledOnce()
+        {
+            var builder = new HubConnectionBuilder().WithConnectionFactory(() => null);
+
+            Assert.NotNull(builder.Build());
+
+            var ex = Assert.Throws<InvalidOperationException>(() => builder.Build());
+            Assert.Equal("HubConnectionBuilder allows creation only of a single instance of HubConnection.", ex.Message);
+        }
+
+        [Fact]
         public void AddMessagePackProtocolSetsHubProtocolToMsgPackWithDefaultOptions()
         {
             var serviceProvider = new HubConnectionBuilder().AddMessagePackProtocol().Services.BuildServiceProvider();
