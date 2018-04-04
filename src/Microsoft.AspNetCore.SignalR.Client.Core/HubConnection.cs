@@ -512,61 +512,58 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 throw new InvalidOperationException("The server disconnected before the handshake was completed");
             }
 
-            var handshakeCts = new CancellationTokenSource();
-            var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, handshakeCts.Token);
-            linkedCts.Token.Register(s =>
-            {
-                ((PipeReader)s).CancelPendingRead();
-            }, startingConnectionState.Connection.Transport.Input);
-            handshakeCts.CancelAfter(HandshakeTimeout);
-
             try
             {
-                while (true)
+                using (var handshakeCts = new CancellationTokenSource(HandshakeTimeout))
+                using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, handshakeCts.Token))
                 {
-                    var result = await startingConnectionState.Connection.Transport.Input.ReadAsync();
-                    var buffer = result.Buffer;
-                    var consumed = buffer.Start;
-                    var examined = buffer.End;
-
-                    try
+                    while (true)
                     {
-                        // Read first message out of the incoming data
-                        if (!buffer.IsEmpty)
+                        var result = await startingConnectionState.Connection.Transport.Input.ReadAsync(cts.Token);
+
+                        var buffer = result.Buffer;
+                        var consumed = buffer.Start;
+                        var examined = buffer.End;
+
+                        try
                         {
-                            if (HandshakeProtocol.TryParseResponseMessage(ref buffer, out var message))
+                            // Read first message out of the incoming data
+                            if (!buffer.IsEmpty)
                             {
-                                // Adjust consumed and examined to point to the end of the handshake
-                                // response, this handles the case where invocations are sent in the same payload
-                                // as the the negotiate response.
-                                consumed = buffer.Start;
-                                examined = consumed;
-
-                                if (message.Error != null)
+                                if (HandshakeProtocol.TryParseResponseMessage(ref buffer, out var message))
                                 {
-                                    Log.HandshakeServerError(_logger, message.Error);
-                                    throw new HubException(
-                                        $"Unable to complete handshake with the server due to an error: {message.Error}");
-                                }
+                                    // Adjust consumed and examined to point to the end of the handshake
+                                    // response, this handles the case where invocations are sent in the same payload
+                                    // as the the negotiate response.
+                                    consumed = buffer.Start;
+                                    examined = consumed;
 
-                                break;
+                                    if (message.Error != null)
+                                    {
+                                        Log.HandshakeServerError(_logger, message.Error);
+                                        throw new HubException(
+                                            $"Unable to complete handshake with the server due to an error: {message.Error}");
+                                    }
+
+                                    break;
+                                }
+                            }
+                            else if (result.IsCompleted)
+                            {
+                                // Not enough data, and we won't be getting any more data.
+                                throw new InvalidOperationException(
+                                    "The server disconnected before sending a handshake response");
+                            }
+                            else if (result.IsCanceled)
+                            {
+                                throw new OperationCanceledException(
+                                    "Handshake timed out waiting for a response");
                             }
                         }
-                        else if (result.IsCompleted)
+                        finally
                         {
-                            // Not enough data, and we won't be getting any more data.
-                            throw new InvalidOperationException(
-                                "The server disconnected before sending a handshake response");
+                            startingConnectionState.Connection.Transport.Input.AdvanceTo(consumed, examined);
                         }
-                        else if (result.IsCanceled)
-                        {
-                            throw new OperationCanceledException(
-                                "Handshake timed out waiting for a response");
-                        }
-                    }
-                    finally
-                    {
-                        startingConnectionState.Connection.Transport.Input.AdvanceTo(consumed, examined);
                     }
                 }
             }
@@ -577,11 +574,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 // shutdown if we're unable to read handshake
                 Log.ErrorReceivingHandshakeResponse(_logger, ex);
                 throw;
-            }
-            finally
-            {
-                handshakeCts.Dispose();
-                linkedCts.Dispose();
             }
 
             Log.HandshakeComplete(_logger);

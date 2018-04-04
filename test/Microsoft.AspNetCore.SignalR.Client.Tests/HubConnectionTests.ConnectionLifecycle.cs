@@ -404,7 +404,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 {
                     var startTask = hubConnection.StartAsync(cts.Token);
                     var exception = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => startTask.OrTimeout());
-                    Assert.Equal("Handshake timed out waiting for a response", exception.Message);
+                    Assert.Equal("The operation was canceled.", exception.Message);
                 }
                 finally
                 {
