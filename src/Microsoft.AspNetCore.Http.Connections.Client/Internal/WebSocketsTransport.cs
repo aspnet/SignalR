@@ -23,6 +23,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
         private readonly TimeSpan _closeTimeout;
         private volatile bool _aborted;
 
+        private static readonly string XRequestedWithName = "X-Requested-With";
+        private static readonly string XRequestedWithValue = "XMLHttpRequest";
+
         public Task Running { get; private set; } = Task.CompletedTask;
 
         public WebSocketsTransport()
@@ -81,6 +84,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
 
                 _closeTimeout = httpOptions.CloseTimeout;
             }
+
+            _webSocket.Options.SetRequestHeader(XRequestedWithName, XRequestedWithValue);
 
             _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<WebSocketsTransport>();
         }
