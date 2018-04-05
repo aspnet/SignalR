@@ -6,6 +6,7 @@ using System.Collections.ObjectModel;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.Http.Connections.Client;
+using Microsoft.AspNetCore.Http.Connections.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -14,8 +15,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
 {
     public static class HubConnectionBuilderHttpExtensions
     {
-        private const HttpTransportType AllTransportTypes = HttpTransportType.WebSockets | HttpTransportType.ServerSentEvents | HttpTransportType.LongPolling;
-
         public static IHubConnectionBuilder WithUrl(this IHubConnectionBuilder hubConnectionBuilder, string url)
         {
             hubConnectionBuilder.WithUrl(new Uri(url), null, _ => { });
@@ -90,7 +89,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
                 Func<IConnection> createConnection = () => new HttpConnection(
                     value.Url,
-                    value.Transport ?? AllTransportTypes,
+                    value.Transport ?? HttpTransports.All,
                     services.GetService<ILoggerFactory>(),
                     httpOptions);
 
