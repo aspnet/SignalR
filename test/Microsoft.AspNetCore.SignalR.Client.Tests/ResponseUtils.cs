@@ -37,7 +37,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         }
 
         public static string CreateNegotiationContent(string connectionId = "00000000-0000-0000-0000-000000000000",
-            HttpTransportType transportTypes = HttpTransportType.All)
+            HttpTransportType transportTypes = HttpTransportType.LongPolling | HttpTransportType.WebSockets | HttpTransportType.ServerSentEvents)
         {
             var availableTransports = new List<object>();
 

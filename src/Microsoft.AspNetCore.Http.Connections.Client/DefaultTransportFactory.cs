@@ -20,7 +20,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
 
         public DefaultTransportFactory(HttpTransportType requestedTransportType, ILoggerFactory loggerFactory, HttpClient httpClient, HttpOptions httpOptions)
         {
-            if (requestedTransportType <= 0 || requestedTransportType > HttpTransportType.All)
+            if (requestedTransportType <= 0 || requestedTransportType > HttpTransports.All)
             {
                 throw new ArgumentOutOfRangeException(nameof(requestedTransportType));
             }

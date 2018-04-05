@@ -37,7 +37,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
         private ITransport _transport;
         private readonly ITransportFactory _transportFactory;
         private string _connectionId;
-        private readonly HttpTransportType _requestedTransportType = HttpTransportType.All;
+        private readonly HttpTransportType _requestedTransportType;
         private readonly ConnectionLogScope _logScope;
         private readonly IDisposable _scopeDisposable;
         private readonly ILoggerFactory _loggerFactory;
@@ -60,7 +60,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
         public IFeatureCollection Features { get; } = new FeatureCollection();
 
         public HttpConnection(Uri url)
-            : this(url, HttpTransportType.All)
+            : this(url, HttpTransports.All)
         { }
 
         public HttpConnection(Uri url, HttpTransportType transportType)
@@ -69,7 +69,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
         }
 
         public HttpConnection(Uri url, ILoggerFactory loggerFactory)
-            : this(url, HttpTransportType.All, loggerFactory, httpOptions: null)
+            : this(url, HttpTransports.All, loggerFactory, httpOptions: null)
         {
         }
 
@@ -104,6 +104,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
             _logger = _loggerFactory.CreateLogger<HttpConnection>();
             _httpOptions = httpOptions;
             _httpClient = CreateHttpClient();
+            _requestedTransportType = HttpTransports.All;
             _transportFactory = transportFactory ?? throw new ArgumentNullException(nameof(transportFactory));
             _logScope = new ConnectionLogScope();
             _scopeDisposable = _logger.BeginScope(_logScope);

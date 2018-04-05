@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.Connections.Internal;
 
 namespace Microsoft.AspNetCore.Http.Connections
 {
@@ -10,7 +11,7 @@ namespace Microsoft.AspNetCore.Http.Connections
     {
         public IList<IAuthorizeData> AuthorizationData { get; } = new List<IAuthorizeData>();
 
-        public HttpTransportType Transports { get; set; } = HttpTransportType.All;
+        public HttpTransportType Transports { get; set; } = HttpTransports.All;
 
         public WebSocketOptions WebSockets { get; } = new WebSocketOptions();
 

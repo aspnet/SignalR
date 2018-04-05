@@ -39,8 +39,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         }
 
         [Theory]
-        [InlineData((HttpTransportType)0)]
-        [InlineData(HttpTransportType.All + 1)]
+        [InlineData(HttpTransportType.None)]
+        [InlineData((HttpTransportType)int.MaxValue)]
         public void CannotStartConnectionWithInvalidTransportType(HttpTransportType requestedTransportType)
         {
             Assert.Throws<ArgumentOutOfRangeException>(

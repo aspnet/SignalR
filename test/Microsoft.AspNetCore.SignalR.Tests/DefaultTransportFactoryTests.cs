@@ -14,9 +14,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 {
     public class DefaultTransportFactoryTests
     {
+        private const HttpTransportType AllTransportTypes = HttpTransportType.WebSockets | HttpTransportType.ServerSentEvents | HttpTransportType.LongPolling;
+
         [Theory]
-        [InlineData((HttpTransportType)0)]
-        [InlineData(HttpTransportType.All + 1)]
+        [InlineData(HttpTransportType.None)]
+        [InlineData((HttpTransportType)int.MaxValue)]
         public void DefaultTransportFactoryCannotBeCreatedWithInvalidTransportType(HttpTransportType transportType)
         {
             Assert.Throws<ArgumentOutOfRangeException>(
@@ -24,7 +26,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Theory]
-        [InlineData(HttpTransportType.All)]
+        [InlineData(AllTransportTypes)]
         [InlineData(HttpTransportType.LongPolling)]
         [InlineData(HttpTransportType.ServerSentEvents)]
         [InlineData(HttpTransportType.LongPolling | HttpTransportType.WebSockets)]
@@ -52,14 +54,14 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             var transportFactory = new DefaultTransportFactory(requestedTransport, loggerFactory: null, httpClient: new HttpClient(), httpOptions: null);
             Assert.IsType(expectedTransportType,
-                transportFactory.CreateTransport(HttpTransportType.All));
+                transportFactory.CreateTransport(AllTransportTypes));
         }
 
         [Theory]
         [InlineData(HttpTransportType.WebSockets)]
         [InlineData(HttpTransportType.ServerSentEvents)]
         [InlineData(HttpTransportType.LongPolling)]
-        [InlineData(HttpTransportType.All)]
+        [InlineData(AllTransportTypes)]
         public void DefaultTransportFactoryThrowsIfItCannotCreateRequestedTransport(HttpTransportType requestedTransport)
         {
             var transportFactory =
@@ -75,12 +77,12 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         public void DefaultTransportFactoryCreatesWebSocketsTransportIfAvailable()
         {
             Assert.IsType<WebSocketsTransport>(
-                new DefaultTransportFactory(HttpTransportType.All, loggerFactory: null, httpClient: new HttpClient(), httpOptions: null)
-                    .CreateTransport(HttpTransportType.All));
+                new DefaultTransportFactory(AllTransportTypes, loggerFactory: null, httpClient: new HttpClient(), httpOptions: null)
+                    .CreateTransport(AllTransportTypes));
         }
 
         [Theory]
-        [InlineData(HttpTransportType.All, typeof(ServerSentEventsTransport))]
+        [InlineData(AllTransportTypes, typeof(ServerSentEventsTransport))]
         [InlineData(HttpTransportType.ServerSentEvents, typeof(ServerSentEventsTransport))]
         [InlineData(HttpTransportType.LongPolling, typeof(LongPollingTransport))]
         public void DefaultTransportFactoryCreatesRequestedTransportIfAvailable_Win7(HttpTransportType requestedTransport, Type expectedTransportType)
@@ -89,7 +91,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 var transportFactory = new DefaultTransportFactory(requestedTransport, loggerFactory: null, httpClient: new HttpClient(), httpOptions: null);
                 Assert.IsType(expectedTransportType,
-                    transportFactory.CreateTransport(HttpTransportType.All));
+                    transportFactory.CreateTransport(AllTransportTypes));
             }
         }
 
@@ -102,7 +104,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var transportFactory =
                     new DefaultTransportFactory(requestedTransport, loggerFactory: null, httpClient: new HttpClient(), httpOptions: null);
                 var ex = Assert.Throws<InvalidOperationException>(
-                    () => transportFactory.CreateTransport(HttpTransportType.All));
+                    () => transportFactory.CreateTransport(AllTransportTypes));
 
                 Assert.Equal("No requested transports available on the server.", ex.Message);
             }
