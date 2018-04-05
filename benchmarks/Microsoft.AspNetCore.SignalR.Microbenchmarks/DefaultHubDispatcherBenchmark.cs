@@ -157,6 +157,22 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
 
                 return new ValueTask<ChannelReader<int>>(channel);
             }
+
+            public ChannelReader<string> StreamChannelReaderCount(int count)
+            {
+                var channel = Channel.CreateUnbounded<string>();
+
+                _ = Task.Run(async () =>
+                {
+                    for (int i = 0; i < count; i++)
+                    {
+                        await channel.Writer.WriteAsync(i.ToString());
+                    }
+                    channel.Writer.Complete();
+                });
+
+                return channel.Reader;
+            }
         }
 
         [Benchmark]
@@ -223,6 +239,24 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         public Task StreamChannelReaderValueTaskAsync()
         {
             return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "StreamChannelReaderValueTaskAsync", null));
+        }
+
+        [Benchmark]
+        public Task StreamChannelReaderCount_Zero()
+        {
+            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "StreamChannelReaderCount", argumentBindingException: null, new object[] { 0 }));
+        }
+
+        [Benchmark]
+        public Task StreamChannelReaderCount_Ten()
+        {
+            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "StreamChannelReaderCount", argumentBindingException: null, new object[] { 10 }));
+        }
+
+        [Benchmark]
+        public Task StreamChannelReaderCount_Thousand()
+        {
+            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "StreamChannelReaderCount", argumentBindingException: null, new object[] { 1000 }));
         }
     }
 }
