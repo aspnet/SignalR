@@ -149,6 +149,66 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Fact]
+        public async Task OberserverDoestThrowWhenOnNextIsCalledAfterChannelIsCompleted()
+        {
+            var observable = new Observable<int>();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(s => s.AddSingleton(observable));
+            var connectionHandler = serviceProvider.GetService<HubConnectionHandler<ObservableHub>>();
+
+            var waitForSubscribe = new TaskCompletionSource<object>();
+            observable.OnSubscribe = o =>
+            {
+                waitForSubscribe.TrySetResult(null);
+            };
+
+            var waitForDispose = new TaskCompletionSource<object>();
+            observable.OnDispose = o =>
+            {
+                waitForDispose.TrySetResult(null);
+            };
+
+            using (var client = new TestClient())
+            {
+                var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
+
+                async Task Subscribe()
+                {
+                    var results = await client.StreamAsync(nameof(ObservableHub.Subscribe));
+
+                    var items = results.OfType<StreamItemMessage>().ToList();
+
+                    Assert.Single(items);
+                    Assert.Equal(1, (long)items[0].Item);
+                }
+
+
+                var subscribeTask = Subscribe();
+
+                await waitForSubscribe.Task.OrTimeout();
+
+                Assert.Single(observable.Observers);
+
+                observable.OnNext(1);
+
+                // Calling OnComplete to complete the observer. Further calls to OnNext should no-op
+                observable.Observers[0].OnCompleted();
+
+                // Calling OnNext after we've completed our single observer should not throw.
+                observable.OnNext(2);
+
+                await subscribeTask.OrTimeout();
+
+                client.Dispose();
+
+                await waitForDispose.Task.OrTimeout();
+
+                Assert.Empty(observable.Observers);
+
+                await connectionHandlerTask.OrTimeout();
+            }
+        }
+
+        [Fact]
         public async Task ObservableHubRemovesSubscriptions()
         {
             var observable = new Observable<int>();

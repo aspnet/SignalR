@@ -62,8 +62,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                     // Wait for a spot
                     if (!_output.WaitToWriteAsync(_cancellationToken).Result)
                     {
-                        // Channel was closed.
-                        throw new InvalidOperationException("Output channel was closed");
+                        // Channel was closed so we just no-op. The observer shouldn't throw.
+                        return;
                     }
                 }
             }
