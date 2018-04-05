@@ -182,9 +182,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                     }
                     catch (Exception ex)
                     {
-                            // It's important to try catch here since this happens
-                            // on a thread pool thread
-                            restartTcs.TrySetException(ex);
+                        // It's important to try catch here since this happens
+                        // on a thread pool thread
+                        restartTcs.TrySetException(ex);
                     }
                 };
 
