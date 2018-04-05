@@ -354,6 +354,10 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
                 // exceptions have been handled in the Running task continuation by closing the channel with the exception
                 return;
             }
+            finally
+            {
+                _webSocket.Dispose();
+            }
 
             Log.TransportStopped(_logger, null);
         }
