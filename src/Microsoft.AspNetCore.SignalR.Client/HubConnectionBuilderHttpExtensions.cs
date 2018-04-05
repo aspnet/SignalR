@@ -68,7 +68,10 @@ namespace Microsoft.AspNetCore.SignalR.Client
             hubConnectionBuilder.Services.Configure<HttpConnectionOptions>(o =>
             {
                 o.Url = url;
-                o.Transport = transportType;
+                if (transportType != null)
+                {
+                    o.Transport = transportType.Value;
+                }
             });
 
             if (configureHttpConnection != null)
@@ -95,7 +98,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
                 Func<IConnection> createConnection = () => new HttpConnection(
                     value.Url,
-                    value.Transport ?? HttpTransports.All,
+                    value.Transport,
                     services.GetService<ILoggerFactory>(),
                     httpOptions);
 
