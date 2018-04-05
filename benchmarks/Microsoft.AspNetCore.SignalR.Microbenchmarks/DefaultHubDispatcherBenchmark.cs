@@ -164,7 +164,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
 
                 _ = Task.Run(async () =>
                 {
-                    for (int i = 0; i < count; i++)
+                    for (var i = 0; i < count; i++)
                     {
                         await channel.Writer.WriteAsync(i.ToString());
                     }
