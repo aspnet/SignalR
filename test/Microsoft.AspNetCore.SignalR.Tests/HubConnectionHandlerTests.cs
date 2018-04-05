@@ -177,10 +177,10 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                     var items = results.OfType<StreamItemMessage>().ToList();
 
+                    // Ensuring that only the call before OnCompleted actually did anything.
                     Assert.Single(items);
                     Assert.Equal(1, (long)items[0].Item);
                 }
-
 
                 var subscribeTask = Subscribe();
 
