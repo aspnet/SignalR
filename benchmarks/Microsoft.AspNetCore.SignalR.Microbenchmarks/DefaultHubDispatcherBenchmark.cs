@@ -176,9 +176,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
 
             public IObservable<int> StreamObservableCount(int count)
             {
-                return Observable.Interval(TimeSpan.Zero)
-                    .Select((_, index) => index)
-                    .Take(count);
+                return Observable.Range(0, count);
             }
         }
 
