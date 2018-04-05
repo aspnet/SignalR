@@ -184,9 +184,10 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 observable.Complete();
 
+                await subscribeTask.OrTimeout();
+                
                 // Disposing the client to complete the observer. Further calls to OnNext should no-op
                 client.Dispose();
-                await subscribeTask.OrTimeout();
 
                 // Calling OnNext after the client has disconnected shouldn't throw.
                 observable.OnNext(1);
