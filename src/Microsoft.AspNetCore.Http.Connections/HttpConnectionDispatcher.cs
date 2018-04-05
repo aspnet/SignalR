@@ -450,7 +450,17 @@ namespace Microsoft.AspNetCore.Http.Connections
             }
 
             var pipeWriterStream = new PipeWriterStream(connection.Application.Output);
-            await context.Request.Body.CopyToAsync(pipeWriterStream);
+
+            await connection.Lock.WaitAsync();
+
+            try
+            {
+                await context.Request.Body.CopyToAsync(pipeWriterStream);
+            }
+            finally
+            {
+                connection.Lock.Release();
+            }
 
             Log.ReceivedBytes(_logger, pipeWriterStream.Length);
         }

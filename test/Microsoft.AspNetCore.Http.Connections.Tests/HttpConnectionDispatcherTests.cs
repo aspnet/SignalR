@@ -338,6 +338,59 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             }
         }
 
+        [Theory]
+        [InlineData(HttpTransportType.LongPolling)]
+        [InlineData(HttpTransportType.ServerSentEvents)]
+        public async Task PostSendsToConnectionInParallel(HttpTransportType transportType)
+        {
+            using (StartLog(out var loggerFactory, LogLevel.Debug))
+            {
+                var manager = CreateConnectionManager(loggerFactory);
+                var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
+                var connection = manager.CreateConnection();
+                connection.Items[ConnectionMetadataNames.Transport] = transportType;
+
+                List<Task> sendTasks = new List<Task>();
+                // This tests thread safety of sending multiple pieces of data to a connection at once
+                for (int i = 0; i < 1000; i++)
+                {
+                    var task = Task.Run(async () =>
+                    {
+                        using (var requestBody = new MemoryStream())
+                        using (var responseBody = new MemoryStream())
+                        {
+                            var bytes = Encoding.UTF8.GetBytes("Hello World");
+                            requestBody.Write(bytes, 0, bytes.Length);
+                            requestBody.Seek(0, SeekOrigin.Begin);
+
+                            var context = new DefaultHttpContext();
+                            context.Request.Body = requestBody;
+                            context.Response.Body = responseBody;
+
+                            var services = new ServiceCollection();
+                            services.AddSingleton<TestConnectionHandler>();
+                            services.AddOptions();
+                            context.Request.Path = "/foo";
+                            context.Request.Method = "POST";
+                            var values = new Dictionary<string, StringValues>();
+                            values["id"] = connection.ConnectionId;
+                            var qs = new QueryCollection(values);
+                            context.Request.Query = qs;
+
+                            var builder = new ConnectionBuilder(services.BuildServiceProvider());
+                            builder.UseConnectionHandler<TestConnectionHandler>();
+                            var app = builder.Build();
+
+                            await dispatcher.ExecuteAsync(context, new HttpConnectionOptions(), app);
+                        }
+                    });
+                    sendTasks.Add(task);
+                }
+
+                await Task.WhenAll(sendTasks);
+            }
+        }
+
         [Fact]
         public async Task HttpContextFeatureForLongpollingWorksBetweenPolls()
         {
