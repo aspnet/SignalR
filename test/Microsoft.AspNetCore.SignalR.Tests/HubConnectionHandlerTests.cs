@@ -188,7 +188,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 client.Dispose();
                 await subscribeTask.OrTimeout();
 
-                // Calling OnNext after the client has disconnected shouln't throw.
+                // Calling OnNext after the client has disconnected shouldn't throw.
                 observable.OnNext(1);
 
                 await waitForDispose.Task.OrTimeout();
