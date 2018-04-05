@@ -68,57 +68,54 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         [Fact]
         public async Task SSETransportStopsSendAndReceiveLoopsWhenTransportStopped()
         {
-            for (var i = 0; i < 10; ++i)
-            {
-                var eventStreamCts = new CancellationTokenSource();
-                var mockHttpHandler = new Mock<HttpMessageHandler>();
-                mockHttpHandler.Protected()
-                    .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
-                    .Returns<HttpRequestMessage, CancellationToken>((request, cancellationToken) =>
-                    {
-                        var mockStream = new Mock<Stream>();
-                        mockStream
-                            .Setup(s => s.CopyToAsync(It.IsAny<Stream>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
-                            .Returns<Stream, int, CancellationToken>(async (stream, bufferSize, t) =>
-                            {
-                                await Task.Yield();
-                                var buffer = Encoding.ASCII.GetBytes("data: 3:abc\r\n\r\n");
-                                while (!eventStreamCts.IsCancellationRequested)
-                                {
-                                    await stream.WriteAsync(buffer, 0, buffer.Length).OrTimeout();
-                                }
-                            });
-                        mockStream.Setup(s => s.CanRead).Returns(true);
-
-                        return Task.FromResult(new HttpResponseMessage { Content = new StreamContent(mockStream.Object) });
-                    });
-
-                Task transportActiveTask;
-
-                using (var httpClient = new HttpClient(mockHttpHandler.Object))
+            var eventStreamCts = new CancellationTokenSource();
+            var mockHttpHandler = new Mock<HttpMessageHandler>();
+            mockHttpHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+                .Returns<HttpRequestMessage, CancellationToken>((request, cancellationToken) =>
                 {
-                    var sseTransport = new ServerSentEventsTransport(httpClient);
+                    var mockStream = new Mock<Stream>();
+                    mockStream
+                        .Setup(s => s.CopyToAsync(It.IsAny<Stream>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                        .Returns<Stream, int, CancellationToken>(async (stream, bufferSize, t) =>
+                        {
+                            await Task.Yield();
+                            var buffer = Encoding.ASCII.GetBytes("data: 3:abc\r\n\r\n");
+                            while (!eventStreamCts.IsCancellationRequested)
+                            {
+                                await stream.WriteAsync(buffer, 0, buffer.Length).OrTimeout();
+                            }
+                        });
+                    mockStream.Setup(s => s.CanRead).Returns(true);
 
-                    try
-                    {
-                        var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
+                    return Task.FromResult(new HttpResponseMessage { Content = new StreamContent(mockStream.Object) });
+                });
 
-                        await sseTransport.StartAsync(
-                            new Uri("http://fakeuri.org"), pair.Application, TransferFormat.Text, connection: Mock.Of<IConnection>()).OrTimeout();
+            Task transportActiveTask;
 
-                        transportActiveTask = sseTransport.Running;
-                        Assert.False(transportActiveTask.IsCompleted);
-                        var message = await pair.Transport.Input.ReadSingleAsync().OrTimeout();
-                        Assert.StartsWith("3:abc", Encoding.ASCII.GetString(message));
-                    }
-                    finally
-                    {
-                        await sseTransport.StopAsync().OrTimeout();
-                    }
+            using (var httpClient = new HttpClient(mockHttpHandler.Object))
+            {
+                var sseTransport = new ServerSentEventsTransport(httpClient);
 
-                    await transportActiveTask.OrTimeout();
-                    eventStreamCts.Cancel();
+                try
+                {
+                    var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
+
+                    await sseTransport.StartAsync(
+                        new Uri("http://fakeuri.org"), pair.Application, TransferFormat.Text, connection: Mock.Of<IConnection>()).OrTimeout();
+
+                    transportActiveTask = sseTransport.Running;
+                    Assert.False(transportActiveTask.IsCompleted);
+                    var message = await pair.Transport.Input.ReadSingleAsync().OrTimeout();
+                    Assert.StartsWith("3:abc", Encoding.ASCII.GetString(message));
                 }
+                finally
+                {
+                    await sseTransport.StopAsync().OrTimeout();
+                }
+
+                await transportActiveTask.OrTimeout();
+                eventStreamCts.Cancel();
             }
         }
 
