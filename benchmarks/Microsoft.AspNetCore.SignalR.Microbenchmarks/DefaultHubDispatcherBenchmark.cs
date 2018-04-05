@@ -158,20 +158,27 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
                 return new ValueTask<ChannelReader<int>>(channel);
             }
 
-            public ChannelReader<string> StreamChannelReaderCount(int count)
+            public ChannelReader<int> StreamChannelReaderCount(int count)
             {
-                var channel = Channel.CreateUnbounded<string>();
+                var channel = Channel.CreateUnbounded<int>();
 
                 _ = Task.Run(async () =>
                 {
                     for (var i = 0; i < count; i++)
                     {
-                        await channel.Writer.WriteAsync(i.ToString());
+                        await channel.Writer.WriteAsync(i);
                     }
                     channel.Writer.Complete();
                 });
 
                 return channel.Reader;
+            }
+
+            public IObservable<int> StreamObservableCount(int count)
+            {
+                return Observable.Interval(TimeSpan.Zero)
+                    .Select((_, index) => index)
+                    .Take(count);
             }
         }
 
@@ -248,15 +255,33 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         }
 
         [Benchmark]
-        public Task StreamChannelReaderCount_Ten()
+        public Task StreamChannelReaderCount_One()
         {
-            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "StreamChannelReaderCount", argumentBindingException: null, new object[] { 10 }));
+            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "StreamChannelReaderCount", argumentBindingException: null, new object[] { 1 }));
         }
 
         [Benchmark]
         public Task StreamChannelReaderCount_Thousand()
         {
             return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "StreamChannelReaderCount", argumentBindingException: null, new object[] { 1000 }));
+        }
+
+        [Benchmark]
+        public Task StreamObservableCount_Zero()
+        {
+            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "StreamObservableCount", argumentBindingException: null, new object[] { 0 }));
+        }
+
+        [Benchmark]
+        public Task StreamObservableCount_One()
+        {
+            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "StreamObservableCount", argumentBindingException: null, new object[] { 1 }));
+        }
+
+        [Benchmark]
+        public Task StreamObservableCount_Thousand()
+        {
+            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "StreamObservableCount", argumentBindingException: null, new object[] { 1000 }));
         }
     }
 }
