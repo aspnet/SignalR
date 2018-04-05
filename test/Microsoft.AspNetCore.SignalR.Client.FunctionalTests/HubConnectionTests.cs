@@ -159,60 +159,63 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
         public async Task CanStartConnectionFromClosedEvent(string protocolName, HttpTransportType transportType, string path)
         {
-            var protocol = HubProtocols[protocolName];
-            using (StartLog(out var loggerFactory, LogLevel.Trace, $"{nameof(CanStartConnectionFromClosedEvent)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
+            while (true)
             {
-                var logger = loggerFactory.CreateLogger<HubConnectionTests>();
-                const string originalMessage = "SignalR";
-
-                var connection = CreateHubConnection(path, transportType, protocol, loggerFactory);
-                var restartTcs = new TaskCompletionSource<object>();
-                connection.Closed += async e =>
+                var protocol = HubProtocols[protocolName];
+                using (StartLog(out var loggerFactory, LogLevel.Trace, $"{nameof(CanStartConnectionFromClosedEvent)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
                 {
-                    try
+                    var logger = loggerFactory.CreateLogger<HubConnectionTests>();
+                    const string originalMessage = "SignalR";
+
+                    var connection = CreateHubConnection(path, transportType, protocol, loggerFactory);
+                    var restartTcs = new TaskCompletionSource<object>();
+                    connection.Closed += async e =>
                     {
-                        logger.LogInformation("Closed event triggered");
-                        if (!restartTcs.Task.IsCompleted)
+                        try
                         {
-                            logger.LogInformation("Restarting connection");
-                            await connection.StartAsync().OrTimeout();
-                            logger.LogInformation("Restarted connection");
-                            restartTcs.SetResult(null);
+                            logger.LogInformation("Closed event triggered");
+                            if (!restartTcs.Task.IsCompleted)
+                            {
+                                logger.LogInformation("Restarting connection");
+                                await connection.StartAsync().OrTimeout();
+                                logger.LogInformation("Restarted connection");
+                                restartTcs.SetResult(null);
+                            }
                         }
-                    }
-                    catch (Exception ex)
-                    {
+                        catch (Exception ex)
+                        {
                             // It's important to try catch here since this happens
                             // on a thread pool thread
                             restartTcs.TrySetException(ex);
+                        }
+                    };
+
+                    try
+                    {
+                        await connection.StartAsync().OrTimeout();
+                        var result = await connection.InvokeAsync<string>(nameof(TestHub.Echo), originalMessage).OrTimeout();
+                        Assert.Equal(originalMessage, result);
+
+                        logger.LogInformation("Stopping connection");
+                        await connection.StopAsync().OrTimeout();
+
+                        logger.LogInformation("Waiting for reconnect");
+                        await restartTcs.Task.OrTimeout();
+                        logger.LogInformation("Reconnection complete");
+
+                        result = await connection.InvokeAsync<string>(nameof(TestHub.Echo), originalMessage).OrTimeout();
+                        Assert.Equal(originalMessage, result);
+
                     }
-                };
-
-                try
-                {
-                    await connection.StartAsync().OrTimeout();
-                    var result = await connection.InvokeAsync<string>(nameof(TestHub.Echo), originalMessage).OrTimeout();
-                    Assert.Equal(originalMessage, result);
-
-                    logger.LogInformation("Stopping connection");
-                    await connection.StopAsync().OrTimeout();
-
-                    logger.LogInformation("Waiting for reconnect");
-                    await restartTcs.Task.OrTimeout();
-                    logger.LogInformation("Reconnection complete");
-
-                    result = await connection.InvokeAsync<string>(nameof(TestHub.Echo), originalMessage).OrTimeout();
-                    Assert.Equal(originalMessage, result);
-
-                }
-                catch (Exception ex)
-                {
-                    loggerFactory.CreateLogger<HubConnectionTests>().LogError(ex, "{ExceptionType} from test", ex.GetType().FullName);
-                    throw;
-                }
-                finally
-                {
-                    await connection.DisposeAsync().OrTimeout();
+                    catch (Exception ex)
+                    {
+                        loggerFactory.CreateLogger<HubConnectionTests>().LogError(ex, "{ExceptionType} from test", ex.ToString());
+                        throw;
+                    }
+                    finally
+                    {
+                        await connection.DisposeAsync().OrTimeout();
+                    }
                 }
             }
         }
@@ -884,13 +887,13 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         }
 
         // This list excludes "special" hub paths like "default-nowebsockets" which exist for specific tests.
-        public static string[] HubPaths = new[] { "/default", "/dynamic", "/hubT" };
+        public static string[] HubPaths = new[] { "/default" /*, "/dynamic", "/hubT"*/ };
 
         public static Dictionary<string, IHubProtocol> HubProtocols =>
             new Dictionary<string, IHubProtocol>
             {
                 { "json", new JsonHubProtocol() },
-                { "messagepack", new MessagePackHubProtocol() },
+                // { "messagepack", new MessagePackHubProtocol() },
             };
 
         public static IEnumerable<object[]> TransportTypes()
@@ -899,8 +902,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             {
                 yield return new object[] { HttpTransportType.WebSockets };
             }
-            yield return new object[] { HttpTransportType.ServerSentEvents };
-            yield return new object[] { HttpTransportType.LongPolling };
+            // yield return new object[] { HttpTransportType.ServerSentEvents };
+            // yield return new object[] { HttpTransportType.LongPolling };
         }
     }
 }
