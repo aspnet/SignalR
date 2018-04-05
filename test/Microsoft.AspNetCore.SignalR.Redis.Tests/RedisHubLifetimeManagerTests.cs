@@ -468,26 +468,6 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
         }
 
         [Fact]
-        public async Task WritingToLocalConnectionThatFailsDoesNotThrowException()
-        {
-            var server = new TestRedisServer();
-
-            var manager = CreateLifetimeManager(server);
-
-            using (var client = new TestClient())
-            {
-                // Force an exception when writing to connection
-                var connectionMock = HubConnectionContextUtils.CreateMock(client.Connection);
-                connectionMock.Setup(m => m.WriteAsync(It.IsAny<HubMessage>())).Throws(new Exception("Message"));
-                var connection = connectionMock.Object;
-
-                await manager.OnConnectedAsync(connection).OrTimeout();
-
-                await manager.SendConnectionAsync(connection.ConnectionId, "Hello", new object[] { "World" }).OrTimeout();
-            }
-        }
-
-        [Fact]
         public async Task WritingToGroupWithOneConnectionFailingSecondConnectionStillReceivesMessage()
         {
             var server = new TestRedisServer();
