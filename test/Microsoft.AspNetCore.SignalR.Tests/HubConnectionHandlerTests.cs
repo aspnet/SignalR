@@ -149,7 +149,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Fact]
-        public async Task OberserverDoestThrowWhenOnNextIsCalledAfterChannelIsCompleted()
+        public async Task OberserverDoesntThrowWhenOnNextIsCalledAfterChannelIsCompleted()
         {
             var observable = new Observable<int>();
             var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(s => s.AddSingleton(observable));
@@ -174,12 +174,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 async Task Subscribe()
                 {
                     var results = await client.StreamAsync(nameof(ObservableHub.Subscribe));
-
-                    var items = results.OfType<StreamItemMessage>().ToList();
-
-                    // Ensuring that only the call before OnCompleted actually did anything.
-                    Assert.Single(items);
-                    Assert.Equal(1, (long)items[0].Item);
                 }
 
                 var subscribeTask = Subscribe();
@@ -188,17 +182,14 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 Assert.Single(observable.Observers);
 
-                observable.OnNext(1);
+                observable.Complete();
 
-                // Calling OnComplete to complete the observer. Further calls to OnNext should no-op
-                observable.Observers[0].OnCompleted();
-
-                // Calling OnNext after we've completed our single observer should not throw.
-                observable.OnNext(2);
-
+                // Disposing the client to complete the observer. Further calls to OnNext should no-op
+                client.Dispose();
                 await subscribeTask.OrTimeout();
 
-                client.Dispose();
+                // Calling OnNext after the client has disconnected shouln't throw.
+                observable.OnNext(1);
 
                 await waitForDispose.Task.OrTimeout();
 
