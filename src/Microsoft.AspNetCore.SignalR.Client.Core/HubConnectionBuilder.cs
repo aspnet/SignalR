@@ -22,7 +22,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
         public HubConnectionBuilder()
         {
             Services = new ServiceCollection();
-            Services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
             Services.AddSingleton<HubConnection>();
             Services.AddLogging();
             this.AddJsonProtocol();
