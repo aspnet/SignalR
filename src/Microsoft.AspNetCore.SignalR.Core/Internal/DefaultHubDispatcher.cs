@@ -264,7 +264,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 // Dispose the linked CTS for the stream.
                 streamCts.Dispose();
 
-                await connection.WriteAsync(new CompletionMessage(invocationId, error: error, result: null, hasResult: false));
+                await connection.WriteAsync(CompletionMessage.WithError(invocationId, error));
 
                 if (connection.ActiveRequestCancellationSources.TryRemove(invocationId, out var cts))
                 {
