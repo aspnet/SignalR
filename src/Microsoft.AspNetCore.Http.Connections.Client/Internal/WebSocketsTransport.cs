@@ -82,6 +82,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
                 _closeTimeout = httpOptions.CloseTimeout;
             }
 
+            // Set this header so the server auth middleware will set an Unauthorized instead of Redirect status code
             _webSocket.Options.SetRequestHeader("X-Requested-With", "XMLHttpRequest");
 
             _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<WebSocketsTransport>();
