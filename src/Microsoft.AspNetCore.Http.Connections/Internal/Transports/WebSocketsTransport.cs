@@ -138,20 +138,15 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
         {
             try
             {
-                var endOfMessage = true;
                 while (true)
                 {
 #if NETCOREAPP2_1
-                    // If there was a read that had a 'false' EndOfMessage then we should skip the 0 byte read since there is an in-progress frame
-                    if (endOfMessage)
-                    {
-                        // Do a 0 byte read so that idle connections don't allocate a buffer when waiting for a read
-                        var result = await socket.ReceiveAsync(Memory<byte>.Empty, CancellationToken.None);
+                    // Do a 0 byte read so that idle connections don't allocate a buffer when waiting for a read
+                    var result = await socket.ReceiveAsync(Memory<byte>.Empty, CancellationToken.None);
 
-                        if (result.MessageType == WebSocketMessageType.Close)
-                        {
-                            return;
-                        }
+                    if (result.MessageType == WebSocketMessageType.Close)
+                    {
+                        return;
                     }
 #endif
                     var memory = _application.Output.GetMemory();
@@ -170,9 +165,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
                         return;
                     }
 #endif
-
-                    endOfMessage = receiveResult.EndOfMessage;
-                    Log.MessageReceived(_logger, receiveResult.MessageType, receiveResult.Count, endOfMessage);
+                    Log.MessageReceived(_logger, receiveResult.MessageType, receiveResult.Count, receiveResult.EndOfMessage);
 
                     _application.Output.Advance(receiveResult.Count);
 
