@@ -28,6 +28,45 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             Assert.NotNull(connection.Application);
         }
 
+        [Theory]
+        [InlineData(false, false, false)]
+        [InlineData(false, false, true)]
+        [InlineData(false, true, true)]
+        [InlineData(false, true, false)]
+        [InlineData(true, false, false)]
+        [InlineData(true, false, true)]
+        [InlineData(true, true, true)]
+        [InlineData(true, true, false)]
+        public async Task DisposingConnectionsClosesBothSidesOfThePipe(bool closeGracefully, bool applicationFaulted, bool transportFaulted)
+        {
+            var connectionManager = CreateConnectionManager();
+            var connection = connectionManager.CreateConnection();
+
+            connection.ApplicationTask = applicationFaulted ? Task.FromException(new Exception("Fail")) : Task.CompletedTask;
+            connection.TransportTask = transportFaulted ? Task.FromException(new Exception("Fail")) : Task.CompletedTask;
+
+            var applicationInputTcs = new TaskCompletionSource<object>();
+            var applicationOutputTcs = new TaskCompletionSource<object>();
+            var transportInputTcs = new TaskCompletionSource<object>();
+            var transportOutputTcs = new TaskCompletionSource<object>();
+
+            connection.Transport.Input.OnWriterCompleted((_, __) => transportInputTcs.TrySetResult(null), null);
+            connection.Transport.Output.OnReaderCompleted((_, __) => transportOutputTcs.TrySetResult(null), null);
+            connection.Application.Input.OnWriterCompleted((_, __) => applicationInputTcs.TrySetResult(null), null);
+            connection.Application.Output.OnReaderCompleted((_, __) => applicationOutputTcs.TrySetResult(null), null);
+
+            try
+            {
+                await connection.DisposeAsync(closeGracefully);
+            }
+            catch
+            {
+                // Ignore the exception that bubbles out of the failing ta
+            }
+
+            await Task.WhenAll(applicationInputTcs.Task, applicationOutputTcs.Task, transportInputTcs.Task, transportOutputTcs.Task).OrTimeout();
+        }
+
         [Fact]
         public void NewConnectionsCanBeRetrieved()
         {

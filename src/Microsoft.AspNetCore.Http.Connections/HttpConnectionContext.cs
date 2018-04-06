@@ -172,8 +172,17 @@ namespace Microsoft.AspNetCore.Http.Connections
                         Transport.Output.Complete(applicationTask.Exception?.InnerException);
                         Transport.Input.Complete();
 
-                        // Transports are written by us and are well behaved, wait for them to drain
-                        await transportTask;
+                        try
+                        {
+                            // Transports are written by us and are well behaved, wait for them to drain
+                            await transportTask;
+                        }
+                        finally
+                        {
+                            // Now complete the application
+                            Application.Output.Complete();
+                            Application.Input.Complete();
+                        }
                     }
                     else
                     {
@@ -181,8 +190,16 @@ namespace Microsoft.AspNetCore.Http.Connections
                         Application.Output.Complete(transportTask.Exception?.InnerException);
                         Application.Input.Complete();
 
-                        // A poorly written application *could* in theory hang forever and it'll show up as a memory leak
-                        await applicationTask;
+                        try
+                        {
+                            // A poorly written application *could* in theory hang forever and it'll show up as a memory leak
+                            await applicationTask;
+                        }
+                        finally
+                        {
+                            Transport.Output.Complete();
+                            Transport.Input.Complete();
+                        }
                     }
                 }
                 else
@@ -190,7 +207,7 @@ namespace Microsoft.AspNetCore.Http.Connections
                     // Shutdown both sides and wait for nothing
                     Transport.Output.Complete(applicationTask.Exception?.InnerException);
                     Application.Output.Complete(transportTask.Exception?.InnerException);
-                    
+
                     try
                     {
                         // A poorly written application *could* in theory hang forever and it'll show up as a memory leak
