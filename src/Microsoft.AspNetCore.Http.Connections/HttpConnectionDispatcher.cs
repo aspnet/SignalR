@@ -417,9 +417,6 @@ namespace Microsoft.AspNetCore.Http.Connections
                 response.AvailableTransports.Add(_longPollingAvailableTransport);
             }
 
-            var ms = new MemoryStream();
-            NegotiateProtocol.WriteResponse(response, ms);
-
             var writer = MemoryBufferWriter.Get();
             try
             {
