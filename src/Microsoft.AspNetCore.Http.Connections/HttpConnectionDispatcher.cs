@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Http.Connections.Features;
 using Microsoft.AspNetCore.Http.Connections.Internal;
 using Microsoft.AspNetCore.Http.Connections.Internal.Transports;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 
@@ -419,7 +420,16 @@ namespace Microsoft.AspNetCore.Http.Connections
             var ms = new MemoryStream();
             NegotiateProtocol.WriteResponse(response, ms);
 
-            return ms.ToArray();
+            var writer = MemoryBufferWriter.Get();
+            try
+            {
+                NegotiateProtocol.WriteResponse(response, writer);
+                return writer.ToArray();
+            }
+            finally
+            {   
+                MemoryBufferWriter.Return(writer);
+            }
         }
 
         private static bool ServerHasWebSockets(IFeatureCollection features)

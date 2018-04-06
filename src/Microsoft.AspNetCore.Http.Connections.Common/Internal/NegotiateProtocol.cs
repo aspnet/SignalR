@@ -2,10 +2,12 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Microsoft.AspNetCore.Internal;
+using Microsoft.AspNetCore.SignalR.Internal;
 using Newtonsoft.Json;
 
 namespace Microsoft.AspNetCore.Http.Connections.Internal
@@ -50,6 +52,48 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
                 jsonWriter.WriteEndObject();
 
                 jsonWriter.Flush();
+            }
+        }
+
+        public static void WriteResponse(NegotiationResponse response, IBufferWriter<byte> output)
+        {
+            var textWriter = Utf8BufferTextWriter.Get(output);
+            try
+            {
+                using (var jsonWriter = JsonUtils.CreateJsonTextWriter(textWriter))
+                {
+                    jsonWriter.WriteStartObject();
+                    jsonWriter.WritePropertyName(ConnectionIdPropertyName);
+                    jsonWriter.WriteValue(response.ConnectionId);
+                    jsonWriter.WritePropertyName(AvailableTransportsPropertyName);
+                    jsonWriter.WriteStartArray();
+
+                    foreach (var availableTransport in response.AvailableTransports)
+                    {
+                        jsonWriter.WriteStartObject();
+                        jsonWriter.WritePropertyName(TransportPropertyName);
+                        jsonWriter.WriteValue(availableTransport.Transport);
+                        jsonWriter.WritePropertyName(TransferFormatsPropertyName);
+                        jsonWriter.WriteStartArray();
+
+                        foreach (var transferFormat in availableTransport.TransferFormats)
+                        {
+                            jsonWriter.WriteValue(transferFormat);
+                        }
+
+                        jsonWriter.WriteEndArray();
+                        jsonWriter.WriteEndObject();
+                    }
+
+                    jsonWriter.WriteEndArray();
+                    jsonWriter.WriteEndObject();
+
+                    jsonWriter.Flush();
+                }
+            }
+            finally
+            {
+                Utf8BufferTextWriter.Return(textWriter);
             }
         }
 
