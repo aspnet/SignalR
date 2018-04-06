@@ -253,8 +253,8 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
 
             // Parse the input fully now.
             bytes = Frame(bytes);
-            var messages = new List<HubMessage>();
-            Assert.True(_hubProtocol.TryParseMessages(bytes, new TestBinder(testData.Message), messages));
+            var data = new ReadOnlySequence<byte>(bytes);
+            Assert.True(_hubProtocol.TryParseMessage(ref data, new TestBinder(testData.Message), out var message));
 
             Assert.NotNull(message);
             Assert.Equal(testData.Message, message, TestHubMessageEqualityComparer.Instance);
@@ -271,8 +271,8 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
 
             // Parse the input fully now.
             bytes = Frame(bytes);
-            var messages = new List<HubMessage>();
-            Assert.True(_hubProtocol.TryParseMessages(bytes, new TestBinder(expectedMessage), messages));
+            var data = new ReadOnlySequence<byte>(bytes);
+            Assert.True(_hubProtocol.TryParseMessage(ref data, new TestBinder(expectedMessage), out var message));
 
             Assert.NotNull(message);
             Assert.Equal(expectedMessage, message, TestHubMessageEqualityComparer.Instance);
@@ -298,43 +298,43 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         public static IDictionary<string, InvalidMessageData> InvalidPayloads => new[]
         {
             // Message Type
-            new object[] { new InvalidMessageData("MessageTypeString", new byte[] { 0x91, 0xa3, 0x66, 0x6f, 0x6f }, "Reading 'messageType' as Int32 failed.") },
+            new InvalidMessageData("MessageTypeString", new byte[] { 0x91, 0xa3, 0x66, 0x6f, 0x6f }, "Reading 'messageType' as Int32 failed."),
 
             // Headers
-            new object[] { new InvalidMessageData("HeadersNotAMap", new byte[] { 0x92, 0x01, 0xa3, 0x66, 0x6f, 0x6f }, "Reading map length for 'headers' failed.") },
-            new object[] { new InvalidMessageData("HeaderKeyInt", new byte[] { 0x92, 0x01, 0x82, 0x2a, 0xa3, 0x66, 0x6f, 0x6f }, "Reading 'headers[0].Key' as String failed.") },
-            new object[] { new InvalidMessageData("HeaderValueInt", new byte[] { 0x92, 0x01, 0x82, 0xa3, 0x66, 0x6f, 0x6f, 0x2a }, "Reading 'headers[0].Value' as String failed.") },
-            new object[] { new InvalidMessageData("HeaderKeyArray", new byte[] { 0x92, 0x01, 0x84, 0xa3, 0x66, 0x6f, 0x6f, 0xa3, 0x66, 0x6f, 0x6f, 0x90, 0xa3, 0x66, 0x6f, 0x6f }, "Reading 'headers[1].Key' as String failed.") },
-            new object[] { new InvalidMessageData("HeaderValueArray", new byte[] { 0x92, 0x01, 0x84, 0xa3, 0x66, 0x6f, 0x6f, 0xa3, 0x66, 0x6f, 0x6f, 0xa3, 0x66, 0x6f, 0x6f, 0x90 }, "Reading 'headers[1].Value' as String failed.") },
+            new InvalidMessageData("HeadersNotAMap", new byte[] { 0x92, 0x01, 0xa3, 0x66, 0x6f, 0x6f }, "Reading map length for 'headers' failed."),
+            new InvalidMessageData("HeaderKeyInt", new byte[] { 0x92, 0x01, 0x82, 0x2a, 0xa3, 0x66, 0x6f, 0x6f }, "Reading 'headers[0].Key' as String failed."),
+            new InvalidMessageData("HeaderValueInt", new byte[] { 0x92, 0x01, 0x82, 0xa3, 0x66, 0x6f, 0x6f, 0x2a }, "Reading 'headers[0].Value' as String failed."),
+            new InvalidMessageData("HeaderKeyArray", new byte[] { 0x92, 0x01, 0x84, 0xa3, 0x66, 0x6f, 0x6f, 0xa3, 0x66, 0x6f, 0x6f, 0x90, 0xa3, 0x66, 0x6f, 0x6f }, "Reading 'headers[1].Key' as String failed."),
+            new InvalidMessageData("HeaderValueArray", new byte[] { 0x92, 0x01, 0x84, 0xa3, 0x66, 0x6f, 0x6f, 0xa3, 0x66, 0x6f, 0x6f, 0xa3, 0x66, 0x6f, 0x6f, 0x90 }, "Reading 'headers[1].Value' as String failed."),
 
             // InvocationMessage
-            new object[] { new InvalidMessageData("InvocationMissingId", new byte[] { 0x92, 0x01, 0x80 }, "Reading 'invocationId' as String failed.") },
-            new object[] { new InvalidMessageData("InvocationIdBoolean", new byte[] { 0x91, 0x01, 0x80, 0xc2 }, "Reading 'invocationId' as String failed.") },
-            new object[] { new InvalidMessageData("InvocationTargetMissing", new byte[] { 0x93, 0x01, 0x80, 0xa3, 0x61, 0x62, 0x63 }, "Reading 'target' as String failed.") },
-            new object[] { new InvalidMessageData("InvocationTargetInt", new byte[] { 0x94, 0x01, 0x80, 0xa3, 0x61, 0x62, 0x63, 0x2a }, "Reading 'target' as String failed.") },
+            new InvalidMessageData("InvocationMissingId", new byte[] { 0x92, 0x01, 0x80 }, "Reading 'invocationId' as String failed."),
+            new InvalidMessageData("InvocationIdBoolean", new byte[] { 0x91, 0x01, 0x80, 0xc2 }, "Reading 'invocationId' as String failed."),
+            new InvalidMessageData("InvocationTargetMissing", new byte[] { 0x93, 0x01, 0x80, 0xa3, 0x61, 0x62, 0x63 }, "Reading 'target' as String failed."),
+            new InvalidMessageData("InvocationTargetInt", new byte[] { 0x94, 0x01, 0x80, 0xa3, 0x61, 0x62, 0x63, 0x2a }, "Reading 'target' as String failed."),
 
             // StreamInvocationMessage
-            new object[] { new InvalidMessageData("StreamInvocationMissingId", new byte[] { 0x92, 0x04, 0x80 }, "Reading 'invocationId' as String failed.") },
-            new object[] { new InvalidMessageData("StreamInvocationIdBoolean", new byte[] { 0x93, 0x04, 0x80, 0xc2 }, "Reading 'invocationId' as String failed.") },
-            new object[] { new InvalidMessageData("StreamInvocationTargetMissing", new byte[] { 0x93, 0x04, 0x80, 0xa3, 0x61, 0x62, 0x63 }, "Reading 'target' as String failed.") },
-            new object[] { new InvalidMessageData("StreamInvocationTargetInt", new byte[] { 0x94, 0x04, 0x80, 0xa3, 0x61, 0x62, 0x63, 0x2a }, "Reading 'target' as String failed.") },
+            new InvalidMessageData("StreamInvocationMissingId", new byte[] { 0x92, 0x04, 0x80 }, "Reading 'invocationId' as String failed."),
+            new InvalidMessageData("StreamInvocationIdBoolean", new byte[] { 0x93, 0x04, 0x80, 0xc2 }, "Reading 'invocationId' as String failed."),
+            new InvalidMessageData("StreamInvocationTargetMissing", new byte[] { 0x93, 0x04, 0x80, 0xa3, 0x61, 0x62, 0x63 }, "Reading 'target' as String failed."),
+            new InvalidMessageData("StreamInvocationTargetInt", new byte[] { 0x94, 0x04, 0x80, 0xa3, 0x61, 0x62, 0x63, 0x2a }, "Reading 'target' as String failed."),
 
             // StreamItemMessage
-            new object[] { new InvalidMessageData("StreamItemMissingId", new byte[] { 0x92, 0x02, 0x80 }, "Reading 'invocationId' as String failed.") },
-            new object[] { new InvalidMessageData("StreamItemInvocationIdBoolean", new byte[] { 0x93, 0x02, 0x80, 0xc2 }, "Reading 'invocationId' as String failed.") },
-            new object[] { new InvalidMessageData("StreamItemMissing", new byte[] { 0x93, 0x02, 0x80, 0xa3, 0x78, 0x79, 0x7a }, "Deserializing object of the `String` type for 'item' failed.") },
-            new object[] { new InvalidMessageData("StreamItemTypeMismatch", new byte[] { 0x94, 0x02, 0x80, 0xa3, 0x78, 0x79, 0x7a, 0x2a }, "Deserializing object of the `String` type for 'item' failed.") },
+            new InvalidMessageData("StreamItemMissingId", new byte[] { 0x92, 0x02, 0x80 }, "Reading 'invocationId' as String failed."),
+            new InvalidMessageData("StreamItemInvocationIdBoolean", new byte[] { 0x93, 0x02, 0x80, 0xc2 }, "Reading 'invocationId' as String failed."),
+            new InvalidMessageData("StreamItemMissing", new byte[] { 0x93, 0x02, 0x80, 0xa3, 0x78, 0x79, 0x7a }, "Deserializing object of the `String` type for 'item' failed."),
+            new InvalidMessageData("StreamItemTypeMismatch", new byte[] { 0x94, 0x02, 0x80, 0xa3, 0x78, 0x79, 0x7a, 0x2a }, "Deserializing object of the `String` type for 'item' failed."),
 
             // CompletionMessage
-            new object[] { new InvalidMessageData("CompletionMissingId", new byte[] { 0x92, 0x03, 0x80 }, "Reading 'invocationId' as String failed.") },
-            new object[] { new InvalidMessageData("CompletionIdBoolean", new byte[] { 0x93, 0x03, 0x80, 0xc2 }, "Reading 'invocationId' as String failed.") },
-            new object[] { new InvalidMessageData("CompletionResultKindString", new byte[] { 0x94, 0x03, 0x80, 0xa3, 0x78, 0x79, 0x7a, 0xa3, 0x61, 0x62, 0x63 }, "Reading 'resultKind' as Int32 failed.") },
-            new object[] { new InvalidMessageData("CompletionResultKindOutOfRange", new byte[] { 0x94, 0x03, 0x80, 0xa3, 0x78, 0x79, 0x7a, 0x2a }, "Invalid invocation result kind.") },
-            new object[] { new InvalidMessageData("CompletionErrorMissing", new byte[] { 0x94, 0x03, 0x80, 0xa3, 0x78, 0x79, 0x7a, 0x01 }, "Reading 'error' as String failed.") },
-            new object[] { new InvalidMessageData("CompletionErrorInt", new byte[] { 0x95, 0x03, 0x80, 0xa3, 0x78, 0x79, 0x7a, 0x01, 0x2a }, "Reading 'error' as String failed.") },
-            new object[] { new InvalidMessageData("CompletionResultMissing", new byte[] { 0x94, 0x03, 0x80, 0xa3, 0x78, 0x79, 0x7a, 0x03 }, "Deserializing object of the `String` type for 'argument' failed.") },
-            new object[] { new InvalidMessageData("CompletionResultTypeMismatch", new byte[] { 0x95, 0x03, 0x80, 0xa3, 0x78, 0x79, 0x7a, 0x03, 0x2a }, "Deserializing object of the `String` type for 'argument' failed.") },
-        };
+            new InvalidMessageData("CompletionMissingId", new byte[] { 0x92, 0x03, 0x80 }, "Reading 'invocationId' as String failed."),
+            new InvalidMessageData("CompletionIdBoolean", new byte[] { 0x93, 0x03, 0x80, 0xc2 }, "Reading 'invocationId' as String failed."),
+            new InvalidMessageData("CompletionResultKindString", new byte[] { 0x94, 0x03, 0x80, 0xa3, 0x78, 0x79, 0x7a, 0xa3, 0x61, 0x62, 0x63 }, "Reading 'resultKind' as Int32 failed."),
+            new InvalidMessageData("CompletionResultKindOutOfRange", new byte[] { 0x94, 0x03, 0x80, 0xa3, 0x78, 0x79, 0x7a, 0x2a }, "Invalid invocation result kind."),
+            new InvalidMessageData("CompletionErrorMissing", new byte[] { 0x94, 0x03, 0x80, 0xa3, 0x78, 0x79, 0x7a, 0x01 }, "Reading 'error' as String failed."),
+            new InvalidMessageData("CompletionErrorInt", new byte[] { 0x95, 0x03, 0x80, 0xa3, 0x78, 0x79, 0x7a, 0x01, 0x2a }, "Reading 'error' as String failed."),
+            new InvalidMessageData("CompletionResultMissing", new byte[] { 0x94, 0x03, 0x80, 0xa3, 0x78, 0x79, 0x7a, 0x03 }, "Deserializing object of the `String` type for 'argument' failed."),
+            new InvalidMessageData("CompletionResultTypeMismatch", new byte[] { 0x95, 0x03, 0x80, 0xa3, 0x78, 0x79, 0x7a, 0x03, 0x2a }, "Deserializing object of the `String` type for 'argument' failed."),
+        }.ToDictionary(t => t.Name);
 
         public static IEnumerable<object[]> InvalidPayloadNames => InvalidPayloads.Keys.Select(name => new object[] { name });
 
@@ -342,6 +342,8 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         [MemberData(nameof(InvalidPayloadNames))]
         public void ParserThrowsForInvalidMessages(string invalidPayloadName)
         {
+            var testData = InvalidPayloads[invalidPayloadName];
+
             var buffer = Frame(testData.Encoded);
             var binder = new TestBinder(new[] { typeof(string) }, typeof(string));
             var data = new ReadOnlySequence<byte>(buffer);
@@ -353,19 +355,19 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         public static IDictionary<string, InvalidMessageData> ArgumentBindingErrors => new[]
         {
             // InvocationMessage
-            new object[] {new InvalidMessageData("InvocationArgumentArrayMissing", new byte[] { 0x94, 0x01, 0x80, 0xa3, 0x61, 0x62, 0x63, 0xa3, 0x78, 0x79, 0x7a }, "Reading array length for 'arguments' failed.") },
-            new object[] {new InvalidMessageData("InvocationArgumentArrayNotAnArray", new byte[] { 0x95, 0x01, 0x80, 0xa3, 0x61, 0x62, 0x63, 0xa3, 0x78, 0x79, 0x7a, 0x2a }, "Reading array length for 'arguments' failed.") },
-            new object[] {new InvalidMessageData("InvocationArgumentArraySizeMismatchEmpty", new byte[] { 0x95, 0x01, 0x80, 0xa3, 0x61, 0x62, 0x63, 0xa3, 0x78, 0x79, 0x7a, 0x90 }, "Invocation provides 0 argument(s) but target expects 1.") },
-            new object[] {new InvalidMessageData("InvocationArgumentArraySizeMismatchTooLarge", new byte[] { 0x95, 0x01, 0x80, 0xa3, 0x61, 0x62, 0x63, 0xa3, 0x78, 0x79, 0x7a, 0x92, 0xa1, 0x61, 0xa1, 0x62 }, "Invocation provides 2 argument(s) but target expects 1.") },
-            new object[] {new InvalidMessageData("InvocationArgumentTypeMismatch", new byte[] { 0x95, 0x01, 0x80, 0xa3, 0x61, 0x62, 0x63, 0xa3, 0x78, 0x79, 0x7a, 0x91, 0x2a }, "Error binding arguments. Make sure that the types of the provided values match the types of the hub method being invoked.") },
+            new InvalidMessageData("InvocationArgumentArrayMissing", new byte[] { 0x94, 0x01, 0x80, 0xa3, 0x61, 0x62, 0x63, 0xa3, 0x78, 0x79, 0x7a }, "Reading array length for 'arguments' failed."),
+            new InvalidMessageData("InvocationArgumentArrayNotAnArray", new byte[] { 0x95, 0x01, 0x80, 0xa3, 0x61, 0x62, 0x63, 0xa3, 0x78, 0x79, 0x7a, 0x2a }, "Reading array length for 'arguments' failed."),
+            new InvalidMessageData("InvocationArgumentArraySizeMismatchEmpty", new byte[] { 0x95, 0x01, 0x80, 0xa3, 0x61, 0x62, 0x63, 0xa3, 0x78, 0x79, 0x7a, 0x90 }, "Invocation provides 0 argument(s) but target expects 1."),
+            new InvalidMessageData("InvocationArgumentArraySizeMismatchTooLarge", new byte[] { 0x95, 0x01, 0x80, 0xa3, 0x61, 0x62, 0x63, 0xa3, 0x78, 0x79, 0x7a, 0x92, 0xa1, 0x61, 0xa1, 0x62 }, "Invocation provides 2 argument(s) but target expects 1."),
+            new InvalidMessageData("InvocationArgumentTypeMismatch", new byte[] { 0x95, 0x01, 0x80, 0xa3, 0x61, 0x62, 0x63, 0xa3, 0x78, 0x79, 0x7a, 0x91, 0x2a }, "Error binding arguments. Make sure that the types of the provided values match the types of the hub method being invoked."),
 
             // StreamInvocationMessage
-            new object[] {new InvalidMessageData("StreamInvocationArgumentArrayMissing", new byte[] { 0x94, 0x04, 0x80, 0xa3, 0x61, 0x62, 0x63, 0xa3, 0x78, 0x79, 0x7a }, "Reading array length for 'arguments' failed.") }, // array is missing
-            new object[] {new InvalidMessageData("StreamInvocationArgumentArrayNotAnArray", new byte[] { 0x95, 0x04, 0x80, 0xa3, 0x61, 0x62, 0x63, 0xa3, 0x78, 0x79, 0x7a, 0x2a }, "Reading array length for 'arguments' failed.") }, // arguments isn't an array
-            new object[] {new InvalidMessageData("StreamInvocationArgumentArraySizeMismatchEmpty", new byte[] { 0x95, 0x04, 0x80, 0xa3, 0x61, 0x62, 0x63, 0xa3, 0x78, 0x79, 0x7a, 0x90 }, "Invocation provides 0 argument(s) but target expects 1.") }, // array is missing elements
-            new object[] {new InvalidMessageData("StreamInvocationArgumentArraySizeMismatchTooLarge", new byte[] { 0x95, 0x04, 0x80, 0xa3, 0x61, 0x62, 0x63, 0xa3, 0x78, 0x79, 0x7a, 0x92, 0xa1, 0x61, 0xa1, 0x62 }, "Invocation provides 2 argument(s) but target expects 1.") }, // argument count does not match binder argument count
-            new object[] {new InvalidMessageData("StreamInvocationArgumentTypeMismatch", new byte[] { 0x95, 0x04, 0x80, 0xa3, 0x61, 0x62, 0x63, 0xa3, 0x78, 0x79, 0x7a, 0x91, 0x2a }, "Error binding arguments. Make sure that the types of the provided values match the types of the hub method being invoked.") }, // argument type mismatch
-        };
+            new InvalidMessageData("StreamInvocationArgumentArrayMissing", new byte[] { 0x94, 0x04, 0x80, 0xa3, 0x61, 0x62, 0x63, 0xa3, 0x78, 0x79, 0x7a }, "Reading array length for 'arguments' failed."), // array is missing
+            new InvalidMessageData("StreamInvocationArgumentArrayNotAnArray", new byte[] { 0x95, 0x04, 0x80, 0xa3, 0x61, 0x62, 0x63, 0xa3, 0x78, 0x79, 0x7a, 0x2a }, "Reading array length for 'arguments' failed."), // arguments isn't an array
+            new InvalidMessageData("StreamInvocationArgumentArraySizeMismatchEmpty", new byte[] { 0x95, 0x04, 0x80, 0xa3, 0x61, 0x62, 0x63, 0xa3, 0x78, 0x79, 0x7a, 0x90 }, "Invocation provides 0 argument(s) but target expects 1."), // array is missing elements
+            new InvalidMessageData("StreamInvocationArgumentArraySizeMismatchTooLarge", new byte[] { 0x95, 0x04, 0x80, 0xa3, 0x61, 0x62, 0x63, 0xa3, 0x78, 0x79, 0x7a, 0x92, 0xa1, 0x61, 0xa1, 0x62 }, "Invocation provides 2 argument(s) but target expects 1."), // argument count does not match binder argument count
+            new InvalidMessageData("StreamInvocationArgumentTypeMismatch", new byte[] { 0x95, 0x04, 0x80, 0xa3, 0x61, 0x62, 0x63, 0xa3, 0x78, 0x79, 0x7a, 0x91, 0x2a }, "Error binding arguments. Make sure that the types of the provided values match the types of the hub method being invoked."), // argument type mismatch
+        }.ToDictionary(t => t.Name);
 
         public static IEnumerable<object[]> ArgumentBindingErrorNames => ArgumentBindingErrors.Keys.Select(name => new object[] { name });
 
@@ -373,6 +375,8 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         [MemberData(nameof(ArgumentBindingErrorNames))]
         public void GettingArgumentsThrowsIfBindingFailed(string argumentBindingErrorName)
         {
+            var testData = ArgumentBindingErrors[argumentBindingErrorName];
+
             var buffer = Frame(testData.Encoded);
             var binder = new TestBinder(new[] { typeof(string) }, typeof(string));
             var data = new ReadOnlySequence<byte>(buffer);
@@ -426,9 +430,8 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             var writer = MemoryBufferWriter.Get();
             try
             {
-                _hubProtocol.WriteMessage(message, stream);
-                stream.Flush();
-                return stream.ToArray();
+                _hubProtocol.WriteMessage(message, writer);
+                return writer.ToArray();
             }
             finally
             {

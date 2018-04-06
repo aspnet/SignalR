@@ -75,9 +75,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
             var arraySegment = GetArraySegment(payload);
 
-            message = ParseMessage(arraySegment.Array, arraySegment.Offset, binder);
-
-            return message != null;
+            message = ParseMessage(arraySegment.Array, arraySegment.Offset, binder, _resolver);
+            return true;
         }
 
         private static ArraySegment<byte> GetArraySegment(in ReadOnlySequence<byte> input)
@@ -87,11 +86,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 var isArray = MemoryMarshal.TryGetArray(input.First, out var arraySegment);
                 // This will never be false unless we started using un-managed buffers
                 Debug.Assert(isArray);
-                var message = ParseMessage(arraySegment.Array, arraySegment.Offset, binder, _resolver);
-                if (message != null)
-                {
-                    messages.Add(message);
-                }
+                return arraySegment;
             }
 
             // Should be rare
