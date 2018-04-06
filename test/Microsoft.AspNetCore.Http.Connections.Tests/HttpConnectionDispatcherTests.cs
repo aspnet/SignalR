@@ -351,21 +351,21 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                 connection.Items[ConnectionMetadataNames.Transport] = transportType;
 
                 // Allow a maximum of one caller to use code at one time
-                var tracker = new SemaphoreSlim(1, 1);
+                var callerTracker = new SemaphoreSlim(1, 1);
                 var cts = new TaskCompletionSource<bool>();
 
                 // This tests thread safety of sending multiple pieces of data to a connection at once
-                var executeTask1 = DispatcherExecuteAsync(dispatcher, connection, tracker, cts.Task);
-                var executeTask2 = DispatcherExecuteAsync(dispatcher, connection, tracker, cts.Task);
+                var executeTask1 = DispatcherExecuteAsync(dispatcher, connection, callerTracker, cts.Task);
+                var executeTask2 = DispatcherExecuteAsync(dispatcher, connection, callerTracker, cts.Task);
 
                 cts.SetResult(true);
 
                 await Task.WhenAll(executeTask1, executeTask2);
             }
 
-            async Task DispatcherExecuteAsync(HttpConnectionDispatcher dispatcher, HttpConnectionContext connection, SemaphoreSlim tracker, Task copyTask)
+            async Task DispatcherExecuteAsync(HttpConnectionDispatcher dispatcher, HttpConnectionContext connection, SemaphoreSlim callerTracker, Task waitTask)
             {
-                using (var requestBody = new TrackingMemoryStream(tracker, copyTask))
+                using (var requestBody = new TrackingMemoryStream(callerTracker, waitTask))
                 {
                     var bytes = Encoding.UTF8.GetBytes("Hello World");
                     requestBody.Write(bytes, 0, bytes.Length);
@@ -395,32 +395,32 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
 
         private class TrackingMemoryStream : MemoryStream
         {
-            private readonly SemaphoreSlim _trackingSemaphore;
-            private readonly Task _copyTask;
+            private readonly SemaphoreSlim _callerTracker;
+            private readonly Task _waitTask;
 
-            public TrackingMemoryStream(SemaphoreSlim trackingSemaphore, Task copyTask)
+            public TrackingMemoryStream(SemaphoreSlim callerTracker, Task waitTask)
             {
-                _trackingSemaphore = trackingSemaphore;
-                _copyTask = copyTask;
+                _callerTracker = callerTracker;
+                _waitTask = waitTask;
             }
 
             public override async Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
             {
                 // Will return false if all available locks from semaphore are taken
-                if (!_trackingSemaphore.Wait(0))
+                if (!_callerTracker.Wait(0))
                 {
                     throw new Exception("Too many callers.");
                 }
 
                 try
                 {
-                    await _copyTask;
+                    await _waitTask;
 
                     await base.CopyToAsync(destination, bufferSize, cancellationToken);
                 }
                 finally
                 {
-                    _trackingSemaphore.Release();
+                    _callerTracker.Release();
                 }
             }
         }
