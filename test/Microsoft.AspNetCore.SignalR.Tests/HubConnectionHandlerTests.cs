@@ -171,7 +171,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
 
-
                 var subscribeTask = client.StreamAsync(nameof(ObservableHub.Subscribe));
 
                 await waitForSubscribe.Task.OrTimeout();

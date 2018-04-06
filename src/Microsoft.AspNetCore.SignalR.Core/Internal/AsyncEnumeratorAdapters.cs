@@ -16,9 +16,9 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             // TODO: Allow bounding and optimizations?
             var channel = Channel.CreateUnbounded<object>();
             var observer = new ObserverState();
-            var channelObserver = new ChannelObserver<T>(channel.Writer, cancellationToken);
+            var channelObserver = new ChannelObserver<T>(channel.Writer);
             observer.Subscription = observable.Subscribe(channelObserver);
-            observer.TokenRegistration = cancellationToken.Register(obs => { ((ChannelObserver<T>)obs).OnCompleted(); }, channelObserver);
+            observer.TokenRegistration = cancellationToken.Register(obs => ((ChannelObserver<T>)obs).OnCompleted(), channelObserver);
 
             // Make sure the subscription and token registration is disposed when enumeration is completed.
             return new AsyncEnumerator<object>(channel.Reader, cancellationToken, observer);
@@ -40,12 +40,10 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         private class ChannelObserver<T> : IObserver<T>
         {
             private readonly ChannelWriter<object> _output;
-            private readonly CancellationToken _cancellationToken;
 
-            public ChannelObserver(ChannelWriter<object> output, CancellationToken cancellationToken)
+            public ChannelObserver(ChannelWriter<object> output)
             {
                 _output = output;
-                _cancellationToken = cancellationToken;
             }
 
             public void OnCompleted()
@@ -60,12 +58,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
             public void OnNext(T value)
             {
-                if (_cancellationToken.IsCancellationRequested)
-                {
-                    // Noop, someone else is handling the cancellation
-                    return;
-                }
-
                 // This will block the thread emitting the object if the channel is bounded and full
                 // I think this is OK, since we want to push the backpressure up. However, we may need
                 // to find a way to force the entire subscription off to a dedicated thread in order to
