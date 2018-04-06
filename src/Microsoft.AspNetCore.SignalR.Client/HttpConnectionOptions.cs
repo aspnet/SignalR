@@ -20,11 +20,11 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         public HttpConnectionOptions()
         {
-            Transport = HttpTransports.All;
+            Transports = HttpTransports.All;
         }
 
         public Uri Url { get; set; }
-        public HttpTransportType Transport { get; set; }
+        public HttpTransportType Transports { get; set; }
         public Func<HttpMessageHandler, HttpMessageHandler> MessageHandlerFactory { get; set; }
         public bool? UseDefaultCredentials { get; set; }
         public ICredentials Credentials { get; set; }
