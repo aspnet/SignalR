@@ -19,9 +19,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Theory]
         [InlineData(HttpTransportType.None)]
         [InlineData((HttpTransportType)int.MaxValue)]
-        public void DefaultTransportFactoryCannotBeCreatedWithInvalidTransportType(HttpTransportType transportType)
+        public void DefaultTransportFactoryCanBeCreatedWithNoOrUnknownTransportTypeFlags(HttpTransportType transportType)
         {
-            new DefaultTransportFactory(transportType, new LoggerFactory(), new HttpClient(), httpOptions: null);
+            Assert.NotNull(new DefaultTransportFactory(transportType, new LoggerFactory(), new HttpClient(), httpOptions: null));
         }
 
         [Theory]
