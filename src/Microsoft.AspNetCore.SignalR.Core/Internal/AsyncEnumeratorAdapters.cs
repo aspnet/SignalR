@@ -15,11 +15,26 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         {
             // TODO: Allow bounding and optimizations?
             var channel = Channel.CreateUnbounded<object>();
+            var observer = new ObserverState();
+            var channelObserver = new ChannelObserver<T>(channel.Writer, cancellationToken);
+            observer.Subscription = observable.Subscribe(channelObserver);
+            observer.TokenRegistration = cancellationToken.Register(obs => { ((ChannelObserver<T>)obs).OnCompleted(); }, channelObserver);
 
-            var subscription = observable.Subscribe(new ChannelObserver<T>(channel.Writer, cancellationToken));
+            // Make sure the subscription and token registration is disposed when enumeration is completed.
+            return new AsyncEnumerator<object>(channel.Reader, cancellationToken, observer);
+        }
 
-            // Make sure the subscription is disposed when enumeration is completed.
-            return new AsyncEnumerator<object>(channel.Reader, cancellationToken, subscription);
+        // To track and dispose of the Subscription and the cancellation token registration.
+        private class ObserverState : IDisposable
+        {
+            public CancellationTokenRegistration TokenRegistration;
+            public IDisposable Subscription;
+
+            public void Dispose()
+            {
+                TokenRegistration.Dispose();
+                Subscription.Dispose();
+            }
         }
 
         private class ChannelObserver<T> : IObserver<T>
@@ -60,7 +75,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 while (!_output.TryWrite(value))
                 {
                     // Wait for a spot
-                    if (!_output.WaitToWriteAsync(_cancellationToken).Result)
+                    if (!_output.WaitToWriteAsync().Result)
                     {
                         // Channel was closed so we just no-op. The observer shouldn't throw.
                         return;

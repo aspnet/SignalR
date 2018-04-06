@@ -171,21 +171,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
 
-                async Task Subscribe()
-                {
-                    var results = await client.StreamAsync(nameof(ObservableHub.Subscribe));
-                }
 
-                var subscribeTask = Subscribe();
+                var subscribeTask = client.StreamAsync(nameof(ObservableHub.Subscribe));
 
                 await waitForSubscribe.Task.OrTimeout();
 
                 Assert.Single(observable.Observers);
 
-                observable.Complete();
-
-                await subscribeTask.OrTimeout();
-                
                 // Disposing the client to complete the observer. Further calls to OnNext should no-op
                 client.Dispose();
 
