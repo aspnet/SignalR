@@ -207,14 +207,15 @@ namespace Microsoft.AspNetCore.Http.Connections
                 // Stop firing the timer
                 _timer?.Dispose();
 
-                var tasks = new List<Task>();
-
+                var tasks = new Task[_connections.Count];
+                var index = 0;
                 foreach (var c in _connections)
                 {
-                    tasks.Add(DisposeAndRemoveAsync(c.Value.Connection));
+                    tasks[index] = DisposeAndRemoveAsync(c.Value.Connection);
+                    index++;
                 }
 
-                Task.WaitAll(tasks.ToArray(), TimeSpan.FromSeconds(5));
+                Task.WaitAll(tasks, TimeSpan.FromSeconds(5));
             }
         }
 

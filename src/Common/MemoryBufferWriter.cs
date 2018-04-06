@@ -7,9 +7,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace Microsoft.AspNetCore.SignalR.Internal
+namespace Microsoft.AspNetCore.Internal
 {
-    public sealed class MemoryBufferWriter : IBufferWriter<byte>
+    internal sealed class MemoryBufferWriter : IBufferWriter<byte>
     {
         [ThreadStatic]
         private static MemoryBufferWriter _cachedInstance;
