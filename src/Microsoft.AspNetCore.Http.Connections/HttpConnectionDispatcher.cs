@@ -452,7 +452,7 @@ namespace Microsoft.AspNetCore.Http.Connections
             var pipeWriterStream = new PipeWriterStream(connection.Application.Output);
 
             // REVIEW: Consider spliting the connection lock into a read lock and a write lock
-            // Need to think about HttpConnection.DisposeAsync and whether one or both locks would be needed
+            // Need to think about HttpConnectionContext.DisposeAsync and whether one or both locks would be needed
             await connection.Lock.WaitAsync();
 
             try
