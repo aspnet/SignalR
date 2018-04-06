@@ -352,13 +352,13 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
 
                 // Allow a maximum of one caller to use code at one time
                 var callerTracker = new SemaphoreSlim(1, 1);
-                var cts = new TaskCompletionSource<bool>();
+                var waitTcs = new TaskCompletionSource<bool>();
 
                 // This tests thread safety of sending multiple pieces of data to a connection at once
-                var executeTask1 = DispatcherExecuteAsync(dispatcher, connection, callerTracker, cts.Task);
-                var executeTask2 = DispatcherExecuteAsync(dispatcher, connection, callerTracker, cts.Task);
+                var executeTask1 = DispatcherExecuteAsync(dispatcher, connection, callerTracker, waitTcs.Task);
+                var executeTask2 = DispatcherExecuteAsync(dispatcher, connection, callerTracker, waitTcs.Task);
 
-                cts.SetResult(true);
+                waitTcs.SetResult(true);
 
                 await Task.WhenAll(executeTask1, executeTask2);
             }
