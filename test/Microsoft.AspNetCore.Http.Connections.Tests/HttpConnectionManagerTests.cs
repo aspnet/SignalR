@@ -61,7 +61,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             }
             catch
             {
-                // Ignore the exception that bubbles out of the failing ta
+                // Ignore the exception that bubbles out of the failing task
             }
 
             await Task.WhenAll(applicationInputTcs.Task, applicationOutputTcs.Task, transportInputTcs.Task, transportOutputTcs.Task).OrTimeout();
