@@ -207,15 +207,17 @@ namespace Microsoft.AspNetCore.Http.Connections
                 // Stop firing the timer
                 _timer?.Dispose();
 
-                var tasks = new Task[_connections.Count];
-                var index = 0;
+                var tasks = new List<Task>();
+
+                // REVIEW: In the future we can consider a hybrid where we first try to wait for shutdown
+                // for a certain time frame then after some grace period we shutdown more aggressively
                 foreach (var c in _connections)
                 {
-                    tasks[index] = DisposeAndRemoveAsync(c.Value.Connection);
-                    index++;
+                    // We're shutting down so don't wait for closing the application
+                    tasks.Add(DisposeAndRemoveAsync(c.Value.Connection));
                 }
 
-                Task.WaitAll(tasks, TimeSpan.FromSeconds(5));
+                Task.WaitAll(tasks.ToArray(), TimeSpan.FromSeconds(5));
             }
         }
 
