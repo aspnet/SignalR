@@ -84,7 +84,7 @@ namespace Microsoft.AspNetCore.Http.Connections
 
             Log.CreatedNewConnection(_logger, id);
             var connectionTimer = HttpConnectionsEventSource.Log.ConnectionStart(id);
-            var connection = new HttpConnectionContext(id);
+            var connection = new HttpConnectionContext(id, _connectionLogger);
             var pair = DuplexPipe.CreateConnectionPair(transportPipeOptions, appPipeOptions);
             connection.Transport = pair.Application;
             connection.Application = pair.Transport;
@@ -231,7 +231,7 @@ namespace Microsoft.AspNetCore.Http.Connections
         {
             try
             {
-                await connection.DisposeAsync(closeGracefully, _connectionLogger);
+                await connection.DisposeAsync(closeGracefully);
             }
             catch (IOException ex)
             {

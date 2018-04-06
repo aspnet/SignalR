@@ -29,6 +29,7 @@ namespace Microsoft.AspNetCore.Http.Connections
     {
         private readonly object _heartbeatLock = new object();
         private List<(Action<object> handler, object state)> _heartbeatHandlers;
+        private readonly ILogger _logger;
 
         // This tcs exists so that multiple calls to DisposeAsync all wait asynchronously
         // on the same task
@@ -39,7 +40,8 @@ namespace Microsoft.AspNetCore.Http.Connections
         /// The caller is expected to set the <see cref="Transport"/> and <see cref="Application"/> pipes manually.
         /// </summary>
         /// <param name="id"></param>
-        public HttpConnectionContext(string id)
+        /// <param name="logger"></param>
+        public HttpConnectionContext(string id, ILogger logger)
         {
             ConnectionId = id;
             LastSeenUtc = DateTime.UtcNow;
@@ -47,6 +49,8 @@ namespace Microsoft.AspNetCore.Http.Connections
             // The default behavior is that both formats are supported.
             SupportedFormats = TransferFormat.Binary | TransferFormat.Text;
             ActiveFormat = TransferFormat.Text;
+
+            _logger = logger;
 
             // PERF: This type could just implement IFeatureCollection
             Features = new FeatureCollection();
@@ -60,8 +64,8 @@ namespace Microsoft.AspNetCore.Http.Connections
             Features.Set<IHttpContextFeature>(this);
         }
 
-        public HttpConnectionContext(string id, IDuplexPipe transport, IDuplexPipe application)
-            : this(id)
+        public HttpConnectionContext(string id, IDuplexPipe transport, IDuplexPipe application, ILogger logger = null)
+            : this(id, logger)
         {
             Transport = transport;
             Application = application;
@@ -127,7 +131,7 @@ namespace Microsoft.AspNetCore.Http.Connections
             }
         }
 
-        public async Task DisposeAsync(bool closeGracefully = false, ILogger logger = null)
+        public async Task DisposeAsync(bool closeGracefully = false)
         {
             var disposeTask = Task.CompletedTask;
 
@@ -143,12 +147,12 @@ namespace Microsoft.AspNetCore.Http.Connections
                 {
                     Status = ConnectionStatus.Disposed;
 
-                    Log.DisposingConnection(logger, ConnectionId);
+                    Log.DisposingConnection(_logger, ConnectionId);
 
                     var applicationTask = ApplicationTask ?? Task.CompletedTask;
                     var transportTask = TransportTask ?? Task.CompletedTask;
 
-                    disposeTask = WaitOnTasks(applicationTask, transportTask, closeGracefully, logger);
+                    disposeTask = WaitOnTasks(applicationTask, transportTask, closeGracefully);
                 }
             }
             finally
@@ -159,7 +163,7 @@ namespace Microsoft.AspNetCore.Http.Connections
             await disposeTask;
         }
 
-        private async Task WaitOnTasks(Task applicationTask, Task transportTask, bool closeGracefully, ILogger logger)
+        private async Task WaitOnTasks(Task applicationTask, Task transportTask, bool closeGracefully)
         {
             try
             {
@@ -179,14 +183,14 @@ namespace Microsoft.AspNetCore.Http.Connections
 
                         try
                         {
-                            Log.WaitingForTransport(logger, TransportType);
+                            Log.WaitingForTransport(_logger, TransportType);
 
                             // Transports are written by us and are well behaved, wait for them to drain
                             await transportTask;
                         }
                         finally
                         {
-                            Log.TransportComplete(logger, TransportType);
+                            Log.TransportComplete(_logger, TransportType);
 
                             // Now complete the application
                             Application?.Output.Complete();
@@ -202,13 +206,13 @@ namespace Microsoft.AspNetCore.Http.Connections
                         try
                         {
                             // A poorly written application *could* in theory hang forever and it'll show up as a memory leak
-                            Log.WaitingForApplication(logger);
+                            Log.WaitingForApplication(_logger);
 
                             await applicationTask;
                         }
                         finally
                         {
-                            Log.ApplicationComplete(logger);
+                            Log.ApplicationComplete(_logger);
 
                             Transport?.Output.Complete();
                             Transport?.Input.Complete();
@@ -217,7 +221,7 @@ namespace Microsoft.AspNetCore.Http.Connections
                 }
                 else
                 {
-                    Log.ShuttingDownTransportAndApplication(logger, TransportType);
+                    Log.ShuttingDownTransportAndApplication(_logger, TransportType);
 
                     // Shutdown both sides and wait for nothing
                     Transport?.Output.Complete(applicationTask.Exception?.InnerException);
@@ -225,13 +229,13 @@ namespace Microsoft.AspNetCore.Http.Connections
 
                     try
                     {
-                        Log.WaitingForTransportAndApplication(logger, TransportType);
+                        Log.WaitingForTransportAndApplication(_logger, TransportType);
                         // A poorly written application *could* in theory hang forever and it'll show up as a memory leak
                         await Task.WhenAll(applicationTask, transportTask);
                     }
                     finally
                     {
-                        Log.TransportAndApplicationComplete(logger, TransportType);
+                        Log.TransportAndApplicationComplete(_logger, TransportType);
 
                         // Close the reading side after both sides run
                         Application?.Input.Complete();

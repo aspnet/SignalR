@@ -75,11 +75,6 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                     // Wait for the application to end
                     var result = await connection.Transport.Input.ReadAsync();
                     connection.Transport.Input.AdvanceTo(result.Buffer.End);
-
-                    if (applicationFaulted)
-                    {
-                        throw new Exception("Transport failed");
-                    }
                 });
             }
             else
