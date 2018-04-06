@@ -21,8 +21,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [InlineData((HttpTransportType)int.MaxValue)]
         public void DefaultTransportFactoryCannotBeCreatedWithInvalidTransportType(HttpTransportType transportType)
         {
-            Assert.Throws<ArgumentOutOfRangeException>(
-                () => new DefaultTransportFactory(transportType, new LoggerFactory(), new HttpClient(), httpOptions: null));
+            new DefaultTransportFactory(transportType, new LoggerFactory(), new HttpClient(), httpOptions: null);
         }
 
         [Theory]
