@@ -17,7 +17,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         private const string ErrorPropertyName = "error";
         private const string TypePropertyName = "type";
 
-        public static readonly ReadOnlyMemory<byte> SuccessHandshakeData;
+        public static ReadOnlyMemory<byte> SuccessHandshakeData { get; }
 
         static HandshakeProtocol()
         {
