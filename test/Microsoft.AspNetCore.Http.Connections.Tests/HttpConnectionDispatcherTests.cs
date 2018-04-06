@@ -350,44 +350,78 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                 var connection = manager.CreateConnection();
                 connection.Items[ConnectionMetadataNames.Transport] = transportType;
 
-                List<Task> sendTasks = new List<Task>();
+                // Allow a maximum of one caller to use code at one time
+                var tracker = new SemaphoreSlim(1, 1);
+                var cts = new TaskCompletionSource<bool>();
+
                 // This tests thread safety of sending multiple pieces of data to a connection at once
-                for (int i = 0; i < 1000; i++)
+                var executeTask1 = DispatcherExecuteAsync(dispatcher, connection, tracker, cts.Task);
+                var executeTask2 = DispatcherExecuteAsync(dispatcher, connection, tracker, cts.Task);
+
+                cts.SetResult(true);
+
+                await Task.WhenAll(executeTask1, executeTask2);
+            }
+
+            async Task DispatcherExecuteAsync(HttpConnectionDispatcher dispatcher, HttpConnectionContext connection, SemaphoreSlim tracker, Task copyTask)
+            {
+                using (var requestBody = new TrackingMemoryStream(tracker, copyTask))
                 {
-                    var task = Task.Run(async () =>
-                    {
-                        using (var requestBody = new MemoryStream())
-                        using (var responseBody = new MemoryStream())
-                        {
-                            var bytes = Encoding.UTF8.GetBytes("Hello World");
-                            requestBody.Write(bytes, 0, bytes.Length);
-                            requestBody.Seek(0, SeekOrigin.Begin);
+                    var bytes = Encoding.UTF8.GetBytes("Hello World");
+                    requestBody.Write(bytes, 0, bytes.Length);
+                    requestBody.Seek(0, SeekOrigin.Begin);
 
-                            var context = new DefaultHttpContext();
-                            context.Request.Body = requestBody;
-                            context.Response.Body = responseBody;
+                    var context = new DefaultHttpContext();
+                    context.Request.Body = requestBody;
 
-                            var services = new ServiceCollection();
-                            services.AddSingleton<TestConnectionHandler>();
-                            services.AddOptions();
-                            context.Request.Path = "/foo";
-                            context.Request.Method = "POST";
-                            var values = new Dictionary<string, StringValues>();
-                            values["id"] = connection.ConnectionId;
-                            var qs = new QueryCollection(values);
-                            context.Request.Query = qs;
+                    var services = new ServiceCollection();
+                    services.AddSingleton<TestConnectionHandler>();
+                    services.AddOptions();
+                    context.Request.Path = "/foo";
+                    context.Request.Method = "POST";
+                    var values = new Dictionary<string, StringValues>();
+                    values["id"] = connection.ConnectionId;
+                    var qs = new QueryCollection(values);
+                    context.Request.Query = qs;
 
-                            var builder = new ConnectionBuilder(services.BuildServiceProvider());
-                            builder.UseConnectionHandler<TestConnectionHandler>();
-                            var app = builder.Build();
+                    var builder = new ConnectionBuilder(services.BuildServiceProvider());
+                    builder.UseConnectionHandler<TestConnectionHandler>();
+                    var app = builder.Build();
 
-                            await dispatcher.ExecuteAsync(context, new HttpConnectionOptions(), app);
-                        }
-                    });
-                    sendTasks.Add(task);
+                    await dispatcher.ExecuteAsync(context, new HttpConnectionOptions(), app);
+                }
+            }
+        }
+
+        private class TrackingMemoryStream : MemoryStream
+        {
+            private readonly SemaphoreSlim _trackingSemaphore;
+            private readonly Task _copyTask;
+
+            public TrackingMemoryStream(SemaphoreSlim trackingSemaphore, Task copyTask)
+            {
+                _trackingSemaphore = trackingSemaphore;
+                _copyTask = copyTask;
+            }
+
+            public override async Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
+            {
+                // Will return false if all available locks from semaphore are taken
+                if (!_trackingSemaphore.Wait(0))
+                {
+                    throw new Exception("Too many callers.");
                 }
 
-                await Task.WhenAll(sendTasks);
+                try
+                {
+                    await _copyTask;
+
+                    await base.CopyToAsync(destination, bufferSize, cancellationToken);
+                }
+                finally
+                {
+                    _trackingSemaphore.Release();
+                }
             }
         }
 
