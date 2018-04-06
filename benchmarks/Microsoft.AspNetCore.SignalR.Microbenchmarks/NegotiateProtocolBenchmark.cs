@@ -38,14 +38,6 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         }
 
         [Benchmark]
-        public void WriteResponse_MemoryStream()
-        {
-            MemoryStream ms = new MemoryStream();
-            NegotiateProtocol.WriteResponse(_negotiateResponse, ms);
-            ms.ToArray();
-        }
-
-        [Benchmark]
         public Task WriteResponse_MemoryBufferWriter()
         {
             var writer = new MemoryBufferWriter();
