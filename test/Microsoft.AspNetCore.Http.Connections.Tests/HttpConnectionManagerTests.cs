@@ -29,21 +29,64 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
         }
 
         [Theory]
-        [InlineData(false, false, false)]
-        [InlineData(false, false, true)]
-        [InlineData(false, true, true)]
-        [InlineData(false, true, false)]
-        [InlineData(true, false, false)]
-        [InlineData(true, false, true)]
-        [InlineData(true, true, true)]
-        [InlineData(true, true, false)]
-        public async Task DisposingConnectionsClosesBothSidesOfThePipe(bool closeGracefully, bool applicationFaulted, bool transportFaulted)
+        [InlineData(ConnectionStates.ClosedUngracefully | ConnectionStates.ApplicationNotFaulted | ConnectionStates.TransportNotFaulted)]
+        [InlineData(ConnectionStates.ClosedUngracefully | ConnectionStates.ApplicationNotFaulted | ConnectionStates.TransportFaulted)]
+        [InlineData(ConnectionStates.ClosedUngracefully | ConnectionStates.ApplicationFaulted | ConnectionStates.TransportFaulted)]
+        [InlineData(ConnectionStates.ClosedUngracefully | ConnectionStates.ApplicationFaulted | ConnectionStates.TransportNotFaulted)]
+
+        [InlineData(ConnectionStates.CloseGracefully | ConnectionStates.ApplicationNotFaulted | ConnectionStates.TransportNotFaulted)]
+        [InlineData(ConnectionStates.CloseGracefully | ConnectionStates.ApplicationNotFaulted | ConnectionStates.TransportFaulted)]
+        [InlineData(ConnectionStates.CloseGracefully | ConnectionStates.ApplicationFaulted | ConnectionStates.TransportFaulted)]
+        [InlineData(ConnectionStates.CloseGracefully | ConnectionStates.ApplicationFaulted | ConnectionStates.TransportNotFaulted)]
+        public async Task DisposingConnectionsClosesBothSidesOfThePipe(ConnectionStates states)
         {
+            var closeGracefully = (states & ConnectionStates.CloseGracefully) != 0;
+            var applicationFaulted = (states & ConnectionStates.ApplicationFaulted) != 0;
+            var transportFaulted = (states & ConnectionStates.TransportFaulted) != 0;
+
             var connectionManager = CreateConnectionManager();
             var connection = connectionManager.CreateConnection();
 
-            connection.ApplicationTask = applicationFaulted ? Task.FromException(new Exception("Fail")) : Task.CompletedTask;
-            connection.TransportTask = transportFaulted ? Task.FromException(new Exception("Fail")) : Task.CompletedTask;
+            if (applicationFaulted)
+            {
+                // If the application is faulted then we want to make sure the transport task only completes after
+                // the application completes
+                connection.ApplicationTask = Task.FromException(new Exception("Application failed"));
+                connection.TransportTask = Task.Run(async () =>
+                {
+                    // Wait for the application to end
+                    var result = await connection.Application.Input.ReadAsync();
+                    connection.Application.Input.AdvanceTo(result.Buffer.End);
+
+                    if (transportFaulted)
+                    {
+                        throw new Exception("Transport failed");
+                    }
+                });
+
+            }
+            else if (transportFaulted)
+            {
+                // If the transport is faulted then we want to make sure the transport task only completes after
+                // the application completes
+                connection.TransportTask = Task.FromException(new Exception("Application failed"));
+                connection.ApplicationTask = Task.Run(async () =>
+                {
+                    // Wait for the application to end
+                    var result = await connection.Transport.Input.ReadAsync();
+                    connection.Transport.Input.AdvanceTo(result.Buffer.End);
+
+                    if (applicationFaulted)
+                    {
+                        throw new Exception("Transport failed");
+                    }
+                });
+            }
+            else
+            {
+                connection.ApplicationTask = Task.CompletedTask;
+                connection.TransportTask = Task.CompletedTask;
+            }
 
             var applicationInputTcs = new TaskCompletionSource<object>();
             var applicationOutputTcs = new TaskCompletionSource<object>();
@@ -282,6 +325,17 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
         {
             lifetime = lifetime ?? new EmptyApplicationLifetime();
             return new HttpConnectionManager(new LoggerFactory(), lifetime);
+        }
+
+        [Flags]
+        public enum ConnectionStates
+        {
+            ClosedUngracefully = 1,
+            ApplicationNotFaulted = 2,
+            TransportNotFaulted = 4,
+            ApplicationFaulted = 8,
+            TransportFaulted = 16,
+            CloseGracefully = 32
         }
     }
 }
