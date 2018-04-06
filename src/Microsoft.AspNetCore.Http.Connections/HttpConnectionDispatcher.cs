@@ -270,7 +270,8 @@ namespace Microsoft.AspNetCore.Http.Connections
                     if (context.Response.StatusCode == StatusCodes.Status204NoContent)
                     {
                         // We should be able to safely dispose because there's no more data being written
-                        await _manager.DisposeAndRemoveAsync(connection);
+                        // We don't need to wait for close here since we've already waited for both sides
+                        await _manager.DisposeAndRemoveAsync(connection, closeGracefully: false);
 
                         // Don't poll again if we've removed the connection completely
                         pollAgain = false;
@@ -355,7 +356,7 @@ namespace Microsoft.AspNetCore.Http.Connections
             // Wait for any of them to end
             await Task.WhenAny(connection.ApplicationTask, connection.TransportTask);
 
-            await _manager.DisposeAndRemoveAsync(connection);
+            await _manager.DisposeAndRemoveAsync(connection, closeGracefully: true);
         }
 
         private async Task ExecuteApplication(ConnectionDelegate connectionDelegate, ConnectionContext connection)
@@ -457,6 +458,16 @@ namespace Microsoft.AspNetCore.Http.Connections
 
             try
             {
+                if (connection.Status == HttpConnectionContext.ConnectionStatus.Disposed)
+                {
+                    Log.ConnectionDisposed(_logger, connection.ConnectionId);
+
+                    // The connection was disposed
+                    context.Response.StatusCode = StatusCodes.Status404NotFound;
+                    context.Response.ContentType = "text/plain";
+                    return;
+                }
+
                 await context.Request.Body.CopyToAsync(pipeWriterStream);
             }
             finally

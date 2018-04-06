@@ -124,7 +124,7 @@ namespace Microsoft.AspNetCore.Http.Connections
             }
         }
 
-        public async Task DisposeAsync()
+        public async Task DisposeAsync(bool closeGracefully = false)
         {
             var disposeTask = Task.CompletedTask;
 
@@ -140,30 +140,10 @@ namespace Microsoft.AspNetCore.Http.Connections
                 {
                     Status = ConnectionStatus.Disposed;
 
-                    // If the application task is faulted, propagate the error to the transport
-                    if (ApplicationTask?.IsFaulted == true)
-                    {
-                        Transport?.Output.Complete(ApplicationTask.Exception.InnerException);
-                    }
-                    else
-                    {
-                        Transport?.Output.Complete();
-                    }
-
-                    // If the transport task is faulted, propagate the error to the application
-                    if (TransportTask?.IsFaulted == true)
-                    {
-                        Application?.Output.Complete(TransportTask.Exception.InnerException);
-                    }
-                    else
-                    {
-                        Application?.Output.Complete();
-                    }
-
                     var applicationTask = ApplicationTask ?? Task.CompletedTask;
                     var transportTask = TransportTask ?? Task.CompletedTask;
 
-                    disposeTask = WaitOnTasks(applicationTask, transportTask);
+                    disposeTask = WaitOnTasks(applicationTask, transportTask, closeGracefully);
                 }
             }
             finally
@@ -171,25 +151,58 @@ namespace Microsoft.AspNetCore.Http.Connections
                 Lock.Release();
             }
 
-            try
-            {
-                await disposeTask;
-            }
-            finally
-            {
-                // REVIEW: Should we move this to the read loops?
-
-                // Complete the reading side of the pipes
-                Application?.Input.Complete();
-                Transport?.Input.Complete();
-            }
+            await disposeTask;
         }
 
-        private async Task WaitOnTasks(Task applicationTask, Task transportTask)
+        private async Task WaitOnTasks(Task applicationTask, Task transportTask, bool closeGracefully)
         {
             try
             {
-                await Task.WhenAll(applicationTask, transportTask);
+                // Closing gracefully means we're only going to close the finished sides of the pipe
+                // If the application finishes, that means it's done with the transport pipe
+                // If the transport finishes, that means it's done with the application pipe
+                if (closeGracefully)
+                {
+                    // Wait for either to finish
+                    var result = await Task.WhenAny(applicationTask, transportTask);
+
+                    // If the application is complete, complete the transport pipe (it's the pipe to the transport)
+                    if (result == applicationTask)
+                    {
+                        Transport.Output.Complete(applicationTask.Exception?.InnerException);
+                        Transport.Input.Complete();
+
+                        // Transports are written by us and are well behaved, wait for them to drain
+                        await transportTask;
+                    }
+                    else
+                    {
+                        // If the transport is complete, complete the application pipes
+                        Application.Output.Complete(transportTask.Exception?.InnerException);
+                        Application.Input.Complete();
+
+                        // A poorly written application *could* in theory hang forever and it'll show up as a memory leak
+                        await applicationTask;
+                    }
+                }
+                else
+                {
+                    // Shutdown both sides and wait for nothing
+                    Transport.Output.Complete(applicationTask.Exception?.InnerException);
+                    Application.Output.Complete(transportTask.Exception?.InnerException);
+                    
+                    try
+                    {
+                        // A poorly written application *could* in theory hang forever and it'll show up as a memory leak
+                        await Task.WhenAll(applicationTask, transportTask);
+                    }
+                    finally
+                    {
+                        // Close the reading side after both sides run
+                        Application.Input.Complete();
+                        Transport.Input.Complete();
+                    }
+                }
 
                 // Notify all waiters that we're done disposing
                 _disposeTcs.TrySetResult(null);

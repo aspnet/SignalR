@@ -292,6 +292,164 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             }
         }
 
+        [Fact]
+        public async Task PostReturns404IfConnectionDisposed()
+        {
+            using (StartLog(out var loggerFactory, LogLevel.Debug))
+            {
+                var manager = CreateConnectionManager(loggerFactory);
+                var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
+                var connection = manager.CreateConnection();
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
+                await connection.DisposeAsync(closeGracefully: false);
+
+                using (var strm = new MemoryStream())
+                {
+                    var context = new DefaultHttpContext();
+                    context.Response.Body = strm;
+
+                    var services = new ServiceCollection();
+                    services.AddSingleton<TestConnectionHandler>();
+                    services.AddOptions();
+                    context.Request.Path = "/foo";
+                    context.Request.Method = "POST";
+                    var values = new Dictionary<string, StringValues>();
+                    values["id"] = connection.ConnectionId;
+                    var qs = new QueryCollection(values);
+                    context.Request.Query = qs;
+
+                    var builder = new ConnectionBuilder(services.BuildServiceProvider());
+                    builder.UseConnectionHandler<TestConnectionHandler>();
+                    var app = builder.Build();
+                    await dispatcher.ExecuteAsync(context, new HttpConnectionOptions(), app);
+
+                    Assert.Equal(StatusCodes.Status404NotFound, context.Response.StatusCode);
+                }
+            }
+        }
+
+        [Theory]
+        [InlineData(HttpTransportType.ServerSentEvents)]
+        [InlineData(HttpTransportType.WebSockets)]
+        public async Task TransportEndingGracefullyWaitsOnApplication(HttpTransportType transportType)
+        {
+            using (StartLog(out var loggerFactory, LogLevel.Debug))
+            {
+                var manager = CreateConnectionManager(loggerFactory);
+                var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
+                var connection = manager.CreateConnection();
+
+                using (var strm = new MemoryStream())
+                {
+                    var context = new DefaultHttpContext();
+                    SetTransport(context, transportType);
+                    var cts = new CancellationTokenSource();
+                    context.Response.Body = strm;
+                    context.RequestAborted = cts.Token;
+
+                    var services = new ServiceCollection();
+                    services.AddSingleton<TestConnectionHandler>();
+                    services.AddOptions();
+                    context.Request.Path = "/foo";
+                    context.Request.Method = "GET";
+                    var values = new Dictionary<string, StringValues>();
+                    values["id"] = connection.ConnectionId;
+                    var qs = new QueryCollection(values);
+                    context.Request.Query = qs;
+
+                    var builder = new ConnectionBuilder(services.BuildServiceProvider());
+                    builder.Use(next =>
+                    {
+                        return async connectionContext =>
+                        {
+                            // Ensure both sides of the pipe are ok
+                            var result = await connectionContext.Transport.Input.ReadAsync();
+                            Assert.True(result.IsCompleted);
+                            await connectionContext.Transport.Output.WriteAsync(result.Buffer.First);
+                        };
+                    });
+
+                    var app = builder.Build();
+                    var task = dispatcher.ExecuteAsync(context, new HttpConnectionOptions(), app);
+
+                    // Pretend the transport closed because the client disconnected
+                    if (context.WebSockets.IsWebSocketRequest)
+                    {
+                        var ws = (TestWebSocketConnectionFeature)context.Features.Get<IHttpWebSocketFeature>();
+                        await ws.Client.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "", default);
+                    }
+                    else
+                    {
+                        cts.Cancel();
+                    }
+
+                    await task.OrTimeout();
+
+                    await connection.ApplicationTask.OrTimeout();
+                }
+            }
+        }
+
+        [Fact]
+        public async Task TransportEndingGracefullyWaitsOnApplicationLongPolling()
+        {
+            using (StartLog(out var loggerFactory, LogLevel.Debug))
+            {
+                var manager = CreateConnectionManager(loggerFactory);
+                var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
+                var connection = manager.CreateConnection();
+
+                using (var strm = new MemoryStream())
+                {
+                    var context = new DefaultHttpContext();
+                    SetTransport(context, HttpTransportType.LongPolling);
+                    var cts = new CancellationTokenSource();
+                    context.Response.Body = strm;
+                    context.RequestAborted = cts.Token;
+
+                    var services = new ServiceCollection();
+                    services.AddSingleton<TestConnectionHandler>();
+                    services.AddOptions();
+                    context.Request.Path = "/foo";
+                    context.Request.Method = "GET";
+                    var values = new Dictionary<string, StringValues>();
+                    values["id"] = connection.ConnectionId;
+                    var qs = new QueryCollection(values);
+                    context.Request.Query = qs;
+
+                    var builder = new ConnectionBuilder(services.BuildServiceProvider());
+                    builder.Use(next =>
+                    {
+                        return async connectionContext =>
+                        {
+                            // Ensure both sides of the pipe are ok
+                            var result = await connectionContext.Transport.Input.ReadAsync();
+                            Assert.True(result.IsCompleted);
+                            await connectionContext.Transport.Output.WriteAsync(result.Buffer.First);
+                        };
+                    });
+
+                    var app = builder.Build();
+                    var task = dispatcher.ExecuteAsync(context, new HttpConnectionOptions(), app);
+
+                    // Pretend the transport closed because the client disconnected
+                    cts.Cancel();
+
+                    await task.OrTimeout();
+
+                    // We've been gone longer than the expiration time
+                    connection.LastSeenUtc = DateTime.UtcNow.Subtract(TimeSpan.FromSeconds(10));
+
+                    // The application is still running here because the poll is only killed
+                    // by the heartbeat so we pretend to do a scan and this should force the application task to complete
+                    manager.Scan();
+
+                    // The application task should complete gracefully
+                    await connection.ApplicationTask.OrTimeout();
+                }
+            }
+        }
+
         [Theory]
         [InlineData(HttpTransportType.LongPolling)]
         [InlineData(HttpTransportType.ServerSentEvents)]
