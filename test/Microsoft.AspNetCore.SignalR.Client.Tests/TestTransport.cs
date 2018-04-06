@@ -15,6 +15,12 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public IDuplexPipe Application { get; private set; }
         public Task Receiving { get; private set; }
 
+        private IDuplexPipe _transport;
+
+        public PipeReader Input => _transport.Input;
+
+        public PipeWriter Output => _transport.Output;
+
         public TestTransport(Func<Task> onTransportStop = null, Func<Task> onTransportStart = null, TransferFormat transferFormat = TransferFormat.Text)
         {
             _stopHandler = onTransportStop ?? new Func<Task>(() => Task.CompletedTask);
@@ -22,13 +28,18 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             Format = transferFormat;
         }
 
-        public async Task StartAsync(Uri url, IDuplexPipe application, TransferFormat transferFormat, IConnection connection)
+        public async Task StartAsync(Uri url, TransferFormat transferFormat)
         {
             if ((Format & transferFormat) == 0)
             {
                 throw new InvalidOperationException($"The '{transferFormat}' transfer format is not supported by this transport.");
             }
-            Application = application;
+            
+            var options = new PipeOptions(writerScheduler: PipeScheduler.ThreadPool, readerScheduler: PipeScheduler.ThreadPool, useSynchronizationContext: false, pauseWriterThreshold: 0, resumeWriterThreshold: 0);
+            var pair = DuplexPipe.CreateConnectionPair(options, options);
+
+            _transport = pair.Application;
+            Application = pair.Transport;
             await _startHandler();
 
             // Start a loop to read from the pipe
@@ -65,6 +76,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
         public Task StopAsync()
         {
+            _transport.Output.Complete();
+            _transport.Input.Complete();
+
             Application.Input.CancelPendingRead();
             return Receiving;
         }
