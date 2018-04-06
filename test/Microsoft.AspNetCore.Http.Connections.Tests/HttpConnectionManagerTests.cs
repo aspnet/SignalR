@@ -281,7 +281,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
         private static HttpConnectionManager CreateConnectionManager(IApplicationLifetime lifetime = null)
         {
             lifetime = lifetime ?? new EmptyApplicationLifetime();
-            return new HttpConnectionManager(new Logger<HttpConnectionManager>(new LoggerFactory()), lifetime);
+            return new HttpConnectionManager(new LoggerFactory(), lifetime);
         }
     }
 }

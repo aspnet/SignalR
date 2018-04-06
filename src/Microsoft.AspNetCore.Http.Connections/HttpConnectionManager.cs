@@ -29,12 +29,14 @@ namespace Microsoft.AspNetCore.Http.Connections
         private readonly ConcurrentDictionary<string, (HttpConnectionContext Connection, ValueStopwatch Timer)> _connections = new ConcurrentDictionary<string, (HttpConnectionContext Connection, ValueStopwatch Timer)>();
         private Timer _timer;
         private readonly ILogger<HttpConnectionManager> _logger;
+        private readonly ILogger<HttpConnectionContext> _connectionLogger;
         private object _executionLock = new object();
         private bool _disposed;
 
-        public HttpConnectionManager(ILogger<HttpConnectionManager> logger, IApplicationLifetime appLifetime)
+        public HttpConnectionManager(ILoggerFactory loggerFactory, IApplicationLifetime appLifetime)
         {
-            _logger = logger;
+            _logger = loggerFactory.CreateLogger<HttpConnectionManager>();
+            _connectionLogger = loggerFactory.CreateLogger<HttpConnectionContext>();
             appLifetime.ApplicationStarted.Register(() => Start());
             appLifetime.ApplicationStopping.Register(() => CloseConnections());
         }
@@ -229,7 +231,7 @@ namespace Microsoft.AspNetCore.Http.Connections
         {
             try
             {
-                await connection.DisposeAsync(closeGracefully);
+                await connection.DisposeAsync(closeGracefully, _connectionLogger);
             }
             catch (IOException ex)
             {
