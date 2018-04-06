@@ -4,6 +4,8 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace Microsoft.AspNetCore.SignalR.Internal
 {
@@ -19,15 +21,16 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         private readonly int _segmentSize;
         private int _bytesWritten;
 
-        private List<byte[]> _segments;
+        private List<byte[]> _fullSegments;
+        private byte[] _currentSegment;
         private int _position;
 
-        private MemoryBufferWriter(int segmentSize = 2048)
+        public MemoryBufferWriter(int segmentSize = 2048)
         {
             _segmentSize = segmentSize;
-
-            _segments = new List<byte[]>();
         }
+
+        public int Length => _bytesWritten;
 
         public static MemoryBufferWriter Get()
         {
@@ -57,16 +60,30 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 #if DEBUG
             writer._inUse = false;
 #endif
-            for (var i = 0; i < writer._segments.Count; i++)
-            {
-                ArrayPool<byte>.Shared.Return(writer._segments[i]);
-            }
-            writer._segments.Clear();
-            writer._bytesWritten = 0;
-            writer._position = 0;
+            writer.Reset();
         }
 
-        public Memory<byte> CurrentSegment => _segments[_segments.Count - 1];
+        public void Reset()
+        {
+            if (_fullSegments != null)
+            {
+                for (var i = 0; i < _fullSegments.Count; i++)
+                {
+                    ArrayPool<byte>.Shared.Return(_fullSegments[i]);
+                }
+
+                _fullSegments.Clear();
+            }
+
+            if (_currentSegment != null)
+            {
+                ArrayPool<byte>.Shared.Return(_currentSegment);
+                _currentSegment = null;
+            }
+
+            _bytesWritten = 0;
+            _position = 0;
+        }
 
         public void Advance(int count)
         {
@@ -77,16 +94,23 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         public Memory<byte> GetMemory(int sizeHint = 0)
         {
             // TODO: Use sizeHint
-
-            if (_segments.Count == 0 || _position == _segmentSize)
+            if (_currentSegment == null)
             {
-                _segments.Add(ArrayPool<byte>.Shared.Rent(_segmentSize));
+                _currentSegment = ArrayPool<byte>.Shared.Rent(_segmentSize);
+                _position = 0;
+            }
+            else if (_position == _segmentSize)
+            {
+                if (_fullSegments == null)
+                {
+                    _fullSegments = new List<byte[]>();
+                }
+                _fullSegments.Add(_currentSegment);
+                _currentSegment = ArrayPool<byte>.Shared.Rent(_segmentSize);
                 _position = 0;
             }
 
-            // Cache property access
-            var currentSegment = CurrentSegment;
-            return currentSegment.Slice(_position, currentSegment.Length - _position);
+            return _currentSegment.AsMemory(_position, _currentSegment.Length - _position);
         }
 
         public Span<byte> GetSpan(int sizeHint = 0)
@@ -94,9 +118,33 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             return GetMemory(sizeHint).Span;
         }
 
+        public Task CopyToAsync(Stream stream)
+        {
+            if (_fullSegments == null)
+            {
+                return stream.WriteAsync(_currentSegment, 0, _position);
+            }
+
+            return CopyToSlowAsync(stream);
+        }
+
+        private async Task CopyToSlowAsync(Stream stream)
+        {
+            if (_fullSegments != null)
+            {
+                // Copy full segments
+                for (var i = 0; i < _fullSegments.Count - 1; i++)
+                {
+                    await stream.WriteAsync(_fullSegments[i], 0, _segmentSize);
+                }
+            }
+
+            await stream.WriteAsync(_currentSegment, 0, _position);
+        }
+
         public byte[] ToArray()
         {
-            if (_segments.Count == 0)
+            if (_currentSegment == null)
             {
                 return Array.Empty<byte>();
             }
@@ -105,16 +153,19 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
             var totalWritten = 0;
 
-            // Copy full segments
-            for (var i = 0; i < _segments.Count - 1; i++)
+            if (_fullSegments != null)
             {
-                _segments[i].AsMemory().CopyTo(result.AsMemory(totalWritten, _segmentSize));
+                // Copy full segments
+                for (var i = 0; i < _fullSegments.Count; i++)
+                {
+                    _fullSegments[i].CopyTo(result, totalWritten);
 
-                totalWritten += _segmentSize;
+                    totalWritten += _segmentSize;
+                }
             }
 
             // Copy current incomplete segment
-            CurrentSegment.Slice(0, _position).CopyTo(result.AsMemory(totalWritten, _position));
+            _currentSegment.AsSpan(0, _position).CopyTo(result.AsSpan(totalWritten));
 
             return result;
         }

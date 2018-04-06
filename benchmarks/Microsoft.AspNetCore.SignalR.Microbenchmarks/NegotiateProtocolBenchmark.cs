@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using Microsoft.AspNetCore.Http.Connections.Internal;
 using Microsoft.AspNetCore.SignalR.Internal;
@@ -12,6 +13,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
     public class NegotiateProtocolBenchmark
     {
         private NegotiationResponse _negotiateResponse;
+        private Stream _stream;
 
         [GlobalSetup]
         public void GlobalSetup()
@@ -32,6 +34,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
                     }
                 }
             };
+            _stream = Stream.Null;
         }
 
         [Benchmark]
@@ -43,17 +46,17 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         }
 
         [Benchmark]
-        public void WriteResponse_MemoryBufferWriter()
+        public Task WriteResponse_MemoryBufferWriter()
         {
-            var writer = MemoryBufferWriter.Get();
+            var writer = new MemoryBufferWriter();
             try
             {
                 NegotiateProtocol.WriteResponse(_negotiateResponse, writer);
-                writer.ToArray();
+                return writer.CopyToAsync(_stream);
             }
             finally
             {
-                MemoryBufferWriter.Return(writer);
+                writer.Reset();
             }
         }
     }

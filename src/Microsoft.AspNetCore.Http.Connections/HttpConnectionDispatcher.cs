@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -386,17 +387,27 @@ namespace Microsoft.AspNetCore.Http.Connections
             // Connection ID metadata set.
             logScope.ConnectionId = connection.ConnectionId;
 
-            // Get the bytes for the connection id
-            var negotiateResponseBuffer = GetNegotiatePayload(connection.ConnectionId, context, options);
+            // Don't use thread static instance here because writer is used with async
+            var writer = new MemoryBufferWriter();
 
-            Log.NegotiationRequest(_logger);
+            try
+            {
+                // Get the bytes for the connection id
+                WriteNegotiatePayload(writer, connection.ConnectionId, context, options);
 
-            // Write it out to the response with the right content length
-            context.Response.ContentLength = negotiateResponseBuffer.Length;
-            return context.Response.Body.WriteAsync(negotiateResponseBuffer, 0, negotiateResponseBuffer.Length);
+                Log.NegotiationRequest(_logger);
+
+                // Write it out to the response with the right content length
+                context.Response.ContentLength = writer.Length;
+                return writer.CopyToAsync(context.Response.Body);
+            }
+            finally
+            {
+                writer.Reset();
+            }
         }
 
-        private static byte[] GetNegotiatePayload(string connectionId, HttpContext context, HttpConnectionOptions options)
+        private static void WriteNegotiatePayload(IBufferWriter<byte> writer, string connectionId, HttpContext context, HttpConnectionOptions options)
         {
             var response = new NegotiationResponse();
             response.ConnectionId = connectionId;
@@ -417,16 +428,7 @@ namespace Microsoft.AspNetCore.Http.Connections
                 response.AvailableTransports.Add(_longPollingAvailableTransport);
             }
 
-            var writer = MemoryBufferWriter.Get();
-            try
-            {
-                NegotiateProtocol.WriteResponse(response, writer);
-                return writer.ToArray();
-            }
-            finally
-            {   
-                MemoryBufferWriter.Return(writer);
-            }
+            NegotiateProtocol.WriteResponse(response, writer);
         }
 
         private static bool ServerHasWebSockets(IFeatureCollection features)
