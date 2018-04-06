@@ -122,6 +122,7 @@ namespace Microsoft.AspNetCore.Internal
         {
             if (_fullSegments == null)
             {
+                // There is only one segment so write without async
                 return stream.WriteAsync(_currentSegment, 0, _position);
             }
 
