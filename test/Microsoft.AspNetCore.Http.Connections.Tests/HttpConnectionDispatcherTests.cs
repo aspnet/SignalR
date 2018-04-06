@@ -106,6 +106,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
                 var pipeOptions = new PipeOptions(pauseWriterThreshold: 8, resumeWriterThreshold: 4);
                 var connection = manager.CreateConnection(pipeOptions, pipeOptions);
+                connection.TransportType = transportType;
                 connection.Items[ConnectionMetadataNames.Transport] = transportType;
 
                 using (var requestBody = new MemoryStream())
@@ -263,6 +264,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                 var manager = CreateConnectionManager(loggerFactory);
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
                 var connection = manager.CreateConnection();
+                connection.TransportType = HttpTransportType.WebSockets;
                 connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.WebSockets;
 
                 using (var strm = new MemoryStream())
@@ -292,6 +294,169 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             }
         }
 
+        [Fact]
+        public async Task PostReturns404IfConnectionDisposed()
+        {
+            using (StartLog(out var loggerFactory, LogLevel.Debug))
+            {
+                var manager = CreateConnectionManager(loggerFactory);
+                var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
+                var connection = manager.CreateConnection();
+                connection.TransportType = HttpTransportType.LongPolling;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
+                await connection.DisposeAsync(closeGracefully: false);
+
+                using (var strm = new MemoryStream())
+                {
+                    var context = new DefaultHttpContext();
+                    context.Response.Body = strm;
+
+                    var services = new ServiceCollection();
+                    services.AddSingleton<TestConnectionHandler>();
+                    services.AddOptions();
+                    context.Request.Path = "/foo";
+                    context.Request.Method = "POST";
+                    var values = new Dictionary<string, StringValues>();
+                    values["id"] = connection.ConnectionId;
+                    var qs = new QueryCollection(values);
+                    context.Request.Query = qs;
+
+                    var builder = new ConnectionBuilder(services.BuildServiceProvider());
+                    builder.UseConnectionHandler<TestConnectionHandler>();
+                    var app = builder.Build();
+                    await dispatcher.ExecuteAsync(context, new HttpConnectionOptions(), app);
+
+                    Assert.Equal(StatusCodes.Status404NotFound, context.Response.StatusCode);
+                }
+            }
+        }
+
+        [Theory]
+        [InlineData(HttpTransportType.ServerSentEvents)]
+        [InlineData(HttpTransportType.WebSockets)]
+        public async Task TransportEndingGracefullyWaitsOnApplication(HttpTransportType transportType)
+        {
+            using (StartLog(out var loggerFactory, LogLevel.Debug))
+            {
+                var manager = CreateConnectionManager(loggerFactory);
+                var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
+                var connection = manager.CreateConnection();
+                connection.TransportType = transportType;
+                connection.Items[ConnectionMetadataNames.Transport] = transportType;
+
+                using (var strm = new MemoryStream())
+                {
+                    var context = new DefaultHttpContext();
+                    SetTransport(context, transportType);
+                    var cts = new CancellationTokenSource();
+                    context.Response.Body = strm;
+                    context.RequestAborted = cts.Token;
+
+                    var services = new ServiceCollection();
+                    services.AddSingleton<TestConnectionHandler>();
+                    services.AddOptions();
+                    context.Request.Path = "/foo";
+                    context.Request.Method = "GET";
+                    var values = new Dictionary<string, StringValues>();
+                    values["id"] = connection.ConnectionId;
+                    var qs = new QueryCollection(values);
+                    context.Request.Query = qs;
+
+                    var builder = new ConnectionBuilder(services.BuildServiceProvider());
+                    builder.Use(next =>
+                    {
+                        return async connectionContext =>
+                        {
+                            // Ensure both sides of the pipe are ok
+                            var result = await connectionContext.Transport.Input.ReadAsync();
+                            Assert.True(result.IsCompleted);
+                            await connectionContext.Transport.Output.WriteAsync(result.Buffer.First);
+                        };
+                    });
+
+                    var app = builder.Build();
+                    var task = dispatcher.ExecuteAsync(context, new HttpConnectionOptions(), app);
+
+                    // Pretend the transport closed because the client disconnected
+                    if (context.WebSockets.IsWebSocketRequest)
+                    {
+                        var ws = (TestWebSocketConnectionFeature)context.Features.Get<IHttpWebSocketFeature>();
+                        await ws.Client.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "", default);
+                    }
+                    else
+                    {
+                        cts.Cancel();
+                    }
+
+                    await task.OrTimeout();
+
+                    await connection.ApplicationTask.OrTimeout();
+                }
+            }
+        }
+
+        [Fact]
+        public async Task TransportEndingGracefullyWaitsOnApplicationLongPolling()
+        {
+            using (StartLog(out var loggerFactory, LogLevel.Debug))
+            {
+                var manager = CreateConnectionManager(loggerFactory);
+                var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
+                var connection = manager.CreateConnection();
+                connection.TransportType = HttpTransportType.LongPolling;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
+
+                using (var strm = new MemoryStream())
+                {
+                    var context = new DefaultHttpContext();
+                    SetTransport(context, HttpTransportType.LongPolling);
+                    var cts = new CancellationTokenSource();
+                    context.Response.Body = strm;
+                    context.RequestAborted = cts.Token;
+
+                    var services = new ServiceCollection();
+                    services.AddSingleton<TestConnectionHandler>();
+                    services.AddOptions();
+                    context.Request.Path = "/foo";
+                    context.Request.Method = "GET";
+                    var values = new Dictionary<string, StringValues>();
+                    values["id"] = connection.ConnectionId;
+                    var qs = new QueryCollection(values);
+                    context.Request.Query = qs;
+
+                    var builder = new ConnectionBuilder(services.BuildServiceProvider());
+                    builder.Use(next =>
+                    {
+                        return async connectionContext =>
+                        {
+                            // Ensure both sides of the pipe are ok
+                            var result = await connectionContext.Transport.Input.ReadAsync();
+                            Assert.True(result.IsCompleted);
+                            await connectionContext.Transport.Output.WriteAsync(result.Buffer.First);
+                        };
+                    });
+
+                    var app = builder.Build();
+                    var task = dispatcher.ExecuteAsync(context, new HttpConnectionOptions(), app);
+
+                    // Pretend the transport closed because the client disconnected
+                    cts.Cancel();
+
+                    await task.OrTimeout();
+
+                    // We've been gone longer than the expiration time
+                    connection.LastSeenUtc = DateTime.UtcNow.Subtract(TimeSpan.FromSeconds(10));
+
+                    // The application is still running here because the poll is only killed
+                    // by the heartbeat so we pretend to do a scan and this should force the application task to complete
+                    manager.Scan();
+
+                    // The application task should complete gracefully
+                    await connection.ApplicationTask.OrTimeout();
+                }
+            }
+        }
+
         [Theory]
         [InlineData(HttpTransportType.LongPolling)]
         [InlineData(HttpTransportType.ServerSentEvents)]
@@ -302,6 +467,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                 var manager = CreateConnectionManager(loggerFactory);
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
                 var connection = manager.CreateConnection();
+                connection.TransportType = transportType;
                 connection.Items[ConnectionMetadataNames.Transport] = transportType;
 
                 using (var requestBody = new MemoryStream())
@@ -329,10 +495,13 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                     builder.UseConnectionHandler<TestConnectionHandler>();
                     var app = builder.Build();
 
+                    Assert.Equal(0, connection.ApplicationStream.Length);
+
                     await dispatcher.ExecuteAsync(context, new HttpConnectionOptions(), app);
 
                     Assert.True(connection.Transport.Input.TryRead(out var result));
                     Assert.Equal("Hello World", Encoding.UTF8.GetString(result.Buffer.ToArray()));
+                    Assert.Equal(0, connection.ApplicationStream.Length);
                     connection.Transport.Input.AdvanceTo(result.Buffer.End);
                 }
             }
@@ -348,6 +517,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                 var manager = CreateConnectionManager(loggerFactory);
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
                 var connection = manager.CreateConnection();
+                connection.TransportType = transportType;
                 connection.Items[ConnectionMetadataNames.Transport] = transportType;
 
                 // Allow a maximum of one caller to use code at one time
@@ -433,6 +603,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                 var manager = CreateConnectionManager(loggerFactory);
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
                 var connection = manager.CreateConnection();
+                connection.TransportType = HttpTransportType.LongPolling;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
 
                 using (var requestBody = new MemoryStream())
                 using (var responseBody = new MemoryStream())
@@ -631,6 +803,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
+                connection.TransportType = HttpTransportType.ServerSentEvents;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.ServerSentEvents;
 
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
 
@@ -658,6 +832,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
+                connection.TransportType = HttpTransportType.ServerSentEvents;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.ServerSentEvents;
 
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
                 var context = MakeRequest("/foo", connection);
@@ -684,6 +860,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
+                connection.TransportType = HttpTransportType.LongPolling;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
 
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
 
@@ -710,6 +888,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
+                connection.TransportType = HttpTransportType.LongPolling;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
 
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
 
@@ -735,6 +915,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
+                connection.TransportType = HttpTransportType.WebSockets;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.WebSockets;
 
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
 
@@ -764,6 +946,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
+                connection.TransportType = transportType;
+                connection.Items[ConnectionMetadataNames.Transport] = transportType;
 
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
 
@@ -806,6 +990,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
+                connection.TransportType = HttpTransportType.LongPolling;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
 
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
 
@@ -843,6 +1029,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
+                connection.TransportType = transportType;
+                connection.Items[ConnectionMetadataNames.Transport] = transportType;
                 connection.Status = HttpConnectionContext.ConnectionStatus.Disposed;
 
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
@@ -870,6 +1058,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
+                connection.TransportType = HttpTransportType.LongPolling;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
 
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
 
@@ -904,6 +1094,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
+                connection.TransportType = HttpTransportType.ServerSentEvents;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.ServerSentEvents;
 
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
 
@@ -938,6 +1130,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
+                connection.TransportType = HttpTransportType.LongPolling;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
 
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
 
@@ -971,6 +1165,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
+                connection.TransportType = HttpTransportType.LongPolling;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
 
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
 
@@ -1012,6 +1208,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
+                connection.TransportType = transportType;
+                connection.Items[ConnectionMetadataNames.Transport] = transportType;
 
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
 
@@ -1043,6 +1241,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
+                connection.TransportType = HttpTransportType.LongPolling;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
                 var context = new DefaultHttpContext();
                 var services = new ServiceCollection();
@@ -1074,7 +1274,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                 var options = new HttpConnectionOptions();
                 options.AuthorizationData.Add(new AuthorizeAttribute("test"));
 
-                // would hang if EndPoint was running
+                // would get stuck if EndPoint was running
                 await dispatcher.ExecuteAsync(context, options, app).OrTimeout();
 
                 Assert.Equal(StatusCodes.Status401Unauthorized, context.Response.StatusCode);
@@ -1088,6 +1288,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
+                connection.TransportType = HttpTransportType.LongPolling;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
                 var context = new DefaultHttpContext();
                 var services = new ServiceCollection();
@@ -1121,7 +1323,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
 
                 context.User = new ClaimsPrincipal(new ClaimsIdentity("authenticated"));
 
-                // would hang if EndPoint was running
+                // would get stuck if EndPoint was running
                 await dispatcher.ExecuteAsync(context, options, app).OrTimeout();
 
                 Assert.Equal(StatusCodes.Status403Forbidden, context.Response.StatusCode);
@@ -1135,6 +1337,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
+                connection.TransportType = HttpTransportType.LongPolling;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
                 var context = new DefaultHttpContext();
                 context.Features.Set<IHttpResponseFeature>(new ResponseFeature());
@@ -1191,6 +1395,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
+                connection.TransportType = HttpTransportType.LongPolling;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
                 var context = new DefaultHttpContext();
                 context.Features.Set<IHttpResponseFeature>(new ResponseFeature());
@@ -1235,7 +1441,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                 // partially "authorize" user
                 context.User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "name") }));
 
-                // would hang if EndPoint was running
+                // would get stuck if EndPoint was running
                 await dispatcher.ExecuteAsync(context, options, app).OrTimeout();
 
                 Assert.Equal(StatusCodes.Status401Unauthorized, context.Response.StatusCode);
@@ -1272,6 +1478,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
+                connection.TransportType = HttpTransportType.LongPolling;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
                 var context = new DefaultHttpContext();
                 context.Features.Set<IHttpResponseFeature>(new ResponseFeature());
@@ -1329,6 +1537,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
+                connection.TransportType = HttpTransportType.LongPolling;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
                 var context = new DefaultHttpContext();
                 var services = new ServiceCollection();
@@ -1382,6 +1592,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
+                connection.TransportType = HttpTransportType.LongPolling;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
 
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
 
@@ -1477,6 +1689,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
         {
             var manager = CreateConnectionManager(loggerFactory);
             var connection = manager.CreateConnection();
+            connection.TransportType = transportType;
+            connection.Items[ConnectionMetadataNames.Transport] = transportType;
             var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
             using (var strm = new MemoryStream())
             {
@@ -1547,7 +1761,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
 
         private static HttpConnectionManager CreateConnectionManager(ILoggerFactory loggerFactory)
         {
-            return new HttpConnectionManager(new Logger<HttpConnectionManager>(loggerFactory ?? new LoggerFactory()), new EmptyApplicationLifetime());
+            return new HttpConnectionManager(loggerFactory ?? new LoggerFactory(), new EmptyApplicationLifetime());
         }
 
         private string GetContentAsString(Stream body)
