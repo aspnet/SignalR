@@ -376,7 +376,7 @@ namespace Microsoft.AspNetCore.Http.Connections
             await connectionDelegate(connection);
         }
 
-        private Task ProcessNegotiate(HttpContext context, HttpConnectionOptions options, ConnectionLogScope logScope)
+        private async Task ProcessNegotiate(HttpContext context, HttpConnectionOptions options, ConnectionLogScope logScope)
         {
             context.Response.ContentType = "application/json";
 
@@ -399,7 +399,7 @@ namespace Microsoft.AspNetCore.Http.Connections
 
                 // Write it out to the response with the right content length
                 context.Response.ContentLength = writer.Length;
-                return writer.CopyToAsync(context.Response.Body);
+                await writer.CopyToAsync(context.Response.Body);
             }
             finally
             {
