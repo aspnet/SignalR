@@ -111,8 +111,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                     {
                         await _input.WaitToReadAsync();
 
-                        WebSocketMessage message;
-                        if (_input.TryRead(out message))
+                        if (_input.TryRead(out var message))
                         {
                             if (message.MessageType == WebSocketMessageType.Close)
                             {
