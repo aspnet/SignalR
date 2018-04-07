@@ -471,31 +471,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             channel.Writer.TryComplete(new Exception("Exception from channel"));
             return channel.Reader;
         }
-
-        private class CountingObservable : IObservable<string>
-        {
-            private int _count;
-
-            public CountingObservable(int count)
-            {
-                _count = count;
-            }
-
-            public IDisposable Subscribe(IObserver<string> observer)
-            {
-                var cts = new CancellationTokenSource();
-                Task.Run(() =>
-                {
-                    for (int i = 0; !cts.Token.IsCancellationRequested && i < _count; i++)
-                    {
-                        observer.OnNext(i.ToString());
-                    }
-                    observer.OnCompleted();
-                });
-
-                return new CancellationDisposable(cts);
-            }
-        }
     }
 
     public class SimpleHub : Hub

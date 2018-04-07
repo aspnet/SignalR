@@ -13,24 +13,11 @@ namespace SignalRSamples.Hubs
     {
         public ChannelReader<int> ObservableCounter(int count, int delay)
         {
-            // This sample shows adapting an observable to a ChannelReader without 
-            // back pressure, if the connection is slower than the producer, memory will
-            // start to increase.
             var observable = Observable.Interval(TimeSpan.FromMilliseconds(delay))
                              .Select((_, index) => index)
                              .Take(count);
 
-            var channel = Channel.CreateUnbounded<int>();
-
-            var disposable = observable.Subscribe(
-                                value => channel.Writer.TryWrite(value),
-                                error => channel.Writer.TryComplete(error),
-                                () => channel.Writer.TryComplete());
-
-            // Complete the subscription on the reader completing
-            channel.Reader.Completion.ContinueWith(task => disposable.Dispose());
-
-            return channel.Reader;
+            return observable.AsChannelReader();
         }
 
         public ChannelReader<int> ChannelCounter(int count, int delay)

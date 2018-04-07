@@ -223,23 +223,5 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         {
             return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "StreamChannelReaderCount", argumentBindingException: null, new object[] { 1000 }));
         }
-
-        [Benchmark]
-        public Task StreamObservableCount_Zero()
-        {
-            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "StreamObservableCount", argumentBindingException: null, new object[] { 0 }));
-        }
-
-        [Benchmark]
-        public Task StreamObservableCount_One()
-        {
-            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "StreamObservableCount", argumentBindingException: null, new object[] { 1 }));
-        }
-
-        [Benchmark]
-        public Task StreamObservableCount_Thousand()
-        {
-            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "StreamObservableCount", argumentBindingException: null, new object[] { 1000 }));
-        }
     }
 }
