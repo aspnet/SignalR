@@ -52,7 +52,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
             Log.StartTransport(_logger, transferFormat);
 
             // Create the pipe pair (Application's writer is connected to Transport's reader, and vice versa)
-            var options = new PipeOptions(writerScheduler: PipeScheduler.ThreadPool, readerScheduler: PipeScheduler.ThreadPool, useSynchronizationContext: false, pauseWriterThreshold: 0, resumeWriterThreshold: 0);
+            var options = ClientPipeOptions.DefaultOptions;
             var pair = DuplexPipe.CreateConnectionPair(options, options);
 
             _transport = pair.Application;

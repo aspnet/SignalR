@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.Http.Connections.Client;
+using Microsoft.AspNetCore.Http.Connections.Client.Internal;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.AspNetCore.Testing.xunit;
 using Microsoft.AspNetCore.WebUtilities;
@@ -488,7 +489,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
             public Task StartAsync(Uri url, TransferFormat transferFormat)
             {
-                var options = new PipeOptions(writerScheduler: PipeScheduler.ThreadPool, readerScheduler: PipeScheduler.ThreadPool, useSynchronizationContext: false, pauseWriterThreshold: 0, resumeWriterThreshold: 0);
+                var options = ClientPipeOptions.DefaultOptions;
                 var pair = DuplexPipe.CreateConnectionPair(options, options);
 
                 _transport = pair.Application;
