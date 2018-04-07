@@ -492,8 +492,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var options = ClientPipeOptions.DefaultOptions;
                 var pair = DuplexPipe.CreateConnectionPair(options, options);
 
-                _transport = pair.Application;
-                _application = pair.Transport;
+                _transport = pair.Transport;
+                _application = pair.Application;
                 _tries++;
                 Assert.True(QueryHelpers.ParseQuery(url.Query).TryGetValue("id", out var id));
                 if (_prevConnectionId == null)

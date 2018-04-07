@@ -121,8 +121,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
             var options = ClientPipeOptions.DefaultOptions;
             var pair = DuplexPipe.CreateConnectionPair(options, options);
 
-            _transport = pair.Application;
-            _application = pair.Transport;
+            _transport = pair.Transport;
+            _application = pair.Application;
 
             // TODO: Handle TCP connection errors
             // https://github.com/SignalR/SignalR/blob/1fba14fa3437e24c204dfaf8a18db3fce8acad3c/src/Microsoft.AspNet.SignalR.Core/Owin/WebSockets/WebSocketHandler.cs#L248-L251

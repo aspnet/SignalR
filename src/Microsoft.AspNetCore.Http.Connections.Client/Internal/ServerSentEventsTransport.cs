@@ -78,8 +78,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
             var options = ClientPipeOptions.DefaultOptions;
             var pair = DuplexPipe.CreateConnectionPair(options, options);
 
-            _transport = pair.Application;
-            _application = pair.Transport;
+            _transport = pair.Transport;
+            _application = pair.Application;
 
             Running = ProcessAsync(url, response);
         }

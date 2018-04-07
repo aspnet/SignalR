@@ -39,8 +39,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             var options = ClientPipeOptions.DefaultOptions;
             var pair = DuplexPipe.CreateConnectionPair(options, options);
 
-            _transport = pair.Application;
-            Application = pair.Transport;
+            _transport = pair.Transport;
+            Application = pair.Application;
             await _startHandler();
 
             // Start a loop to read from the pipe
