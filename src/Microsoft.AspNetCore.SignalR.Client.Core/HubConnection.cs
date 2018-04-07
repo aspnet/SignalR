@@ -143,8 +143,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     Log.ErrorStartingConnection(_logger, ex);
 
                     // Can't have any invocations to cancel, we're in the lock.
-                    startingConnectionState.Connection.Transport.Output.Complete();
-                    startingConnectionState.Connection.Transport.Input.Complete();
+                    Complete(startingConnectionState.Connection);
                     throw;
                 }
 
@@ -157,6 +156,12 @@ namespace Microsoft.AspNetCore.SignalR.Client
             {
                 ReleaseConnectionLock();
             }
+        }
+
+        private static void Complete(ConnectionContext connection)
+        {
+            connection.Transport.Output.Complete();
+            connection.Transport.Input.Complete();
         }
 
         // This method does both Dispose and Start, the 'disposing' flag indicates which.
@@ -661,8 +666,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             timeoutTimer?.Dispose();
 
             // Dispose the connection
-            connectionState.Connection.Transport.Output.Complete();
-            connectionState.Connection.Transport.Input.Complete();
+            Complete(connectionState.Connection);
 
             // Cancel any outstanding invocations within the connection lock
             connectionState.CancelOutstandingInvocations(connectionState.CloseException);
