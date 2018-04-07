@@ -18,7 +18,7 @@ using Newtonsoft.Json;
 
 namespace Microsoft.AspNetCore.SignalR.Client.Tests
 {
-    internal class TestConnection : ConnectionContext, IConnection
+    internal class TestConnection : ConnectionContext
     {
         private readonly bool _autoHandshake;
         private readonly TaskCompletionSource<object> _started = new TaskCompletionSource<object>();
@@ -68,14 +68,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
         public async Task<ConnectionContext> StartAsync(TransferFormat transferFormat = TransferFormat.Binary)
         {
-            await ((IConnection)this).StartAsync(transferFormat);
-            return this;
-        }
-
-        Task IConnection.StartAsync() => ((IConnection)this).StartAsync(TransferFormat.Binary);
-
-        async Task IConnection.StartAsync(TransferFormat transferFormat)
-        {
             _started.TrySetResult(null);
 
             await _onStart();
@@ -86,6 +78,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 // HubConnection.StartAsync which sends the Handshake in the first place!
                 _ = ReadHandshakeAndSendResponseAsync();
             }
+
+            return this;
         }
 
         public async Task<string> ReadHandshakeAndSendResponseAsync()

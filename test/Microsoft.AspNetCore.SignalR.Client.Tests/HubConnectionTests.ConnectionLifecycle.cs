@@ -60,7 +60,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     var firstStart = connection.StartAsync().OrTimeout();
                     Assert.False(firstStart.IsCompleted);
 
-                    // Wait for us to be in IConnection.StartAsync
+                    // Wait for us to be in IConnectionFactory.ConnectAsync
                     await syncPoint.WaitForSyncPoint();
 
                     // Try starting again

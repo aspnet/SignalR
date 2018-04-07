@@ -20,7 +20,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Microsoft.AspNetCore.Http.Connections.Client
 {
-    public partial class HttpConnection : ConnectionContext, IConnection
+    public partial class HttpConnection : ConnectionContext
     {
         private static readonly TimeSpan HttpClientTimeout = TimeSpan.FromSeconds(120);
 #if !NETCOREAPP2_1
@@ -116,9 +116,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
             _logScope = new ConnectionLogScope();
             _scopeDisposable = _logger.BeginScope(_logScope);
         }
-
-        public Task StartAsync() => StartAsync(TransferFormat.Binary);
-
+        
         public async Task StartAsync(TransferFormat transferFormat)
         {
             await StartAsyncCore(transferFormat).ForceAsync();
