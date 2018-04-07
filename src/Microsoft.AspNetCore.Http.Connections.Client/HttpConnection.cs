@@ -153,7 +153,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
 
         public async Task DisposeAsync() => await DisposeAsyncCore().ForceAsync();
 
-        private async Task DisposeAsyncCore(Exception exception = null)
+        private async Task DisposeAsyncCore()
         {
             if (_disposed)
             {
