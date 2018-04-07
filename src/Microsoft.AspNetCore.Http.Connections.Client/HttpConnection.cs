@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using System.IO.Pipelines;
 using System.Linq;
 using System.Net.Http;
@@ -19,7 +20,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Microsoft.AspNetCore.Http.Connections.Client
 {
-    public partial class HttpConnection : IConnection
+    public partial class HttpConnection : ConnectionContext, IConnection
     {
         private static readonly TimeSpan HttpClientTimeout = TimeSpan.FromSeconds(120);
 #if !NETCOREAPP2_1
@@ -44,7 +45,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
 
         public Uri Url { get; }
 
-        public IDuplexPipe Transport
+        public override IDuplexPipe Transport
         {
             get
             {
@@ -55,9 +56,15 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
                 }
                 return _transport;
             }
+            set
+            {
+                throw new NotSupportedException("The transport pipe isn't settable.");
+            }
         }
 
-        public IFeatureCollection Features { get; } = new FeatureCollection();
+        public override IFeatureCollection Features { get; } = new FeatureCollection();
+        public override string ConnectionId { get; set; }
+        public override IDictionary<object, object> Items { get; set; } = new ConnectionItems();
 
         public HttpConnection(Uri url)
             : this(url, HttpTransports.All)
