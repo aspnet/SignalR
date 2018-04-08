@@ -70,11 +70,27 @@ namespace Microsoft.AspNetCore.SignalR
 
         public override Task SendAllAsync(string methodName, object[] args)
         {
-            List<Task> tasks = null;
-            var message = CreateSerializedInvocationMessage(methodName, args);
+            return SendToAllConnections(methodName, args, null);
+        }
 
+        private Task SendToAllConnections(string methodName, object[] args, Func<HubConnectionContext, bool> include)
+        {
+            List<Task> tasks = null;
+            SerializedHubMessage message = null;
+
+            // foreach over HubConnectionStore avoids allocating an enumerator
             foreach (var connection in _connections)
             {
+                if (include != null && !include(connection))
+                {
+                    continue;
+                }
+
+                if (message == null)
+                {
+                    message = CreateSerializedInvocationMessage(methodName, args);
+                }
+
                 var task = connection.WriteAsync(message);
 
                 if (!task.IsCompletedSuccessfully)
@@ -88,7 +104,6 @@ namespace Microsoft.AspNetCore.SignalR
                 }
             }
 
-            // No async
             if (tasks == null)
             {
                 return Task.CompletedTask;
@@ -98,16 +113,18 @@ namespace Microsoft.AspNetCore.SignalR
             return Task.WhenAll(tasks);
         }
 
-        private Task SendAllWhere(string methodName, object[] args, Func<HubConnectionContext, bool> include)
+        private void SendToGroupConnections(string methodName, object[] args, IEnumerable<HubConnectionContext> connections, Func<HubConnectionContext, bool> include, ref List<Task> tasks, ref SerializedHubMessage message)
         {
-            List<Task> tasks = null;
-            var message = CreateSerializedInvocationMessage(methodName, args);
-
-            foreach (var connection in _connections)
+            foreach (var connection in connections)
             {
-                if (!include(connection))
+                if (include != null && !include(connection))
                 {
                     continue;
+                }
+
+                if (message == null)
+                {
+                    message = CreateSerializedInvocationMessage(methodName, args);
                 }
 
                 var task = connection.WriteAsync(message);
@@ -122,14 +139,6 @@ namespace Microsoft.AspNetCore.SignalR
                     tasks.Add(task.AsTask());
                 }
             }
-
-            if (tasks == null)
-            {
-                return Task.CompletedTask;
-            }
-
-            // Some connections are slow
-            return Task.WhenAll(tasks);
         }
 
         public override Task SendConnectionAsync(string connectionId, string methodName, object[] args)
@@ -165,9 +174,14 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 // Can't optimize for sending to a single connection in a group because
                 // group might be modified inbetween checking and sending
-                var message = CreateSerializedInvocationMessage(methodName, args);
-                var tasks = SendMessageToConnections(message, group.Values);
-                return Task.WhenAll(tasks);
+                List<Task> tasks = null;
+                SerializedHubMessage message = null;
+                SendToGroupConnections(methodName, args, group.Values, null, ref tasks, ref message);
+
+                if (tasks != null)
+                {
+                    return Task.WhenAll(tasks);
+                }
             }
 
             return Task.CompletedTask;
@@ -177,7 +191,7 @@ namespace Microsoft.AspNetCore.SignalR
         {
             // Each task represents the list of tasks for each of the writes within a group
             List<Task> tasks = null;
-            var message = CreateSerializedInvocationMessage(methodName, args);
+            SerializedHubMessage message = null;
 
             foreach (var groupName in groupNames)
             {
@@ -189,16 +203,16 @@ namespace Microsoft.AspNetCore.SignalR
                 var group = _groups[groupName];
                 if (group != null)
                 {
-                    if (tasks == null)
-                    {
-                        tasks = new List<Task>();
-                    }
-
-                    tasks.Add(Task.WhenAll(SendMessageToConnections(message, group.Values)));
+                    SendToGroupConnections(methodName, args, group.Values, null, ref tasks, ref message);
                 }
             }
 
-            return Task.WhenAll(tasks);
+            if (tasks != null)
+            {
+                return Task.WhenAll(tasks);
+            }
+
+            return Task.CompletedTask;
         }
 
         public override Task SendGroupExceptAsync(string groupName, string methodName, object[] args, IReadOnlyList<string> excludedIds)
@@ -211,20 +225,18 @@ namespace Microsoft.AspNetCore.SignalR
             var group = _groups[groupName];
             if (group != null)
             {
-                var message = CreateSerializedInvocationMessage(methodName, args);
-                var tasks = SendMessageToConnections(message, group.Values.Where(connection => !excludedIds.Contains(connection.ConnectionId)));
-                return Task.WhenAll(tasks);
+                List<Task> tasks = null;
+                SerializedHubMessage message = null;
+
+                SendToGroupConnections(methodName, args, group.Values, connection => !excludedIds.Contains(connection.ConnectionId), ref tasks, ref message);
+
+                if (tasks != null)
+                {
+                    return Task.WhenAll(tasks);
+                }
             }
 
             return Task.CompletedTask;
-        }
-
-        private IEnumerable<Task> SendMessageToConnections(SerializedHubMessage hubMessage, IEnumerable<HubConnectionContext> connectionContexts)
-        {
-            foreach (var connectionContext in connectionContexts)
-            {
-                yield return connectionContext.WriteAsync(hubMessage).AsTask();
-            }
         }
 
         private SerializedHubMessage CreateSerializedInvocationMessage(string methodName, object[] args)
@@ -239,8 +251,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public override Task SendUserAsync(string userId, string methodName, object[] args)
         {
-            return SendAllWhere(methodName, args, connection =>
-                string.Equals(connection.UserIdentifier, userId, StringComparison.Ordinal));
+            return SendToAllConnections(methodName, args, connection => string.Equals(connection.UserIdentifier, userId, StringComparison.Ordinal));
         }
 
         public override Task OnConnectedAsync(HubConnectionContext connection)
@@ -258,17 +269,17 @@ namespace Microsoft.AspNetCore.SignalR
 
         public override Task SendAllExceptAsync(string methodName, object[] args, IReadOnlyList<string> excludedIds)
         {
-            return SendAllWhere(methodName, args, connection => !excludedIds.Contains(connection.ConnectionId));
+            return SendToAllConnections(methodName, args, connection => !excludedIds.Contains(connection.ConnectionId));
         }
 
         public override Task SendConnectionsAsync(IReadOnlyList<string> connectionIds, string methodName, object[] args)
         {
-            return SendAllWhere(methodName, args, connection => connectionIds.Contains(connection.ConnectionId));
+            return SendToAllConnections(methodName, args, connection => connectionIds.Contains(connection.ConnectionId));
         }
 
         public override Task SendUsersAsync(IReadOnlyList<string> userIds, string methodName, object[] args)
         {
-            return SendAllWhere(methodName, args, connection => userIds.Contains(connection.UserIdentifier));
+            return SendToAllConnections(methodName, args, connection => userIds.Contains(connection.UserIdentifier));
         }
     }
 }
