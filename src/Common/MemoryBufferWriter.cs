@@ -20,27 +20,27 @@ namespace Microsoft.AspNetCore.Internal
         private bool _inUse;
 #endif
 
-        private readonly int _segmentSize;
+        private readonly int _minimumSegmentSize;
         private int _bytesWritten;
 
         private List<byte[]> _fullSegments;
         private byte[] _currentSegment;
         private int _position;
 
-        public MemoryBufferWriter(int segmentSize = 2048)
+        public MemoryBufferWriter(int minimumSegmentSize = 4096)
         {
-            _segmentSize = segmentSize;
+            _minimumSegmentSize = minimumSegmentSize;
         }
 
         public override long Length => _bytesWritten;
-
         public override bool CanRead => false;
-
         public override bool CanSeek => false;
-
         public override bool CanWrite => true;
-
-        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+        public override long Position
+        {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
 
         public static MemoryBufferWriter Get()
         {
@@ -105,29 +105,16 @@ namespace Microsoft.AspNetCore.Internal
 
         public Memory<byte> GetMemory(int sizeHint = 0)
         {
-            // TODO: Use sizeHint
-            if (_currentSegment == null)
-            {
-                _currentSegment = ArrayPool<byte>.Shared.Rent(_segmentSize);
-                _position = 0;
-            }
-            else if (_position == _currentSegment.Length)
-            {
-                if (_fullSegments == null)
-                {
-                    _fullSegments = new List<byte[]>();
-                }
-                _fullSegments.Add(_currentSegment);
-                _currentSegment = ArrayPool<byte>.Shared.Rent(_segmentSize);
-                _position = 0;
-            }
+            EnsureCapacity(sizeHint);
 
             return _currentSegment.AsMemory(_position, _currentSegment.Length - _position);
         }
 
         public Span<byte> GetSpan(int sizeHint = 0)
         {
-            return GetMemory(sizeHint).Span;
+            EnsureCapacity(sizeHint);
+
+            return _currentSegment.AsSpan(_position, _currentSegment.Length - _position);
         }
 
         public void CopyTo(IBufferWriter<byte> destination)
@@ -153,6 +140,35 @@ namespace Microsoft.AspNetCore.Internal
             }
 
             return CopyToSlowAsync(destination);
+        }
+
+        private void EnsureCapacity(int sizeHint)
+        {
+            // TODO: Use sizeHint
+            if (_currentSegment != null && _position < _currentSegment.Length)
+            {
+                // We have capacity in the current segment
+                return;
+            }
+
+            AddSegment();
+        }
+
+        private void AddSegment()
+        {
+            if (_currentSegment != null)
+            {
+                // We're adding a segment to the list
+                if (_fullSegments == null)
+                {
+                    _fullSegments = new List<byte[]>();
+                }
+
+                _fullSegments.Add(_currentSegment);
+            }
+
+            _currentSegment = ArrayPool<byte>.Shared.Rent(_minimumSegmentSize);
+            _position = 0;
         }
 
         private async Task CopyToSlowAsync(Stream destination)
@@ -198,53 +214,58 @@ namespace Microsoft.AspNetCore.Internal
             return result;
         }
 
-        public override void Flush()
-        {
-
-        }
-
-        public override int Read(byte[] buffer, int offset, int count)
-        {
-            throw new NotSupportedException();
-        }
-
-        public override long Seek(long offset, SeekOrigin origin)
-        {
-            throw new NotSupportedException();
-        }
-
-        public override void SetLength(long value)
-        {
-            throw new NotSupportedException();
-        }
+        public override void Flush() { }
+        public override Task FlushAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
 
         public override void WriteByte(byte value)
         {
             if (_currentSegment != null && _position < _currentSegment.Length)
             {
                 _currentSegment[_position] = value;
-                _bytesWritten += 1;
-                _position += 1;
             }
             else
             {
-                var memory = GetMemory();
-                memory.Span[0] = value;
-                Advance(1);
+                EnsureCapacity(1);
+                _currentSegment[_position] = value;
             }
+
+            _bytesWritten++;
+            _position++;
         }
 
         public override void Write(byte[] buffer, int offset, int count)
         {
-            BuffersExtensions.Write(this, buffer.AsSpan(offset, count));
+            if (_currentSegment != null && _position + count < _currentSegment.Length)
+            {
+                Buffer.BlockCopy(buffer, offset, _currentSegment, _position, count);
+
+                _position += count;
+                _bytesWritten += count;
+            }
+            else
+            {
+                BuffersExtensions.Write(this, buffer.AsSpan(offset, count));
+            }
         }
 
 #if NETCOREAPP2_1
         public override void Write(ReadOnlySpan<byte> span)
         {
-            BuffersExtensions.Write(this, span);
+            if (_currentSegment != null && span.TryCopyTo(_currentSegment.AsSpan().Slice(_position)))
+            {
+                _position += span.Length;
+                _bytesWritten += span.Length;
+            }
+            else
+            {
+                BuffersExtensions.Write(this, span);
+            }
         }
 #endif
+
         protected override void Dispose(bool disposing)
         {
             if (disposing)
