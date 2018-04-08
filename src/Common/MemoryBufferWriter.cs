@@ -49,9 +49,11 @@ namespace Microsoft.AspNetCore.Internal
             {
                 writer = new MemoryBufferWriter();
             }
-
-            // Taken off the thread static
-            _cachedInstance = null;
+            else
+            {
+                // Taken off the thread static
+                _cachedInstance = null;
+            }
 #if DEBUG
             if (writer._inUse)
             {
@@ -120,7 +122,8 @@ namespace Microsoft.AspNetCore.Internal
             if (_fullSegments != null)
             {
                 // Copy full segments
-                for (var i = 0; i < _fullSegments.Count; i++)
+                var count = _fullSegments.Count;
+                for (var i = 0; i < count; i++)
                 {
                     destination.Write(_fullSegments[i]);
                 }
@@ -173,8 +176,9 @@ namespace Microsoft.AspNetCore.Internal
         {
             if (_fullSegments != null)
             {
-                // Copy full segments
-                for (var i = 0; i < _fullSegments.Count; i++)
+                // Copy full segments                
+                var count = _fullSegments.Count;
+                for (var i = 0; i < count; i++)
                 {
                     var segment = _fullSegments[i];
                     await destination.WriteAsync(segment, 0, segment.Length);
@@ -198,11 +202,12 @@ namespace Microsoft.AspNetCore.Internal
             if (_fullSegments != null)
             {
                 // Copy full segments
-                for (var i = 0; i < _fullSegments.Count; i++)
+                var count = _fullSegments.Count;
+                for (var i = 0; i < count; i++)
                 {
-                    _fullSegments[i].CopyTo(result, totalWritten);
-
-                    totalWritten += _fullSegments[i].Length;
+                    var segment = _fullSegments[i];
+                    segment.CopyTo(result, totalWritten);
+                    totalWritten += segment.Length;
                 }
             }
 
@@ -220,27 +225,28 @@ namespace Microsoft.AspNetCore.Internal
 
         public override void WriteByte(byte value)
         {
-            if (_currentSegment != null && _position < _currentSegment.Length)
+            if (_currentSegment != null && (uint)_position < (uint)_currentSegment.Length)
             {
                 _currentSegment[_position] = value;
             }
             else
             {
-                EnsureCapacity(1);
-                _currentSegment[_position] = value;
+                AddSegment();
+                _currentSegment[0] = value;
             }
 
-            _bytesWritten++;
             _position++;
+            _bytesWritten++;
         }
 
         public override void Write(byte[] buffer, int offset, int count)
         {
-            if (_currentSegment != null && _position + count < _currentSegment.Length)
+            var position = _position;
+            if (_currentSegment != null && position < _currentSegment.Length - count)
             {
-                Buffer.BlockCopy(buffer, offset, _currentSegment, _position, count);
+                Buffer.BlockCopy(buffer, offset, _currentSegment, position, count);
 
-                _position += count;
+                _position = position + count;
                 _bytesWritten += count;
             }
             else
