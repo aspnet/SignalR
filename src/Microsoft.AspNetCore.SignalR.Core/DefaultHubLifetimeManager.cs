@@ -183,7 +183,7 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 if (string.IsNullOrEmpty(groupName))
                 {
-                    throw new InvalidOperationException("Cannot send an empty group name.");
+                    throw new InvalidOperationException("Cannot send to an empty group name.");
                 }
 
                 var group = _groups[groupName];
@@ -229,7 +229,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         private SerializedHubMessage CreateSerializedInvocationMessage(string methodName, object[] args)
         {
-            return new SerializedHubMessage(new InvocationMessage(target: methodName, argumentBindingException: null, arguments: args));
+            return new SerializedHubMessage(CreateInvocationMessage(methodName, args));
         }
 
         private HubMessage CreateInvocationMessage(string methodName, object[] args)
