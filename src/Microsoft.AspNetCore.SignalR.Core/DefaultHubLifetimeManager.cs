@@ -71,7 +71,7 @@ namespace Microsoft.AspNetCore.SignalR
         public override Task SendAllAsync(string methodName, object[] args)
         {
             List<Task> tasks = null;
-            var message = CreateInvocationMessage(methodName, args);
+            var message = CreateSerializedInvocationMessage(methodName, args);
 
             foreach (var connection in _connections)
             {
@@ -101,7 +101,7 @@ namespace Microsoft.AspNetCore.SignalR
         private Task SendAllWhere(string methodName, object[] args, Func<HubConnectionContext, bool> include)
         {
             List<Task> tasks = null;
-            var message = CreateInvocationMessage(methodName, args);
+            var message = CreateSerializedInvocationMessage(methodName, args);
 
             foreach (var connection in _connections)
             {
@@ -146,6 +146,8 @@ namespace Microsoft.AspNetCore.SignalR
                 return Task.CompletedTask;
             }
 
+            // We're sending to a single connection
+            // Write message directly to connection without caching it in memory
             var message = CreateInvocationMessage(methodName, args);
 
             return connection.WriteAsync(message).AsTask();
@@ -161,8 +163,10 @@ namespace Microsoft.AspNetCore.SignalR
             var group = _groups[groupName];
             if (group != null)
             {
-                var message = CreateInvocationMessage(methodName, args);
-                var tasks = group.Values.Select(c => c.WriteAsync(message).AsTask());
+                // Can't optimize for sending to a single connection in a group because
+                // group might be modified inbetween checking and sending
+                var message = CreateSerializedInvocationMessage(methodName, args);
+                var tasks = SendMessageToConnections(message, group.Values);
                 return Task.WhenAll(tasks);
             }
 
@@ -172,20 +176,25 @@ namespace Microsoft.AspNetCore.SignalR
         public override Task SendGroupsAsync(IReadOnlyList<string> groupNames, string methodName, object[] args)
         {
             // Each task represents the list of tasks for each of the writes within a group
-            var tasks = new List<Task>();
-            var message = CreateInvocationMessage(methodName, args);
+            List<Task> tasks = null;
+            var message = CreateSerializedInvocationMessage(methodName, args);
 
             foreach (var groupName in groupNames)
             {
                 if (string.IsNullOrEmpty(groupName))
                 {
-                    throw new ArgumentException(nameof(groupName));
+                    throw new InvalidOperationException("Cannot send an empty group name.");
                 }
 
                 var group = _groups[groupName];
                 if (group != null)
                 {
-                    tasks.Add(Task.WhenAll(group.Values.Select(c => c.WriteAsync(message).AsTask())));
+                    if (tasks == null)
+                    {
+                        tasks = new List<Task>();
+                    }
+
+                    tasks.Add(Task.WhenAll(SendMessageToConnections(message, group.Values)));
                 }
             }
 
@@ -202,18 +211,30 @@ namespace Microsoft.AspNetCore.SignalR
             var group = _groups[groupName];
             if (group != null)
             {
-                var message = CreateInvocationMessage(methodName, args);
-                var tasks = group.Values.Where(connection => !excludedIds.Contains(connection.ConnectionId))
-                    .Select(c => c.WriteAsync(message).AsTask());
+                var message = CreateSerializedInvocationMessage(methodName, args);
+                var tasks = SendMessageToConnections(message, group.Values.Where(connection => !excludedIds.Contains(connection.ConnectionId)));
                 return Task.WhenAll(tasks);
             }
 
             return Task.CompletedTask;
         }
 
-        private SerializedHubMessage CreateInvocationMessage(string methodName, object[] args)
+        private IEnumerable<Task> SendMessageToConnections(SerializedHubMessage hubMessage, IEnumerable<HubConnectionContext> connectionContexts)
+        {
+            foreach (var connectionContext in connectionContexts)
+            {
+                yield return connectionContext.WriteAsync(hubMessage).AsTask();
+            }
+        }
+
+        private SerializedHubMessage CreateSerializedInvocationMessage(string methodName, object[] args)
         {
             return new SerializedHubMessage(new InvocationMessage(target: methodName, argumentBindingException: null, arguments: args));
+        }
+
+        private HubMessage CreateInvocationMessage(string methodName, object[] args)
+        {
+            return new InvocationMessage(target: methodName, argumentBindingException: null, arguments: args);
         }
 
         public override Task SendUserAsync(string userId, string methodName, object[] args)
@@ -237,26 +258,17 @@ namespace Microsoft.AspNetCore.SignalR
 
         public override Task SendAllExceptAsync(string methodName, object[] args, IReadOnlyList<string> excludedIds)
         {
-            return SendAllWhere(methodName, args, connection =>
-            {
-                return !excludedIds.Contains(connection.ConnectionId);
-            });
+            return SendAllWhere(methodName, args, connection => !excludedIds.Contains(connection.ConnectionId));
         }
 
         public override Task SendConnectionsAsync(IReadOnlyList<string> connectionIds, string methodName, object[] args)
         {
-            return SendAllWhere(methodName, args, connection =>
-            {
-                return connectionIds.Contains(connection.ConnectionId);
-            });
+            return SendAllWhere(methodName, args, connection => connectionIds.Contains(connection.ConnectionId));
         }
 
         public override Task SendUsersAsync(IReadOnlyList<string> userIds, string methodName, object[] args)
         {
-            return SendAllWhere(methodName, args, connection =>
-            {
-                return userIds.Contains(connection.UserIdentifier);
-            });
+            return SendAllWhere(methodName, args, connection => userIds.Contains(connection.UserIdentifier));
         }
     }
 }
