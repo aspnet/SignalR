@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -94,6 +95,8 @@ namespace Microsoft.AspNetCore.Internal
             _position = 0;
         }
 
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Advance(int count)
         {
             _bytesWritten += count;
@@ -108,7 +111,7 @@ namespace Microsoft.AspNetCore.Internal
                 _currentSegment = ArrayPool<byte>.Shared.Rent(_segmentSize);
                 _position = 0;
             }
-            else if (_position == _segmentSize)
+            else if (_position == _currentSegment.Length)
             {
                 if (_fullSegments == null)
                 {
@@ -132,9 +135,9 @@ namespace Microsoft.AspNetCore.Internal
             if (_fullSegments != null)
             {
                 // Copy full segments
-                for (var i = 0; i < _fullSegments.Count - 1; i++)
+                for (var i = 0; i < _fullSegments.Count; i++)
                 {
-                    destination.Write(_fullSegments[i].AsSpan(0, _segmentSize));
+                    destination.Write(_fullSegments[i]);
                 }
             }
 
@@ -157,9 +160,10 @@ namespace Microsoft.AspNetCore.Internal
             if (_fullSegments != null)
             {
                 // Copy full segments
-                for (var i = 0; i < _fullSegments.Count - 1; i++)
+                for (var i = 0; i < _fullSegments.Count; i++)
                 {
-                    await destination.WriteAsync(_fullSegments[i], 0, _segmentSize);
+                    var segment = _fullSegments[i];
+                    await destination.WriteAsync(segment, 0, segment.Length);
                 }
             }
 
@@ -184,7 +188,7 @@ namespace Microsoft.AspNetCore.Internal
                 {
                     _fullSegments[i].CopyTo(result, totalWritten);
 
-                    totalWritten += _segmentSize;
+                    totalWritten += _fullSegments[i].Length;
                 }
             }
 
@@ -214,9 +218,9 @@ namespace Microsoft.AspNetCore.Internal
             throw new NotSupportedException();
         }
 
-        public unsafe override void WriteByte(byte value)
+        public override void WriteByte(byte value)
         {
-            if (_currentSegment != null && _position < _segmentSize)
+            if (_currentSegment != null && _position < _currentSegment.Length)
             {
                 _currentSegment[_position] = value;
                 _bytesWritten += 1;
@@ -224,7 +228,9 @@ namespace Microsoft.AspNetCore.Internal
             }
             else
             {
-                BuffersExtensions.Write(this, new ReadOnlySpan<byte>(&value, 1));
+                var memory = GetMemory();
+                memory.Span[0] = value;
+                Advance(1);
             }
         }
 
