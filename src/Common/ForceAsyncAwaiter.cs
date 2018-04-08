@@ -34,8 +34,8 @@ namespace System.Threading.Tasks
 
         public ForceAsyncAwaiter GetAwaiter() { return this; }
 
-        public bool IsCompleted // the purpose of this type is to always force a continuation
-            => false;
+        // The purpose of this type is to always force a continuation
+        public bool IsCompleted => false;
 
         public void GetResult() { _task.GetAwaiter().GetResult(); }
 
@@ -58,8 +58,8 @@ namespace System.Threading.Tasks
 
         public ForceAsyncAwaiter<T> GetAwaiter() { return this; }
 
-        public bool IsCompleted // the purpose of this type is to always force a continuation
-            => false;
+        // The purpose of this type is to always force a continuation
+        public bool IsCompleted => false;
 
         public T GetResult() { return _task.GetAwaiter().GetResult(); }
 
