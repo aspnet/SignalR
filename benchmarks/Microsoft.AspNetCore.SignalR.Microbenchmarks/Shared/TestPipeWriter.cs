@@ -13,6 +13,8 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks.Shared
         // huge buffer that should be large enough for writing any content
         private readonly byte[] _buffer = new byte[10000];
 
+        public bool YieldOnFlush { get; set; }
+
         public override void Advance(int bytes)
         {
         }
@@ -44,6 +46,17 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks.Shared
 
         public override ValueTask<FlushResult> FlushAsync(CancellationToken cancellationToken = new CancellationToken())
         {
+            if (!YieldOnFlush)
+            {
+                return default;
+            }
+
+            return new ValueTask<FlushResult>(YieldFlushResultAsync());
+        }
+
+        public async Task<FlushResult> YieldFlushResultAsync()
+        {
+            await Task.Yield();
             return default;
         }
     }
