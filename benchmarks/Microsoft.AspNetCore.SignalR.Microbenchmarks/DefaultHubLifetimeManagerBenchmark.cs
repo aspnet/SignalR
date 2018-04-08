@@ -1,26 +1,16 @@
-﻿using System;
+﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
+using System;
 using System.Collections.Generic;
-using System.IO.Pipelines;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
-using Microsoft.AspNetCore.Connections;
-using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.SignalR.Microbenchmarks.Shared;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
 {
-    public class TestConnectionContext : ConnectionContext
-    {
-        public override string ConnectionId { get; set; }
-        public override IFeatureCollection Features { get; } = new FeatureCollection();
-        public override IDictionary<object, object> Items { get; set; }
-        public override IDuplexPipe Transport { get; set; }
-    }
-
     public class DefaultHubLifetimeManagerBenchmark
     {
         private DefaultHubLifetimeManager<Hub> _hubLifetimeManager;
