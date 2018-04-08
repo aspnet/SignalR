@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -113,11 +114,11 @@ namespace Microsoft.AspNetCore.SignalR
             return Task.WhenAll(tasks);
         }
 
-        private void SendToGroupConnections(string methodName, object[] args, IEnumerable<HubConnectionContext> connections, Func<HubConnectionContext, bool> include, ref List<Task> tasks, ref SerializedHubMessage message)
+        private void SendToGroupConnections(string methodName, object[] args, ConcurrentDictionary<string, HubConnectionContext> connections, Func<HubConnectionContext, bool> include, ref List<Task> tasks, ref SerializedHubMessage message)
         {
             foreach (var connection in connections)
             {
-                if (include != null && !include(connection))
+                if (include != null && !include(connection.Value))
                 {
                     continue;
                 }
@@ -127,7 +128,7 @@ namespace Microsoft.AspNetCore.SignalR
                     message = CreateSerializedInvocationMessage(methodName, args);
                 }
 
-                var task = connection.WriteAsync(message);
+                var task = connection.Value.WriteAsync(message);
 
                 if (!task.IsCompletedSuccessfully)
                 {
@@ -176,7 +177,7 @@ namespace Microsoft.AspNetCore.SignalR
                 // group might be modified inbetween checking and sending
                 List<Task> tasks = null;
                 SerializedHubMessage message = null;
-                SendToGroupConnections(methodName, args, group.Values, null, ref tasks, ref message);
+                SendToGroupConnections(methodName, args, group, null, ref tasks, ref message);
 
                 if (tasks != null)
                 {
@@ -203,7 +204,7 @@ namespace Microsoft.AspNetCore.SignalR
                 var group = _groups[groupName];
                 if (group != null)
                 {
-                    SendToGroupConnections(methodName, args, group.Values, null, ref tasks, ref message);
+                    SendToGroupConnections(methodName, args, group, null, ref tasks, ref message);
                 }
             }
 
@@ -228,7 +229,7 @@ namespace Microsoft.AspNetCore.SignalR
                 List<Task> tasks = null;
                 SerializedHubMessage message = null;
 
-                SendToGroupConnections(methodName, args, group.Values, connection => !excludedIds.Contains(connection.ConnectionId), ref tasks, ref message);
+                SendToGroupConnections(methodName, args, group, connection => !excludedIds.Contains(connection.ConnectionId), ref tasks, ref message);
 
                 if (tasks != null)
                 {

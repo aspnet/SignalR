@@ -20,7 +20,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         private List<string> _userIdentifiers;
 
         [Params(true, false)]
-        public bool WriteSlow { get; set; }
+        public bool ForceAsync { get; set; }
 
         [GlobalSetup]
         public void GlobalSetup()
@@ -41,7 +41,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
                 AddUnique(_connectionIds, connectionId);
                 AddUnique(_groupNames, groupName);
                 AddUnique(_userIdentifiers, userIdentifier);
-                if (i % 2 == 0)
+                if (i % 3 == 0)
                 {
                     _subsetConnectionIds.Add(connectionId);
                 }
@@ -49,7 +49,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
                 var connectionContext = new TestConnectionContext
                 {
                     ConnectionId = connectionId,
-                    Transport = new TestDuplexPipe(WriteSlow)
+                    Transport = new TestDuplexPipe(ForceAsync)
                 };
                 var hubConnectionContext = new HubConnectionContext(connectionContext, TimeSpan.Zero, NullLoggerFactory.Instance);
                 hubConnectionContext.UserIdentifier = userIdentifier;

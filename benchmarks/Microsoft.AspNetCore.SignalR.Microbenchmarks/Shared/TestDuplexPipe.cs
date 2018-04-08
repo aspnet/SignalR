@@ -14,12 +14,12 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks.Shared
 
         public PipeWriter Output { get; }
 
-        public TestDuplexPipe(bool writerYieldOnFlush = false)
+        public TestDuplexPipe(bool writerForceAsync = false)
         {
             _input = new TestPipeReader();
             Output = new TestPipeWriter
             {
-                YieldOnFlush = writerYieldOnFlush
+                ForceAsync = writerForceAsync
             };
         }
 
