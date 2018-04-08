@@ -197,6 +197,27 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             }
         }
 
+#if NETCOREAPP2_1
+        [Fact]
+        public void WriteSpanWorksAtNonZeroOffset()
+        {
+            using (var bufferWriter = new MemoryBufferWriter())
+            {
+                bufferWriter.WriteByte(1);
+                bufferWriter.Write(new byte[] { 2, 3, 4 }.AsSpan());
+
+                Assert.Equal(4, bufferWriter.Length);
+
+                var data = bufferWriter.ToArray();
+                Assert.Equal(4, data.Length);
+                Assert.Equal(1, data[0]);
+                Assert.Equal(2, data[1]);
+                Assert.Equal(3, data[2]);
+                Assert.Equal(4, data[3]);
+            }
+        }
+#endif
+
         [Fact]
         public void ResetResetsTheMemoryBufferWriter()
         {

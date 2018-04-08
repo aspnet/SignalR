@@ -95,8 +95,6 @@ namespace Microsoft.AspNetCore.Internal
             _position = 0;
         }
 
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Advance(int count)
         {
             _bytesWritten += count;
