@@ -68,7 +68,11 @@ namespace Microsoft.AspNetCore.Internal
 
         public static void Return(MemoryBufferWriter writer)
         {
-            _cachedInstance = writer;
+            // Skip write barrier if already have one cached
+            if (_cachedInstance == null)
+            {
+                _cachedInstance = writer;
+            }
 #if DEBUG
             writer._inUse = false;
 #endif
@@ -77,19 +81,22 @@ namespace Microsoft.AspNetCore.Internal
 
         public void Reset()
         {
-            if (_fullSegments != null)
+            var fullSegments = _fullSegments;
+            if (fullSegments != null)
             {
-                for (var i = 0; i < _fullSegments.Count; i++)
+                var count = fullSegments.Count;
+                for (var i = 0; i < count; i++)
                 {
-                    ArrayPool<byte>.Shared.Return(_fullSegments[i]);
+                    ArrayPool<byte>.Shared.Return(fullSegments[i]);
                 }
 
-                _fullSegments.Clear();
+                fullSegments.Clear();
             }
 
-            if (_currentSegment != null)
+            var currentSegment = _currentSegment;
+            if (currentSegment != null)
             {
-                ArrayPool<byte>.Shared.Return(_currentSegment);
+                ArrayPool<byte>.Shared.Return(currentSegment);
                 _currentSegment = null;
             }
 
