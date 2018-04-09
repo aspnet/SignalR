@@ -81,13 +81,16 @@ namespace Microsoft.AspNetCore.Internal
 
         public void Reset()
         {
+            // Don't resolve the ArrayPool per loop
+            // Also Jit doesn't devirtualize it, yet https://github.com/dotnet/coreclr/pull/15743
+            var arraypool = ArrayPool<byte>.Shared;
             var fullSegments = _fullSegments;
             if (fullSegments != null)
             {
                 var count = fullSegments.Count;
                 for (var i = 0; i < count; i++)
                 {
-                    ArrayPool<byte>.Shared.Return(fullSegments[i]);
+                    arraypool.Return(fullSegments[i]);
                 }
 
                 fullSegments.Clear();
@@ -96,7 +99,7 @@ namespace Microsoft.AspNetCore.Internal
             var currentSegment = _currentSegment;
             if (currentSegment != null)
             {
-                ArrayPool<byte>.Shared.Return(currentSegment);
+                arraypool.Return(currentSegment);
                 _currentSegment = null;
             }
 
