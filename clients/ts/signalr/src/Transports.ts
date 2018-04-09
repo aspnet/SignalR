@@ -40,7 +40,7 @@ export class WebSocketTransport implements ITransport {
         this.logMessageContent = logMessageContent;
     }
 
-    public connect(url: string, transferFormat: TransferFormat, connection: IConnection): Promise<void> {
+    public async connect(url: string, transferFormat: TransferFormat, connection: IConnection): Promise<void> {
         Arg.isRequired(url, "url");
         Arg.isRequired(transferFormat, "transferFormat");
         Arg.isIn(transferFormat, TransferFormat, "transferFormat");
@@ -52,9 +52,9 @@ export class WebSocketTransport implements ITransport {
 
         this.logger.log(LogLevel.Trace, "(WebSockets transport) Connecting");
 
-        return new Promise<void>(async (resolve, reject) => {
+        const token = await this.accessTokenFactory();
+        return new Promise<void>((resolve, reject) => {
             url = url.replace(/^http/, "ws");
-            const token = await this.accessTokenFactory();
             if (token) {
                 url += (url.indexOf("?") < 0 ? "?" : "&") + `access_token=${encodeURIComponent(token)}`;
             }
@@ -131,7 +131,7 @@ export class ServerSentEventsTransport implements ITransport {
         this.logMessageContent = logMessageContent;
     }
 
-    public connect(url: string, transferFormat: TransferFormat, connection: IConnection): Promise<void> {
+    public async connect(url: string, transferFormat: TransferFormat, connection: IConnection): Promise<void> {
         Arg.isRequired(url, "url");
         Arg.isRequired(transferFormat, "transferFormat");
         Arg.isIn(transferFormat, TransferFormat, "transferFormat");
@@ -144,12 +144,12 @@ export class ServerSentEventsTransport implements ITransport {
         this.logger.log(LogLevel.Trace, "(SSE transport) Connecting");
 
         this.url = url;
-        return new Promise<void>(async (resolve, reject) => {
+        const token = await this.accessTokenFactory();
+        return new Promise<void>((resolve, reject) => {
             if (transferFormat !== TransferFormat.Text) {
                 reject(new Error("The Server-Sent Events transport only supports the 'Text' transfer format"));
             }
 
-            const token = await this.accessTokenFactory();
             if (token) {
                 url += (url.indexOf("?") < 0 ? "?" : "&") + `access_token=${encodeURIComponent(token)}`;
             }
