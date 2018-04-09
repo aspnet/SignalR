@@ -23,7 +23,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         private const int VoidResult = 2;
         private const int NonVoidResult = 3;
 
-        private readonly IFormatterResolver _resolver;
+        private IFormatterResolver _resolver;
 
         public static readonly string ProtocolName = "messagepack";
         public static readonly int ProtocolVersion = 1;
@@ -41,17 +41,25 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
         public MessagePackHubProtocol(IOptions<MessagePackHubProtocolOptions> options)
         {
             var msgPackOptions = options.Value;
-            if (msgPackOptions.FormatterResolvers.Count != SignalRResolver.Resolvers.Count)
+            SetupResolver(msgPackOptions);
+        }
+
+        private void SetupResolver(MessagePackHubProtocolOptions options)
+        {
+            // if counts don't match then we know users customized resolvers so we set up the options
+            // with the provided resolvers
+            if (options.FormatterResolvers.Count != SignalRResolver.Resolvers.Count)
             {
-                _resolver = new CombinedResolvers(msgPackOptions.FormatterResolvers);
+                _resolver = new CombinedResolvers(options.FormatterResolvers);
                 return;
             }
 
-            for (var i = 0; i < msgPackOptions.FormatterResolvers.Count; i++)
+            for (var i = 0; i < options.FormatterResolvers.Count; i++)
             {
-                if (msgPackOptions.FormatterResolvers[i] != SignalRResolver.Resolvers[i])
+                // check if the user customized the resolvers
+                if (options.FormatterResolvers[i] != SignalRResolver.Resolvers[i])
                 {
-                    _resolver = new CombinedResolvers(msgPackOptions.FormatterResolvers);
+                    _resolver = new CombinedResolvers(options.FormatterResolvers);
                     return;
                 }
             }
@@ -588,7 +596,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
             public static readonly IList<IFormatterResolver> Resolvers = new[]
             {
-                //MessagePack.Resolvers.NativeDateTimeResolver.Instance,
                 CustomDateTimeResolver.Instance,
                 MessagePack.Resolvers.DynamicEnumAsStringResolver.Instance,
                 MessagePack.Resolvers.ContractlessStandardResolver.Instance,
@@ -617,6 +624,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             }
         }
 
+        // Support for users making their own Formatter lists
         internal class CombinedResolvers : IFormatterResolver
         {
             private readonly IList<IFormatterResolver> _resolvers;
@@ -670,6 +678,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             }
         }
 
+        // Customize DateTime behavior to preserve ticks when serializing and deserializing
         private class CustomDateTimeFormatter : IMessagePackFormatter<DateTime>
         {
             public static readonly CustomDateTimeFormatter Instance = new CustomDateTimeFormatter();
@@ -680,6 +689,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
             public int Serialize(ref byte[] bytes, int offset, DateTime value, IFormatterResolver formatterResolver)
             {
+                // MessagePack-CSharp doesn't preserve Kind and deserializes with Utc Kind
+                // We set the Kind to Utc to avoid changing the ticks when deserializing
                 value = DateTime.SpecifyKind(value, DateTimeKind.Utc);
                 return MessagePackBinary.WriteDateTime(ref bytes, offset, value);
             }
@@ -687,6 +698,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             public DateTime Deserialize(byte[] bytes, int offset, IFormatterResolver formatterResolver, out int readSize)
             {
                 var dateTime = MessagePackBinary.ReadDateTime(bytes, offset, out readSize);
+                // Because Kind isn't preserved, we set it to Unspecified because we don't know what the Kind actually is
                 return DateTime.SpecifyKind(dateTime, DateTimeKind.Unspecified);
             }
         }

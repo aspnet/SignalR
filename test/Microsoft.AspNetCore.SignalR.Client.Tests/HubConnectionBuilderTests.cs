@@ -77,27 +77,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         }
 
         [Fact]
-        public void AddMessagePackProtocolSetsHubProtocolToMsgPackWithDefaultOptions()
+        public void AddMessagePackProtocolSetsHubProtocolToMsgPack()
         {
             var serviceProvider = new HubConnectionBuilder().AddMessagePackProtocol().Services.BuildServiceProvider();
 
-            var actualProtocol = Assert.IsType<MessagePackHubProtocol>(serviceProvider.GetService<IHubProtocol>());
-            //Assert.Equal(SerializationMethod.Map, actualProtocol.SerializationContext.SerializationMethod);
-        }
-
-        [Fact]
-        public void AddMessagePackProtocolSetsHubProtocolToMsgPackWithProvidedOptions()
-        {
-            var serviceProvider = new HubConnectionBuilder().AddMessagePackProtocol(options =>
-            {
-                // SerializationContext = new SerializationContext()
-                // {
-                //     SerializationMethod = SerializationMethod.Array
-                // }
-            }).Services.BuildServiceProvider();
-
-            var actualProtocol = Assert.IsType<MessagePackHubProtocol>(serviceProvider.GetService<IHubProtocol>());
-            //Assert.Equal(SerializationMethod.Array, actualProtocol.SerializationContext.SerializationMethod);
+            Assert.IsType<MessagePackHubProtocol>(serviceProvider.GetService<IHubProtocol>());
         }
     }
 }

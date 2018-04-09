@@ -505,7 +505,6 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             var server = new TestRedisServer();
 
             var messagePackOptions = new MessagePackHubProtocolOptions();
-            //messagePackOptions.SerializationContext.DictionarySerlaizationOptions.KeyTransformer = DictionaryKeyTransformers.LowerCamel;
 
             var jsonOptions = new JsonHubProtocolOptions();
             jsonOptions.PayloadSerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();

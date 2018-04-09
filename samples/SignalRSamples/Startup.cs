@@ -23,10 +23,7 @@ namespace SignalRSamples
                 // Faster pings for testing
                 options.KeepAliveInterval = TimeSpan.FromSeconds(5);
             })
-            .AddMessagePackProtocol(options =>
-            {
-                //options.SerializationContext.DictionarySerlaizationOptions.KeyTransformer = DictionaryKeyTransformers.LowerCamel;
-            });
+            .AddMessagePackProtocol();
             //.AddRedis();
 
             services.AddCors(o =>
