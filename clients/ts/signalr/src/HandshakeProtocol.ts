@@ -12,9 +12,8 @@ export interface HandshakeResponseMessage {
 
 export class HandshakeProtocol {
     // Handshake request is always JSON
-    public writeHandshake(name: string, version: number): string {
-        return TextMessageFormat.write(
-            JSON.stringify({ protocol: name, version } as HandshakeRequestMessage));
+    public writeHandshake(handshakeRequest: HandshakeRequestMessage): string {
+        return TextMessageFormat.write(JSON.stringify(handshakeRequest));
     }
 
     public processHandshakeResponse(data: any): [any, HandshakeResponseMessage] {

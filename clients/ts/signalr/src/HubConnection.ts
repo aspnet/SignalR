@@ -178,6 +178,11 @@ export class HubConnection {
     }
 
     public async start(): Promise<void> {
+        const handshakeRequest: HandshakeRequestMessage = {
+            protocol: this.protocol.name,
+            version: this.protocol.version,
+        };
+
         this.logger.log(LogLevel.Trace, "Starting HubConnection.");
 
         this.receivedHandshakeResponse = false;
@@ -186,7 +191,7 @@ export class HubConnection {
 
         this.logger.log(LogLevel.Trace, "Sending handshake request.");
 
-        await this.connection.send(this.handshakeProtocol.writeHandshake(this.protocol.name, this.protocol.version));
+        await this.connection.send(this.handshakeProtocol.writeHandshake(handshakeRequest));
 
         this.logger.log(LogLevel.Information, `Using HubProtocol '${this.protocol.name}'.`);
 
