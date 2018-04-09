@@ -12,7 +12,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
     {
         private ServerSentEventsMessageParser _parser;
         private byte[] _sseFormattedData;
-        private byte[] _rawData;
+        private ReadOnlySequence<byte> _rawData;
 
         [Params(Message.NoArguments, Message.FewArguments, Message.ManyArguments, Message.LargeArguments)]
         public Message Input { get; set; }
@@ -39,7 +39,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             }
 
             _parser = new ServerSentEventsMessageParser();
-            _rawData = hubProtocol.WriteToArray(hubMessage);
+            _rawData = new ReadOnlySequence<byte>(hubProtocol.WriteToArray(hubMessage));
             var ms = new MemoryStream();
             ServerSentEventsMessageFormatter.WriteMessage(_rawData, ms);
             _sseFormattedData = ms.ToArray();

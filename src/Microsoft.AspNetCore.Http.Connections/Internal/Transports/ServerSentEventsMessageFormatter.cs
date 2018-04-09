@@ -27,37 +27,15 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
             // to the stream without modification. While it does mean that there will be smaller writes, should be fine for the most part
             // since we're using reasonably sized buffers.
 
-            if (payload.IsSingleSegment)
-            {
-                WriteMessage(payload.First, ms);
-            }
-            else
-            {
-                WriteMessage(payload.ToArray(), ms);
-            }
+            WriteMessage(payload, ms);
 
             ms.Position = 0;
 
             await ms.CopyToAsync(output);
         }
 
-        public static void WriteMessage(ReadOnlyMemory<byte> payload, Stream output)
+        public static void WriteMessage(ReadOnlySequence<byte> sequence, Stream output)
         {
-            // Write the payload
-            WritePayload(payload, output);
-
-            // Write new \r\n
-            output.Write(Newline, 0, Newline.Length);
-        }
-
-        private static void WritePayload(ReadOnlyMemory<byte> payload, Stream output)
-        {
-            // Short-cut for empty payload
-            if (payload.Length == 0)
-            {
-                return;
-            }
-
             // We can't just use while(payload.Length > 0) because we need to write a blank final "data: " line
             // if the payload ends in a newline. For example, consider the following payload:
             //   "Hello\n"
@@ -69,56 +47,130 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
             // end up with an empty payload buffer, BUT we need to write it as an empty 'data:' line, so we need
             // to use a condition that ensure the only time we stop writing is when we write the slice after the final
             // newline.
-            var keepWriting = true;
-            while (keepWriting)
+
+            if (sequence.Length > 0)
             {
-                var span = payload.Span;
-                // Seek to the end of buffer or newline
-                var sliceEnd = span.IndexOf(LineFeed);
-                var nextSliceStart = sliceEnd + 1;
-                if (sliceEnd < 0)
-                {
-                    sliceEnd = payload.Length;
-                    nextSliceStart = sliceEnd + 1;
+                var position = sequence.Start;
+                var segmentFinished = true;
+                var previousSequenceEndedWithCarrageReturn = false;
+                ReadOnlyMemory<byte> memory;
 
-                    // This is the last span
-                    keepWriting = false;
-                }
-                if (sliceEnd > 0 && span[sliceEnd - 1] == '\r')
+                while (true)
                 {
-                    sliceEnd--;
-                }
+                    var trailingNewLine = false;
 
-                var slice = payload.Slice(0, sliceEnd);
+                    output.Write(DataPrefix, 0, DataPrefix.Length);
 
-                if (nextSliceStart >= payload.Length)
-                {
-                    payload = ReadOnlyMemory<byte>.Empty;
-                }
-                else
-                {
-                    payload = payload.Slice(nextSliceStart);
-                }
+                    // Write the payload
+                    while (!segmentFinished || sequence.TryGet(ref position, out memory))
+                    {
+                        if (memory.Length == 0)
+                        {
+                            segmentFinished = true;
+                            continue;
+                        }
 
-                WriteLine(slice, output);
+                        if (segmentFinished)
+                        {
+                            segmentFinished = false;
+                        }
+
+                        var span = memory.Span;
+
+                        if (previousSequenceEndedWithCarrageReturn)
+                        {
+                            if (span[0] == '\n')
+                            {
+                                // Carrage return has already been written
+                                output.WriteByte((byte) '\n');
+
+                                // Break to begin new line
+                                memory = memory.Slice(1);
+                                break;
+                            }
+
+                            previousSequenceEndedWithCarrageReturn = false;
+                        }
+
+                        // Seek to the end of buffer or newline
+                        var sliceEnd = span.IndexOf(LineFeed);
+
+                        // Line feed not found
+                        if (sliceEnd == -1)
+                        {
+                            if (span[span.Length - 1] == '\r')
+                            {
+                                previousSequenceEndedWithCarrageReturn = true;
+                            }
+                            WriteSpan(output, memory);
+
+                            segmentFinished = true;
+
+                            // Continue to add more content to current line
+                            continue;
+                        }
+
+                        var resolvedSliceEnd = sliceEnd;
+                        if (resolvedSliceEnd > 0 && span[resolvedSliceEnd - 1] == '\r')
+                        {
+                            // Update slice to end before carrage return
+                            resolvedSliceEnd--;
+                        }
+
+                        if (resolvedSliceEnd == 0)
+                        {
+                            // Segment only contained new line
+                            segmentFinished = true;
+                            output.Write(Newline, 0, Newline.Length);
+
+                            break;
+                        }
+
+                        WriteSpan(output, memory.Slice(0, resolvedSliceEnd));
+                        memory = memory.Slice(sliceEnd + 1);
+                        trailingNewLine = true;
+                        segmentFinished = memory.Length == 0;
+                        if (!segmentFinished)
+                        {
+                            output.Write(Newline, 0, Newline.Length);
+                        }
+
+                        // Break to begin new line
+                        break;
+                    }
+
+                    // Test if last segment
+                    if (segmentFinished && position.GetObject() == null)
+                    {
+                        // Content finished with \n or \r\n so add final line
+                        if (trailingNewLine)
+                        {
+                            output.Write(Newline, 0, Newline.Length);
+                            output.Write(DataPrefix, 0, DataPrefix.Length);
+                        }
+
+                        output.Write(Newline, 0, Newline.Length);
+                        break;
+                    }
+                }
             }
+
+            // Write new \r\n
+            output.Write(Newline, 0, Newline.Length);
         }
 
-        private static void WriteLine(ReadOnlyMemory<byte> payload, Stream output)
+        private static void WriteSpan(Stream output, ReadOnlyMemory<byte> data)
         {
-            output.Write(DataPrefix, 0, DataPrefix.Length);
-
-#if NETCOREAPP2_1
-            output.Write(payload.Span);
-#else
-            if (payload.Length > 0)
+            if (data.Length > 0)
             {
-                var isArray = MemoryMarshal.TryGetArray(payload, out var segment);
+#if NETCOREAPP2_1
+                output.Write(data.Span);
+#else
+                var isArray = MemoryMarshal.TryGetArray(data, out var segment);
                 Debug.Assert(isArray);
                 output.Write(segment.Array, segment.Offset, segment.Count);
-            }
 #endif
-            output.Write(Newline, 0, Newline.Length);
+            }
         }
     }
 }
