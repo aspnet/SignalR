@@ -361,7 +361,7 @@ async function send(logger: ILogger, transportName: string, httpClient: HttpClie
     const token = await accessTokenFactory();
     if (token) {
         headers = {
-            ["Authorization"]: `Bearer ${accessTokenFactory()}`,
+            ["Authorization"]: `Bearer ${token}`,
         };
     }
 
