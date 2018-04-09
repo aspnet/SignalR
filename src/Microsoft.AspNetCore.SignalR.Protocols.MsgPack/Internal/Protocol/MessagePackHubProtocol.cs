@@ -286,31 +286,38 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             // PackerCompatibilityOptions.None prevents from serializing byte[] as strings
             // and allows extended objects
             var packer = Packer.Create(output, PackerCompatibilityOptions.None);
-            switch (message)
+
+            if (message is InvocationMessage invocationMessage)
             {
-                case InvocationMessage invocationMessage:
-                    WriteInvocationMessage(invocationMessage, packer);
-                    break;
-                case StreamInvocationMessage streamInvocationMessage:
-                    WriteStreamInvocationMessage(streamInvocationMessage, packer);
-                    break;
-                case StreamItemMessage streamItemMessage:
-                    WriteStreamingItemMessage(streamItemMessage, packer);
-                    break;
-                case CompletionMessage completionMessage:
-                    WriteCompletionMessage(completionMessage, packer);
-                    break;
-                case CancelInvocationMessage cancelInvocationMessage:
-                    WriteCancelInvocationMessage(cancelInvocationMessage, packer);
-                    break;
-                case PingMessage pingMessage:
-                    WritePingMessage(pingMessage, packer);
-                    break;
-                case CloseMessage closeMessage:
-                    WriteCloseMessage(closeMessage, packer);
-                    break;
-                default:
-                    throw new InvalidDataException($"Unexpected message type: {message.GetType().Name}");
+                WriteInvocationMessage(invocationMessage, packer);
+            }
+            else if (message is StreamInvocationMessage streamInvocationMessage)
+            {
+                WriteStreamInvocationMessage(streamInvocationMessage, packer);
+            }
+            else if (message is StreamItemMessage streamItemMessage)
+            {
+                WriteStreamingItemMessage(streamItemMessage, packer);
+            }
+            else if (message is CompletionMessage completionMessage)
+            {
+                WriteCompletionMessage(completionMessage, packer);
+            }
+            else if (message is CancelInvocationMessage cancelInvocationMessage)
+            {
+                WriteCancelInvocationMessage(cancelInvocationMessage, packer);
+            }
+            else if (message is PingMessage pingMessage)
+            {
+                WritePingMessage(pingMessage, packer);
+            }
+            else if (message is CloseMessage closeMessage)
+            {
+                WriteCloseMessage(closeMessage, packer);
+            }
+            else 
+            {
+                throw new InvalidDataException($"Unexpected message type: {message.GetType().Name}");
             }
         }
 
