@@ -1,3 +1,6 @@
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 using System;
 using System.Diagnostics;
 using System.Linq;
@@ -27,15 +30,15 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
             _transportType = transportType;
         }
 
-        public async Task Run()
+        public async Task RunAsync()
         {
             _agent.Runner = this;
 
-            await _agent.StartWorkers(_targetUrl, _numberOfWorkers, _transportType, _numberOfConnections);
+            await _agent.StartWorkersAsync(_targetUrl, _numberOfWorkers, _transportType, _numberOfConnections);
 
             // Begin writing worker status information
             var writeStatusCts = new CancellationTokenSource();
-            var writeStatusTask = WriteConnectionStatus(writeStatusCts.Token);
+            var writeStatusTask = WriteConnectionStatusAsync(writeStatusCts.Token);
 
             // Wait until all connections are connected
             while (_agent.GetWorkerStatus().Aggregate(0, (state, status) => state + status.Value.ConnectedCount) <
@@ -48,17 +51,18 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
             await Task.Delay(TimeSpan.FromSeconds(_sendDurationSeconds));
 
             // Disconnect
-            await _agent.StopWorkers();
+            await _agent.StopWorkersAsync();
 
             // Stop writing worker status information
             writeStatusCts.Cancel();
             await writeStatusTask;
         }
 
-        private Task WriteConnectionStatus(CancellationToken cancellationToken)
+        private Task WriteConnectionStatusAsync(CancellationToken cancellationToken)
         {
             return Task.Run(async () =>
             {
+                var peakConnections = 0;
                 while (!cancellationToken.IsCancellationRequested)
                 {
                     var statusDictionary = _agent.GetWorkerStatus();
@@ -70,6 +74,9 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
                         status = status.Add(value);
                     }
 
+                    peakConnections = Math.Max(peakConnections, status.ConnectedCount);
+                    status.PeakConnections = peakConnections;
+
                     Trace.WriteLine(JsonConvert.SerializeObject(status));
 
                     await Task.Delay(1000);
@@ -77,18 +84,18 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
             });
         }
 
-        public Task PongWorker(int workerId, int value)
+        public Task PongWorkerAsync(int workerId, int value)
         {
             throw new NotImplementedException();
         }
 
-        public Task LogAgent(string format, params object[] arguments)
+        public Task LogAgentAsync(string format, params object[] arguments)
         {
             Trace.WriteLine(string.Format(format, arguments));
             return Task.CompletedTask;
         }
 
-        public Task LogWorker(int workerId, string format, params object[] arguments)
+        public Task LogWorkerAsync(int workerId, string format, params object[] arguments)
         {
             Trace.WriteLine(string.Format("({0}) {1}", workerId, string.Format(format, arguments)));
             return Task.CompletedTask;

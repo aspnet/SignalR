@@ -1,3 +1,6 @@
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -121,11 +124,11 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
         {
             if (_workers.TryGetValue(id, out var worker))
             {
-                await worker.Worker.Connect(targetAddress, transportType, numberOfConnectionsPerWorker);
+                await worker.Worker.ConnectAsync(targetAddress, transportType, numberOfConnectionsPerWorker);
             }
         }
 
-        public async Task StartWorkers(string targetAddress, int numberOfWorkers, HttpTransportType transportType, int numberOfConnections)
+        public async Task StartWorkersAsync(string targetAddress, int numberOfWorkers, HttpTransportType transportType, int numberOfConnections)
         {
             TargetAddress = targetAddress;
             TotalConnectionsRequested = numberOfConnections;
@@ -144,7 +147,7 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
                     await StartWorker(worker.Id, targetAddress, transportType, connectionsPerWorker);
                 }
 
-                await Runner.LogAgent("Agent started listening to worker {0} ({1} of {2}).", worker.Id, index, numberOfWorkers);
+                await Runner.LogAgentAsync("Agent started listening to worker {0} ({1} of {2}).", worker.Id, index, numberOfWorkers);
             }
 
             var workerTasks = new Task<AgentWorker>[numberOfWorkers];
@@ -166,7 +169,7 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
             if (_workers.TryGetValue(workerId, out var worker))
             {
                 worker.Kill();
-                Runner.LogAgent("Agent killed Worker {0}.", workerId);
+                Runner.LogAgentAsync("Agent killed Worker {0}.", workerId);
             }
         }
 
@@ -179,7 +182,7 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
                 if (_workers.TryGetValue(key, out var worker))
                 {
                     worker.Kill();
-                    Runner.LogAgent("Agent killed Worker {0}.", key);
+                    Runner.LogAgentAsync("Agent killed Worker {0}.", key);
                 }
             }
         }
@@ -193,7 +196,7 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
                 if (_workers.TryGetValue(key, out var worker))
                 {
                     worker.Kill();
-                    Runner.LogAgent("Agent killed Worker {0}.", key);
+                    Runner.LogAgentAsync("Agent killed Worker {0}.", key);
                 }
             }
 
@@ -205,12 +208,12 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
         {
             if (_workers.TryGetValue(workerId, out var worker))
             {
-                worker.Worker.Ping(value);
-                Runner.LogAgent("Agent sent ping command to Worker {0} with value {1}.", workerId, value);
+                worker.Worker.PingAsync(value);
+                Runner.LogAgentAsync("Agent sent ping command to Worker {0} with value {1}.", workerId, value);
             }
             else
             {
-                Runner.LogAgent("Agent failed to send ping command, Worker {0} not found.", workerId);
+                Runner.LogAgentAsync("Agent failed to send ping command, Worker {0} not found.", workerId);
             }
         }
 
@@ -222,7 +225,7 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
             {
                 foreach (var worker in _workers.Values)
                 {
-                    worker.Worker.StartTest(sendInterval, messageSize);
+                    worker.Worker.StartTestAsync(sendInterval, messageSize);
                 }
             });
         }
@@ -231,11 +234,11 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
         {
             if (_workers.TryGetValue(workerId, out var worker))
             {
-                worker.Worker.Stop();
+                worker.Worker.StopAsync();
             }
         }
 
-        public async Task StopWorkers()
+        public async Task StopWorkersAsync()
         {
             var keys = _workers.Keys.ToList();
 
@@ -243,8 +246,8 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
             {
                 if (_workers.TryGetValue(key, out var worker))
                 {
-                    await worker.Worker.Stop();
-                    await Runner.LogAgent("Agent stopped Worker {0}.", key);
+                    await worker.Worker.StopAsync();
+                    await Runner.LogAgentAsync("Agent stopped Worker {0}.", key);
                 }
             }
             TotalConnectionsRequested = 0;
@@ -257,23 +260,21 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
             }
         }
 
-        public async Task Pong(int id, int value)
+        public async Task PongAsync(int id, int value)
         {
-            await Runner.LogAgent("Agent received pong message from Worker {0} with value {1}.", id, value);
-            await Runner.PongWorker(id, value);
+            await Runner.LogAgentAsync("Agent received pong message from Worker {0} with value {1}.", id, value);
+            await Runner.PongWorkerAsync(id, value);
         }
 
-        public async Task Log(int id, string text)
+        public async Task LogAsync(int id, string text)
         {
-            await Runner.LogWorker(id, text);
+            await Runner.LogWorkerAsync(id, text);
         }
 
-        public Task Status(
+        public Task StatusAsync(
             int id,
             StatusInformation statusInformation)
         {
-            //await Runner.LogAgent("Agent received status message from Worker {0}.", id);
-
             if (_workers.TryGetValue(id, out var worker))
             {
                 worker.StatusInformation = statusInformation;
@@ -284,7 +285,7 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
 
         private void OnError(int workerId, Exception ex)
         {
-            Runner.LogWorker(workerId, ex.Message);
+            Runner.LogWorkerAsync(workerId, ex.Message);
         }
 
         private void OnExit(int workerId, int exitCode)

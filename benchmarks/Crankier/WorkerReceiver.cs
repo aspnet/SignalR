@@ -1,3 +1,6 @@
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -40,22 +43,22 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
                         switch (message.Command.ToLowerInvariant())
                         {
                             case "ping":
-                                await _worker.Ping(
+                                await _worker.PingAsync(
                                     message.Value["Value"].ToObject<int>());
                                 break;
                             case "connect":
-                                await _worker.Connect(
+                                await _worker.ConnectAsync(
                                     message.Value["TargetAddress"].ToObject<string>(),
                                     message.Value["TransportType"].ToObject<HttpTransportType>(),
                                     message.Value["NumberOfConnections"].ToObject<int>());
                                 break;
                             case "starttest":
-                                await _worker.StartTest(
+                                await _worker.StartTestAsync(
                                     TimeSpan.FromMilliseconds(message.Value.Value<double>("SendInterval")),
                                     message.Value["SendBytes"].ToObject<int>());
                                 break;
                             case "stop":
-                                await _worker.Stop();
+                                await _worker.StopAsync();
                                 break;
                         }
                     }
@@ -71,6 +74,5 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
         {
             _receiveMessageCts.Cancel();
         }
-
     }
 }

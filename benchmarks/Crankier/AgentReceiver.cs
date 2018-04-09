@@ -1,3 +1,6 @@
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -31,17 +34,17 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
                         switch (message.Command.ToLowerInvariant())
                         {
                             case "pong":
-                                await _agent.Pong(
+                                await _agent.PongAsync(
                                     message.Value["Id"].ToObject<int>(),
                                     message.Value["Value"].ToObject<int>());
                                 break;
                             case "log":
-                                await _agent.Log(
+                                await _agent.LogAsync(
                                     message.Value["Id"].ToObject<int>(),
                                     message.Value["Text"].ToObject<string>());
                                 break;
                             case "status":
-                                await _agent.Status(
+                                await _agent.StatusAsync(
                                     message.Value["Id"].ToObject<int>(),
                                     message.Value["StatusInformation"].ToObject<StatusInformation>());
                                 break;

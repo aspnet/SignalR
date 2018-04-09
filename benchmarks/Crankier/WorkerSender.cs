@@ -1,3 +1,6 @@
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 using System;
 using System.IO;
 using System.Threading.Tasks;
@@ -16,7 +19,7 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
             _outputStreamWriter = outputStreamWriter;
         }
 
-        public async Task Ping(int value)
+        public async Task PingAsync(int value)
         {
             await Send("ping", JToken.FromObject(
                 new
@@ -25,7 +28,7 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
                 }));
         }
 
-        public async Task Connect(string targetAddress, HttpTransportType transportType, int numberOfConnections)
+        public async Task ConnectAsync(string targetAddress, HttpTransportType transportType, int numberOfConnections)
         {
             await Send("connect", JToken.FromObject(
                 new
@@ -36,7 +39,7 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
                 }));
         }
 
-        public async Task StartTest(TimeSpan sendInterval, int sendBytes)
+        public async Task StartTestAsync(TimeSpan sendInterval, int sendBytes)
         {
             var parameters = new
             {
@@ -47,7 +50,7 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
             await Send("starttest", JToken.FromObject(parameters));
         }
 
-        public async Task Stop()
+        public async Task StopAsync()
         {
             await Send("stop", null);
         }

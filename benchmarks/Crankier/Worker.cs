@@ -1,3 +1,6 @@
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -26,7 +29,7 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
             _sendStatusCts = new CancellationTokenSource();
         }
 
-        public async Task Run()
+        public async Task RunAsync()
         {
             _agentProcess.EnableRaisingEvents = true;
             _agentProcess.Exited += OnExited;
@@ -39,36 +42,36 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
 
             receiver.Start();
 
-            await SendStatusUpdate(_sendStatusCts.Token);
+            await SendStatusUpdateAsync(_sendStatusCts.Token);
 
             receiver.Stop();
         }
 
-        public async Task Ping(int value)
+        public async Task PingAsync(int value)
         {
             Log("Worker received ping command with value {0}.", value);
 
-            await _agent.Pong(_processId, value);
+            await _agent.PongAsync(_processId, value);
             Log("Worker sent pong command with value {0}.", value);
         }
 
-        public async Task Connect(string targetAddress, HttpTransportType transportType, int numberOfConnections)
+        public async Task ConnectAsync(string targetAddress, HttpTransportType transportType, int numberOfConnections)
         {
             Log("Worker received connect command with target address {0} and number of connections {1}", targetAddress, numberOfConnections);
 
             _targetConnectionCount += numberOfConnections;
-            for (int count = 0; count < numberOfConnections; count++)
+            for (var count = 0; count < numberOfConnections; count++)
             {
                 var client = new Client();
                 _clients.Add(client);
 
-                await client.CreateAndStartConnection(targetAddress, transportType);
+                await client.CreateAndStartConnectionAsync(targetAddress, transportType);
             }
 
             Log("Connections connected succesfully");
         }
 
-        public Task StartTest(TimeSpan sendInterval, int sendBytes)
+        public Task StartTestAsync(TimeSpan sendInterval, int sendBytes)
         {
             Log("Worker received start test command with interval {0} and message size {1}.", sendInterval, sendBytes);
 
@@ -81,7 +84,7 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
             return Task.CompletedTask;
         }
 
-        public Task Stop()
+        public Task StopAsync()
         {
             Log("Worker received stop command");
             _targetConnectionCount = 0;
@@ -90,7 +93,7 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
             {
                 if (_clients.TryTake(out var client))
                 {
-                    client.StopConnection();
+                    client.StopConnectionAsync();
                 }
             }
 
@@ -108,18 +111,18 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
 
         private void Log(string format, params object[] arguments)
         {
-            _agent.Log(_processId, string.Format(format, arguments));
+            _agent.LogAsync(_processId, string.Format(format, arguments));
         }
 
-        private async Task SendStatusUpdate(CancellationToken cancellationToken)
+        private async Task SendStatusUpdateAsync(CancellationToken cancellationToken)
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                int connectedCount = 0;
-                int connectingCount = 0;
-                int disconnectedCount = 0;
-                int reconnectingCount = 0;
-                int faultedCount = 0;
+                var connectedCount = 0;
+                var connectingCount = 0;
+                var disconnectedCount = 0;
+                var reconnectingCount = 0;
+                var faultedCount = 0;
 
                 foreach (var client in _clients)
                 {
@@ -143,7 +146,7 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
                     }
                 }
 
-                await _agent.Status(
+                await _agent.StatusAsync(
                     _processId,
                     new StatusInformation
                     {

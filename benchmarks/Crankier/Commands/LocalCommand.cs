@@ -1,3 +1,6 @@
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http.Connections;
@@ -7,7 +10,6 @@ using static Microsoft.AspNetCore.SignalR.Crankier.Commands.CommandLineUtilities
 
 namespace Microsoft.AspNetCore.SignalR.Crankier.Commands
 {
-
     internal class LocalCommand
     {
         public static void Register(CommandLineApplication app)
@@ -64,7 +66,7 @@ namespace Microsoft.AspNetCore.SignalR.Crankier.Commands
             var runner = new Runner(agent, targetUrl, numberOfWorkers, numberOfConnections, sendDurationInSeconds, transportType);
             try
             {
-                await runner.Run();
+                await runner.RunAsync();
             }
             catch (Exception ex)
             {

@@ -1,3 +1,5 @@
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 namespace Microsoft.AspNetCore.SignalR.Crankier
 {
@@ -9,6 +11,10 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
         public int ReconnectingCount { get; set; }
         public int FaultedCount { get; set; }
         public int TargetConnectionCount { get; set; }
+
+
+        // Set by agent.
+        public int PeakConnections { get; set;}
 
         public StatusInformation Add(StatusInformation value)
         {

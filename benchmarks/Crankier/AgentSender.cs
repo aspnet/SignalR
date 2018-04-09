@@ -1,9 +1,11 @@
-using System;
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Microsoft.AspNetCore.SignalR.Crankier
 {
@@ -17,7 +19,7 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
             _outputStreamWriter = outputStreamWriter;
         }
 
-        public async Task Pong(int id, int value)
+        public async Task PongAsync(int id, int value)
         {
             var parameters = new
             {
@@ -25,10 +27,10 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
                 Value = value
             };
 
-            await Send("pong", JToken.FromObject(parameters));
+            await SendAsync("pong", JToken.FromObject(parameters));
         }
 
-        public async Task Log(int id, string text)
+        public async Task LogAsync(int id, string text)
         {
             var parameters = new
             {
@@ -36,10 +38,10 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
                 Text = text
             };
 
-            await Send("log", JToken.FromObject(parameters));
+            await SendAsync("log", JToken.FromObject(parameters));
         }
 
-        public async Task Status(
+        public async Task StatusAsync(
             int id,
             StatusInformation statusInformation)
         {
@@ -49,16 +51,16 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
                 StatusInformation = statusInformation
             };
 
-            await Send("status", JToken.FromObject(parameters)); ;
+            await SendAsync("status", JToken.FromObject(parameters)); ;
         }
 
-        private async Task Send(string method, JToken parameters)
+        private async Task SendAsync(string method, JToken parameters)
         {
             await _lock.WaitAsync();
             try
             {
                 await _outputStreamWriter.WriteLineAsync(
-                    JsonConvert.SerializeObject(new Message()
+                    JsonConvert.SerializeObject(new Message
                     {
                         Command = method,
                         Value = parameters

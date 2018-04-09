@@ -41,10 +41,9 @@ namespace BenchmarkServer.Hubs
             return Clients.All.SendAsync("send", time);
         }
 
-        public Task SendPayload(string payload)
+        public void SendPayload(string payload)
         {
             // Dump the payload, we don't care
-            return Task.CompletedTask;
         }
     }
 }

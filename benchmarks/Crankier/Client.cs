@@ -1,3 +1,6 @@
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 using System;
 using System.Diagnostics;
 using System.Threading;
@@ -15,10 +18,10 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
         private volatile ConnectionState _connectionState = ConnectionState.Connecting;
 
         public ConnectionState State => _connectionState;
-        public async Task CreateAndStartConnection(string url, HttpTransportType transportType)
+        public async Task CreateAndStartConnectionAsync(string url, HttpTransportType transportType)
         {
             _connection = new HubConnectionBuilder()
-                .WithUrl(url, options => options.Transport = transportType)
+                .WithUrl(url, options => options.Transports = transportType)
                 .Build();
 
             _connection.Closed += (ex) =>
@@ -64,7 +67,6 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
                 await Task.Delay(1000);
             }
         }
-
 
         public void StartTest(int sendSize, TimeSpan sendInterval)
         {
@@ -116,7 +118,7 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
             }
         }
 
-        public Task StopConnection()
+        public Task StopConnectionAsync()
         {
             _sendCts.Cancel();
 
