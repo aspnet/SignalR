@@ -242,7 +242,12 @@ namespace Microsoft.AspNetCore.Internal
         public override void Write(byte[] buffer, int offset, int count)
         {
             var position = _position;
-            if (_currentSegment != null && position < _currentSegment.Length - count)
+            if (_currentSegment == null)
+            {
+                AddSegment();
+            }
+
+            if (position < _currentSegment.Length - count)
             {
                 Buffer.BlockCopy(buffer, offset, _currentSegment, position, count);
 
@@ -251,49 +256,52 @@ namespace Microsoft.AspNetCore.Internal
             }
             else
             {
-                var currentSpan = _currentSegment.AsSpan().Slice(_position);
-                WriteMultiSegment(buffer.AsSpan(offset, count), currentSpan);
+                WriteMultiSegment(buffer.AsSpan(offset, count));
             }
         }
 
 #if NETCOREAPP2_1
         public override void Write(ReadOnlySpan<byte> span)
         {
-            if (_currentSegment != null)
+            if (_currentSegment == null)
             {
-                var currentSpan = _currentSegment.AsSpan().Slice(_position);
-                if (span.TryCopyTo(currentSpan))
-                {
-                    _position += span.Length;
-                    _bytesWritten += span.Length;
-                }
-                else
-                {
-                    WriteMultiSegment(span, currentSpan);
-                }
+                AddSegment();
+            }
+
+            if (span.TryCopyTo(_currentSegment.AsSpan().Slice(_position)))
+            {
+                _position += span.Length;
+                _bytesWritten += span.Length;
             }
             else
             {
-                WriteMultiSegment(span, default);
+                WriteMultiSegment(span);
             }
         }
 #endif
 
-        private void WriteMultiSegment(in ReadOnlySpan<byte> source, Span<byte> destination)
+        private void WriteMultiSegment(in ReadOnlySpan<byte> source)
         {
-            ReadOnlySpan<byte> input = source;
+            var input = source;
+            var currentSegment = _currentSegment;
+
             while (true)
             {
-                int writeSize = Math.Min(destination.Length, input.Length);
-                input.Slice(0, writeSize).CopyTo(destination);
-                Advance(writeSize);
-                input = input.Slice(writeSize);
-                if (input.Length > 0)
+                int writeSize = Math.Min(currentSegment.Length - _position, input.Length);
+                if (writeSize > 0)
                 {
-                    destination = GetSpan(input.Length);
+                    input.Slice(0, writeSize).CopyTo(currentSegment.AsSpan(_position));
+                    _bytesWritten += writeSize;
+                }
+                if (input.Length > writeSize)
+                {
+                    input = input.Slice(writeSize);
+                    AddSegment();
+                    currentSegment = _currentSegment;
                     continue;
                 }
 
+                _position += writeSize;
                 return;
             }
         }
