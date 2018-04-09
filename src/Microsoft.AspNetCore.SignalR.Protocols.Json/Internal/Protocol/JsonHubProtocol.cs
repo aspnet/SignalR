@@ -82,9 +82,9 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             TextMessageFormatter.WriteRecordSeparator(output);
         }
 
-        public byte[] GetBytes(HubMessage message)
+        public byte[] GetMessageBytes(HubMessage message)
         {
-            return HubProtocolExtensions.GetBytes(this, message);
+            return HubProtocolExtensions.GetMessageBytes(this, message);
         }
 
         private HubMessage ParseMessage(Utf8BufferTextReader textReader, IInvocationBinder binder)

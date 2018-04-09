@@ -194,9 +194,9 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
                 _innerProtocol.WriteMessage(message, output);
             }
 
-            public byte[] GetBytes(HubMessage message)
+            public byte[] GetMessageBytes(HubMessage message)
             {
-                return HubProtocolExtensions.GetBytes(this, message);
+                return HubProtocolExtensions.GetMessageBytes(this, message);
             }
 
             public bool IsVersionSupported(int version)

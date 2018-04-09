@@ -340,7 +340,7 @@ namespace Microsoft.AspNetCore.SignalR
                                         transferFormatFeature.ActiveFormat = Protocol.TransferFormat;
                                     }
 
-                                    _cachedPingMessage = Protocol.GetBytes(PingMessage.Instance);
+                                    _cachedPingMessage = Protocol.GetMessageBytes(PingMessage.Instance);
 
                                     UserIdentifier = userIdProvider.GetUserId(this);
 

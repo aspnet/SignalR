@@ -8,7 +8,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
     public static class HubProtocolExtensions
     {
         // Would work as default interface impl
-        public static byte[] GetBytes(this IHubProtocol hubProtocol, HubMessage message)
+        public static byte[] GetMessageBytes(this IHubProtocol hubProtocol, HubMessage message)
         {
             var writer = MemoryBufferWriter.Get();
             try
