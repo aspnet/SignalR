@@ -7,11 +7,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 {
     public static class HubProtocolExtensions
     {
-        public static byte[] WriteToArray(this IHubProtocol hubProtocol, HubMessage message)
-        {
-            return hubProtocol.GetBytes(message);
-        }
-
         // Would work as default interface impl
         public static byte[] GetBytes(this IHubProtocol hubProtocol, HubMessage message)
         {
