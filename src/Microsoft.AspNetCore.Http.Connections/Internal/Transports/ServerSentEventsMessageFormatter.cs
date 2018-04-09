@@ -53,7 +53,6 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
                 var position = sequence.Start;
                 var segmentFinished = true;
                 var previousSequenceEndedWithCarrageReturn = false;
-                ReadOnlyMemory<byte> memory;
 
                 while (true)
                 {
@@ -62,14 +61,16 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
                     output.Write(DataPrefix, 0, DataPrefix.Length);
 
                     // Write the payload
-                    while (!segmentFinished || sequence.TryGet(ref position, out memory))
+                    while (!segmentFinished || sequence.TryGet(ref position, out var memory))
                     {
+                        // Ignore any empty memory segments
                         if (memory.Length == 0)
                         {
                             segmentFinished = true;
                             continue;
                         }
 
+                        // Successfully got memory
                         if (segmentFinished)
                         {
                             segmentFinished = false;
@@ -77,6 +78,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
 
                         var span = memory.Span;
 
+                        // Handle potential situation \r and \n are split over two segments
                         if (previousSequenceEndedWithCarrageReturn)
                         {
                             if (span[0] == '\n')
@@ -100,6 +102,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
                         {
                             if (span[span.Length - 1] == '\r')
                             {
+                                // Handle potential situation \r and \n are split over two segments
                                 previousSequenceEndedWithCarrageReturn = true;
                             }
                             WriteSpan(output, memory);
@@ -142,7 +145,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
                     // Test if last segment
                     if (segmentFinished && position.GetObject() == null)
                     {
-                        // Content finished with \n or \r\n so add final line
+                        // Content finished with \n or \r\n so add final line with no data
                         if (trailingNewLine)
                         {
                             output.Write(Newline, 0, Newline.Length);
@@ -155,7 +158,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
                 }
             }
 
-            // Write new \r\n
+            // Final new line
             output.Write(Newline, 0, Newline.Length);
         }
 
