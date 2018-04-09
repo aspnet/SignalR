@@ -350,14 +350,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             MessagePackBinary.WriteArrayHeader(packer, message.Arguments.Length);
             foreach (var arg in message.Arguments)
             {
-                if (arg == null)
-                {
-                    MessagePackBinary.WriteNil(packer);
-                }
-                else
-                {
-                    MessagePackSerializer.NonGeneric.Serialize(arg.GetType(), packer, arg, _resolver);
-                }
+                WriteArgument(arg, packer);
             }
         }
 
@@ -372,14 +365,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             MessagePackBinary.WriteArrayHeader(packer, message.Arguments.Length);
             foreach (var arg in message.Arguments)
             {
-                if (arg == null)
-                {
-                    MessagePackBinary.WriteNil(packer);
-                }
-                else
-                {
-                    MessagePackSerializer.NonGeneric.Serialize(arg.GetType(), packer, arg, _resolver);
-                }
+                WriteArgument(arg, packer);
             }
         }
 
@@ -389,13 +375,18 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             MessagePackBinary.WriteInt16(packer, HubProtocolConstants.StreamItemMessageType);
             PackHeaders(packer, message.Headers);
             MessagePackBinary.WriteString(packer, message.InvocationId);
-            if (message.Item == null)
+            WriteArgument(message.Item, packer);
+        }
+
+        private void WriteArgument(object argument, Stream stream)
+        {
+            if (argument == null)
             {
-                MessagePackBinary.WriteNil(packer);
+                MessagePackBinary.WriteNil(stream);
             }
             else
             {
-                MessagePackSerializer.NonGeneric.Serialize(message.Item.GetType(), packer, message.Item, _resolver);
+                MessagePackSerializer.NonGeneric.Serialize(argument.GetType(), stream, argument, _resolver);
             }
         }
 
@@ -417,14 +408,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                     MessagePackBinary.WriteString(packer, message.Error);
                     break;
                 case NonVoidResult:
-                    if (message.Result == null)
-                    {
-                        MessagePackBinary.WriteNil(packer);
-                    }
-                    else
-                    {
-                        MessagePackSerializer.NonGeneric.Serialize(message.Result.GetType(), packer, message.Result, _resolver);
-                    }
+                    WriteArgument(message.Result, packer);
                     break;
             }
         }
