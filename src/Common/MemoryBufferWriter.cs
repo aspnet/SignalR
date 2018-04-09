@@ -5,7 +5,6 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -115,16 +114,16 @@ namespace Microsoft.AspNetCore.Internal
 
         public Memory<byte> GetMemory(int sizeHint = 0)
         {
-            EnsureCapacity(sizeHint);
+            var currentSegment = EnsureCapacity(sizeHint);
 
-            return _currentSegment.AsMemory(_position, _currentSegment.Length - _position);
+            return currentSegment.AsMemory(_position, currentSegment.Length - _position);
         }
 
         public Span<byte> GetSpan(int sizeHint = 0)
         {
-            EnsureCapacity(sizeHint);
+            var currentSegment = EnsureCapacity(sizeHint);
 
-            return _currentSegment.AsSpan(_position, _currentSegment.Length - _position);
+            return currentSegment.AsSpan(_position, currentSegment.Length - _position);
         }
 
         public void CopyTo(IBufferWriter<byte> destination)
@@ -153,33 +152,43 @@ namespace Microsoft.AspNetCore.Internal
             return CopyToSlowAsync(destination);
         }
 
-        private void EnsureCapacity(int sizeHint)
+        private byte[] EnsureCapacity(int sizeHint)
         {
             // TODO: Use sizeHint
-            if (_currentSegment != null && _position < _currentSegment.Length)
+            var currentSegment = _currentSegment;
+            if (currentSegment != null && _position < currentSegment.Length)
             {
                 // We have capacity in the current segment
-                return;
+                return currentSegment;
             }
 
-            AddSegment();
+            return AddSegment();
         }
 
-        private void AddSegment()
+        private byte[] AddSegment()
         {
-            if (_currentSegment != null)
+            var currentSegment = _currentSegment;
+            if (currentSegment != null)
             {
-                // We're adding a segment to the list
-                if (_fullSegments == null)
-                {
-                    _fullSegments = new List<byte[]>();
-                }
-
-                _fullSegments.Add(_currentSegment);
+                AddCurrentToList(currentSegment);
             }
 
-            _currentSegment = ArrayPool<byte>.Shared.Rent(_minimumSegmentSize);
             _position = 0;
+            currentSegment = ArrayPool<byte>.Shared.Rent(_minimumSegmentSize);
+            _currentSegment = currentSegment;
+
+            return currentSegment;
+        }
+
+        private void AddCurrentToList(byte[] currentSegment)
+        {
+            // We're adding a segment to the list
+            if (_fullSegments == null)
+            {
+                _fullSegments = new List<byte[]>();
+            }
+
+            _fullSegments.Add(currentSegment);
         }
 
         private async Task CopyToSlowAsync(Stream destination)
@@ -200,7 +209,8 @@ namespace Microsoft.AspNetCore.Internal
 
         public byte[] ToArray()
         {
-            if (_currentSegment == null)
+            var currentSegment = _currentSegment;
+            if (currentSegment == null)
             {
                 return Array.Empty<byte>();
             }
@@ -222,7 +232,7 @@ namespace Microsoft.AspNetCore.Internal
             }
 
             // Copy current incomplete segment
-            _currentSegment.AsSpan(0, _position).CopyTo(result.AsSpan(totalWritten));
+            currentSegment.AsSpan(0, _position).CopyTo(result.AsSpan(totalWritten));
 
             return result;
         }
@@ -235,14 +245,15 @@ namespace Microsoft.AspNetCore.Internal
 
         public override void WriteByte(byte value)
         {
-            if (_currentSegment != null && (uint)_position < (uint)_currentSegment.Length)
+            var currentSegment = _currentSegment;
+            if (currentSegment != null && (uint)_position < (uint)currentSegment.Length)
             {
-                _currentSegment[_position] = value;
+                currentSegment[_position] = value;
             }
             else
             {
-                AddSegment();
-                _currentSegment[0] = value;
+                currentSegment = AddSegment();
+                currentSegment[0] = value;
             }
 
             _position++;
@@ -252,14 +263,15 @@ namespace Microsoft.AspNetCore.Internal
         public override void Write(byte[] buffer, int offset, int count)
         {
             var position = _position;
-            if (_currentSegment == null)
+            var currentSegment = _currentSegment;
+            if (currentSegment == null)
             {
-                AddSegment();
+                currentSegment = AddSegment();
             }
 
-            if (position < _currentSegment.Length - count)
+            if (position < currentSegment.Length - count)
             {
-                Buffer.BlockCopy(buffer, offset, _currentSegment, position, count);
+                Buffer.BlockCopy(buffer, offset, currentSegment, position, count);
 
                 _position = position + count;
                 _bytesWritten += count;
@@ -273,12 +285,13 @@ namespace Microsoft.AspNetCore.Internal
 #if NETCOREAPP2_1
         public override void Write(ReadOnlySpan<byte> span)
         {
-            if (_currentSegment == null)
+            var currentSegment = _currentSegment;
+            if (currentSegment == null)
             {
-                AddSegment();
+                currentSegment = AddSegment();
             }
 
-            if (span.TryCopyTo(_currentSegment.AsSpan().Slice(_position)))
+            if (span.TryCopyTo(currentSegment.AsSpan().Slice(_position)))
             {
                 _position += span.Length;
                 _bytesWritten += span.Length;
@@ -306,8 +319,7 @@ namespace Microsoft.AspNetCore.Internal
                 if (input.Length > writeSize)
                 {
                     input = input.Slice(writeSize);
-                    AddSegment();
-                    currentSegment = _currentSegment;
+                    currentSegment = AddSegment();
                     continue;
                 }
 
