@@ -244,7 +244,8 @@ namespace Microsoft.AspNetCore.Internal
             // Copy current incomplete segment
             _currentSegment.AsSpan(0, _position).CopyTo(span.Slice(totalWritten));
 
-            return totalWritten;
+            Debug.Assert(_bytesWritten == totalWritten + _position);
+            return _bytesWritten;
         }
 
         public override void Flush() { }
