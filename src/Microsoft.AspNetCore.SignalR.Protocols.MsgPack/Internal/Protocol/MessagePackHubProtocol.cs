@@ -596,7 +596,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
             public static readonly IList<IFormatterResolver> Resolvers = new[]
             {
-                CustomDateTimeResolver.Instance,
                 MessagePack.Resolvers.DynamicEnumAsStringResolver.Instance,
                 MessagePack.Resolvers.ContractlessStandardResolver.Instance,
             };
@@ -646,60 +645,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 }
 
                 return null;
-            }
-        }
-
-        internal class CustomDateTimeResolver : IFormatterResolver
-        {
-            public static readonly IFormatterResolver Instance = new CustomDateTimeResolver();
-
-            private static class FormatterCache<T>
-            {
-                public static readonly IMessagePackFormatter<T> formatter;
-
-                static FormatterCache()
-                {
-                    if (typeof(T) == typeof(DateTime))
-                    {
-                        formatter = (IMessagePackFormatter<T>)CustomDateTimeFormatter.Instance;
-                        return;
-                    }
-                    formatter = null;
-                }
-            }
-
-            private CustomDateTimeResolver()
-            {
-            }
-
-            public IMessagePackFormatter<T> GetFormatter<T>()
-            {
-                return FormatterCache<T>.formatter;
-            }
-        }
-
-        // Customize DateTime behavior to preserve ticks when serializing and deserializing
-        private class CustomDateTimeFormatter : IMessagePackFormatter<DateTime>
-        {
-            public static readonly CustomDateTimeFormatter Instance = new CustomDateTimeFormatter();
-
-            CustomDateTimeFormatter()
-            {
-            }
-
-            public int Serialize(ref byte[] bytes, int offset, DateTime value, IFormatterResolver formatterResolver)
-            {
-                // MessagePack-CSharp doesn't preserve Kind and deserializes with Utc Kind
-                // We set the Kind to Utc to avoid changing the ticks when deserializing
-                value = DateTime.SpecifyKind(value, DateTimeKind.Utc);
-                return MessagePackBinary.WriteDateTime(ref bytes, offset, value);
-            }
-
-            public DateTime Deserialize(byte[] bytes, int offset, IFormatterResolver formatterResolver, out int readSize)
-            {
-                var dateTime = MessagePackBinary.ReadDateTime(bytes, offset, out readSize);
-                // Because Kind isn't preserved, we set it to Unspecified because we don't know what the Kind actually is
-                return DateTime.SpecifyKind(dateTime, DateTimeKind.Unspecified);
             }
         }
     }
