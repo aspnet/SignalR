@@ -686,7 +686,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
             public DateTime Deserialize(byte[] bytes, int offset, IFormatterResolver formatterResolver, out int readSize)
             {
-                return MessagePackBinary.ReadDateTime(bytes, offset, out readSize);
+                var dateTime = MessagePackBinary.ReadDateTime(bytes, offset, out readSize);
+                return DateTime.SpecifyKind(dateTime, DateTimeKind.Unspecified);
             }
         }
     }
