@@ -116,25 +116,28 @@ namespace Microsoft.AspNetCore.Internal
         {
             var currentSegment = EnsureCapacity(sizeHint);
 
-            return currentSegment.AsMemory(_position, currentSegment.Length - _position);
+            var position = _position;
+            return currentSegment.AsMemory(position, currentSegment.Length - position);
         }
 
         public Span<byte> GetSpan(int sizeHint = 0)
         {
             var currentSegment = EnsureCapacity(sizeHint);
 
-            return currentSegment.AsSpan(_position, currentSegment.Length - _position);
+            var position = _position;
+            return currentSegment.AsSpan(position, currentSegment.Length - position);
         }
 
         public void CopyTo(IBufferWriter<byte> destination)
         {
-            if (_fullSegments != null)
+            var fullSegments = _fullSegments;
+            if (fullSegments != null)
             {
                 // Copy full segments
-                var count = _fullSegments.Count;
+                var count = fullSegments.Count;
                 for (var i = 0; i < count; i++)
                 {
-                    destination.Write(_fullSegments[i]);
+                    destination.Write(fullSegments[i]);
                 }
             }
 
@@ -170,7 +173,15 @@ namespace Microsoft.AspNetCore.Internal
             var currentSegment = _currentSegment;
             if (currentSegment != null)
             {
-                AddCurrentToList(currentSegment);
+                // We're adding a segment to the list
+                var fullSegments = _fullSegments;
+                if (fullSegments == null)
+                {
+                    fullSegments =  new List<byte[]>();
+                    _fullSegments = fullSegments;
+                }
+
+                fullSegments.Add(currentSegment);
             }
 
             _position = 0;
@@ -180,26 +191,16 @@ namespace Microsoft.AspNetCore.Internal
             return currentSegment;
         }
 
-        private void AddCurrentToList(byte[] currentSegment)
-        {
-            // We're adding a segment to the list
-            if (_fullSegments == null)
-            {
-                _fullSegments = new List<byte[]>();
-            }
-
-            _fullSegments.Add(currentSegment);
-        }
-
         private async Task CopyToSlowAsync(Stream destination)
         {
-            if (_fullSegments != null)
+            var fullSegments = _fullSegments;
+            if (fullSegments != null)
             {
                 // Copy full segments                
-                var count = _fullSegments.Count;
+                var count = fullSegments.Count;
                 for (var i = 0; i < count; i++)
                 {
-                    var segment = _fullSegments[i];
+                    var segment = fullSegments[i];
                     await destination.WriteAsync(segment, 0, segment.Length);
                 }
             }
@@ -219,13 +220,14 @@ namespace Microsoft.AspNetCore.Internal
 
             var totalWritten = 0;
 
-            if (_fullSegments != null)
+            var fullSegments = _fullSegments;
+            if (fullSegments != null)
             {
                 // Copy full segments
-                var count = _fullSegments.Count;
+                var count = fullSegments.Count;
                 for (var i = 0; i < count; i++)
                 {
-                    var segment = _fullSegments[i];
+                    var segment = fullSegments[i];
                     segment.CopyTo(result, totalWritten);
                     totalWritten += segment.Length;
                 }
@@ -245,18 +247,20 @@ namespace Microsoft.AspNetCore.Internal
 
         public override void WriteByte(byte value)
         {
+            var position = _position;
             var currentSegment = _currentSegment;
-            if (currentSegment != null && (uint)_position < (uint)currentSegment.Length)
+            if (currentSegment != null && (uint)position < (uint)currentSegment.Length)
             {
-                currentSegment[_position] = value;
+                currentSegment[position] = value;
+                _position = position + 1;
             }
             else
             {
                 currentSegment = AddSegment();
                 currentSegment[0] = value;
+                _position = 1;
             }
 
-            _position++;
             _bytesWritten++;
         }
 
@@ -291,9 +295,10 @@ namespace Microsoft.AspNetCore.Internal
                 currentSegment = AddSegment();
             }
 
-            if (span.TryCopyTo(currentSegment.AsSpan().Slice(_position)))
+            var position = _position;
+            if (span.TryCopyTo(currentSegment.AsSpan().Slice(position)))
             {
-                _position += span.Length;
+                _position = position + span.Length;
                 _bytesWritten += span.Length;
             }
             else
@@ -308,22 +313,24 @@ namespace Microsoft.AspNetCore.Internal
             var input = source;
             var currentSegment = _currentSegment;
 
+            var position = _position;
             while (true)
             {
-                int writeSize = Math.Min(currentSegment.Length - _position, input.Length);
+                int writeSize = Math.Min(currentSegment.Length - position, input.Length);
                 if (writeSize > 0)
                 {
-                    input.Slice(0, writeSize).CopyTo(currentSegment.AsSpan(_position));
+                    input.Slice(0, writeSize).CopyTo(currentSegment.AsSpan(position));
                     _bytesWritten += writeSize;
                 }
                 if (input.Length > writeSize)
                 {
                     input = input.Slice(writeSize);
                     currentSegment = AddSegment();
+                    position = 0;
                     continue;
                 }
 
-                _position += writeSize;
+                _position = position + writeSize;
                 return;
             }
         }
