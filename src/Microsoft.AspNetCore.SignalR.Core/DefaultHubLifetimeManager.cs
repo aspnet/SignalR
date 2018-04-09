@@ -114,6 +114,8 @@ namespace Microsoft.AspNetCore.SignalR
             return Task.WhenAll(tasks);
         }
 
+        // Tasks and message are passed by ref so they can be lazily created inside the method post-filtering,
+        // while still being re-usable when sending to multiple groups
         private void SendToGroupConnections(string methodName, object[] args, ConcurrentDictionary<string, HubConnectionContext> connections, Func<HubConnectionContext, bool> include, ref List<Task> tasks, ref SerializedHubMessage message)
         {
             // foreach over ConcurrentDictionary avoids allocating an enumerator
