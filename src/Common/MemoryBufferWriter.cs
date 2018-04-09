@@ -251,24 +251,52 @@ namespace Microsoft.AspNetCore.Internal
             }
             else
             {
-                BuffersExtensions.Write(this, buffer.AsSpan(offset, count));
+                var currentSpan = _currentSegment.AsSpan().Slice(_position);
+                WriteMultiSegment(buffer.AsSpan(offset, count), currentSpan);
             }
         }
 
 #if NETCOREAPP2_1
         public override void Write(ReadOnlySpan<byte> span)
         {
-            if (_currentSegment != null && span.TryCopyTo(_currentSegment.AsSpan().Slice(_position)))
+            if (_currentSegment != null)
             {
-                _position += span.Length;
-                _bytesWritten += span.Length;
+                var currentSpan = _currentSegment.AsSpan().Slice(_position);
+                if (span.TryCopyTo(currentSpan))
+                {
+                    _position += span.Length;
+                    _bytesWritten += span.Length;
+                }
+                else
+                {
+                    WriteMultiSegment(span, currentSpan);
+                }
             }
             else
             {
-                BuffersExtensions.Write(this, span);
+                WriteMultiSegment(span, default);
             }
         }
 #endif
+
+        private void WriteMultiSegment(in ReadOnlySpan<byte> source, Span<byte> destination)
+        {
+            ReadOnlySpan<byte> input = source;
+            while (true)
+            {
+                int writeSize = Math.Min(destination.Length, input.Length);
+                input.Slice(0, writeSize).CopyTo(destination);
+                Advance(writeSize);
+                input = input.Slice(writeSize);
+                if (input.Length > 0)
+                {
+                    destination = GetSpan(input.Length);
+                    continue;
+                }
+
+                return;
+            }
+        }
 
         protected override void Dispose(bool disposing)
         {
