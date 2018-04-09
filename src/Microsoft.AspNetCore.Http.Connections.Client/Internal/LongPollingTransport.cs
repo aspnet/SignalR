@@ -72,6 +72,10 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
             // Wait for send or receive to complete
             var trigger = await Task.WhenAny(receiving, sending);
 
+            // Send the DELETE request to clean-up the connection on the server.
+            // This will also cause the poll to return.
+            await SendDeleteRequest(url);
+
             if (trigger == receiving)
             {
                 // We're waiting for the application to finish and there are 2 things it could be doing
@@ -86,7 +90,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
                 // Set the sending error so we communicate that to the application
                 _error = sending.IsFaulted ? sending.Exception.InnerException : null;
 
-                _transportCts.Cancel();
+                // This timeout is only to ensure the poll is cleaned up despite a misbehaving server.
+                // It doesn't need to be configurable.
+                _transportCts.CancelAfter(TimeSpan.FromSeconds(5));
 
                 // Cancel any pending flush so that we can quit
                 _application.Output.CancelPendingFlush();
@@ -185,6 +191,21 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
                 _application.Output.Complete(_error);
 
                 Log.ReceiveStopped(_logger);
+            }
+        }
+
+        private async Task SendDeleteRequest(Uri pollUrl)
+        {
+            try
+            {
+                Log.SendingDeleteRequest(_logger, pollUrl);
+                var response = await _httpClient.DeleteAsync(pollUrl);
+                response.EnsureSuccessStatusCode();
+                Log.DeleteRequestAccepted(_logger, pollUrl);
+            }
+            catch (Exception ex)
+            {
+                Log.ErrorSendingDeleteRequest(_logger, pollUrl, ex);
             }
         }
     }

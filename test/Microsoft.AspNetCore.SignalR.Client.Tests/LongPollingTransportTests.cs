@@ -9,6 +9,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Reflection;
+using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -438,6 +439,27 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 {
                     await longPollingTransport.StopAsync();
                 }
+            }
+        }
+
+        [Fact]
+        public async Task SendsDeleteRequestWhenTransportCompleted()
+        {
+            var handler = TestHttpMessageHandler.CreateDefault();
+            var deleteSent = false;
+            handler.OnDelete("/", (message, token) =>
+            {
+                deleteSent = true;
+                return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.Accepted));
+            });
+
+            using (var httpClient = new HttpClient(handler))
+            {
+                var longPollingTransport = new LongPollingTransport(httpClient);
+
+                await longPollingTransport.StartAsync(new Uri("http://fakeuri.org"), TransferFormat.Binary);
+                await longPollingTransport.StopAsync();
+                Assert.True(deleteSent);
             }
         }
     }
