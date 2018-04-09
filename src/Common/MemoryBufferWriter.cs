@@ -251,24 +251,62 @@ namespace Microsoft.AspNetCore.Internal
             }
             else
             {
-                BuffersExtensions.Write(this, buffer.AsSpan(offset, count));
+                WriteCore(buffer.AsSpan(offset, count));
             }
         }
 
 #if NETCOREAPP2_1
         public override void Write(ReadOnlySpan<byte> span)
         {
-            if (_currentSegment != null && span.TryCopyTo(_currentSegment.AsSpan().Slice(_position)))
+            if (_currentSegment != null && span.TryCopyTo(_currentSegment.AsSpan(_position, _currentSegment.Length - _position)))
             {
                 _position += span.Length;
                 _bytesWritten += span.Length;
             }
             else
             {
-                BuffersExtensions.Write(this, span);
+                WriteCore(span);
             }
         }
 #endif
+
+        private void WriteCore(ReadOnlySpan<byte> value)
+        {
+            Span<byte> destination = GetSpan();
+
+            // Fast path, try copying to the available memory directly
+            if (value.TryCopyTo(destination))
+            {
+                _bytesWritten += value.Length;
+                _position += value.Length;
+            }
+            else
+            {
+                WriteMultiSegment(value, destination);
+            }
+        }
+
+        private void WriteMultiSegment(ReadOnlySpan<byte> source, Span<byte> destination)
+        {
+            ReadOnlySpan<byte> input = source;
+            while (true)
+            {
+                int writeSize = Math.Min(destination.Length, input.Length);
+                input.Slice(0, writeSize).CopyTo(destination);
+
+                _bytesWritten += writeSize;
+                _position += writeSize;
+
+                input = input.Slice(writeSize);
+                if (input.Length > 0)
+                {
+                    destination = GetSpan(input.Length);
+                    continue;
+                }
+
+                return;
+            }
+        }
 
         protected override void Dispose(bool disposing)
         {
