@@ -13,7 +13,7 @@ export interface IHttpConnectionOptions {
     httpClient?: HttpClient;
     transport?: TransportType | ITransport;
     logger?: ILogger | LogLevel;
-    accessTokenFactory?: () => string|Promise<string>;
+    accessTokenFactory?: () => string | Promise<string>;
     logMessageContent?: boolean;
 }
 

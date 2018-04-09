@@ -30,11 +30,11 @@ export interface ITransport {
 
 export class WebSocketTransport implements ITransport {
     private readonly logger: ILogger;
-    private readonly accessTokenFactory: () => string|Promise<string>;
+    private readonly accessTokenFactory: () => string | Promise<string>;
     private readonly logMessageContent: boolean;
     private webSocket: WebSocket;
 
-    constructor(accessTokenFactory: () => string|Promise<string>, logger: ILogger, logMessageContent: boolean) {
+    constructor(accessTokenFactory: () => string | Promise<string>, logger: ILogger, logMessageContent: boolean) {
         this.logger = logger;
         this.accessTokenFactory = accessTokenFactory || (() => null);
         this.logMessageContent = logMessageContent;
@@ -118,13 +118,13 @@ export class WebSocketTransport implements ITransport {
 
 export class ServerSentEventsTransport implements ITransport {
     private readonly httpClient: HttpClient;
-    private readonly accessTokenFactory: () => string|Promise<string>;
+    private readonly accessTokenFactory: () => string | Promise<string>;
     private readonly logger: ILogger;
     private readonly logMessageContent: boolean;
     private eventSource: EventSource;
     private url: string;
 
-    constructor(httpClient: HttpClient, accessTokenFactory: () => string|Promise<string>, logger: ILogger, logMessageContent: boolean) {
+    constructor(httpClient: HttpClient, accessTokenFactory: () => string | Promise<string>, logger: ILogger, logMessageContent: boolean) {
         this.httpClient = httpClient;
         this.accessTokenFactory = accessTokenFactory || (() => null);
         this.logger = logger;
@@ -210,7 +210,7 @@ export class ServerSentEventsTransport implements ITransport {
 
 export class LongPollingTransport implements ITransport {
     private readonly httpClient: HttpClient;
-    private readonly accessTokenFactory: () => string|Promise<string>;
+    private readonly accessTokenFactory: () => string | Promise<string>;
     private readonly logger: ILogger;
     private readonly logMessageContent: boolean;
 
@@ -218,7 +218,7 @@ export class LongPollingTransport implements ITransport {
     private pollXhr: XMLHttpRequest;
     private pollAbort: AbortController;
 
-    constructor(httpClient: HttpClient, accessTokenFactory: () => string|Promise<string>, logger: ILogger, logMessageContent: boolean) {
+    constructor(httpClient: HttpClient, accessTokenFactory: () => string | Promise<string>, logger: ILogger, logMessageContent: boolean) {
         this.httpClient = httpClient;
         this.accessTokenFactory = accessTokenFactory || (() => null);
         this.logger = logger;
@@ -356,7 +356,7 @@ function formatArrayBuffer(data: ArrayBuffer): string {
     return str.substr(0, str.length - 1);
 }
 
-async function send(logger: ILogger, transportName: string, httpClient: HttpClient, url: string, accessTokenFactory: () => string|Promise<string>, content: string | ArrayBuffer, logMessageContent: boolean): Promise<void> {
+async function send(logger: ILogger, transportName: string, httpClient: HttpClient, url: string, accessTokenFactory: () => string | Promise<string>, content: string | ArrayBuffer, logMessageContent: boolean): Promise<void> {
     let headers;
     const token = await accessTokenFactory();
     if (token) {
