@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using System.Net;
+using System.Threading.Tasks;
 using StackExchange.Redis;
 
 namespace Microsoft.AspNetCore.SignalR.Redis
@@ -16,12 +17,12 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             AbortOnConnectFail = false
         };
 
-        public Func<TextWriter, IConnectionMultiplexer> Factory { get; set; }
+        public Func<TextWriter, Task<IConnectionMultiplexer>> Factory { get; set; }
 
-        // TODO: Async
-        internal IConnectionMultiplexer Connect(TextWriter log)
+        internal async Task<IConnectionMultiplexer> ConnectAsync(TextWriter log)
         {
-            if (Factory == null)
+            var localFactory = Factory;
+            if (localFactory == null)
             {
                 // REVIEW: Should we do this?
                 if (Options.EndPoints.Count == 0)
@@ -30,10 +31,10 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                     Options.SetDefaultPorts();
                 }
 
-                return ConnectionMultiplexer.Connect(Options, log);
+                return await ConnectionMultiplexer.ConnectAsync(Options, log);
             }
 
-            return Factory(log);
+            return await localFactory(log);
         }
     }
 }

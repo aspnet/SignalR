@@ -24,13 +24,14 @@ namespace Microsoft.AspNetCore.SignalR.Redis
         private readonly HubConnectionStore _connections = new HubConnectionStore();
         // TODO: Investigate "memory leak" entries never get removed
         private readonly ConcurrentDictionary<string, GroupData> _groups = new ConcurrentDictionary<string, GroupData>(StringComparer.Ordinal);
-        private readonly IConnectionMultiplexer _redisServerConnection;
-        private readonly ISubscriber _bus;
+        private IConnectionMultiplexer _redisServerConnection;
+        private ISubscriber _bus;
         private readonly ILogger _logger;
         private readonly RedisOptions _options;
         private readonly RedisChannels _channels;
         private readonly string _serverName = GenerateServerName();
         private readonly RedisProtocol _protocol;
+        private readonly SemaphoreSlim _connectionLock = new SemaphoreSlim(1);
 
         private readonly AckHandler _ackHandler;
         private int _internalId;
@@ -45,51 +46,71 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             _channels = new RedisChannels(typeof(THub).FullName);
             _protocol = new RedisProtocol(hubProtocolResolver.AllProtocols);
 
-            var writer = new LoggerTextWriter(logger);
             RedisLog.ConnectingToEndpoints(_logger, options.Value.Options.EndPoints, _serverName);
-            _redisServerConnection = _options.Connect(writer);
-
-            _redisServerConnection.ConnectionRestored += (_, e) =>
-            {
-                // We use the subscription connection type
-                // Ignore messages from the interactive connection (avoids duplicates)
-                if (e.ConnectionType == ConnectionType.Interactive)
-                {
-                    return;
-                }
-
-                RedisLog.ConnectionRestored(_logger);
-            };
-
-            _redisServerConnection.ConnectionFailed += (_, e) =>
-            {
-                // We use the subscription connection type
-                // Ignore messages from the interactive connection (avoids duplicates)
-                if (e.ConnectionType == ConnectionType.Interactive)
-                {
-                    return;
-                }
-
-                RedisLog.ConnectionFailed(_logger, e.Exception);
-            };
-
-            if (_redisServerConnection.IsConnected)
-            {
-                RedisLog.Connected(_logger);
-            }
-            else
-            {
-                RedisLog.NotConnected(_logger);
-            }
-            _bus = _redisServerConnection.GetSubscriber();
-
-            SubscribeToAll();
-            SubscribeToGroupManagementChannel();
-            SubscribeToAckChannel();
         }
 
-        public override Task OnConnectedAsync(HubConnectionContext connection)
+        private async Task EnsureRedisServerConnection()
         {
+            if (_redisServerConnection == null)
+            {
+                try
+                {
+                    await _connectionLock.WaitAsync();
+                    if (_redisServerConnection == null)
+                    {
+                        var writer = new LoggerTextWriter(_logger);
+                        _redisServerConnection = await _options.ConnectAsync(writer);
+                        _bus = _redisServerConnection.GetSubscriber();
+                        _redisServerConnection.ConnectionRestored += (_, e) =>
+                        {
+                            // We use the subscription connection type
+                            // Ignore messages from the interactive connection (avoids duplicates)
+                            if (e.ConnectionType == ConnectionType.Interactive)
+                            {
+                                return;
+                            }
+
+                            RedisLog.ConnectionRestored(_logger);
+                        };
+
+                        _redisServerConnection.ConnectionFailed += (_, e) =>
+                        {
+                            // We use the subscription connection type
+                            // Ignore messages from the interactive connection (avoids duplicates)
+                            if (e.ConnectionType == ConnectionType.Interactive)
+                            {
+                                return;
+                            }
+
+                            RedisLog.ConnectionFailed(_logger, e.Exception);
+                        };
+
+                        if (_redisServerConnection.IsConnected)
+                        {
+                            RedisLog.Connected(_logger);
+                        }
+                        else
+                        {
+                            RedisLog.NotConnected(_logger);
+                        }
+
+                        SubscribeToAll();
+                        SubscribeToGroupManagementChannel();
+                        SubscribeToAckChannel();
+                    }
+                }
+                finally
+                {
+                    _connectionLock.Release();
+                }
+
+
+            }
+        }
+
+        public override async Task OnConnectedAsync(HubConnectionContext connection)
+        {
+            await EnsureRedisServerConnection();
             var feature = new RedisFeature();
             connection.Features.Set<IRedisFeature>(feature);
 
@@ -106,7 +127,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                 userTask = SubscribeToUser(connection, redisSubscriptions);
             }
 
-            return Task.WhenAll(connectionTask, userTask);
+            await Task.WhenAll(connectionTask, userTask);
         }
 
         public override Task OnDisconnectedAsync(HubConnectionContext connection)
@@ -144,10 +165,10 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             return Task.WhenAll(tasks);
         }
 
-        public override Task SendAllAsync(string methodName, object[] args)
+        public override async Task SendAllAsync(string methodName, object[] args)
         {
             var message = _protocol.WriteInvocation(methodName, args);
-            return PublishAsync(_channels.All, message);
+            await PublishAsync(_channels.All, message);
         }
 
         public override Task SendAllExceptAsync(string methodName, object[] args, IReadOnlyList<string> excludedIds)
@@ -186,7 +207,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             return PublishAsync(_channels.Group(groupName), message);
         }
 
-        public override Task SendGroupExceptAsync(string groupName, string methodName, object[] args, IReadOnlyList<string> excludedIds)
+        public override async Task SendGroupExceptAsync(string groupName, string methodName, object[] args, IReadOnlyList<string> excludedIds)
         {
             if (groupName == null)
             {
@@ -194,7 +215,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             }
 
             var message = _protocol.WriteInvocation(methodName, args, excludedIds);
-            return PublishAsync(_channels.Group(groupName), message);
+            await PublishAsync(_channels.Group(groupName), message);
         }
 
         public override Task SendUserAsync(string userId, string methodName, object[] args)
@@ -307,10 +328,11 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             return Task.CompletedTask;
         }
 
-        private Task PublishAsync(string channel, byte[] payload)
+        private async Task PublishAsync(string channel, byte[] payload)
         {
+            await EnsureRedisServerConnection();
             RedisLog.PublishToChannel(_logger, channel);
-            return _bus.PublishAsync(channel, payload);
+            await _bus.PublishAsync(channel, payload);
         }
 
         private async Task AddGroupAsyncCore(HubConnectionContext connection, string groupName)
@@ -405,8 +427,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
         public void Dispose()
         {
-            _bus.UnsubscribeAll();
-            _redisServerConnection.Dispose();
+            _bus?.UnsubscribeAll();
+            _redisServerConnection?.Dispose();
             _ackHandler.Dispose();
         }
 
