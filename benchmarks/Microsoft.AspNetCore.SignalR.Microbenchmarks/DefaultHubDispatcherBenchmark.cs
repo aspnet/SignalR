@@ -69,6 +69,11 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             public void WriteMessage(HubMessage message, IBufferWriter<byte> output)
             {
             }
+
+            public byte[] GetBytes(HubMessage message)
+            {
+                return HubProtocolExtensions.GetBytes(this, message);
+            }
         }
 
         public class NoErrorHubConnectionContext : HubConnectionContext

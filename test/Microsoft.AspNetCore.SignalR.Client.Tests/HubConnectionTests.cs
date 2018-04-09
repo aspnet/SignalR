@@ -167,6 +167,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     throw _error;
                 }
             }
+
+            public byte[] GetBytes(HubMessage message)
+            {
+                return HubProtocolExtensions.GetBytes(this, message);
+            }
         }
     }
 }

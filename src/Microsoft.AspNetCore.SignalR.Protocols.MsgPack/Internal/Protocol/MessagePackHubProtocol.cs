@@ -303,6 +303,35 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             }
         }
 
+        public byte[] GetBytes(HubMessage message)
+        {
+            var writer = MemoryBufferWriter.Get();
+
+            try
+            {
+                // Write message to a buffer so we can get its length
+                WriteMessageCore(message, writer);
+
+                var dataLength = writer.Length;
+                var prefixLength = BinaryMessageFormatter.LengthPrefixLength(writer.Length);
+
+                var array = new byte[dataLength + prefixLength];
+                var span = array.AsSpan();
+
+                // Write length then message to output
+                var written = BinaryMessageFormatter.WriteLengthPrefix(writer.Length, span);
+                Debug.Assert(written == prefixLength);
+                written = writer.CopyTo(span.Slice(prefixLength));
+                Debug.Assert(written == dataLength);
+
+                return array;
+            }
+            finally
+            {
+                MemoryBufferWriter.Return(writer);
+            }
+        }
+
         private void WriteMessageCore(HubMessage message, Stream packer)
         {
             switch (message)

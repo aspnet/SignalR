@@ -19,6 +19,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
 
         void WriteMessage(HubMessage message, IBufferWriter<byte> output);
 
+        byte[] GetBytes(HubMessage message);
+
         bool IsVersionSupported(int version);
     }
 }

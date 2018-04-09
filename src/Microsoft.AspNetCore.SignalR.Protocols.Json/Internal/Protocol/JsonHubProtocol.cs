@@ -82,6 +82,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             TextMessageFormatter.WriteRecordSeparator(output);
         }
 
+        public byte[] GetBytes(HubMessage message)
+        {
+            return HubProtocolExtensions.GetBytes(this, message);
+        }
+
         private HubMessage ParseMessage(Utf8BufferTextReader textReader, IInvocationBinder binder)
         {
             try
