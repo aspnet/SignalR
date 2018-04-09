@@ -116,6 +116,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         private void SendToGroupConnections(string methodName, object[] args, ConcurrentDictionary<string, HubConnectionContext> connections, Func<HubConnectionContext, bool> include, ref List<Task> tasks, ref SerializedHubMessage message)
         {
+            // foreach over ConcurrentDictionary avoids allocating an enumerator
             foreach (var connection in connections)
             {
                 if (include != null && !include(connection.Value))
