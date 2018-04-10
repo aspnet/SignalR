@@ -64,12 +64,9 @@ export class ServerSentEventsTransport implements ITransport {
                 };
 
                 eventSource.onerror = (e: any) => {
-                    reject(new Error(e.message || "Error occurred"));
-
-                    // don't report an error if the transport did not start successfully
-                    if (this.eventSource && this.onclose) {
-                        this.onclose(new Error(e.message || "Error occurred"));
-                    }
+                    const error = new Error(e.message || "Error occurred");
+                    reject(error);
+                    this.close(error);
                 };
 
                 eventSource.onopen = () => {
@@ -85,15 +82,26 @@ export class ServerSentEventsTransport implements ITransport {
     }
 
     public async send(data: any): Promise<void> {
+        if (!this.eventSource) {
+            return Promise.reject(new Error("Cannot send until the transport is connected"));
+        }
         return sendMessage(this.logger, "SSE", this.httpClient, this.url, this.accessTokenFactory, data, this.logMessageContent);
     }
 
     public stop(): Promise<void> {
+        this.close();
+        return Promise.resolve();
+    }
+
+    private close(e?: Error) {
         if (this.eventSource) {
             this.eventSource.close();
             this.eventSource = null;
+
+            if (this.onclose) {
+                this.onclose(e);
+            }
         }
-        return Promise.resolve();
     }
 
     public onreceive: DataReceived;

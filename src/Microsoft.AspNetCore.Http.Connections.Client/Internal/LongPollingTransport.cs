@@ -17,6 +17,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
 {
     public partial class LongPollingTransport : ITransport
     {
+        private static readonly TimeSpan ShutdownTimeout = TimeSpan.FromSeconds(5);
+
         private readonly HttpClient _httpClient;
         private readonly ILogger _logger;
         private IDuplexPipe _application;
@@ -92,7 +94,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
 
                 // This timeout is only to ensure the poll is cleaned up despite a misbehaving server.
                 // It doesn't need to be configurable.
-                _transportCts.CancelAfter(TimeSpan.FromSeconds(5));
+                _transportCts.CancelAfter(ShutdownTimeout);
 
                 // Cancel any pending flush so that we can quit
                 _application.Output.CancelPendingFlush();

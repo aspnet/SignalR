@@ -5,9 +5,12 @@ import { ConnectionClosed, DataReceived } from "./Common";
 import { DefaultHttpClient, HttpClient } from "./HttpClient";
 import { IConnection } from "./IConnection";
 import { ILogger, LogLevel } from "./ILogger";
+import { ITransport, TransferFormat, TransportType } from "./ITransport";
 import { LoggerFactory } from "./Loggers";
-import { ITransport, LongPollingTransport, ServerSentEventsTransport, TransferFormat, TransportType, WebSocketTransport } from "./Transports";
+import { LongPollingTransport } from "./LongPollingTransport";
+import { ServerSentEventsTransport } from "./ServerSentEventsTransport";
 import { Arg } from "./Utils";
+import { WebSocketTransport } from "./WebSocketTransport";
 
 export interface IHttpConnectionOptions {
     httpClient?: HttpClient;
@@ -43,6 +46,7 @@ export class HttpConnection implements IConnection {
     private transport: ITransport;
     private connectionId: string;
     private startPromise: Promise<void>;
+    private stopError?: Error;
 
     public readonly features: any = {};
 
@@ -108,7 +112,7 @@ export class HttpConnection implements IConnection {
             }
 
             this.transport.onreceive = this.onreceive;
-            this.transport.onclose = (e) => this.stopConnection(true, e);
+            this.transport.onclose = (e) => this.stopConnection(e);
 
             // only change the state if we were connecting to not overwrite
             // the state if the connection is already marked as Disconnected
@@ -238,7 +242,6 @@ export class HttpConnection implements IConnection {
     }
 
     public async stop(error?: Error): Promise<void> {
-        const previousState = this.connectionState;
         this.connectionState = ConnectionState.Disconnected;
 
         try {
@@ -246,14 +249,18 @@ export class HttpConnection implements IConnection {
         } catch (e) {
             // this exception is returned to the user as a rejected Promise from the start method
         }
-        this.stopConnection(/*raiseClosed*/ previousState === ConnectionState.Connected, error);
-    }
 
-    private stopConnection(raiseClosed: boolean, error?: Error) {
+        // The transport's onclose will trigger stopConnection which will run our onclose event.
         if (this.transport) {
-            this.transport.stop();
+            this.stopError = error;
+            await this.transport.stop();
             this.transport = null;
         }
+    }
+
+    private async stopConnection(error?: Error): Promise<void> {
+        // If we have a stopError, it takes precedence over the error from the transport
+        error = this.stopError || error;
 
         if (error) {
             this.logger.log(LogLevel.Error, `Connection disconnected with error '${error}'.`);
@@ -263,7 +270,7 @@ export class HttpConnection implements IConnection {
 
         this.connectionState = ConnectionState.Disconnected;
 
-        if (raiseClosed && this.onclose) {
+        if (this.onclose) {
             this.onclose(error);
         }
     }
