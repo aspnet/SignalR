@@ -31,6 +31,16 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                 Assert.Equal(0, bufferWriter.Length);
                 var data = bufferWriter.ToArray();
                 Assert.Empty(data);
+            }
+        }
+
+        [Fact]
+        public void WritingNotingGivesEmptyData_CopyTo()
+        {
+            using (var bufferWriter = new MemoryBufferWriter())
+            {
+                Assert.Equal(0, bufferWriter.Length);
+                var data = new byte[bufferWriter.Length];
                 bufferWriter.CopyTo(data);
                 Assert.Empty(data);
             }
@@ -47,8 +57,18 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                 Assert.Equal(1, bufferWriter.Length);
                 Assert.Single(data);
                 Assert.Equal(234, data[0]);
+            }
+        }
 
-                Array.Clear(data, 0, data.Length);
+        [Fact]
+        public void WriteByteWorksAsFirstCall_CopyTo()
+        {
+            using (var bufferWriter = new MemoryBufferWriter())
+            {
+                bufferWriter.WriteByte(234);
+
+                Assert.Equal(1, bufferWriter.Length);
+                var data = new byte[bufferWriter.Length];
 
                 bufferWriter.CopyTo(data);
                 Assert.Equal(234, data[0]);
@@ -71,8 +91,23 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                 var data = bufferWriter.ToArray();
                 Assert.Equal(input, data.Take(16));
                 Assert.Equal(16, data[16]);
+            }
+        }
 
-                Array.Clear(data, 0, data.Length);
+        [Fact]
+        public void WriteByteWorksIfFirstByteInNewSegment_CopyTo()
+        {
+            var inputSize = MinimumSegmentSize;
+            var input = Enumerable.Range(0, inputSize).Select(i => (byte)i).ToArray();
+
+            using (var bufferWriter = new MemoryBufferWriter(MinimumSegmentSize))
+            {
+                bufferWriter.Write(input, 0, input.Length);
+                Assert.Equal(16, bufferWriter.Length);
+                bufferWriter.WriteByte(16);
+                Assert.Equal(17, bufferWriter.Length);
+
+                var data = new byte[bufferWriter.Length];
 
                 bufferWriter.CopyTo(data);
                 Assert.Equal(input, data.Take(16));
@@ -98,8 +133,22 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                 Assert.Equal(12, data[1]);
                 Assert.Equal(13, data[2]);
                 Assert.Equal(14, data[3]);
+            }
+        }
 
-                Array.Clear(data, 0, data.Length);
+        [Fact]
+        public void WriteByteWorksIfSegmentHasSpace_CopyTo()
+        {
+            var input = new byte[] { 11, 12, 13 };
+
+            using (var bufferWriter = new MemoryBufferWriter())
+            {
+                bufferWriter.Write(input, 0, input.Length);
+                bufferWriter.WriteByte(14);
+
+                Assert.Equal(4, bufferWriter.Length);
+
+                var data = new byte[bufferWriter.Length];
 
                 bufferWriter.CopyTo(data);
                 Assert.Equal(11, data[0]);
@@ -122,8 +171,21 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
 
                 var data = bufferWriter.ToArray();
                 Assert.Equal(input, data);
+            }
+        }
 
-                Array.Clear(data, 0, data.Length);
+        [Fact]
+        public void ToArrayWithExactlyFullSegmentsWorks_CopyTo()
+        {
+            var inputSize = MinimumSegmentSize * 2;
+            var input = Enumerable.Range(0, inputSize).Select(i => (byte)i).ToArray();
+
+            using (var bufferWriter = new MemoryBufferWriter(MinimumSegmentSize))
+            {
+                bufferWriter.Write(input, 0, input.Length);
+                Assert.Equal(input.Length, bufferWriter.Length);
+
+                var data = new byte[bufferWriter.Length];
 
                 bufferWriter.CopyTo(data);
                 Assert.Equal(input, data);
@@ -143,8 +205,20 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
 
                 var data = bufferWriter.ToArray();
                 Assert.Equal(input, data);
+            }
+        }
 
-                Array.Clear(data, 0, data.Length);
+        [Fact]
+        public void ToArrayWithSomeFullSegmentsWorks_CopyTo()
+        {
+            var inputSize = (MinimumSegmentSize * 2) + 1;
+            var input = Enumerable.Range(0, inputSize).Select(i => (byte)i).ToArray();
+
+            using (var bufferWriter = new MemoryBufferWriter(MinimumSegmentSize))
+            {
+                bufferWriter.Write(input, 0, input.Length);
+                Assert.Equal(input.Length, bufferWriter.Length);
+                var data = new byte[bufferWriter.Length];
 
                 bufferWriter.CopyTo(data);
                 Assert.Equal(input, data);
@@ -204,8 +278,26 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                     bufferWriter.CopyTo(destination);
                     var data = destination.ToArray();
                     Assert.Equal(input, data);
+                }
+            }
+        }
 
-                    Array.Clear(data, 0, data.Length);
+
+        [Fact]
+        public void CopyToWithExactlyFullSegmentsWorks_CopyTo()
+        {
+            var inputSize = MinimumSegmentSize * 2;
+            var input = Enumerable.Range(0, inputSize).Select(i => (byte)i).ToArray();
+
+            using (var bufferWriter = new MemoryBufferWriter(MinimumSegmentSize))
+            {
+                bufferWriter.Write(input, 0, input.Length);
+                Assert.Equal(input.Length, bufferWriter.Length);
+
+                using (var destination = new MemoryBufferWriter())
+                {
+                    bufferWriter.CopyTo(destination);
+                    var data = new byte[bufferWriter.Length];
 
                     bufferWriter.CopyTo(data);
                     Assert.Equal(input, data);
@@ -234,10 +326,28 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                     bufferWriter.CopyTo(destination);
                     var data = destination.ToArray();
                     Assert.Equal(input, data);
+                }
+            }
+        }
 
-                    Array.Clear(data, 0, data.Length);
 
+        [Fact]
+        public void CopyToWithSomeFullSegmentsWorks_CopyTo()
+        {
+            var inputSize = (MinimumSegmentSize * 2) + 1;
+            var input = Enumerable.Range(0, inputSize).Select(i => (byte)i).ToArray();
+
+            using (var bufferWriter = new MemoryBufferWriter(MinimumSegmentSize))
+            {
+                bufferWriter.Write(input, 0, input.Length);
+                Assert.Equal(input.Length, bufferWriter.Length);
+
+                using (var destination = new MemoryBufferWriter())
+                {
+                    bufferWriter.CopyTo(destination);
+                    var data = new byte[bufferWriter.Length];
                     bufferWriter.CopyTo(data);
+
                     Assert.Equal(input, data);
 
                     Array.Clear(data, 0, data.Length);
@@ -265,9 +375,20 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                 Assert.Equal(2, data[1]);
                 Assert.Equal(3, data[2]);
                 Assert.Equal(4, data[3]);
+            }
+        }
 
-                Array.Clear(data, 0, data.Length);
+        [Fact]
+        public void WriteSpanWorksAtNonZeroOffset_CopyTo()
+        {
+            using (var bufferWriter = new MemoryBufferWriter())
+            {
+                bufferWriter.WriteByte(1);
+                bufferWriter.Write(new byte[] { 2, 3, 4 }.AsSpan());
 
+                Assert.Equal(4, bufferWriter.Length);
+
+                var data = new byte[bufferWriter.Length];
                 bufferWriter.CopyTo(data);
                 Assert.Equal(1, data[0]);
                 Assert.Equal(2, data[1]);
