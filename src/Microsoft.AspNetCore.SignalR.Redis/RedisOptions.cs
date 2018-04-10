@@ -21,6 +21,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
         internal async Task<IConnectionMultiplexer> ConnectAsync(TextWriter log)
         {
+            // Factory is publically settable. Assigning to a local variable before null check for thread safety.
             var localFactory = Factory;
             if (localFactory == null)
             {
