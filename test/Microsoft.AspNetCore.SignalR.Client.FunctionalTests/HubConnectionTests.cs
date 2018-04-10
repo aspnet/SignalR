@@ -708,7 +708,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             {
                 var httpResponse = await new HttpClient().GetAsync(_serverFixture.Url + "/generateJwtToken");
                 httpResponse.EnsureSuccessStatusCode();
-                var token = await httpResponse.Content.ReadAsStringAsync();
+                var token = httpResponse.Content.ReadAsStringAsync();
 
                 var hubConnection = new HubConnectionBuilder()
                     .WithLoggerFactory(loggerFactory)
