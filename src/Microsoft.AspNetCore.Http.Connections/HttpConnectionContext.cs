@@ -75,7 +75,7 @@ namespace Microsoft.AspNetCore.Http.Connections
 
         public CancellationTokenSource Cancellation { get; set; }
 
-        public HttpTransportType TransportType { get; set; }
+        public HttpTransportTypes TransportType { get; set; }
 
         public SemaphoreSlim Lock { get; } = new SemaphoreSlim(1, 1);
 
@@ -297,20 +297,20 @@ namespace Microsoft.AspNetCore.Http.Connections
             private static readonly Action<ILogger, Exception> _applicationComplete =
                 LoggerMessage.Define(LogLevel.Trace, new EventId(3, "ApplicationComplete"), "Application complete.");
 
-            private static readonly Action<ILogger, HttpTransportType, Exception> _waitingForTransport =
-                LoggerMessage.Define<HttpTransportType>(LogLevel.Trace, new EventId(4, "WaitingForTransport"), "Waiting for {TransportType} transport to complete.");
+            private static readonly Action<ILogger, HttpTransportTypes, Exception> _waitingForTransport =
+                LoggerMessage.Define<HttpTransportTypes>(LogLevel.Trace, new EventId(4, "WaitingForTransport"), "Waiting for {TransportType} transport to complete.");
 
-            private static readonly Action<ILogger, HttpTransportType, Exception> _transportComplete =
-                LoggerMessage.Define<HttpTransportType>(LogLevel.Trace, new EventId(5, "TransportComplete"), "{TransportType} transport complete.");
+            private static readonly Action<ILogger, HttpTransportTypes, Exception> _transportComplete =
+                LoggerMessage.Define<HttpTransportTypes>(LogLevel.Trace, new EventId(5, "TransportComplete"), "{TransportType} transport complete.");
 
-            private static readonly Action<ILogger, HttpTransportType, Exception> _shuttingDownTransportAndApplication =
-                LoggerMessage.Define<HttpTransportType>(LogLevel.Trace, new EventId(6, "ShuttingDownTransportAndApplication"), "Shutting down both the application and the {TransportType} transport.");
+            private static readonly Action<ILogger, HttpTransportTypes, Exception> _shuttingDownTransportAndApplication =
+                LoggerMessage.Define<HttpTransportTypes>(LogLevel.Trace, new EventId(6, "ShuttingDownTransportAndApplication"), "Shutting down both the application and the {TransportType} transport.");
 
-            private static readonly Action<ILogger, HttpTransportType, Exception> _waitingForTransportAndApplication =
-                LoggerMessage.Define<HttpTransportType>(LogLevel.Trace, new EventId(7, "WaitingForTransportAndApplication"), "Waiting for both the application and {TransportType} transport to complete.");
+            private static readonly Action<ILogger, HttpTransportTypes, Exception> _waitingForTransportAndApplication =
+                LoggerMessage.Define<HttpTransportTypes>(LogLevel.Trace, new EventId(7, "WaitingForTransportAndApplication"), "Waiting for both the application and {TransportType} transport to complete.");
 
-            private static readonly Action<ILogger, HttpTransportType, Exception> _transportAndApplicationComplete =
-                LoggerMessage.Define<HttpTransportType>(LogLevel.Trace, new EventId(8, "TransportAndApplicationComplete"), "The application and {TransportType} transport are both complete.");
+            private static readonly Action<ILogger, HttpTransportTypes, Exception> _transportAndApplicationComplete =
+                LoggerMessage.Define<HttpTransportTypes>(LogLevel.Trace, new EventId(8, "TransportAndApplicationComplete"), "The application and {TransportType} transport are both complete.");
 
             public static void DisposingConnection(ILogger logger, string connectionId)
             {
@@ -342,7 +342,7 @@ namespace Microsoft.AspNetCore.Http.Connections
                 _applicationComplete(logger, null);
             }
 
-            public static void WaitingForTransport(ILogger logger, HttpTransportType transportType)
+            public static void WaitingForTransport(ILogger logger, HttpTransportTypes transportType)
             {
                 if (logger == null)
                 {
@@ -352,7 +352,7 @@ namespace Microsoft.AspNetCore.Http.Connections
                 _waitingForTransport(logger, transportType, null);
             }
 
-            public static void TransportComplete(ILogger logger, HttpTransportType transportType)
+            public static void TransportComplete(ILogger logger, HttpTransportTypes transportType)
             {
                 if (logger == null)
                 {
@@ -361,7 +361,7 @@ namespace Microsoft.AspNetCore.Http.Connections
 
                 _transportComplete(logger, transportType, null);
             }
-            public static void ShuttingDownTransportAndApplication(ILogger logger, HttpTransportType transportType)
+            public static void ShuttingDownTransportAndApplication(ILogger logger, HttpTransportTypes transportType)
             {
                 if (logger == null)
                 {
@@ -371,7 +371,7 @@ namespace Microsoft.AspNetCore.Http.Connections
                 _shuttingDownTransportAndApplication(logger, transportType, null);
             }
 
-            public static void WaitingForTransportAndApplication(ILogger logger, HttpTransportType transportType)
+            public static void WaitingForTransportAndApplication(ILogger logger, HttpTransportTypes transportType)
             {
                 if (logger == null)
                 {
@@ -381,7 +381,7 @@ namespace Microsoft.AspNetCore.Http.Connections
                 _waitingForTransportAndApplication(logger, transportType, null);
             }
 
-            public static void TransportAndApplicationComplete(ILogger logger, HttpTransportType transportType)
+            public static void TransportAndApplicationComplete(ILogger logger, HttpTransportTypes transportType)
             {
                 if (logger == null)
                 {

@@ -14,23 +14,23 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 {
     public class DefaultTransportFactoryTests
     {
-        private const HttpTransportType AllTransportTypes = HttpTransportType.WebSockets | HttpTransportType.ServerSentEvents | HttpTransportType.LongPolling;
+        private const HttpTransportTypes AllTransportTypes = HttpTransportTypes.WebSockets | HttpTransportTypes.ServerSentEvents | HttpTransportTypes.LongPolling;
 
         [Theory]
-        [InlineData(HttpTransportType.None)]
-        [InlineData((HttpTransportType)int.MaxValue)]
-        public void DefaultTransportFactoryCanBeCreatedWithNoOrUnknownTransportTypeFlags(HttpTransportType transportType)
+        [InlineData(HttpTransportTypes.None)]
+        [InlineData((HttpTransportTypes)int.MaxValue)]
+        public void DefaultTransportFactoryCanBeCreatedWithNoOrUnknownTransportTypeFlags(HttpTransportTypes transportType)
         {
             Assert.NotNull(new DefaultTransportFactory(transportType, new LoggerFactory(), new HttpClient(), httpOptions: null));
         }
 
         [Theory]
         [InlineData(AllTransportTypes)]
-        [InlineData(HttpTransportType.LongPolling)]
-        [InlineData(HttpTransportType.ServerSentEvents)]
-        [InlineData(HttpTransportType.LongPolling | HttpTransportType.WebSockets)]
-        [InlineData(HttpTransportType.ServerSentEvents | HttpTransportType.WebSockets)]
-        public void DefaultTransportFactoryCannotBeCreatedWithoutHttpClient(HttpTransportType transportType)
+        [InlineData(HttpTransportTypes.LongPolling)]
+        [InlineData(HttpTransportTypes.ServerSentEvents)]
+        [InlineData(HttpTransportTypes.LongPolling | HttpTransportTypes.WebSockets)]
+        [InlineData(HttpTransportTypes.ServerSentEvents | HttpTransportTypes.WebSockets)]
+        public void DefaultTransportFactoryCannotBeCreatedWithoutHttpClient(HttpTransportTypes transportType)
         {
             var exception = Assert.Throws<ArgumentNullException>(
                 () => new DefaultTransportFactory(transportType, new LoggerFactory(), httpClient: null, httpOptions: null));
@@ -41,15 +41,15 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public void DefaultTransportFactoryCanBeCreatedWithoutHttpClientIfWebSocketsTransportRequestedExplicitly()
         {
-            new DefaultTransportFactory(HttpTransportType.WebSockets, new LoggerFactory(), httpClient: null, httpOptions: null);
+            new DefaultTransportFactory(HttpTransportTypes.WebSockets, new LoggerFactory(), httpClient: null, httpOptions: null);
         }
 
         [ConditionalTheory]
-        [InlineData(HttpTransportType.WebSockets, typeof(WebSocketsTransport))]
-        [InlineData(HttpTransportType.ServerSentEvents, typeof(ServerSentEventsTransport))]
-        [InlineData(HttpTransportType.LongPolling, typeof(LongPollingTransport))]
+        [InlineData(HttpTransportTypes.WebSockets, typeof(WebSocketsTransport))]
+        [InlineData(HttpTransportTypes.ServerSentEvents, typeof(ServerSentEventsTransport))]
+        [InlineData(HttpTransportTypes.LongPolling, typeof(LongPollingTransport))]
         [WebSocketsSupportedCondition]
-        public void DefaultTransportFactoryCreatesRequestedTransportIfAvailable(HttpTransportType requestedTransport, Type expectedTransportType)
+        public void DefaultTransportFactoryCreatesRequestedTransportIfAvailable(HttpTransportTypes requestedTransport, Type expectedTransportType)
         {
             var transportFactory = new DefaultTransportFactory(requestedTransport, loggerFactory: null, httpClient: new HttpClient(), httpOptions: null);
             Assert.IsType(expectedTransportType,
@@ -57,11 +57,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Theory]
-        [InlineData(HttpTransportType.WebSockets)]
-        [InlineData(HttpTransportType.ServerSentEvents)]
-        [InlineData(HttpTransportType.LongPolling)]
+        [InlineData(HttpTransportTypes.WebSockets)]
+        [InlineData(HttpTransportTypes.ServerSentEvents)]
+        [InlineData(HttpTransportTypes.LongPolling)]
         [InlineData(AllTransportTypes)]
-        public void DefaultTransportFactoryThrowsIfItCannotCreateRequestedTransport(HttpTransportType requestedTransport)
+        public void DefaultTransportFactoryThrowsIfItCannotCreateRequestedTransport(HttpTransportTypes requestedTransport)
         {
             var transportFactory =
                 new DefaultTransportFactory(requestedTransport, loggerFactory: null, httpClient: new HttpClient(), httpOptions: null);
@@ -82,9 +82,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
         [Theory]
         [InlineData(AllTransportTypes, typeof(ServerSentEventsTransport))]
-        [InlineData(HttpTransportType.ServerSentEvents, typeof(ServerSentEventsTransport))]
-        [InlineData(HttpTransportType.LongPolling, typeof(LongPollingTransport))]
-        public void DefaultTransportFactoryCreatesRequestedTransportIfAvailable_Win7(HttpTransportType requestedTransport, Type expectedTransportType)
+        [InlineData(HttpTransportTypes.ServerSentEvents, typeof(ServerSentEventsTransport))]
+        [InlineData(HttpTransportTypes.LongPolling, typeof(LongPollingTransport))]
+        public void DefaultTransportFactoryCreatesRequestedTransportIfAvailable_Win7(HttpTransportTypes requestedTransport, Type expectedTransportType)
         {
             if (!TestHelpers.IsWebSocketsSupported())
             {
@@ -95,8 +95,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Theory]
-        [InlineData(HttpTransportType.WebSockets)]
-        public void DefaultTransportFactoryThrowsIfItCannotCreateRequestedTransport_Win7(HttpTransportType requestedTransport)
+        [InlineData(HttpTransportTypes.WebSockets)]
+        public void DefaultTransportFactoryThrowsIfItCannotCreateRequestedTransport_Win7(HttpTransportTypes requestedTransport)
         {
             if (!TestHelpers.IsWebSocketsSupported())
             {

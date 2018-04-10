@@ -20,7 +20,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             string url = null,
             ITransport transport = null,
             ITransportFactory transportFactory = null,
-            HttpTransportType transportType = HttpTransportType.LongPolling,
+            HttpTransportTypes transportType = HttpTransportTypes.LongPolling,
             Func<Task<string>> accessTokenFactory = null)
         {
             var httpOptions = new HttpOptions
@@ -32,7 +32,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             return CreateConnection(httpOptions, loggerFactory, url, transport, transportFactory, transportType);
         }
 
-        private static HttpConnection CreateConnection(HttpOptions httpOptions, ILoggerFactory loggerFactory = null, string url = null, ITransport transport = null, ITransportFactory transportFactory = null, HttpTransportType transportType = HttpTransportType.LongPolling)
+        private static HttpConnection CreateConnection(HttpOptions httpOptions, ILoggerFactory loggerFactory = null, string url = null, ITransport transport = null, ITransportFactory transportFactory = null, HttpTransportTypes transportType = HttpTransportTypes.LongPolling)
         {
             loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
             var uri = new Uri(url ?? "http://fakeuri.org/");

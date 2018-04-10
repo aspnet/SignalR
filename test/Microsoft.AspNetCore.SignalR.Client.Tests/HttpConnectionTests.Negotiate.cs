@@ -39,9 +39,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             }
 
             [Theory]
-            [InlineData(HttpTransportType.None)]
-            [InlineData(HttpTransportType.ServerSentEvents)]
-            public Task ConnectionCannotBeStartedIfNoCommonTransportsBetweenClientAndServer(HttpTransportType serverTransports)
+            [InlineData(HttpTransportTypes.None)]
+            [InlineData(HttpTransportTypes.ServerSentEvents)]
+            public Task ConnectionCannotBeStartedIfNoCommonTransportsBetweenClientAndServer(HttpTransportTypes serverTransports)
             {
                 return RunInvalidNegotiateResponseTest<InvalidOperationException>(ResponseUtils.CreateNegotiationContent(transportTypes: serverTransports), "Unable to connect to the server with any of the available transports.");
             }
@@ -111,7 +111,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
                 var transportFactory = new Mock<ITransportFactory>(MockBehavior.Strict);
 
-                transportFactory.Setup(t => t.CreateTransport(HttpTransportType.LongPolling))
+                transportFactory.Setup(t => t.CreateTransport(HttpTransportTypes.LongPolling))
                     .Returns(new TestTransport(transferFormat: TransferFormat.Text | TransferFormat.Binary));
 
                 await WithConnectionAsync(
@@ -157,7 +157,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
                 var transportFactory = new Mock<ITransportFactory>(MockBehavior.Strict);
 
-                transportFactory.Setup(t => t.CreateTransport(HttpTransportType.LongPolling))
+                transportFactory.Setup(t => t.CreateTransport(HttpTransportTypes.LongPolling))
                     .Returns(new TestTransport(transferFormat: TransferFormat.Text | TransferFormat.Binary));
 
                 await WithConnectionAsync(

@@ -18,7 +18,7 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
         private volatile ConnectionState _connectionState = ConnectionState.Connecting;
 
         public ConnectionState State => _connectionState;
-        public async Task CreateAndStartConnectionAsync(string url, HttpTransportType transportType)
+        public async Task CreateAndStartConnectionAsync(string url, HttpTransportTypes transportType)
         {
             _connection = new HubConnectionBuilder()
                 .WithUrl(url, options => options.Transports = transportType)

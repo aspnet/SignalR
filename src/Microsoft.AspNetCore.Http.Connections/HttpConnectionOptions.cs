@@ -21,7 +21,7 @@ namespace Microsoft.AspNetCore.Http.Connections
 
         public IList<IAuthorizeData> AuthorizationData { get; }
 
-        public HttpTransportType Transports { get; set; }
+        public HttpTransportTypes Transports { get; set; }
 
         public WebSocketOptions WebSockets { get; }
 

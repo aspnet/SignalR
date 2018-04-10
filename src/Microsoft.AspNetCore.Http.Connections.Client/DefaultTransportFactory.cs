@@ -14,13 +14,13 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
     {
         private readonly HttpClient _httpClient;
         private readonly HttpOptions _httpOptions;
-        private readonly HttpTransportType _requestedTransportType;
+        private readonly HttpTransportTypes _requestedTransportType;
         private readonly ILoggerFactory _loggerFactory;
         private static volatile bool _websocketsSupported = true;
 
-        public DefaultTransportFactory(HttpTransportType requestedTransportType, ILoggerFactory loggerFactory, HttpClient httpClient, HttpOptions httpOptions)
+        public DefaultTransportFactory(HttpTransportTypes requestedTransportType, ILoggerFactory loggerFactory, HttpClient httpClient, HttpOptions httpOptions)
         {
-            if (httpClient == null && requestedTransportType != HttpTransportType.WebSockets)
+            if (httpClient == null && requestedTransportType != HttpTransportTypes.WebSockets)
             {
                 throw new ArgumentNullException(nameof(httpClient));
             }
@@ -31,9 +31,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
             _httpOptions = httpOptions;
         }
 
-        public ITransport CreateTransport(HttpTransportType availableServerTransports)
+        public ITransport CreateTransport(HttpTransportTypes availableServerTransports)
         {
-            if (_websocketsSupported && (availableServerTransports & HttpTransportType.WebSockets & _requestedTransportType) == HttpTransportType.WebSockets)
+            if (_websocketsSupported && (availableServerTransports & HttpTransportTypes.WebSockets & _requestedTransportType) == HttpTransportTypes.WebSockets)
             {
                 try
                 {
@@ -45,12 +45,12 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
                 }
             }
 
-            if ((availableServerTransports & HttpTransportType.ServerSentEvents & _requestedTransportType) == HttpTransportType.ServerSentEvents)
+            if ((availableServerTransports & HttpTransportTypes.ServerSentEvents & _requestedTransportType) == HttpTransportTypes.ServerSentEvents)
             {
                 return new ServerSentEventsTransport(_httpClient, _loggerFactory);
             }
 
-            if ((availableServerTransports & HttpTransportType.LongPolling & _requestedTransportType) == HttpTransportType.LongPolling)
+            if ((availableServerTransports & HttpTransportTypes.LongPolling & _requestedTransportType) == HttpTransportTypes.LongPolling)
             {
                 return new LongPollingTransport(_httpClient, _loggerFactory);
             }

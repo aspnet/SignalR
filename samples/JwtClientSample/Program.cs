@@ -16,9 +16,9 @@ namespace JwtClientSample
         {
             var app = new Program();
             await Task.WhenAll(
-                app.RunConnection(HttpTransportType.WebSockets),
-                app.RunConnection(HttpTransportType.ServerSentEvents),
-                app.RunConnection(HttpTransportType.LongPolling));
+                app.RunConnection(HttpTransportTypes.WebSockets),
+                app.RunConnection(HttpTransportTypes.ServerSentEvents),
+                app.RunConnection(HttpTransportTypes.LongPolling));
         }
 
         private const string ServerUrl = "http://localhost:54543";
@@ -26,7 +26,7 @@ namespace JwtClientSample
         private readonly ConcurrentDictionary<string, Task<string>> _tokens = new ConcurrentDictionary<string, Task<string>>(StringComparer.Ordinal);
         private readonly Random _random = new Random();
 
-        private async Task RunConnection(HttpTransportType transportType)
+        private async Task RunConnection(HttpTransportTypes transportType)
         {
             var userId = "C#" + transportType;
             _tokens[userId] = GetJwtToken(userId);
@@ -58,7 +58,7 @@ namespace JwtClientSample
                     if (ticks % 15 == 0)
                     {
                         // no need to refresh the token for websockets
-                        if (transportType != HttpTransportType.WebSockets)
+                        if (transportType != HttpTransportTypes.WebSockets)
                         {
                             _tokens[userId] = GetJwtToken(userId);
                             Console.WriteLine($"[{userId}] Token refreshed");

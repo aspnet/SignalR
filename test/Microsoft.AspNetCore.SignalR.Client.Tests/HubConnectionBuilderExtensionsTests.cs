@@ -32,13 +32,13 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public void WithHttpConnectionSetsTransport()
         {
             var connectionBuilder = new HubConnectionBuilder();
-            connectionBuilder.WithUrl("http://tempuri.org", HttpTransportType.LongPolling);
+            connectionBuilder.WithUrl("http://tempuri.org", HttpTransportTypes.LongPolling);
 
             var serviceProvider = connectionBuilder.Services.BuildServiceProvider();
 
             var value = serviceProvider.GetService<IOptions<HttpConnectionOptions>>().Value;
 
-            Assert.Equal(HttpTransportType.LongPolling, value.Transports);
+            Assert.Equal(HttpTransportTypes.LongPolling, value.Transports);
         }
 
         [Fact]

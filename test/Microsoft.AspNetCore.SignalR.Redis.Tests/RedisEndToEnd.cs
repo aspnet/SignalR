@@ -40,7 +40,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
         [ConditionalTheory()]
         [SkipIfDockerNotPresent]
         [MemberData(nameof(TransportTypesAndProtocolTypes))]
-        public async Task HubConnectionCanSendAndReceiveMessages(HttpTransportType transportType, string protocolName)
+        public async Task HubConnectionCanSendAndReceiveMessages(HttpTransportTypes transportType, string protocolName)
         {
             using (StartLog(out var loggerFactory, testName:
                 $"{nameof(HubConnectionCanSendAndReceiveMessages)}_{transportType.ToString()}_{protocolName}"))
@@ -61,7 +61,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
         [ConditionalTheory()]
         [SkipIfDockerNotPresent]
         [MemberData(nameof(TransportTypesAndProtocolTypes))]
-        public async Task HubConnectionCanSendAndReceiveGroupMessages(HttpTransportType transportType, string protocolName)
+        public async Task HubConnectionCanSendAndReceiveGroupMessages(HttpTransportTypes transportType, string protocolName)
         {
             using (StartLog(out var loggerFactory, testName:
                 $"{nameof(HubConnectionCanSendAndReceiveGroupMessages)}_{transportType.ToString()}_{protocolName}"))
@@ -89,7 +89,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             }
         }
 
-        private static HubConnection CreateConnection(string url, HttpTransportType transportType, IHubProtocol protocol, ILoggerFactory loggerFactory)
+        private static HubConnection CreateConnection(string url, HttpTransportTypes transportType, IHubProtocol protocol, ILoggerFactory loggerFactory)
         {
             return new HubConnectionBuilder()
                 .WithHubProtocol(protocol)
@@ -98,14 +98,14 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
                 .Build();
         }
 
-        private static IEnumerable<HttpTransportType> TransportTypes()
+        private static IEnumerable<HttpTransportTypes> TransportTypes()
         {
             if (TestHelpers.IsWebSocketsSupported())
             {
-                yield return HttpTransportType.WebSockets;
+                yield return HttpTransportTypes.WebSockets;
             }
-            yield return HttpTransportType.ServerSentEvents;
-            yield return HttpTransportType.LongPolling;
+            yield return HttpTransportTypes.ServerSentEvents;
+            yield return HttpTransportTypes.LongPolling;
         }
 
         public static IEnumerable<object[]> TransportTypesAndProtocolTypes
@@ -116,7 +116,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
                 {
                     yield return new object[] { transport, JsonHubProtocol.ProtocolName };
 
-                    if (transport != HttpTransportType.ServerSentEvents)
+                    if (transport != HttpTransportTypes.ServerSentEvents)
                     {
                         yield return new object[] { transport, MessagePackHubProtocol.ProtocolName };
                     }

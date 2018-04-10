@@ -60,7 +60,7 @@ namespace Microsoft.AspNetCore.SignalR.Crankier.Commands
             });
         }
 
-        private static async Task<int> Execute(string targetUrl, int numberOfWorkers, int numberOfConnections, int sendDurationInSeconds, HttpTransportType transportType, bool workerWaitForDebugger)
+        private static async Task<int> Execute(string targetUrl, int numberOfWorkers, int numberOfConnections, int sendDurationInSeconds, HttpTransportTypes transportType, bool workerWaitForDebugger)
         {
             var agent = new Agent(workerWaitForDebugger: workerWaitForDebugger);
             var runner = new Runner(agent, targetUrl, numberOfWorkers, numberOfConnections, sendDurationInSeconds, transportType);

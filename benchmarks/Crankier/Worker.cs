@@ -55,7 +55,7 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
             Log("Worker sent pong command with value {0}.", value);
         }
 
-        public async Task ConnectAsync(string targetAddress, HttpTransportType transportType, int numberOfConnections)
+        public async Task ConnectAsync(string targetAddress, HttpTransportTypes transportType, int numberOfConnections)
         {
             Log("Worker received connect command with target address {0} and number of connections {1}", targetAddress, numberOfConnections);
 

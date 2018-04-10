@@ -7,6 +7,6 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
     {
         // Note that this is static readonly instead of const so it is not baked into a DLL when referenced
         // Updating package without recompiling will automatically pick up new transports added here
-        public static readonly HttpTransportType All = HttpTransportType.WebSockets | HttpTransportType.ServerSentEvents | HttpTransportType.LongPolling;
+        public static readonly HttpTransportTypes All = HttpTransportTypes.WebSockets | HttpTransportTypes.ServerSentEvents | HttpTransportTypes.LongPolling;
     }
 }

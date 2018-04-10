@@ -45,19 +45,19 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
         private HubConnection CreateHubConnection(
             string path = null,
-            HttpTransportType? transportType = null,
+            HttpTransportTypes? transportType = null,
             IHubProtocol protocol = null,
             ILoggerFactory loggerFactory = null)
         {
             var hubConnectionBuilder = new HubConnectionBuilder();
             hubConnectionBuilder.WithHubProtocol(protocol);
             hubConnectionBuilder.WithLoggerFactory(loggerFactory);
-            hubConnectionBuilder.WithConnectionFactory(GetHttpConnectionFactory(loggerFactory, path, transportType ?? HttpTransportType.LongPolling | HttpTransportType.WebSockets | HttpTransportType.ServerSentEvents));
+            hubConnectionBuilder.WithConnectionFactory(GetHttpConnectionFactory(loggerFactory, path, transportType ?? HttpTransportTypes.LongPolling | HttpTransportTypes.WebSockets | HttpTransportTypes.ServerSentEvents));
 
             return hubConnectionBuilder.Build();
         }
 
-        private Func<TransferFormat, Task<ConnectionContext>> GetHttpConnectionFactory(ILoggerFactory loggerFactory, string path, HttpTransportType transportType)
+        private Func<TransferFormat, Task<ConnectionContext>> GetHttpConnectionFactory(ILoggerFactory loggerFactory, string path, HttpTransportTypes transportType)
         {
             return async format =>
             {
@@ -69,7 +69,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
         [Theory]
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
-        public async Task CheckFixedMessage(string protocolName, HttpTransportType transportType, string path)
+        public async Task CheckFixedMessage(string protocolName, HttpTransportTypes transportType, string path)
         {
             var protocol = HubProtocols[protocolName];
             using (StartLog(out var loggerFactory, $"{nameof(CheckFixedMessage)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
@@ -102,7 +102,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
         [Theory]
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
-        public async Task CanSendAndReceiveMessage(string protocolName, HttpTransportType transportType, string path)
+        public async Task CanSendAndReceiveMessage(string protocolName, HttpTransportTypes transportType, string path)
         {
             var protocol = HubProtocols[protocolName];
             using (StartLog(out var loggerFactory, $"{nameof(CanSendAndReceiveMessage)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
@@ -131,7 +131,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
         [Theory]
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
-        public async Task CanStopAndStartConnection(string protocolName, HttpTransportType transportType, string path)
+        public async Task CanStopAndStartConnection(string protocolName, HttpTransportTypes transportType, string path)
         {
             var protocol = HubProtocols[protocolName];
             using (StartLog(out var loggerFactory, LogLevel.Trace, $"{nameof(CanStopAndStartConnection)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
@@ -162,7 +162,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
         [Theory]
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
-        public async Task CanStartConnectionFromClosedEvent(string protocolName, HttpTransportType transportType, string path)
+        public async Task CanStartConnectionFromClosedEvent(string protocolName, HttpTransportTypes transportType, string path)
         {
             var protocol = HubProtocols[protocolName];
             using (StartLog(out var loggerFactory, LogLevel.Trace, $"{nameof(CanStartConnectionFromClosedEvent)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
@@ -224,7 +224,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
         [Theory]
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
-        public async Task MethodsAreCaseInsensitive(string protocolName, HttpTransportType transportType, string path)
+        public async Task MethodsAreCaseInsensitive(string protocolName, HttpTransportTypes transportType, string path)
         {
             var protocol = HubProtocols[protocolName];
             using (StartLog(out var loggerFactory, $"{nameof(MethodsAreCaseInsensitive)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
@@ -253,7 +253,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
         [Theory]
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
-        public async Task CanInvokeClientMethodFromServer(string protocolName, HttpTransportType transportType, string path)
+        public async Task CanInvokeClientMethodFromServer(string protocolName, HttpTransportTypes transportType, string path)
         {
             var protocol = HubProtocols[protocolName];
             using (StartLog(out var loggerFactory, LogLevel.Trace, $"{nameof(CanInvokeClientMethodFromServer)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
@@ -286,7 +286,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
         [Theory]
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
-        public async Task InvokeNonExistantClientMethodFromServer(string protocolName, HttpTransportType transportType, string path)
+        public async Task InvokeNonExistantClientMethodFromServer(string protocolName, HttpTransportTypes transportType, string path)
         {
             var protocol = HubProtocols[protocolName];
             using (StartLog(out var loggerFactory, LogLevel.Trace, $"{nameof(InvokeNonExistantClientMethodFromServer)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
@@ -326,7 +326,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
         [Theory]
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
-        public async Task CanStreamClientMethodFromServer(string protocolName, HttpTransportType transportType, string path)
+        public async Task CanStreamClientMethodFromServer(string protocolName, HttpTransportTypes transportType, string path)
         {
             var protocol = HubProtocols[protocolName];
             using (StartLog(out var loggerFactory, LogLevel.Trace, $"{nameof(CanStreamClientMethodFromServer)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
@@ -355,7 +355,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
         [Theory]
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
-        public async Task CanCloseStreamMethodEarly(string protocolName, HttpTransportType transportType, string path)
+        public async Task CanCloseStreamMethodEarly(string protocolName, HttpTransportTypes transportType, string path)
         {
             var protocol = HubProtocols[protocolName];
             using (StartLog(out var loggerFactory, $"{nameof(CanCloseStreamMethodEarly)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
@@ -395,7 +395,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
         [Theory]
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
-        public async Task StreamDoesNotStartIfTokenAlreadyCanceled(string protocolName, HttpTransportType transportType, string path)
+        public async Task StreamDoesNotStartIfTokenAlreadyCanceled(string protocolName, HttpTransportTypes transportType, string path)
         {
             var protocol = HubProtocols[protocolName];
             using (StartLog(out var loggerFactory, LogLevel.Trace, $"{nameof(StreamDoesNotStartIfTokenAlreadyCanceled)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
@@ -427,7 +427,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
         [Theory]
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
-        public async Task ExceptionFromStreamingSentToClient(string protocolName, HttpTransportType transportType, string path)
+        public async Task ExceptionFromStreamingSentToClient(string protocolName, HttpTransportTypes transportType, string path)
         {
             var protocol = HubProtocols[protocolName];
             using (StartLog(out var loggerFactory, $"{nameof(ExceptionFromStreamingSentToClient)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
@@ -455,7 +455,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
         [Theory]
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
-        public async Task ServerThrowsHubExceptionIfHubMethodCannotBeResolved(string hubProtocolName, HttpTransportType transportType, string hubPath)
+        public async Task ServerThrowsHubExceptionIfHubMethodCannotBeResolved(string hubProtocolName, HttpTransportTypes transportType, string hubPath)
         {
             var hubProtocol = HubProtocols[hubProtocolName];
             using (StartLog(out var loggerFactory, $"{nameof(ServerThrowsHubExceptionIfHubMethodCannotBeResolved)}_{hubProtocol.Name}_{transportType}_{hubPath.TrimStart('/')}"))
@@ -482,7 +482,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
         [Theory]
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
-        public async Task ServerThrowsHubExceptionOnHubMethodArgumentCountMismatch(string hubProtocolName, HttpTransportType transportType, string hubPath)
+        public async Task ServerThrowsHubExceptionOnHubMethodArgumentCountMismatch(string hubProtocolName, HttpTransportTypes transportType, string hubPath)
         {
             var hubProtocol = HubProtocols[hubProtocolName];
             using (StartLog(out var loggerFactory, $"{nameof(ServerThrowsHubExceptionOnHubMethodArgumentCountMismatch)}_{hubProtocol.Name}_{transportType}_{hubPath.TrimStart('/')}"))
@@ -509,7 +509,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
         [Theory]
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
-        public async Task ServerThrowsHubExceptionOnHubMethodArgumentTypeMismatch(string hubProtocolName, HttpTransportType transportType, string hubPath)
+        public async Task ServerThrowsHubExceptionOnHubMethodArgumentTypeMismatch(string hubProtocolName, HttpTransportTypes transportType, string hubPath)
         {
             var hubProtocol = HubProtocols[hubProtocolName];
             using (StartLog(out var loggerFactory, $"{nameof(ServerThrowsHubExceptionOnHubMethodArgumentTypeMismatch)}_{hubProtocol.Name}_{transportType}_{hubPath.TrimStart('/')}"))
@@ -536,7 +536,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
         [Theory]
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
-        public async Task ServerThrowsHubExceptionIfStreamingHubMethodCannotBeResolved(string hubProtocolName, HttpTransportType transportType, string hubPath)
+        public async Task ServerThrowsHubExceptionIfStreamingHubMethodCannotBeResolved(string hubProtocolName, HttpTransportTypes transportType, string hubPath)
         {
             var hubProtocol = HubProtocols[hubProtocolName];
             using (StartLog(out var loggerFactory, $"{nameof(ServerThrowsHubExceptionIfStreamingHubMethodCannotBeResolved)}_{hubProtocol.Name}_{transportType}_{hubPath.TrimStart('/')}"))
@@ -564,7 +564,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
         [Theory]
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
-        public async Task ServerThrowsHubExceptionOnStreamingHubMethodArgumentCountMismatch(string hubProtocolName, HttpTransportType transportType, string hubPath)
+        public async Task ServerThrowsHubExceptionOnStreamingHubMethodArgumentCountMismatch(string hubProtocolName, HttpTransportTypes transportType, string hubPath)
         {
             var hubProtocol = HubProtocols[hubProtocolName];
             using (StartLog(out var loggerFactory, $"{nameof(ServerThrowsHubExceptionOnStreamingHubMethodArgumentCountMismatch)}_{hubProtocol.Name}_{transportType}_{hubPath.TrimStart('/')}"))
@@ -593,7 +593,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
         [Theory]
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
-        public async Task ServerThrowsHubExceptionOnStreamingHubMethodArgumentTypeMismatch(string hubProtocolName, HttpTransportType transportType, string hubPath)
+        public async Task ServerThrowsHubExceptionOnStreamingHubMethodArgumentTypeMismatch(string hubProtocolName, HttpTransportTypes transportType, string hubPath)
         {
             var hubProtocol = HubProtocols[hubProtocolName];
             using (StartLog(out var loggerFactory, $"{nameof(ServerThrowsHubExceptionOnStreamingHubMethodArgumentTypeMismatch)}_{hubProtocol.Name}_{transportType}_{hubPath.TrimStart('/')}"))
@@ -621,7 +621,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
         [Theory]
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
-        public async Task ServerThrowsHubExceptionIfNonStreamMethodInvokedWithStreamAsync(string hubProtocolName, HttpTransportType transportType, string hubPath)
+        public async Task ServerThrowsHubExceptionIfNonStreamMethodInvokedWithStreamAsync(string hubProtocolName, HttpTransportTypes transportType, string hubPath)
         {
             var hubProtocol = HubProtocols[hubProtocolName];
             using (StartLog(out var loggerFactory, $"{nameof(ServerThrowsHubExceptionIfNonStreamMethodInvokedWithStreamAsync)}_{hubProtocol.Name}_{transportType}_{hubPath.TrimStart('/')}"))
@@ -648,7 +648,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
         [Theory]
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
-        public async Task ServerThrowsHubExceptionIfStreamMethodInvokedWithInvoke(string hubProtocolName, HttpTransportType transportType, string hubPath)
+        public async Task ServerThrowsHubExceptionIfStreamMethodInvokedWithInvoke(string hubProtocolName, HttpTransportTypes transportType, string hubPath)
         {
             var hubProtocol = HubProtocols[hubProtocolName];
             using (StartLog(out var loggerFactory, $"{nameof(ServerThrowsHubExceptionIfStreamMethodInvokedWithInvoke)}_{hubProtocol.Name}_{transportType}_{hubPath.TrimStart('/')}"))
@@ -675,7 +675,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
         [Theory]
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
-        public async Task ServerThrowsHubExceptionIfBuildingAsyncEnumeratorIsNotPossible(string hubProtocolName, HttpTransportType transportType, string hubPath)
+        public async Task ServerThrowsHubExceptionIfBuildingAsyncEnumeratorIsNotPossible(string hubProtocolName, HttpTransportTypes transportType, string hubPath)
         {
             var hubProtocol = HubProtocols[hubProtocolName];
             using (StartLog(out var loggerFactory, $"{nameof(ServerThrowsHubExceptionIfBuildingAsyncEnumeratorIsNotPossible)}_{hubProtocol.Name}_{transportType}_{hubPath.TrimStart('/')}"))
@@ -702,7 +702,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
         [Theory]
         [MemberData(nameof(TransportTypes))]
-        public async Task ClientCanUseJwtBearerTokenForAuthentication(HttpTransportType transportType)
+        public async Task ClientCanUseJwtBearerTokenForAuthentication(HttpTransportTypes transportType)
         {
             using (StartLog(out var loggerFactory, $"{nameof(ClientCanUseJwtBearerTokenForAuthentication)}_{transportType}"))
             {
@@ -740,7 +740,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
         [Theory]
         [MemberData(nameof(TransportTypes))]
-        public async Task ClientCanSendHeaders(HttpTransportType transportType)
+        public async Task ClientCanSendHeaders(HttpTransportTypes transportType)
         {
             using (StartLog(out var loggerFactory, $"{nameof(ClientCanSendHeaders)}_{transportType}"))
             {
@@ -782,7 +782,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
                 var hubConnection = new HubConnectionBuilder()
                     .WithLoggerFactory(loggerFactory)
-                    .WithUrl(_serverFixture.Url + "/default", HttpTransportType.WebSockets, options =>
+                    .WithUrl(_serverFixture.Url + "/default", HttpTransportTypes.WebSockets, options =>
                     {
                         options.WebSocketOptions = o => o.Cookies = cookieJar;
                     })
@@ -807,7 +807,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
         [Theory]
         [MemberData(nameof(TransportTypes))]
-        public async Task CheckHttpConnectionFeatures(HttpTransportType transportType)
+        public async Task CheckHttpConnectionFeatures(HttpTransportTypes transportType)
         {
             using (StartLog(out var loggerFactory, $"{nameof(CheckHttpConnectionFeatures)}_{transportType}"))
             {
@@ -856,8 +856,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 {
                     await hubConnection.StartAsync().OrTimeout();
 
-                    var transport = await hubConnection.InvokeAsync<HttpTransportType>(nameof(TestHub.GetActiveTransportName)).OrTimeout();
-                    Assert.Equal(HttpTransportType.LongPolling, transport);
+                    var transport = await hubConnection.InvokeAsync<HttpTransportTypes>(nameof(TestHub.GetActiveTransportName)).OrTimeout();
+                    Assert.Equal(HttpTransportTypes.LongPolling, transport);
                 }
                 catch (Exception ex)
                 {
@@ -877,11 +877,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             {
                 foreach (var protocol in HubProtocols)
                 {
-                    foreach (var transport in TransportTypes().SelectMany(t => t).Cast<HttpTransportType>())
+                    foreach (var transport in TransportTypes().SelectMany(t => t).Cast<HttpTransportTypes>())
                     {
                         foreach (var hubPath in HubPaths)
                         {
-                            if (!(protocol.Value is MessagePackHubProtocol) || transport != HttpTransportType.ServerSentEvents)
+                            if (!(protocol.Value is MessagePackHubProtocol) || transport != HttpTransportTypes.ServerSentEvents)
                             {
                                 yield return new object[] { protocol.Key, transport, hubPath };
                             }
@@ -905,10 +905,10 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         {
             if (TestHelpers.IsWebSocketsSupported())
             {
-                yield return new object[] { HttpTransportType.WebSockets };
+                yield return new object[] { HttpTransportTypes.WebSockets };
             }
-            yield return new object[] { HttpTransportType.ServerSentEvents };
-            yield return new object[] { HttpTransportType.LongPolling };
+            yield return new object[] { HttpTransportTypes.ServerSentEvents };
+            yield return new object[] { HttpTransportTypes.LongPolling };
         }
     }
 }
