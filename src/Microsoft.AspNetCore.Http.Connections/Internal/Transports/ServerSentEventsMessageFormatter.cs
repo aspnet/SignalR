@@ -76,7 +76,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
                 var sliceEnd = payload.PositionOf(LineFeed);
 
                 ReadOnlySequence<byte> lineSegment;
-                if (sliceEnd  == null)
+                if (sliceEnd == null)
                 {
                     lineSegment = payload;
                     payload = ReadOnlySequence<byte>.Empty;

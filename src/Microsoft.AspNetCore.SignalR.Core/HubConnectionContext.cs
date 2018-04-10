@@ -63,7 +63,7 @@ namespace Microsoft.AspNetCore.SignalR
         internal ExceptionDispatchInfo AbortException { get; private set; }
 
         // Currently used only for streaming methods
-        internal ConcurrentDictionary<string, CancellationTokenSource> ActiveRequestCancellationSources { get; } = new ConcurrentDictionary<string, CancellationTokenSource>();
+        internal ConcurrentDictionary<string, CancellationTokenSource> ActiveRequestCancellationSources { get; } = new ConcurrentDictionary<string, CancellationTokenSource>(StringComparer.Ordinal);
 
         public virtual ValueTask WriteAsync(HubMessage message)
         {
@@ -340,7 +340,7 @@ namespace Microsoft.AspNetCore.SignalR
                                         transferFormatFeature.ActiveFormat = Protocol.TransferFormat;
                                     }
 
-                                    _cachedPingMessage = Protocol.WriteToArray(PingMessage.Instance);
+                                    _cachedPingMessage = Protocol.GetMessageBytes(PingMessage.Instance);
 
                                     UserIdentifier = userIdProvider.GetUserId(this);
 

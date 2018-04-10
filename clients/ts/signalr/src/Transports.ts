@@ -5,7 +5,6 @@ import { AbortController } from "./AbortController";
 import { DataReceived, TransportClosed } from "./Common";
 import { HttpError, TimeoutError } from "./Errors";
 import { HttpClient, HttpRequest } from "./HttpClient";
-import { IConnection } from "./IConnection";
 import { ILogger, LogLevel } from "./ILogger";
 import { Arg } from "./Utils";
 
@@ -21,7 +20,7 @@ export enum TransferFormat {
 }
 
 export interface ITransport {
-    connect(url: string, transferFormat: TransferFormat, connection: IConnection): Promise<void>;
+    connect(url: string, transferFormat: TransferFormat): Promise<void>;
     send(data: any): Promise<void>;
     stop(): Promise<void>;
     onreceive: DataReceived;
@@ -30,21 +29,20 @@ export interface ITransport {
 
 export class WebSocketTransport implements ITransport {
     private readonly logger: ILogger;
-    private readonly accessTokenFactory: () => string;
+    private readonly accessTokenFactory: () => string | Promise<string>;
     private readonly logMessageContent: boolean;
     private webSocket: WebSocket;
 
-    constructor(accessTokenFactory: () => string, logger: ILogger, logMessageContent: boolean) {
+    constructor(accessTokenFactory: () => string | Promise<string>, logger: ILogger, logMessageContent: boolean) {
         this.logger = logger;
         this.accessTokenFactory = accessTokenFactory || (() => null);
         this.logMessageContent = logMessageContent;
     }
 
-    public connect(url: string, transferFormat: TransferFormat, connection: IConnection): Promise<void> {
+    public async connect(url: string, transferFormat: TransferFormat): Promise<void> {
         Arg.isRequired(url, "url");
         Arg.isRequired(transferFormat, "transferFormat");
         Arg.isIn(transferFormat, TransferFormat, "transferFormat");
-        Arg.isRequired(connection, "connection");
 
         if (typeof (WebSocket) === "undefined") {
             throw new Error("'WebSocket' is not supported in your environment.");
@@ -52,9 +50,9 @@ export class WebSocketTransport implements ITransport {
 
         this.logger.log(LogLevel.Trace, "(WebSockets transport) Connecting");
 
+        const token = await this.accessTokenFactory();
         return new Promise<void>((resolve, reject) => {
             url = url.replace(/^http/, "ws");
-            const token = this.accessTokenFactory();
             if (token) {
                 url += (url.indexOf("?") < 0 ? "?" : "&") + `access_token=${encodeURIComponent(token)}`;
             }
@@ -118,24 +116,23 @@ export class WebSocketTransport implements ITransport {
 
 export class ServerSentEventsTransport implements ITransport {
     private readonly httpClient: HttpClient;
-    private readonly accessTokenFactory: () => string;
+    private readonly accessTokenFactory: () => string | Promise<string>;
     private readonly logger: ILogger;
     private readonly logMessageContent: boolean;
     private eventSource: EventSource;
     private url: string;
 
-    constructor(httpClient: HttpClient, accessTokenFactory: () => string, logger: ILogger, logMessageContent: boolean) {
+    constructor(httpClient: HttpClient, accessTokenFactory: () => string | Promise<string>, logger: ILogger, logMessageContent: boolean) {
         this.httpClient = httpClient;
         this.accessTokenFactory = accessTokenFactory || (() => null);
         this.logger = logger;
         this.logMessageContent = logMessageContent;
     }
 
-    public connect(url: string, transferFormat: TransferFormat, connection: IConnection): Promise<void> {
+    public async connect(url: string, transferFormat: TransferFormat): Promise<void> {
         Arg.isRequired(url, "url");
         Arg.isRequired(transferFormat, "transferFormat");
         Arg.isIn(transferFormat, TransferFormat, "transferFormat");
-        Arg.isRequired(connection, "connection");
 
         if (typeof (EventSource) === "undefined") {
             throw new Error("'EventSource' is not supported in your environment.");
@@ -144,12 +141,12 @@ export class ServerSentEventsTransport implements ITransport {
         this.logger.log(LogLevel.Trace, "(SSE transport) Connecting");
 
         this.url = url;
+        const token = await this.accessTokenFactory();
         return new Promise<void>((resolve, reject) => {
             if (transferFormat !== TransferFormat.Text) {
                 reject(new Error("The Server-Sent Events transport only supports the 'Text' transfer format"));
             }
 
-            const token = this.accessTokenFactory();
             if (token) {
                 url += (url.indexOf("?") < 0 ? "?" : "&") + `access_token=${encodeURIComponent(token)}`;
             }
@@ -210,7 +207,7 @@ export class ServerSentEventsTransport implements ITransport {
 
 export class LongPollingTransport implements ITransport {
     private readonly httpClient: HttpClient;
-    private readonly accessTokenFactory: () => string;
+    private readonly accessTokenFactory: () => string | Promise<string>;
     private readonly logger: ILogger;
     private readonly logMessageContent: boolean;
 
@@ -218,7 +215,7 @@ export class LongPollingTransport implements ITransport {
     private pollXhr: XMLHttpRequest;
     private pollAbort: AbortController;
 
-    constructor(httpClient: HttpClient, accessTokenFactory: () => string, logger: ILogger, logMessageContent: boolean) {
+    constructor(httpClient: HttpClient, accessTokenFactory: () => string | Promise<string>, logger: ILogger, logMessageContent: boolean) {
         this.httpClient = httpClient;
         this.accessTokenFactory = accessTokenFactory || (() => null);
         this.logger = logger;
@@ -226,18 +223,14 @@ export class LongPollingTransport implements ITransport {
         this.logMessageContent = logMessageContent;
     }
 
-    public connect(url: string, transferFormat: TransferFormat, connection: IConnection): Promise<void> {
+    public connect(url: string, transferFormat: TransferFormat): Promise<void> {
         Arg.isRequired(url, "url");
         Arg.isRequired(transferFormat, "transferFormat");
         Arg.isIn(transferFormat, TransferFormat, "transferFormat");
-        Arg.isRequired(connection, "connection");
 
         this.url = url;
 
         this.logger.log(LogLevel.Trace, "(LongPolling transport) Connecting");
-
-        // Set a flag indicating we have inherent keep-alive in this transport.
-        connection.features.inherentKeepAlive = true;
 
         if (transferFormat === TransferFormat.Binary && (typeof new XMLHttpRequest().responseType !== "string")) {
             // This will work if we fix: https://github.com/aspnet/SignalR/issues/742
@@ -259,7 +252,7 @@ export class LongPollingTransport implements ITransport {
             pollOptions.responseType = "arraybuffer";
         }
 
-        const token = this.accessTokenFactory();
+        const token = await this.accessTokenFactory();
         if (token) {
             // tslint:disable-next-line:no-string-literal
             pollOptions.headers["Authorization"] = `Bearer ${token}`;
@@ -356,12 +349,12 @@ function formatArrayBuffer(data: ArrayBuffer): string {
     return str.substr(0, str.length - 1);
 }
 
-async function send(logger: ILogger, transportName: string, httpClient: HttpClient, url: string, accessTokenFactory: () => string, content: string | ArrayBuffer, logMessageContent: boolean): Promise<void> {
+async function send(logger: ILogger, transportName: string, httpClient: HttpClient, url: string, accessTokenFactory: () => string | Promise<string>, content: string | ArrayBuffer, logMessageContent: boolean): Promise<void> {
     let headers;
-    const token = accessTokenFactory();
+    const token = await accessTokenFactory();
     if (token) {
         headers = {
-            ["Authorization"]: `Bearer ${accessTokenFactory()}`,
+            ["Authorization"]: `Bearer ${token}`,
         };
     }
 

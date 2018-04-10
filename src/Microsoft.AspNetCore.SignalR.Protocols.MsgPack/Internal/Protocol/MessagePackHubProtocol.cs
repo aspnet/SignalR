@@ -232,7 +232,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
             if (headerCount > 0)
             {
                 // If headerCount is larger than int.MaxValue, things are going to go horribly wrong anyway :)
-                var headers = new Dictionary<string, string>((int)headerCount);
+                var headers = new Dictionary<string, string>((int)headerCount, StringComparer.Ordinal);
 
                 for (var i = 0; i < headerCount; i++)
                 {
@@ -296,6 +296,34 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 // Write length then message to output
                 BinaryMessageFormatter.WriteLengthPrefix(writer.Length, output);
                 writer.CopyTo(output);
+            }
+            finally
+            {
+                MemoryBufferWriter.Return(writer);
+            }
+        }
+
+        public byte[] GetMessageBytes(HubMessage message)
+        {
+            var writer = MemoryBufferWriter.Get();
+
+            try
+            {
+                // Write message to a buffer so we can get its length
+                WriteMessageCore(message, writer);
+
+                var dataLength = writer.Length;
+                var prefixLength = BinaryMessageFormatter.LengthPrefixLength(writer.Length);
+
+                var array = new byte[dataLength + prefixLength];
+                var span = array.AsSpan();
+
+                // Write length then message to output
+                var written = BinaryMessageFormatter.WriteLengthPrefix(writer.Length, span);
+                Debug.Assert(written == prefixLength);
+                writer.CopyTo(span.Slice(prefixLength));
+
+                return array;
             }
             finally
             {
