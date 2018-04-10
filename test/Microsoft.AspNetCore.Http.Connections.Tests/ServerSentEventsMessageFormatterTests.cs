@@ -5,6 +5,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http.Connections.Internal;
 using Xunit;
 
@@ -14,22 +15,24 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
     {
         [Theory]
         [MemberData(nameof(PayloadData))]
-        public void WriteTextMessageFromSingleSegment(string encoded, string payload)
+        public async Task WriteTextMessageFromSingleSegment(string encoded, string payload)
         {
+            var buffer = new ReadOnlySequence<byte>(Encoding.UTF8.GetBytes(payload));
+
             var output = new MemoryStream();
-            ServerSentEventsMessageFormatter.WriteMessage(new ReadOnlySequence<byte>(Encoding.UTF8.GetBytes(payload)), output);
+            await ServerSentEventsMessageFormatter.WriteMessageAsync(in buffer, output);
 
             Assert.Equal(encoded, Encoding.UTF8.GetString(output.ToArray()));
         }
 
         [Theory]
         [MemberData(nameof(PayloadData))]
-        public void WriteTextMessageFromMultipleSegments(string encoded, string payload)
+        public async Task WriteTextMessageFromMultipleSegments(string encoded, string payload)
         {
-            var segment = ReadOnlySequenceFactory.SegmentPerByteFactory.CreateWithContent(Encoding.UTF8.GetBytes(payload));
+            var buffer = ReadOnlySequenceFactory.SegmentPerByteFactory.CreateWithContent(Encoding.UTF8.GetBytes(payload));
 
             var output = new MemoryStream();
-            ServerSentEventsMessageFormatter.WriteMessage(segment, output);
+            await ServerSentEventsMessageFormatter.WriteMessageAsync(in buffer, output);
 
             Assert.Equal(encoded, Encoding.UTF8.GetString(output.ToArray()));
         }

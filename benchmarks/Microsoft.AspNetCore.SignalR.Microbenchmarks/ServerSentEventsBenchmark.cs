@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.IO;
+using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using Microsoft.AspNetCore.Http.Connections.Client.Internal;
 using Microsoft.AspNetCore.Http.Connections.Internal;
@@ -41,7 +42,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             _parser = new ServerSentEventsMessageParser();
             _rawData = new ReadOnlySequence<byte>(hubProtocol.WriteToArray(hubMessage));
             var ms = new MemoryStream();
-            ServerSentEventsMessageFormatter.WriteMessage(_rawData, ms);
+            ServerSentEventsMessageFormatter.WriteMessageAsync(in _rawData, ms).GetAwaiter().GetResult();
             _sseFormattedData = ms.ToArray();
         }
 
@@ -59,9 +60,9 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         }
 
         [Benchmark]
-        public void WriteSingleMessage()
+        public Task WriteSingleMessage()
         {
-            ServerSentEventsMessageFormatter.WriteMessage(_rawData, Stream.Null);
+            return ServerSentEventsMessageFormatter.WriteMessageAsync(in _rawData, Stream.Null);
         }
 
         public enum Message
