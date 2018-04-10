@@ -6,6 +6,7 @@ using BenchmarkDotNet.Attributes;
 using Microsoft.AspNetCore.Http.Connections.Client.Internal;
 using Microsoft.AspNetCore.Http.Connections.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
+using Newtonsoft.Json;
 
 namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
 {
@@ -18,7 +19,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         [Params(Message.NoArguments, Message.FewArguments, Message.ManyArguments, Message.LargeArguments)]
         public Message Input { get; set; }
 
-        [Params("json", "msgpack")]
+        [Params("json", "json-formatted")]
         public string Protocol { get; set; }
 
         [GlobalSetup]
@@ -32,11 +33,14 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             }
             else
             {
-                protocol = new MessagePackHubProtocol();
+                // New line in result to trigger SSE formatting
+                protocol = new JsonHubProtocol
+                {
+                    PayloadSerializer = { Formatting = Formatting.Indented }
+                };
             }
 
-            // New line in the name to trigger SSE formatting
-            var targetName = "Tar" + Environment.NewLine + "get";
+            var targetName = "Target";
             HubMessage hubMessage = null;
             switch (Input)
             {

@@ -89,7 +89,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
                     if (sliceEnd != payload.Start)
                     {
                         // Check if the line ended in \r\n. If it did then trim the \r
-                        var memory = GetLastSegment(in lineSegment, out var offset);
+                        var memory = GetLastSegment(lineSegment, out var offset);
                         if (memory.Span[memory.Length - 1] == '\r')
                         {
                             lineSegment = lineSegment.Slice(lineSegment.Start, offset + memory.Length - 1);
