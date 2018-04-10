@@ -73,10 +73,10 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
             var keepWriting = true;
             while (keepWriting)
             {
-                var sliceEnd = payload.PositionOf(LineFeed) ?? payload.End;
+                var sliceEnd = payload.PositionOf(LineFeed);
 
                 ReadOnlySequence<byte> lineSegment;
-                if (sliceEnd == payload.End)
+                if (sliceEnd  == null)
                 {
                     lineSegment = payload;
                     payload = ReadOnlySequence<byte>.Empty;
@@ -84,9 +84,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
                 }
                 else
                 {
-                    lineSegment = payload.Slice(payload.Start, sliceEnd);
+                    lineSegment = payload.Slice(payload.Start, sliceEnd.Value);
 
-                    if (sliceEnd != payload.Start)
+                    if (lineSegment.Length > 1)
                     {
                         // Check if the line ended in \r\n. If it did then trim the \r
                         var memory = GetLastSegment(lineSegment, out var offset);
@@ -97,7 +97,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
                     }
 
                     // Update payload to remove \n
-                    payload = payload.Slice(payload.GetPosition(1, sliceEnd));
+                    payload = payload.Slice(payload.GetPosition(1, sliceEnd.Value));
                 }
 
                 // Write line
