@@ -112,9 +112,7 @@ export class HubConnection {
         let remainingData: any;
 
         try {
-            const result = this.handshakeProtocol.processHandshakeResponse(data);
-            remainingData = result[0];
-            responseMessage = result[1];
+            [remainingData, responseMessage] = this.handshakeProtocol.parseHandshakeResponse(data);
         } catch (e) {
             const message = "Error parsing handshake response: " + e;
             this.logger.log(LogLevel.Error, message);
@@ -191,7 +189,7 @@ export class HubConnection {
 
         this.logger.log(LogLevel.Trace, "Sending handshake request.");
 
-        await this.connection.send(this.handshakeProtocol.writeHandshake(handshakeRequest));
+        await this.connection.send(this.handshakeProtocol.writeHandshakeRequest(handshakeRequest));
 
         this.logger.log(LogLevel.Information, `Using HubProtocol '${this.protocol.name}'.`);
 
