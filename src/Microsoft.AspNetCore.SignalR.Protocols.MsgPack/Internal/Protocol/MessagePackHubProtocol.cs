@@ -321,8 +321,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
                 // Write length then message to output
                 var written = BinaryMessageFormatter.WriteLengthPrefix(writer.Length, span);
                 Debug.Assert(written == prefixLength);
-                written = writer.CopyTo(span.Slice(prefixLength));
-                Debug.Assert(written == dataLength);
+                writer.CopyTo(span.Slice(prefixLength));
 
                 return array;
             }

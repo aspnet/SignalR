@@ -31,6 +31,8 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                 Assert.Equal(0, bufferWriter.Length);
                 var data = bufferWriter.ToArray();
                 Assert.Empty(data);
+                bufferWriter.CopyTo(data);
+                Assert.Empty(data);
             }
         }
 
@@ -44,6 +46,11 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
 
                 Assert.Equal(1, bufferWriter.Length);
                 Assert.Single(data);
+                Assert.Equal(234, data[0]);
+
+                Array.Clear(data, 0, data.Length);
+
+                bufferWriter.CopyTo(data);
                 Assert.Equal(234, data[0]);
             }
         }
@@ -62,6 +69,12 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                 Assert.Equal(17, bufferWriter.Length);
 
                 var data = bufferWriter.ToArray();
+                Assert.Equal(input, data.Take(16));
+                Assert.Equal(16, data[16]);
+
+                Array.Clear(data, 0, data.Length);
+
+                bufferWriter.CopyTo(data);
                 Assert.Equal(input, data.Take(16));
                 Assert.Equal(16, data[16]);
             }
@@ -85,6 +98,14 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                 Assert.Equal(12, data[1]);
                 Assert.Equal(13, data[2]);
                 Assert.Equal(14, data[3]);
+
+                Array.Clear(data, 0, data.Length);
+
+                bufferWriter.CopyTo(data);
+                Assert.Equal(11, data[0]);
+                Assert.Equal(12, data[1]);
+                Assert.Equal(13, data[2]);
+                Assert.Equal(14, data[3]);
             }
         }
 
@@ -101,6 +122,11 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
 
                 var data = bufferWriter.ToArray();
                 Assert.Equal(input, data);
+
+                Array.Clear(data, 0, data.Length);
+
+                bufferWriter.CopyTo(data);
+                Assert.Equal(input, data);
             }
         }
 
@@ -116,6 +142,11 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                 Assert.Equal(input.Length, bufferWriter.Length);
 
                 var data = bufferWriter.ToArray();
+                Assert.Equal(input, data);
+
+                Array.Clear(data, 0, data.Length);
+
+                bufferWriter.CopyTo(data);
                 Assert.Equal(input, data);
             }
         }
@@ -173,6 +204,16 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                     bufferWriter.CopyTo(destination);
                     var data = destination.ToArray();
                     Assert.Equal(input, data);
+
+                    Array.Clear(data, 0, data.Length);
+
+                    bufferWriter.CopyTo(data);
+                    Assert.Equal(input, data);
+
+                    Array.Clear(data, 0, data.Length);
+
+                    destination.CopyTo(data);
+                    Assert.Equal(input, data);
                 }
             }
         }
@@ -193,6 +234,16 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                     bufferWriter.CopyTo(destination);
                     var data = destination.ToArray();
                     Assert.Equal(input, data);
+
+                    Array.Clear(data, 0, data.Length);
+
+                    bufferWriter.CopyTo(data);
+                    Assert.Equal(input, data);
+
+                    Array.Clear(data, 0, data.Length);
+
+                    destination.CopyTo(data);
+                    Assert.Equal(input, data);
                 }
             }
         }
@@ -210,6 +261,14 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
 
                 var data = bufferWriter.ToArray();
                 Assert.Equal(4, data.Length);
+                Assert.Equal(1, data[0]);
+                Assert.Equal(2, data[1]);
+                Assert.Equal(3, data[2]);
+                Assert.Equal(4, data[3]);
+
+                Array.Clear(data, 0, data.Length);
+
+                bufferWriter.CopyTo(data);
                 Assert.Equal(1, data[0]);
                 Assert.Equal(2, data[1]);
                 Assert.Equal(3, data[2]);

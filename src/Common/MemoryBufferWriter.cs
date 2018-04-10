@@ -218,13 +218,13 @@ namespace Microsoft.AspNetCore.Internal
             return result;
         }
 
-        public int CopyTo(Span<byte> span)
+        public void CopyTo(Span<byte> span)
         {
             Debug.Assert(span.Length >= _bytesWritten);
 
             if (_currentSegment == null)
             {
-                return 0;
+                return;
             }
 
             var totalWritten = 0;
@@ -245,7 +245,6 @@ namespace Microsoft.AspNetCore.Internal
             _currentSegment.AsSpan(0, _position).CopyTo(span.Slice(totalWritten));
 
             Debug.Assert(_bytesWritten == totalWritten + _position);
-            return _bytesWritten;
         }
 
         public override void Flush() { }
