@@ -77,10 +77,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
             OnCompleted(continuation);
         }
 
-        public void Complete()
+        public void Stop()
         {
-            // Mark the completed flag
-            _running = true;
+            _running = false;
 
             Tick();
         }

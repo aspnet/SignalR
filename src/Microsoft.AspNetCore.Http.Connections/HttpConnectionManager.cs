@@ -172,7 +172,7 @@ namespace Microsoft.AspNetCore.Http.Connections
         public void CloseConnections()
         {
             // Stop firing the timer
-            _timer.Complete();
+            _timer.Stop();
 
             var tasks = new List<Task>();
 
