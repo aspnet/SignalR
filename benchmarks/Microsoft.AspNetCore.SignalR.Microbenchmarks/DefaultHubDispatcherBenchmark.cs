@@ -161,49 +161,49 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         [Benchmark]
         public Task Invocation()
         {
-            return _dispatcher.DispatchMessageAsync(_connectionContext, new InvocationMessage("123", "Invocation", null, null));
+            return _dispatcher.DispatchMessageAsync(_connectionContext, new InvocationMessage("123", "Invocation", null, Array.Empty<object>()));
         }
 
         [Benchmark]
         public Task InvocationAsync()
         {
-            return _dispatcher.DispatchMessageAsync(_connectionContext, new InvocationMessage("123", "InvocationAsync", null, null));
+            return _dispatcher.DispatchMessageAsync(_connectionContext, new InvocationMessage("123", "InvocationAsync", null, Array.Empty<object>()));
         }
 
         [Benchmark]
         public Task InvocationReturnValue()
         {
-            return _dispatcher.DispatchMessageAsync(_connectionContext, new InvocationMessage("123", "InvocationReturnValue", null, null));
+            return _dispatcher.DispatchMessageAsync(_connectionContext, new InvocationMessage("123", "InvocationReturnValue", null, Array.Empty<object>()));
         }
 
         [Benchmark]
         public Task InvocationReturnAsync()
         {
-            return _dispatcher.DispatchMessageAsync(_connectionContext, new InvocationMessage("123", "InvocationReturnAsync", null, null));
+            return _dispatcher.DispatchMessageAsync(_connectionContext, new InvocationMessage("123", "InvocationReturnAsync", null, Array.Empty<object>()));
         }
 
         [Benchmark]
         public Task InvocationValueTaskAsync()
         {
-            return _dispatcher.DispatchMessageAsync(_connectionContext, new InvocationMessage("123", "InvocationValueTaskAsync", null, null));
+            return _dispatcher.DispatchMessageAsync(_connectionContext, new InvocationMessage("123", "InvocationValueTaskAsync", null, Array.Empty<object>()));
         }
 
         [Benchmark]
         public Task StreamChannelReader()
         {
-            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "StreamChannelReader", null, null));
+            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "StreamChannelReader", null, Array.Empty<object>()));
         }
 
         [Benchmark]
         public Task StreamChannelReaderAsync()
         {
-            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "StreamChannelReaderAsync", null, null));
+            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "StreamChannelReaderAsync", null, Array.Empty<object>()));
         }
 
         [Benchmark]
         public Task StreamChannelReaderValueTaskAsync()
         {
-            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "StreamChannelReaderValueTaskAsync", null, null));
+            return _dispatcher.DispatchMessageAsync(_connectionContext, new StreamInvocationMessage("123", "StreamChannelReaderValueTaskAsync", null, Array.Empty<object>()));
         }
 
         [Benchmark]
