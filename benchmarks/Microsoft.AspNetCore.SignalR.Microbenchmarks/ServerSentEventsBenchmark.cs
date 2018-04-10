@@ -18,31 +18,46 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         [Params(Message.NoArguments, Message.FewArguments, Message.ManyArguments, Message.LargeArguments)]
         public Message Input { get; set; }
 
+        [Params("json", "msgpack")]
+        public string Protocol { get; set; }
+
         [GlobalSetup]
         public void GlobalSetup()
         {
-            var hubProtocol = new JsonHubProtocol();
+            IHubProtocol protocol;
+
+            if (Protocol == "json")
+            {
+                protocol = new JsonHubProtocol();
+            }
+            else
+            {
+                protocol = new MessagePackHubProtocol();
+            }
+
+            // New line in the name to trigger SSE formatting
+            var targetName = "Tar" + Environment.NewLine + "get";
             HubMessage hubMessage = null;
             switch (Input)
             {
                 case Message.NoArguments:
-                    hubMessage = new InvocationMessage(target: "Target", argumentBindingException: null);
+                    hubMessage = new InvocationMessage(target: targetName, argumentBindingException: null);
                     break;
                 case Message.FewArguments:
-                    hubMessage = new InvocationMessage(target: "Target", argumentBindingException: null, 1, "Foo", 2.0f);
+                    hubMessage = new InvocationMessage(target: targetName, argumentBindingException: null, 1, "Foo", 2.0f);
                     break;
                 case Message.ManyArguments:
-                    hubMessage = new InvocationMessage(target: "Target", argumentBindingException: null, 1, "string", 2.0f, true, (byte)9, new[] { 5, 4, 3, 2, 1 }, 'c', 123456789101112L);
+                    hubMessage = new InvocationMessage(target: targetName, argumentBindingException: null, 1, "string", 2.0f, true, (byte)9, new[] { 5, 4, 3, 2, 1 }, 'c', 123456789101112L);
                     break;
                 case Message.LargeArguments:
-                    hubMessage = new InvocationMessage(target: "Target", argumentBindingException: null, new string('F', 10240), new string('B', 10240));
+                    hubMessage = new InvocationMessage(target: targetName, argumentBindingException: null, new string('F', 10240), new string('B', 10240));
                     break;
             }
 
             _parser = new ServerSentEventsMessageParser();
-            _rawData = new ReadOnlySequence<byte>(hubProtocol.WriteToArray(hubMessage));
+            _rawData = new ReadOnlySequence<byte>(protocol.WriteToArray(hubMessage));
             var ms = new MemoryStream();
-            ServerSentEventsMessageFormatter.WriteMessageAsync(in _rawData, ms).GetAwaiter().GetResult();
+            ServerSentEventsMessageFormatter.WriteMessageAsync(_rawData, ms).GetAwaiter().GetResult();
             _sseFormattedData = ms.ToArray();
         }
 
@@ -62,7 +77,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         [Benchmark]
         public Task WriteSingleMessage()
         {
-            return ServerSentEventsMessageFormatter.WriteMessageAsync(in _rawData, Stream.Null);
+            return ServerSentEventsMessageFormatter.WriteMessageAsync(_rawData, Stream.Null);
         }
 
         public enum Message
