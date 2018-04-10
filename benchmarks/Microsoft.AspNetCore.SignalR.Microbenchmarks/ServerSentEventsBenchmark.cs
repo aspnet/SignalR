@@ -25,7 +25,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             switch (Input)
             {
                 case Message.NoArguments:
-                    hubMessage = new InvocationMessage("Target", null, null);
+                    hubMessage = new InvocationMessage("Target", null, Array.Empty<object>());
                     break;
                 case Message.FewArguments:
                     hubMessage = new InvocationMessage("Target", null, new object[] { 1, "Foo", 2.0f });
