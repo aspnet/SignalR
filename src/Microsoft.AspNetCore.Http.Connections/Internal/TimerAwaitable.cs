@@ -20,7 +20,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
 
         private TimeSpan _dueTime;
         private bool _disposed;
-        private volatile bool _running;
+        private volatile bool _running = true;
 
         public TimerAwaitable(TimeSpan dueTime, TimeSpan period)
         {
