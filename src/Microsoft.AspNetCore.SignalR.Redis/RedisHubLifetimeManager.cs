@@ -53,9 +53,9 @@ namespace Microsoft.AspNetCore.SignalR.Redis
         {
             if (_redisServerConnection == null)
             {
+                await _connectionLock.WaitAsync();
                 try
                 {
-                    await _connectionLock.WaitAsync();
                     if (_redisServerConnection == null)
                     {
                         var writer = new LoggerTextWriter(_logger);
