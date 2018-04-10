@@ -23,7 +23,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
     {
         private readonly HubConnectionStore _connections = new HubConnectionStore();
         // TODO: Investigate "memory leak" entries never get removed
-        private readonly ConcurrentDictionary<string, GroupData> _groups = new ConcurrentDictionary<string, GroupData>();
+        private readonly ConcurrentDictionary<string, GroupData> _groups = new ConcurrentDictionary<string, GroupData>(StringComparer.Ordinal);
         private readonly IConnectionMultiplexer _redisServerConnection;
         private readonly ISubscriber _bus;
         private readonly ILogger _logger;
@@ -34,13 +34,6 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
         private readonly AckHandler _ackHandler;
         private int _internalId;
-
-        // This serializer is ONLY use to transmit the data through redis, it has no connection to the serializer used on each connection.
-        private readonly JsonSerializer _serializer = new JsonSerializer
-        {
-            TypeNameHandling = TypeNameHandling.None,
-            Formatting = Formatting.None,
-        };
 
         public RedisHubLifetimeManager(ILogger<RedisHubLifetimeManager<THub>> logger,
                                        IOptions<RedisOptions> options,

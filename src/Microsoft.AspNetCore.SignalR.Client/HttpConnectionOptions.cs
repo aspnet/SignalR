@@ -65,7 +65,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             {
                 if (_headers == null)
                 {
-                    _headers = new Dictionary<string, string>();
+                    _headers = new Dictionary<string, string>(StringComparer.Ordinal);
                 }
 
                 return _headers;
