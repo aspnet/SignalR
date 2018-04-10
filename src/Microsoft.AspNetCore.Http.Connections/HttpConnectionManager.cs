@@ -28,11 +28,9 @@ namespace Microsoft.AspNetCore.Http.Connections
 
         private readonly ConcurrentDictionary<string, (HttpConnectionContext Connection, ValueStopwatch Timer)> _connections =
             new ConcurrentDictionary<string, (HttpConnectionContext Connection, ValueStopwatch Timer)>(StringComparer.Ordinal);
-        private Timer _timer;
+        private TimerAwaitable _timer;
         private readonly ILogger<HttpConnectionManager> _logger;
         private readonly ILogger<HttpConnectionContext> _connectionLogger;
-        private readonly object _executionLock = new object();
-        private bool _disposed;
 
         public HttpConnectionManager(ILoggerFactory loggerFactory, IApplicationLifetime appLifetime)
         {
@@ -40,22 +38,14 @@ namespace Microsoft.AspNetCore.Http.Connections
             _connectionLogger = loggerFactory.CreateLogger<HttpConnectionContext>();
             appLifetime.ApplicationStarted.Register(() => Start());
             appLifetime.ApplicationStopping.Register(() => CloseConnections());
+            _timer = new TimerAwaitable(_heartbeatTickRate, _heartbeatTickRate);
         }
 
         public void Start()
         {
-            lock (_executionLock)
-            {
-                if (_disposed)
-                {
-                    return;
-                }
+            _timer.Start();
 
-                if (_timer == null)
-                {
-                    _timer = new Timer(Scan, this, _heartbeatTickRate, _heartbeatTickRate);
-                }
-            }
+            _ = ExecuteTimerLoop();
         }
 
         public bool TryGetConnection(string id, out HttpConnectionContext connection)
@@ -114,118 +104,87 @@ namespace Microsoft.AspNetCore.Http.Connections
             return WebEncoders.Base64UrlEncode(buffer);
         }
 
-        private static void Scan(object state)
+        private async Task ExecuteTimerLoop()
         {
-            ((HttpConnectionManager)state).Scan();
+            using (_timer)
+            {
+                while (_timer.IsRunning)
+                {
+                    await _timer;
+
+                    await ScanAsync();
+                }
+            }
         }
 
-        public void Scan()
+        public async Task ScanAsync()
         {
-            // If we couldn't get the lock it means one of 2 things are true:
-            // - We're about to dispose so we don't care to run the scan callback anyways.
-            // - The previous Scan took long enough that the next scan tried to run in parallel
-            // In either case just do nothing and end the timer callback as soon as possible
-            if (!Monitor.TryEnter(_executionLock))
-            {
-                return;
-            }
+            // Time the scan so we know if it gets slower than 1sec
+            var timer = ValueStopwatch.StartNew();
+            HttpConnectionsEventSource.Log.ScanningConnections();
+            Log.ScanningConnections(_logger);
 
-            try
+            // Scan the registered connections looking for ones that have timed out
+            foreach (var c in _connections)
             {
-                if (_disposed)
+                HttpConnectionContext.ConnectionStatus status;
+                DateTimeOffset lastSeenUtc;
+                var connection = c.Value.Connection;
+
+                try
                 {
-                    return;
+                    await connection.Lock.WaitAsync();
+
+                    // Capture the connection state
+                    status = connection.Status;
+
+                    lastSeenUtc = connection.LastSeenUtc;
+                }
+                finally
+                {
+                    connection.Lock.Release();
                 }
 
-                // Pause the timer while we're running
-                _timer?.Change(Timeout.Infinite, Timeout.Infinite);
-
-                // Time the scan so we know if it gets slower than 1sec
-                var timer = ValueStopwatch.StartNew();
-                HttpConnectionsEventSource.Log.ScanningConnections();
-                Log.ScanningConnections(_logger);
-
-                // Scan the registered connections looking for ones that have timed out
-                foreach (var c in _connections)
+                // Once the decision has been made to dispose we don't check the status again
+                // But don't clean up connections while the debugger is attached.
+                if (!Debugger.IsAttached && status == HttpConnectionContext.ConnectionStatus.Inactive && (DateTimeOffset.UtcNow - lastSeenUtc).TotalSeconds > 5)
                 {
-                    HttpConnectionContext.ConnectionStatus status;
-                    DateTimeOffset lastSeenUtc;
-                    var connection = c.Value.Connection;
+                    Log.ConnectionTimedOut(_logger, connection.ConnectionId);
+                    HttpConnectionsEventSource.Log.ConnectionTimedOut(connection.ConnectionId);
 
-                    try
-                    {
-                        connection.Lock.Wait();
-
-                        // Capture the connection state
-                        status = connection.Status;
-
-                        lastSeenUtc = connection.LastSeenUtc;
-                    }
-                    finally
-                    {
-                        connection.Lock.Release();
-                    }
-
-                    // Once the decision has been made to dispose we don't check the status again
-                    // But don't clean up connections while the debugger is attached.
-                    if (!Debugger.IsAttached && status == HttpConnectionContext.ConnectionStatus.Inactive && (DateTimeOffset.UtcNow - lastSeenUtc).TotalSeconds > 5)
-                    {
-                        Log.ConnectionTimedOut(_logger, connection.ConnectionId);
-                        HttpConnectionsEventSource.Log.ConnectionTimedOut(connection.ConnectionId);
-
-                        // This is most likely a long polling connection. The transport here ends because
-                        // a poll completed and has been inactive for > 5 seconds so we wait for the 
-                        // application to finish gracefully
-                        _ = DisposeAndRemoveAsync(connection, closeGracefully: true);
-                    }
-                    else
-                    {
-                        // Tick the heartbeat, if the connection is still active
-                        connection.TickHeartbeat();
-                    }
+                    // This is most likely a long polling connection. The transport here ends because
+                    // a poll completed and has been inactive for > 5 seconds so we wait for the 
+                    // application to finish gracefully
+                    _ = DisposeAndRemoveAsync(connection, closeGracefully: true);
                 }
-
-                // TODO: We could use this timer to determine if the connection scanner is too slow, but we need an idea of what "too slow" is.
-                var elapsed = timer.GetElapsedTime();
-                HttpConnectionsEventSource.Log.ScannedConnections(elapsed);
-                Log.ScannedConnections(_logger, elapsed);
-
-                // Resume once we finished processing all connections
-                _timer?.Change(_heartbeatTickRate, _heartbeatTickRate);
+                else
+                {
+                    // Tick the heartbeat, if the connection is still active
+                    connection.TickHeartbeat();
+                }
             }
-            finally
-            {
-                // Exit the lock now
-                Monitor.Exit(_executionLock);
-            }
+
+            var elapsed = timer.GetElapsedTime();
+            HttpConnectionsEventSource.Log.ScannedConnections(elapsed);
+            Log.ScannedConnections(_logger, elapsed);
         }
 
         public void CloseConnections()
         {
-            lock (_executionLock)
+            // Stop firing the timer
+            _timer.Complete();
+
+            var tasks = new List<Task>();
+
+            // REVIEW: In the future we can consider a hybrid where we first try to wait for shutdown
+            // for a certain time frame then after some grace period we shutdown more aggressively
+            foreach (var c in _connections)
             {
-                if (_disposed)
-                {
-                    return;
-                }
-
-                _disposed = true;
-
-                // Stop firing the timer
-                _timer?.Dispose();
-
-                var tasks = new List<Task>();
-
-                // REVIEW: In the future we can consider a hybrid where we first try to wait for shutdown
-                // for a certain time frame then after some grace period we shutdown more aggressively
-                foreach (var c in _connections)
-                {
-                    // We're shutting down so don't wait for closing the application
-                    tasks.Add(DisposeAndRemoveAsync(c.Value.Connection, closeGracefully: false));
-                }
-
-                Task.WaitAll(tasks.ToArray(), TimeSpan.FromSeconds(5));
+                // We're shutting down so don't wait for closing the application
+                tasks.Add(DisposeAndRemoveAsync(c.Value.Connection, closeGracefully: false));
             }
+
+            Task.WaitAll(tasks.ToArray(), TimeSpan.FromSeconds(5));
         }
 
         public async Task DisposeAndRemoveAsync(HttpConnectionContext connection, bool closeGracefully)
