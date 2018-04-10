@@ -234,8 +234,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
                                 var webSocketMessageType = (_connection.ActiveFormat == TransferFormat.Binary
                                     ? WebSocketMessageType.Binary
                                     : WebSocketMessageType.Text);
-
-                                if (buffer.Length > 1000)
+                                await Task.Delay(1);
+                                //if (buffer.Length > 1000)
                                 {
                                     if (WebSocketCanSend(socket))
                                     {
@@ -268,7 +268,6 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
                             _application.Input.AdvanceTo(buffer.End);
                         else
                             _application.Input.AdvanceTo(buffer.Start, buffer.End);
-                        advanceToEnd = false;
                     }
                 }
             }
