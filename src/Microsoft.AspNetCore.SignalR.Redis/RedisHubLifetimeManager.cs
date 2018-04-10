@@ -49,65 +49,6 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             RedisLog.ConnectingToEndpoints(_logger, options.Value.Options.EndPoints, _serverName);
         }
 
-        private async Task EnsureRedisServerConnection()
-        {
-            if (_redisServerConnection == null)
-            {
-                await _connectionLock.WaitAsync();
-                try
-                {
-                    if (_redisServerConnection == null)
-                    {
-                        var writer = new LoggerTextWriter(_logger);
-                        _redisServerConnection = await _options.ConnectAsync(writer);
-                        _bus = _redisServerConnection.GetSubscriber();
-                        _redisServerConnection.ConnectionRestored += (_, e) =>
-                        {
-                            // We use the subscription connection type
-                            // Ignore messages from the interactive connection (avoids duplicates)
-                            if (e.ConnectionType == ConnectionType.Interactive)
-                            {
-                                return;
-                            }
-
-                            RedisLog.ConnectionRestored(_logger);
-                        };
-
-                        _redisServerConnection.ConnectionFailed += (_, e) =>
-                        {
-                            // We use the subscription connection type
-                            // Ignore messages from the interactive connection (avoids duplicates)
-                            if (e.ConnectionType == ConnectionType.Interactive)
-                            {
-                                return;
-                            }
-
-                            RedisLog.ConnectionFailed(_logger, e.Exception);
-                        };
-
-                        if (_redisServerConnection.IsConnected)
-                        {
-                            RedisLog.Connected(_logger);
-                        }
-                        else
-                        {
-                            RedisLog.NotConnected(_logger);
-                        }
-
-                        SubscribeToAll();
-                        SubscribeToGroupManagementChannel();
-                        SubscribeToAckChannel();
-                    }
-                }
-                finally
-                {
-                    _connectionLock.Release();
-                }
-
-
-            }
-        }
-
         public override async Task OnConnectedAsync(HubConnectionContext connection)
         {
             await EnsureRedisServerConnection();
@@ -165,10 +106,10 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             return Task.WhenAll(tasks);
         }
 
-        public override async Task SendAllAsync(string methodName, object[] args)
+        public override Task SendAllAsync(string methodName, object[] args)
         {
             var message = _protocol.WriteInvocation(methodName, args);
-            await PublishAsync(_channels.All, message);
+            return PublishAsync(_channels.All, message);
         }
 
         public override Task SendAllExceptAsync(string methodName, object[] args, IReadOnlyList<string> excludedIds)
@@ -561,6 +502,63 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                     RedisLog.FailedWritingMessage(_logger, ex);
                 }
             });
+        }
+
+        private async Task EnsureRedisServerConnection()
+        {
+            if (_redisServerConnection == null)
+            {
+                await _connectionLock.WaitAsync();
+                try
+                {
+                    if (_redisServerConnection == null)
+                    {
+                        var writer = new LoggerTextWriter(_logger);
+                        _redisServerConnection = await _options.ConnectAsync(writer);
+                        _bus = _redisServerConnection.GetSubscriber();
+                        _redisServerConnection.ConnectionRestored += (_, e) =>
+                        {
+                            // We use the subscription connection type
+                            // Ignore messages from the interactive connection (avoids duplicates)
+                            if (e.ConnectionType == ConnectionType.Interactive)
+                            {
+                                return;
+                            }
+
+                            RedisLog.ConnectionRestored(_logger);
+                        };
+
+                        _redisServerConnection.ConnectionFailed += (_, e) =>
+                        {
+                            // We use the subscription connection type
+                            // Ignore messages from the interactive connection (avoids duplicates)
+                            if (e.ConnectionType == ConnectionType.Interactive)
+                            {
+                                return;
+                            }
+
+                            RedisLog.ConnectionFailed(_logger, e.Exception);
+                        };
+
+                        if (_redisServerConnection.IsConnected)
+                        {
+                            RedisLog.Connected(_logger);
+                        }
+                        else
+                        {
+                            RedisLog.NotConnected(_logger);
+                        }
+
+                        SubscribeToAll();
+                        SubscribeToGroupManagementChannel();
+                        SubscribeToAckChannel();
+                    }
+                }
+                finally
+                {
+                    _connectionLock.Release();
+                }
+            }
         }
 
         private static string GenerateServerName()
