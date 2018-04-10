@@ -29,6 +29,8 @@ namespace ClientSample
             _sender = new SocketSender(_socket, PipeScheduler.ThreadPool);
             _receiver = new SocketReceiver(_socket, PipeScheduler.ThreadPool);
 
+            // Add IConnectionInherentKeepAliveFeature to the tcp connection impl since Kestrel doesn't implement
+            // the IConnectionHeartbeatFeature
             Features.Set<IConnectionInherentKeepAliveFeature>(this);
         }
 
