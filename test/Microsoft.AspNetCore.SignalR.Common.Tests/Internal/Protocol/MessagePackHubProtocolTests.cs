@@ -58,11 +58,11 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             // Invocation messages
             new ProtocolTestData(
                 name: "InvocationWithNoHeadersAndNoArgs",
-                message: new InvocationMessage("xyz", "method", null, System.Array.Empty<object>()),
+                message: new InvocationMessage("xyz", "method", null, Array.Empty<object>()),
                 binary: "lQGAo3h5eqZtZXRob2SQ"),
             new ProtocolTestData(
                 name: "InvocationWithNoHeadersNoIdAndNoArgs",
-                message: new InvocationMessage("method", null, System.Array.Empty<object>()),
+                message: new InvocationMessage("method", null, Array.Empty<object>()),
                 binary: "lQGAwKZtZXRob2SQ"),
             new ProtocolTestData(
                 name: "InvocationWithNoHeadersNoIdAndSingleNullArg",
@@ -188,7 +188,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             // StreamInvocation Messages
             new ProtocolTestData(
                 name: "StreamInvocationWithNoHeadersAndNoArgs",
-                message: new StreamInvocationMessage("xyz", "method", null, System.Array.Empty<object>()),
+                message: new StreamInvocationMessage("xyz", "method", null, Array.Empty<object>()),
                 binary: "lQSAo3h5eqZtZXRob2SQ"),
             new ProtocolTestData(
                 name: "StreamInvocationWithNoHeadersAndNullArg",
@@ -257,10 +257,10 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         [Fact]
         public void ParseMessageWithExtraData()
         {
-            var expectedMessage = new InvocationMessage("xyz", "method", null, System.Array.Empty<object>());
+            var expectedMessage = new InvocationMessage("xyz", "method", null, Array.Empty<object>());
 
             // Verify that the input binary string decodes to the expected MsgPack primitives
-            var bytes = new byte[] { Array(6), 1, 0x80, String(3), (byte)'x', (byte)'y', (byte)'z', String(6), (byte)'m', (byte)'e', (byte)'t', (byte)'h', (byte)'o', (byte)'d', Array(0), String(2), (byte)'e', (byte)'x' };
+            var bytes = new byte[] { ArrayBytes(6), 1, 0x80, StringBytes(3), (byte)'x', (byte)'y', (byte)'z', StringBytes(6), (byte)'m', (byte)'e', (byte)'t', (byte)'h', (byte)'o', (byte)'d', ArrayBytes(0), StringBytes(2), (byte)'e', (byte)'x' };
 
             // Parse the input fully now.
             bytes = Frame(bytes);
@@ -442,17 +442,17 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         public void SerializerCanSerializeTypesWithNoDefaultCtor()
         {
             var result = Write(CompletionMessage.WithResult("0", new List<int> { 42 }.AsReadOnly()));
-            AssertMessages(new byte[] { Array(5), 3, 0x80, String(1), (byte)'0', 0x03, Array(1), 42 }, result);
+            AssertMessages(new byte[] { ArrayBytes(5), 3, 0x80, StringBytes(1), (byte)'0', 0x03, ArrayBytes(1), 42 }, result);
         }
 
-        private byte Array(int size)
+        private byte ArrayBytes(int size)
         {
             Debug.Assert(size < 16, "Test code doesn't support array sizes greater than 15");
 
             return (byte)(0x90 | size);
         }
 
-        private byte String(int size)
+        private byte StringBytes(int size)
         {
             Debug.Assert(size < 16, "Test code doesn't support string sizes greater than 15");
 
