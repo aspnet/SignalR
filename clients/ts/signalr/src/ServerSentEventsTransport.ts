@@ -10,20 +10,20 @@ import { Arg, getDataDetail, sendMessage } from "./Utils";
 
 export class ServerSentEventsTransport implements ITransport {
     private readonly httpClient: HttpClient;
-    private readonly accessTokenFactory: () => string;
+    private readonly accessTokenFactory: () => string | Promise<string>;
     private readonly logger: ILogger;
     private readonly logMessageContent: boolean;
     private eventSource: EventSource;
     private url: string;
 
-    constructor(httpClient: HttpClient, accessTokenFactory: () => string, logger: ILogger, logMessageContent: boolean) {
+    constructor(httpClient: HttpClient, accessTokenFactory: () => string | Promise<string>, logger: ILogger, logMessageContent: boolean) {
         this.httpClient = httpClient;
         this.accessTokenFactory = accessTokenFactory || (() => null);
         this.logger = logger;
         this.logMessageContent = logMessageContent;
     }
 
-    public connect(url: string, transferFormat: TransferFormat, connection: IConnection): Promise<void> {
+    public async connect(url: string, transferFormat: TransferFormat, connection: IConnection): Promise<void> {
         Arg.isRequired(url, "url");
         Arg.isRequired(transferFormat, "transferFormat");
         Arg.isIn(transferFormat, TransferFormat, "transferFormat");
@@ -35,15 +35,15 @@ export class ServerSentEventsTransport implements ITransport {
 
         this.logger.log(LogLevel.Trace, "(SSE transport) Connecting");
 
+        const token = await this.accessTokenFactory();
+        if (token) {
+            url += (url.indexOf("?") < 0 ? "?" : "&") + `access_token=${encodeURIComponent(token)}`;
+        }
+
         this.url = url;
         return new Promise<void>((resolve, reject) => {
             if (transferFormat !== TransferFormat.Text) {
                 reject(new Error("The Server-Sent Events transport only supports the 'Text' transfer format"));
-            }
-
-            const token = this.accessTokenFactory();
-            if (token) {
-                url += (url.indexOf("?") < 0 ? "?" : "&") + `access_token=${encodeURIComponent(token)}`;
             }
 
             const eventSource = new EventSource(url, { withCredentials: true });

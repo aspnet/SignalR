@@ -14,7 +14,7 @@ const SHUTDOWN_TIMEOUT = 5 * 1000;
 
 export class LongPollingTransport implements ITransport {
     private readonly httpClient: HttpClient;
-    private readonly accessTokenFactory: () => string;
+    private readonly accessTokenFactory: () => string | Promise<string>;
     private readonly logger: ILogger;
     private readonly logMessageContent: boolean;
 
@@ -24,7 +24,7 @@ export class LongPollingTransport implements ITransport {
     private shutdownTimeout: number;
     private running: boolean;
 
-    constructor(httpClient: HttpClient, accessTokenFactory: () => string, logger: ILogger, logMessageContent: boolean) {
+    constructor(httpClient: HttpClient, accessTokenFactory: () => string | Promise<string>, logger: ILogger, logMessageContent: boolean) {
         this.httpClient = httpClient;
         this.accessTokenFactory = accessTokenFactory || (() => null);
         this.logger = logger;
@@ -67,15 +67,16 @@ export class LongPollingTransport implements ITransport {
             pollOptions.responseType = "arraybuffer";
         }
 
-        const token = this.accessTokenFactory();
-        if (token) {
-            // tslint:disable-next-line:no-string-literal
-            pollOptions.headers["Authorization"] = `Bearer ${token}`;
-        }
-
         let closeError: Error;
         try {
             while (this.running) {
+                // We have to get the access token on each poll, in case it changes
+                const token = await this.accessTokenFactory();
+                if (token) {
+                    // tslint:disable-next-line:no-string-literal
+                    pollOptions.headers["Authorization"] = `Bearer ${token}`;
+                }
+
                 try {
                     const pollUrl = `${url}&_=${Date.now()}`;
                     this.logger.log(LogLevel.Trace, `(LongPolling transport) polling: ${pollUrl}`);

@@ -9,17 +9,17 @@ import { Arg, getDataDetail } from "./Utils";
 
 export class WebSocketTransport implements ITransport {
     private readonly logger: ILogger;
-    private readonly accessTokenFactory: () => string;
+    private readonly accessTokenFactory: () => string | Promise<string>;
     private readonly logMessageContent: boolean;
     private webSocket: WebSocket;
 
-    constructor(accessTokenFactory: () => string, logger: ILogger, logMessageContent: boolean) {
+    constructor(accessTokenFactory: () => string | Promise<string>, logger: ILogger, logMessageContent: boolean) {
         this.logger = logger;
         this.accessTokenFactory = accessTokenFactory || (() => null);
         this.logMessageContent = logMessageContent;
     }
 
-    public connect(url: string, transferFormat: TransferFormat, connection: IConnection): Promise<void> {
+    public async connect(url: string, transferFormat: TransferFormat, connection: IConnection): Promise<void> {
         Arg.isRequired(url, "url");
         Arg.isRequired(transferFormat, "transferFormat");
         Arg.isIn(transferFormat, TransferFormat, "transferFormat");
@@ -31,13 +31,13 @@ export class WebSocketTransport implements ITransport {
 
         this.logger.log(LogLevel.Trace, "(WebSockets transport) Connecting");
 
+        const token = await this.accessTokenFactory();
+        if (token) {
+            url += (url.indexOf("?") < 0 ? "?" : "&") + `access_token=${encodeURIComponent(token)}`;
+        }
+
         return new Promise<void>((resolve, reject) => {
             url = url.replace(/^http/, "ws");
-            const token = this.accessTokenFactory();
-            if (token) {
-                url += (url.indexOf("?") < 0 ? "?" : "&") + `access_token=${encodeURIComponent(token)}`;
-            }
-
             const webSocket = new WebSocket(url);
             if (transferFormat === TransferFormat.Binary) {
                 webSocket.binaryType = "arraybuffer";

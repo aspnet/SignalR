@@ -49,9 +49,9 @@ export function formatArrayBuffer(data: ArrayBuffer): string {
     return str.substr(0, str.length - 1);
 }
 
-export async function sendMessage(logger: ILogger, transportName: string, httpClient: HttpClient, url: string, accessTokenFactory: () => string, content: string | ArrayBuffer, logMessageContent: boolean): Promise<void> {
+export async function sendMessage(logger: ILogger, transportName: string, httpClient: HttpClient, url: string, accessTokenFactory: () => string | Promise<string>, content: string | ArrayBuffer, logMessageContent: boolean): Promise<void> {
     let headers;
-    const token = accessTokenFactory();
+    const token = await accessTokenFactory();
     if (token) {
         headers = {
             ["Authorization"]: `Bearer ${accessTokenFactory()}`,
