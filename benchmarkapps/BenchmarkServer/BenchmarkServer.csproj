@@ -2,6 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.1</TargetFramework>
+    <!-- SignalR is versioned 1.0 alongside the 2.1 version of AspNetCore.All, this converts the .All version to the SignalR version -->
+    <MessagePackPackageVersion Condition=" '$(BenchmarksTargetFramework)' != '' ">$([System.String]::Copy($(MicrosoftAspNetCoreAllPackageVersion)).Replace('2.1', '1.0'))</MessagePackPackageVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -21,7 +23,7 @@
   <!-- These references are used when running on the Benchmarks Server -->
   <ItemGroup Condition="'$(BenchmarksTargetFramework)' != ''">
     <PackageReference Include="Microsoft.AspNetCore.All" Version="$(MicrosoftAspNetCoreAllPackageVersion)" />
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MsgPack" Version="$([System.String]::Copy($(MicrosoftAspNetCoreAllPackageVersion)).Replace('2.1', '1.0'))" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MsgPack" Version="$(MessagePackPackageVersion)" />
   </ItemGroup>
 
 </Project>
