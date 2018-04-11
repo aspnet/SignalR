@@ -254,8 +254,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
 
                                         _application.Input.AdvanceTo(buffer.Start, buffer.End);
 
-                                        //await Task.Delay(1);
-                                        await Task.Yield();
+                                        await Task.Delay(1);
+                                        //await Task.Yield();
 
                                         var hasData = _application.Input.TryRead(out result);
                                         buffer = result.Buffer;
