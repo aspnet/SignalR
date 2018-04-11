@@ -791,10 +791,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             public void Dispose()
             {
-                lock (_handlerList)
-                {
-                    _handlerList.Remove(_handler);
-                }
+                 _handlerList.Remove(_handler);
             }
         }
 
