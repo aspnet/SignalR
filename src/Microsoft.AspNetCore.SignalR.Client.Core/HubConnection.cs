@@ -34,7 +34,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         private readonly IHubProtocol _protocol;
         private readonly IServiceProvider _serviceProvider;
         private readonly IConnectionFactory _connectionFactory;
-        private readonly ConcurrentDictionary<string, List<InvocationHandler>> _handlers = new ConcurrentDictionary<string, List<InvocationHandler>>(StringComparer.Ordinal);
+        private readonly ConcurrentDictionary<string, InvocationHandlerList> _handlers = new ConcurrentDictionary<string, InvocationHandlerList>(StringComparer.Ordinal);
         private bool _disposed;
 
         // Transient state to a connection
@@ -87,7 +87,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             // It's OK to be disposed while registering a callback, we'll just never call the callback anyway (as with all the callbacks registered before disposal).
             var invocationHandler = new InvocationHandler(parameterTypes, handler, state);
-            var invocationList = _handlers.AddOrUpdate(methodName, _ => new List<InvocationHandler> { invocationHandler },
+            var invocationList = _handlers.AddOrUpdate(methodName, _ => new InvocationHandlerList(invocationHandler) ,
                 (_, invocations) =>
                 {
                     lock (invocations)
@@ -434,21 +434,14 @@ namespace Microsoft.AspNetCore.SignalR.Client
         private async Task DispatchInvocationAsync(InvocationMessage invocation)
         {
             // Find the handler
-            if (!_handlers.TryGetValue(invocation.Target, out var handlers))
+            if (!_handlers.TryGetValue(invocation.Target, out var invocationHandlerList))
             {
                 Log.MissingHandler(_logger, invocation.Target);
                 return;
             }
 
-            // TODO: Optimize this!
-            // Copying the callbacks to avoid concurrency issues
-            InvocationHandler[] copiedHandlers;
-            lock (handlers)
-            {
-                copiedHandlers = new InvocationHandler[handlers.Count];
-                handlers.CopyTo(copiedHandlers);
-            }
-
+            // Grabbing the current handlers
+            var copiedHandlers = invocationHandlerList.GetCopiedHandlers();
             foreach (var handler in copiedHandlers)
             {
                 try
@@ -788,9 +781,9 @@ namespace Microsoft.AspNetCore.SignalR.Client
         private class Subscription : IDisposable
         {
             private readonly InvocationHandler _handler;
-            private readonly List<InvocationHandler> _handlerList;
+            private readonly InvocationHandlerList _handlerList;
 
-            public Subscription(InvocationHandler handler, List<InvocationHandler> handlerList)
+            public Subscription(InvocationHandler handler, InvocationHandlerList handlerList)
             {
                 _handler = handler;
                 _handlerList = handlerList;
@@ -801,6 +794,50 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 lock (_handlerList)
                 {
                     _handlerList.Remove(_handler);
+                }
+            }
+        }
+
+        private class InvocationHandlerList
+        {
+            private readonly List<InvocationHandler> _invocationHandlers;
+            private InvocationHandler[] _CopiedHandlers;
+
+            internal InvocationHandlerList(InvocationHandler handler)
+            {
+                _invocationHandlers = new List<InvocationHandler>() { handler };
+            }
+
+            internal InvocationHandler[] GetCopiedHandlers()
+            {
+                if (_CopiedHandlers == null)
+                {
+                    lock (_invocationHandlers)
+                    {
+                        _CopiedHandlers = _invocationHandlers.ToArray();
+                    }
+                }
+                return _CopiedHandlers;
+            }
+
+            internal InvocationHandlerList Add(InvocationHandler handler)
+            {
+                lock (_invocationHandlers)
+                {
+                    _invocationHandlers.Add(handler);
+                    _CopiedHandlers = null;
+                }
+                return this;
+            }
+
+            internal void Remove(InvocationHandler handler)
+            {
+                lock (_invocationHandlers)
+                {
+                    if (_invocationHandlers.Remove(handler))
+                    {
+                        _CopiedHandlers = null;
+                    }
                 }
             }
         }
@@ -959,21 +996,19 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             IReadOnlyList<Type> IInvocationBinder.GetParameterTypes(string methodName)
             {
-                if (!_hubConnection._handlers.TryGetValue(methodName, out var handlers))
+                if (!_hubConnection._handlers.TryGetValue(methodName, out var invocationHandlerList))
                 {
                     Log.MissingHandler(_hubConnection._logger, methodName);
                     return Type.EmptyTypes;
                 }
 
                 // We use the parameter types of the first handler
-                lock (handlers)
+                var handlers = invocationHandlerList.GetCopiedHandlers();
+                if (handlers.Length > 0)
                 {
-                    if (handlers.Count > 0)
-                    {
-                        return handlers[0].ParameterTypes;
-                    }
-                    throw new InvalidOperationException($"There are no callbacks registered for the method '{methodName}'");
+                    return handlers[0].ParameterTypes;
                 }
+                throw new InvalidOperationException($"There are no callbacks registered for the method '{methodName}'");
             }
         }
     }
