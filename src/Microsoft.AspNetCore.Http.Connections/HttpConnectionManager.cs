@@ -28,7 +28,7 @@ namespace Microsoft.AspNetCore.Http.Connections
 
         private readonly ConcurrentDictionary<string, (HttpConnectionContext Connection, ValueStopwatch Timer)> _connections =
             new ConcurrentDictionary<string, (HttpConnectionContext Connection, ValueStopwatch Timer)>(StringComparer.Ordinal);
-        private TimerAwaitable _timer;
+        private TimerAwaitable _nextHeartbeat;
         private readonly ILogger<HttpConnectionManager> _logger;
         private readonly ILogger<HttpConnectionContext> _connectionLogger;
 
@@ -38,13 +38,14 @@ namespace Microsoft.AspNetCore.Http.Connections
             _connectionLogger = loggerFactory.CreateLogger<HttpConnectionContext>();
             appLifetime.ApplicationStarted.Register(() => Start());
             appLifetime.ApplicationStopping.Register(() => CloseConnections());
-            _timer = new TimerAwaitable(_heartbeatTickRate, _heartbeatTickRate);
+            _nextHeartbeat = new TimerAwaitable(_heartbeatTickRate, _heartbeatTickRate);
         }
 
         public void Start()
         {
-            _timer.Start();
+            _nextHeartbeat.Start();
 
+            // Start the timer loop
             _ = ExecuteTimerLoop();
         }
 
@@ -106,15 +107,26 @@ namespace Microsoft.AspNetCore.Http.Connections
 
         private async Task ExecuteTimerLoop()
         {
-            using (_timer)
-            {
-                while (_timer.IsRunning)
-                {
-                    await _timer;
+            Log.HeartBeatStarted(_logger);
 
-                    await ScanAsync();
+            // Dispose the timer when all the code consuming callbacks has completed
+            using (_nextHeartbeat)
+            {
+                // The TimerAwaitable will return true until Stop is called
+                while (await _nextHeartbeat)
+                {
+                    try
+                    {
+                        await ScanAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.ScanningConnectionsFailed(_logger, ex);
+                    }
                 }
             }
+
+            Log.HeartBeatEnded(_logger);
         }
 
         public async Task ScanAsync()
@@ -131,10 +143,10 @@ namespace Microsoft.AspNetCore.Http.Connections
                 DateTimeOffset lastSeenUtc;
                 var connection = c.Value.Connection;
 
+                await connection.Lock.WaitAsync();
+
                 try
                 {
-                    await connection.Lock.WaitAsync();
-
                     // Capture the connection state
                     status = connection.Status;
 
@@ -172,7 +184,7 @@ namespace Microsoft.AspNetCore.Http.Connections
         public void CloseConnections()
         {
             // Stop firing the timer
-            _timer.Stop();
+            _nextHeartbeat.Stop();
 
             var tasks = new List<Task>();
 

@@ -2,11 +2,9 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
-using System.Diagnostics.Tracing;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Internal;
 
 namespace Microsoft.AspNetCore.Http.Connections.Internal
 {
@@ -20,15 +18,13 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
 
         private TimeSpan _dueTime;
         private bool _disposed;
-        private volatile bool _running = true;
+        private bool _running = true;
 
         public TimerAwaitable(TimeSpan dueTime, TimeSpan period)
         {
             _dueTime = dueTime;
             _period = period;
         }
-
-        public bool IsRunning => _running;
 
         public void Start()
         {
@@ -52,9 +48,11 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
         public TimerAwaitable GetAwaiter() => this;
         public bool IsCompleted => ReferenceEquals(_callback, _callbackCompleted);
 
-        public void GetResult()
+        public bool GetResult()
         {
             _callback = null;
+
+            return _running;
         }
 
         private void Tick()
@@ -79,8 +77,19 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
 
         public void Stop()
         {
-            _running = false;
+            lock (this)
+            {
+                // Stop should be used to trigger the call to end the loop which disposes
+                if (_disposed)
+                {
+                    throw new ObjectDisposedException(GetType().FullName);
+                }
 
+                _running = false;
+            }
+
+            // Call tick here to make sure that we yield the callback,
+            // if it's currently waiting, we don't need to wait for the next period
             Tick();
         }
 
