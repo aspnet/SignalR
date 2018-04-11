@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.Extensions.Logging;
+using System.Buffers;
 
 namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
 {
@@ -207,7 +208,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
         private async Task StartSending(WebSocket socket)
         {
             Exception error = null;
-
+            const int maxBuffer = 1024;
             try
             {
                 while (true)
@@ -217,7 +218,6 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
 
                     // Get a frame from the application
 
-                    var advanceToEnd = false;
                     try
                     {
                         if (result.IsCanceled)
@@ -229,20 +229,33 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
                         {
                             try
                             {
-                                Log.SendPayload(_logger, buffer.Length);
-
-                                var webSocketMessageType = (_connection.ActiveFormat == TransferFormat.Binary
-                                    ? WebSocketMessageType.Binary
-                                    : WebSocketMessageType.Text);
-                                await Task.Delay(1);
-                                //if (buffer.Length > 1000)
+                                if (buffer.Length >= maxBuffer)
                                 {
-                                    if (WebSocketCanSend(socket))
+                                    if (!await WriteAsync(socket, buffer))
                                     {
-                                        await socket.SendAsync(buffer, webSocketMessageType);
-                                        advanceToEnd = true;
+                                        break;
                                     }
-                                    else
+                                }
+                                else
+                                {
+                                    while (buffer.Length < maxBuffer)
+                                    {
+                                        var length = buffer.Length;
+
+                                        _application.Input.AdvanceTo(buffer.Start, buffer.End);
+
+                                        await AwaitableThreadPool.Yield();
+
+                                        var hasData = _application.Input.TryRead(out result);
+                                        buffer = result.Buffer;
+
+                                        if (buffer.Length != length)
+                                        {
+                                            break;
+                                        }
+                                    }
+
+                                    if (!await WriteAsync(socket, buffer))
                                     {
                                         break;
                                     }
@@ -264,10 +277,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
                     }
                     finally
                     {
-                        if (advanceToEnd)
                             _application.Input.AdvanceTo(buffer.End);
-                        else
-                            _application.Input.AdvanceTo(buffer.Start, buffer.End);
                     }
                 }
             }
@@ -287,6 +297,25 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
                 _application.Input.Complete();
             }
 
+        }
+
+        private async Task<bool> WriteAsync(WebSocket socket, ReadOnlySequence<byte> buffer)
+        {
+            Log.SendPayload(_logger, buffer.Length);
+
+            var webSocketMessageType = (_connection.ActiveFormat == TransferFormat.Binary
+            ? WebSocketMessageType.Binary
+            : WebSocketMessageType.Text);
+
+            if (WebSocketCanSend(socket))
+            {
+                await socket.SendAsync(buffer, webSocketMessageType);
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
 
         private static bool WebSocketCanSend(WebSocket ws)
