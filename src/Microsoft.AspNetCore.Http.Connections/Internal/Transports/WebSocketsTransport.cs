@@ -249,7 +249,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
                                         var hasData = _application.Input.TryRead(out result);
                                         buffer = result.Buffer;
 
-                                        if (buffer.Length != length)
+                                        if (buffer.Length == length)
                                         {
                                             break;
                                         }
