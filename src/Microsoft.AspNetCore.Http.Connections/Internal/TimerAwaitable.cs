@@ -14,11 +14,12 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
         private Action _callback;
         private static readonly Action _callbackCompleted = () => { };
 
-        private TimeSpan _period;
+        private readonly TimeSpan _period;
 
-        private TimeSpan _dueTime;
+        private readonly TimeSpan _dueTime;
         private bool _disposed;
         private bool _running = true;
+        private object _lockObj = new object();
 
         public TimerAwaitable(TimeSpan dueTime, TimeSpan period)
         {
@@ -30,7 +31,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
         {
             if (_timer == null)
             {
-                lock (this)
+                lock (_lockObj)
                 {
                     if (_disposed)
                     {
@@ -77,7 +78,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
 
         public void Stop()
         {
-            lock (this)
+            lock (_lockObj)
             {
                 // Stop should be used to trigger the call to end the loop which disposes
                 if (_disposed)
@@ -95,7 +96,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
 
         void IDisposable.Dispose()
         {
-            lock (this)
+            lock (_lockObj)
             {
                 _disposed = true;
 
