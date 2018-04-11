@@ -23,11 +23,10 @@ export class ServerSentEventsTransport implements ITransport {
         this.logMessageContent = logMessageContent;
     }
 
-    public async connect(url: string, transferFormat: TransferFormat, connection: IConnection): Promise<void> {
+    public async connect(url: string, transferFormat: TransferFormat): Promise<void> {
         Arg.isRequired(url, "url");
         Arg.isRequired(transferFormat, "transferFormat");
         Arg.isIn(transferFormat, TransferFormat, "transferFormat");
-        Arg.isRequired(connection, "connection");
 
         if (typeof (EventSource) === "undefined") {
             throw new Error("'EventSource' is not supported in your environment.");

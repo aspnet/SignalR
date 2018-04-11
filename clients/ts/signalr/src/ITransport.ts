@@ -16,7 +16,7 @@ export enum TransferFormat {
 }
 
 export interface ITransport {
-    connect(url: string, transferFormat: TransferFormat, connection: IConnection): Promise<void>;
+    connect(url: string, transferFormat: TransferFormat): Promise<void>;
     send(data: any): Promise<void>;
     stop(): Promise<void>;
     onreceive: DataReceived;

@@ -107,7 +107,7 @@ export class HttpConnection implements IConnection {
                 await this.createTransport(this.options.transport, negotiateResponse, transferFormat, headers);
             }
 
-            if (typeof this.transport === typeof LongPollingTransport) {
+            if (this.transport instanceof LongPollingTransport) {
                 this.features.inherentKeepAlive = true;
             }
 

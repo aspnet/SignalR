@@ -32,18 +32,14 @@ export class LongPollingTransport implements ITransport {
         this.logMessageContent = logMessageContent;
     }
 
-    public connect(url: string, transferFormat: TransferFormat, connection: IConnection): Promise<void> {
+    public connect(url: string, transferFormat: TransferFormat): Promise<void> {
         Arg.isRequired(url, "url");
         Arg.isRequired(transferFormat, "transferFormat");
         Arg.isIn(transferFormat, TransferFormat, "transferFormat");
-        Arg.isRequired(connection, "connection");
 
         this.url = url;
 
         this.logger.log(LogLevel.Trace, "(LongPolling transport) Connecting");
-
-        // Set a flag indicating we have inherent keep-alive in this transport.
-        connection.features.inherentKeepAlive = true;
 
         if (transferFormat === TransferFormat.Binary && (typeof new XMLHttpRequest().responseType !== "string")) {
             // This will work if we fix: https://github.com/aspnet/SignalR/issues/742
