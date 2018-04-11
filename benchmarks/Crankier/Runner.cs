@@ -18,9 +18,9 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
         private readonly int _numberOfWorkers;
         private readonly int _numberOfConnections;
         private readonly int _sendDurationSeconds;
-        private readonly HttpTransportType _transportType;
+        private readonly HttpTransportTypes _transportType;
 
-        public Runner(Agent agent, string targetUrl, int numberOfWorkers, int numberOfConnections, int sendDurationInSeconds, HttpTransportType transportType)
+        public Runner(Agent agent, string targetUrl, int numberOfWorkers, int numberOfConnections, int sendDurationInSeconds, HttpTransportTypes transportType)
         {
             _agent = agent;
             _targetUrl = targetUrl;

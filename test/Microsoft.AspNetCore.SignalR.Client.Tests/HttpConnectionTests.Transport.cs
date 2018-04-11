@@ -20,9 +20,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public class Transport
         {
             [Theory]
-            [InlineData(HttpTransportType.LongPolling)]
-            [InlineData(HttpTransportType.ServerSentEvents)]
-            public async Task HttpConnectionSetsAccessTokenOnAllRequests(HttpTransportType transportType)
+            [InlineData(HttpTransportTypes.LongPolling)]
+            [InlineData(HttpTransportTypes.ServerSentEvents)]
+            public async Task HttpConnectionSetsAccessTokenOnAllRequests(HttpTransportTypes transportType)
             {
                 var testHttpHandler = new TestHttpMessageHandler(autoNegotiate: false);
                 var requestsExecuted = false;
@@ -69,9 +69,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             }
 
             [Theory]
-            [InlineData(HttpTransportType.LongPolling)]
-            [InlineData(HttpTransportType.ServerSentEvents)]
-            public async Task HttpConnectionSetsUserAgentOnAllRequests(HttpTransportType transportType)
+            [InlineData(HttpTransportTypes.LongPolling)]
+            [InlineData(HttpTransportTypes.ServerSentEvents)]
+            public async Task HttpConnectionSetsUserAgentOnAllRequests(HttpTransportTypes transportType)
             {
                 var testHttpHandler = new TestHttpMessageHandler(autoNegotiate: false);
                 var requestsExecuted = false;
@@ -116,9 +116,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             }
 
             [Theory]
-            [InlineData(HttpTransportType.LongPolling)]
-            [InlineData(HttpTransportType.ServerSentEvents)]
-            public async Task HttpConnectionSetsRequestedWithOnAllRequests(HttpTransportType transportType)
+            [InlineData(HttpTransportTypes.LongPolling)]
+            [InlineData(HttpTransportTypes.ServerSentEvents)]
+            public async Task HttpConnectionSetsRequestedWithOnAllRequests(HttpTransportTypes transportType)
             {
                 var testHttpHandler = new TestHttpMessageHandler(autoNegotiate: false);
                 var requestsExecuted = false;

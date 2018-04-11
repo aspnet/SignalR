@@ -38,32 +38,32 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         }
 
         public static string CreateNegotiationContent(string connectionId = "00000000-0000-0000-0000-000000000000",
-            HttpTransportType? transportTypes = null)
+            HttpTransportTypes? transportTypes = null)
         {
             var availableTransports = new List<object>();
 
             transportTypes = transportTypes ?? HttpTransports.All;
-            if ((transportTypes & HttpTransportType.WebSockets) != 0)
+            if ((transportTypes & HttpTransportTypes.WebSockets) != 0)
             {
                 availableTransports.Add(new
                 {
-                    transport = nameof(HttpTransportType.WebSockets),
+                    transport = nameof(HttpTransportTypes.WebSockets),
                     transferFormats = new[] { nameof(TransferFormat.Text), nameof(TransferFormat.Binary) }
                 });
             }
-            if ((transportTypes & HttpTransportType.ServerSentEvents) != 0)
+            if ((transportTypes & HttpTransportTypes.ServerSentEvents) != 0)
             {
                 availableTransports.Add(new
                 {
-                    transport = nameof(HttpTransportType.ServerSentEvents),
+                    transport = nameof(HttpTransportTypes.ServerSentEvents),
                     transferFormats = new[] { nameof(TransferFormat.Text) }
                 });
             }
-            if ((transportTypes & HttpTransportType.LongPolling) != 0)
+            if ((transportTypes & HttpTransportTypes.LongPolling) != 0)
             {
                 availableTransports.Add(new
                 {
-                    transport = nameof(HttpTransportType.LongPolling),
+                    transport = nameof(HttpTransportTypes.LongPolling),
                     transferFormats = new[] { nameof(TransferFormat.Text), nameof(TransferFormat.Binary) }
                 });
             }

@@ -91,7 +91,7 @@ namespace FunctionalTests
             app.UseSignalR(routes =>
             {
                 routes.MapHub<TestHub>("/testhub");
-                routes.MapHub<TestHub>("/testhub-nowebsockets", options => options.Transports = HttpTransportType.ServerSentEvents | HttpTransportType.LongPolling);
+                routes.MapHub<TestHub>("/testhub-nowebsockets", options => options.Transports = HttpTransportTypes.ServerSentEvents | HttpTransportTypes.LongPolling);
                 routes.MapHub<UncreatableHub>("/uncreatable");
                 routes.MapHub<HubWithAuthorization>("/authorizedhub");
             });

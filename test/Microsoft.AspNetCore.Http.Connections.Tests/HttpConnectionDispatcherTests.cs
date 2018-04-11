@@ -96,9 +96,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
         }
 
         [Theory]
-        [InlineData(HttpTransportType.LongPolling)]
-        [InlineData(HttpTransportType.ServerSentEvents)]
-        public async Task CheckThatThresholdValuesAreEnforcedWithSends(HttpTransportType transportType)
+        [InlineData(HttpTransportTypes.LongPolling)]
+        [InlineData(HttpTransportTypes.ServerSentEvents)]
+        public async Task CheckThatThresholdValuesAreEnforcedWithSends(HttpTransportTypes transportType)
         {
             using (StartLog(out var loggerFactory, LogLevel.Debug))
             {
@@ -148,10 +148,10 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
         }
 
         [Theory]
-        [InlineData(HttpTransportType.LongPolling | HttpTransportType.WebSockets | HttpTransportType.ServerSentEvents)]
-        [InlineData(HttpTransportType.None)]
-        [InlineData(HttpTransportType.LongPolling | HttpTransportType.WebSockets)]
-        public async Task NegotiateReturnsAvailableTransportsAfterFilteringByOptions(HttpTransportType transports)
+        [InlineData(HttpTransportTypes.LongPolling | HttpTransportTypes.WebSockets | HttpTransportTypes.ServerSentEvents)]
+        [InlineData(HttpTransportTypes.None)]
+        [InlineData(HttpTransportTypes.LongPolling | HttpTransportTypes.WebSockets)]
+        public async Task NegotiateReturnsAvailableTransportsAfterFilteringByOptions(HttpTransportTypes transports)
         {
             using (StartLog(out var loggerFactory, LogLevel.Debug))
             {
@@ -170,10 +170,10 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                 await dispatcher.ExecuteNegotiateAsync(context, new HttpConnectionOptions { Transports = transports });
 
                 var negotiateResponse = JsonConvert.DeserializeObject<JObject>(Encoding.UTF8.GetString(ms.ToArray()));
-                var availableTransports = HttpTransportType.None;
+                var availableTransports = HttpTransportTypes.None;
                 foreach (var transport in negotiateResponse["availableTransports"])
                 {
-                    var transportType = (HttpTransportType)Enum.Parse(typeof(HttpTransportType), transport.Value<string>("transport"));
+                    var transportType = (HttpTransportTypes)Enum.Parse(typeof(HttpTransportTypes), transport.Value<string>("transport"));
                     availableTransports |= transportType;
                 }
 
@@ -182,10 +182,10 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
         }
 
         [Theory]
-        [InlineData(HttpTransportType.WebSockets)]
-        [InlineData(HttpTransportType.ServerSentEvents)]
-        [InlineData(HttpTransportType.LongPolling)]
-        public async Task EndpointsThatAcceptConnectionId404WhenUnknownConnectionIdProvided(HttpTransportType transportType)
+        [InlineData(HttpTransportTypes.WebSockets)]
+        [InlineData(HttpTransportTypes.ServerSentEvents)]
+        [InlineData(HttpTransportTypes.LongPolling)]
+        public async Task EndpointsThatAcceptConnectionId404WhenUnknownConnectionIdProvided(HttpTransportTypes transportType)
         {
             using (StartLog(out var loggerFactory, LogLevel.Debug))
             {
@@ -264,8 +264,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                 var manager = CreateConnectionManager(loggerFactory);
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
                 var connection = manager.CreateConnection();
-                connection.TransportType = HttpTransportType.WebSockets;
-                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.WebSockets;
+                connection.TransportType = HttpTransportTypes.WebSockets;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportTypes.WebSockets;
 
                 using (var strm = new MemoryStream())
                 {
@@ -302,8 +302,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                 var manager = CreateConnectionManager(loggerFactory);
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
                 var connection = manager.CreateConnection();
-                connection.TransportType = HttpTransportType.LongPolling;
-                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
+                connection.TransportType = HttpTransportTypes.LongPolling;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportTypes.LongPolling;
                 await connection.DisposeAsync(closeGracefully: false);
 
                 using (var strm = new MemoryStream())
@@ -332,9 +332,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
         }
 
         [Theory]
-        [InlineData(HttpTransportType.ServerSentEvents)]
-        [InlineData(HttpTransportType.WebSockets)]
-        public async Task TransportEndingGracefullyWaitsOnApplication(HttpTransportType transportType)
+        [InlineData(HttpTransportTypes.ServerSentEvents)]
+        [InlineData(HttpTransportTypes.WebSockets)]
+        public async Task TransportEndingGracefullyWaitsOnApplication(HttpTransportTypes transportType)
         {
             using (StartLog(out var loggerFactory, LogLevel.Debug))
             {
@@ -403,13 +403,13 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                 var manager = CreateConnectionManager(loggerFactory);
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
                 var connection = manager.CreateConnection();
-                connection.TransportType = HttpTransportType.LongPolling;
-                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
+                connection.TransportType = HttpTransportTypes.LongPolling;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportTypes.LongPolling;
 
                 using (var strm = new MemoryStream())
                 {
                     var context = new DefaultHttpContext();
-                    SetTransport(context, HttpTransportType.LongPolling);
+                    SetTransport(context, HttpTransportTypes.LongPolling);
                     var cts = new CancellationTokenSource();
                     context.Response.Body = strm;
                     context.RequestAborted = cts.Token;
@@ -458,9 +458,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
         }
 
         [Theory]
-        [InlineData(HttpTransportType.LongPolling)]
-        [InlineData(HttpTransportType.ServerSentEvents)]
-        public async Task PostSendsToConnection(HttpTransportType transportType)
+        [InlineData(HttpTransportTypes.LongPolling)]
+        [InlineData(HttpTransportTypes.ServerSentEvents)]
+        public async Task PostSendsToConnection(HttpTransportTypes transportType)
         {
             using (StartLog(out var loggerFactory, LogLevel.Debug))
             {
@@ -508,9 +508,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
         }
 
         [Theory]
-        [InlineData(HttpTransportType.LongPolling)]
-        [InlineData(HttpTransportType.ServerSentEvents)]
-        public async Task PostSendsToConnectionInParallel(HttpTransportType transportType)
+        [InlineData(HttpTransportTypes.LongPolling)]
+        [InlineData(HttpTransportTypes.ServerSentEvents)]
+        public async Task PostSendsToConnectionInParallel(HttpTransportTypes transportType)
         {
             using (StartLog(out var loggerFactory, LogLevel.Debug))
             {
@@ -603,8 +603,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                 var manager = CreateConnectionManager(loggerFactory);
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
                 var connection = manager.CreateConnection();
-                connection.TransportType = HttpTransportType.LongPolling;
-                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
+                connection.TransportType = HttpTransportTypes.LongPolling;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportTypes.LongPolling;
 
                 using (var requestBody = new MemoryStream())
                 using (var responseBody = new MemoryStream())
@@ -688,9 +688,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
         }
 
         [Theory]
-        [InlineData(HttpTransportType.ServerSentEvents)]
-        [InlineData(HttpTransportType.LongPolling)]
-        public async Task EndpointsThatRequireConnectionId400WhenNoConnectionIdProvided(HttpTransportType transportType)
+        [InlineData(HttpTransportTypes.ServerSentEvents)]
+        [InlineData(HttpTransportTypes.LongPolling)]
+        public async Task EndpointsThatRequireConnectionId400WhenNoConnectionIdProvided(HttpTransportTypes transportType)
         {
             using (StartLog(out var loggerFactory, LogLevel.Debug))
             {
@@ -751,48 +751,48 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
         }
 
         [Theory]
-        [InlineData(HttpTransportType.LongPolling, 204)]
-        [InlineData(HttpTransportType.WebSockets, 404)]
-        [InlineData(HttpTransportType.ServerSentEvents, 404)]
-        public async Task EndPointThatOnlySupportsLongPollingRejectsOtherTransports(HttpTransportType transportType, int status)
+        [InlineData(HttpTransportTypes.LongPolling, 204)]
+        [InlineData(HttpTransportTypes.WebSockets, 404)]
+        [InlineData(HttpTransportTypes.ServerSentEvents, 404)]
+        public async Task EndPointThatOnlySupportsLongPollingRejectsOtherTransports(HttpTransportTypes transportType, int status)
         {
             using (StartLog(out var loggerFactory, LogLevel.Debug))
             {
-                await CheckTransportSupported(HttpTransportType.LongPolling, transportType, status, loggerFactory);
+                await CheckTransportSupported(HttpTransportTypes.LongPolling, transportType, status, loggerFactory);
             }
         }
 
         [Theory]
-        [InlineData(HttpTransportType.ServerSentEvents, 200)]
-        [InlineData(HttpTransportType.WebSockets, 404)]
-        [InlineData(HttpTransportType.LongPolling, 404)]
-        public async Task EndPointThatOnlySupportsSSERejectsOtherTransports(HttpTransportType transportType, int status)
+        [InlineData(HttpTransportTypes.ServerSentEvents, 200)]
+        [InlineData(HttpTransportTypes.WebSockets, 404)]
+        [InlineData(HttpTransportTypes.LongPolling, 404)]
+        public async Task EndPointThatOnlySupportsSSERejectsOtherTransports(HttpTransportTypes transportType, int status)
         {
             using (StartLog(out var loggerFactory, LogLevel.Debug))
             {
-                await CheckTransportSupported(HttpTransportType.ServerSentEvents, transportType, status, loggerFactory);
+                await CheckTransportSupported(HttpTransportTypes.ServerSentEvents, transportType, status, loggerFactory);
             }
         }
 
         [Theory]
-        [InlineData(HttpTransportType.WebSockets, 200)]
-        [InlineData(HttpTransportType.ServerSentEvents, 404)]
-        [InlineData(HttpTransportType.LongPolling, 404)]
-        public async Task EndPointThatOnlySupportsWebSockesRejectsOtherTransports(HttpTransportType transportType, int status)
+        [InlineData(HttpTransportTypes.WebSockets, 200)]
+        [InlineData(HttpTransportTypes.ServerSentEvents, 404)]
+        [InlineData(HttpTransportTypes.LongPolling, 404)]
+        public async Task EndPointThatOnlySupportsWebSockesRejectsOtherTransports(HttpTransportTypes transportType, int status)
         {
             using (StartLog(out var loggerFactory, LogLevel.Debug))
             {
-                await CheckTransportSupported(HttpTransportType.WebSockets, transportType, status, loggerFactory);
+                await CheckTransportSupported(HttpTransportTypes.WebSockets, transportType, status, loggerFactory);
             }
         }
 
         [Theory]
-        [InlineData(HttpTransportType.LongPolling, 404)]
-        public async Task EndPointThatOnlySupportsWebSocketsAndSSERejectsLongPolling(HttpTransportType transportType, int status)
+        [InlineData(HttpTransportTypes.LongPolling, 404)]
+        public async Task EndPointThatOnlySupportsWebSocketsAndSSERejectsLongPolling(HttpTransportTypes transportType, int status)
         {
             using (StartLog(out var loggerFactory, LogLevel.Debug))
             {
-                await CheckTransportSupported(HttpTransportType.WebSockets | HttpTransportType.ServerSentEvents, transportType, status, loggerFactory);
+                await CheckTransportSupported(HttpTransportTypes.WebSockets | HttpTransportTypes.ServerSentEvents, transportType, status, loggerFactory);
             }
         }
 
@@ -803,13 +803,13 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
-                connection.TransportType = HttpTransportType.ServerSentEvents;
-                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.ServerSentEvents;
+                connection.TransportType = HttpTransportTypes.ServerSentEvents;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportTypes.ServerSentEvents;
 
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
 
                 var context = MakeRequest("/foo", connection);
-                SetTransport(context, HttpTransportType.ServerSentEvents);
+                SetTransport(context, HttpTransportTypes.ServerSentEvents);
 
                 var services = new ServiceCollection();
                 services.AddSingleton<ImmediatelyCompleteConnectionHandler>();
@@ -832,12 +832,12 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
-                connection.TransportType = HttpTransportType.ServerSentEvents;
-                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.ServerSentEvents;
+                connection.TransportType = HttpTransportTypes.ServerSentEvents;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportTypes.ServerSentEvents;
 
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
                 var context = MakeRequest("/foo", connection);
-                SetTransport(context, HttpTransportType.ServerSentEvents);
+                SetTransport(context, HttpTransportTypes.ServerSentEvents);
 
                 var services = new ServiceCollection();
                 services.AddSingleton<SynchronusExceptionConnectionHandler>();
@@ -860,8 +860,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
-                connection.TransportType = HttpTransportType.LongPolling;
-                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
+                connection.TransportType = HttpTransportTypes.LongPolling;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportTypes.LongPolling;
 
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
 
@@ -888,8 +888,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
-                connection.TransportType = HttpTransportType.LongPolling;
-                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
+                connection.TransportType = HttpTransportTypes.LongPolling;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportTypes.LongPolling;
 
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
 
@@ -915,13 +915,13 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
-                connection.TransportType = HttpTransportType.WebSockets;
-                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.WebSockets;
+                connection.TransportType = HttpTransportTypes.WebSockets;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportTypes.WebSockets;
 
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
 
                 var context = MakeRequest("/foo", connection);
-                SetTransport(context, HttpTransportType.WebSockets);
+                SetTransport(context, HttpTransportTypes.WebSockets);
 
                 var services = new ServiceCollection();
                 services.AddSingleton<ImmediatelyCompleteConnectionHandler>();
@@ -938,9 +938,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
         }
 
         [Theory]
-        [InlineData(HttpTransportType.WebSockets)]
-        [InlineData(HttpTransportType.ServerSentEvents)]
-        public async Task RequestToActiveConnectionId409ForStreamingTransports(HttpTransportType transportType)
+        [InlineData(HttpTransportTypes.WebSockets)]
+        [InlineData(HttpTransportTypes.ServerSentEvents)]
+        public async Task RequestToActiveConnectionId409ForStreamingTransports(HttpTransportTypes transportType)
         {
             using (StartLog(out var loggerFactory, LogLevel.Debug))
             {
@@ -990,8 +990,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
-                connection.TransportType = HttpTransportType.LongPolling;
-                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
+                connection.TransportType = HttpTransportTypes.LongPolling;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportTypes.LongPolling;
 
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
 
@@ -1021,9 +1021,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
         }
 
         [Theory]
-        [InlineData(HttpTransportType.ServerSentEvents)]
-        [InlineData(HttpTransportType.LongPolling)]
-        public async Task RequestToDisposedConnectionIdReturns404(HttpTransportType transportType)
+        [InlineData(HttpTransportTypes.ServerSentEvents)]
+        [InlineData(HttpTransportTypes.LongPolling)]
+        public async Task RequestToDisposedConnectionIdReturns404(HttpTransportTypes transportType)
         {
             using (StartLog(out var loggerFactory, LogLevel.Debug))
             {
@@ -1058,8 +1058,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
-                connection.TransportType = HttpTransportType.LongPolling;
-                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
+                connection.TransportType = HttpTransportTypes.LongPolling;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportTypes.LongPolling;
 
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
 
@@ -1094,13 +1094,13 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
-                connection.TransportType = HttpTransportType.ServerSentEvents;
-                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.ServerSentEvents;
+                connection.TransportType = HttpTransportTypes.ServerSentEvents;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportTypes.ServerSentEvents;
 
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
 
                 var context = MakeRequest("/foo", connection);
-                SetTransport(context, HttpTransportType.ServerSentEvents);
+                SetTransport(context, HttpTransportTypes.ServerSentEvents);
 
                 var services = new ServiceCollection();
                 services.AddSingleton<BlockingConnectionHandler>();
@@ -1130,8 +1130,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
-                connection.TransportType = HttpTransportType.LongPolling;
-                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
+                connection.TransportType = HttpTransportTypes.LongPolling;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportTypes.LongPolling;
 
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
 
@@ -1165,8 +1165,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
-                connection.TransportType = HttpTransportType.LongPolling;
-                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
+                connection.TransportType = HttpTransportTypes.LongPolling;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportTypes.LongPolling;
 
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
 
@@ -1199,10 +1199,10 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
         }
 
         [Theory]
-        [InlineData(HttpTransportType.LongPolling, null)]
-        [InlineData(HttpTransportType.ServerSentEvents, TransferFormat.Text)]
-        [InlineData(HttpTransportType.WebSockets, TransferFormat.Binary | TransferFormat.Text)]
-        public async Task TransferModeSet(HttpTransportType transportType, TransferFormat? expectedTransferFormats)
+        [InlineData(HttpTransportTypes.LongPolling, null)]
+        [InlineData(HttpTransportTypes.ServerSentEvents, TransferFormat.Text)]
+        [InlineData(HttpTransportTypes.WebSockets, TransferFormat.Binary | TransferFormat.Text)]
+        public async Task TransferModeSet(HttpTransportTypes transportType, TransferFormat? expectedTransferFormats)
         {
             using (StartLog(out var loggerFactory, LogLevel.Debug))
             {
@@ -1241,8 +1241,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
-                connection.TransportType = HttpTransportType.LongPolling;
-                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
+                connection.TransportType = HttpTransportTypes.LongPolling;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportTypes.LongPolling;
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
                 var context = new DefaultHttpContext();
                 var services = new ServiceCollection();
@@ -1288,8 +1288,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
-                connection.TransportType = HttpTransportType.LongPolling;
-                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
+                connection.TransportType = HttpTransportTypes.LongPolling;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportTypes.LongPolling;
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
                 var context = new DefaultHttpContext();
                 var services = new ServiceCollection();
@@ -1337,8 +1337,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
-                connection.TransportType = HttpTransportType.LongPolling;
-                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
+                connection.TransportType = HttpTransportTypes.LongPolling;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportTypes.LongPolling;
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
                 var context = new DefaultHttpContext();
                 context.Features.Set<IHttpResponseFeature>(new ResponseFeature());
@@ -1395,8 +1395,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
-                connection.TransportType = HttpTransportType.LongPolling;
-                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
+                connection.TransportType = HttpTransportTypes.LongPolling;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportTypes.LongPolling;
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
                 var context = new DefaultHttpContext();
                 context.Features.Set<IHttpResponseFeature>(new ResponseFeature());
@@ -1478,8 +1478,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
-                connection.TransportType = HttpTransportType.LongPolling;
-                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
+                connection.TransportType = HttpTransportTypes.LongPolling;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportTypes.LongPolling;
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
                 var context = new DefaultHttpContext();
                 context.Features.Set<IHttpResponseFeature>(new ResponseFeature());
@@ -1537,8 +1537,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
-                connection.TransportType = HttpTransportType.LongPolling;
-                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
+                connection.TransportType = HttpTransportTypes.LongPolling;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportTypes.LongPolling;
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
                 var context = new DefaultHttpContext();
                 var services = new ServiceCollection();
@@ -1592,8 +1592,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             {
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
-                connection.TransportType = HttpTransportType.LongPolling;
-                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
+                connection.TransportType = HttpTransportTypes.LongPolling;
+                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportTypes.LongPolling;
 
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
 
@@ -1632,7 +1632,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                 context.Request.Path = "/foo";
                 context.Request.Method = "POST";
                 context.Response.Body = ms;
-                await dispatcher.ExecuteNegotiateAsync(context, new HttpConnectionOptions { Transports = HttpTransportType.WebSockets });
+                await dispatcher.ExecuteNegotiateAsync(context, new HttpConnectionOptions { Transports = HttpTransportTypes.WebSockets });
 
                 var negotiateResponse = JsonConvert.DeserializeObject<JObject>(Encoding.UTF8.GetString(ms.ToArray()));
                 var availableTransports = (JArray)negotiateResponse["availableTransports"];
@@ -1685,7 +1685,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             }
         }
 
-        private static async Task CheckTransportSupported(HttpTransportType supportedTransports, HttpTransportType transportType, int status, ILoggerFactory loggerFactory)
+        private static async Task CheckTransportSupported(HttpTransportTypes supportedTransports, HttpTransportTypes transportType, int status, ILoggerFactory loggerFactory)
         {
             var manager = CreateConnectionManager(loggerFactory);
             var connection = manager.CreateConnection();
@@ -1744,14 +1744,14 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             return context;
         }
 
-        private static void SetTransport(HttpContext context, HttpTransportType transportType)
+        private static void SetTransport(HttpContext context, HttpTransportTypes transportType)
         {
             switch (transportType)
             {
-                case HttpTransportType.WebSockets:
+                case HttpTransportTypes.WebSockets:
                     context.Features.Set<IHttpWebSocketFeature>(new TestWebSocketConnectionFeature());
                     break;
-                case HttpTransportType.ServerSentEvents:
+                case HttpTransportTypes.ServerSentEvents:
                     context.Request.Headers["Accept"] = "text/event-stream";
                     break;
                 default:

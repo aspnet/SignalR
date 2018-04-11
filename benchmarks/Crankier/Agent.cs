@@ -120,7 +120,7 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
 
         private static string GetDotNetHost() => RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "dotnet.exe" : "dotnet";
 
-        private async Task StartWorker(int id, string targetAddress, HttpTransportType transportType, int numberOfConnectionsPerWorker)
+        private async Task StartWorker(int id, string targetAddress, HttpTransportTypes transportType, int numberOfConnectionsPerWorker)
         {
             if (_workers.TryGetValue(id, out var worker))
             {
@@ -128,7 +128,7 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
             }
         }
 
-        public async Task StartWorkersAsync(string targetAddress, int numberOfWorkers, HttpTransportType transportType, int numberOfConnections)
+        public async Task StartWorkersAsync(string targetAddress, int numberOfWorkers, HttpTransportTypes transportType, int numberOfConnections)
         {
             TargetAddress = targetAddress;
             TotalConnectionsRequested = numberOfConnections;

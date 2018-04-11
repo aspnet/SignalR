@@ -38,7 +38,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
         private ITransport _transport;
         private readonly ITransportFactory _transportFactory;
         private string _connectionId;
-        private readonly HttpTransportType _requestedTransports;
+        private readonly HttpTransportTypes _requestedTransports;
         private readonly ConnectionLogScope _logScope;
         private readonly IDisposable _scopeDisposable;
         private readonly ILoggerFactory _loggerFactory;
@@ -67,7 +67,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
             : this(url, HttpTransports.All)
         { }
 
-        public HttpConnection(Uri url, HttpTransportType transports)
+        public HttpConnection(Uri url, HttpTransportTypes transports)
             : this(url, transports, loggerFactory: null)
         {
         }
@@ -77,12 +77,12 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
         {
         }
 
-        public HttpConnection(Uri url, HttpTransportType transports, ILoggerFactory loggerFactory)
+        public HttpConnection(Uri url, HttpTransportTypes transports, ILoggerFactory loggerFactory)
             : this(url, transports, loggerFactory, httpOptions: null)
         {
         }
 
-        public HttpConnection(Uri url, HttpTransportType transports, ILoggerFactory loggerFactory, HttpOptions httpOptions)
+        public HttpConnection(Uri url, HttpTransportTypes transports, ILoggerFactory loggerFactory, HttpOptions httpOptions)
         {
             Url = url ?? throw new ArgumentNullException(nameof(url));
             _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
@@ -91,7 +91,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
             _httpOptions = httpOptions;
 
             _requestedTransports = transports;
-            if (_requestedTransports != HttpTransportType.WebSockets)
+            if (_requestedTransports != HttpTransportTypes.WebSockets)
             {
                 _httpClient = CreateHttpClient();
             }
@@ -204,7 +204,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
 
         private async Task SelectAndStartTransport(TransferFormat transferFormat)
         {
-            if (_requestedTransports == HttpTransportType.WebSockets)
+            if (_requestedTransports == HttpTransportTypes.WebSockets)
             {
                 Log.StartingTransport(_logger, _requestedTransports, Url);
                 await StartTransport(Url, _requestedTransports, transferFormat);
@@ -223,13 +223,13 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
 
                 foreach (var transport in negotiationResponse.AvailableTransports)
                 {
-                    if (!Enum.TryParse<HttpTransportType>(transport.Transport, out var transportType))
+                    if (!Enum.TryParse<HttpTransportTypes>(transport.Transport, out var transportType))
                     {
                         Log.TransportNotSupported(_logger, transport.Transport);
                         continue;
                     }
 
-                    if (transportType == HttpTransportType.WebSockets && !IsWebSocketsSupported())
+                    if (transportType == HttpTransportTypes.WebSockets && !IsWebSocketsSupported())
                     {
                         Log.WebSocketsNotSupportedByOperatingSystem(_logger);
                         continue;
@@ -327,7 +327,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
             return Utils.AppendQueryString(url, "id=" + connectionId);
         }
 
-        private async Task StartTransport(Uri connectUrl, HttpTransportType transportType, TransferFormat transferFormat)
+        private async Task StartTransport(Uri connectUrl, HttpTransportTypes transportType, TransferFormat transferFormat)
         {
             // Construct the transport
             var transport = _transportFactory.CreateTransport(transportType);
@@ -345,7 +345,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
                 throw;
             }
 
-            if (transportType == HttpTransportType.LongPolling)
+            if (transportType == HttpTransportTypes.LongPolling)
             {
                 // Disable keep alives for long polling
                 Features.Set<IConnectionInherentKeepAliveFeature>(new ConnectionInherentKeepAliveFeature(_httpClient.Timeout));

@@ -49,7 +49,7 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
                             case "connect":
                                 await _worker.ConnectAsync(
                                     message.Value["TargetAddress"].ToObject<string>(),
-                                    message.Value["TransportType"].ToObject<HttpTransportType>(),
+                                    message.Value["TransportType"].ToObject<HttpTransportTypes>(),
                                     message.Value["NumberOfConnections"].ToObject<int>());
                                 break;
                             case "starttest":

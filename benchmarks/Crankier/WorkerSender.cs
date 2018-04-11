@@ -28,7 +28,7 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
                 }));
         }
 
-        public async Task ConnectAsync(string targetAddress, HttpTransportType transportType, int numberOfConnections)
+        public async Task ConnectAsync(string targetAddress, HttpTransportTypes transportType, int numberOfConnections)
         {
             await Send("connect", JToken.FromObject(
                 new

@@ -10,7 +10,7 @@ namespace Microsoft.AspNetCore.SignalR.Crankier
     public interface IWorker
     {
         Task PingAsync(int value);
-        Task ConnectAsync(string targetAddress, HttpTransportType transportType, int numberOfConnections);
+        Task ConnectAsync(string targetAddress, HttpTransportTypes transportType, int numberOfConnections);
         Task StartTestAsync(TimeSpan sendInterval, int sendBytes);
         Task StopAsync();
     }

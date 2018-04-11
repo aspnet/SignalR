@@ -25,7 +25,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         }
 
         public Uri Url { get; set; }
-        public HttpTransportType Transports { get; set; }
+        public HttpTransportTypes Transports { get; set; }
         public Func<HttpMessageHandler, HttpMessageHandler> MessageHandlerFactory { get; set; }
         public bool? UseDefaultCredentials { get; set; }
         public ICredentials Credentials { get; set; }

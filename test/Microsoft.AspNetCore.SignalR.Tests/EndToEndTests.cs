@@ -73,7 +73,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
         [Theory]
         [MemberData(nameof(TransportTypes))]
-        public async Task CanStartAndStopConnectionUsingGivenTransport(HttpTransportType transportType)
+        public async Task CanStartAndStopConnectionUsingGivenTransport(HttpTransportTypes transportType)
         {
             var url = _serverFixture.Url + "/echo";
             var connection = new HttpConnection(new Uri(url), transportType);
@@ -171,7 +171,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     .Returns<HttpRequestMessage, CancellationToken>(
                         (request, cancellationToken) => Task.FromException<HttpResponseMessage>(new InvalidOperationException("HTTP requests should not be sent.")));
 
-                var connection = new HttpConnection(new Uri(url), HttpTransportType.WebSockets, loggerFactory, new HttpOptions { HttpMessageHandlerFactory = (httpMessageHandler) => mockHttpHandler.Object });
+                var connection = new HttpConnection(new Uri(url), HttpTransportTypes.WebSockets, loggerFactory, new HttpOptions { HttpMessageHandlerFactory = (httpMessageHandler) => mockHttpHandler.Object });
 
                 try
                 {
@@ -199,7 +199,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
         [Theory]
         [MemberData(nameof(TransportTypesAndTransferFormats))]
-        public async Task ConnectionCanSendAndReceiveMessages(HttpTransportType transportType, TransferFormat requestedTransferFormat)
+        public async Task ConnectionCanSendAndReceiveMessages(HttpTransportTypes transportType, TransferFormat requestedTransferFormat)
         {
             using (StartLog(out var loggerFactory, minLogLevel: LogLevel.Trace, testName: $"ConnectionCanSendAndReceiveMessages_{transportType.ToString()}_{requestedTransferFormat.ToString()}"))
             {
@@ -270,7 +270,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var logger = loggerFactory.CreateLogger<EndToEndTests>();
 
                 var url = _serverFixture.Url + "/echo";
-                var connection = new HttpConnection(new Uri(url), HttpTransportType.WebSockets, loggerFactory);
+                var connection = new HttpConnection(new Uri(url), HttpTransportTypes.WebSockets, loggerFactory);
 
                 try
                 {
@@ -312,7 +312,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var logger = loggerFactory.CreateLogger<EndToEndTests>();
 
                 var url = _serverFixture.Url + "/auth";
-                var connection = new HttpConnection(new Uri(url), HttpTransportType.WebSockets, loggerFactory);
+                var connection = new HttpConnection(new Uri(url), HttpTransportTypes.WebSockets, loggerFactory);
 
                 try
                 {
@@ -336,9 +336,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Theory]
-        [InlineData(HttpTransportType.LongPolling)]
-        [InlineData(HttpTransportType.ServerSentEvents)]
-        public async Task UnauthorizedConnectionDoesNotConnect(HttpTransportType transportType)
+        [InlineData(HttpTransportTypes.LongPolling)]
+        [InlineData(HttpTransportTypes.ServerSentEvents)]
+        public async Task UnauthorizedConnectionDoesNotConnect(HttpTransportTypes transportType)
         {
             using (StartLog(out var loggerFactory, LogLevel.Trace, testName: $"{nameof(UnauthorizedConnectionDoesNotConnect)}_{transportType}"))
             {
@@ -372,7 +372,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             try
             {
-                await ServerClosesConnectionWithErrorIfHubCannotBeCreated(HttpTransportType.WebSockets);
+                await ServerClosesConnectionWithErrorIfHubCannotBeCreated(HttpTransportTypes.WebSockets);
                 Assert.True(false, "Expected error was not thrown.");
             }
             catch
@@ -386,7 +386,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             try
             {
-                await ServerClosesConnectionWithErrorIfHubCannotBeCreated(HttpTransportType.LongPolling);
+                await ServerClosesConnectionWithErrorIfHubCannotBeCreated(HttpTransportTypes.LongPolling);
                 Assert.True(false, "Expected error was not thrown.");
             }
             catch
@@ -395,7 +395,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
-        private async Task ServerClosesConnectionWithErrorIfHubCannotBeCreated(HttpTransportType transportType)
+        private async Task ServerClosesConnectionWithErrorIfHubCannotBeCreated(HttpTransportTypes transportType)
         {
             using (StartLog(out var loggerFactory, testName: $"ConnectionCanSendAndReceiveMessages_{transportType.ToString()}"))
             {
@@ -456,7 +456,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             private ITransport _transport;
 
-            public ITransport CreateTransport(HttpTransportType availableServerTransports)
+            public ITransport CreateTransport(HttpTransportTypes availableServerTransports)
             {
                 if (_transport == null)
                 {
@@ -530,10 +530,10 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 if (TestHelpers.IsWebSocketsSupported())
                 {
-                    yield return new object[] { HttpTransportType.WebSockets };
+                    yield return new object[] { HttpTransportTypes.WebSockets };
                 }
-                yield return new object[] { HttpTransportType.ServerSentEvents };
-                yield return new object[] { HttpTransportType.LongPolling };
+                yield return new object[] { HttpTransportTypes.ServerSentEvents };
+                yield return new object[] { HttpTransportTypes.LongPolling };
             }
         }
 
@@ -545,7 +545,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 {
                     yield return new[] { transport[0], TransferFormat.Text };
 
-                    if ((HttpTransportType)transport[0] != HttpTransportType.ServerSentEvents)
+                    if ((HttpTransportTypes)transport[0] != HttpTransportTypes.ServerSentEvents)
                     {
                         yield return new[] { transport[0], TransferFormat.Binary };
                     }
