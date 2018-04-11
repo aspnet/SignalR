@@ -32,10 +32,10 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         }
 
         [Fact]
-        public void ConnectionReturnsUrlUsedToStartTheConnection()
+        public void CannotCreateConnectionWithNullUrlOnOptions()
         {
-            var connectionUrl = new Uri("http://fakeuri.org/");
-            Assert.Equal(connectionUrl, new HttpConnection(connectionUrl).Url);
+            var exception = Assert.Throws<ArgumentException>(() => new HttpConnection(new HttpConnectionOptions(), NullLoggerFactory.Instance));
+            Assert.Equal("httpConnectionOptions", exception.ParamName);
         }
 
         [Fact]

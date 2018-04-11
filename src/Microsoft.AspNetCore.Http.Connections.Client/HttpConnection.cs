@@ -38,12 +38,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
         private ITransport _transport;
         private readonly ITransportFactory _transportFactory;
         private string _connectionId;
-        private readonly HttpTransportType _requestedTransports;
         private readonly ConnectionLogScope _logScope;
         private readonly IDisposable _scopeDisposable;
         private readonly ILoggerFactory _loggerFactory;
-
-        public Uri Url { get; }
 
         public override IDuplexPipe Transport
         {
@@ -90,17 +87,15 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
         {
             if (httpConnectionOptions.Url == null)
             {
-                throw new InvalidOperationException("Cannot create a HttpConnection without a URL.");
+                throw new ArgumentException("Options does not have a URL specified.", nameof(httpConnectionOptions));
             }
 
-            Url = httpConnectionOptions.Url;
             _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
 
             _logger = _loggerFactory.CreateLogger<HttpConnection>();
             _httpConnectionOptions = httpConnectionOptions;
 
-            _requestedTransports = httpConnectionOptions.Transports;
-            if (_requestedTransports != HttpTransportType.WebSockets)
+            if (httpConnectionOptions.Transports != HttpTransportType.WebSockets)
             {
                 _httpClient = CreateHttpClient();
             }
@@ -207,17 +202,17 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
 
         private async Task SelectAndStartTransport(TransferFormat transferFormat)
         {
-            if (_requestedTransports == HttpTransportType.WebSockets)
+            if (_httpConnectionOptions.Transports == HttpTransportType.WebSockets)
             {
-                Log.StartingTransport(_logger, _requestedTransports, Url);
-                await StartTransport(Url, _requestedTransports, transferFormat);
+                Log.StartingTransport(_logger, _httpConnectionOptions.Transports, _httpConnectionOptions.Url);
+                await StartTransport(_httpConnectionOptions.Url, _httpConnectionOptions.Transports, transferFormat);
             }
             else
             {
                 var negotiationResponse = await GetNegotiationResponse();
 
                 // This should only need to happen once
-                var connectUrl = CreateConnectUrl(Url, negotiationResponse.ConnectionId);
+                var connectUrl = CreateConnectUrl(_httpConnectionOptions.Url, negotiationResponse.ConnectionId);
 
                 // We're going to search for the transfer format as a string because we don't want to parse
                 // all the transfer formats in the negotiation response, and we want to allow transfer formats
@@ -240,7 +235,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
 
                     try
                     {
-                        if ((transportType & _requestedTransports) == 0)
+                        if ((transportType & _httpConnectionOptions.Transports) == 0)
                         {
                             Log.TransportDisabledByClient(_logger, transportType);
                         }
@@ -254,7 +249,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
                             if (negotiationResponse == null)
                             {
                                 negotiationResponse = await GetNegotiationResponse();
-                                connectUrl = CreateConnectUrl(Url, negotiationResponse.ConnectionId);
+                                connectUrl = CreateConnectUrl(_httpConnectionOptions.Url, negotiationResponse.ConnectionId);
                             }
 
                             Log.StartingTransport(_logger, transportType, connectUrl);
@@ -460,7 +455,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
 
         private async Task<NegotiationResponse> GetNegotiationResponse()
         {
-            var negotiationResponse = await Negotiate(Url, _httpClient, _logger);
+            var negotiationResponse = await Negotiate(_httpConnectionOptions.Url, _httpClient, _logger);
             _connectionId = negotiationResponse.ConnectionId;
             _logScope.ConnectionId = _connectionId;
             return negotiationResponse;
