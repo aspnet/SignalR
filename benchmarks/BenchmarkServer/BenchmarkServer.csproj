@@ -22,7 +22,7 @@
   <!-- These references are used when running on the Benchmarks Server -->
   <ItemGroup Condition="'$(BenchmarksTargetFramework)' != ''">
     <PackageReference Include="Microsoft.AspNetCore.All" Version="$(MicrosoftAspNetCoreAllPackageVersion)" />
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MsgPack" Version="$([System.String]::Copy($(MicrosoftAspNetCoreAllPackageVersion)).Replace('2.1.0', '1.0.0))" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MsgPack" Version="$([System.String]::Copy($(MicrosoftAspNetCoreAllPackageVersion)).Replace('2.1.0', '1.0.0'))" />
   </ItemGroup>
 
 </Project>
