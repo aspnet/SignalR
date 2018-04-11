@@ -441,7 +441,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
 
             // Grabbing the current handlers
-            var copiedHandlers = invocationHandlerList.GetCopiedHandlers();
+            var copiedHandlers = invocationHandlerList.GetHandlers();
             foreach (var handler in copiedHandlers)
             {
                 try
@@ -807,7 +807,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 _invocationHandlers = new List<InvocationHandler>() { handler };
             }
 
-            internal InvocationHandler[] GetCopiedHandlers()
+            internal InvocationHandler[] GetHandlers()
             {
                 var handlers = _copiedHandlers;
                 if (handlers == null)
@@ -1007,7 +1007,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 }
 
                 // We use the parameter types of the first handler
-                var handlers = invocationHandlerList.GetCopiedHandlers();
+                var handlers = invocationHandlerList.GetHandlers();
                 if (handlers.Length > 0)
                 {
                     return handlers[0].ParameterTypes;
