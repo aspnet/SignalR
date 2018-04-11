@@ -209,6 +209,12 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
         {
             Exception error = null;
             const int maxBuffer = 4096;
+            long totalBufferSize = 0;
+            int totalSends = 0;
+            int secondLoopRuns = 0;
+            double watchTime = 0;
+            Stopwatch _watch = new Stopwatch();
+
             try
             {
                 while (true)
@@ -240,6 +246,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
                                     if (WebSocketCanSend(socket))
                                     {
                                         await socket.SendAsync(buffer, webSocketMessageType);
+                                        totalBufferSize += buffer.Length;
+                                        totalSends++;
                                     }
                                     else
                                     {
@@ -254,11 +262,17 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
 
                                         _application.Input.AdvanceTo(buffer.Start, buffer.End);
 
+                                        _watch.Start();
                                         await Task.Delay(1);
+                                        _watch.Stop();
+                                        watchTime += _watch.ElapsedMilliseconds;
+                                        _watch.Reset();
                                         //await Task.Yield();
 
                                         var hasData = _application.Input.TryRead(out result);
                                         buffer = result.Buffer;
+
+                                        secondLoopRuns++;
 
                                         if (buffer.Length == length)
                                         {
@@ -275,6 +289,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
                                     if (WebSocketCanSend(socket))
                                     {
                                         await socket.SendAsync(buffer, webSocketMessageType);
+                                        totalBufferSize += buffer.Length;
+                                        totalSends++;
                                     }
                                     else
                                     {
@@ -299,6 +315,11 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
                     finally
                     {
                         _application.Input.AdvanceTo(buffer.End);
+                        Console.WriteLine($"Total bytes send: {totalBufferSize}");
+                        Console.WriteLine($"Average bytes per send: {totalBufferSize / totalSends}");
+                        Console.WriteLine($"Number of times second loop ran: {secondLoopRuns}");
+                        Console.WriteLine($"Total time Task.Delay took {watchTime}ms");
+                        Console.WriteLine($"Average time Task.Delay took per iteration {watchTime / secondLoopRuns}ms");
                     }
                 }
             }
