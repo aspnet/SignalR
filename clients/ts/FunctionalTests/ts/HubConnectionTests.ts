@@ -1,7 +1,7 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-import { DefaultHttpClient, HttpClient, HttpRequest, HttpResponse, HubConnection, IHubConnectionOptions, JsonHubProtocol, LogLevel, TransportType } from "@aspnet/signalr";
+import { DefaultHttpClient, HttpClient, HttpRequest, HttpResponse, HttpTransportType, HubConnection, IHubConnectionOptions, JsonHubProtocol, LogLevel } from "@aspnet/signalr";
 import { MessagePackHubProtocol } from "@aspnet/signalr-protocol-msgpack";
 
 import { eachTransport, eachTransportAndProtocol } from "./Common";
@@ -20,7 +20,7 @@ jasmine.DEFAULT_TIMEOUT_INTERVAL = 10 * 1000;
 
 describe("hubConnection", () => {
     eachTransportAndProtocol((transportType, protocol) => {
-        describe("using " + protocol.name + " over " + TransportType[transportType] + " transport", async () => {
+        describe("using " + protocol.name + " over " + HttpTransportType[transportType] + " transport", async () => {
             it("can invoke server method and receive result", (done) => {
                 const message = "你好，世界！";
 
@@ -505,7 +505,7 @@ describe("hubConnection", () => {
     });
 
     eachTransport((transportType) => {
-        describe("over " + TransportType[transportType] + " transport", () => {
+        describe("over " + HttpTransportType[transportType] + " transport", () => {
 
             it("can connect to hub with authorization", async (done) => {
                 const message = "你好，世界！";
@@ -589,7 +589,7 @@ describe("hubConnection", () => {
                 }
             });
 
-            if (transportType !== TransportType.LongPolling) {
+            if (transportType !== HttpTransportType.LongPolling) {
                 it("terminates if no messages received within timeout interval", (done) => {
                     const hubConnection = new HubConnection(TESTHUBENDPOINT_URL, {
                         ...commonOptions,

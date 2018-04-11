@@ -8,8 +8,6 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
-using Microsoft.AspNetCore.Connections.Features;
-using Microsoft.AspNetCore.Http.Connections.Features;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -17,7 +15,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
 {
     public partial class LongPollingTransport : ITransport
     {
-        private static readonly TimeSpan ShutdownTimeout = TimeSpan.FromSeconds(5);
+        private static readonly TimeSpan DefaultShutdownTimeout = TimeSpan.FromSeconds(5);
 
         private readonly HttpClient _httpClient;
         private readonly ILogger _logger;
@@ -34,6 +32,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
 
         public PipeWriter Output => _transport.Output;
 
+        internal TimeSpan ShutdownTimeout { get; set; }
+
         public LongPollingTransport(HttpClient httpClient)
             : this(httpClient, null)
         { }
@@ -42,6 +42,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
         {
             _httpClient = httpClient;
             _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<LongPollingTransport>();
+            ShutdownTimeout = DefaultShutdownTimeout;
         }
 
         public Task StartAsync(Uri url, TransferFormat transferFormat)
@@ -74,12 +75,10 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
             // Wait for send or receive to complete
             var trigger = await Task.WhenAny(receiving, sending);
 
-            // Send the DELETE request to clean-up the connection on the server.
-            // This will also cause the poll to return.
-            await SendDeleteRequest(url);
-
             if (trigger == receiving)
             {
+                // We don't need to DELETE here because the poll completed, which means the server shut down already.
+
                 // We're waiting for the application to finish and there are 2 things it could be doing
                 // 1. Waiting for application data
                 // 2. Waiting for an outgoing send (this should be instantaneous)
@@ -91,6 +90,10 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
             {
                 // Set the sending error so we communicate that to the application
                 _error = sending.IsFaulted ? sending.Exception.InnerException : null;
+
+                // Send the DELETE request to clean-up the connection on the server.
+                // This will also cause the poll to return.
+                await SendDeleteRequest(url);
 
                 // This timeout is only to ensure the poll is cleaned up despite a misbehaving server.
                 // It doesn't need to be configurable.
@@ -105,9 +108,6 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
         {
             Log.TransportStopping(_logger);
 
-            _transport.Output.Complete();
-            _transport.Input.Complete();
-
             _application.Input.CancelPendingRead();
 
             try
@@ -119,6 +119,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
                 Log.TransportStopped(_logger, ex);
                 throw;
             }
+
+            _transport.Output.Complete();
+            _transport.Input.Complete();
 
             Log.TransportStopped(_logger, null);
         }

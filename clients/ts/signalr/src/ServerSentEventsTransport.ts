@@ -41,6 +41,7 @@ export class ServerSentEventsTransport implements ITransport {
 
         this.url = url;
         return new Promise<void>((resolve, reject) => {
+            let opened = false;
             if (transferFormat !== TransferFormat.Text) {
                 reject(new Error("The Server-Sent Events transport only supports the 'Text' transfer format"));
             }
@@ -64,14 +65,17 @@ export class ServerSentEventsTransport implements ITransport {
 
                 eventSource.onerror = (e: any) => {
                     const error = new Error(e.message || "Error occurred");
-                    reject(error);
-                    this.close(error);
+                    if (opened) {
+                        this.close(error);
+                    } else {
+                        reject(error);
+                    }
                 };
 
                 eventSource.onopen = () => {
                     this.logger.log(LogLevel.Information, `SSE connected to ${this.url}`);
                     this.eventSource = eventSource;
-                    // SSE is a text protocol
+                    opened = true;
                     resolve();
                 };
             } catch (e) {

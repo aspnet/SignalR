@@ -1653,7 +1653,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                 var app = builder.Build();
                 var options = new HttpConnectionOptions();
 
-                var pollTask = dispatcher.ExecuteAsync(context, options, app).OrTimeout();
+                var pollTask = dispatcher.ExecuteAsync(context, options, app);
 
                 // Issue the delete request and make sure the poll completes
                 var deleteContext = new DefaultHttpContext();
@@ -1661,9 +1661,11 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                 deleteContext.Request.QueryString = new QueryString($"?id={connection.ConnectionId}");
                 deleteContext.Request.Method = "DELETE";
 
+                Assert.False(pollTask.IsCompleted);
+
                 await dispatcher.ExecuteAsync(deleteContext, options, app).OrTimeout();
 
-                await pollTask;
+                await pollTask.OrTimeout();
 
                 // Verify that everything shuts down
                 await connection.ApplicationTask.OrTimeout();

@@ -882,7 +882,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                     .WithUrl(_serverFixture.Url + "/default", options =>
                     {
                         options.Transports = HttpTransportType.LongPolling;
-                        options.MessageHandlerFactory = handler =>
+                        options.HttpMessageHandlerFactory = handler =>
                         {
                             pollTracker = new PollTrackingMessageHandler(handler);
                             return pollTracker;
