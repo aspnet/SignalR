@@ -791,14 +791,14 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             public void Dispose()
             {
-                 _handlerList.Remove(_handler);
+                _handlerList.Remove(_handler);
             }
         }
 
         private class InvocationHandlerList
         {
             private readonly List<InvocationHandler> _invocationHandlers;
-            private InvocationHandler[] _CopiedHandlers;
+            private InvocationHandler[] _copiedHandlers;
 
             internal InvocationHandlerList(InvocationHandler handler)
             {
@@ -807,24 +807,29 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             internal InvocationHandler[] GetCopiedHandlers()
             {
-                if (_CopiedHandlers == null)
+                var handlers = _copiedHandlers;
+                if (handlers == null)
                 {
                     lock (_invocationHandlers)
                     {
-                        _CopiedHandlers = _invocationHandlers.ToArray();
+                        // Check if the handlers are set, if not we'll copy them over.
+                        if (_copiedHandlers == null)
+                        {
+                            _copiedHandlers = _invocationHandlers.ToArray();
+                        }
+                        handlers = _copiedHandlers;
                     }
                 }
-                return _CopiedHandlers;
+                return handlers;
             }
 
-            internal InvocationHandlerList Add(InvocationHandler handler)
+            internal void Add(InvocationHandler handler)
             {
                 lock (_invocationHandlers)
                 {
                     _invocationHandlers.Add(handler);
-                    _CopiedHandlers = null;
+                    _copiedHandlers = null;
                 }
-                return this;
             }
 
             internal void Remove(InvocationHandler handler)
@@ -833,7 +838,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 {
                     if (_invocationHandlers.Remove(handler))
                     {
-                        _CopiedHandlers = null;
+                        _copiedHandlers = null;
                     }
                 }
             }
