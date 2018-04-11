@@ -263,7 +263,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
                                         _application.Input.AdvanceTo(buffer.Start, buffer.End);
 
                                         _watch.Start();
-                                        await Task.Delay(1);
+                                        await Task.Delay(0);
                                         _watch.Stop();
                                         watchTime += _watch.ElapsedMilliseconds;
                                         _watch.Reset();
