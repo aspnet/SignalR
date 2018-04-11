@@ -34,7 +34,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
         private bool _disposed;
 
         private readonly HttpClient _httpClient;
-        private readonly HttpOptions _httpOptions;
+        private readonly HttpConnectionOptions _httpConnectionOptions;
         private ITransport _transport;
         private readonly ITransportFactory _transportFactory;
         private string _connectionId;
@@ -72,48 +72,51 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
         {
         }
 
-        public HttpConnection(Uri url, ILoggerFactory loggerFactory)
-            : this(url, HttpTransports.All, loggerFactory, httpOptions: null)
-        {
-        }
-
         public HttpConnection(Uri url, HttpTransportType transports, ILoggerFactory loggerFactory)
-            : this(url, transports, loggerFactory, httpOptions: null)
+            : this(CreateHttpOptions(url, transports), loggerFactory)
         {
         }
 
-        public HttpConnection(Uri url, HttpTransportType transports, ILoggerFactory loggerFactory, HttpOptions httpOptions)
+        private static HttpConnectionOptions CreateHttpOptions(Uri url, HttpTransportType transports)
         {
-            Url = url ?? throw new ArgumentNullException(nameof(url));
+            if (url == null)
+            {
+                throw new ArgumentNullException(nameof(url));
+            }
+            return new HttpConnectionOptions { Url = url, Transports = transports };
+        }
+
+        public HttpConnection(HttpConnectionOptions httpConnectionOptions, ILoggerFactory loggerFactory)
+        {
+            if (httpConnectionOptions.Url == null)
+            {
+                throw new InvalidOperationException("Cannot create a HttpConnection without a URL.");
+            }
+
+            Url = httpConnectionOptions.Url;
             _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
 
             _logger = _loggerFactory.CreateLogger<HttpConnection>();
-            _httpOptions = httpOptions;
+            _httpConnectionOptions = httpConnectionOptions;
 
-            _requestedTransports = transports;
+            _requestedTransports = httpConnectionOptions.Transports;
             if (_requestedTransports != HttpTransportType.WebSockets)
             {
                 _httpClient = CreateHttpClient();
             }
 
-            _transportFactory = new DefaultTransportFactory(transports, _loggerFactory, _httpClient, httpOptions);
+            _transportFactory = new DefaultTransportFactory(httpConnectionOptions.Transports, _loggerFactory, _httpClient, httpConnectionOptions);
             _logScope = new ConnectionLogScope();
             _scopeDisposable = _logger.BeginScope(_logScope);
         }
 
-        public HttpConnection(Uri url, ITransportFactory transportFactory, ILoggerFactory loggerFactory, HttpOptions httpOptions)
+        // Used by unit tests
+        internal HttpConnection(HttpConnectionOptions httpConnectionOptions, ILoggerFactory loggerFactory, ITransportFactory transportFactory)
+            : this(httpConnectionOptions, loggerFactory)
         {
-            Url = url ?? throw new ArgumentNullException(nameof(url));
-            _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
-            _logger = _loggerFactory.CreateLogger<HttpConnection>();
-            _httpOptions = httpOptions;
-            _httpClient = CreateHttpClient();
-            _requestedTransports = HttpTransports.All;
-            _transportFactory = transportFactory ?? throw new ArgumentNullException(nameof(transportFactory));
-            _logScope = new ConnectionLogScope();
-            _scopeDisposable = _logger.BeginScope(_logScope);
+            _transportFactory = transportFactory;
         }
-        
+
         public async Task StartAsync(TransferFormat transferFormat)
         {
             await StartAsyncCore(transferFormat).ForceAsync();
@@ -362,33 +365,33 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
             var httpClientHandler = new HttpClientHandler();
             HttpMessageHandler httpMessageHandler = httpClientHandler;
 
-            if (_httpOptions != null)
+            if (_httpConnectionOptions != null)
             {
-                if (_httpOptions.Proxy != null)
+                if (_httpConnectionOptions.Proxy != null)
                 {
-                    httpClientHandler.Proxy = _httpOptions.Proxy;
+                    httpClientHandler.Proxy = _httpConnectionOptions.Proxy;
                 }
-                if (_httpOptions.Cookies != null)
+                if (_httpConnectionOptions.Cookies != null)
                 {
-                    httpClientHandler.CookieContainer = _httpOptions.Cookies;
+                    httpClientHandler.CookieContainer = _httpConnectionOptions.Cookies;
                 }
-                if (_httpOptions.ClientCertificates != null)
+                if (_httpConnectionOptions.ClientCertificates != null)
                 {
-                    httpClientHandler.ClientCertificates.AddRange(_httpOptions.ClientCertificates);
+                    httpClientHandler.ClientCertificates.AddRange(_httpConnectionOptions.ClientCertificates);
                 }
-                if (_httpOptions.UseDefaultCredentials != null)
+                if (_httpConnectionOptions.UseDefaultCredentials != null)
                 {
-                    httpClientHandler.UseDefaultCredentials = _httpOptions.UseDefaultCredentials.Value;
+                    httpClientHandler.UseDefaultCredentials = _httpConnectionOptions.UseDefaultCredentials.Value;
                 }
-                if (_httpOptions.Credentials != null)
+                if (_httpConnectionOptions.Credentials != null)
                 {
-                    httpClientHandler.Credentials = _httpOptions.Credentials;
+                    httpClientHandler.Credentials = _httpConnectionOptions.Credentials;
                 }
 
                 httpMessageHandler = httpClientHandler;
-                if (_httpOptions.HttpMessageHandlerFactory != null)
+                if (_httpConnectionOptions.HttpMessageHandlerFactory != null)
                 {
-                    httpMessageHandler = _httpOptions.HttpMessageHandlerFactory(httpClientHandler);
+                    httpMessageHandler = _httpConnectionOptions.HttpMessageHandlerFactory(httpClientHandler);
                     if (httpMessageHandler == null)
                     {
                         throw new InvalidOperationException("Configured HttpMessageHandlerFactory did not return a value.");
@@ -396,9 +399,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
                 }
 
                 // Apply the authorization header in a handler instead of a default header because it can change with each request
-                if (_httpOptions.AccessTokenFactory != null)
+                if (_httpConnectionOptions.AccessTokenFactory != null)
                 {
-                    httpMessageHandler = new AccessTokenHttpMessageHandler(httpMessageHandler, _httpOptions.AccessTokenFactory);
+                    httpMessageHandler = new AccessTokenHttpMessageHandler(httpMessageHandler, _httpConnectionOptions.AccessTokenFactory);
                 }
             }
 
@@ -411,10 +414,10 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
             // Start with the user agent header
             httpClient.DefaultRequestHeaders.UserAgent.Add(Constants.UserAgentHeader);
 
-            // Apply any headers configured on the HttpOptions
-            if (_httpOptions?.Headers != null)
+            // Apply any headers configured on the HttpConnectionOptions
+            if (_httpConnectionOptions?.Headers != null)
             {
-                foreach (var header in _httpOptions.Headers)
+                foreach (var header in _httpConnectionOptions.Headers)
                 {
                     httpClient.DefaultRequestHeaders.Add(header.Key, header.Value);
                 }
