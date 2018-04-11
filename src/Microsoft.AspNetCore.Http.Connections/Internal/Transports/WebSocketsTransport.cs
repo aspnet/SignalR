@@ -267,7 +267,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
                                         var sw = new SpinWait();
                                         while (_watch.ElapsedMilliseconds < 1)
                                         {
-                                            sw.SpinOnce()
+                                            sw.SpinOnce();
                                         }
                                         _watch.Stop();
                                         watchTime += _watch.ElapsedMilliseconds;
