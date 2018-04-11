@@ -14,6 +14,6 @@ simpleNode('Windows.10.Enterprise.RS3.ASPNET') {
         }
     }
     finally {
-        archiveArtifacts allowEmptyArchive: false, artifacts: "${logDir}/**'
+        archiveArtifacts allowEmptyArchive: false, artifacts: "${logDir}/**"
     }
 }
