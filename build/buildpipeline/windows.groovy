@@ -6,7 +6,12 @@ simpleNode('Windows.10.Enterprise.RS3.ASPNET') {
     stage ('Checking out source') {
         checkout scm
     }
-    stage ('Build') {
-        bat '.\\run.cmd -CI default-build'
+    try{
+        stage ('Build') {
+            bat '.\\run.cmd -CI default-build'
+        }
+    }
+    finally {
+        archiveArtifacts allowEmptyArchive: false, artifacts: 'testlogs/**'
     }
 }
