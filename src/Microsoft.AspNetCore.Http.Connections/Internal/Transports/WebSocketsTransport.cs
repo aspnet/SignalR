@@ -208,7 +208,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
         private async Task StartSending(WebSocket socket)
         {
             Exception error = null;
-            const int maxBuffer = 1024;
+            const int maxBuffer = 4096;
             try
             {
                 while (true)
@@ -254,7 +254,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
 
                                         _application.Input.AdvanceTo(buffer.Start, buffer.End);
 
-                                        await Task.Delay(1);
+                                        //await Task.Delay(1);
+                                        await Task.Yield();
 
                                         var hasData = _application.Input.TryRead(out result);
                                         buffer = result.Buffer;
