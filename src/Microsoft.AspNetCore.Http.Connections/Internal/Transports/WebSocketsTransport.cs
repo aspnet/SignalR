@@ -263,15 +263,11 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
                                         _application.Input.AdvanceTo(buffer.Start, buffer.End);
 
                                         _watch.Start();
-                                        //await Task.Delay(1);
-                                        while (_watch.ElapsedMilliseconds < 1)
-                                        {
-                                            Thread.SpinWait(100);
-                                        }
+                                        await Task.Delay(1);
+                                        //await Task.Yield();
                                         _watch.Stop();
                                         watchTime += _watch.ElapsedMilliseconds;
                                         _watch.Reset();
-                                        //await Task.Yield();
 
                                         var hasData = _application.Input.TryRead(out result);
                                         buffer = result.Buffer;
