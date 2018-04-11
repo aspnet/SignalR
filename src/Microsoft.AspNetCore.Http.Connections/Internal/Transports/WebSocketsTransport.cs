@@ -231,7 +231,17 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
                             {
                                 if (buffer.Length >= maxBuffer)
                                 {
-                                    if (!await WriteAsync(socket, buffer))
+                                    Log.SendPayload(_logger, buffer.Length);
+
+                                    var webSocketMessageType = (_connection.ActiveFormat == TransferFormat.Binary
+                                    ? WebSocketMessageType.Binary
+                                    : WebSocketMessageType.Text);
+
+                                    if (WebSocketCanSend(socket))
+                                    {
+                                        await socket.SendAsync(buffer, webSocketMessageType);
+                                    }
+                                    else
                                     {
                                         break;
                                     }
@@ -255,7 +265,17 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
                                         }
                                     }
 
-                                    if (!await WriteAsync(socket, buffer))
+                                    Log.SendPayload(_logger, buffer.Length);
+
+                                    var webSocketMessageType = (_connection.ActiveFormat == TransferFormat.Binary
+                                    ? WebSocketMessageType.Binary
+                                    : WebSocketMessageType.Text);
+
+                                    if (WebSocketCanSend(socket))
+                                    {
+                                        await socket.SendAsync(buffer, webSocketMessageType);
+                                    }
+                                    else
                                     {
                                         break;
                                     }
@@ -297,25 +317,6 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
                 _application.Input.Complete();
             }
 
-        }
-
-        private async Task<bool> WriteAsync(WebSocket socket, ReadOnlySequence<byte> buffer)
-        {
-            Log.SendPayload(_logger, buffer.Length);
-
-            var webSocketMessageType = (_connection.ActiveFormat == TransferFormat.Binary
-            ? WebSocketMessageType.Binary
-            : WebSocketMessageType.Text);
-
-            if (WebSocketCanSend(socket))
-            {
-                await socket.SendAsync(buffer, webSocketMessageType);
-                return true;
-            }
-            else
-            {
-                return false;
-            }
         }
 
         private static bool WebSocketCanSend(WebSocket ws)
