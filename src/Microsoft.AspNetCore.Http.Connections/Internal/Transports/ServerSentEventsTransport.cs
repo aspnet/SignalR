@@ -25,6 +25,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
 
         public async Task ProcessRequestAsync(HttpContext context, CancellationToken token)
         {
+            const int maxBuffer = 4096;
             context.Response.ContentType = "text/event-stream";
             context.Response.Headers["Cache-Control"] = "no-cache";
 
@@ -50,9 +51,36 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
                     {
                         if (!buffer.IsEmpty)
                         {
-                            Log.SSEWritingMessage(_logger, buffer.Length);
+                            if (buffer.Length >= maxBuffer)
+                            {
+                                Log.SSEWritingMessage(_logger, buffer.Length);
 
-                            await ServerSentEventsMessageFormatter.WriteMessageAsync(buffer, context.Response.Body);
+                                await ServerSentEventsMessageFormatter.WriteMessageAsync(buffer, context.Response.Body);
+                            }
+                            else
+                            {
+                                while (buffer.Length < maxBuffer)
+                                {
+                                    var length = buffer.Length;
+
+                                    _application.AdvanceTo(buffer.Start, buffer.End);
+
+                                    await Task.Delay(1);
+                                    //await Task.Yield();
+
+                                    var hasData = _application.TryRead(out result);
+                                    buffer = result.Buffer;
+
+                                    if (buffer.Length == length)
+                                    {
+                                        break;
+                                    }
+                                }
+
+                                Log.SSEWritingMessage(_logger, buffer.Length);
+
+                                await ServerSentEventsMessageFormatter.WriteMessageAsync(buffer, context.Response.Body);
+                            }
                         }
                         else if (result.IsCompleted)
                         {
