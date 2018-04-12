@@ -1,0 +1,17 @@
+{
+  "name": "react-app",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@aspnet/signalr": "file:../../signalr",
+    "@aspnet/signalr-protocol-msgpack": "file:../../signalr-protocol-msgpack",
+    "react": "^16.3.1",
+    "react-dom": "^16.3.1",
+    "react-scripts": "1.1.4"
+  },
+  "scripts": {
+    "build": "react-scripts build",
+    "clean-signalr": "node ../../node_modules/rimraf/bin.js ./node_modules/@aspnet",
+    "test": "npm run clean-signalr && npm install && npm run build && npm run clean-signalr"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "ConsumptionTests",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "cd ./react-app && npm test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
