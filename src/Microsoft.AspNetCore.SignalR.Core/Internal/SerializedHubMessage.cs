@@ -23,7 +23,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         {
             for (var i = 0; i < messages.Count; i++)
             {
-                SetCache(messages[i].ProtocolName, messages[i].Serialized);
+                var message = messages[i];
+                SetCache(message.ProtocolName, message.Serialized);
             }
         }
 
