@@ -8,12 +8,9 @@ simpleNode('Windows.10.Enterprise.RS3.ASPNET') {
     }
     
     stage ('Build') {
-        try {
-            def environment = "set ASPNETCORE_TEST_LOG_DIR=${logDir}"
-            bat "${environment} & set ASPNETCORE_TEST_LOG_DIR= .\\run.cmd -CI default-build"
-        }
-        finally {
-            archiveArtifacts allowEmptyArchive: false, artifacts: "${logDir}/**"
-        }
+        def logDir = "./logs"
+        def environment = "set ASPNETCORE_TEST_LOG_DIR=${logDir}"
+        bat "${environment} & .\\run.cmd -CI default-build"
+        archiveArtifacts allowEmptyArchive: false, artifacts: './logs/**'
     }
 }
