@@ -123,13 +123,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Internal
         public RedisInvocation ReadInvocation(ReadOnlyMemory<byte> data)
         {
             // See WriteInvocation for the format
-
-            var length = MsgPackUtil.ReadArrayHeader(ref data);
-
-            if (length < 2)
-            {
-                throw new InvalidDataException("Insufficient items in Invocation array.");
-            }
+            ValidateArraySize(ref data, 2, "Invocation");
 
             // Read excluded Ids
             IReadOnlyList<string> excludedIds = null;
@@ -153,13 +147,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Internal
         public RedisGroupCommand ReadGroupCommand(ReadOnlyMemory<byte> data)
         {
             // See WriteGroupCommand for format.
-
-            var length = MsgPackUtil.ReadArrayHeader(ref data);
-
-            if (length < 5)
-            {
-                throw new InvalidDataException("Insufficient items in GroupCommand array.");
-            }
+            ValidateArraySize(ref data, 5, "GroupCommand");
 
             var id = MsgPackUtil.ReadInt32(ref data);
             var serverName = MsgPackUtil.ReadString(ref data);
@@ -173,14 +161,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Internal
         public int ReadAck(ReadOnlyMemory<byte> data)
         {
             // See WriteAck for format
-
-            var length = MsgPackUtil.ReadArrayHeader(ref data);
-
-            if (length < 1)
-            {
-                throw new InvalidDataException("Insufficient items in Ack array.");
-            }
-
+            ValidateArraySize(ref data, 1, "Ack");
             return MsgPackUtil.ReadInt32(ref data);
         }
 
@@ -214,6 +195,16 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Internal
             }
 
             return new SerializedHubMessage(serializations);
+        }
+
+        private static void ValidateArraySize(ref ReadOnlyMemory<byte> data, int expectedLength, string messageType)
+        {
+            var length = MsgPackUtil.ReadArrayHeader(ref data);
+
+            if (length < expectedLength)
+            {
+                throw new InvalidDataException($"Insufficient items in {messageType} array.");
+            }
         }
     }
 }
