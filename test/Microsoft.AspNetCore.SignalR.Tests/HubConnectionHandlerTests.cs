@@ -1761,7 +1761,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             using (var client = new TestClient())
             {
                 var httpContext = new DefaultHttpContext();
-                var feature = new HttpContextFeature
+                var feature = new TestHttpContextFeature
                 {
                     HttpContext = httpContext
                 };
@@ -1991,7 +1991,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             yield return new[] { typeof(HubT) };
         }
 
-        public class HttpContextFeature : IHttpContextFeature
+        public class TestHttpContextFeature : IHttpContextFeature
         {
             public HttpContext HttpContext { get; set; }
         }
