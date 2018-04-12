@@ -29,9 +29,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 errorMessage += Environment.NewLine;
                 errorMessage += string.Join(Environment.NewLine, results.Select(r =>
                 {
-                    string lineMessage = r.EventId.ToString() + ": " + r.Formatter(r.State, r.Exception);
+                    string lineMessage = r.LoggerName + " - " + r.EventId.ToString() + " - " + r.Formatter(r.State, r.Exception);
                     if (r.Exception != null)
                     {
+                        lineMessage += Environment.NewLine;
+                        lineMessage += "===================";
                         lineMessage += Environment.NewLine;
                         lineMessage += r.Exception;
                         lineMessage += Environment.NewLine;
