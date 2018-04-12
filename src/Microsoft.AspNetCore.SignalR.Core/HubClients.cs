@@ -4,7 +4,6 @@
 using System.Collections.Generic;
 using Microsoft.AspNetCore.SignalR.Internal;
 
-
 namespace Microsoft.AspNetCore.SignalR
 {
     public class HubClients<THub> : IHubClients where THub : Hub
