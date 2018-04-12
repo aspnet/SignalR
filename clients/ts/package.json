@@ -5,8 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "cd ./signalr && npm run build && cd ../signalr-protocol-msgpack && npm run build",
-    "test": "cd ./signalr && npm run test && cd ../signalr-protocol-msgpack && npm run test",
-    "ci-test": "npm run test && cd ./ConsumptionTests && npm run test"
+    "test": "cd ./signalr && npm run test && cd ../signalr-protocol-msgpack && npm run test"
   },
   "author": "Microsoft",
   "license": "Apache-2.0",
