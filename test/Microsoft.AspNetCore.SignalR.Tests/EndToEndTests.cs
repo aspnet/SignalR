@@ -34,7 +34,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
     }
 
     [Collection(EndToEndTestsCollection.Name)]
-    public class EndToEndTests : LoggedTest
+    public class EndToEndTests : VerifiableLoggedTest
     {
         private readonly ServerFixture<Startup> _serverFixture;
 
@@ -86,7 +86,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [WebSocketsSupportedCondition]
         public async Task WebSocketsTest()
         {
-            using (StartLog(out var loggerFactory))
+            using (StartVerifableLog(out var loggerFactory))
             {
                 var logger = loggerFactory.CreateLogger<EndToEndTests>();
 
@@ -123,7 +123,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [WebSocketsSupportedCondition]
         public async Task WebSocketsReceivesAndSendsPartialFramesTest()
         {
-            using (StartLog(out var loggerFactory))
+            using (StartVerifableLog(out var loggerFactory))
             {
                 var logger = loggerFactory.CreateLogger<EndToEndTests>();
 
@@ -161,7 +161,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [WebSocketsSupportedCondition]
         public async Task HttpRequestsNotSentWhenWebSocketsTransportRequested()
         {
-            using (StartLog(out var loggerFactory))
+            using (StartVerifableLog(out var loggerFactory))
             {
                 var logger = loggerFactory.CreateLogger<EndToEndTests>();
                 var url = _serverFixture.Url + "/echo";
@@ -209,7 +209,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(TransportTypesAndTransferFormats))]
         public async Task ConnectionCanSendAndReceiveMessages(HttpTransportType transportType, TransferFormat requestedTransferFormat)
         {
-            using (StartLog(out var loggerFactory, minLogLevel: LogLevel.Trace, testName: $"ConnectionCanSendAndReceiveMessages_{transportType.ToString()}_{requestedTransferFormat.ToString()}"))
+            using (StartVerifableLog(out var loggerFactory, minLogLevel: LogLevel.Trace, testName: $"ConnectionCanSendAndReceiveMessages_{transportType.ToString()}_{requestedTransferFormat.ToString()}"))
             {
                 var logger = loggerFactory.CreateLogger<EndToEndTests>();
 
@@ -273,7 +273,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(MessageSizesData))]
         public async Task ConnectionCanSendAndReceiveDifferentMessageSizesWebSocketsTransport(string message)
         {
-            using (StartLog(out var loggerFactory, LogLevel.Trace, testName: $"ConnectionCanSendAndReceiveDifferentMessageSizesWebSocketsTransport_{message.Length}"))
+            using (StartVerifableLog(out var loggerFactory, LogLevel.Trace, testName: $"ConnectionCanSendAndReceiveDifferentMessageSizesWebSocketsTransport_{message.Length}"))
             {
                 var logger = loggerFactory.CreateLogger<EndToEndTests>();
 
@@ -315,7 +315,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [WebSocketsSupportedCondition]
         public async Task UnauthorizedWebSocketsConnectionDoesNotConnect()
         {
-            using (StartLog(out var loggerFactory, LogLevel.Trace))
+            bool ExpectedErrors(WriteContext writeContext)
+            {
+                return writeContext.LoggerName == typeof(HttpConnection).FullName &&
+                       writeContext.EventId.Name == "ErrorStartingTransport";
+            }
+
+            using (StartVerifableLog(out var loggerFactory, LogLevel.Trace, expectedErrorsFilter: ExpectedErrors))
             {
                 var logger = loggerFactory.CreateLogger<EndToEndTests>();
 
@@ -348,7 +354,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [InlineData(HttpTransportType.ServerSentEvents)]
         public async Task UnauthorizedConnectionDoesNotConnect(HttpTransportType transportType)
         {
-            using (StartLog(out var loggerFactory, LogLevel.Trace, testName: $"{nameof(UnauthorizedConnectionDoesNotConnect)}_{transportType}"))
+            bool ExpectedErrors(WriteContext writeContext)
+            {
+                return writeContext.LoggerName == typeof(HttpConnection).FullName &&
+                       writeContext.EventId.Name == "ErrorWithNegotiation";
+            }
+
+            using (StartVerifableLog(out var loggerFactory, LogLevel.Trace, testName: $"{nameof(UnauthorizedConnectionDoesNotConnect)}_{transportType}", expectedErrorsFilter: ExpectedErrors))
             {
                 var logger = loggerFactory.CreateLogger<EndToEndTests>();
 
@@ -405,7 +417,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
         private async Task ServerClosesConnectionWithErrorIfHubCannotBeCreated(HttpTransportType transportType)
         {
-            using (StartLog(out var loggerFactory, testName: $"ConnectionCanSendAndReceiveMessages_{transportType.ToString()}"))
+            using (StartVerifableLog(out var loggerFactory, testName: $"ConnectionCanSendAndReceiveMessages_{transportType.ToString()}"))
             {
                 var logger = loggerFactory.CreateLogger<EndToEndTests>();
 
