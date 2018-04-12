@@ -3,7 +3,6 @@
 
 import { DataReceived, TransportClosed } from "./Common";
 import { HttpClient } from "./HttpClient";
-import { IConnection } from "./IConnection";
 import { ILogger, LogLevel } from "./ILogger";
 import { ITransport, TransferFormat } from "./ITransport";
 import { Arg, getDataDetail, sendMessage } from "./Utils";

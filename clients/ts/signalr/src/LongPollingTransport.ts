@@ -5,7 +5,6 @@ import { AbortController } from "./AbortController";
 import { DataReceived, TransportClosed } from "./Common";
 import { HttpError, TimeoutError } from "./Errors";
 import { HttpClient, HttpRequest } from "./HttpClient";
-import { IConnection } from "./IConnection";
 import { ILogger, LogLevel } from "./ILogger";
 import { ITransport, TransferFormat } from "./ITransport";
 import { Arg, getDataDetail, sendMessage } from "./Utils";
@@ -77,6 +76,12 @@ export class LongPollingTransport implements ITransport {
                     const pollUrl = `${url}&_=${Date.now()}`;
                     this.logger.log(LogLevel.Trace, `(LongPolling transport) polling: ${pollUrl}`);
                     const response = await this.httpClient.get(pollUrl, pollOptions);
+
+                    if (!this.running) {
+                        // We already terminated the connection, log it but just exit
+                        this.logger.log(LogLevel.Trace, `(LongPolling transport) Received ${response.statusCode} response from poll after shutdown`);
+                    }
+
                     if (response.statusCode === 204) {
                         this.logger.log(LogLevel.Information, "(LongPolling transport) Poll terminated by server");
 
@@ -103,19 +108,25 @@ export class LongPollingTransport implements ITransport {
                         }
                     }
                 } catch (e) {
-                    if (e instanceof TimeoutError) {
-                        // Ignore timeouts and reissue the poll.
-                        this.logger.log(LogLevel.Trace, "(LongPolling transport) Poll timed out, reissuing.");
+                    if (!this.running) {
+                        // Log but disregard errors that occur after we were stopped by DELETE
+                        this.logger.log(LogLevel.Trace, `(LongPolling transport) Poll errored after shutdown: ${e.message}`);
                     } else {
-                        // Close the connection with the error as the result.
-                        closeError = e;
-                        this.running = false;
+                        if (e instanceof TimeoutError) {
+                            // Ignore timeouts and reissue the poll.
+                            this.logger.log(LogLevel.Trace, "(LongPolling transport) Poll timed out, reissuing.");
+                        } else {
+                            // Close the connection with the error as the result.
+                            closeError = e;
+                            this.running = false;
+                        }
                     }
                 }
             }
         } finally {
             // Fire our onclosed event
             if (this.onclose) {
+                this.logger.log(LogLevel.Trace, `(LongPolling transport) Firing onclose event. Error: ${closeError || "<undefined>"}`);
                 this.onclose(closeError);
             }
 
@@ -137,7 +148,7 @@ export class LongPollingTransport implements ITransport {
             this.logger.log(LogLevel.Trace, `(LongPolling transport) sending DELETE request to ${this.url}.`);
 
             const deleteOptions: HttpRequest = {};
-            const token = this.accessTokenFactory();
+            const token = await this.accessTokenFactory();
             if (token) {
                 // tslint:disable-next-line:no-string-literal
                 deleteOptions.headers = {

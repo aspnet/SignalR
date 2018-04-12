@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 import { DataReceived, TransportClosed } from "./Common";
-import { IConnection } from "./IConnection";
 import { ILogger, LogLevel } from "./ILogger";
 import { ITransport, TransferFormat } from "./ITransport";
 import { Arg, getDataDetail } from "./Utils";
