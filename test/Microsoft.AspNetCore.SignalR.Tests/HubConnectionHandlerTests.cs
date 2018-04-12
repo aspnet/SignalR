@@ -1991,17 +1991,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             yield return new[] { typeof(HubT) };
         }
 
-        private static void SetHttpContext(ConnectionContext connection, HttpContext httpContext)
-        {
-            var feature = connection.Features.Get<IHttpContextFeature>();
-            if (feature == null)
-            {
-                feature = new HttpContextFeature();
-                connection.Features.Set(feature);
-            }
-            feature.HttpContext = httpContext;
-        }
-
         public class HttpContextFeature : IHttpContextFeature
         {
             public HttpContext HttpContext { get; set; }
