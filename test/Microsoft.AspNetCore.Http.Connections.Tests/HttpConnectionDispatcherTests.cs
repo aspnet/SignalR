@@ -935,7 +935,6 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                 var connection = manager.CreateConnection();
                 connection.TransportType = transportType;
 
-
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
 
                 var context1 = MakeRequest("/foo", connection);
