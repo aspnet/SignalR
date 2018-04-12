@@ -1598,7 +1598,6 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
                 connection.TransportType = transportType;
-                connection.Items[ConnectionMetadataNames.Transport] = transportType;
 
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
 
@@ -1640,7 +1639,6 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
                 connection.TransportType = HttpTransportType.LongPolling;
-                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
 
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
 
@@ -1688,7 +1686,6 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                 var manager = CreateConnectionManager(loggerFactory);
                 var connection = manager.CreateConnection();
                 connection.TransportType = HttpTransportType.LongPolling;
-                connection.Items[ConnectionMetadataNames.Transport] = HttpTransportType.LongPolling;
 
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
 
