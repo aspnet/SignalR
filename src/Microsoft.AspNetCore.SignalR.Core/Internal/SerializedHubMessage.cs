@@ -19,11 +19,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         public HubMessage Message { get; }
 
-        public SerializedHubMessage(IEnumerable<SerializedMessage> messages)
+        public SerializedHubMessage(IReadOnlyList<SerializedMessage> messages)
         {
-            foreach (var message in messages)
+            for (var i = 0; i < messages.Count; i++)
             {
-                SetCache(message.ProtocolName, message.Serialized);
+                SetCache(messages[i].ProtocolName, messages[i].Serialized);
             }
         }
 
