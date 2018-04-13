@@ -784,7 +784,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                     .WithLoggerFactory(loggerFactory)
                     .WithUrl(_serverFixture.Url + "/default", HttpTransportType.WebSockets, options =>
                     {
-                        options.WebSocketOptions = o => o.Cookies = cookieJar;
+                        options.WebSocketConfiguration = o => o.Cookies = cookieJar;
                     })
                     .Build();
                 try
