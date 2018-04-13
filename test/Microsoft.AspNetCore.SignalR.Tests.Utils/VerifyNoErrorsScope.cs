@@ -14,7 +14,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
     {
         private readonly IDisposable _wrappedDisposable;
         private readonly Func<WriteContext, bool> _expectedErrorsFilter;
-        private readonly ITestSink _sink;
+        private readonly LogSinkProvider _sink;
 
         public ILoggerFactory LoggerFactory { get; }
 
@@ -22,29 +22,31 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             _wrappedDisposable = wrappedDisposable;
             _expectedErrorsFilter = expectedErrorsFilter;
-            _sink = new TestSink();
+            _sink = new LogSinkProvider();
 
             LoggerFactory = loggerFactory ?? new LoggerFactory();
-            LoggerFactory.AddProvider(new NoErrorLoggerProvider(_sink));
+            LoggerFactory.AddProvider(_sink);
         }
 
         public void Dispose()
         {
             _wrappedDisposable?.Dispose();
 
-            var results = _sink.Writes.Where(w => w.LogLevel >= LogLevel.Error).ToList();
+            var results = _sink.GetLogs().Where(w => w.Write.LogLevel >= LogLevel.Error).ToList();
 
             if (_expectedErrorsFilter != null)
             {
-                results = results.Where(w => !_expectedErrorsFilter(w)).ToList();
+                results = results.Where(w => !_expectedErrorsFilter(w.Write)).ToList();
             }
 
             if (results.Count > 0)
             {
                 string errorMessage = $"{results.Count} error(s) logged.";
                 errorMessage += Environment.NewLine;
-                errorMessage += string.Join(Environment.NewLine, results.Select(r =>
+                errorMessage += string.Join(Environment.NewLine, results.Select(record =>
                 {
+                    var r = record.Write;
+
                     string lineMessage = r.LoggerName + " - " + r.EventId.ToString() + " - " + r.Formatter(r.State, r.Exception);
                     if (r.Exception != null)
                     {
@@ -59,25 +61,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 }));
 
                 throw new Exception(errorMessage);
-            }
-        }
-
-        private class NoErrorLoggerProvider : ILoggerProvider
-        {
-            private readonly ITestSink _testSink;
-
-            public NoErrorLoggerProvider(ITestSink testSink)
-            {
-                _testSink = testSink;
-            }
-
-            public void Dispose()
-            {
-            }
-
-            public ILogger CreateLogger(string categoryName)
-            {
-                return new TestLogger(categoryName, _testSink, true);
             }
         }
     }
