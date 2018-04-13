@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Connections;
 
 namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
 {
-    internal interface ITransport : IDuplexPipe
+    public interface ITransport : IDuplexPipe
     {
         Task StartAsync(Uri url, TransferFormat transferFormat);
         Task StopAsync();
