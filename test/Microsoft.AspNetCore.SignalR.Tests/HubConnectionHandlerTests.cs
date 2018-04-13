@@ -194,7 +194,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             var part2 = Encoding.UTF8.GetBytes(",\"version\": 1}");
             var part3 = Encoding.UTF8.GetBytes("\u001e");
 
-            using (var client = new TestClient(synchronousCallbacks: true))
+            using (var client = new TestClient())
             {
                 client.SupportedFormats = TransferFormat.Text;
 
@@ -234,7 +234,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             var part2 = Encoding.UTF8.GetBytes("\"target\": \"Echo\", \"arguments\"");
             var part3 = Encoding.UTF8.GetBytes(":[\"hello\"]}\u001e");
 
-            using (var client = new TestClient(synchronousCallbacks: true))
+            using (var client = new TestClient())
             {
                 client.SupportedFormats = TransferFormat.Text;
 
@@ -272,7 +272,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             var connectionHandler = HubConnectionHandlerTestUtils.GetHubConnectionHandler(typeof(HubT));
             var payload = Encoding.UTF8.GetBytes("{\"protocol\": \"json\",\"version\": 1}\u001e{\"type\":1, \"invocationId\":\"1\", \"target\": \"Echo\", \"arguments\":[\"hello\"]}\u001e");
 
-            using (var client = new TestClient(synchronousCallbacks: true))
+            using (var client = new TestClient())
             {
                 client.SupportedFormats = TransferFormat.Text;
 
@@ -616,7 +616,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
             var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
-            using (var client = new TestClient(synchronousCallbacks: true))
+            using (var client = new TestClient())
             {
                 var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
 
@@ -1195,7 +1195,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 await Task.WhenAll(firstClient.Connected, secondClient.Connected).OrTimeout();
 
-                var result = (await firstClient.InvokeAsync("GroupSendMethod", "testGroup", "test").OrTimeout()).Result;
+                var result = (await firstClient.InvokeAsync("GroupSendMethod", "testGroup", "test").OrTimeout(10)).Result;
 
                 // check that 'firstConnection' hasn't received the group send
                 Assert.Null(firstClient.TryRead());

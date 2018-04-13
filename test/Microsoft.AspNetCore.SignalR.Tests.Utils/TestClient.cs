@@ -32,7 +32,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
         public TransferFormat ActiveFormat { get; set; }
 
-        public TestClient(bool synchronousCallbacks = false, IHubProtocol protocol = null, IInvocationBinder invocationBinder = null, bool addClaimId = false)
+        public TestClient(bool synchronousCallbacks = true, IHubProtocol protocol = null, IInvocationBinder invocationBinder = null, bool addClaimId = false)
         {
             var scheduler = synchronousCallbacks ? PipeScheduler.Inline : null;
             var options = new PipeOptions(readerScheduler: scheduler, writerScheduler: scheduler, useSynchronizationContext: false);
