@@ -6,6 +6,7 @@ using System.Reflection;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Connections;
+using Microsoft.AspNetCore.Http.Connections.Internal;
 using Microsoft.AspNetCore.Routing;
 
 namespace Microsoft.AspNetCore.Http.Connections
@@ -21,9 +22,6 @@ namespace Microsoft.AspNetCore.Http.Connections
             _dispatcher = dispatcher;
         }
 
-        public void MapConnections(string path, Action<IConnectionBuilder> configure) =>
-            MapConnections(new PathString(path), new HttpConnectionOptions(), configure);
-
         public void MapConnections(PathString path, Action<IConnectionBuilder> configure) =>
             MapConnections(path, new HttpConnectionOptions(), configure);
 
@@ -34,11 +32,6 @@ namespace Microsoft.AspNetCore.Http.Connections
             var socket = connectionBuilder.Build();
             _routes.MapRoute(path, c => _dispatcher.ExecuteAsync(c, options, socket));
             _routes.MapRoute(path + "/negotiate", c => _dispatcher.ExecuteNegotiateAsync(c, options));
-        }
-
-        public void MapConnectionHandler<TConnectionHandler>(string path) where TConnectionHandler : ConnectionHandler
-        {
-            MapConnectionHandler<TConnectionHandler>(new PathString(path), configureOptions: null);
         }
 
         public void MapConnectionHandler<TConnectionHandler>(PathString path) where TConnectionHandler : ConnectionHandler
