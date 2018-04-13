@@ -20,7 +20,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             var connection = connectionManager.CreateConnection();
 
             Assert.NotNull(connection.ConnectionId);
-            Assert.Equal(HttpConnectionContext.ConnectionStatus.Inactive, connection.Status);
+            Assert.Equal(HttpConnectionStatus.Inactive, connection.Status);
             Assert.Null(connection.ApplicationTask);
             Assert.Null(connection.TransportTask);
             Assert.Null(connection.Cancellation);
@@ -266,7 +266,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             Assert.NotNull(connection.Transport);
 
             await connection.DisposeAsync();
-            Assert.Equal(HttpConnectionContext.ConnectionStatus.Disposed, connection.Status);
+            Assert.Equal(HttpConnectionStatus.Disposed, connection.Status);
         }
 
         [Fact]
@@ -280,7 +280,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             Assert.NotNull(connection.Application);
 
             await connection.DisposeAsync();
-            Assert.Equal(HttpConnectionContext.ConnectionStatus.Disposed, connection.Status);
+            Assert.Equal(HttpConnectionStatus.Disposed, connection.Status);
         }
 
         [Fact]

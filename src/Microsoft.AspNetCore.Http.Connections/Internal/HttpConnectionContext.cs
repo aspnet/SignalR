@@ -87,7 +87,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
 
         public DateTime LastSeenUtc { get; set; }
 
-        public ConnectionStatus Status { get; set; } = ConnectionStatus.Inactive;
+        public HttpConnectionStatus Status { get; set; } = HttpConnectionStatus.Inactive;
 
         public override string ConnectionId { get; set; }
 
@@ -160,13 +160,13 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
             {
                 await Lock.WaitAsync();
 
-                if (Status == ConnectionStatus.Disposed)
+                if (Status == HttpConnectionStatus.Disposed)
                 {
                     disposeTask = _disposeTcs.Task;
                 }
                 else
                 {
-                    Status = ConnectionStatus.Disposed;
+                    Status = HttpConnectionStatus.Disposed;
 
                     Log.DisposingConnection(_logger, ConnectionId);
 

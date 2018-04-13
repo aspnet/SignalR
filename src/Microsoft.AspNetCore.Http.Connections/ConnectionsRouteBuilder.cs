@@ -23,9 +23,9 @@ namespace Microsoft.AspNetCore.Http.Connections
         }
 
         public void MapConnections(PathString path, Action<IConnectionBuilder> configure) =>
-            MapConnections(path, new HttpConnectionOptions(), configure);
+            MapConnections(path, new HttpConnectionDispatcherOptions(), configure);
 
-        public void MapConnections(PathString path, HttpConnectionOptions options, Action<IConnectionBuilder> configure)
+        public void MapConnections(PathString path, HttpConnectionDispatcherOptions options, Action<IConnectionBuilder> configure)
         {
             var connectionBuilder = new ConnectionBuilder(_routes.ServiceProvider);
             configure(connectionBuilder);
@@ -39,10 +39,10 @@ namespace Microsoft.AspNetCore.Http.Connections
             MapConnectionHandler<TConnectionHandler>(path, configureOptions: null);
         }
 
-        public void MapConnectionHandler<TConnectionHandler>(PathString path, Action<HttpConnectionOptions> configureOptions) where TConnectionHandler : ConnectionHandler
+        public void MapConnectionHandler<TConnectionHandler>(PathString path, Action<HttpConnectionDispatcherOptions> configureOptions) where TConnectionHandler : ConnectionHandler
         {
             var authorizeAttributes = typeof(TConnectionHandler).GetCustomAttributes<AuthorizeAttribute>(inherit: true);
-            var options = new HttpConnectionOptions();
+            var options = new HttpConnectionDispatcherOptions();
             foreach (var attribute in authorizeAttributes)
             {
                 options.AuthorizationData.Add(attribute);
