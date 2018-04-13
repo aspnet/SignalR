@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.Http.Connections.Client;
+using Microsoft.AspNetCore.Http.Connections.Client.Internal;
 using Xunit;
 
 namespace Microsoft.AspNetCore.SignalR.Client.Tests
@@ -50,14 +51,14 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     return await next();
                 });
 
-                Task<string> AccessTokenFactory()
+                Task<string> AccessTokenProvider()
                 {
                     callCount++;
                     return Task.FromResult(callCount.ToString());
                 }
 
                 await WithConnectionAsync(
-                    CreateConnection(testHttpHandler, transportType: transportType, accessTokenFactory: AccessTokenFactory),
+                    CreateConnection(testHttpHandler, transportType: transportType, accessTokenProvider: AccessTokenProvider),
                     async (connection) =>
                     {
                         await connection.StartAsync(TransferFormat.Text).OrTimeout();

@@ -41,8 +41,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
             private static readonly Action<ILogger, Uri, Exception> _errorWithNegotiation =
                 LoggerMessage.Define<Uri>(LogLevel.Error, new EventId(10, "ErrorWithNegotiation"), "Failed to start connection. Error getting negotiation response from '{Url}'.");
 
-            private static readonly Action<ILogger, string, Exception> _errorStartingTransport =
-                LoggerMessage.Define<string>(LogLevel.Error, new EventId(11, "ErrorStartingTransport"), "Failed to start connection. Error starting transport '{Transport}'.");
+            private static readonly Action<ILogger, HttpTransportType, Exception> _errorStartingTransport =
+                LoggerMessage.Define<HttpTransportType>(LogLevel.Error, new EventId(11, "ErrorStartingTransport"), "Failed to start connection. Error starting transport '{Transport}'.");
 
             private static readonly Action<ILogger, string, Exception> _transportNotSupported =
                 LoggerMessage.Define<string>(LogLevel.Debug, new EventId(12, "TransportNotSupported"), "Skipping transport {TransportName} because it is not supported by this client.");
@@ -62,8 +62,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
             private static readonly Action<ILogger, Exception> _transportThrewExceptionOnStop =
                 LoggerMessage.Define(LogLevel.Error, new EventId(17, "TransportThrewExceptionOnStop"), "The transport threw an exception while stopping.");
 
-            private static readonly Action<ILogger, string, Exception> _transportStarted =
-                LoggerMessage.Define<string>(LogLevel.Debug, new EventId(18, "TransportStarted"), "Transport '{Transport}' started.");
+            private static readonly Action<ILogger, HttpTransportType, Exception> _transportStarted =
+                LoggerMessage.Define<HttpTransportType>(LogLevel.Debug, new EventId(18, "TransportStarted"), "Transport '{Transport}' started.");
 
             public static void Starting(ILogger logger)
             {
@@ -118,12 +118,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
                 _errorWithNegotiation(logger, url, exception);
             }
 
-            public static void ErrorStartingTransport(ILogger logger, ITransport transport, Exception exception)
+            public static void ErrorStartingTransport(ILogger logger, HttpTransportType transportType, Exception exception)
             {
-                if (logger.IsEnabled(LogLevel.Error))
-                {
-                    _errorStartingTransport(logger, transport.GetType().Name, exception);
-                }
+                _errorStartingTransport(logger, transportType, exception);
             }
 
             public static void TransportNotSupported(ILogger logger, string transport)
@@ -165,12 +162,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
                 _transportThrewExceptionOnStop(logger, ex);
             }
 
-            public static void TransportStarted(ILogger logger, ITransport transport)
+            public static void TransportStarted(ILogger logger, HttpTransportType transportType)
             {
-                if (logger.IsEnabled(LogLevel.Debug))
-                {
-                    _transportStarted(logger, transport.GetType().Name, null);
-                }
+                _transportStarted(logger, transportType, null);
             }
         }
     }
