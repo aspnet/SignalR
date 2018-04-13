@@ -3,9 +3,9 @@
 
 using System.Collections.Generic;
 
-namespace Microsoft.AspNetCore.SignalR
+namespace Microsoft.AspNetCore.SignalR.Internal
 {
-    public class HubCallerClients : IHubCallerClients
+    internal class HubCallerClients : IHubCallerClients
     {
         private readonly string _connectionId;
         private readonly IHubClients _hubClients;
