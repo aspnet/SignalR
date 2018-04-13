@@ -6,9 +6,9 @@ using System.IO.Pipelines;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
 
-namespace Microsoft.AspNetCore.Http.Connections.Client
+namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
 {
-    public interface ITransport : IDuplexPipe
+    internal interface ITransport : IDuplexPipe
     {
         Task StartAsync(Uri url, TransferFormat transferFormat);
         Task StopAsync();
