@@ -93,13 +93,24 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
                 // Set the sending error so we communicate that to the application
                 _error = sending.IsFaulted ? sending.Exception.InnerException : null;
 
-                // Send the DELETE request to clean-up the connection on the server.
-                // This will also cause the poll to return.
-                await SendDeleteRequest(url);
 
-                // This timeout is only to ensure the poll is cleaned up despite a misbehaving server.
-                // It doesn't need to be configurable.
-                _transportCts.CancelAfter(ShutdownTimeout);
+                try
+                {
+                    // Send the DELETE request to clean-up the connection on the server.
+                    // This will also cause the poll to return.
+                    await SendDeleteRequest(url);
+
+                    // This timeout is only to ensure the poll is cleaned up despite a misbehaving server.
+                    // It doesn't need to be configurable.
+                    _transportCts.CancelAfter(ShutdownTimeout);
+                }
+                catch (Exception ex)
+                {
+                    Log.ErrorSendingDeleteRequest(_logger, url, ex);
+
+                    // We failed to send the delete request so cancel the poll immediately
+                    _transportCts.Cancel();
+                }
 
                 // Cancel any pending flush so that we can quit
                 _application.Output.CancelPendingFlush();
@@ -205,17 +216,10 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
 
         private async Task SendDeleteRequest(Uri pollUrl)
         {
-            try
-            {
-                Log.SendingDeleteRequest(_logger, pollUrl);
-                var response = await _httpClient.DeleteAsync(pollUrl);
-                response.EnsureSuccessStatusCode();
-                Log.DeleteRequestAccepted(_logger, pollUrl);
-            }
-            catch (Exception ex)
-            {
-                Log.ErrorSendingDeleteRequest(_logger, pollUrl, ex);
-            }
+            Log.SendingDeleteRequest(_logger, pollUrl);
+            var response = await _httpClient.DeleteAsync(pollUrl);
+            response.EnsureSuccessStatusCode();
+            Log.DeleteRequestAccepted(_logger, pollUrl);
         }
     }
 }
