@@ -1195,7 +1195,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 await Task.WhenAll(firstClient.Connected, secondClient.Connected).OrTimeout();
 
-                var result = (await firstClient.InvokeAsync("GroupSendMethod", "testGroup", "test").OrTimeout(10)).Result;
+                var result = (await firstClient.InvokeAsync("GroupSendMethod", "testGroup", "test").OrTimeout()).Result;
 
                 // check that 'firstConnection' hasn't received the group send
                 Assert.Null(firstClient.TryRead());

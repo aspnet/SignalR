@@ -34,8 +34,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
         public TestClient(IHubProtocol protocol = null, IInvocationBinder invocationBinder = null, bool addClaimId = false)
         {
-            var scheduler = PipeScheduler.Inline;
-            var options = new PipeOptions(readerScheduler: scheduler, writerScheduler: scheduler, useSynchronizationContext: false);
+            var options = new PipeOptions(readerScheduler: PipeScheduler.Inline, writerScheduler: PipeScheduler.Inline, useSynchronizationContext: false);
             var pair = DuplexPipe.CreateConnectionPair(options, options);
             Connection = new DefaultConnectionContext(Guid.NewGuid().ToString(), pair.Transport, pair.Application);
 
