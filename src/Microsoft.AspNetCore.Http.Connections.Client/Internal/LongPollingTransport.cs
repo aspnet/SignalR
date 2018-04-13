@@ -85,6 +85,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
 
                 // Cancel the application so that ReadAsync yields
                 _application.Input.CancelPendingRead();
+
+                await sending;
             }
             else
             {
@@ -101,6 +103,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
 
                 // Cancel any pending flush so that we can quit
                 _application.Output.CancelPendingFlush();
+
+                await receiving;
             }
         }
 
