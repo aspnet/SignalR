@@ -277,7 +277,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         }
 
         [Fact]
-        public async Task LongPollingTransportShutsDownAfterTimeoutEvenIfServerDoesntCompletePoll()
+        public async Task LongPollingTransportShutsDownImmediatelyEvenIfServerDoesntCompletePoll()
         {
             var mockHttpHandler = new Mock<HttpMessageHandler>();
             mockHttpHandler.Protected()
@@ -291,7 +291,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             using (var httpClient = new HttpClient(mockHttpHandler.Object))
             {
                 var longPollingTransport = new LongPollingTransport(httpClient);
-                longPollingTransport.ShutdownTimeout = TimeSpan.FromMilliseconds(1);
 
                 try
                 {
