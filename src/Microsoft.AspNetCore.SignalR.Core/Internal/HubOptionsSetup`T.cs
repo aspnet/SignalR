@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 
 namespace Microsoft.AspNetCore.SignalR.Internal
 {
-    internal class HubOptionsSetup<THub> : IConfigureOptions<HubOptions<THub>> where THub : Hub
+    public class HubOptionsSetup<THub> : IConfigureOptions<HubOptions<THub>> where THub : Hub
     {
         private readonly HubOptions _hubOptions;
         public HubOptionsSetup(IOptions<HubOptions> options)

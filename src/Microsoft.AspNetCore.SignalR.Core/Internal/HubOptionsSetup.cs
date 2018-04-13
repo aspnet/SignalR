@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 
 namespace Microsoft.AspNetCore.SignalR.Internal
 {
-    internal class HubOptionsSetup : IConfigureOptions<HubOptions>
+    public class HubOptionsSetup : IConfigureOptions<HubOptions>
     {
         internal static TimeSpan DefaultHandshakeTimeout => TimeSpan.FromSeconds(15);
 
