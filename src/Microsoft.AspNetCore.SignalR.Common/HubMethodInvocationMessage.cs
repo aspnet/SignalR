@@ -5,7 +5,7 @@ using System;
 using System.Linq;
 using System.Runtime.ExceptionServices;
 
-namespace Microsoft.AspNetCore.SignalR.Internal.Protocol
+namespace Microsoft.AspNetCore.SignalR
 {
     public abstract class HubMethodInvocationMessage : HubInvocationMessage
     {
