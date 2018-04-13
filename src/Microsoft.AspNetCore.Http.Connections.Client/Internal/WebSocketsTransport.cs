@@ -84,7 +84,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
                     _accessTokenProvider = httpConnectionOptions.AccessTokenProvider;
                 }
 
-                httpConnectionOptions.WebSocketOptions?.Invoke(_webSocket.Options);
+                httpConnectionOptions.WebSocketConfiguration?.Invoke(_webSocket.Options);
 
                 _closeTimeout = httpConnectionOptions.CloseTimeout;
             }
