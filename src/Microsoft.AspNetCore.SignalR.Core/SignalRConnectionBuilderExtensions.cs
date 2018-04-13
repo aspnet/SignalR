@@ -14,8 +14,8 @@ namespace Microsoft.AspNetCore.SignalR
             var marker = connectionBuilder.ApplicationServices.GetService(typeof(SignalRMarkerService));
             if (marker == null)
             {
-                throw new InvalidOperationException("Unable to find the SignalR service. Please add it by " +
-                    "calling 'IServiceCollection.AddSignalR()'.");
+                throw new InvalidOperationException("Unable to find the required services. Please add all the required services by calling " +
+                    "'IServiceCollection.AddSignalR' inside the call to 'ConfigureServices(...)' in the application startup code.");
             }
 
             return connectionBuilder.UseConnectionHandler<HubConnectionHandler<THub>>();
