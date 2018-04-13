@@ -3,7 +3,7 @@
 
 using Microsoft.AspNetCore.Internal;
 
-namespace Microsoft.AspNetCore.SignalR
+namespace Microsoft.AspNetCore.SignalR.Protocol
 {
     public static class HubProtocolExtensions
     {

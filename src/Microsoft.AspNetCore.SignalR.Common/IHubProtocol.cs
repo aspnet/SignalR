@@ -5,7 +5,7 @@ using System;
 using System.Buffers;
 using Microsoft.AspNetCore.Connections;
 
-namespace Microsoft.AspNetCore.SignalR
+namespace Microsoft.AspNetCore.SignalR.Protocol
 {
     public interface IHubProtocol
     {
