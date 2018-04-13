@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net;
+using System.Threading.Tasks;
 using ClientSample;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,9 +32,24 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         public static IHubConnectionBuilder WithEndPoint(this IHubConnectionBuilder builder, EndPoint endPoint)
         {
-            builder.WithConnectionFactory(format => new TcpConnection(endPoint).StartAsync());
+            builder.Services.AddSingleton<IConnectionFactory>(new TcpConnectionFactory(endPoint));
 
             return builder;
+        }
+
+        private class TcpConnectionFactory : IConnectionFactory
+        {
+            private readonly EndPoint _endPoint;
+
+            public TcpConnectionFactory(EndPoint endPoint)
+            {
+                _endPoint = endPoint;
+            }
+
+            public Task<ConnectionContext> ConnectAsync(TransferFormat transferFormat)
+            {
+                return new TcpConnection(_endPoint).StartAsync();
+            }
         }
     }
 }

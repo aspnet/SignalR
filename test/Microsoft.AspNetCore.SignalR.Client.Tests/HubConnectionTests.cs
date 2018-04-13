@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
+using Microsoft.AspNetCore.SignalR.Tests;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Xunit;
@@ -44,11 +45,17 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public async Task ClosedEventRaisedWhenTheClientIsStopped()
         {
             var builder = new HubConnectionBuilder();
-            builder.WithConnectionFactory(format => new TestConnection().StartAsync(format));
+
+            DelegateConnectionFactory delegateConnectionFactory = new DelegateConnectionFactory(format => new TestConnection().StartAsync(format));
+            builder.Services.AddSingleton<IConnectionFactory>(delegateConnectionFactory);
 
             var hubConnection = builder.Build();
             var closedEventTcs = new TaskCompletionSource<Exception>();
-            hubConnection.Closed += e => closedEventTcs.SetResult(e);
+            hubConnection.Closed += e =>
+            {
+                closedEventTcs.SetResult(e);
+                return Task.CompletedTask;
+            };
 
             await hubConnection.StartAsync().OrTimeout();
             await hubConnection.StopAsync().OrTimeout();
@@ -90,7 +97,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             hubConnection.ServerTimeout = TimeSpan.FromMilliseconds(100);
 
             var closeTcs = new TaskCompletionSource<Exception>();
-            hubConnection.Closed += ex => closeTcs.TrySetResult(ex);
+            hubConnection.Closed += ex =>
+            {
+                closeTcs.TrySetResult(ex);
+                return Task.CompletedTask;
+            };
 
             await hubConnection.StartAsync().OrTimeout();
 

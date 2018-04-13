@@ -5,8 +5,11 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
+using Microsoft.AspNetCore.Http.Connections.Client;
 using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using Xunit;
@@ -47,28 +50,10 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         }
 
         [Fact]
-        public async Task WithConnectionFactorySetsConnectionFactory()
-        {
-            var called = false;
-            Func<TransferFormat, Task<ConnectionContext>> connectionFactory = format =>
-            {
-                called = true;
-                return Task.FromResult<ConnectionContext>(null);
-            };
-
-            var serviceProvider = new HubConnectionBuilder().WithConnectionFactory(connectionFactory).Services.BuildServiceProvider();
-
-            var factory = serviceProvider.GetService<IConnectionFactory>();
-            Assert.NotNull(factory);
-            Assert.False(called);
-            await factory.ConnectAsync(TransferFormat.Text);
-            Assert.True(called);
-        }
-
-        [Fact]
         public void BuildCanOnlyBeCalledOnce()
         {
-            var builder = new HubConnectionBuilder().WithConnectionFactory(format => null);
+            var builder = new HubConnectionBuilder();
+            builder.Services.AddSingleton<IConnectionFactory>(new HttpConnectionFactory(Options.Create(new HttpConnectionOptions()), NullLoggerFactory.Instance));
 
             Assert.NotNull(builder.Build());
 

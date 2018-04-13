@@ -41,7 +41,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         // Transient state to a connection
         private ConnectionState _connectionState;
 
-        public event Action<Exception> Closed;
+        public event Func<Exception, Task> Closed;
 
         /// <summary>
         /// Gets or sets the server timeout interval for the connection. Changes to this value
@@ -51,10 +51,15 @@ namespace Microsoft.AspNetCore.SignalR.Client
         public TimeSpan HandshakeTimeout { get; set; } = DefaultHandshakeTimeout;
 
         public HubConnection(IConnectionFactory connectionFactory, IHubProtocol protocol, IServiceProvider serviceProvider, ILoggerFactory loggerFactory)
+            : this(connectionFactory, protocol, loggerFactory)
+        {
+            _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+        }
+
+        public HubConnection(IConnectionFactory connectionFactory, IHubProtocol protocol, ILoggerFactory loggerFactory)
         {
             _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
             _protocol = protocol ?? throw new ArgumentNullException(nameof(protocol));
-            _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
 
             _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
             _logger = _loggerFactory.CreateLogger<HubConnection>();
@@ -66,7 +71,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             await StartAsyncCore(cancellationToken).ForceAsync();
         }
 
-        public async Task StopAsync()
+        public async Task StopAsync(CancellationToken cancellationToken = default)
         {
             CheckDisposed();
             await StopAsyncCore(disposing: false).ForceAsync();
@@ -101,16 +106,16 @@ namespace Microsoft.AspNetCore.SignalR.Client
             return new Subscription(invocationHandler, invocationList);
         }
 
-        public async Task<ChannelReader<object>> StreamAsChannelAsync(string methodName, Type returnType, object[] args, CancellationToken cancellationToken = default) =>
-            await StreamAsChannelAsyncCore(methodName, returnType, args, cancellationToken).ForceAsync();
+        public async Task<ChannelReader<object>> StreamAsChannelCoreAsync(string methodName, Type returnType, object[] args, CancellationToken cancellationToken = default) =>
+            await StreamAsChannelCoreAsyncCore(methodName, returnType, args, cancellationToken).ForceAsync();
 
-        public async Task<object> InvokeAsync(string methodName, Type returnType, object[] args, CancellationToken cancellationToken = default) =>
-            await InvokeAsyncCore(methodName, returnType, args, cancellationToken).ForceAsync();
+        public async Task<object> InvokeCoreAsync(string methodName, Type returnType, object[] args, CancellationToken cancellationToken = default) =>
+            await InvokeCoreAsyncCore(methodName, returnType, args, cancellationToken).ForceAsync();
 
         // REVIEW: We don't generally use cancellation tokens when writing to a pipe because the asynchrony is only the result of backpressure.
         // However, this would be the only "invocation" method _without_ a cancellation token... which is odd.
-        public async Task SendAsync(string methodName, object[] args, CancellationToken cancellationToken = default) =>
-            await SendAsyncCore(methodName, args, cancellationToken).ForceAsync();
+        public async Task SendCoreAsync(string methodName, object[] args, CancellationToken cancellationToken = default) =>
+            await SendCoreAsyncCore(methodName, args, cancellationToken).ForceAsync();
 
         private async Task StartAsyncCore(CancellationToken cancellationToken)
         {
@@ -210,7 +215,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
         }
 
-        private async Task<ChannelReader<object>> StreamAsChannelAsyncCore(string methodName, Type returnType, object[] args, CancellationToken cancellationToken)
+        private async Task<ChannelReader<object>> StreamAsChannelCoreAsyncCore(string methodName, Type returnType, object[] args, CancellationToken cancellationToken)
         {
             async Task OnStreamCancelled(InvocationRequest irq)
             {
@@ -246,7 +251,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             try
             {
                 CheckDisposed();
-                CheckConnectionActive(nameof(StreamAsChannelAsync));
+                CheckConnectionActive(nameof(StreamAsChannelCoreAsync));
 
                 var irq = InvocationRequest.Stream(cancellationToken, returnType, _connectionState.GetNextId(), _loggerFactory, this, out channel);
                 await InvokeStreamCore(methodName, irq, args, cancellationToken);
@@ -265,7 +270,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         }
 
 
-        private async Task<object> InvokeAsyncCore(string methodName, Type returnType, object[] args, CancellationToken cancellationToken)
+        private async Task<object> InvokeCoreAsyncCore(string methodName, Type returnType, object[] args, CancellationToken cancellationToken)
         {
             CheckDisposed();
             await WaitConnectionLockAsync();
@@ -274,7 +279,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             try
             {
                 CheckDisposed();
-                CheckConnectionActive(nameof(InvokeAsync));
+                CheckConnectionActive(nameof(InvokeCoreAsync));
 
                 var irq = InvocationRequest.Invoke(cancellationToken, returnType, _connectionState.GetNextId(), _loggerFactory, this, out invocationTask);
                 await InvokeCore(methodName, irq, args, cancellationToken);
@@ -358,7 +363,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             Log.MessageSent(_logger, hubMessage);
         }
 
-        private async Task SendAsyncCore(string methodName, object[] args, CancellationToken cancellationToken)
+        private async Task SendCoreAsyncCore(string methodName, object[] args, CancellationToken cancellationToken)
         {
             CheckDisposed();
 
@@ -366,7 +371,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             try
             {
                 CheckDisposed();
-                CheckConnectionActive(nameof(SendAsync));
+                CheckConnectionActive(nameof(SendCoreAsync));
 
                 Log.PreparingNonBlockingInvocation(_logger, methodName, args.Length);
 
@@ -686,7 +691,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
         }
 
-        private async Task RunClosedEvent(Action<Exception> closed, Exception closeException)
+        private async Task RunClosedEvent(Func<Exception, Task> closed, Exception closeException)
         {
             // Dispatch to the thread pool before we invoke the user callback
             await AwaitableThreadPool.Yield();
@@ -694,7 +699,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             try
             {
                 Log.InvokingClosedEventHandler(_logger);
-                closed.Invoke(closeException);
+                await closed.Invoke(closeException);
             }
             catch (Exception ex)
             {

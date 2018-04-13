@@ -427,6 +427,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                         {
                             closeTcs.SetResult(null);
                         }
+                        return Task.CompletedTask;
                     };
 
                     logger.LogInformation("Starting connection to {url}", url);
