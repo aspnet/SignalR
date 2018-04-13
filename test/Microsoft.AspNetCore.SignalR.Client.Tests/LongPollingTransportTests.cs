@@ -366,6 +366,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public async Task LongPollingTransportSendsAvailableMessagesWhenTheyArrive()
         {
             var sentRequests = new List<byte[]>();
+            var tcs = new TaskCompletionSource<HttpResponseMessage>();
 
             var mockHttpHandler = new Mock<HttpMessageHandler>();
             mockHttpHandler.Protected()
@@ -378,12 +379,22 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                         // Build a new request object, but convert the entire payload to string
                         sentRequests.Add(await request.Content.ReadAsByteArrayAsync());
                     }
+                    else if (request.Method == HttpMethod.Get)
+                    {
+                        // This is the poll task
+                        return await tcs.Task;
+                    }
+                    else if (request.Method == HttpMethod.Delete)
+                    {
+                        tcs.TrySetResult(ResponseUtils.CreateResponse(HttpStatusCode.NoContent));
+                    }
                     return ResponseUtils.CreateResponse(HttpStatusCode.OK);
                 });
 
             using (var httpClient = new HttpClient(mockHttpHandler.Object))
             {
                 var longPollingTransport = new LongPollingTransport(httpClient);
+
                 try
                 {
                     // Start the transport
