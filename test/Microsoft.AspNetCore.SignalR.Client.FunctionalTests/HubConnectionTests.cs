@@ -53,7 +53,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             hubConnectionBuilder.Services.AddSingleton(protocol);
             hubConnectionBuilder.WithLoggerFactory(loggerFactory);
 
-            DelegateConnectionFactory delegateConnectionFactory = new DelegateConnectionFactory(GetHttpConnectionFactory(loggerFactory, path, transportType ?? HttpTransportType.LongPolling | HttpTransportType.WebSockets | HttpTransportType.ServerSentEvents));
+            var delegateConnectionFactory = new DelegateConnectionFactory(GetHttpConnectionFactory(loggerFactory, path, transportType ?? HttpTransportType.LongPolling | HttpTransportType.WebSockets | HttpTransportType.ServerSentEvents));
             hubConnectionBuilder.Services.AddSingleton<IConnectionFactory>(delegateConnectionFactory);
 
             return hubConnectionBuilder.Build();
@@ -853,8 +853,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             {
                 var hubConnectionBuilder = new HubConnectionBuilder()
                     .WithLoggerFactory(loggerFactory)
+                    .AddMessagePackProtocol()
                     .WithUrl(_serverFixture.Url + "/default-nowebsockets");
-                hubConnectionBuilder.Services.AddSingleton<IHubProtocol>(new MessagePackHubProtocol());
 
                 var hubConnection = hubConnectionBuilder.Build();
                 try

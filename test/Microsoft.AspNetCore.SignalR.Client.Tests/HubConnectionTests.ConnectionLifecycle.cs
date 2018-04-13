@@ -30,7 +30,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 var builder = new HubConnectionBuilder();
 
-                DelegateConnectionFactory delegateConnectionFactory = new DelegateConnectionFactory(testConnection.StartAsync);
+                var delegateConnectionFactory = new DelegateConnectionFactory(testConnection.StartAsync);
                 builder.Services.AddSingleton<IConnectionFactory>(delegateConnectionFactory);
 
                 return builder.Build();
@@ -40,7 +40,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 var builder = new HubConnectionBuilder();
 
-                DelegateConnectionFactory delegateConnectionFactory = new DelegateConnectionFactory(connectionFactory);
+                var delegateConnectionFactory = new DelegateConnectionFactory(connectionFactory);
                 builder.Services.AddSingleton<IConnectionFactory>(delegateConnectionFactory);
 
                 return builder.Build();

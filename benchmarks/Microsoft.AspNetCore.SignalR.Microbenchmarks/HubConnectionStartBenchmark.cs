@@ -41,7 +41,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
 
             var hubConnectionBuilder = new HubConnectionBuilder();
             hubConnectionBuilder.Services.AddSingleton<IHubProtocol>(new JsonHubProtocol());
-            DelegateConnectionFactory delegateConnectionFactory = new DelegateConnectionFactory(format =>
+            var delegateConnectionFactory = new DelegateConnectionFactory(format =>
             {
                 var connection = new DefaultConnectionContext();
                 // prevents keep alive time being activated

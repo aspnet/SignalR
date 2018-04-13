@@ -44,7 +44,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         {
             var builder = new HubConnectionBuilder();
 
-            DelegateConnectionFactory delegateConnectionFactory = new DelegateConnectionFactory(format => new TestConnection().StartAsync(format));
+            var delegateConnectionFactory = new DelegateConnectionFactory(format => new TestConnection().StartAsync(format));
             builder.Services.AddSingleton<IConnectionFactory>(delegateConnectionFactory);
 
             var hubConnection = builder.Build();
