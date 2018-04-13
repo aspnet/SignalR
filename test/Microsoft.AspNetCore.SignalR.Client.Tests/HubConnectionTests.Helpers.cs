@@ -17,7 +17,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 await connection.StartAsync(format);
                 return connection;
-            });
+            },
+            connecton => ((TestConnection)connection).DisposeAsync());
+            
             if (protocol != null)
             {
                 builder.WithHubProtocol(protocol);

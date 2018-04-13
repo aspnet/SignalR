@@ -52,7 +52,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             var hubConnectionBuilder = new HubConnectionBuilder();
             hubConnectionBuilder.WithHubProtocol(protocol);
             hubConnectionBuilder.WithLoggerFactory(loggerFactory);
-            hubConnectionBuilder.WithConnectionFactory(GetHttpConnectionFactory(loggerFactory, path, transportType ?? HttpTransportType.LongPolling | HttpTransportType.WebSockets | HttpTransportType.ServerSentEvents));
+            hubConnectionBuilder.WithConnectionFactory(GetHttpConnectionFactory(loggerFactory, path, transportType ?? HttpTransportType.LongPolling | HttpTransportType.WebSockets | HttpTransportType.ServerSentEvents),
+                                                       connection => ((HttpConnection)connection).DisposeAsync());
 
             return hubConnectionBuilder.Build();
         }
