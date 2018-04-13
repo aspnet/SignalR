@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
 {
-    public class DefaultTransportFactory : ITransportFactory
+    internal class DefaultTransportFactory : ITransportFactory
     {
         private readonly HttpClient _httpClient;
         private readonly HttpConnectionOptions _httpConnectionOptions;

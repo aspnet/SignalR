@@ -114,7 +114,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
 
         public async Task StartAsync()
         {
-            await StartAsyncCore(TransferFormat.Binary).ForceAsync();
+            await StartAsync(TransferFormat.Binary);
         }
 
         public async Task StartAsync(TransferFormat transferFormat)
