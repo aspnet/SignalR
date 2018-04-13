@@ -12,6 +12,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.Extensions.Logging;
 using System.Buffers;
+using System.Collections.Concurrent;
+using System.Diagnostics.Tracing;
+using System.Runtime.CompilerServices;
 
 namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
 {
@@ -22,6 +25,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
         private readonly IDuplexPipe _application;
         private readonly HttpConnectionContext _connection;
         private volatile bool _aborted;
+        private static NagleTimer _nagleTimer = new NagleTimer();
 
         public WebSocketsTransport(WebSocketOptions options, IDuplexPipe application, HttpConnectionContext connection, ILoggerFactory loggerFactory)
         {
@@ -263,8 +267,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
                                         _application.Input.AdvanceTo(buffer.Start, buffer.End);
 
                                         _watch.Start();
-                                        await Task.Delay(1);
+                                        //await Task.Delay(1);
                                         //await Task.Yield();
+                                        await _nagleTimer;
                                         _watch.Stop();
                                         watchTime += _watch.ElapsedMilliseconds;
                                         _watch.Reset();
@@ -347,6 +352,170 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
             return !(ws.State == WebSocketState.Aborted ||
                    ws.State == WebSocketState.Closed ||
                    ws.State == WebSocketState.CloseSent);
+        }
+    }
+
+    class NagleTimer : ICriticalNotifyCompletion
+    {
+        private DelayScheduler _scheduler = new DelayScheduler();
+
+        public NagleTimer GetAwaiter() => this;
+        public bool IsCompleted => false;
+
+        public void GetResult()
+        {
+        }
+
+        public void OnCompleted(Action continuation)
+        {
+            _scheduler.Schedule(o => ((Action)o).Invoke(), continuation);
+        }
+
+        public void UnsafeOnCompleted(Action continuation)
+        {
+            OnCompleted(continuation);
+        }
+    }
+
+    /// <summary>
+    /// DelayScheduler will defer things that are Scheduled until 'DelayCount'
+    /// other work items have been enqueued.  Thus items are simply delayed in
+    /// time.
+    /// </summary>
+    public class DelayScheduler : SchedulerBase
+    {
+        public int DelayCount = 6;
+
+        public override void Schedule(Action<object> action, object state)
+        {
+            SchedulerEventSource.Log.Schedule(this.GetHashCode(), "Delay", _workItems.Count);
+            base.Schedule(action, state);
+
+            var currentTick = Environment.TickCount;
+            while (_workItems.TryPeek(out var res))
+            {
+                if (res.QueueTick + 2 < currentTick)
+                {
+                    if (_workItems.TryDequeue(out var work))
+                    {
+                        SchedulerEventSource.Log.CallbackStart(this.GetHashCode());
+                        work.Callback(work.State);
+                        SchedulerEventSource.Log.CallbackStop(this.GetHashCode());
+                    }
+                }
+                else
+                    break;
+            }
+        }
+    }
+
+    class SchedulerEventSource : EventSource
+    {
+        public void FlushStart(int id)
+        {
+            if (IsEnabled())
+                WriteEvent(1, id);
+        }
+        public void FlushStop(int id)
+        {
+            if (IsEnabled())
+                WriteEvent(2, id);
+        }
+
+        public void Schedule(int id, string kind, int num)
+        {
+            if (IsEnabled())
+                WriteEvent(3, id, kind, num);
+        }
+
+        public void CallbackStart(int id)
+        {
+            if (IsEnabled())
+                WriteEvent(4, id);
+        }
+
+        public void CallbackStop(int id)
+        {
+            if (IsEnabled())
+                WriteEvent(5, id);
+        }
+
+        public static SchedulerEventSource Log = new SchedulerEventSource();
+    }
+
+    /// <summary>
+    /// SchedulerBase implements a very simple PipeScheduler, that basically
+    /// defers anything it schedules 20 msec or so into to future.   It however
+    /// is not meant to be used itself.  Instead the intent is to subclass it
+    /// and override schedule() so that after scheduling an item it might do
+    /// some of the work previously scheduled.
+    ///
+    /// In general the expectation is that in the 'fast' steady-state path you
+    /// rarely rely on 20 msec timer to go off.
+    /// </summary>
+    public class SchedulerBase : PipeScheduler
+    {
+        public SchedulerBase()
+        {
+            _timer = new Timer(Timeout, new WeakReference(this), System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
+            _lastTimerUpdate = Environment.TickCount - 1000;        // Set the time in the past.  THis insures our optimziation does not kick in.
+        }
+
+        ~SchedulerBase()
+        {
+            Flush();
+        }
+
+        public override void Schedule(Action<object> action, object state)
+        {
+            _workItems.Enqueue(new Work { Callback = action, State = state, QueueTick = Environment.TickCount });
+            InsureFlush();
+        }
+
+        private static void Timeout(object obj)
+        {
+            WeakReference reference = (WeakReference)obj;
+            SchedulerBase scheduler = reference.Target as SchedulerBase;
+            if (scheduler == null)
+                return;     // The Scheduler has died, and the timer has not been disposed yet,  Just give up, the timer will die eventually.
+
+            scheduler.Flush();
+        }
+
+        private void Flush()
+        {
+            SchedulerEventSource.Log.FlushStart(this.GetHashCode());
+            while (!_workItems.IsEmpty)
+            {
+                Work itemToRun;
+                if (_workItems.TryDequeue(out itemToRun))
+                    System.Threading.ThreadPool.QueueUserWorkItem((object state) => itemToRun.Callback(state), itemToRun.State);
+            }
+            SchedulerEventSource.Log.FlushStop(this.GetHashCode());
+        }
+
+        private void InsureFlush()
+        {
+            // Logically we set the timeout timer every time we schedule, but we optimize
+            // by skipping if we have done it in the last 10 msec.
+            int curTickCount = Environment.TickCount;
+            if ((uint)(curTickCount - _lastTimerUpdate) > 10)
+            {
+                _lastTimerUpdate = curTickCount;
+                lock (_timer)
+                    _timer.Change(15, System.Threading.Timeout.Infinite);
+            }
+        }
+
+        internal readonly ConcurrentQueue<Work> _workItems = new ConcurrentQueue<Work>();
+        private readonly Timer _timer;
+        private int _lastTimerUpdate;
+
+        internal struct Work
+        {
+            public Action<object> Callback;
+            public object State;
+            public long QueueTick;
         }
     }
 }
