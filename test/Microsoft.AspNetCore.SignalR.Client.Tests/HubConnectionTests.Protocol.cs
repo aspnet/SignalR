@@ -2,12 +2,8 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
-using System.IO;
-using System.Text;
 using System.Threading.Channels;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.SignalR.Internal.Protocol;
-using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace Microsoft.AspNetCore.SignalR.Client.Tests
@@ -407,7 +403,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             [Fact]
             public async Task PartialHandshakeResponseWorks()
             {
-                var connection = new TestConnection(synchronousCallbacks: true, autoHandshake: false);
+                var connection = new TestConnection(autoHandshake: false);
                 var hubConnection = CreateHubConnection(connection);
                 try
                 {
@@ -436,7 +432,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             public async Task HandshakeAndInvocationInSameBufferWorks()
             {
                 var payload = "{}\u001e{\"type\":1, \"target\": \"Echo\", \"arguments\":[\"hello\"]}\u001e";
-                var connection = new TestConnection(synchronousCallbacks: true, autoHandshake: false);
+                var connection = new TestConnection(autoHandshake: false);
                 var hubConnection = CreateHubConnection(connection);
                 try
                 {
@@ -463,7 +459,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             [Fact]
             public async Task PartialInvocationWorks()
             {                
-                var connection = new TestConnection(synchronousCallbacks: true);
+                var connection = new TestConnection();
                 var hubConnection = CreateHubConnection(connection);
                 try
                 {

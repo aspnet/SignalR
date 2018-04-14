@@ -1,10 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
-using Microsoft.AspNetCore.Connections;
-using Microsoft.AspNetCore.SignalR.Internal.Protocol;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
+using Microsoft.AspNetCore.SignalR.Protocol;
 
 namespace Microsoft.AspNetCore.SignalR.Client.Tests
 {
@@ -17,7 +14,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 await connection.StartAsync(format);
                 return connection;
-            });
+            },
+            connecton => ((TestConnection)connection).DisposeAsync());
+            
             if (protocol != null)
             {
                 builder.WithHubProtocol(protocol);

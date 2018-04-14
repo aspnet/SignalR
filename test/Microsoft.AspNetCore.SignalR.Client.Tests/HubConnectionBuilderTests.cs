@@ -2,10 +2,9 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
-using Microsoft.AspNetCore.SignalR.Internal.Protocol;
+using Microsoft.AspNetCore.SignalR.Protocol;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -56,7 +55,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 return Task.FromResult<ConnectionContext>(null);
             };
 
-            var serviceProvider = new HubConnectionBuilder().WithConnectionFactory(connectionFactory).Services.BuildServiceProvider();
+            var serviceProvider = new HubConnectionBuilder().WithConnectionFactory(connectionFactory, connection => Task.CompletedTask).Services.BuildServiceProvider();
 
             var factory = serviceProvider.GetService<IConnectionFactory>();
             Assert.NotNull(factory);
@@ -68,7 +67,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         [Fact]
         public void BuildCanOnlyBeCalledOnce()
         {
-            var builder = new HubConnectionBuilder().WithConnectionFactory(format => null);
+            var builder = new HubConnectionBuilder().WithConnectionFactory(format => null, connection => Task.CompletedTask);
 
             Assert.NotNull(builder.Build());
 

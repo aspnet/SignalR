@@ -12,10 +12,8 @@ using MessagePack;
 using MessagePack.Formatters;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.Http.Connections.Features;
-using Microsoft.AspNetCore.SignalR.Internal;
-using Microsoft.AspNetCore.SignalR.Internal.Protocol;
+using Microsoft.AspNetCore.SignalR.Protocol;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -196,7 +194,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             var part2 = Encoding.UTF8.GetBytes(",\"version\": 1}");
             var part3 = Encoding.UTF8.GetBytes("\u001e");
 
-            using (var client = new TestClient(synchronousCallbacks: true))
+            using (var client = new TestClient())
             {
                 client.SupportedFormats = TransferFormat.Text;
 
@@ -236,7 +234,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             var part2 = Encoding.UTF8.GetBytes("\"target\": \"Echo\", \"arguments\"");
             var part3 = Encoding.UTF8.GetBytes(":[\"hello\"]}\u001e");
 
-            using (var client = new TestClient(synchronousCallbacks: true))
+            using (var client = new TestClient())
             {
                 client.SupportedFormats = TransferFormat.Text;
 
@@ -274,7 +272,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             var connectionHandler = HubConnectionHandlerTestUtils.GetHubConnectionHandler(typeof(HubT));
             var payload = Encoding.UTF8.GetBytes("{\"protocol\": \"json\",\"version\": 1}\u001e{\"type\":1, \"invocationId\":\"1\", \"target\": \"Echo\", \"arguments\":[\"hello\"]}\u001e");
 
-            using (var client = new TestClient(synchronousCallbacks: true))
+            using (var client = new TestClient())
             {
                 client.SupportedFormats = TransferFormat.Text;
 
@@ -618,7 +616,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
             var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
-            using (var client = new TestClient(synchronousCallbacks: true))
+            using (var client = new TestClient())
             {
                 var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
 
@@ -1394,7 +1392,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             var invocationBinder = new Mock<IInvocationBinder>();
             invocationBinder.Setup(b => b.GetReturnType(It.IsAny<string>())).Returns(typeof(string));
 
-            using (var client = new TestClient(synchronousCallbacks: false, protocol: protocol, invocationBinder: invocationBinder.Object))
+            using (var client = new TestClient(protocol: protocol, invocationBinder: invocationBinder.Object))
             {
                 client.SupportedFormats = protocol.TransferFormat;
 
@@ -1686,7 +1684,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
             var msgPackOptions = serviceProvider.GetRequiredService<IOptions<MessagePackHubProtocolOptions>>();
-            using (var client = new TestClient(synchronousCallbacks: false, protocol: new MessagePackHubProtocol(msgPackOptions)))
+            using (var client = new TestClient(protocol: new MessagePackHubProtocol(msgPackOptions)))
             {
                 client.SupportedFormats = TransferFormat.Binary;
                 var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
@@ -1807,7 +1805,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
             var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
-            using (var client = new TestClient(false, new JsonHubProtocol()))
+            using (var client = new TestClient(new JsonHubProtocol()))
             {
                 var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
                 await client.Connected.OrTimeout();
@@ -1833,7 +1831,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     options.KeepAliveInterval = TimeSpan.FromMilliseconds(100)));
             var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
-            using (var client = new TestClient(false, new JsonHubProtocol()))
+            using (var client = new TestClient(new JsonHubProtocol()))
             {
                 var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
 
@@ -1874,7 +1872,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     options.KeepAliveInterval = TimeSpan.FromMilliseconds(100)));
             var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
-            using (var client = new TestClient(false, new JsonHubProtocol()))
+            using (var client = new TestClient(new JsonHubProtocol()))
             {
                 var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
                 await client.Connected.OrTimeout();
@@ -1930,7 +1928,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
             var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
-            using (var client = new TestClient(false, new JsonHubProtocol()))
+            using (var client = new TestClient(new JsonHubProtocol()))
             {
                 var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
 
@@ -1964,7 +1962,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             });
             var connectionHandler = serviceProvider.GetService<HubConnectionHandler<OnConnectedThrowsHub>>();
 
-            using (var client = new TestClient(false, new JsonHubProtocol()))
+            using (var client = new TestClient(new JsonHubProtocol()))
             {
                 var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
 

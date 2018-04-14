@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.SignalR.Internal;
-using Microsoft.AspNetCore.SignalR.Internal.Protocol;
+using Microsoft.AspNetCore.SignalR.Protocol;
 using Microsoft.AspNetCore.SignalR.Redis;
 using Microsoft.AspNetCore.SignalR.Tests;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -99,7 +99,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             {
                 yield return ((i % 2) == 0)
                     ? new WrappedHubProtocol($"json_{i}", new JsonHubProtocol())
-                    : new WrappedHubProtocol($"msgpack_{i}", new MessagePackHubProtocol());
+                    : new WrappedHubProtocol($"messagepack_{i}", new MessagePackHubProtocol());
             }
         }
 

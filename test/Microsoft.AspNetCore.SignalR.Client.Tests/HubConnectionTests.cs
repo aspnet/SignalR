@@ -3,12 +3,9 @@
 
 using System;
 using System.Buffers;
-using System.IO;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
-using Microsoft.AspNetCore.SignalR.Internal;
-using Microsoft.AspNetCore.SignalR.Internal.Protocol;
-using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.SignalR.Protocol;
 using Moq;
 using Xunit;
 
@@ -44,7 +41,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public async Task ClosedEventRaisedWhenTheClientIsStopped()
         {
             var builder = new HubConnectionBuilder();
-            builder.WithConnectionFactory(format => new TestConnection().StartAsync(format));
+            builder.WithConnectionFactory(format => new TestConnection().StartAsync(format), 
+                                          connection => ((TestConnection)connection).DisposeAsync());
 
             var hubConnection = builder.Build();
             var closedEventTcs = new TaskCompletionSource<Exception>();

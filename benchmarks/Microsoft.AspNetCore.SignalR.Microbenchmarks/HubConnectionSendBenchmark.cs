@@ -10,10 +10,10 @@ using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Connections.Features;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.AspNetCore.Internal;
-using Microsoft.AspNetCore.SignalR.Internal.Protocol;
 using Microsoft.AspNetCore.SignalR.Microbenchmarks.Shared;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.AspNetCore.SignalR.Protocol;
 
 namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
 {
@@ -56,6 +56,12 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
                 connection.Features.Set<IConnectionInherentKeepAliveFeature>(new TestConnectionInherentKeepAliveFeature());
                 connection.Transport = _pipe;
                 return Task.FromResult<ConnectionContext>(connection);
+            },
+            connection =>
+            {
+                connection.Transport.Output.Complete();
+                connection.Transport.Input.Complete();
+                return Task.CompletedTask;
             });
 
             _hubConnection = hubConnectionBuilder.Build();
@@ -71,7 +77,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         [Params(0, 1, 10, 100)]
         public int ArgumentCount;
 
-        [Params("json", "msgpack")]
+        [Params("json", "messagepack")]
         public string Protocol;
 
         [GlobalCleanup]

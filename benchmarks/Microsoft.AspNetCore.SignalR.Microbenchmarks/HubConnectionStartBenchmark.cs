@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Connections.Features;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.AspNetCore.Internal;
-using Microsoft.AspNetCore.SignalR.Internal.Protocol;
+using Microsoft.AspNetCore.SignalR.Protocol;
 using Microsoft.AspNetCore.SignalR.Microbenchmarks.Shared;
 
 namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
@@ -46,6 +46,12 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
                 connection.Features.Set<IConnectionInherentKeepAliveFeature>(new TestConnectionInherentKeepAliveFeature());
                 connection.Transport = _pipe;
                 return Task.FromResult<ConnectionContext>(connection);
+            },
+            connection =>
+            {
+                connection.Transport.Output.Complete();
+                connection.Transport.Input.Complete();
+                return Task.CompletedTask;
             });
 
             _hubConnection = hubConnectionBuilder.Build();

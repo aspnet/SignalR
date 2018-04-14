@@ -12,10 +12,9 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.Http.Connections.Client;
-using Microsoft.AspNetCore.SignalR.Internal.Protocol;
+using Microsoft.AspNetCore.SignalR.Protocol;
 using Microsoft.AspNetCore.SignalR.Tests;
 using Microsoft.AspNetCore.Testing.xunit;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Xunit;
@@ -53,7 +52,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             var hubConnectionBuilder = new HubConnectionBuilder();
             hubConnectionBuilder.WithHubProtocol(protocol);
             hubConnectionBuilder.WithLoggerFactory(loggerFactory);
-            hubConnectionBuilder.WithConnectionFactory(GetHttpConnectionFactory(loggerFactory, path, transportType ?? HttpTransportType.LongPolling | HttpTransportType.WebSockets | HttpTransportType.ServerSentEvents));
+            hubConnectionBuilder.WithConnectionFactory(GetHttpConnectionFactory(loggerFactory, path, transportType ?? HttpTransportType.LongPolling | HttpTransportType.WebSockets | HttpTransportType.ServerSentEvents),
+                                                       connection => ((HttpConnection)connection).DisposeAsync());
 
             return hubConnectionBuilder.Build();
         }
@@ -707,7 +707,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         {
             using (StartVerifableLog(out var loggerFactory, $"{nameof(ClientCanUseJwtBearerTokenForAuthentication)}_{transportType}"))
             {
-                async Task<string> AccessTokenFactory()
+                async Task<string> AccessTokenProvider()
                 {
                     var httpResponse = await new HttpClient().GetAsync(_serverFixture.Url + "/generateJwtToken");
                     httpResponse.EnsureSuccessStatusCode();
@@ -718,7 +718,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                     .WithLoggerFactory(loggerFactory)
                     .WithUrl(_serverFixture.Url + "/authorizedhub", transportType, options =>
                     {
-                        options.AccessTokenProvider = AccessTokenFactory;
+                        options.AccessTokenProvider = AccessTokenProvider;
                     })
                     .Build();
                 try
@@ -785,7 +785,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                     .WithLoggerFactory(loggerFactory)
                     .WithUrl(_serverFixture.Url + "/default", HttpTransportType.WebSockets, options =>
                     {
-                        options.WebSocketOptions = o => o.Cookies = cookieJar;
+                        options.WebSocketConfiguration = o => o.Cookies = cookieJar;
                     })
                     .Build();
                 try
@@ -898,8 +898,16 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
                 var stopTask = hubConnection.StopAsync();
 
-                // Stop async and wait for the poll to shut down. It should do so very quickly because the DELETE will stop the poll!
-                await pollTracker.ActivePoll.OrTimeout(TimeSpan.FromMilliseconds(100));
+                try
+                {
+                    // if we completed running before the poll or after the poll started then the task
+                    // might complete successfully
+                    await pollTracker.ActivePoll.OrTimeout();
+                }
+                catch (OperationCanceledException)
+                {
+                    // If this happens it's fine because we were in the middle of a poll
+                }
 
                 await stopTask;
             }

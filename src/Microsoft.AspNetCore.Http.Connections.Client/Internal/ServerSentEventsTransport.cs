@@ -25,7 +25,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
         private IDuplexPipe _transport;
         private IDuplexPipe _application;
 
-        public Task Running { get; private set; } = Task.CompletedTask;
+        internal Task Running { get; private set; } = Task.CompletedTask;
 
         public PipeReader Input => _transport.Input;
 
@@ -101,6 +101,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
 
                 // Cancel the application so that ReadAsync yields
                 _application.Input.CancelPendingRead();
+
+                await sending;
             }
             else
             {
@@ -111,6 +113,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
 
                 // Cancel any pending flush so that we can quit
                 _application.Output.CancelPendingFlush();
+
+                await receiving;
             }
         }
 

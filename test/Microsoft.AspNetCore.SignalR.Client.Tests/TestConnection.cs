@@ -13,7 +13,7 @@ using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Internal;
 using Microsoft.AspNetCore.SignalR.Internal.Formatters;
-using Microsoft.AspNetCore.SignalR.Internal.Protocol;
+using Microsoft.AspNetCore.SignalR.Protocol;
 using Newtonsoft.Json;
 
 namespace Microsoft.AspNetCore.SignalR.Client.Tests
@@ -42,14 +42,13 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
         public override IDictionary<object, object> Items { get; set; } = new ConnectionItems();
 
-        public TestConnection(Func<Task> onStart = null, Func<Task> onDispose = null, bool autoHandshake = true, bool synchronousCallbacks = false)
+        public TestConnection(Func<Task> onStart = null, Func<Task> onDispose = null, bool autoHandshake = true)
         {
             _autoHandshake = autoHandshake;
             _onStart = onStart ?? (() => Task.CompletedTask);
             _onDispose = onDispose ?? (() => Task.CompletedTask);
 
-            var scheduler = synchronousCallbacks ? PipeScheduler.Inline : null;
-            var options = new PipeOptions(readerScheduler: scheduler, writerScheduler: scheduler, useSynchronizationContext: false);
+            var options = new PipeOptions(readerScheduler: PipeScheduler.Inline, writerScheduler: PipeScheduler.Inline, useSynchronizationContext: false);
 
             var pair = DuplexPipe.CreateConnectionPair(options, options);
             Application = pair.Application;
@@ -58,8 +57,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             Application.Input.OnWriterCompleted((ex, _) =>
             {
                 Application.Output.Complete();
-
-                _ = DisposeAsync();
             }, 
             null);
         }
