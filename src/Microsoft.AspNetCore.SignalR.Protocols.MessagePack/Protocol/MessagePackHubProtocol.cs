@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -286,44 +287,63 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
 
         public void WriteMessage(HubMessage message, IBufferWriter<byte> output)
         {
-            var writer = MemoryBufferWriter.Get();
-
-            try
+            const int lengthPrefixBytes = 4;
+            if (output is Stream stream)
             {
+                // Always a 4 byte length prefix
+                var prefix = output.GetSpan(lengthPrefixBytes);
+                output.Advance(lengthPrefixBytes);
+
+                var currentLength = stream.Length;
+
                 // Write message to a buffer so we can get its length
-                WriteMessageCore(message, writer);
+                WriteMessageCore(message, stream);
 
-                // Write length then message to output
-                BinaryMessageFormatter.WriteLengthPrefix(writer.Length, output);
-                writer.CopyTo(output);
+                var written = stream.Length - currentLength;
+
+                // Fill in the length prefix afterwards
+                BinaryPrimitives.WriteInt32BigEndian(prefix, (int)written);
             }
-            finally
+            else
             {
-                MemoryBufferWriter.Return(writer);
+                var writer = MemoryBufferWriter.Get();
+
+                try
+                {
+                    // We need to buffer the entire message here since we need to write
+                    // to a stream first
+                    WriteMessageCore(message, writer);
+
+                    // Write out the length prefix
+                    BinaryPrimitives.WriteInt32BigEndian(output.GetSpan(lengthPrefixBytes), (int)writer.Length);
+                    output.Advance(lengthPrefixBytes);
+                    writer.CopyTo(output);
+                }
+                finally
+                {
+                    MemoryBufferWriter.Return(writer);
+                }
             }
         }
 
         public ReadOnlyMemory<byte> GetMessageBytes(HubMessage message)
         {
+            const int lengthPrefixBytes = 4;
             var writer = MemoryBufferWriter.Get();
 
             try
             {
+                // Reserve the length prefix
+                var prefix = writer.GetSpan(lengthPrefixBytes);
+                writer.Advance(lengthPrefixBytes);
+
                 // Write message to a buffer so we can get its length
                 WriteMessageCore(message, writer);
 
-                var dataLength = writer.Length;
-                var prefixLength = BinaryMessageFormatter.LengthPrefixLength(writer.Length);
+                // Fill in the length prefix
+                BinaryPrimitives.WriteInt32BigEndian(prefix, (int)writer.Length - lengthPrefixBytes);
 
-                var array = new byte[dataLength + prefixLength];
-                var span = array.AsSpan();
-
-                // Write length then message to output
-                var written = BinaryMessageFormatter.WriteLengthPrefix(writer.Length, span);
-                Debug.Assert(written == prefixLength);
-                writer.CopyTo(span.Slice(prefixLength));
-
-                return array;
+                return writer.ToArray();
             }
             finally
             {

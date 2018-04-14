@@ -146,8 +146,7 @@ namespace Microsoft.AspNetCore.Internal
 
         private void EnsureCapacity(int sizeHint)
         {
-            // TODO: Use sizeHint
-            if (_currentSegment != null && _position < _currentSegment.Length)
+            if (_currentSegment != null && _position < _currentSegment.Length - sizeHint)
             {
                 // We have capacity in the current segment
                 return;

@@ -35,6 +35,22 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         }
 
         [Fact]
+        public void GetSpanRespectsSizeHint()
+        {
+            var inputSize = MinimumSegmentSize - 3;
+            var input = Enumerable.Range(0, inputSize).Select(i => (byte)i).ToArray();
+            using (var bufferWriter = new MemoryBufferWriter(MinimumSegmentSize))
+            {
+                // We should have 3 bytes remaining in this segment
+                bufferWriter.Write(input, 0, input.Length);
+                Assert.Equal(3, bufferWriter.GetSpan().Length);
+
+                var span = bufferWriter.GetSpan(4);
+                Assert.True(span.Length >= 4, $"Span is {span.Length} bytes");
+            }
+        }
+
+        [Fact]
         public void WritingNotingGivesEmptyData_CopyTo()
         {
             using (var bufferWriter = new MemoryBufferWriter())
