@@ -358,7 +358,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             const string ExpectedSubProtocol = "expected";
             var providedSubProtocols = new[] {"provided1", "provided2"};
 
-            using (StartLog(out var loggerFactory, LogLevel.Debug))
+            using (StartVerifableLog(out var loggerFactory, LogLevel.Debug))
             {
                 var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
                 var connection = new HttpConnectionContext("foo", pair.Transport, pair.Application);
