@@ -45,11 +45,15 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             _tcs = new TaskCompletionSource<ReadResult>();
             _pipe.AddReadResult(new ValueTask<ReadResult>(_tcs.Task));
 
-
-            var protocol = Protocol == "json" ? (IHubProtocol)new JsonHubProtocol() : new MessagePackHubProtocol();
-
             var hubConnectionBuilder = new HubConnectionBuilder();
-            hubConnectionBuilder.Services.AddSingleton(protocol);
+            if (Protocol == "json")
+            {
+                // JSON protocol added by default
+            }
+            else
+            {
+                hubConnectionBuilder.AddMessagePackProtocol();
+            }
 
             var delegateConnectionFactory = new DelegateConnectionFactory(format =>
             {
