@@ -58,6 +58,12 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
                 connection.Features.Set<IConnectionInherentKeepAliveFeature>(new TestConnectionInherentKeepAliveFeature());
                 connection.Transport = _pipe;
                 return Task.FromResult<ConnectionContext>(connection);
+            },
+            connection =>
+            {
+                connection.Transport.Output.Complete();
+                connection.Transport.Input.Complete();
+                return Task.CompletedTask;
             });
             hubConnectionBuilder.Services.AddSingleton<IConnectionFactory>(delegateConnectionFactory);
 
@@ -74,7 +80,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         [Params(0, 1, 10, 100)]
         public int ArgumentCount;
 
-        [Params("json", "msgpack")]
+        [Params("json", "messagepack")]
         public string Protocol;
 
         [GlobalCleanup]

@@ -10,16 +10,23 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 {
     public class DelegateConnectionFactory : IConnectionFactory
     {
-        private readonly Func<TransferFormat, Task<ConnectionContext>> _connectionFactory;
+        private readonly Func<TransferFormat, Task<ConnectionContext>> _connectDelegate;
+        private readonly Func<ConnectionContext, Task> _disposeDelegate;
 
-        public DelegateConnectionFactory(Func<TransferFormat, Task<ConnectionContext>> connectionFactory)
+        public DelegateConnectionFactory(Func<TransferFormat, Task<ConnectionContext>> connectDelegate, Func<ConnectionContext, Task> disposeDelegate)
         {
-            _connectionFactory = connectionFactory;
+            _connectDelegate = connectDelegate;
+            _disposeDelegate = disposeDelegate;
         }
 
         public Task<ConnectionContext> ConnectAsync(TransferFormat transferFormat)
         {
-            return _connectionFactory(transferFormat);
+            return _connectDelegate(transferFormat);
+        }
+
+        public Task DisposeAsync(ConnectionContext connection)
+        {
+            return _disposeDelegate(connection);
         }
     }
 }

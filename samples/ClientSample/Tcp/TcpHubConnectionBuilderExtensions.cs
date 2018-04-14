@@ -50,6 +50,11 @@ namespace Microsoft.AspNetCore.SignalR.Client
             {
                 return new TcpConnection(_endPoint).StartAsync();
             }
+
+            public Task DisposeAsync(ConnectionContext connection)
+            {
+                return ((TcpConnection) connection).DisposeAsync();
+            }
         }
     }
 }

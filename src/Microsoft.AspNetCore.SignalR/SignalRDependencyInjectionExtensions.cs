@@ -3,6 +3,7 @@
 
 using System;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.Extensions.Options;
 
 namespace Microsoft.Extensions.DependencyInjection
@@ -15,11 +16,10 @@ namespace Microsoft.Extensions.DependencyInjection
             signalrBuilder.Services.Configure(options);
             return signalrBuilder;
         }
-        
+
         public static ISignalRServerBuilder AddSignalR(this IServiceCollection services)
         {
             services.AddConnections();
-            services.AddSingleton<SignalRMarkerService>();
             services.AddSingleton<IConfigureOptions<HubOptions>, HubOptionsSetup>();
             return services.AddSignalRCore();
         }

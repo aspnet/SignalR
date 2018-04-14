@@ -53,7 +53,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             hubConnectionBuilder.Services.AddSingleton(protocol);
             hubConnectionBuilder.WithLoggerFactory(loggerFactory);
 
-            var delegateConnectionFactory = new DelegateConnectionFactory(GetHttpConnectionFactory(loggerFactory, path, transportType ?? HttpTransportType.LongPolling | HttpTransportType.WebSockets | HttpTransportType.ServerSentEvents));
+            var delegateConnectionFactory = new DelegateConnectionFactory(
+                GetHttpConnectionFactory(loggerFactory, path, transportType ?? HttpTransportType.LongPolling | HttpTransportType.WebSockets | HttpTransportType.ServerSentEvents),
+                connection => ((HttpConnection)connection).DisposeAsync());
             hubConnectionBuilder.Services.AddSingleton<IConnectionFactory>(delegateConnectionFactory);
 
             return hubConnectionBuilder.Build();
@@ -902,8 +904,16 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
                 var stopTask = hubConnection.StopAsync();
 
-                // Stop async and wait for the poll to shut down. It should do so very quickly because the DELETE will stop the poll!
-                await pollTracker.ActivePoll.OrTimeout(TimeSpan.FromMilliseconds(100));
+                try
+                {
+                    // if we completed running before the poll or after the poll started then the task
+                    // might complete successfully
+                    await pollTracker.ActivePoll.OrTimeout();
+                }
+                catch (OperationCanceledException)
+                {
+                    // If this happens it's fine because we were in the middle of a poll
+                }
 
                 await stopTask;
             }
