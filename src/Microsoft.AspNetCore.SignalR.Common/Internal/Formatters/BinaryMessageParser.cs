@@ -21,9 +21,10 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Formatters
                 return false;
             }
 
+            // Read the length as an unsigned int so we avoid the overflow reading 4 bytes
             if (!BinaryPrimitives.TryReadUInt32BigEndian(buffer.First.Span, out var length))
             {
-                // Should be super rare
+                // Should be super rare to have 4 bytes straddle buffers
                 length = BinaryPrimitives.ReadUInt32BigEndian(buffer.Slice(0, numBytes).ToArray());
             }
 
