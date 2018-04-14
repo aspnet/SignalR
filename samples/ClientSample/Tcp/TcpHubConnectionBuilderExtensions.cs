@@ -53,7 +53,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             public Task DisposeAsync(ConnectionContext connection)
             {
-                return ((TcpConnection) connection).DisposeAsync();
+                return ((TcpConnection)connection).DisposeAsync();
             }
         }
     }
