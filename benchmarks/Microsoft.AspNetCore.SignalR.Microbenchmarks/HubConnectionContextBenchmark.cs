@@ -9,7 +9,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using Microsoft.AspNetCore.Connections;
-using Microsoft.AspNetCore.SignalR.Core;
 using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.Internal;
 using Microsoft.AspNetCore.SignalR.Protocol;
@@ -92,7 +91,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             _instance = instance;
         }
 
-        public IHubProtocol GetProtocol(string protocolName, IList<string> supportedProtocols)
+        public IHubProtocol GetProtocol(string protocolName, IReadOnlyList<string> supportedProtocols)
         {
             return _instance;
         }
