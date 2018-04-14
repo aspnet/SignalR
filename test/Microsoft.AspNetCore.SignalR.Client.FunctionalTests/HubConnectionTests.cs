@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Http.Connections.Client;
 using Microsoft.AspNetCore.SignalR.Protocol;
 using Microsoft.AspNetCore.SignalR.Tests;
 using Microsoft.AspNetCore.Testing.xunit;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Xunit;
@@ -50,10 +51,13 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             ILoggerFactory loggerFactory = null)
         {
             var hubConnectionBuilder = new HubConnectionBuilder();
-            hubConnectionBuilder.WithHubProtocol(protocol);
+            hubConnectionBuilder.Services.AddSingleton(protocol);
             hubConnectionBuilder.WithLoggerFactory(loggerFactory);
-            hubConnectionBuilder.WithConnectionFactory(GetHttpConnectionFactory(loggerFactory, path, transportType ?? HttpTransportType.LongPolling | HttpTransportType.WebSockets | HttpTransportType.ServerSentEvents),
-                                                       connection => ((HttpConnection)connection).DisposeAsync());
+
+            var delegateConnectionFactory = new DelegateConnectionFactory(
+                GetHttpConnectionFactory(loggerFactory, path, transportType ?? HttpTransportType.LongPolling | HttpTransportType.WebSockets | HttpTransportType.ServerSentEvents),
+                connection => ((HttpConnection)connection).DisposeAsync());
+            hubConnectionBuilder.Services.AddSingleton<IConnectionFactory>(delegateConnectionFactory);
 
             return hubConnectionBuilder.Build();
         }
@@ -75,11 +79,12 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             var protocol = HubProtocols[protocolName];
             using (StartVerifableLog(out var loggerFactory, $"{nameof(CheckFixedMessage)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
             {
-                var connection = new HubConnectionBuilder()
+                var connectionBuilder = new HubConnectionBuilder()
                     .WithLoggerFactory(loggerFactory)
-                    .WithHubProtocol(protocol)
-                    .WithUrl(_serverFixture.Url + path, transportType)
-                    .Build();
+                    .WithUrl(_serverFixture.Url + path, transportType);
+                connectionBuilder.Services.AddSingleton(protocol);
+
+                var connection = connectionBuilder.Build();
 
                 try
                 {
@@ -304,6 +309,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                     {
                         closeTcs.SetResult(null);
                     }
+                    return Task.CompletedTask;
                 };
 
                 try
@@ -756,7 +762,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 try
                 {
                     await hubConnection.StartAsync().OrTimeout();
-                    var headerValues = await hubConnection.InvokeAsync<string[]>(nameof(TestHub.GetHeaderValues), new object[] { new[] { "X-test", "X-42" } }).OrTimeout();
+                    var headerValues = await hubConnection.InvokeAsync<string[]>(nameof(TestHub.GetHeaderValues), new[] { "X-test", "X-42" }).OrTimeout();
                     Assert.Equal(new[] { "42", "test" }, headerValues);
                 }
                 catch (Exception ex)
@@ -791,7 +797,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 try
                 {
                     await hubConnection.StartAsync().OrTimeout();
-                    var cookieValue = await hubConnection.InvokeAsync<string>(nameof(TestHub.GetCookieValue), new object[] { "Foo" }).OrTimeout();
+                    var cookieValue = await hubConnection.InvokeAsync<string>(nameof(TestHub.GetCookieValue), "Foo").OrTimeout();
                     Assert.Equal("Bar", cookieValue);
                 }
                 catch (Exception ex)
@@ -848,11 +854,12 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         {
             using (StartVerifableLog(out var loggerFactory))
             {
-                var hubConnection = new HubConnectionBuilder()
+                var hubConnectionBuilder = new HubConnectionBuilder()
                     .WithLoggerFactory(loggerFactory)
-                    .WithHubProtocol(new MessagePackHubProtocol())
-                    .WithUrl(_serverFixture.Url + "/default-nowebsockets")
-                    .Build();
+                    .AddMessagePackProtocol()
+                    .WithUrl(_serverFixture.Url + "/default-nowebsockets");
+
+                var hubConnection = hubConnectionBuilder.Build();
                 try
                 {
                     await hubConnection.StartAsync().OrTimeout();
