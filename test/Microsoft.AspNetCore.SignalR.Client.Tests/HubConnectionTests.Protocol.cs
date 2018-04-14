@@ -319,7 +319,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     await connection.ReceiveJsonMessage(new { invocationId = "1", type = 2, item = 42 }).OrTimeout();
 
                     var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => invokeTask).OrTimeout();
-                    Assert.Equal("Streaming hub methods must be invoked with the 'HubConnection.StreamAsChannelCoreAsync' method.", ex.Message);
+                    Assert.Equal("Streaming hub methods must be invoked with the 'HubConnection.StreamAsChannelAsync' method.", ex.Message);
                 }
                 finally
                 {

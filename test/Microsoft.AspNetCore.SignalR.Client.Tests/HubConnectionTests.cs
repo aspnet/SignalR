@@ -63,7 +63,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         }
 
         [Fact]
-        public async Task PendingInvocationsAreCancelledWhenConnectionClosesCleanly()
+        public async Task PendingInvocationsAreCanceledWhenConnectionClosesCleanly()
         {
             var hubConnection = CreateHubConnection(new TestConnection());
 

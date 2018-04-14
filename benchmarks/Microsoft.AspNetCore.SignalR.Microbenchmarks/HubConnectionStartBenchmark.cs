@@ -40,7 +40,6 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             _pipe = new TestDuplexPipe();
 
             var hubConnectionBuilder = new HubConnectionBuilder();
-            hubConnectionBuilder.Services.AddSingleton<IHubProtocol>(new JsonHubProtocol());
             var delegateConnectionFactory = new DelegateConnectionFactory(format =>
             {
                 var connection = new DefaultConnectionContext();

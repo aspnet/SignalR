@@ -216,7 +216,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private async Task<ChannelReader<object>> StreamAsChannelCoreAsyncCore(string methodName, Type returnType, object[] args, CancellationToken cancellationToken)
         {
-            async Task OnStreamCancelled(InvocationRequest irq)
+            async Task OnStreamCanceled(InvocationRequest irq)
             {
                 // We need to take the connection lock in order to ensure we a) have a connection and b) are the only one accessing the write end of the pipe.
                 await WaitConnectionLockAsync();
@@ -257,7 +257,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
                 if (cancellationToken.CanBeCanceled)
                 {
-                    cancellationToken.Register(state => _ = OnStreamCancelled((InvocationRequest)state), irq);
+                    cancellationToken.Register(state => _ = OnStreamCanceled((InvocationRequest)state), irq);
                 }
             }
             finally
@@ -356,7 +356,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             Log.SendingMessage(_logger, hubMessage);
 
-            // REVIEW: If a token is passed in and is cancelled during FlushAsync it seems to break .Complete()...
+            // REVIEW: If a token is passed in and is canceled during FlushAsync it seems to break .Complete()...
             await _connectionState.Connection.Transport.Output.FlushAsync();
 
             Log.MessageSent(_logger, hubMessage);
@@ -597,7 +597,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     {
                         if (result.IsCanceled)
                         {
-                            // We were cancelled. Possibly because we were stopped gracefully
+                            // We were canceled. Possibly because we were stopped gracefully
                             break;
                         }
                         else if (!buffer.IsEmpty)
