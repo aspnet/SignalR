@@ -95,9 +95,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
                 _application.Output.CancelPendingFlush();
 
                 await receiving;
-                
+
                 // Send the DELETE request to clean-up the connection on the server.
-                // This will also cause the poll to return.
                 await SendDeleteRequest(url);
             }
         }
