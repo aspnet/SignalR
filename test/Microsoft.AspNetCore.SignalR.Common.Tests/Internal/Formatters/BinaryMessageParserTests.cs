@@ -13,9 +13,9 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Formatters
     public class BinaryMessageParserTests
     {
         [Theory]
-        [InlineData(new byte[] { 0x00 }, "")]
-        [InlineData(new byte[] { 0x03, 0x41, 0x42, 0x43 }, "ABC")]
-        [InlineData(new byte[] { 0x0B, 0x41, 0x0A, 0x52, 0x0D, 0x43, 0x0D, 0x0A, 0x3B, 0x44, 0x45, 0x46 }, "A\nR\rC\r\n;DEF")]
+        [InlineData(new byte[] { 0x00, 0x00, 0x00, 0x00 }, "")]
+        [InlineData(new byte[] { 0x00, 0x00, 0x00, 0x03, 0x41, 0x42, 0x43 }, "ABC")]
+        [InlineData(new byte[] { 0x00, 0x00, 0x00, 0x0B, 0x41, 0x0A, 0x52, 0x0D, 0x43, 0x0D, 0x0A, 0x3B, 0x44, 0x45, 0x46 }, "A\nR\rC\r\n;DEF")]
         public void ReadMessage(byte[] encoded, string payload)
         {
             var span = new ReadOnlySequence<byte>(encoded);
@@ -26,11 +26,11 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Formatters
         }
 
         [Theory]
-        [InlineData(new byte[] { 0x00 }, new byte[0])]
-        [InlineData(new byte[] { 0x04, 0xAB, 0xCD, 0xEF, 0x12 }, new byte[] { 0xAB, 0xCD, 0xEF, 0x12 })]
+        [InlineData(new byte[] { 0x00, 0x00, 0x00, 0x00 }, new byte[0])]
+        [InlineData(new byte[] { 0x00, 0x00, 0x00, 0x04, 0xAB, 0xCD, 0xEF, 0x12 }, new byte[] { 0xAB, 0xCD, 0xEF, 0x12 })]
         [InlineData(new byte[]
             {
-                0x80, 0x01, // Size - 128
+                0x00, 0x00, 0x00, 0x80, // Size - 128
                 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
                 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
                 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f,
@@ -61,8 +61,9 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Formatters
 
         [Theory]
         [InlineData(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF })]
-        [InlineData(new byte[] { 0x80, 0x80, 0x80, 0x80, 0x08 })] // 2GB + 1
+        [InlineData(new byte[] { 0x80, 0x00, 0x00, 0x00 })] // 2GB + 1
         [InlineData(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF })]
+        [InlineData(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF })]
         public void BinaryMessageParserThrowsForMessagesOver2GB(byte[] payload)
         {
             var ex = Assert.Throws<FormatException>(() =>
@@ -76,8 +77,8 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Formatters
         [Theory]
         [InlineData(new byte[] { })]
         [InlineData(new byte[] { 0x04, 0xAB, 0xCD, 0xEF })]
-        [InlineData(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0x07 })] // 2GB
-        [InlineData(new byte[] { 0x80 })] // size is cut
+        [InlineData(new byte[] { 0x7F, 0xFF, 0xFF, 0xFF, 0x07 })] // 2GB
+        [InlineData(new byte[] { 0x80 })]
         public void BinaryMessageParserReturnsFalseForPartialPayloads(byte[] payload)
         {
             var buffer = new ReadOnlySequence<byte>(payload);
@@ -89,9 +90,9 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Formatters
         {
             var encoded = new byte[]
             {
-                /* length: */ 0x00,
+                /* length: */ 0x00, 0x00, 0x00, 0x00,
                     /* body: <empty> */
-                /* length: */ 0x0E,
+                /* length: */ 0x00, 0x00, 0x00, 0x0E,
                     /* body: */ 0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x2C, 0x0D, 0x0A, 0x57, 0x6F, 0x72, 0x6C, 0x64, 0x21,
             };
 
@@ -111,7 +112,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Formatters
 
         [Theory]
         [InlineData(new byte[0])] // Empty
-        [InlineData(new byte[] { 0x09, 0x00, 0x00 })] // Not enough data for payload
+        [InlineData(new byte[] { 0x00, 0x00, 0x00, 0x09, 0x00, 0x00 })] // Not enough data for payload
         public void ReadIncompleteMessages(byte[] encoded)
         {
             var buffer = new ReadOnlySequence<byte>(encoded);

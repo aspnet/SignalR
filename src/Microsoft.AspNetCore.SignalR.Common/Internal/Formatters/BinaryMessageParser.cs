@@ -21,14 +21,19 @@ namespace Microsoft.AspNetCore.SignalR.Internal.Formatters
                 return false;
             }
 
-            if (!BinaryPrimitives.TryReadInt32BigEndian(buffer.First.Span, out var length))
+            if (!BinaryPrimitives.TryReadUInt32BigEndian(buffer.First.Span, out var length))
             {
                 // Should be super rare
-                length = BinaryPrimitives.ReadInt32BigEndian(buffer.Slice(0, numBytes).ToArray());
+                length = BinaryPrimitives.ReadUInt32BigEndian(buffer.Slice(0, numBytes).ToArray());
+            }
+
+            if (length > Int32.MaxValue)
+            {
+                throw new FormatException("Messages over 2GB in size are not supported.");
             }
 
             // We don't have enough data
-            if (buffer.Length < length + numBytes)
+            if (length > buffer.Length - numBytes)
             {
                 payload = default;
                 return false;
