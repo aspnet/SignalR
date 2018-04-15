@@ -20,7 +20,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 
         public Task AddSelfToGroup(string groupName)
         {
-            return Groups.AddAsync(groupName, Context.ConnectionId);
+            return Groups.AddToGroupAsync(groupName, Context.ConnectionId);
         }
     }
 }
