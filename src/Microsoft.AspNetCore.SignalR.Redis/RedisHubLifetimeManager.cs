@@ -165,7 +165,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             return PublishAsync(_channels.User(userId), message);
         }
 
-        public override async Task AddGroupAsync(string connectionId, string groupName)
+        public override async Task AddGroupAsync(string groupName, string connectionId)
         {
             if (connectionId == null)
             {

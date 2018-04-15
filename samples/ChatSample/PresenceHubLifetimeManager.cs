@@ -173,9 +173,9 @@ namespace ChatSample
             return _wrappedHubLifetimeManager.SendUserAsync(userId, methodName, args);
         }
 
-        public override Task AddGroupAsync(string connectionId, string groupName)
+        public override Task AddGroupAsync(string groupName, string connectionId)
         {
-            return _wrappedHubLifetimeManager.AddGroupAsync(connectionId, groupName);
+            return _wrappedHubLifetimeManager.AddGroupAsync(groupName, connectionId);
         }
 
         public override Task RemoveGroupAsync(string connectionId, string groupName)

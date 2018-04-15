@@ -23,7 +23,7 @@ namespace Microsoft.AspNetCore.SignalR
             _logger = logger;
         }
 
-        public override Task AddGroupAsync(string connectionId, string groupName)
+        public override Task AddGroupAsync(string groupName, string connectionId)
         {
             if (connectionId == null)
             {

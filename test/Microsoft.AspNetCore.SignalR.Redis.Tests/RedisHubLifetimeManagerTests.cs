@@ -110,7 +110,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
                 await manager.OnConnectedAsync(connection1).OrTimeout();
                 await manager.OnConnectedAsync(connection2).OrTimeout();
 
-                await manager.AddGroupAsync(connection1.ConnectionId, "gunit").OrTimeout();
+                await manager.AddGroupAsync("gunit", connection1.ConnectionId).OrTimeout();
 
                 await manager.SendGroupAsync("gunit", "Hello", new object[] { "World" }).OrTimeout();
 
@@ -134,8 +134,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
                 await manager.OnConnectedAsync(connection1).OrTimeout();
                 await manager.OnConnectedAsync(connection2).OrTimeout();
 
-                await manager.AddGroupAsync(connection1.ConnectionId, "gunit").OrTimeout();
-                await manager.AddGroupAsync(connection2.ConnectionId, "gunit").OrTimeout();
+                await manager.AddGroupAsync("gunit", connection1.ConnectionId).OrTimeout();
+                await manager.AddGroupAsync("gunit", connection2.ConnectionId).OrTimeout();
 
                 var excludedIds = new List<string> { client2.Connection.ConnectionId };
                 await manager.SendGroupExceptAsync("gunit", "Hello", new object[] { "World" }, excludedIds).OrTimeout();
@@ -257,7 +257,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 
                 await manager1.OnConnectedAsync(connection).OrTimeout();
 
-                await manager1.AddGroupAsync(connection.ConnectionId, "name").OrTimeout();
+                await manager1.AddGroupAsync("name", connection.ConnectionId).OrTimeout();
 
                 await manager2.SendGroupAsync("name", "Hello", new object[] { "World" }).OrTimeout();
 
@@ -278,7 +278,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 
                 await manager.OnConnectedAsync(connection).OrTimeout();
 
-                await manager.AddGroupAsync(connection.ConnectionId, "name").OrTimeout();
+                await manager.AddGroupAsync("name", connection.ConnectionId).OrTimeout();
 
                 await manager.OnDisconnectedAsync(connection).OrTimeout();
 
@@ -337,7 +337,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 
                 await manager1.OnConnectedAsync(connection).OrTimeout();
 
-                await manager2.AddGroupAsync(connection.ConnectionId, "name").OrTimeout();
+                await manager2.AddGroupAsync("name", connection.ConnectionId).OrTimeout();
 
                 await manager2.SendGroupAsync("name", "Hello", new object[] { "World" }).OrTimeout();
 
@@ -358,8 +358,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 
                 await manager.OnConnectedAsync(connection).OrTimeout();
 
-                await manager.AddGroupAsync(connection.ConnectionId, "name").OrTimeout();
-                await manager.AddGroupAsync(connection.ConnectionId, "name").OrTimeout();
+                await manager.AddGroupAsync("name", connection.ConnectionId).OrTimeout();
+                await manager.AddGroupAsync("name", connection.ConnectionId).OrTimeout();
 
                 await manager.SendGroupAsync("name", "Hello", new object[] { "World" }).OrTimeout();
 
@@ -382,8 +382,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 
                 await manager1.OnConnectedAsync(connection).OrTimeout();
 
-                await manager1.AddGroupAsync(connection.ConnectionId, "name").OrTimeout();
-                await manager2.AddGroupAsync(connection.ConnectionId, "name").OrTimeout();
+                await manager1.AddGroupAsync("name", connection.ConnectionId).OrTimeout();
+                await manager2.AddGroupAsync("name", connection.ConnectionId).OrTimeout();
 
                 await manager2.SendGroupAsync("name", "Hello", new object[] { "World" }).OrTimeout();
 
@@ -406,7 +406,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 
                 await manager1.OnConnectedAsync(connection).OrTimeout();
 
-                await manager1.AddGroupAsync(connection.ConnectionId, "name").OrTimeout();
+                await manager1.AddGroupAsync("name", connection.ConnectionId).OrTimeout();
 
                 await manager2.SendGroupAsync("name", "Hello", new object[] { "World" }).OrTimeout();
 
@@ -484,9 +484,9 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
                 var connection2 = HubConnectionContextUtils.Create(client2.Connection);
 
                 await manager.OnConnectedAsync(connection1).OrTimeout();
-                await manager.AddGroupAsync(connection1.ConnectionId, "group");
+                await manager.AddGroupAsync("group", connection1.ConnectionId);
                 await manager.OnConnectedAsync(connection2).OrTimeout();
-                await manager.AddGroupAsync(connection2.ConnectionId, "group");
+                await manager.AddGroupAsync("group", connection2.ConnectionId);
 
                 await manager.SendGroupAsync("group", "Hello", new object[] { "World" }).OrTimeout();
                 // connection1 will throw when receiving a group message, we are making sure other connections

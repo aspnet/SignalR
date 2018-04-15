@@ -75,7 +75,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 await manager.OnConnectedAsync(connection1).OrTimeout();
                 await manager.OnConnectedAsync(connection2).OrTimeout();
 
-                await manager.AddGroupAsync(connection1.ConnectionId, "gunit").OrTimeout();
+                await manager.AddGroupAsync("gunit", connection1.ConnectionId).OrTimeout();
 
                 await manager.SendGroupAsync("gunit", "Hello", new object[] { "World" }).OrTimeout();
 
@@ -101,8 +101,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 await manager.OnConnectedAsync(connection1).OrTimeout();
                 await manager.OnConnectedAsync(connection2).OrTimeout();
 
-                await manager.AddGroupAsync(connection1.ConnectionId, "gunit").OrTimeout();
-                await manager.AddGroupAsync(connection2.ConnectionId, "gunit").OrTimeout();
+                await manager.AddGroupAsync("gunit", connection1.ConnectionId).OrTimeout();
+                await manager.AddGroupAsync("gunit", connection2.ConnectionId).OrTimeout();
 
                 await manager.SendGroupExceptAsync("gunit", "Hello", new object[] { "World" }, new []{ connection2.ConnectionId }).OrTimeout();
 
@@ -145,7 +145,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         public async Task AddGroupOnNonExistentConnectionNoops()
         {
             var manager = new DefaultHubLifetimeManager<MyHub>(new Logger<DefaultHubLifetimeManager<MyHub>>(NullLoggerFactory.Instance));
-            await manager.AddGroupAsync("NotARealConnectionId", "MyGroup").OrTimeout();
+            await manager.AddGroupAsync("MyGroup", "NotARealConnectionId").OrTimeout();
         }
 
         [Fact]

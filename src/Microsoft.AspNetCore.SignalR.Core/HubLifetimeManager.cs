@@ -30,7 +30,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         public abstract Task SendUsersAsync(IReadOnlyList<string> userIds, string methodName, object[] args);
 
-        public abstract Task AddGroupAsync(string connectionId, string groupName);
+        public abstract Task AddGroupAsync(string groupName, string connectionId);
 
         public abstract Task RemoveGroupAsync(string connectionId, string groupName);
     }
