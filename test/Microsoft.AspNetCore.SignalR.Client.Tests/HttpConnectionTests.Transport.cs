@@ -29,11 +29,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 var requestsExecuted = false;
                 var callCount = 0;
 
-                testHttpHandler.OnRequest((request, next, token) =>
-                {
-                    return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.NoContent));
-                });
-
                 testHttpHandler.OnNegotiate((_, cancellationToken) =>
                 {
                     return ResponseUtils.CreateResponse(HttpStatusCode.OK, ResponseUtils.CreateNegotiationContent());
@@ -49,6 +44,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     requestsExecuted = true;
 
                     return await next();
+                });
+
+                testHttpHandler.OnRequest((request, next, token) =>
+                {
+                    return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.NoContent));
                 });
 
                 Task<string> AccessTokenProvider()
@@ -77,10 +77,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 var testHttpHandler = new TestHttpMessageHandler(autoNegotiate: false);
                 var requestsExecuted = false;
 
-                testHttpHandler.OnRequest((request, next, token) =>
-                {
-                    return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.NoContent));
-                });
 
                 testHttpHandler.OnNegotiate((_, cancellationToken) =>
                 {
@@ -105,6 +101,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     return await next();
                 });
 
+                testHttpHandler.OnRequest((request, next, token) =>
+                {
+                    return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.NoContent));
+                });
+
                 await WithConnectionAsync(
                     CreateConnection(testHttpHandler, transportType: transportType),
                     async (connection) =>
@@ -124,11 +125,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 var testHttpHandler = new TestHttpMessageHandler(autoNegotiate: false);
                 var requestsExecuted = false;
 
-                testHttpHandler.OnRequest((request, next, token) =>
-                {
-                    return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.NoContent));
-                });
-
                 testHttpHandler.OnNegotiate((_, cancellationToken) =>
                 {
                     return ResponseUtils.CreateResponse(HttpStatusCode.OK, ResponseUtils.CreateNegotiationContent());
@@ -143,6 +139,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     requestsExecuted = true;
 
                     return await next();
+                });
+
+                testHttpHandler.OnRequest((request, next, token) =>
+                {
+                    return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.NoContent));
                 });
 
                 await WithConnectionAsync(
