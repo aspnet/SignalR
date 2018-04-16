@@ -241,66 +241,56 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
                             {
                                 if (buffer.Length >= maxBuffer)
                                 {
-                                    Log.SendPayload(_logger, buffer.Length);
+                                    //Log.SendPayload(_logger, buffer.Length);
 
-                                    var webSocketMessageType = (_connection.ActiveFormat == TransferFormat.Binary
-                                    ? WebSocketMessageType.Binary
-                                    : WebSocketMessageType.Text);
+                                    //var webSocketMessageType = (_connection.ActiveFormat == TransferFormat.Binary
+                                    //? WebSocketMessageType.Binary
+                                    //: WebSocketMessageType.Text);
 
-                                    if (WebSocketCanSend(socket))
-                                    {
-                                        await socket.SendAsync(buffer, webSocketMessageType);
-                                        totalBufferSize += buffer.Length;
-                                        totalSends++;
-                                    }
-                                    else
-                                    {
-                                        break;
-                                    }
+                                    //if (WebSocketCanSend(socket))
+                                    //{
+                                    //    await socket.SendAsync(buffer, webSocketMessageType);
+                                    //    totalBufferSize += buffer.Length;
+                                    //    totalSends++;
+                                    //}
+                                    //else
+                                    //{
+                                    //    break;
+                                    //}
                                 }
                                 else
                                 {
-                                    while (buffer.Length < maxBuffer)
-                                    {
-                                        var length = buffer.Length;
+                                    _application.Input.AdvanceTo(buffer.Start, buffer.End);
 
-                                        _application.Input.AdvanceTo(buffer.Start, buffer.End);
+                                    _watch.Start();
+                                    //await Task.Delay(1);
+                                    //await Task.Yield();
+                                    await _nagleTimer;
+                                    _watch.Stop();
+                                    watchTime += _watch.ElapsedMilliseconds;
+                                    _watch.Reset();
 
-                                        _watch.Start();
-                                        //await Task.Delay(1);
-                                        //await Task.Yield();
-                                        await _nagleTimer;
-                                        _watch.Stop();
-                                        watchTime += _watch.ElapsedMilliseconds;
-                                        _watch.Reset();
+                                    var hasData = _application.Input.TryRead(out result);
+                                    buffer = result.Buffer;
 
-                                        var hasData = _application.Input.TryRead(out result);
-                                        buffer = result.Buffer;
+                                    secondLoopRuns++;
+                                }
 
-                                        secondLoopRuns++;
+                                Log.SendPayload(_logger, buffer.Length);
 
-                                        if (buffer.Length == length)
-                                        {
-                                            break;
-                                        }
-                                    }
+                                var webSocketMessageType = (_connection.ActiveFormat == TransferFormat.Binary
+                                ? WebSocketMessageType.Binary
+                                : WebSocketMessageType.Text);
 
-                                    Log.SendPayload(_logger, buffer.Length);
-
-                                    var webSocketMessageType = (_connection.ActiveFormat == TransferFormat.Binary
-                                    ? WebSocketMessageType.Binary
-                                    : WebSocketMessageType.Text);
-
-                                    if (WebSocketCanSend(socket))
-                                    {
-                                        await socket.SendAsync(buffer, webSocketMessageType);
-                                        totalBufferSize += buffer.Length;
-                                        totalSends++;
-                                    }
-                                    else
-                                    {
-                                        break;
-                                    }
+                                if (WebSocketCanSend(socket))
+                                {
+                                    await socket.SendAsync(buffer, webSocketMessageType);
+                                    totalBufferSize += buffer.Length;
+                                    totalSends++;
+                                }
+                                else
+                                {
+                                    break;
                                 }
                             }
                             catch (Exception ex)
