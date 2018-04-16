@@ -1,7 +1,6 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-import { ConnectionClosed } from "./Common";
 import { HandshakeProtocol, HandshakeRequestMessage, HandshakeResponseMessage } from "./HandshakeProtocol";
 import { HttpConnection, IHttpConnectionOptions } from "./HttpConnection";
 import { IConnection } from "./IConnection";
@@ -29,7 +28,7 @@ export class HubConnection {
     private callbacks: { [invocationId: string]: (invocationEvent: StreamItemMessage | CompletionMessage, error?: Error) => void };
     private methods: { [name: string]: Array<(...args: any[]) => void> };
     private id: number;
-    private closedCallbacks: ConnectionClosed[];
+    private closedCallbacks: Array<(error?: Error) => void>;
     private timeoutHandle: NodeJS.Timer;
     private timeoutInMilliseconds: number;
     private receivedHandshakeResponse: boolean;
@@ -327,7 +326,7 @@ export class HubConnection {
 
     }
 
-    public onclose(callback: ConnectionClosed) {
+    public onclose(callback: (error?: Error) => void) {
         if (callback) {
             this.closedCallbacks.push(callback);
         }

@@ -1,7 +1,6 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-import { ConnectionClosed, DataReceived } from "./Common";
 import { TransferFormat } from "./ITransport";
 
 export interface IConnection {
@@ -11,6 +10,6 @@ export interface IConnection {
     send(data: any): Promise<void>;
     stop(error?: Error): Promise<void>;
 
-    onreceive: DataReceived;
-    onclose: ConnectionClosed;
+    onreceive: (data: string | ArrayBuffer) => void;
+    onclose: (error?: Error) => void;
 }

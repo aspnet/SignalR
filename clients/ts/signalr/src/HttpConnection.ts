@@ -1,7 +1,6 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-import { ConnectionClosed, DataReceived } from "./Common";
 import { DefaultHttpClient, HttpClient } from "./HttpClient";
 import { IConnection } from "./IConnection";
 import { ILogger, LogLevel } from "./ILogger";
@@ -310,6 +309,6 @@ export class HttpConnection implements IConnection {
         return negotiateUrl;
     }
 
-    public onreceive: DataReceived;
-    public onclose: ConnectionClosed;
+    public onreceive: (data: string | ArrayBuffer) => void;
+    public onclose: (e?: Error) => void;
 }
