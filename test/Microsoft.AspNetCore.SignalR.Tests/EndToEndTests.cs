@@ -76,9 +76,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [MemberData(nameof(TransportTypes))]
         public async Task CanStartAndStopConnectionUsingGivenTransport(HttpTransportType transportType)
         {
-            const int TaskCount = 100;
-            var 
-
             using (StartVerifableLog(out var loggerFactory, testName: $"CanStartAndStopConnectionUsingGivenTransport_{transportType}"))
             {
                 var url = _serverFixture.Url + "/echo";
