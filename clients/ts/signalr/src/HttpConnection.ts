@@ -73,7 +73,7 @@ export class HttpConnection implements IConnection {
 
         Arg.isIn(transferFormat, TransferFormat, "transferFormat");
 
-        this.logger.log(LogLevel.Trace, `Starting connection with transfer format '${TransferFormat[transferFormat]}'.`);
+        this.logger.log(LogLevel.Debug, `Starting connection with transfer format '${TransferFormat[transferFormat]}'.`);
 
         if (this.connectionState !== ConnectionState.Disconnected) {
             return Promise.reject(new Error("Cannot start a connection that is not in the 'Disconnected' state."));
@@ -156,7 +156,7 @@ export class HttpConnection implements IConnection {
 
     private async getNegotiationResponse(headers: any): Promise<INegotiateResponse> {
         const negotiateUrl = this.resolveNegotiateUrl(this.baseUrl);
-        this.logger.log(LogLevel.Trace, `Sending negotiation request: ${negotiateUrl}`);
+        this.logger.log(LogLevel.Debug, `Sending negotiation request: ${negotiateUrl}`);
         try {
             const response = await this.httpClient.post(negotiateUrl, {
                 content: "",
@@ -177,7 +177,7 @@ export class HttpConnection implements IConnection {
     private async createTransport(requestedTransport: HttpTransportType | ITransport, negotiateResponse: INegotiateResponse, requestedTransferFormat: TransferFormat, headers: any): Promise<void> {
         this.updateConnectionId(negotiateResponse);
         if (this.isITransport(requestedTransport)) {
-            this.logger.log(LogLevel.Trace, "Connection was provided an instance of ITransport, using that directly.");
+            this.logger.log(LogLevel.Debug, "Connection was provided an instance of ITransport, using that directly.");
             this.transport = requestedTransport;
             await this.transport.connect(this.url, requestedTransferFormat);
 
@@ -228,23 +228,23 @@ export class HttpConnection implements IConnection {
     private resolveTransport(endpoint: IAvailableTransport, requestedTransport: HttpTransportType, requestedTransferFormat: TransferFormat): HttpTransportType | null {
         const transport = HttpTransportType[endpoint.transport];
         if (transport === null || transport === undefined) {
-            this.logger.log(LogLevel.Trace, `Skipping transport '${endpoint.transport}' because it is not supported by this client.`);
+            this.logger.log(LogLevel.Debug, `Skipping transport '${endpoint.transport}' because it is not supported by this client.`);
         } else {
             const transferFormats = endpoint.transferFormats.map((s) => TransferFormat[s]);
             if (!requestedTransport || transport === requestedTransport) {
                 if (transferFormats.indexOf(requestedTransferFormat) >= 0) {
                     if ((transport === HttpTransportType.WebSockets && typeof WebSocket === "undefined") ||
                         (transport === HttpTransportType.ServerSentEvents && typeof EventSource === "undefined")) {
-                        this.logger.log(LogLevel.Trace, `Skipping transport '${HttpTransportType[transport]}' because it is not supported in your environment.'`);
+                        this.logger.log(LogLevel.Debug, `Skipping transport '${HttpTransportType[transport]}' because it is not supported in your environment.'`);
                     } else {
-                        this.logger.log(LogLevel.Trace, `Selecting transport '${HttpTransportType[transport]}'`);
+                        this.logger.log(LogLevel.Debug, `Selecting transport '${HttpTransportType[transport]}'`);
                         return transport;
                     }
                 } else {
-                    this.logger.log(LogLevel.Trace, `Skipping transport '${HttpTransportType[transport]}' because it does not support the requested transfer format '${TransferFormat[requestedTransferFormat]}'.`);
+                    this.logger.log(LogLevel.Debug, `Skipping transport '${HttpTransportType[transport]}' because it does not support the requested transfer format '${TransferFormat[requestedTransferFormat]}'.`);
                 }
             } else {
-                this.logger.log(LogLevel.Trace, `Skipping transport '${HttpTransportType[transport]}' because it was disabled by the client.`);
+                this.logger.log(LogLevel.Debug, `Skipping transport '${HttpTransportType[transport]}' because it was disabled by the client.`);
             }
         }
         return null;

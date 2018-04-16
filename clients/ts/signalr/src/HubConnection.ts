@@ -66,13 +66,13 @@ export class HubConnection {
             version: this.protocol.version,
         };
 
-        this.logger.log(LogLevel.Trace, "Starting HubConnection.");
+        this.logger.log(LogLevel.Debug, "Starting HubConnection.");
 
         this.receivedHandshakeResponse = false;
 
         await this.connection.start(this.protocol.transferFormat);
 
-        this.logger.log(LogLevel.Trace, "Sending handshake request.");
+        this.logger.log(LogLevel.Debug, "Sending handshake request.");
 
         await this.connection.send(this.handshakeProtocol.writeHandshakeRequest(handshakeRequest));
 
@@ -84,7 +84,7 @@ export class HubConnection {
     }
 
     public stop(): Promise<void> {
-        this.logger.log(LogLevel.Trace, "Stopping HubConnection.");
+        this.logger.log(LogLevel.Debug, "Stopping HubConnection.");
 
         this.cleanupTimeout();
         return this.connection.stop();
@@ -283,7 +283,7 @@ export class HubConnection {
             this.logger.log(LogLevel.Error, message);
             this.connection.stop(new Error(message));
         } else {
-            this.logger.log(LogLevel.Trace, "Server handshake complete.");
+            this.logger.log(LogLevel.Debug, "Server handshake complete.");
         }
 
         return remainingData;
