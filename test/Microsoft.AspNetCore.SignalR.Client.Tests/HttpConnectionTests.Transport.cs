@@ -73,9 +73,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             [Theory]
             [InlineData(HttpTransportType.LongPolling, true)]
             [InlineData(HttpTransportType.ServerSentEvents, false)]
-
-            // REVIEW: We don't have any mocks that can make this work :(
-            //[InlineData(HttpTransportType.WebSockets, false)]
             public async Task HttpConnectionSetsInherentKeepAliveFeature(HttpTransportType transportType, bool expectedValue)
             {
                 var testHttpHandler = new TestHttpMessageHandler(autoNegotiate: false);
