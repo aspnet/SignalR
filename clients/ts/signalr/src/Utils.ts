@@ -3,7 +3,8 @@
 
 import { HttpClient } from "./HttpClient";
 import { ILogger, LogLevel } from "./ILogger";
-import { ConsoleLogger, NullLogger } from "./Loggers";
+import { NullLogger } from "./Loggers";
+import { StreamResult, StreamSubscriber, Subscription } from "./Stream";
 
 export class Arg {
     public static isRequired(val: any, name: string): void {
@@ -83,4 +84,91 @@ export function createLogger(logger?: ILogger | LogLevel) {
     }
 
     return new ConsoleLogger(logger as LogLevel);
+}
+
+export class Subject<T> extends StreamResult<T> {
+    public observers: Array<StreamSubscriber<T>>;
+    public cancelCallback: () => Promise<void>;
+
+    constructor(cancelCallback: () => Promise<void>) {
+        super();
+        this.observers = [];
+        this.cancelCallback = cancelCallback;
+    }
+
+    public next(item: T): void {
+        for (const observer of this.observers) {
+            observer.next(item);
+        }
+    }
+
+    public error(err: any): void {
+        for (const observer of this.observers) {
+            if (observer.error) {
+                observer.error(err);
+            }
+        }
+    }
+
+    public complete(): void {
+        for (const observer of this.observers) {
+            if (observer.complete) {
+                observer.complete();
+            }
+        }
+    }
+
+    public subscribe(observer: StreamSubscriber<T>): Subscription<T> {
+        this.observers.push(observer);
+        return new SubjectSubscription(this, observer);
+    }
+}
+
+export class SubjectSubscription<T> extends Subscription<T> {
+    private subject: Subject<T>;
+    private observer: StreamSubscriber<T>;
+
+    constructor(subject: Subject<T>, observer: StreamSubscriber<T>) {
+        super();
+        this.subject = subject;
+        this.observer = observer;
+    }
+
+    public dispose(): void {
+        const index: number = this.subject.observers.indexOf(this.observer);
+        if (index > -1) {
+            this.subject.observers.splice(index, 1);
+        }
+
+        if (this.subject.observers.length === 0) {
+            this.subject.cancelCallback().catch((_) => { });
+        }
+    }
+}
+
+export class ConsoleLogger implements ILogger {
+    private readonly minimumLogLevel: LogLevel;
+
+    constructor(minimumLogLevel: LogLevel) {
+        this.minimumLogLevel = minimumLogLevel;
+    }
+
+    public log(logLevel: LogLevel, message: string): void {
+        if (logLevel >= this.minimumLogLevel) {
+            switch (logLevel) {
+                case LogLevel.Error:
+                    console.error(`${LogLevel[logLevel]}: ${message}`);
+                    break;
+                case LogLevel.Warning:
+                    console.warn(`${LogLevel[logLevel]}: ${message}`);
+                    break;
+                case LogLevel.Information:
+                    console.info(`${LogLevel[logLevel]}: ${message}`);
+                    break;
+                default:
+                    console.log(`${LogLevel[logLevel]}: ${message}`);
+                    break;
+            }
+        }
+    }
 }

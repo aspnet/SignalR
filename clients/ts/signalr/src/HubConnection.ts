@@ -7,10 +7,10 @@ import { IConnection } from "./IConnection";
 import { CancelInvocationMessage, CompletionMessage, HubMessage, IHubProtocol, InvocationMessage, MessageType, StreamInvocationMessage, StreamItemMessage } from "./IHubProtocol";
 import { ILogger, LogLevel } from "./ILogger";
 import { JsonHubProtocol } from "./JsonHubProtocol";
-import { ConsoleLogger, NullLogger } from "./Loggers";
-import { Observable, Subject } from "./Observable";
+import { NullLogger } from "./Loggers";
+import { StreamResult } from "./Stream";
 import { TextMessageFormat } from "./TextMessageFormat";
-import { createLogger } from "./Utils";
+import { createLogger, Subject } from "./Utils";
 
 export { JsonHubProtocol };
 
@@ -91,7 +91,7 @@ export class HubConnection {
         return this.connection.stop();
     }
 
-    public stream<T = any>(methodName: string, ...args: any[]): Observable<T> {
+    public stream<T = any>(methodName: string, ...args: any[]): StreamResult<T> {
         const invocationDescriptor = this.createStreamInvocation(methodName, args);
 
         const subject = new Subject<T>(() => {
