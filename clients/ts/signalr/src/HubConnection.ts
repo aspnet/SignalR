@@ -90,7 +90,7 @@ export class HubConnection {
         return this.connection.stop();
     }
 
-    public stream<T>(methodName: string, ...args: any[]): Observable<T> {
+    public stream<T = any>(methodName: string, ...args: any[]): Observable<T> {
         const invocationDescriptor = this.createStreamInvocation(methodName, args);
 
         const subject = new Subject<T>(() => {
