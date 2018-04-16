@@ -168,14 +168,14 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             _lifetimeManager = lifetimeManager;
         }
 
-        public Task AddToGroupAsync(string groupName, string connectionId)
+        public Task AddToGroupAsync(string connectionId, string groupName)
         {
-            return _lifetimeManager.AddGroupAsync(groupName, connectionId);
+            return _lifetimeManager.AddToGroupAsync(connectionId, groupName);
         }
 
-        public Task RemoveFromGroupAsync(string groupName, string connectionId)
+        public Task RemoveFromGroupAsync(string connectionId, string groupName)
         {
-            return _lifetimeManager.RemoveGroupAsync(connectionId, groupName);
+            return _lifetimeManager.RemoveFromGroupAsync(connectionId, groupName);
         }
     }
 }

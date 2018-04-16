@@ -15,7 +15,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
     {
         public Task GroupRemoveMethod(string groupName)
         {
-            return Groups.RemoveFromGroupAsync(groupName, Context.ConnectionId);
+            return Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
         }
 
         public Task ClientSendMethod(string userId, string message)
@@ -40,7 +40,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
         public Task GroupAddMethod(string groupName)
         {
-            return Groups.AddToGroupAsync(groupName, Context.ConnectionId);
+            return Groups.AddToGroupAsync(Context.ConnectionId, groupName);
         }
 
         public Task GroupSendMethod(string groupName, string message)
@@ -204,7 +204,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
         public Task GroupAddMethod(string groupName)
         {
-            return Groups.AddToGroupAsync(groupName, Context.ConnectionId);
+            return Groups.AddToGroupAsync(Context.ConnectionId, groupName);
         }
 
         public Task GroupSendMethod(string groupName, string message)
@@ -290,7 +290,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
         public Task GroupAddMethod(string groupName)
         {
-            return Groups.AddToGroupAsync(groupName, Context.ConnectionId);
+            return Groups.AddToGroupAsync(Context.ConnectionId, groupName);
         }
 
         public Task GroupSendMethod(string groupName, string message)

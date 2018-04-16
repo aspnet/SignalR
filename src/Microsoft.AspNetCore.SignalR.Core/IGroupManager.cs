@@ -7,7 +7,7 @@ namespace Microsoft.AspNetCore.SignalR
 {
     public interface IGroupManager
     {
-        Task AddToGroupAsync(string groupName, string connectionId);
-        Task RemoveFromGroupAsync(string groupName, string connectionId);
+        Task AddToGroupAsync(string connectionId, string groupName);
+        Task RemoveFromGroupAsync(string connectionId, string groupName);
     }
 }

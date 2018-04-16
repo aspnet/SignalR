@@ -52,8 +52,8 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             async Task ConnectClient(TestClient client, IHubProtocol protocol, string userId, string groupName)
             {
                 await _manager2.OnConnectedAsync(HubConnectionContextUtils.Create(client.Connection, protocol, userId));
-                await _manager2.AddGroupAsync("Everyone", client.Connection.ConnectionId);
-                await _manager2.AddGroupAsync(groupName, client.Connection.ConnectionId);
+                await _manager2.AddToGroupAsync(client.Connection.ConnectionId, "Everyone");
+                await _manager2.AddToGroupAsync(client.Connection.ConnectionId, groupName);
             }
 
             // Connect clients
