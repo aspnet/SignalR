@@ -138,7 +138,7 @@ export class HubConnection {
         return this.connection.send(message);
     }
 
-    public invoke(methodName: string, ...args: any[]): Promise<any> {
+    public invoke<T = any>(methodName: string, ...args: any[]): Promise<T> {
         const invocationDescriptor = this.createInvocation(methodName, args, false);
 
         const p = new Promise<any>((resolve, reject) => {
