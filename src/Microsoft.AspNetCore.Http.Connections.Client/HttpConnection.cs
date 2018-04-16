@@ -59,7 +59,6 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
         public override string ConnectionId { get; set; }
         public override IDictionary<object, object> Items { get; set; } = new ConnectionItems();
 
-        // REVIEW: Public? I can private-impl it instead. HubConnection uses ConnectionContext.Features to get this info.
         public bool HasInherentKeepAlive { get; private set; }
 
         public HttpConnection(Uri url)
