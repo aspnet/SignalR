@@ -42,6 +42,7 @@ namespace WindowsFormsSample
             catch (Exception ex)
             {
                 Log(Color.Red, ex.ToString());
+                return;
             }
 
             Log(Color.Gray, "Connection established.");
