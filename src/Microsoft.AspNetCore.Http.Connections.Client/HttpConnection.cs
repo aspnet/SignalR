@@ -12,14 +12,14 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Connections.Features;
 using Microsoft.AspNetCore.Http.Connections.Client.Internal;
-using Microsoft.AspNetCore.Http.Connections.Features;
+using Microsoft.AspNetCore.Http.Connections.Internal;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Microsoft.AspNetCore.Http.Connections.Client
 {
-    public partial class HttpConnection : ConnectionContext
+    public partial class HttpConnection : ConnectionContext, IConnectionInherentKeepAliveFeature
     {
         private static readonly TimeSpan HttpClientTimeout = TimeSpan.FromSeconds(120);
 #if !NETCOREAPP2_1
@@ -58,6 +58,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
         public override IFeatureCollection Features { get; } = new FeatureCollection();
         public override string ConnectionId { get; set; }
         public override IDictionary<object, object> Items { get; set; } = new ConnectionItems();
+
+        // REVIEW: Public? I can private-impl it instead. HubConnection uses ConnectionContext.Features to get this info.
+        public bool HasInherentKeepAlive { get; private set; }
 
         public HttpConnection(Uri url)
             : this(url, HttpTransports.All)
@@ -102,6 +105,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
             _transportFactory = new DefaultTransportFactory(httpConnectionOptions.Transports, _loggerFactory, _httpClient, httpConnectionOptions);
             _logScope = new ConnectionLogScope();
             _scopeDisposable = _logger.BeginScope(_logScope);
+
+            Features.Set<IConnectionInherentKeepAliveFeature>(this);
         }
 
         // Used by unit tests
@@ -347,11 +352,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
                 throw;
             }
 
-            if (transportType == HttpTransportType.LongPolling)
-            {
-                // Disable keep alives for long polling
-                Features.Set<IConnectionInherentKeepAliveFeature>(new ConnectionInherentKeepAliveFeature(_httpClient.Timeout));
-            }
+            // Disable keep alives for long polling
+            HasInherentKeepAlive = transportType == HttpTransportType.LongPolling;
 
             // We successfully started, set the transport properties (we don't want to set these until the transport is definitely running).
             _transport = transport;

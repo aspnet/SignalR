@@ -366,10 +366,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
         private async Task ExecuteApplication(ConnectionDelegate connectionDelegate, HttpConnectionContext connection)
         {
             // Verify some initialization invariants
-            // We want to be positive that the IConnectionInherentKeepAliveFeature is initialized before invoking the application, if the long polling transport is in use.
             Debug.Assert(connection.TransportType != HttpTransportType.None, "Transport has not been initialized yet");
-            Debug.Assert(connection.TransportType != HttpTransportType.LongPolling ||
-                connection.Features.Get<IConnectionInherentKeepAliveFeature>() != null, "Long-polling transport is in use but IConnectionInherentKeepAliveFeature as not configured");
 
             // Jump onto the thread pool thread so blocking user code doesn't block the setup of the
             // connection and transport

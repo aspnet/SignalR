@@ -409,8 +409,5 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
                 _transportAndApplicationComplete(logger, transportType, null);
             }
         }
-
-        // REVIEW: DELETE ME
-        public TimeSpan KeepAliveInterval { get; }
     }
 }
