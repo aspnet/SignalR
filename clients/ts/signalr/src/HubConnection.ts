@@ -60,119 +60,6 @@ export class HubConnection {
         this.id = 0;
     }
 
-    private processIncomingData(data: any) {
-        this.cleanupTimeout();
-
-        if (!this.receivedHandshakeResponse) {
-            data = this.processHandshakeResponse(data);
-            this.receivedHandshakeResponse = true;
-        }
-
-        // Data may have all been read when processing handshake response
-        if (data) {
-            // Parse the messages
-            const messages = this.protocol.parseMessages(data, this.logger);
-
-            for (const message of messages) {
-                switch (message.type) {
-                    case MessageType.Invocation:
-                        this.invokeClientMethod(message);
-                        break;
-                    case MessageType.StreamItem:
-                    case MessageType.Completion:
-                        const callback = this.callbacks[message.invocationId];
-                        if (callback != null) {
-                            if (message.type === MessageType.Completion) {
-                                delete this.callbacks[message.invocationId];
-                            }
-                            callback(message);
-                        }
-                        break;
-                    case MessageType.Ping:
-                        // Don't care about pings
-                        break;
-                    case MessageType.Close:
-                        this.logger.log(LogLevel.Information, "Close message received from server.");
-                        this.connection.stop(message.error ? new Error("Server returned an error on close: " + message.error) : null);
-                        break;
-                    default:
-                        this.logger.log(LogLevel.Warning, "Invalid message type: " + message.type);
-                        break;
-                }
-            }
-        }
-
-        this.configureTimeout();
-    }
-
-    private processHandshakeResponse(data: any): any {
-        let responseMessage: HandshakeResponseMessage;
-        let remainingData: any;
-
-        try {
-            [remainingData, responseMessage] = this.handshakeProtocol.parseHandshakeResponse(data);
-        } catch (e) {
-            const message = "Error parsing handshake response: " + e;
-            this.logger.log(LogLevel.Error, message);
-
-            const error = new Error(message);
-            this.connection.stop(error);
-            throw error;
-        }
-        if (responseMessage.error) {
-            const message = "Server returned handshake error: " + responseMessage.error;
-            this.logger.log(LogLevel.Error, message);
-            this.connection.stop(new Error(message));
-        } else {
-            this.logger.log(LogLevel.Trace, "Server handshake complete.");
-        }
-
-        return remainingData;
-    }
-
-    private configureTimeout() {
-        if (!this.connection.features || !this.connection.features.inherentKeepAlive) {
-            // Set the timeout timer
-            this.timeoutHandle = setTimeout(() => this.serverTimeout(), this.timeoutInMilliseconds);
-        }
-    }
-
-    private serverTimeout() {
-        // The server hasn't talked to us in a while. It doesn't like us anymore ... :(
-        // Terminate the connection
-        this.connection.stop(new Error("Server timeout elapsed without receiving a message from the server."));
-    }
-
-    private invokeClientMethod(invocationMessage: InvocationMessage) {
-        const methods = this.methods[invocationMessage.target.toLowerCase()];
-        if (methods) {
-            methods.forEach((m) => m.apply(this, invocationMessage.arguments));
-            if (invocationMessage.invocationId) {
-                // This is not supported in v1. So we return an error to avoid blocking the server waiting for the response.
-                const message = "Server requested a response, which is not supported in this version of the client.";
-                this.logger.log(LogLevel.Error, message);
-                this.connection.stop(new Error(message));
-            }
-        } else {
-            this.logger.log(LogLevel.Warning, `No client method with the name '${invocationMessage.target}' found.`);
-        }
-    }
-
-    private connectionClosed(error?: Error) {
-        const callbacks = this.callbacks;
-        this.callbacks = {};
-
-        Object.keys(callbacks)
-            .forEach((key) => {
-                const callback = callbacks[key];
-                callback(undefined, error ? error : new Error("Invocation canceled due to connection being closed."));
-            });
-
-        this.cleanupTimeout();
-
-        this.closedCallbacks.forEach((c) => c.apply(this, [error]));
-    }
-
     public async start(): Promise<void> {
         const handshakeRequest: HandshakeRequestMessage = {
             protocol: this.protocol.name,
@@ -330,6 +217,119 @@ export class HubConnection {
         if (callback) {
             this.closedCallbacks.push(callback);
         }
+    }
+
+    private processIncomingData(data: any) {
+        this.cleanupTimeout();
+
+        if (!this.receivedHandshakeResponse) {
+            data = this.processHandshakeResponse(data);
+            this.receivedHandshakeResponse = true;
+        }
+
+        // Data may have all been read when processing handshake response
+        if (data) {
+            // Parse the messages
+            const messages = this.protocol.parseMessages(data, this.logger);
+
+            for (const message of messages) {
+                switch (message.type) {
+                    case MessageType.Invocation:
+                        this.invokeClientMethod(message);
+                        break;
+                    case MessageType.StreamItem:
+                    case MessageType.Completion:
+                        const callback = this.callbacks[message.invocationId];
+                        if (callback != null) {
+                            if (message.type === MessageType.Completion) {
+                                delete this.callbacks[message.invocationId];
+                            }
+                            callback(message);
+                        }
+                        break;
+                    case MessageType.Ping:
+                        // Don't care about pings
+                        break;
+                    case MessageType.Close:
+                        this.logger.log(LogLevel.Information, "Close message received from server.");
+                        this.connection.stop(message.error ? new Error("Server returned an error on close: " + message.error) : null);
+                        break;
+                    default:
+                        this.logger.log(LogLevel.Warning, "Invalid message type: " + message.type);
+                        break;
+                }
+            }
+        }
+
+        this.configureTimeout();
+    }
+
+    private processHandshakeResponse(data: any): any {
+        let responseMessage: HandshakeResponseMessage;
+        let remainingData: any;
+
+        try {
+            [remainingData, responseMessage] = this.handshakeProtocol.parseHandshakeResponse(data);
+        } catch (e) {
+            const message = "Error parsing handshake response: " + e;
+            this.logger.log(LogLevel.Error, message);
+
+            const error = new Error(message);
+            this.connection.stop(error);
+            throw error;
+        }
+        if (responseMessage.error) {
+            const message = "Server returned handshake error: " + responseMessage.error;
+            this.logger.log(LogLevel.Error, message);
+            this.connection.stop(new Error(message));
+        } else {
+            this.logger.log(LogLevel.Trace, "Server handshake complete.");
+        }
+
+        return remainingData;
+    }
+
+    private configureTimeout() {
+        if (!this.connection.features || !this.connection.features.inherentKeepAlive) {
+            // Set the timeout timer
+            this.timeoutHandle = setTimeout(() => this.serverTimeout(), this.timeoutInMilliseconds);
+        }
+    }
+
+    private serverTimeout() {
+        // The server hasn't talked to us in a while. It doesn't like us anymore ... :(
+        // Terminate the connection
+        this.connection.stop(new Error("Server timeout elapsed without receiving a message from the server."));
+    }
+
+    private invokeClientMethod(invocationMessage: InvocationMessage) {
+        const methods = this.methods[invocationMessage.target.toLowerCase()];
+        if (methods) {
+            methods.forEach((m) => m.apply(this, invocationMessage.arguments));
+            if (invocationMessage.invocationId) {
+                // This is not supported in v1. So we return an error to avoid blocking the server waiting for the response.
+                const message = "Server requested a response, which is not supported in this version of the client.";
+                this.logger.log(LogLevel.Error, message);
+                this.connection.stop(new Error(message));
+            }
+        } else {
+            this.logger.log(LogLevel.Warning, `No client method with the name '${invocationMessage.target}' found.`);
+        }
+    }
+
+    private connectionClosed(error?: Error) {
+        const callbacks = this.callbacks;
+        this.callbacks = {};
+
+        Object.keys(callbacks)
+            .forEach((key) => {
+                const callback = callbacks[key];
+                callback(undefined, error ? error : new Error("Invocation canceled due to connection being closed."));
+            });
+
+        this.cleanupTimeout();
+
+        this.closedCallbacks.forEach((c) => c.apply(this, [error]));
     }
 
     private cleanupTimeout(): void {
