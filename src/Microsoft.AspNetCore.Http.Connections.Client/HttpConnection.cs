@@ -31,6 +31,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
         private readonly SemaphoreSlim _connectionLock = new SemaphoreSlim(1, 1);
         private bool _started;
         private bool _disposed;
+        private bool _hasInherentKeepAlive;
 
         private readonly HttpClient _httpClient;
         private readonly HttpConnectionOptions _httpConnectionOptions;
@@ -59,7 +60,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
         public override string ConnectionId { get; set; }
         public override IDictionary<object, object> Items { get; set; } = new ConnectionItems();
 
-        public bool HasInherentKeepAlive { get; private set; }
+        bool IConnectionInherentKeepAliveFeature.HasInherentKeepAlive => _hasInherentKeepAlive;
 
         public HttpConnection(Uri url)
             : this(url, HttpTransports.All)
@@ -352,7 +353,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
             }
 
             // Disable keep alives for long polling
-            HasInherentKeepAlive = transportType == HttpTransportType.LongPolling;
+            _hasInherentKeepAlive = transportType == HttpTransportType.LongPolling;
 
             // We successfully started, set the transport properties (we don't want to set these until the transport is definitely running).
             _transport = transport;
