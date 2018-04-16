@@ -555,7 +555,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
             // Configure transport-specific features.
             if (transportType == HttpTransportType.LongPolling)
             {
-                connection.Features.Set<IConnectionInherentKeepAliveFeature>(new ConnectionInherentKeepAliveFeature(options.LongPolling.PollTimeout));
+                connection.HasInherentKeepAlive = true;
 
                 // For long polling, the requests come and go but the connection is still alive.
                 // To make the IHttpContextFeature work well, we make a copy of the relevant properties
