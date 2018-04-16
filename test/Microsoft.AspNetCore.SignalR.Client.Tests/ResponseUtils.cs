@@ -41,7 +41,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public static bool IsLongPollRequest(HttpRequestMessage request)
         {
             return request.Method == HttpMethod.Get &&
-                   !IsSSERequest(request) && 
+                   !IsServerSentEventsRequest(request) && 
                    (request.RequestUri.PathAndQuery.Contains("?id=") || request.RequestUri.PathAndQuery.Contains("&id="));
         }
 
@@ -51,7 +51,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                    (request.RequestUri.PathAndQuery.Contains("?id=") || request.RequestUri.PathAndQuery.Contains("&id="));
         }
 
-        public static bool IsSSERequest(HttpRequestMessage request)
+        public static bool IsServerSentEventsRequest(HttpRequestMessage request)
         {
             return request.Method == HttpMethod.Get && request.Headers.Accept.Any(h => h.MediaType == "text/event-stream");
         }

@@ -1384,13 +1384,13 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                 context.User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "name") }));
 
                 var connectionHandlerTask = dispatcher.ExecuteAsync(context, options, app);
-
                 await connectionHandlerTask.OrTimeout();
-
                 Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
 
                 connectionHandlerTask = dispatcher.ExecuteAsync(context, options, app);
                 await connection.Transport.Output.WriteAsync(Encoding.UTF8.GetBytes("Hello, World")).AsTask().OrTimeout();
+                await connectionHandlerTask.OrTimeout();
+                
                 Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
                 Assert.Equal("Hello, World", GetContentAsString(context.Response.Body));
             }
