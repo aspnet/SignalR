@@ -232,7 +232,7 @@ export class HttpConnection implements IConnection {
         return false;
     }
 
-    public send(data: any): Promise<void> {
+    public send(data: string | ArrayBuffer): Promise<void> {
         if (this.connectionState !== ConnectionState.Connected) {
             throw new Error("Cannot send data if the connection is not in the 'Connected' State.");
         }
