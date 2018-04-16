@@ -1,6 +1,6 @@
 namespace Microsoft.AspNetCore.SignalR.Redis.Internal
 {
-    public readonly struct RedisGroupCommand
+    internal readonly struct RedisGroupCommand
     {
         /// <summary>
         /// Gets the ID of the group command.

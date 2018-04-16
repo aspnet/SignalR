@@ -14,7 +14,7 @@ using StackExchange.Redis;
 
 namespace Microsoft.AspNetCore.SignalR.Redis.Internal
 {
-    public class RedisProtocol
+    internal class RedisProtocol
     {
         private readonly IReadOnlyList<IHubProtocol> _protocols;
 
