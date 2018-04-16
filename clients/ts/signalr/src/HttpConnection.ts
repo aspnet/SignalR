@@ -48,6 +48,8 @@ export class HttpConnection implements IConnection {
     private stopError?: Error;
 
     public readonly features: any = {};
+    public onreceive: (data: string | ArrayBuffer) => void;
+    public onclose: (e?: Error) => void;
 
     constructor(url: string, options: IHttpConnectionOptions = {}) {
         Arg.isRequired(url, "url");
@@ -81,6 +83,31 @@ export class HttpConnection implements IConnection {
 
         this.startPromise = this.startInternal(transferFormat);
         return this.startPromise;
+    }
+
+    public send(data: string | ArrayBuffer): Promise<void> {
+        if (this.connectionState !== ConnectionState.Connected) {
+            throw new Error("Cannot send data if the connection is not in the 'Connected' State.");
+        }
+
+        return this.transport.send(data);
+    }
+
+    public async stop(error?: Error): Promise<void> {
+        this.connectionState = ConnectionState.Disconnected;
+
+        try {
+            await this.startPromise;
+        } catch (e) {
+            // this exception is returned to the user as a rejected Promise from the start method
+        }
+
+        // The transport's onclose will trigger stopConnection which will run our onclose event.
+        if (this.transport) {
+            this.stopError = error;
+            await this.transport.stop();
+            this.transport = null;
+        }
     }
 
     private async startInternal(transferFormat: TransferFormat): Promise<void> {
@@ -235,31 +262,6 @@ export class HttpConnection implements IConnection {
         return false;
     }
 
-    public send(data: string | ArrayBuffer): Promise<void> {
-        if (this.connectionState !== ConnectionState.Connected) {
-            throw new Error("Cannot send data if the connection is not in the 'Connected' State.");
-        }
-
-        return this.transport.send(data);
-    }
-
-    public async stop(error?: Error): Promise<void> {
-        this.connectionState = ConnectionState.Disconnected;
-
-        try {
-            await this.startPromise;
-        } catch (e) {
-            // this exception is returned to the user as a rejected Promise from the start method
-        }
-
-        // The transport's onclose will trigger stopConnection which will run our onclose event.
-        if (this.transport) {
-            this.stopError = error;
-            await this.transport.stop();
-            this.transport = null;
-        }
-    }
-
     private async stopConnection(error?: Error): Promise<void> {
         this.transport = null;
 
@@ -311,7 +313,4 @@ export class HttpConnection implements IConnection {
         negotiateUrl += index === -1 ? "" : url.substring(index);
         return negotiateUrl;
     }
-
-    public onreceive: (data: string | ArrayBuffer) => void;
-    public onclose: (e?: Error) => void;
 }
