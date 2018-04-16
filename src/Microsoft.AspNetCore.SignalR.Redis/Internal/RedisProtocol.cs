@@ -10,11 +10,10 @@ using MessagePack;
 using Microsoft.AspNetCore.Internal;
 using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Protocol;
-using StackExchange.Redis;
 
 namespace Microsoft.AspNetCore.SignalR.Redis.Internal
 {
-    internal class RedisProtocol
+    public class RedisProtocol
     {
         private readonly IReadOnlyList<IHubProtocol> _protocols;
 
