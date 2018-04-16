@@ -64,8 +64,11 @@ export class HttpConnection implements IConnection {
         this.options = options;
     }
 
-    public start(transferFormat: TransferFormat): Promise<void> {
-        Arg.isRequired(transferFormat, "transferFormat");
+    public start(): Promise<void>;
+    public start(transferFormat: TransferFormat): Promise<void>;
+    public start(transferFormat?: TransferFormat): Promise<void> {
+        transferFormat = transferFormat || TransferFormat.Binary;
+
         Arg.isIn(transferFormat, TransferFormat, "transferFormat");
 
         this.logger.log(LogLevel.Trace, `Starting connection with transfer format '${TransferFormat[transferFormat]}'.`);
