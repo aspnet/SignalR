@@ -7,9 +7,10 @@ import { IConnection } from "./IConnection";
 import { CancelInvocationMessage, CompletionMessage, HubMessage, IHubProtocol, InvocationMessage, MessageType, StreamInvocationMessage, StreamItemMessage } from "./IHubProtocol";
 import { ILogger, LogLevel } from "./ILogger";
 import { JsonHubProtocol } from "./JsonHubProtocol";
-import { ConsoleLogger, LoggerFactory, NullLogger } from "./Loggers";
+import { ConsoleLogger, NullLogger } from "./Loggers";
 import { Observable, Subject } from "./Observable";
 import { TextMessageFormat } from "./TextMessageFormat";
+import { createLogger } from "./Utils";
 
 export { JsonHubProtocol };
 
@@ -49,7 +50,7 @@ export class HubConnection {
             this.connection = urlOrConnection;
         }
 
-        this.logger = LoggerFactory.createLogger(options.logger);
+        this.logger = createLogger(options.logger);
 
         this.connection.onreceive = (data: any) => this.processIncomingData(data);
         this.connection.onclose = (error?: Error) => this.connectionClosed(error);

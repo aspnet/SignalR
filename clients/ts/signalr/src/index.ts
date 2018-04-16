@@ -9,6 +9,6 @@ export * from "./HubConnection";
 export * from "./IConnection";
 export * from "./IHubProtocol";
 export * from "./ILogger";
-export * from "./Loggers";
+export { NullLogger } from "./Loggers";
 export * from "./ITransport";
 export * from "./Observable";

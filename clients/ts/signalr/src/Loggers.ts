@@ -4,6 +4,10 @@
 import { ILogger, LogLevel } from "./ILogger";
 
 export class NullLogger implements ILogger {
+    public static instance: ILogger = new NullLogger();
+
+    private constructor() {}
+
     public log(logLevel: LogLevel, message: string): void {
     }
 }
@@ -32,23 +36,5 @@ export class ConsoleLogger implements ILogger {
                     break;
             }
         }
-    }
-}
-
-export class LoggerFactory {
-    public static createLogger(logging?: ILogger | LogLevel) {
-        if (logging === undefined) {
-            return new ConsoleLogger(LogLevel.Information);
-        }
-
-        if (logging === null) {
-            return new NullLogger();
-        }
-
-        if ((logging as ILogger).log) {
-            return logging as ILogger;
-        }
-
-        return new ConsoleLogger(logging as LogLevel);
     }
 }

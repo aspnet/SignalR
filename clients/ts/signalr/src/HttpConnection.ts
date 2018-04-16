@@ -5,10 +5,9 @@ import { DefaultHttpClient, HttpClient } from "./HttpClient";
 import { IConnection } from "./IConnection";
 import { ILogger, LogLevel } from "./ILogger";
 import { HttpTransportType, ITransport, TransferFormat } from "./ITransport";
-import { LoggerFactory } from "./Loggers";
 import { LongPollingTransport } from "./LongPollingTransport";
 import { ServerSentEventsTransport } from "./ServerSentEventsTransport";
-import { Arg } from "./Utils";
+import { Arg, createLogger } from "./Utils";
 import { WebSocketTransport } from "./WebSocketTransport";
 
 export interface IHttpConnectionOptions {
@@ -54,7 +53,7 @@ export class HttpConnection implements IConnection {
     constructor(url: string, options: IHttpConnectionOptions = {}) {
         Arg.isRequired(url, "url");
 
-        this.logger = LoggerFactory.createLogger(options.logger);
+        this.logger = createLogger(options.logger);
         this.baseUrl = this.resolveUrl(url);
 
         options = options || {};

@@ -3,6 +3,7 @@
 
 import { HttpClient } from "./HttpClient";
 import { ILogger, LogLevel } from "./ILogger";
+import { ConsoleLogger, NullLogger } from "./Loggers";
 
 export class Arg {
     public static isRequired(val: any, name: string): void {
@@ -66,4 +67,20 @@ export async function sendMessage(logger: ILogger, transportName: string, httpCl
     });
 
     logger.log(LogLevel.Trace, `(${transportName} transport) request complete. Response status: ${response.statusCode}.`);
+}
+
+export function createLogger(logger?: ILogger | LogLevel) {
+    if (logger === undefined) {
+        return new ConsoleLogger(LogLevel.Information);
+    }
+
+    if (logger === null) {
+        return NullLogger.instance;
+    }
+
+    if ((logger as ILogger).log) {
+        return logger as ILogger;
+    }
+
+    return new ConsoleLogger(logger as LogLevel);
 }
