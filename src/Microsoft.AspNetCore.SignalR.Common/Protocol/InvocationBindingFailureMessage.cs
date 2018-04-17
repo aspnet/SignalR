@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Runtime.ExceptionServices;
-using System.Text;
 
 namespace Microsoft.AspNetCore.SignalR.Protocol
 {
@@ -18,6 +15,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
 
         public InvocationBindingFailureMessage(string invocationId, string target, ExceptionDispatchInfo bindingFailure) : base(invocationId)
         {
+            Target = target;
             BindingFailure = bindingFailure;
         }
     }

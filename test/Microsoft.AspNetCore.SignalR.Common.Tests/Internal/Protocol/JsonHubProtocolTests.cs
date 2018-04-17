@@ -95,9 +95,9 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
 
         public static IDictionary<string, JsonProtocolTestData> OutOfOrderJsonTestData => new[]
         {
-            new JsonProtocolTestData("InvocationMessage_StringIsoDateArgumentFirst", new InvocationMessage("Method", null, new object[] { "2016-05-10T13:51:20+12:34" }), false, NullValueHandling.Ignore, "{ \"arguments\": [\"2016-05-10T13:51:20+12:34\"], \"type\":1, \"target\": \"Method\" }"),
-            new JsonProtocolTestData("InvocationMessage_DateTimeOffsetArgumentFirst", new InvocationMessage("Method", null, new object[] { DateTimeOffset.Parse("2016-05-10T13:51:20+12:34") }), false, NullValueHandling.Ignore, "{ \"arguments\": [\"2016-05-10T13:51:20+12:34\"], \"type\":1, \"target\": \"Method\" }"),
-            new JsonProtocolTestData("InvocationMessage_IntegerArrayArgumentFirst", new InvocationMessage("Method", null, new object[] { 1, 2 }), false, NullValueHandling.Ignore, "{ \"arguments\": [1,2], \"type\":1, \"target\": \"Method\" }"),
+            new JsonProtocolTestData("InvocationMessage_StringIsoDateArgumentFirst", new InvocationMessage("Method", new object[] { "2016-05-10T13:51:20+12:34" }), false, NullValueHandling.Ignore, "{ \"arguments\": [\"2016-05-10T13:51:20+12:34\"], \"type\":1, \"target\": \"Method\" }"),
+            new JsonProtocolTestData("InvocationMessage_DateTimeOffsetArgumentFirst", new InvocationMessage("Method", new object[] { DateTimeOffset.Parse("2016-05-10T13:51:20+12:34") }), false, NullValueHandling.Ignore, "{ \"arguments\": [\"2016-05-10T13:51:20+12:34\"], \"type\":1, \"target\": \"Method\" }"),
+            new JsonProtocolTestData("InvocationMessage_IntegerArrayArgumentFirst", new InvocationMessage("Method", new object[] { 1, 2 }), false, NullValueHandling.Ignore, "{ \"arguments\": [1,2], \"type\":1, \"target\": \"Method\" }"),
             new JsonProtocolTestData("StreamInvocationMessage_IntegerArrayArgumentFirst", new StreamInvocationMessage("3", "Method", new object[] { 1, 2 }), false, NullValueHandling.Ignore, "{ \"type\":4, \"arguments\": [1,2], \"target\": \"Method\", \"invocationId\": \"3\" }"),
             new JsonProtocolTestData("CompletionMessage_ResultFirst", new CompletionMessage("15", null, 10, hasResult: true), false, NullValueHandling.Ignore, "{ \"type\":3, \"result\": 10, \"invocationId\": \"15\" }"),
             new JsonProtocolTestData("StreamItemMessage_ItemFirst", new StreamItemMessage("1a", "foo"), false, NullValueHandling.Ignore, "{ \"item\": \"foo\", \"invocationId\": \"1a\", \"type\":2 }")

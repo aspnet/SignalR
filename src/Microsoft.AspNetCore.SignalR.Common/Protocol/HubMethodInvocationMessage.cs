@@ -21,7 +21,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             }
 
             Target = target;
-            Arguments = arguments ?? throw new ArgumentNullException(nameof(arguments));
+            Arguments = arguments;
         }
     }
 

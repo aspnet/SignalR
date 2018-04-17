@@ -237,6 +237,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                         {
                             if (argumentsToken != null)
                             {
+                                // We weren't able to bind the arguments because they came before the 'target', so try to bind now that we've read everything.
                                 try
                                 {
                                     var paramTypes = binder.GetParameterTypes(target);
@@ -244,18 +245,20 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                                 }
                                 catch (Exception ex)
                                 {
-                                    message = new InvocationBindingFailureMessage(invocationId, target, ExceptionDispatchInfo.Capture(ex));
-                                    break;
+                                    argumentBindingException = ExceptionDispatchInfo.Capture(ex);
                                 }
                             }
 
-                            message = BindInvocationMessage(invocationId, target, arguments, hasArguments, binder);
+                            message = argumentBindingException != null
+                                ? new InvocationBindingFailureMessage(invocationId, target, argumentBindingException)
+                                : BindInvocationMessage(invocationId, target, arguments, hasArguments, binder);
                         }
                         break;
                     case HubProtocolConstants.StreamInvocationMessageType:
                         {
                             if (argumentsToken != null)
                             {
+                                // We weren't able to bind the arguments because they came before the 'target', so try to bind now that we've read everything.
                                 try
                                 {
                                     var paramTypes = binder.GetParameterTypes(target);
@@ -263,12 +266,13 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                                 }
                                 catch (Exception ex)
                                 {
-                                    message = new InvocationBindingFailureMessage(invocationId, target, ExceptionDispatchInfo.Capture(ex));
-                                    break;
+                                    argumentBindingException = ExceptionDispatchInfo.Capture(ex);
                                 }
                             }
 
-                            message = BindStreamInvocationMessage(invocationId, target, arguments, hasArguments, binder);
+                            message = argumentBindingException != null
+                                ? new InvocationBindingFailureMessage(invocationId, target, argumentBindingException)
+                                : BindStreamInvocationMessage(invocationId, target, arguments, hasArguments, binder);
                         }
                         break;
                     case HubProtocolConstants.StreamItemMessageType:
