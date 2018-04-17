@@ -49,7 +49,6 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
 
             Log.StartTransport(_logger, transferFormat);
 
-
             // Make initial long polling request
             // Server uses first long polling request to finish initializing connection and it returns without data
             var request = new HttpRequestMessage(HttpMethod.Get, url);
