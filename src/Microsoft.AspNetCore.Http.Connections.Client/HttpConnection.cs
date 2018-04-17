@@ -20,6 +20,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
 {
     public partial class HttpConnection : ConnectionContext, IConnectionInherentKeepAliveFeature
     {
+        // Not configurable on purpose, high enough that if we reach here, it's likely
+        // a buggy server
+        private static readonly int _maxRedirects = 100;
         private static Task<string> _noAccessToken = Task.FromResult<string>(null);
 
         private static readonly TimeSpan HttpClientTimeout = TimeSpan.FromSeconds(120);
@@ -225,6 +228,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
             else
             {
                 NegotiationResponse negotiationResponse;
+                var redirects = 0;
 
                 do
                 {
@@ -241,8 +245,15 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
                         // Set the current access token factory so that future requests use this access token
                         _accessTokenProvider = () => Task.FromResult(accessToken);
                     }
+
+                    redirects++;
                 }
-                while (negotiationResponse.Url != null);
+                while (negotiationResponse.Url != null && redirects < _maxRedirects);
+
+                if (redirects == _maxRedirects && negotiationResponse.Url != null)
+                {
+                    throw new InvalidOperationException($"Unable to resolve the negotiate url in {_maxRedirects} attempts.");
+                }
 
                 // This should only need to happen once
                 var connectUrl = CreateConnectUrl(uri, negotiationResponse.ConnectionId);

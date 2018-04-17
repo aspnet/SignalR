@@ -137,6 +137,31 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             }
 
             [Fact]
+            public async Task NegotiateThatReturnsRedirectUrlForeverThrowsAfter100Tries()
+            {
+                var testHttpHandler = new TestHttpMessageHandler(autoNegotiate: false);
+                testHttpHandler.OnNegotiate((request, cancellationToken) =>
+                {
+                    return ResponseUtils.CreateResponse(HttpStatusCode.OK,
+                            JsonConvert.SerializeObject(new
+                            {
+                                url = "https://another.domain.url/chat"
+                            }));
+                });
+
+                using (var noErrorScope = new VerifyNoErrorsScope())
+                {
+                    await WithConnectionAsync(
+                        CreateConnection(testHttpHandler, loggerFactory: noErrorScope.LoggerFactory),
+                        async (connection) =>
+                        {
+                            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => connection.StartAsync(TransferFormat.Text).OrTimeout());
+                            Assert.Equal("Unable to resolve the negotiate url in 100 attempts.", exception.Message);
+                        });
+                }
+            }
+
+            [Fact]
             public async Task NegotiateThatReturnsUrlGetFollowedWithAccessToken()
             {
                 var testHttpHandler = new TestHttpMessageHandler(autoNegotiate: false);
