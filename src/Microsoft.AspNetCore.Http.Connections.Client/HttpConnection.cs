@@ -115,16 +115,12 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
             _transportFactory = transportFactory;
         }
 
-        public Task StartAsync() => StartAsync(TransferFormat.Binary, CancellationToken.None);
-
-        public Task StartAsync(CancellationToken cancellationToken) => StartAsync(TransferFormat.Binary, cancellationToken);
-
-        public async Task StartAsync(TransferFormat transferFormat)
+        public async Task StartAsync(CancellationToken cancellationToken = default)
         {
-            await StartAsyncCore(transferFormat, CancellationToken.None).ForceAsync();
+            await StartAsyncCore(TransferFormat.Binary, cancellationToken).ForceAsync();
         }
 
-        public async Task StartAsync(TransferFormat transferFormat, CancellationToken cancellationToken)
+        public async Task StartAsync(TransferFormat transferFormat, CancellationToken cancellationToken = default)
         {
             await StartAsyncCore(transferFormat, cancellationToken).ForceAsync();
         }
