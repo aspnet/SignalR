@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Project>
+    <Target Name="Build">
+        <Message Text="Skipping build because the Operating System does not support this project type" Importance="high" />
+    </Target>
+</Project>
