@@ -1,0 +1,11 @@
+{
+  "name": "@aspnet/signalr-client",
+  "version": "1.0.0-alpha2-update1",
+  "description": "This package has been deprecated. Use '@aspnet/signalr' instead.",
+  "main": "index.js",
+  "scripts": {
+    "install": "echo \"This package has been deprecated. Use '@aspnet/signalr' instead.\" && exit 1"
+  },
+  "author": "Microsoft",
+  "license": "Apache-2.0"
+}
