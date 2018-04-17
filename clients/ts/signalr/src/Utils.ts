@@ -154,6 +154,7 @@ export class ConsoleLogger implements ILogger {
     public log(logLevel: LogLevel, message: string): void {
         if (logLevel >= this.minimumLogLevel) {
             switch (logLevel) {
+                case LogLevel.Critical:
                 case LogLevel.Error:
                     console.error(`${LogLevel[logLevel]}: ${message}`);
                     break;
@@ -162,6 +163,10 @@ export class ConsoleLogger implements ILogger {
                     break;
                 case LogLevel.Information:
                     console.info(`${LogLevel[logLevel]}: ${message}`);
+                    break;
+                case LogLevel.Trace:
+                case LogLevel.Debug:
+                    console.debug(`${LogLevel[logLevel]}: ${message}`);
                     break;
                 default:
                     console.log(`${LogLevel[logLevel]}: ${message}`);
