@@ -291,10 +291,20 @@ describe("HttpConnection", () => {
     it("sets inherentKeepAlive feature when using LongPolling", async (done) => {
         const availableTransport = { transport: "LongPolling", transferFormats: ["Text"] };
 
+        var getCount = 0;
         const options: IHttpConnectionOptions = {
             ...commonOptions,
             httpClient: new TestHttpClient()
-                .on("POST", (r) => ({ connectionId: "42", availableTransports: [availableTransport] })),
+                .on("POST", (r) => ({ connectionId: "42", availableTransports: [availableTransport] }))
+                .on("GET", (r) => {
+                    getCount++;
+                    if (getCount == 1) {
+                        // First long polling request must succeed so start completes
+                        return "";
+                    } else {
+                        throw new Error("fail");
+                    }
+                }),
         } as IHttpConnectionOptions;
 
         const connection = new HttpConnection("http://tempuri.org", options);
