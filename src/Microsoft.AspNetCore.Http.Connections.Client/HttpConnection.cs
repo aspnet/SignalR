@@ -115,17 +115,21 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
             _transportFactory = transportFactory;
         }
 
-        public async Task StartAsync()
-        {
-            await StartAsync(TransferFormat.Binary);
-        }
+        public Task StartAsync() => StartAsync(TransferFormat.Binary, CancellationToken.None);
+
+        public Task StartAsync(CancellationToken cancellationToken) => StartAsync(TransferFormat.Binary, cancellationToken);
 
         public async Task StartAsync(TransferFormat transferFormat)
         {
-            await StartAsyncCore(transferFormat).ForceAsync();
+            await StartAsyncCore(transferFormat, CancellationToken.None).ForceAsync();
         }
 
-        private async Task StartAsyncCore(TransferFormat transferFormat)
+        public async Task StartAsync(TransferFormat transferFormat, CancellationToken cancellationToken)
+        {
+            await StartAsyncCore(transferFormat, cancellationToken).ForceAsync();
+        }
+
+        private async Task StartAsyncCore(TransferFormat transferFormat, CancellationToken cancellationToken)
         {
             CheckDisposed();
 
@@ -148,7 +152,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
 
                 Log.Starting(_logger);
 
-                await SelectAndStartTransport(transferFormat);
+                await SelectAndStartTransport(transferFormat, cancellationToken);
 
                 _started = true;
                 Log.Started(_logger);
@@ -208,7 +212,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
             }
         }
 
-        private async Task SelectAndStartTransport(TransferFormat transferFormat)
+        private async Task SelectAndStartTransport(TransferFormat transferFormat, CancellationToken cancellationToken)
         {
             if (_httpConnectionOptions.Transports == HttpTransportType.WebSockets)
             {
@@ -229,6 +233,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
 
                 foreach (var transport in negotiationResponse.AvailableTransports)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
+
                     if (!Enum.TryParse<HttpTransportType>(transport.Transport, out var transportType))
                     {
                         Log.TransportNotSupported(_logger, transport.Transport);

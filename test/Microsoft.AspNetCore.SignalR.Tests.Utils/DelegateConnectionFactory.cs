@@ -1,7 +1,8 @@
-﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.SignalR.Client;
@@ -19,7 +20,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             _disposeDelegate = disposeDelegate;
         }
 
-        public Task<ConnectionContext> ConnectAsync(TransferFormat transferFormat)
+        public Task<ConnectionContext> ConnectAsync(TransferFormat transferFormat, CancellationToken cancellationToken)
         {
             return _connectDelegate(transferFormat);
         }
