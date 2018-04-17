@@ -213,11 +213,11 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
             if (_httpConnectionOptions.Transports == HttpTransportType.WebSockets)
             {
                 Log.StartingTransport(_logger, _httpConnectionOptions.Transports, _httpConnectionOptions.Url);
-                await StartTransport(_httpConnectionOptions.Url, _httpConnectionOptions.Transports, transferFormat);
+                await StartTransport(_httpConnectionOptions.Url, _httpConnectionOptions.Transports, transferFormat, cancellationToken);
             }
             else
             {
-                var negotiationResponse = await GetNegotiationResponse();
+                var negotiationResponse = await GetNegotiationResponse(cancellationToken);
 
                 // This should only need to happen once
                 var connectUrl = CreateConnectUrl(_httpConnectionOptions.Url, negotiationResponse.ConnectionId);
@@ -258,12 +258,12 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
                             // The negotiation response gets cleared in the fallback scenario.
                             if (negotiationResponse == null)
                             {
-                                negotiationResponse = await GetNegotiationResponse();
+                                negotiationResponse = await GetNegotiationResponse(cancellationToken);
                                 connectUrl = CreateConnectUrl(_httpConnectionOptions.Url, negotiationResponse.ConnectionId);
                             }
 
                             Log.StartingTransport(_logger, transportType, connectUrl);
-                            await StartTransport(connectUrl, transportType, transferFormat);
+                            await StartTransport(connectUrl, transportType, transferFormat, cancellationToken);
                             break;
                         }
                     }
@@ -283,7 +283,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
             }
         }
 
-        private async Task<NegotiationResponse> Negotiate(Uri url, HttpClient httpClient, ILogger logger)
+        private async Task<NegotiationResponse> Negotiate(Uri url, HttpClient httpClient, ILogger logger, CancellationToken cancellationToken)
         {
             try
             {
@@ -305,7 +305,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
                     // rather than buffer the entire response. This gives a small perf boost.
                     // Note that it is important to dispose of the response when doing this to
                     // avoid leaving the connection open.
-                    using (var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
+                    cancellationToken.ThrowIfCancellationRequested();
+                    using (var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken))
                     {
                         response.EnsureSuccessStatusCode();
                         NegotiationResponse negotiateResponse;
@@ -335,15 +336,16 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
             return Utils.AppendQueryString(url, "id=" + connectionId);
         }
 
-        private async Task StartTransport(Uri connectUrl, HttpTransportType transportType, TransferFormat transferFormat)
+        private async Task StartTransport(Uri connectUrl, HttpTransportType transportType, TransferFormat transferFormat, CancellationToken cancellationToken)
         {
             // Construct the transport
             var transport = _transportFactory.CreateTransport(transportType);
 
             // Start the transport, giving it one end of the pipe
+            cancellationToken.ThrowIfCancellationRequested();
             try
             {
-                await transport.StartAsync(connectUrl, transferFormat);
+                await transport.StartAsync(connectUrl, transferFormat, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -460,9 +462,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
 #endif
         }
 
-        private async Task<NegotiationResponse> GetNegotiationResponse()
+        private async Task<NegotiationResponse> GetNegotiationResponse(CancellationToken cancellationToken)
         {
-            var negotiationResponse = await Negotiate(_httpConnectionOptions.Url, _httpClient, _logger);
+            var negotiationResponse = await Negotiate(_httpConnectionOptions.Url, _httpClient, _logger, cancellationToken);
             _connectionId = negotiationResponse.ConnectionId;
             _logScope.ConnectionId = _connectionId;
             return negotiationResponse;

@@ -46,7 +46,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
             _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<ServerSentEventsTransport>();
         }
 
-        public async Task StartAsync(Uri url, TransferFormat transferFormat)
+        public async Task StartAsync(Uri url, TransferFormat transferFormat, CancellationToken cancellationToken)
         {
             if (transferFormat != TransferFormat.Text)
             {
@@ -60,9 +60,10 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
 
             HttpResponseMessage response = null;
 
+            cancellationToken.ThrowIfCancellationRequested();
             try
             {
-                response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, CancellationToken.None);
+                response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
                 response.EnsureSuccessStatusCode();
             }
             catch
