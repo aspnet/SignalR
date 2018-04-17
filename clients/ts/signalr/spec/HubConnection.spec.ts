@@ -838,7 +838,7 @@ class TestConnection implements IConnection {
     }
 
     public receiveHandshakeResponse(error?: string): void {
-        this.receive(JSON.stringify({ error }));
+        this.receive({ error });
     }
 
     public receive(data: any): void {
