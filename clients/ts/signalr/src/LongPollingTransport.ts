@@ -60,7 +60,8 @@ export class LongPollingTransport implements ITransport {
 
         let closeError: Error;
 
-        // Make the initial poll request which should immediately return with a 200
+        // Make initial long polling request
+        // Server uses first long polling request to finish initializing connection and it returns without data
         const pollUrl = `${url}&_=${Date.now()}`;
         this.logger.log(LogLevel.Trace, `(LongPolling transport) polling: ${pollUrl}`);
         const response = await this.httpClient.get(pollUrl, pollOptions);
