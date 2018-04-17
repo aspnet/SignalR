@@ -1,10 +1,13 @@
-﻿using System;
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
+using System;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 using ClientSample;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Microsoft.AspNetCore.SignalR.Client
 {
@@ -46,7 +49,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 _endPoint = endPoint;
             }
 
-            public Task<ConnectionContext> ConnectAsync(TransferFormat transferFormat)
+            public Task<ConnectionContext> ConnectAsync(TransferFormat transferFormat, CancellationToken cancellationToken)
             {
                 return new TcpConnection(_endPoint).StartAsync();
             }

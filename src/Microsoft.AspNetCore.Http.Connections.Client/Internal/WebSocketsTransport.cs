@@ -96,7 +96,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
             _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<WebSocketsTransport>();
         }
 
-        public async Task StartAsync(Uri url, TransferFormat transferFormat)
+        public async Task StartAsync(Uri url, TransferFormat transferFormat, CancellationToken cancellationToken)
         {
             if (url == null)
             {
@@ -122,7 +122,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
                 _webSocket.Options.SetRequestHeader("Authorization", $"Bearer {accessToken}");
             }
 
-            await _webSocket.ConnectAsync(resolvedUrl, CancellationToken.None);
+            cancellationToken.ThrowIfCancellationRequested();
+            await _webSocket.ConnectAsync(resolvedUrl, cancellationToken);
 
             // Create the pipe pair (Application's writer is connected to Transport's reader, and vice versa)
             var options = ClientPipeOptions.DefaultOptions;

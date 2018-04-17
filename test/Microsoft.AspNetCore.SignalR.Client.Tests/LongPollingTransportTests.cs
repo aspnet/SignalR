@@ -47,7 +47,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
                 try
                 {
-                    await longPollingTransport.StartAsync(TestUri, TransferFormat.Binary);
+                    await longPollingTransport.StartAsync(TestUri, TransferFormat.Binary, CancellationToken.None);
 
                     transportActiveTask = longPollingTransport.Running;
 
@@ -80,7 +80,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 var longPollingTransport = new LongPollingTransport(httpClient);
                 try
                 {
-                    await longPollingTransport.StartAsync(TestUri, TransferFormat.Binary);
+                    await longPollingTransport.StartAsync(TestUri, TransferFormat.Binary, CancellationToken.None);
 
                     await longPollingTransport.Running.OrTimeout();
 
@@ -138,7 +138,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 var longPollingTransport = new LongPollingTransport(httpClient);
                 try
                 {
-                    await longPollingTransport.StartAsync(TestUri, TransferFormat.Binary);
+                    await longPollingTransport.StartAsync(TestUri, TransferFormat.Binary, CancellationToken.None);
 
                     var data = await longPollingTransport.Input.ReadAllAsync().OrTimeout();
                     await longPollingTransport.Running.OrTimeout();
@@ -168,7 +168,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 var longPollingTransport = new LongPollingTransport(httpClient);
                 try
                 {
-                    var exception = await Assert.ThrowsAsync<HttpRequestException>(() => longPollingTransport.StartAsync(TestUri, TransferFormat.Binary));
+                    var exception = await Assert.ThrowsAsync<HttpRequestException>(() => longPollingTransport.StartAsync(TestUri, TransferFormat.Binary, CancellationToken.None));
                     Assert.Contains(" 500 ", exception.Message);
                 }
                 finally
@@ -201,7 +201,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 var longPollingTransport = new LongPollingTransport(httpClient);
                 try
                 {
-                    await longPollingTransport.StartAsync(TestUri, TransferFormat.Binary);
+                    await longPollingTransport.StartAsync(TestUri, TransferFormat.Binary, CancellationToken.None);
 
                     var exception =
                         await Assert.ThrowsAsync<HttpRequestException>(async () =>
@@ -253,7 +253,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 var longPollingTransport = new LongPollingTransport(httpClient);
                 try
                 {
-                    await longPollingTransport.StartAsync(TestUri, TransferFormat.Binary);
+                    await longPollingTransport.StartAsync(TestUri, TransferFormat.Binary, CancellationToken.None);
 
                     await longPollingTransport.Output.WriteAsync(Encoding.UTF8.GetBytes("Hello World"));
 
@@ -299,7 +299,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 var longPollingTransport = new LongPollingTransport(httpClient);
                 try
                 {
-                    await longPollingTransport.StartAsync(TestUri, TransferFormat.Binary);
+                    await longPollingTransport.StartAsync(TestUri, TransferFormat.Binary, CancellationToken.None);
 
                     longPollingTransport.Output.Complete();
 
@@ -332,7 +332,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
                 try
                 {
-                    await longPollingTransport.StartAsync(TestUri, TransferFormat.Binary);
+                    await longPollingTransport.StartAsync(TestUri, TransferFormat.Binary, CancellationToken.None);
 
                     longPollingTransport.Output.Complete();
 
@@ -383,7 +383,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 try
                 {
                     // Start the transport
-                    await longPollingTransport.StartAsync(TestUri, TransferFormat.Binary);
+                    await longPollingTransport.StartAsync(TestUri, TransferFormat.Binary, CancellationToken.None);
 
                     // Wait for the transport to finish
                     await longPollingTransport.Running.OrTimeout();
@@ -449,7 +449,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 try
                 {
                     // Start the transport
-                    await longPollingTransport.StartAsync(TestUri, TransferFormat.Binary);
+                    await longPollingTransport.StartAsync(TestUri, TransferFormat.Binary, CancellationToken.None);
 
                     longPollingTransport.Output.Write(Encoding.UTF8.GetBytes("Hello"));
                     longPollingTransport.Output.Write(Encoding.UTF8.GetBytes("World"));
@@ -520,7 +520,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 var longPollingTransport = new LongPollingTransport(httpClient);
 
                 // Start the transport
-                await longPollingTransport.StartAsync(TestUri, TransferFormat.Binary);
+                await longPollingTransport.StartAsync(TestUri, TransferFormat.Binary, CancellationToken.None);
 
                 var task = longPollingTransport.StopAsync();
 
@@ -550,7 +550,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
                 try
                 {
-                    await longPollingTransport.StartAsync(TestUri, transferFormat);
+                    await longPollingTransport.StartAsync(TestUri, transferFormat, CancellationToken.None);
                 }
                 finally
                 {
@@ -577,7 +577,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 var longPollingTransport = new LongPollingTransport(httpClient);
                 var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
-                    longPollingTransport.StartAsync(TestUri, transferFormat));
+                    longPollingTransport.StartAsync(TestUri, transferFormat, CancellationToken.None));
 
                 Assert.Contains($"The '{transferFormat}' transfer format is not supported by this transport.", exception.Message);
                 Assert.Equal("transferFormat", exception.ParamName);
@@ -618,7 +618,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
                 try
                 {
-                    await longPollingTransport.StartAsync(TestUri, TransferFormat.Binary);
+                    await longPollingTransport.StartAsync(TestUri, TransferFormat.Binary, CancellationToken.None);
 
                     var completedTask = await Task.WhenAny(completionTcs.Task, longPollingTransport.Running).OrTimeout();
                     Assert.Equal(completionTcs.Task, completedTask);
@@ -639,7 +639,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 var longPollingTransport = new LongPollingTransport(httpClient);
 
-                await longPollingTransport.StartAsync(TestUri, TransferFormat.Binary);
+                await longPollingTransport.StartAsync(TestUri, TransferFormat.Binary, CancellationToken.None);
                 await longPollingTransport.StopAsync();
 
                 var deleteRequest = handler.ReceivedRequests.SingleOrDefault(r => r.Method == HttpMethod.Delete);
