@@ -16,11 +16,11 @@ export class HubConnectionBuilder {
 
     public configureLogging(logLevel: LogLevel): HubConnectionBuilder;
     public configureLogging(logger: ILogger): HubConnectionBuilder;
-    public configureLogging(logLevelOrLogger: LogLevel | ILogger): HubConnectionBuilder {
-        if (isLogger(logLevelOrLogger)) {
-            this.logger = logLevelOrLogger;
+    public configureLogging(logging: LogLevel | ILogger): HubConnectionBuilder {
+        if (isLogger(logging)) {
+            this.logger = logging;
         } else {
-            this.logger = new ConsoleLogger(logLevelOrLogger);
+            this.logger = new ConsoleLogger(logging);
         }
 
         return this;
@@ -56,7 +56,7 @@ export class HubConnectionBuilder {
 
         // Now create the connection
         if (!this.url) {
-            throw new Error("The 'HubConnectionBuilder.withUrl' method must be called before building the connection");
+            throw new Error("The 'HubConnectionBuilder.withUrl' method must be called before building the connection.");
         }
         const connection = new HttpConnection(this.url, httpConnectionOptions);
 
