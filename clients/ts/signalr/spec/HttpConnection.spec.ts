@@ -267,10 +267,11 @@ describe("HttpConnection", () => {
         }
     });
 
-    it("does not send negotiate request if WebSockets transport requested explicitly", async (done) => {
+    it("does not send negotiate request if WebSockets transport requested explicitly and skipNegotiaiton true", async (done) => {
         const options: IHttpConnectionOptions = {
             ...commonOptions,
             httpClient: new TestHttpClient(),
+            skipNegotiation: true,
             transport: HttpTransportType.WebSockets,
         } as IHttpConnectionOptions;
 

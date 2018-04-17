@@ -167,7 +167,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
         [ConditionalFact]
         [WebSocketsSupportedCondition]
-        public async Task HttpRequestsNotSentWhenWebSocketsTransportRequested()
+        public async Task HttpRequestsNotSentWhenWebSocketsTransportRequestedAndSkipNegotiationSet()
         {
             using (StartVerifableLog(out var loggerFactory))
             {
@@ -184,6 +184,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 {
                     Url = new Uri(url),
                     Transports = HttpTransportType.WebSockets,
+                    SkipNegotiation = true,
                     HttpMessageHandlerFactory = (httpMessageHandler) => mockHttpHandler.Object
                 };
 
@@ -326,7 +327,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             bool ExpectedErrors(WriteContext writeContext)
             {
                 return writeContext.LoggerName == typeof(HttpConnection).FullName &&
-                       writeContext.EventId.Name == "ErrorStartingTransport";
+                       writeContext.EventId.Name == "ErrorWithNegotiation";
             }
 
             using (StartVerifableLog(out var loggerFactory, LogLevel.Trace, expectedErrorsFilter: ExpectedErrors))
@@ -336,24 +337,37 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var url = ServerFixture.Url + "/auth";
                 var connection = new HttpConnection(new Uri(url), HttpTransportType.WebSockets, loggerFactory);
 
-                try
+                var exception = await Assert.ThrowsAsync<HttpRequestException>(() => connection.StartAsync(TransferFormat.Binary).OrTimeout());
+
+                Assert.Contains("401", exception.Message);
+            }
+        }
+
+        [ConditionalFact]
+        [WebSocketsSupportedCondition]
+        public async Task UnauthorizedDirectWebSocketsConnectionDoesNotConnect()
+        {
+            bool ExpectedErrors(WriteContext writeContext)
+            {
+                return writeContext.LoggerName == typeof(HttpConnection).FullName &&
+                       writeContext.EventId.Name == "ErrorStartingTransport";
+            }
+
+            using (StartVerifableLog(out var loggerFactory, LogLevel.Trace, expectedErrorsFilter: ExpectedErrors))
+            {
+                var logger = loggerFactory.CreateLogger<EndToEndTests>();
+
+                var url = _serverFixture.Url + "/auth";
+                var options = new HttpConnectionOptions
                 {
-                    logger.LogInformation("Starting connection to {url}", url);
-                    await connection.StartAsync(TransferFormat.Binary).OrTimeout();
-                    Assert.True(false);
-                }
-                catch (WebSocketException) { }
-                catch (Exception ex)
-                {
-                    logger.LogInformation(ex, "Test threw exception");
-                    throw;
-                }
-                finally
-                {
-                    logger.LogInformation("Disposing Connection");
-                    await connection.DisposeAsync().OrTimeout();
-                    logger.LogInformation("Disposed Connection");
-                }
+                    Url = new Uri(url),
+                    Transports = HttpTransportType.WebSockets,
+                    SkipNegotiation = true
+                };
+
+                var connection = new HttpConnection(options, loggerFactory);
+
+                await Assert.ThrowsAsync<WebSocketException>(() => connection.StartAsync(TransferFormat.Binary).OrTimeout());
             }
         }
 

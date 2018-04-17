@@ -96,7 +96,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
             _logger = _loggerFactory.CreateLogger<HttpConnection>();
             _httpConnectionOptions = httpConnectionOptions;
 
-            if (httpConnectionOptions.Transports != HttpTransportType.WebSockets)
+            if (!httpConnectionOptions.SkipNegotiation || httpConnectionOptions.Transports != HttpTransportType.WebSockets)
             {
                 _httpClient = CreateHttpClient();
             }
@@ -210,7 +210,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
 
         private async Task SelectAndStartTransport(TransferFormat transferFormat)
         {
-            if (_httpConnectionOptions.Transports == HttpTransportType.WebSockets)
+            if (_httpConnectionOptions.SkipNegotiation && _httpConnectionOptions.Transports == HttpTransportType.WebSockets)
             {
                 Log.StartingTransport(_logger, _httpConnectionOptions.Transports, _httpConnectionOptions.Url);
                 await StartTransport(_httpConnectionOptions.Url, _httpConnectionOptions.Transports, transferFormat);

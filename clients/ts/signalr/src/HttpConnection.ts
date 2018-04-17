@@ -16,6 +16,7 @@ export interface IHttpConnectionOptions {
     logger?: ILogger | LogLevel;
     accessTokenFactory?: () => string | Promise<string>;
     logMessageContent?: boolean;
+    skipNegotiation?: boolean;
 }
 
 const enum ConnectionState {
@@ -111,7 +112,7 @@ export class HttpConnection implements IConnection {
 
     private async startInternal(transferFormat: TransferFormat): Promise<void> {
         try {
-            if (this.options.transport === HttpTransportType.WebSockets) {
+            if (this.options.skipNegotiation && this.options.transport === HttpTransportType.WebSockets) {
                 // No need to add a connection ID in this case
                 this.url = this.baseUrl;
                 this.transport = this.constructTransport(HttpTransportType.WebSockets);
