@@ -7,7 +7,7 @@ import { IConnection } from "../src/IConnection";
 import { HubMessage, IHubProtocol, MessageType } from "../src/IHubProtocol";
 import { ILogger, LogLevel } from "../src/ILogger";
 import { HttpTransportType, ITransport, TransferFormat } from "../src/ITransport";
-import { StreamSubscriber } from "../src/Stream";
+import { IStreamSubscriber } from "../src/Stream";
 import { TextMessageFormat } from "../src/TextMessageFormat";
 
 import { asyncit as it, captureException, delay, PromiseSource } from "./Utils";
@@ -885,7 +885,7 @@ class TestProtocol implements IHubProtocol {
     }
 }
 
-class TestObserver extends StreamSubscriber<any> {
+class TestObserver implements IStreamSubscriber<any> {
     public readonly closed: boolean;
     public itemsReceived: [any];
     private itemsSource: PromiseSource<[any]>;
@@ -895,7 +895,6 @@ class TestObserver extends StreamSubscriber<any> {
     }
 
     constructor() {
-        super();
         this.itemsReceived = [] as [any];
         this.itemsSource = new PromiseSource<[any]>();
     }
@@ -913,13 +912,10 @@ class TestObserver extends StreamSubscriber<any> {
     }
 }
 
-class NullSubscriber<T> extends StreamSubscriber<T> {
-    public closed: boolean;
-
+class NullSubscriber<T> implements IStreamSubscriber<T> {
     public static instance: NullSubscriber<any> = new NullSubscriber();
 
     private constructor() {
-        super();
     }
 
     public next(value: T): void {

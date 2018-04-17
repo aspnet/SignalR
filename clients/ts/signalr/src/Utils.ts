@@ -4,7 +4,7 @@
 import { HttpClient } from "./HttpClient";
 import { ILogger, LogLevel } from "./ILogger";
 import { NullLogger } from "./Loggers";
-import { StreamResult, StreamSubscriber, Subscription } from "./Stream";
+import { IStreamResult, IStreamSubscriber, ISubscription } from "./Stream";
 
 export class Arg {
     public static isRequired(val: any, name: string): void {
@@ -86,12 +86,11 @@ export function createLogger(logger?: ILogger | LogLevel) {
     return new ConsoleLogger(logger as LogLevel);
 }
 
-export class Subject<T> extends StreamResult<T> {
-    public observers: Array<StreamSubscriber<T>>;
+export class Subject<T> implements IStreamResult<T> {
+    public observers: Array<IStreamSubscriber<T>>;
     public cancelCallback: () => Promise<void>;
 
     constructor(cancelCallback: () => Promise<void>) {
-        super();
         this.observers = [];
         this.cancelCallback = cancelCallback;
     }
@@ -118,18 +117,17 @@ export class Subject<T> extends StreamResult<T> {
         }
     }
 
-    public subscribe(observer: StreamSubscriber<T>): Subscription<T> {
+    public subscribe(observer: IStreamSubscriber<T>): ISubscription<T> {
         this.observers.push(observer);
         return new SubjectSubscription(this, observer);
     }
 }
 
-export class SubjectSubscription<T> extends Subscription<T> {
+export class SubjectSubscription<T> implements ISubscription<T> {
     private subject: Subject<T>;
-    private observer: StreamSubscriber<T>;
+    private observer: IStreamSubscriber<T>;
 
-    constructor(subject: Subject<T>, observer: StreamSubscriber<T>) {
-        super();
+    constructor(subject: Subject<T>, observer: IStreamSubscriber<T>) {
         this.subject = subject;
         this.observer = observer;
     }

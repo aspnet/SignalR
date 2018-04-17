@@ -1,7 +1,7 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-import { DefaultHttpClient, HttpClient, HttpRequest, HttpResponse, HttpTransportType, HubConnection, IHubConnectionOptions, JsonHubProtocol, LogLevel, StreamSubscriber } from "@aspnet/signalr";
+import { DefaultHttpClient, HttpClient, HttpRequest, HttpResponse, HttpTransportType, HubConnection, IHubConnectionOptions, IStreamSubscriber, JsonHubProtocol, LogLevel } from "@aspnet/signalr";
 import { MessagePackHubProtocol } from "@aspnet/signalr-protocol-msgpack";
 
 import { eachTransport, eachTransportAndProtocol } from "./Common";
@@ -113,7 +113,7 @@ describe("hubConnection", () => {
 
                 const received = [];
                 hubConnection.start().then(() => {
-                    hubConnection.stream("Stream").subscribe(new TestStreamSubscriber({
+                    hubConnection.stream("Stream").subscribe({
                         complete() {
                             expect(received).toEqual(["a", "b", "c"]);
                             hubConnection.stop();
@@ -125,7 +125,7 @@ describe("hubConnection", () => {
                         next(item) {
                             received.push(item);
                         },
-                    }));
+                    });
                 }).catch((e) => {
                     fail(e);
                     done();
@@ -214,7 +214,7 @@ describe("hubConnection", () => {
                 });
 
                 hubConnection.start().then(() => {
-                    hubConnection.stream("StreamThrowException", "An error occurred.").subscribe(new TestStreamSubscriber({
+                    hubConnection.stream("StreamThrowException", "An error occurred.").subscribe({
                         complete() {
                             hubConnection.stop();
                             fail();
@@ -228,7 +228,7 @@ describe("hubConnection", () => {
                             hubConnection.stop();
                             fail();
                         },
-                    }));
+                    });
                 }).catch((e) => {
                     fail(e);
                     done();
@@ -243,7 +243,7 @@ describe("hubConnection", () => {
                 });
 
                 hubConnection.start().then(() => {
-                    hubConnection.stream("Echo", "42").subscribe(new TestStreamSubscriber({
+                    hubConnection.stream("Echo", "42").subscribe({
                         complete() {
                             hubConnection.stop();
                             fail();
@@ -257,7 +257,7 @@ describe("hubConnection", () => {
                             hubConnection.stop();
                             fail();
                         },
-                    }));
+                    });
                 }).catch((e) => {
                     fail(e);
                     done();
@@ -735,35 +735,3 @@ describe("hubConnection", () => {
         });
     }
 });
-
-interface ITestStreamSubscriber<T> {
-    next?: (item: T) => void;
-    error?: (error: any) => void;
-    complete?: () => void;
-}
-
-class TestStreamSubscriber<T> extends StreamSubscriber<T> {
-    public closed: boolean = false;
-
-    public constructor(private impl: ITestStreamSubscriber<T>) {
-        super();
-    }
-
-    public next(value: T): void {
-        if (this.impl.next) {
-            this.impl.next(value);
-        }
-    }
-
-    public error(err: any): void {
-        if (this.impl.error) {
-            this.impl.error(err);
-        }
-    }
-
-    public complete(): void {
-        if (this.impl.complete) {
-            this.impl.complete();
-        }
-    }
-}

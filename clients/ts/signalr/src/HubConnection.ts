@@ -8,7 +8,7 @@ import { CancelInvocationMessage, CompletionMessage, HubMessage, IHubProtocol, I
 import { ILogger, LogLevel } from "./ILogger";
 import { JsonHubProtocol } from "./JsonHubProtocol";
 import { NullLogger } from "./Loggers";
-import { StreamResult } from "./Stream";
+import { IStreamResult } from "./Stream";
 import { TextMessageFormat } from "./TextMessageFormat";
 import { createLogger, Subject } from "./Utils";
 
@@ -91,7 +91,7 @@ export class HubConnection {
         return this.connection.stop();
     }
 
-    public stream<T = any>(methodName: string, ...args: any[]): StreamResult<T> {
+    public stream<T = any>(methodName: string, ...args: any[]): IStreamResult<T> {
         const invocationDescriptor = this.createStreamInvocation(methodName, args);
 
         const subject = new Subject<T>(() => {
