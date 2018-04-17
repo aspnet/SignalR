@@ -1,7 +1,7 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-import { DefaultHttpClient, HttpClient, HttpRequest, HttpResponse, HttpTransportType, HubConnection, IHubConnectionOptions, JsonHubProtocol, LogLevel } from "@aspnet/signalr";
+import { DefaultHttpClient, HttpClient, HttpRequest, HttpResponse, HttpTransportType, HubConnection, IHubConnectionOptions, JsonHubProtocol, LogLevel, StreamSubscriber } from "@aspnet/signalr";
 import { MessagePackHubProtocol } from "@aspnet/signalr-protocol-msgpack";
 
 import { eachTransport, eachTransportAndProtocol } from "./Common";
@@ -113,19 +113,19 @@ describe("hubConnection", () => {
 
                 const received = [];
                 hubConnection.start().then(() => {
-                    hubConnection.stream("Stream").subscribe({
-                        complete: function complete() {
+                    hubConnection.stream("Stream").subscribe(new TestStreamSubscriber({
+                        complete() {
                             expect(received).toEqual(["a", "b", "c"]);
                             hubConnection.stop();
                         },
-                        error: function error(err) {
+                        error(err) {
                             fail(err);
                             hubConnection.stop();
                         },
-                        next: function next(item) {
+                        next(item) {
                             received.push(item);
                         },
-                    });
+                    }));
                 }).catch((e) => {
                     fail(e);
                     done();
@@ -214,21 +214,21 @@ describe("hubConnection", () => {
                 });
 
                 hubConnection.start().then(() => {
-                    hubConnection.stream("StreamThrowException", "An error occurred.").subscribe({
-                        complete: function complete() {
+                    hubConnection.stream("StreamThrowException", "An error occurred.").subscribe(new TestStreamSubscriber({
+                        complete() {
                             hubConnection.stop();
                             fail();
                         },
-                        error: function error(err) {
+                        error(err) {
                             expect(err.message).toEqual(errorMessage);
                             hubConnection.stop();
                             done();
                         },
-                        next: function next(item) {
+                        next(item) {
                             hubConnection.stop();
                             fail();
                         },
-                    });
+                    }));
                 }).catch((e) => {
                     fail(e);
                     done();
@@ -243,21 +243,21 @@ describe("hubConnection", () => {
                 });
 
                 hubConnection.start().then(() => {
-                    hubConnection.stream("Echo", "42").subscribe({
-                        complete: function complete() {
+                    hubConnection.stream("Echo", "42").subscribe(new TestStreamSubscriber({
+                        complete() {
                             hubConnection.stop();
                             fail();
                         },
-                        error: function error(err) {
+                        error(err) {
                             expect(err.message).toEqual("The client attempted to invoke the non-streaming 'Echo' method with a streaming invocation.");
                             hubConnection.stop();
                             done();
                         },
-                        next: function next(item) {
+                        next(item) {
                             hubConnection.stop();
                             fail();
                         },
-                    });
+                    }));
                 }).catch((e) => {
                     fail(e);
                     done();
@@ -735,3 +735,35 @@ describe("hubConnection", () => {
         });
     }
 });
+
+interface ITestStreamSubscriber<T> {
+    next?: (item: T) => void;
+    error?: (error: any) => void;
+    complete?: () => void;
+}
+
+class TestStreamSubscriber<T> extends StreamSubscriber<T> {
+    public closed: boolean = false;
+
+    public constructor(private impl: ITestStreamSubscriber<T>) {
+        super();
+    }
+
+    public next(value: T): void {
+        if (this.impl.next) {
+            this.impl.next(value);
+        }
+    }
+
+    public error(err: any): void {
+        if (this.impl.error) {
+            this.impl.error(err);
+        }
+    }
+
+    public complete(): void {
+        if (this.impl.complete) {
+            this.impl.complete();
+        }
+    }
+}

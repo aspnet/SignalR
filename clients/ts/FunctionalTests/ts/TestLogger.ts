@@ -1,4 +1,7 @@
-import { ConsoleLogger, ILogger, LogLevel } from "@aspnet/signalr";
+import { ILogger, LogLevel } from "@aspnet/signalr";
+
+// Pull some useful internal utilities from the signalr library.
+import { ConsoleLogger } from "../../signalr/src/Utils";
 
 export class TestLog {
     public messages: Array<[Date, LogLevel, string]> = [];
