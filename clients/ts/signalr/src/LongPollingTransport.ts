@@ -55,6 +55,9 @@ export class LongPollingTransport implements ITransport {
             pollOptions.responseType = "arraybuffer";
         }
 
+        const token = await this.accessTokenFactory();
+        this.updateHeaderToken(pollOptions, token);
+
         let closeError: Error;
 
         // Make the initial poll request which should immediately return with a 200
@@ -75,15 +78,25 @@ export class LongPollingTransport implements ITransport {
         return Promise.resolve();
     }
 
+    private updateHeaderToken(request: HttpRequest, token: string) {
+        if (token) {
+            // tslint:disable-next-line:no-string-literal
+            request.headers["Authorization"] = `Bearer ${token}`;
+            return;
+        }
+        // tslint:disable-next-line:no-string-literal
+        if (request.headers["Authorization"]) {
+            // tslint:disable-next-line:no-string-literal
+            delete request.headers["Authorization"];
+        }
+    }
+
     private async poll(url: string, pollOptions: HttpRequest, closeError: Error): Promise<void> {
         try {
             while (this.running) {
                 // We have to get the access token on each poll, in case it changes
                 const token = await this.accessTokenFactory();
-                if (token) {
-                    // tslint:disable-next-line:no-string-literal
-                    pollOptions.headers["Authorization"] = `Bearer ${token}`;
-                }
+                this.updateHeaderToken(pollOptions, token);
 
                 try {
                     const pollUrl = `${url}&_=${Date.now()}`;
@@ -155,14 +168,11 @@ export class LongPollingTransport implements ITransport {
             this.running = false;
             this.logger.log(LogLevel.Trace, `(LongPolling transport) sending DELETE request to ${this.url}.`);
 
-            const deleteOptions: HttpRequest = {};
+            const deleteOptions: HttpRequest = {
+                headers: {},
+            };
             const token = await this.accessTokenFactory();
-            if (token) {
-                // tslint:disable-next-line:no-string-literal
-                deleteOptions.headers = {
-                    ["Authorization"]: `Bearer ${token}`,
-                };
-            }
+            this.updateHeaderToken(deleteOptions, token);
             const response = await this.httpClient.delete(this.url, deleteOptions);
 
             this.logger.log(LogLevel.Trace, "(LongPolling transport) DELETE request accepted.");
