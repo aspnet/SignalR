@@ -70,7 +70,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 });
 
                 using (var noErrorScope = new VerifyNoErrorsScope())
-                { 
+                {
                     await WithConnectionAsync(
                         CreateConnection(testHttpHandler, url: requestedUrl, loggerFactory: noErrorScope.LoggerFactory),
                         async (connection) =>
@@ -80,6 +80,136 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 }
 
                 Assert.Equal(expectedNegotiate, await negotiateUrlTcs.Task.OrTimeout());
+            }
+
+            [Fact]
+            public async Task NegotiateThatReturnsUrlGetFollowed()
+            {
+                var testHttpHandler = new TestHttpMessageHandler(autoNegotiate: false);
+                var firstNegotiate = true;
+                testHttpHandler.OnNegotiate((request, cancellationToken) =>
+                {
+                    if (firstNegotiate)
+                    {
+                        firstNegotiate = false;
+                        return ResponseUtils.CreateResponse(HttpStatusCode.OK,
+                            JsonConvert.SerializeObject(new
+                            {
+                                url = "https://another.domain.url/chat"
+                            }));
+                    }
+
+                    return ResponseUtils.CreateResponse(HttpStatusCode.OK,
+                        JsonConvert.SerializeObject(new
+                        {
+                            connectionId = "0rge0d00-0040-0030-0r00-000q00r00e00",
+                            availableTransports = new object[]
+                            {
+                                new
+                                {
+                                    transport = "LongPolling",
+                                    transferFormats = new[] { "Text" }
+                                },
+                            }
+                        }));
+                });
+
+                testHttpHandler.OnLongPoll(request =>
+                {
+                    return ResponseUtils.CreateResponse(HttpStatusCode.NoContent);
+                });
+
+                using (var noErrorScope = new VerifyNoErrorsScope())
+                {
+                    await WithConnectionAsync(
+                        CreateConnection(testHttpHandler, loggerFactory: noErrorScope.LoggerFactory),
+                        async (connection) =>
+                        {
+                            await connection.StartAsync(TransferFormat.Text).OrTimeout();
+                        });
+                }
+
+                Assert.Equal("http://fakeuri.org/negotiate", testHttpHandler.ReceivedRequests[0].RequestUri.ToString());
+                Assert.Equal("https://another.domain.url/chat/negotiate", testHttpHandler.ReceivedRequests[1].RequestUri.ToString());
+                Assert.Equal("https://another.domain.url/chat?id=0rge0d00-0040-0030-0r00-000q00r00e00", testHttpHandler.ReceivedRequests[2].RequestUri.ToString());
+                Assert.Equal("https://another.domain.url/chat?id=0rge0d00-0040-0030-0r00-000q00r00e00", testHttpHandler.ReceivedRequests[3].RequestUri.ToString());
+                Assert.Equal(4, testHttpHandler.ReceivedRequests.Count);
+            }
+
+            [Fact]
+            public async Task NegotiateThatReturnsUrlGetFollowedWithAccessToken()
+            {
+                var testHttpHandler = new TestHttpMessageHandler(autoNegotiate: false);
+                var firstNegotiate = true;
+                testHttpHandler.OnNegotiate((request, cancellationToken) =>
+                {
+                    if (firstNegotiate)
+                    {
+                        firstNegotiate = false;
+
+                        // The first negotiate requires an access token
+                        if (request.Headers.Authorization?.Parameter != "secret")
+                        {
+                            return ResponseUtils.CreateResponse(HttpStatusCode.Unauthorized);
+                        }
+
+                        return ResponseUtils.CreateResponse(HttpStatusCode.OK,
+                            JsonConvert.SerializeObject(new
+                            {
+                                url = "https://another.domain.url/chat",
+                                accessToken = "mysecrettoken"
+                            }));
+                    }
+
+                    // All other requests require an access token
+                    if (request.Headers.Authorization?.Parameter != "mysecrettoken")
+                    {
+                        return ResponseUtils.CreateResponse(HttpStatusCode.Unauthorized);
+                    }
+
+                    return ResponseUtils.CreateResponse(HttpStatusCode.OK,
+                        JsonConvert.SerializeObject(new
+                        {
+                            connectionId = "0rge0d00-0040-0030-0r00-000q00r00e00",
+                            availableTransports = new object[]
+                            {
+                                new
+                                {
+                                    transport = "LongPolling",
+                                    transferFormats = new[] { "Text" }
+                                },
+                            }
+                        }));
+                });
+
+                testHttpHandler.OnLongPoll((request, token) =>
+                {
+                    // All other requests require an access token
+                    if (request.Headers.Authorization?.Parameter != "mysecrettoken")
+                    {
+                        return ResponseUtils.CreateResponse(HttpStatusCode.Unauthorized);
+                    }
+
+                    return ResponseUtils.CreateResponse(HttpStatusCode.NoContent);
+                });
+
+                Task<string> AccessTokenProvider() => Task.FromResult<string>("secret");
+
+                using (var noErrorScope = new VerifyNoErrorsScope())
+                {
+                    await WithConnectionAsync(
+                        CreateConnection(testHttpHandler, loggerFactory: noErrorScope.LoggerFactory, accessTokenProvider: AccessTokenProvider),
+                        async (connection) =>
+                        {
+                            await connection.StartAsync(TransferFormat.Text).OrTimeout();
+                        });
+                }
+
+                Assert.Equal("http://fakeuri.org/negotiate", testHttpHandler.ReceivedRequests[0].RequestUri.ToString());
+                Assert.Equal("https://another.domain.url/chat/negotiate", testHttpHandler.ReceivedRequests[1].RequestUri.ToString());
+                Assert.Equal("https://another.domain.url/chat?id=0rge0d00-0040-0030-0r00-000q00r00e00", testHttpHandler.ReceivedRequests[2].RequestUri.ToString());
+                Assert.Equal("https://another.domain.url/chat?id=0rge0d00-0040-0030-0r00-000q00r00e00", testHttpHandler.ReceivedRequests[3].RequestUri.ToString());
+                Assert.Equal(4, testHttpHandler.ReceivedRequests.Count);
             }
 
             [Fact]
