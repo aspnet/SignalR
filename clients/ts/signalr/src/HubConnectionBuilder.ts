@@ -14,8 +14,6 @@ export class HubConnectionBuilder {
     private url: string;
     private logger: ILogger;
 
-    public configureLogging(logLevel: LogLevel): HubConnectionBuilder;
-    public configureLogging(logger: ILogger): HubConnectionBuilder;
     public configureLogging(logging: LogLevel | ILogger): HubConnectionBuilder {
         if (isLogger(logging)) {
             this.logger = logging;
@@ -34,10 +32,6 @@ export class HubConnectionBuilder {
         return this;
     }
 
-    // REVIEW: We can't really have "addJsonProtocol" and "addMessagePackProtocol" like we can
-    // in C# because there's no clean way to extend prototypes like that. But, should this be
-    // "addHubProtocol" to match C#? It doesn't really make sense to use "add" though, the only
-    // reason we did in C# was to re-use existing extension methods.
     public withHubProtocol(protocol: IHubProtocol): HubConnectionBuilder {
         this.protocol = protocol;
         return this;
