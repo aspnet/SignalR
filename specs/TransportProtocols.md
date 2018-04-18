@@ -48,7 +48,7 @@ The `POST [endpoint-base]/negotiate` request is used to establish a connection b
   * The `availableTransports` list which describes the transports the server supports. For each transport, the name of the transport (`transport`) is listed, as is a list of "transfer formats" supported by the transport (`transferFormats`)
 
 
-2. A redirect response which tells the client which URL and optionally and access token to use as a result.
+2. A redirect response which tells the client which URL and optionally access token to use as a result.
 
   ```
   {

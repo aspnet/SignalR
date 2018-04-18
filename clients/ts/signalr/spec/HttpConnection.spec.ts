@@ -267,7 +267,7 @@ describe("HttpConnection", () => {
         }
     });
 
-    it("does not send negotiate request if WebSockets transport requested explicitly and skipNegotiation true", async (done) => {
+    it("does not send negotiate request if WebSockets transport requested explicitly and skipNegotiation is true", async (done) => {
         const options: IHttpConnectionOptions = {
             ...commonOptions,
             httpClient: new TestHttpClient(),
@@ -288,7 +288,7 @@ describe("HttpConnection", () => {
         }
     });
 
-    it("does not start non WebSockets transport requested explicitly and skipNegotiation true", async (done) => {
+    it("does not start non WebSockets transport requested explicitly and skipNegotiation is true", async (done) => {
         const options: IHttpConnectionOptions = {
             ...commonOptions,
             httpClient: new TestHttpClient(),
@@ -349,7 +349,7 @@ describe("HttpConnection", () => {
         expect(httpClient.sentRequests[0].url).toBe("http://tempuri.org/negotiate");
         expect(httpClient.sentRequests[1].url).toBe("https://another.domain.url/chat/negotiate");
         expect(httpClient.sentRequests[2].url).toMatch(/^https:\/\/another\.domain\.url\/chat\?id=0rge0d00-0040-0030-0r00-000q00r00e00/i);
-        expect(httpClient.sentRequests[2].url).toMatch(/^https:\/\/another\.domain\.url\/chat\?id=0rge0d00-0040-0030-0r00-000q00r00e00/i);
+        expect(httpClient.sentRequests[3].url).toMatch(/^https:\/\/another\.domain\.url\/chat\?id=0rge0d00-0040-0030-0r00-000q00r00e00/i);
         done();
     });
 
@@ -428,7 +428,7 @@ describe("HttpConnection", () => {
         expect(httpClient.sentRequests[0].url).toBe("http://tempuri.org/negotiate");
         expect(httpClient.sentRequests[1].url).toBe("https://another.domain.url/chat/negotiate");
         expect(httpClient.sentRequests[2].url).toMatch(/^https:\/\/another\.domain\.url\/chat\?id=0rge0d00-0040-0030-0r00-000q00r00e00/i);
-        expect(httpClient.sentRequests[2].url).toMatch(/^https:\/\/another\.domain\.url\/chat\?id=0rge0d00-0040-0030-0r00-000q00r00e00/i);
+        expect(httpClient.sentRequests[3].url).toMatch(/^https:\/\/another\.domain\.url\/chat\?id=0rge0d00-0040-0030-0r00-000q00r00e00/i);
         done();
     });
 

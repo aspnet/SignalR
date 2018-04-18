@@ -23,7 +23,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
         // Not configurable on purpose, high enough that if we reach here, it's likely
         // a buggy server
         private static readonly int _maxRedirects = 100;
-        private static Task<string> _noAccessToken = Task.FromResult<string>(null);
+        private static readonly Task<string> _noAccessToken = Task.FromResult<string>(null);
 
         private static readonly TimeSpan HttpClientTimeout = TimeSpan.FromSeconds(120);
 #if !NETCOREAPP2_1

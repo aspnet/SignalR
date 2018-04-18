@@ -136,7 +136,7 @@ export class HttpConnection implements IConnection {
 
                 do {
                     negotiateResponse = await this.getNegotiationResponse(url);
-                    // the user tries to stop the the connection when it is being started
+                    // the user tries to stop the connection when it is being started
                     if (this.connectionState === ConnectionState.Disconnected) {
                         return;
                     }
