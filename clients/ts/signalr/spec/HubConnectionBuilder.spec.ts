@@ -24,40 +24,24 @@ const commonHttpOptions: IHttpConnectionOptions = {
     logMessageContent: true
 }
 
-function createConnectionBuilder(logger?: ILogger | LogLevel): HubConnectionBuilder {
-    // We don't want to spam test output with logs. This can be changed as needed
-    return new HubConnectionBuilder()
-        .configureLogging(logger || NullLogger.instance);
-}
-
-function createTestClient(pollSent: PromiseSource<HttpRequest>, pollCompleted: Promise<HttpResponse>): TestHttpClient {
-    let firstRequest = true;
-    return new TestHttpClient()
-        .on("POST", "http://example.com/negotiate", () => negotiateResponse)
-        .on("GET", /http:\/\/example.com\?id=abc123&_=.*/, (req) => {
-            if (firstRequest) {
-                firstRequest = false;
-                return new HttpResponse(200);
-            } else {
-                pollSent.resolve(req);
-                return pollCompleted;
-            }
-        });
-}
-
-function makeClosedPromise(connection: HubConnection): Promise<void> {
-    let closed = new PromiseSource();
-    connection.onclose(error => {
-        if (error) {
-            closed.reject(error);
-        } else {
-            closed.resolve();
-        }
-    });
-    return closed.promise;
-}
-
 describe("HubConnectionBuilder", () => {
+    eachMissingValue((val, name) => {
+        it(`configureLogging throws if logger is ${name}`, () => {
+            const builder = new HubConnectionBuilder();
+            expect(() => builder.configureLogging(val)).toThrow(new Error("The 'logging' argument is required."));
+        });
+
+        it(`withUrl throws if url is ${name}`, () => {
+            const builder = new HubConnectionBuilder();
+            expect(() => builder.withUrl(val)).toThrow(new Error("The 'url' argument is required."));
+        });
+
+        it(`withHubProtocol throws if protocol is ${name}`, () => {
+            const builder = new HubConnectionBuilder();
+            expect(() => builder.withHubProtocol(val)).toThrow(new Error("The 'protocol' argument is required."));
+        });
+    });
+
     it("builds HubConnection with HttpConnection using provided URL", async () => {
         let pollSent = new PromiseSource<HttpRequest>();
         let pollCompleted = new PromiseSource<HttpResponse>();
@@ -197,4 +181,42 @@ class TestProtocol implements IHubProtocol {
     public writeMessage(message: HubMessage) {
         throw new Error("Method not implemented.");
     }
+}
+
+function createConnectionBuilder(logger?: ILogger | LogLevel): HubConnectionBuilder {
+    // We don't want to spam test output with logs. This can be changed as needed
+    return new HubConnectionBuilder()
+        .configureLogging(logger || NullLogger.instance);
+}
+
+function createTestClient(pollSent: PromiseSource<HttpRequest>, pollCompleted: Promise<HttpResponse>): TestHttpClient {
+    let firstRequest = true;
+    return new TestHttpClient()
+        .on("POST", "http://example.com/negotiate", () => negotiateResponse)
+        .on("GET", /http:\/\/example.com\?id=abc123&_=.*/, (req) => {
+            if (firstRequest) {
+                firstRequest = false;
+                return new HttpResponse(200);
+            } else {
+                pollSent.resolve(req);
+                return pollCompleted;
+            }
+        });
+}
+
+function makeClosedPromise(connection: HubConnection): Promise<void> {
+    let closed = new PromiseSource();
+    connection.onclose(error => {
+        if (error) {
+            closed.reject(error);
+        } else {
+            closed.resolve();
+        }
+    });
+    return closed.promise;
+}
+
+function eachMissingValue(callback: (val: undefined | null, name: string) => void) {
+    callback(null, "null");
+    callback(undefined, "undefined");
 }

@@ -6,7 +6,7 @@ import { HubConnection, JsonHubProtocol } from "./HubConnection";
 import { IHubProtocol } from "./IHubProtocol";
 import { ILogger, LogLevel } from "./ILogger";
 import { NullLogger } from "./Loggers";
-import { ConsoleLogger } from "./Utils";
+import { ConsoleLogger, Arg } from "./Utils";
 
 export class HubConnectionBuilder {
     private protocol: any;
@@ -15,6 +15,8 @@ export class HubConnectionBuilder {
     private logger: ILogger;
 
     public configureLogging(logging: LogLevel | ILogger): HubConnectionBuilder {
+        Arg.isRequired(logging, "logging");
+
         if (isLogger(logging)) {
             this.logger = logging;
         } else {
@@ -27,12 +29,16 @@ export class HubConnectionBuilder {
     public withUrl(url: string): HubConnectionBuilder;
     public withUrl(url: string, options: IHttpConnectionOptions): HubConnectionBuilder;
     public withUrl(url: string, options?: IHttpConnectionOptions): HubConnectionBuilder {
+        Arg.isRequired(url, "url");
+
         this.url = url;
         this.httpConnectionOptions = options;
         return this;
     }
 
     public withHubProtocol(protocol: IHubProtocol): HubConnectionBuilder {
+        Arg.isRequired(protocol, "protocol");
+
         this.protocol = protocol;
         return this;
     }
