@@ -180,10 +180,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
         {
             var disposeTask = Task.CompletedTask;
 
+            await StateLock.WaitAsync();
             try
             {
-                await StateLock.WaitAsync();
-
                 if (Status == HttpConnectionStatus.Disposed)
                 {
                     disposeTask = _disposeTcs.Task;

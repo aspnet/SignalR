@@ -188,10 +188,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
                     return;
                 }
 
+                await connection.StateLock.WaitAsync();
                 try
                 {
-                    await connection.StateLock.WaitAsync();
-
                     if (connection.Status == HttpConnectionStatus.Disposed)
                     {
                         Log.ConnectionDisposed(_logger, connection.ConnectionId);
@@ -299,10 +298,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
                 if (pollAgain)
                 {
                     // Otherwise, we update the state to inactive again and wait for the next poll
+                    await connection.StateLock.WaitAsync();
                     try
                     {
-                        await connection.StateLock.WaitAsync();
-
                         if (connection.Status == HttpConnectionStatus.Active)
                         {
                             // Mark the connection as inactive
@@ -329,10 +327,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
                                                   HttpContext context,
                                                   HttpConnectionContext connection)
         {
+            await connection.StateLock.WaitAsync();
             try
             {
-                await connection.StateLock.WaitAsync();
-
                 if (connection.Status == HttpConnectionStatus.Disposed)
                 {
                     Log.ConnectionDisposed(_logger, connection.ConnectionId);
@@ -468,8 +465,6 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
 
             const int bufferSize = 4096;
 
-            // REVIEW: Consider spliting the connection lock into a read lock and a write lock
-            // Need to think about HttpConnectionContext.DisposeAsync and whether one or both locks would be needed
             await connection.WriteLock.WaitAsync();
 
             try
