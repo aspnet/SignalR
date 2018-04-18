@@ -288,6 +288,50 @@ describe("HttpConnection", () => {
         }
     });
 
+    it("redirects to url when negotiate returns it", async (done) => {
+        let firstNegotiate = true;
+        let firstPoll = true;
+        const httpClient = new TestHttpClient()
+            .on("POST", /negotiate$/, (r) => {
+                if (firstNegotiate) {
+                    firstNegotiate = false;
+                    return { url: "https://another.domain.url/chat" };
+                }
+                return {
+                    availableTransports: [{ transport: "LongPolling", transferFormats: ["Text"] }],
+                    connectionId: "0rge0d00-0040-0030-0r00-000q00r00e00",
+                };
+            })
+            .on("GET", (r) => {
+                if (firstPoll) {
+                    firstPoll = false;
+                    return "";
+                }
+                return new HttpResponse(204, "No Content", "");
+            });
+
+        const options: IHttpConnectionOptions = {
+            ...commonOptions,
+            httpClient,
+            transport: HttpTransportType.LongPolling,
+        } as IHttpConnectionOptions;
+
+        try {
+            const connection = new HttpConnection("http://tempuri.org", options);
+            await connection.start(TransferFormat.Text);
+        } catch (e) {
+            fail(e);
+            done();
+        }
+
+        expect(httpClient.sentRequests.length).toBe(4);
+        expect(httpClient.sentRequests[0].url).toBe("http://tempuri.org/negotiate");
+        expect(httpClient.sentRequests[1].url).toBe("https://another.domain.url/chat/negotiate");
+        expect(httpClient.sentRequests[2].url).toMatch(/^https:\/\/another\.domain\.url\/chat\?id=0rge0d00-0040-0030-0r00-000q00r00e00/i);
+        expect(httpClient.sentRequests[2].url).toMatch(/^https:\/\/another\.domain\.url\/chat\?id=0rge0d00-0040-0030-0r00-000q00r00e00/i);
+        done();
+    });
+
     it("authorization header removed when token factory returns null and using LongPolling", async (done) => {
         const availableTransport = { transport: "LongPolling", transferFormats: ["Text"] };
 

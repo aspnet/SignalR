@@ -28,6 +28,8 @@ const enum ConnectionState {
 interface INegotiateResponse {
     connectionId: string;
     availableTransports: IAvailableTransport[];
+    url: string;
+    accessToken: string;
 }
 
 interface IAvailableTransport {
@@ -128,12 +130,23 @@ export class HttpConnection implements IConnection {
                     };
                 }
 
-                const negotiateResponse = await this.getNegotiationResponse(headers);
-                // the user tries to stop the the connection when it is being started
-                if (this.connectionState === ConnectionState.Disconnected) {
-                    return;
+                let url = this.baseUrl;
+                let negotiateResponse: INegotiateResponse = null;
+
+                do {
+                    negotiateResponse = await this.getNegotiationResponse(url, headers);
+                    // the user tries to stop the the connection when it is being started
+                    if (this.connectionState === ConnectionState.Disconnected) {
+                        return;
+                    }
+
+                    if (negotiateResponse.url) {
+                        url = negotiateResponse.url;
+                    }
                 }
-                await this.createTransport(this.options.transport, negotiateResponse, transferFormat, headers);
+                while (negotiateResponse.url);
+
+                await this.createTransport(url, this.options.transport, negotiateResponse, transferFormat, headers);
             }
 
             if (this.transport instanceof LongPollingTransport) {
@@ -154,32 +167,33 @@ export class HttpConnection implements IConnection {
         }
     }
 
-    private async getNegotiationResponse(headers: any): Promise<INegotiateResponse> {
-        const negotiateUrl = this.resolveNegotiateUrl(this.baseUrl);
+    private async getNegotiationResponse(url: string, headers: any): Promise<INegotiateResponse> {
+        const negotiateUrl = this.resolveNegotiateUrl(url);
         this.logger.log(LogLevel.Debug, `Sending negotiation request: ${negotiateUrl}`);
         try {
             const response = await this.httpClient.post(negotiateUrl, {
                 content: "",
                 headers,
             });
-            return JSON.parse(response.content as string);
+            const negotiateResponse = JSON.parse(response.content as string) as INegotiateResponse;
+            this.connectionId = negotiateResponse.connectionId;
+            return negotiateResponse;
         } catch (e) {
             this.logger.log(LogLevel.Error, "Failed to complete negotiation with the server: " + e);
             throw e;
         }
     }
 
-    private updateConnectionId(negotiateResponse: INegotiateResponse) {
-        this.connectionId = negotiateResponse.connectionId;
-        this.url = this.baseUrl + (this.baseUrl.indexOf("?") === -1 ? "?" : "&") + `id=${this.connectionId}`;
+    private createConnectUrl(url: string, connectionId: string) {
+        return url + (url.indexOf("?") === -1 ? "?" : "&") + `id=${connectionId}`;
     }
 
-    private async createTransport(requestedTransport: HttpTransportType | ITransport, negotiateResponse: INegotiateResponse, requestedTransferFormat: TransferFormat, headers: any): Promise<void> {
-        this.updateConnectionId(negotiateResponse);
+    private async createTransport(url: string, requestedTransport: HttpTransportType | ITransport, negotiateResponse: INegotiateResponse, requestedTransferFormat: TransferFormat, headers: any): Promise<void> {
+        let connectUrl = this.createConnectUrl(url, negotiateResponse.connectionId);
         if (this.isITransport(requestedTransport)) {
             this.logger.log(LogLevel.Debug, "Connection was provided an instance of ITransport, using that directly.");
             this.transport = requestedTransport;
-            await this.transport.connect(this.url, requestedTransferFormat);
+            await this.transport.connect(connectUrl, requestedTransferFormat);
 
             // only change the state if we were connecting to not overwrite
             // the state if the connection is already marked as Disconnected
@@ -194,11 +208,11 @@ export class HttpConnection implements IConnection {
             if (typeof transport === "number") {
                 this.transport = this.constructTransport(transport);
                 if (negotiateResponse.connectionId === null) {
-                    negotiateResponse = await this.getNegotiationResponse(headers);
-                    this.updateConnectionId(negotiateResponse);
+                    negotiateResponse = await this.getNegotiationResponse(url, headers);
+                    connectUrl = this.createConnectUrl(url, negotiateResponse.connectionId);
                 }
                 try {
-                    await this.transport.connect(this.url, requestedTransferFormat);
+                    await this.transport.connect(connectUrl, requestedTransferFormat);
                     this.changeState(ConnectionState.Connecting, ConnectionState.Connected);
                     return;
                 } catch (ex) {
