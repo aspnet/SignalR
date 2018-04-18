@@ -267,7 +267,7 @@ describe("HttpConnection", () => {
         }
     });
 
-    it("does not send negotiate request if WebSockets transport requested explicitly and skipNegotiaiton true", async (done) => {
+    it("does not send negotiate request if WebSockets transport requested explicitly and skipNegotiation true", async (done) => {
         const options: IHttpConnectionOptions = {
             ...commonOptions,
             httpClient: new TestHttpClient(),
@@ -284,6 +284,27 @@ describe("HttpConnection", () => {
             // WebSocket is created when the transport is connecting which happens after
             // negotiate request would be sent. No better/easier way to test this.
             expect(e.message).toBe("'WebSocket' is not supported in your environment.");
+            done();
+        }
+    });
+
+    it("does not start non WebSockets transport requested explicitly and skipNegotiation true", async (done) => {
+        const options: IHttpConnectionOptions = {
+            ...commonOptions,
+            httpClient: new TestHttpClient(),
+            skipNegotiation: true,
+            transport: HttpTransportType.LongPolling,
+        } as IHttpConnectionOptions;
+
+        const connection = new HttpConnection("http://tempuri.org", options);
+        try {
+            await connection.start(TransferFormat.Text);
+            fail();
+            done();
+        } catch (e) {
+            // WebSocket is created when the transport is connecting which happens after
+            // negotiate request would be sent. No better/easier way to test this.
+            expect(e.message).toBe("Negotiation can only be skipped when using the WebSocket transport directly.");
             done();
         }
     });
@@ -347,7 +368,7 @@ describe("HttpConnection", () => {
             await connection.start(TransferFormat.Text);
             fail();
         } catch (e) {
-            expect(e.message).toBe("Unable to resolve the negotiate url in 100 attempts.");
+            expect(e.message).toBe("Negotiate redirection limit exceeded.");
             done();
         }
     });
@@ -360,14 +381,14 @@ describe("HttpConnection", () => {
                 if (firstNegotiate) {
                     firstNegotiate = false;
 
-                    if (r.headers && r.headers.Authorization !== "Bearer secret") {
+                    if (r.headers && r.headers.Authorization !== "Bearer firstSecret") {
                         return new HttpResponse(401, "Unauthorized", "");
                     }
 
-                    return { url: "https://another.domain.url/chat", accessToken: "mysecrettoken" };
+                    return { url: "https://another.domain.url/chat", accessToken: "secondSecret" };
                 }
 
-                if (r.headers && r.headers.Authorization !== "Bearer mysecrettoken") {
+                if (r.headers && r.headers.Authorization !== "Bearer secondSecret") {
                     return new HttpResponse(401, "Unauthorized", "");
                 }
 
@@ -377,7 +398,7 @@ describe("HttpConnection", () => {
                 };
             })
             .on("GET", (r) => {
-                if (r.headers && r.headers.Authorization !== "Bearer mysecrettoken") {
+                if (r.headers && r.headers.Authorization !== "Bearer secondSecret") {
                     return new HttpResponse(401, "Unauthorized", "");
                 }
 
@@ -390,7 +411,7 @@ describe("HttpConnection", () => {
 
         const options: IHttpConnectionOptions = {
             ...commonOptions,
-            accessTokenFactory: () => "secret",
+            accessTokenFactory: () => "firstSecret",
             httpClient,
             transport: HttpTransportType.LongPolling,
         } as IHttpConnectionOptions;

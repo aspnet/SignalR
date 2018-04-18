@@ -37,8 +37,9 @@ interface IAvailableTransport {
     transferFormats: Array<keyof typeof TransferFormat>;
 }
 
+const MAX_REDIRECTS = 100;
+
 export class HttpConnection implements IConnection {
-    private maxRedirects: number = 100;
     private connectionState: ConnectionState;
     private baseUrl: string;
     private readonly httpClient: HttpClient;
@@ -119,12 +120,16 @@ export class HttpConnection implements IConnection {
         this.accessTokenFactory = this.options.accessTokenFactory;
 
         try {
-            if (this.options.skipNegotiation && this.options.transport === HttpTransportType.WebSockets) {
-                // No need to add a connection ID in this case
-                this.transport = this.constructTransport(HttpTransportType.WebSockets);
-                // We should just call connect directly in this case.
-                // No fallback or negotiate in this case.
-                await this.transport.connect(url, transferFormat);
+            if (this.options.skipNegotiation) {
+                if (this.options.transport === HttpTransportType.WebSockets) {
+                    // No need to add a connection ID in this case
+                    this.transport = this.constructTransport(HttpTransportType.WebSockets);
+                    // We should just call connect directly in this case.
+                    // No fallback or negotiate in this case.
+                    await this.transport.connect(url, transferFormat);
+                } else {
+                    throw Error("Negotiation can only be skipped when using the WebSocket transport directly.");
+                }
             } else {
                 let negotiateResponse: INegotiateResponse = null;
                 let redirects = 0;
@@ -149,10 +154,10 @@ export class HttpConnection implements IConnection {
 
                     redirects++;
                 }
-                while (negotiateResponse.url && redirects < this.maxRedirects);
+                while (negotiateResponse.url && redirects < MAX_REDIRECTS);
 
-                if (redirects === this.maxRedirects && negotiateResponse.url) {
-                    throw Error(`Unable to resolve the negotiate url in ${this.maxRedirects} attempts.`);
+                if (redirects === MAX_REDIRECTS && negotiateResponse.url) {
+                    throw Error("Negotiate redirection limit exceeded.");
                 }
 
                 await this.createTransport(url, this.options.transport, negotiateResponse, transferFormat);

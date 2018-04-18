@@ -143,7 +143,7 @@ namespace Microsoft.AspNetCore.Http.Connections
 
                     if (url == null)
                     {
-                        // if url isn't specified, connectionId and available transports are optional
+                        // if url isn't specified, connectionId and available transports are required
                         if (connectionId == null)
                         {
                             throw new InvalidDataException($"Missing required property '{ConnectionIdPropertyName}'.");

@@ -220,10 +220,17 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
             // Set the initial access token provider back to the original one from options
             _accessTokenProvider = _httpConnectionOptions.AccessTokenProvider;
 
-            if (_httpConnectionOptions.SkipNegotiation && _httpConnectionOptions.Transports == HttpTransportType.WebSockets)
+            if (_httpConnectionOptions.SkipNegotiation)
             {
-                Log.StartingTransport(_logger, _httpConnectionOptions.Transports, uri);
-                await StartTransport(uri, _httpConnectionOptions.Transports, transferFormat);
+                if (_httpConnectionOptions.Transports == HttpTransportType.WebSockets)
+                {
+                    Log.StartingTransport(_logger, _httpConnectionOptions.Transports, uri);
+                    await StartTransport(uri, _httpConnectionOptions.Transports, transferFormat);
+                }
+                else
+                {
+                    throw new InvalidOperationException("Negotiation can only be skipped when using the WebSocket transport directly.");
+                }
             }
             else
             {
@@ -252,7 +259,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
 
                 if (redirects == _maxRedirects && negotiationResponse.Url != null)
                 {
-                    throw new InvalidOperationException($"Unable to resolve the negotiate url in {_maxRedirects} attempts.");
+                    throw new InvalidOperationException("Negotiate redirection limit exceeded.");
                 }
 
                 // This should only need to happen once

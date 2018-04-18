@@ -215,6 +215,49 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Theory]
+        [InlineData(HttpTransportType.LongPolling)]
+        [InlineData(HttpTransportType.ServerSentEvents)]
+        public async Task HttpConnectionThrowsIfSkipNegotiationSetAndTransportIsNotWebSockets(HttpTransportType transportType)
+        {
+            using (StartVerifableLog(out var loggerFactory))
+            {
+                var logger = loggerFactory.CreateLogger<EndToEndTests>();
+                var url = ServerFixture.Url + "/echo";
+
+                var mockHttpHandler = new Mock<HttpMessageHandler>();
+                mockHttpHandler.Protected()
+                    .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+                    .Returns<HttpRequestMessage, CancellationToken>(
+                        (request, cancellationToken) => Task.FromException<HttpResponseMessage>(new InvalidOperationException("HTTP requests should not be sent.")));
+
+                var httpOptions = new HttpConnectionOptions
+                {
+                    Url = new Uri(url),
+                    Transports = transportType,
+                    SkipNegotiation = true,
+                    HttpMessageHandlerFactory = (httpMessageHandler) => mockHttpHandler.Object
+                };
+
+                var connection = new HttpConnection(httpOptions, loggerFactory);
+
+                try
+                {
+                    var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => connection.StartAsync(TransferFormat.Binary).OrTimeout());
+                    Assert.Equal("Negotiation can only be skipped when using the WebSocket transport directly.", exception.Message);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogInformation(ex, "Test threw exception");
+                    throw;
+                }
+                finally
+                {
+                    await connection.DisposeAsync().OrTimeout();
+                }
+            }
+        }
+
+        [Theory]
         [MemberData(nameof(TransportTypesAndTransferFormats))]
         public async Task ConnectionCanSendAndReceiveMessages(HttpTransportType transportType, TransferFormat requestedTransferFormat)
         {
