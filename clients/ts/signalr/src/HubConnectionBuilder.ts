@@ -6,7 +6,7 @@ import { HubConnection, JsonHubProtocol } from "./HubConnection";
 import { IHubProtocol } from "./IHubProtocol";
 import { ILogger, LogLevel } from "./ILogger";
 import { NullLogger } from "./Loggers";
-import { ConsoleLogger, Arg } from "./Utils";
+import { Arg, ConsoleLogger } from "./Utils";
 
 export class HubConnectionBuilder {
     private protocol: any;
