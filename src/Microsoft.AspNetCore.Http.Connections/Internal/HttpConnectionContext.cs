@@ -80,7 +80,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
 
         public HttpTransportType TransportType { get; set; }
 
-        public SemaphoreSlim Lock { get; } = new SemaphoreSlim(1, 1);
+        public SemaphoreSlim WriteLock { get; } = new SemaphoreSlim(1, 1);
+        public SemaphoreSlim StateLock { get; } = new SemaphoreSlim(1, 1);
 
         // Used for testing only
         internal Task DisposeAndRemoveTask { get; set; }
@@ -181,7 +182,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
 
             try
             {
-                await Lock.WaitAsync();
+                await StateLock.WaitAsync();
 
                 if (Status == HttpConnectionStatus.Disposed)
                 {
@@ -201,7 +202,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
             }
             finally
             {
-                Lock.Release();
+                StateLock.Release();
             }
 
             await disposeTask;

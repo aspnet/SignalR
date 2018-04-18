@@ -190,7 +190,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
 
                 try
                 {
-                    await connection.Lock.WaitAsync();
+                    await connection.StateLock.WaitAsync();
 
                     if (connection.Status == HttpConnectionStatus.Disposed)
                     {
@@ -263,7 +263,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
                 }
                 finally
                 {
-                    connection.Lock.Release();
+                    connection.StateLock.Release();
                 }
 
                 var resultTask = await Task.WhenAny(connection.ApplicationTask, connection.TransportTask);
@@ -301,7 +301,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
                     // Otherwise, we update the state to inactive again and wait for the next poll
                     try
                     {
-                        await connection.Lock.WaitAsync();
+                        await connection.StateLock.WaitAsync();
 
                         if (connection.Status == HttpConnectionStatus.Active)
                         {
@@ -318,7 +318,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
                     }
                     finally
                     {
-                        connection.Lock.Release();
+                        connection.StateLock.Release();
                     }
                 }
             }
@@ -331,7 +331,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
         {
             try
             {
-                await connection.Lock.WaitAsync();
+                await connection.StateLock.WaitAsync();
 
                 if (connection.Status == HttpConnectionStatus.Disposed)
                 {
@@ -363,7 +363,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
             }
             finally
             {
-                connection.Lock.Release();
+                connection.StateLock.Release();
             }
 
             // Wait for any of them to end
@@ -470,7 +470,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
 
             // REVIEW: Consider spliting the connection lock into a read lock and a write lock
             // Need to think about HttpConnectionContext.DisposeAsync and whether one or both locks would be needed
-            await connection.Lock.WaitAsync();
+            await connection.WriteLock.WaitAsync();
 
             try
             {
@@ -493,7 +493,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
             }
             finally
             {
-                connection.Lock.Release();
+                connection.WriteLock.Release();
             }
         }
 
