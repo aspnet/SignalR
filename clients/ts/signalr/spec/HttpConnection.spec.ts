@@ -332,6 +332,85 @@ describe("HttpConnection", () => {
         done();
     });
 
+    it("fails to start if negotiate redirects more than 100 times", async (done) => {
+        const httpClient = new TestHttpClient()
+            .on("POST", /negotiate$/, (r) => ({ url: "https://another.domain.url/chat" }));
+
+        const options: IHttpConnectionOptions = {
+            ...commonOptions,
+            httpClient,
+            transport: HttpTransportType.LongPolling,
+        } as IHttpConnectionOptions;
+
+        try {
+            const connection = new HttpConnection("http://tempuri.org", options);
+            await connection.start(TransferFormat.Text);
+            fail();
+        } catch (e) {
+            expect(e.message).toBe("Unable to resolve the negotiate url in 100 attempts.");
+            done();
+        }
+    });
+
+    it("redirects to url when negotiate returns it with access token", async (done) => {
+        let firstNegotiate = true;
+        let firstPoll = true;
+        const httpClient = new TestHttpClient()
+            .on("POST", /negotiate$/, (r) => {
+                if (firstNegotiate) {
+                    firstNegotiate = false;
+
+                    if (r.headers && r.headers.Authorization !== "Bearer secret") {
+                        return new HttpResponse(401, "Unauthorized", "");
+                    }
+
+                    return { url: "https://another.domain.url/chat", accessToken: "mysecrettoken" };
+                }
+
+                if (r.headers && r.headers.Authorization !== "Bearer mysecrettoken") {
+                    return new HttpResponse(401, "Unauthorized", "");
+                }
+
+                return {
+                    availableTransports: [{ transport: "LongPolling", transferFormats: ["Text"] }],
+                    connectionId: "0rge0d00-0040-0030-0r00-000q00r00e00",
+                };
+            })
+            .on("GET", (r) => {
+                if (r.headers && r.headers.Authorization !== "Bearer mysecrettoken") {
+                    return new HttpResponse(401, "Unauthorized", "");
+                }
+
+                if (firstPoll) {
+                    firstPoll = false;
+                    return "";
+                }
+                return new HttpResponse(204, "No Content", "");
+            });
+
+        const options: IHttpConnectionOptions = {
+            ...commonOptions,
+            accessTokenFactory: () => "secret",
+            httpClient,
+            transport: HttpTransportType.LongPolling,
+        } as IHttpConnectionOptions;
+
+        try {
+            const connection = new HttpConnection("http://tempuri.org", options);
+            await connection.start(TransferFormat.Text);
+        } catch (e) {
+            fail(e);
+            done();
+        }
+
+        expect(httpClient.sentRequests.length).toBe(4);
+        expect(httpClient.sentRequests[0].url).toBe("http://tempuri.org/negotiate");
+        expect(httpClient.sentRequests[1].url).toBe("https://another.domain.url/chat/negotiate");
+        expect(httpClient.sentRequests[2].url).toMatch(/^https:\/\/another\.domain\.url\/chat\?id=0rge0d00-0040-0030-0r00-000q00r00e00/i);
+        expect(httpClient.sentRequests[2].url).toMatch(/^https:\/\/another\.domain\.url\/chat\?id=0rge0d00-0040-0030-0r00-000q00r00e00/i);
+        done();
+    });
+
     it("authorization header removed when token factory returns null and using LongPolling", async (done) => {
         const availableTransport = { transport: "LongPolling", transferFormats: ["Text"] };
 
