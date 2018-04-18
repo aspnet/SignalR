@@ -12,6 +12,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server.Features;
+using Microsoft.AspNetCore.Server.Kestrel.Core.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
@@ -186,7 +187,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             var record = new LogRecord(
                 DateTime.Now,
-                new WriteContext()
+                new WriteContext
                 {
                     LoggerName = categoryName,
                     LogLevel = logLevel,
@@ -204,16 +205,18 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             private readonly string _categoryName;
             private readonly LogSinkProvider _logSinkProvider;
+            private readonly LoggerExternalScopeProvider _scopeProvider;
 
             public LogSinkLogger(string categoryName, LogSinkProvider logSinkProvider)
             {
                 _categoryName = categoryName;
                 _logSinkProvider = logSinkProvider;
+                _scopeProvider = new LoggerExternalScopeProvider();
             }
 
             public IDisposable BeginScope<TState>(TState state)
             {
-                return null;
+                return _scopeProvider.Push(state);
             }
 
             public bool IsEnabled(LogLevel logLevel)
@@ -223,9 +226,38 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
             public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
             {
-                _logSinkProvider.Log(_categoryName, logLevel, eventId, state, exception, formatter);
+                var connectionId = GetConnectionId();
+
+                Func<TState, Exception, string> newFormatter = (s, e) =>
+                {
+                    StringBuilder sb = new StringBuilder();
+                    if (connectionId != null)
+                    {
+                        sb.Append(connectionId + " - ");
+                    }
+                    sb.Append(formatter(state, exception));
+                    return sb.ToString();
+                };
+
+                _logSinkProvider.Log(_categoryName, logLevel, eventId, state, exception, newFormatter);
+            }
+
+            private string GetConnectionId()
+            {
+                string connectionId = null;
+                _scopeProvider.ForEachScope<object>((scope, s) =>
+                {
+                    if (scope is IReadOnlyList<KeyValuePair<string, object>> logScope)
+                    {
+                        var id = logScope.FirstOrDefault(kv => kv.Key == "TransportConnectionId").Value as string;
+                        if (id != null)
+                        {
+                            connectionId = id;
+                        }
+                    }
+                }, null);
+                return connectionId;
             }
         }
     }
-
 }
