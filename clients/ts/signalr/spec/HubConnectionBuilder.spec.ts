@@ -3,26 +3,26 @@
 
 import { HubConnectionBuilder } from "../src/HubConnectionBuilder";
 
-import { asyncit as it, PromiseSource } from "./Utils";
-import { TestHttpClient } from "./TestHttpClient";
-import { HttpRequest, HttpResponse } from "../src/HttpClient";
-import { LogLevel, ILogger } from "../src/ILogger";
-import { IHttpConnectionOptions } from "../src/HttpConnection";
-import { NullLogger } from "../src/Loggers";
-import { IHubProtocol, HubMessage } from "../src/IHubProtocol";
-import { TransferFormat } from "../src/ITransport";
 import { HubConnection } from "../src";
+import { HttpRequest, HttpResponse } from "../src/HttpClient";
+import { IHttpConnectionOptions } from "../src/HttpConnection";
+import { HubMessage, IHubProtocol } from "../src/IHubProtocol";
+import { ILogger, LogLevel } from "../src/ILogger";
+import { TransferFormat } from "../src/ITransport";
+import { NullLogger } from "../src/Loggers";
+import { TestHttpClient } from "./TestHttpClient";
+import { asyncit as it, PromiseSource } from "./Utils";
 
 const negotiateResponse = {
-    connectionId: "abc123",
     availableTransports: [
         { transport: "LongPolling", transferFormats: ["Text", "Binary"] }
-    ]
+    ],
+    connectionId: "abc123",
 };
 
 const commonHttpOptions: IHttpConnectionOptions = {
-    logMessageContent: true
-}
+    logMessageContent: true,
+};
 
 describe("HubConnectionBuilder", () => {
     eachMissingValue((val, name) => {
@@ -43,8 +43,8 @@ describe("HubConnectionBuilder", () => {
     });
 
     it("builds HubConnection with HttpConnection using provided URL", async () => {
-        let pollSent = new PromiseSource<HttpRequest>();
-        let pollCompleted = new PromiseSource<HttpResponse>();
+        const pollSent = new PromiseSource<HttpRequest>();
+        const pollCompleted = new PromiseSource<HttpResponse>();
         const testClient = createTestClient(pollSent, pollCompleted.promise)
             .on("POST", "http://example.com?id=abc123", (req) => {
                 // Respond from the poll with the handshake response
@@ -54,7 +54,7 @@ describe("HubConnectionBuilder", () => {
         const connection = createConnectionBuilder()
             .withUrl("http://example.com", {
                 ...commonHttpOptions,
-                httpClient: testClient
+                httpClient: testClient,
             })
             .build();
 
@@ -69,11 +69,11 @@ describe("HubConnectionBuilder", () => {
     });
 
     it("can configure hub protocol", async () => {
-        let protocol = new TestProtocol();
+        const protocol = new TestProtocol();
 
-        let pollSent = new PromiseSource<HttpRequest>();
-        let pollCompleted = new PromiseSource<HttpResponse>();
-        let negotiateReceived = new PromiseSource<HttpRequest>();
+        const pollSent = new PromiseSource<HttpRequest>();
+        const pollCompleted = new PromiseSource<HttpResponse>();
+        const negotiateReceived = new PromiseSource<HttpRequest>();
         const testClient = createTestClient(pollSent, pollCompleted.promise)
             .on("POST", "http://example.com?id=abc123", (req) => {
                 // Respond from the poll with the handshake response
@@ -85,7 +85,7 @@ describe("HubConnectionBuilder", () => {
         const connection = createConnectionBuilder()
             .withUrl("http://example.com", {
                 ...commonHttpOptions,
-                httpClient: testClient
+                httpClient: testClient,
             })
             .withHubProtocol(protocol)
             .build();
@@ -205,8 +205,8 @@ function createTestClient(pollSent: PromiseSource<HttpRequest>, pollCompleted: P
 }
 
 function makeClosedPromise(connection: HubConnection): Promise<void> {
-    let closed = new PromiseSource();
-    connection.onclose(error => {
+    const closed = new PromiseSource();
+    connection.onclose((error) => {
         if (error) {
             closed.reject(error);
         } else {
