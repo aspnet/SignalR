@@ -118,6 +118,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 {
                     return ResponseUtils.CreateResponse(HttpStatusCode.NoContent);
                 });
+                
+                testHttpHandler.OnLongPollDelete((token) => ResponseUtils.CreateResponse(HttpStatusCode.Accepted));
 
                 using (var noErrorScope = new VerifyNoErrorsScope())
                 {
@@ -217,6 +219,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
                     return ResponseUtils.CreateResponse(HttpStatusCode.NoContent);
                 });
+
+                testHttpHandler.OnLongPollDelete((token) => ResponseUtils.CreateResponse(HttpStatusCode.Accepted));
 
                 Task<string> AccessTokenProvider() => Task.FromResult<string>("secret");
 
