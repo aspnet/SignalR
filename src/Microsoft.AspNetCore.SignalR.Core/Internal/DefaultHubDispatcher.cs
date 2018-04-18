@@ -88,7 +88,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
                 case StreamInvocationMessage streamInvocationMessage:
                     Log.ReceivedStreamHubInvocation(_logger, streamInvocationMessage);
-                    await ProcessInvocation(connection, streamInvocationMessage, isStreamedInvocation: true);
+                    // Fire-and-forget stream invocations, otherwise they would block other hub invocations from being able to run
+                    _ = ProcessInvocation(connection, streamInvocationMessage, isStreamedInvocation: true);
                     break;
 
                 case CancelInvocationMessage cancelInvocationMessage:

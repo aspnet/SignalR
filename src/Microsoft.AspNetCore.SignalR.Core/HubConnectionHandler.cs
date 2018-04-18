@@ -184,7 +184,7 @@ namespace Microsoft.AspNetCore.SignalR
                             {
                                 // Don't wait on the result of execution, continue processing other
                                 // incoming messages on this connection.
-                                _ = _dispatcher.DispatchMessageAsync(connection, message);
+                                await _dispatcher.DispatchMessageAsync(connection, message);
                             }
                         }
                         else if (result.IsCompleted)
