@@ -357,7 +357,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 var logger = loggerFactory.CreateLogger<EndToEndTests>();
 
-                var url = _serverFixture.Url + "/auth";
+                var url = ServerFixture.Url + "/auth";
                 var options = new HttpConnectionOptions
                 {
                     Url = new Uri(url),
