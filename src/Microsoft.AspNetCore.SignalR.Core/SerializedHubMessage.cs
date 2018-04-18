@@ -16,7 +16,7 @@ namespace Microsoft.AspNetCore.SignalR
         private SerializedMessage _cachedItem1;
         private SerializedMessage _cachedItem2;
         private IList<SerializedMessage> _cachedItems;
-        private object _lock = new object();
+        private readonly object _lock = new object();
 
         public HubMessage Message { get; }
 
@@ -36,21 +36,52 @@ namespace Microsoft.AspNetCore.SignalR
 
         public ReadOnlyMemory<byte> GetSerializedMessage(IHubProtocol protocol)
         {
-            lock (_lock)
+            // Double-check locking!
+            if (!TryGetCached(protocol.Name, out var serialized))
             {
-                if (!TryGetCached(protocol.Name, out var serialized))
+                lock (_lock)
                 {
-                    if (Message == null)
+                    if (!TryGetCached(protocol.Name, out serialized))
                     {
-                        throw new InvalidOperationException(
-                            "This message was received from another server that did not have the requested protocol available.");
+                        if (Message == null)
+                        {
+                            throw new InvalidOperationException(
+                                "This message was received from another server that did not have the requested protocol available.");
+                        }
+
+                        serialized = protocol.GetMessageBytes(Message);
+                        SetCache(protocol.Name, serialized);
                     }
-
-                    serialized = protocol.GetMessageBytes(Message);
-                    SetCache(protocol.Name, serialized);
                 }
+            }
 
-                return serialized;
+            return serialized;
+        }
+
+        internal IEnumerable<SerializedMessage> GetAllSerializations()
+        {
+            if (_cachedItem1.ProtocolName == null)
+            {
+                yield break;
+            }
+
+            yield return _cachedItem1;
+
+            if (_cachedItem2.ProtocolName == null)
+            {
+                yield break;
+            }
+
+            yield return _cachedItem2;
+
+            if (_cachedItems == null)
+            {
+                yield break;
+            }
+
+            foreach (var item in _cachedItems)
+            {
+                yield return item;
             }
         }
 
