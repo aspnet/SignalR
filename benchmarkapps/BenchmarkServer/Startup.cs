@@ -12,7 +12,10 @@ namespace BenchmarkServer
     {
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddSignalR()
+            services.AddSignalR(o =>
+            {
+                o.EnableDetailedErrors = true;
+            })
                 .AddMessagePackProtocol();
         }
 
@@ -20,7 +23,12 @@ namespace BenchmarkServer
         {
             app.UseSignalR(routes =>
             {
-                routes.MapHub<EchoHub>("/echo");
+                routes.MapHub<EchoHub>("/echo", o =>
+                {
+                    // Remove backpressure for benchmarking
+                    o.TransportMaxBufferSize = 0;
+                    o.ApplicationMaxBufferSize = 0;
+                });
             });
         }
     }
