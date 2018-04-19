@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using Microsoft.AspNetCore.SignalR.Protocol;
 
 namespace Microsoft.AspNetCore.SignalR
@@ -17,6 +18,7 @@ namespace Microsoft.AspNetCore.SignalR
         private SerializedMessage _cachedItem2;
         private IList<SerializedMessage> _cachedItems;
         private readonly object _lock = new object();
+        private int _count = 0;
 
         public HubMessage Message { get; }
 
@@ -58,23 +60,24 @@ namespace Microsoft.AspNetCore.SignalR
             return serialized;
         }
 
+        // Used for unit testing.
         internal IEnumerable<SerializedMessage> GetAllSerializations()
         {
-            if (_cachedItem1.ProtocolName == null)
+            if (_count < 1)
             {
                 yield break;
             }
 
             yield return _cachedItem1;
 
-            if (_cachedItem2.ProtocolName == null)
+            if (_count < 2)
             {
                 yield break;
             }
 
             yield return _cachedItem2;
 
-            if (_cachedItems == null)
+            if (_count < 3)
             {
                 yield break;
             }
@@ -90,17 +93,23 @@ namespace Microsoft.AspNetCore.SignalR
             if (_cachedItem1.ProtocolName == null)
             {
                 _cachedItem1 = new SerializedMessage(protocolName, serialized);
+                Interlocked.Increment(ref _count);
             }
             else if (_cachedItem2.ProtocolName == null)
             {
                 _cachedItem2 = new SerializedMessage(protocolName, serialized);
+                Interlocked.Increment(ref _count);
             }
             else
             {
                 if (_cachedItems == null)
                 {
                     _cachedItems = new List<SerializedMessage>();
+                    Interlocked.Increment(ref _count);
                 }
+
+                // No need to continue updating _count. It's just used to track the fields. The list
+                // always has to be accessed under a lock (except in the constructor) so we don't need the counter.
 
                 foreach (var item in _cachedItems)
                 {
@@ -115,21 +124,32 @@ namespace Microsoft.AspNetCore.SignalR
             }
         }
 
-        private bool TryGetCached(string protocolName, out ReadOnlyMemory<byte> result)
+        private bool TryGetCachedFast(string protocolName, out ReadOnlyMemory<byte> result)
         {
-            if (string.Equals(_cachedItem1.ProtocolName, protocolName, StringComparison.Ordinal))
+            if (_count > 0 && string.Equals(_cachedItem1.ProtocolName, protocolName, StringComparison.Ordinal))
             {
                 result = _cachedItem1.Serialized;
                 return true;
             }
 
-            if (string.Equals(_cachedItem2.ProtocolName, protocolName, StringComparison.Ordinal))
+            if (_count > 1 && string.Equals(_cachedItem2.ProtocolName, protocolName, StringComparison.Ordinal))
             {
                 result = _cachedItem2.Serialized;
                 return true;
             }
 
-            if (_cachedItems != null)
+            result = ReadOnlyMemory<byte>.Empty;
+            return false;
+        }
+
+        private bool TryGetCached(string protocolName, out ReadOnlyMemory<byte> result)
+        {
+            if (TryGetCachedFast(protocolName, out result))
+            {
+                return true;
+            }
+
+            if (_count > 2)
             {
                 foreach (var serializedMessage in _cachedItems)
                 {
