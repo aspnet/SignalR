@@ -3,8 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Reactive.Linq;
-using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -431,7 +429,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
     public class StreamingHub : TestHub
     {
-
         public ChannelReader<string> CounterChannel(int count)
         {
             var channel = Channel.CreateUnbounded<string>();
@@ -471,6 +468,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             channel.Writer.TryComplete(new Exception("Exception from channel"));
             return channel.Reader;
         }
+
+        public int NonStream()
+        {
+            return 42;
+        }
     }
 
     public class SimpleHub : Hub
@@ -489,6 +491,34 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             await Clients.All.Send($"{Context.ConnectionId} joined");
             await base.OnConnectedAsync();
         }
+    }
+
+    public class BlockingHub : Hub
+    {
+        private TcsService _tcs;
+
+        public BlockingHub(TcsService tcs)
+        {
+            _tcs = tcs;
+        }
+
+        public async Task<int> BlockingMethod()
+        {
+            _tcs.StartedMethod.TrySetResult(null);
+            await _tcs.EndMethod.Task;
+            return 12;
+        }
+
+        public int NonBlockingMethod()
+        {
+            return 21;
+        }
+    }
+
+    public class TcsService
+    {
+        public TaskCompletionSource<object> StartedMethod = new TaskCompletionSource<object>();
+        public TaskCompletionSource<object> EndMethod = new TaskCompletionSource<object>();
     }
 
     public interface ITypedHubClient

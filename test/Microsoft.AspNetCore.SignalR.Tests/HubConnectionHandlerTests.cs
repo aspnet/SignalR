@@ -1982,6 +1982,77 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
+        [Fact]
+        public async Task StreamingInvocationsDoNotBlockOtherInvocations()
+        {
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
+            var connectionHandler = serviceProvider.GetService<HubConnectionHandler<StreamingHub>>();
+
+            using (var client = new TestClient(new JsonHubProtocol()))
+            {
+                var connectionHandlerTask = await client.ConnectAsync(connectionHandler).OrTimeout();
+
+                // Blocking streaming invocation to test that other invocations can still run
+                await client.SendHubMessageAsync(new StreamInvocationMessage("1", nameof(StreamingHub.BlockingStream), Array.Empty<object>())).OrTimeout();
+
+                var completion = await client.InvokeAsync(nameof(StreamingHub.NonStream)).OrTimeout();
+                Assert.Equal(42L, completion.Result);
+
+                // Shut down
+                client.Dispose();
+
+                await connectionHandlerTask.OrTimeout();
+            }
+        }
+
+        [Fact]
+        public async Task InvocationsRunInOrder()
+        {
+            var tcsService = new TcsService();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(builder =>
+            {
+                builder.AddSingleton(tcsService);
+            });
+            var connectionHandler = serviceProvider.GetService<HubConnectionHandler<BlockingHub>>();
+
+            // Because we use PipeScheduler.Inline the hub invocations will run inline until they wait, which happens inside the BlockingMethod call
+            using (var client = new TestClient(new JsonHubProtocol()))
+            {
+                var connectionHandlerTask = await client.ConnectAsync(connectionHandler).OrTimeout();
+
+                // Long running hub invocation to test that other invocations will not run until it is completed
+                var blockingTask = client.SendInvocationAsync(nameof(BlockingHub.BlockingMethod), nonBlocking: false);
+                // Wait for the blocking method to start
+                await tcsService.StartedMethod.Task.OrTimeout();
+
+                // Invoke another hub method which will wait for the first method to finish
+                var nonBlockingTask = client.SendInvocationAsync(nameof(BlockingHub.NonBlockingMethod), nonBlocking: false);
+
+                // Release the blocking hub method
+                tcsService.EndMethod.TrySetResult(null);
+
+                var blockingResult = await blockingTask.OrTimeout();
+                var nonBlockingResult = await nonBlockingTask.OrTimeout();
+
+                // Blocking hub method result
+                var firstResult = await client.ReadAsync().OrTimeout();
+
+                var blockingCompletion = Assert.IsType<CompletionMessage>(firstResult);
+                Assert.Equal(12L, blockingCompletion.Result);
+
+                // Non-blocking hub method result
+                var secondResult = await client.ReadAsync().OrTimeout();
+
+                var nonBlockingCompletion = Assert.IsType<CompletionMessage>(secondResult);
+                Assert.Equal(21L, nonBlockingCompletion.Result);
+
+                // Shut down
+                client.Dispose();
+
+                await connectionHandlerTask.OrTimeout();
+            }
+        }
+
         public static IEnumerable<object[]> HubTypes()
         {
             yield return new[] { typeof(DynamicTestHub) };
