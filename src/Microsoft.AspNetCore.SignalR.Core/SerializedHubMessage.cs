@@ -22,13 +22,11 @@ namespace Microsoft.AspNetCore.SignalR
 
         public SerializedHubMessage(IReadOnlyList<SerializedMessage> messages)
         {
-            lock (_lock)
+            // A lock isn't needed here because nobody has access to this type until the constructor finishes.
+            for (var i = 0; i < messages.Count; i++)
             {
-                for (var i = 0; i < messages.Count; i++)
-                {
-                    var message = messages[i];
-                    SetCache(message.ProtocolName, message.Serialized);
-                }
+                var message = messages[i];
+                SetCache(message.ProtocolName, message.Serialized);
             }
         }
 
