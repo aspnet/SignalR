@@ -55,7 +55,7 @@
             click('connectButton', function () {
                 connection = new signalR.HubConnectionBuilder()
                     .configureLogging(signalR.LogLevel.Trace)
-                    .withUrl("/streaming", { transport: transportType })
+                    .withUrl("/streaming", transportType)
                     .build();
 
                 connection.onclose(function () {

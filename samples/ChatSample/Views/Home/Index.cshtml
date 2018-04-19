@@ -19,7 +19,7 @@
 let transportType = signalR.HttpTransportType[getParameterByName('transport')] || signalR.HttpTransportType.WebSockets;
 let connection = new signalR.HubConnectionBuilder()
     .configureLogging(signalR.LogLevel.Information)
-    .withUrl("/chat", { transport: transportType })
+    .withUrl("/chat", transportType)
     .build();
 
 connection.onclose(e => {
