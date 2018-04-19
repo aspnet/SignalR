@@ -11,7 +11,7 @@ import { Arg, ConsoleLogger } from "./Utils";
 
 export class HubConnectionBuilder {
     /** @internal */
-    public protocol: any;
+    public protocol: IHubProtocol;
     /** @internal */
     public httpConnectionOptions: IHttpConnectionOptions;
     /** @internal */
