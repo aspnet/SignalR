@@ -11,7 +11,7 @@ namespace WebSocketSample
 {
     public class Program
     {
-        public static int Main(string[] args)
+        public static async Task<int> Main(string[] args)
         {
             if (args.Length < 1)
             {
@@ -21,7 +21,7 @@ namespace WebSocketSample
                 return 1;
             }
 
-            RunWebSockets(args[0]).GetAwaiter().GetResult();
+            await RunWebSockets(args[0]);
             return 0;
         }
 
