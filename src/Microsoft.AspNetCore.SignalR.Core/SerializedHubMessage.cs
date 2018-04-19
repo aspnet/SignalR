@@ -39,7 +39,7 @@ namespace Microsoft.AspNetCore.SignalR
         public ReadOnlyMemory<byte> GetSerializedMessage(IHubProtocol protocol)
         {
             // Double-check locking!
-            if (!TryGetCached(protocol.Name, out var serialized))
+            if (!TryGetCachedFast(protocol.Name, out var serialized))
             {
                 lock (_lock)
                 {
