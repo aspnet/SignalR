@@ -211,7 +211,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             // Now stop the connection we captured
             if (connectionState != null)
             {
-                await connectionState.StopAsync(ServerTimeout);
+                await connectionState.StopAsync();
             }
         }
 
