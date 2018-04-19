@@ -509,6 +509,14 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             return 12;
         }
 
+        public async Task<ChannelReader<string>> LongRunningStream()
+        {
+            _tcsService.StartedMethod.TrySetResult(null);
+            await _tcsService.EndMethod.Task;
+            // Never ending stream
+            return Channel.CreateUnbounded<string>().Reader;
+        }
+
         public int SimpleMethod()
         {
             return 21;
