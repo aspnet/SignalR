@@ -17,16 +17,18 @@ namespace Microsoft.AspNetCore.SignalR
         private SerializedMessage _cachedItem2;
         private IList<SerializedMessage> _cachedItems;
         private readonly object _lock = new object();
-        private int _count = 0;
 
         public HubMessage Message { get; }
 
         public SerializedHubMessage(IReadOnlyList<SerializedMessage> messages)
         {
-            for (var i = 0; i < messages.Count; i++)
+            lock (_lock)
             {
-                var message = messages[i];
-                SetCache(message.ProtocolName, message.Serialized);
+                for (var i = 0; i < messages.Count; i++)
+                {
+                    var message = messages[i];
+                    SetCache(message.ProtocolName, message.Serialized);
+                }
             }
         }
 
@@ -37,79 +39,71 @@ namespace Microsoft.AspNetCore.SignalR
 
         public ReadOnlyMemory<byte> GetSerializedMessage(IHubProtocol protocol)
         {
-            // Double-check locking!
-            if (!TryGetCachedFast(protocol.Name, out var serialized))
+            lock (_lock)
             {
-                lock (_lock)
+                if (!TryGetCached(protocol.Name, out var serialized))
                 {
-                    if (!TryGetCached(protocol.Name, out serialized))
+                    if (Message == null)
                     {
-                        if (Message == null)
-                        {
-                            throw new InvalidOperationException(
-                                "This message was received from another server that did not have the requested protocol available.");
-                        }
-
-                        serialized = protocol.GetMessageBytes(Message);
-                        SetCache(protocol.Name, serialized);
+                        throw new InvalidOperationException(
+                            "This message was received from another server that did not have the requested protocol available.");
                     }
-                }
-            }
 
-            return serialized;
+                    serialized = protocol.GetMessageBytes(Message);
+                    SetCache(protocol.Name, serialized);
+                }
+
+                return serialized;
+            }
         }
 
         // Used for unit testing.
-        internal IEnumerable<SerializedMessage> GetAllSerializations()
+        internal IReadOnlyList<SerializedMessage> GetAllSerializations()
         {
-            if (_count < 1)
+            // Even if this is only used in tests, let's do it right.
+            lock (_lock)
             {
-                yield break;
-            }
+                if (_cachedItem1.ProtocolName == null)
+                {
+                    return Array.Empty<SerializedMessage>();
+                }
 
-            yield return _cachedItem1;
+                var list = new List<SerializedMessage>(2);
+                list.Add(_cachedItem1);
 
-            if (_count < 2)
-            {
-                yield break;
-            }
+                if (_cachedItem2.ProtocolName != null)
+                {
+                    list.Add(_cachedItem2);
 
-            yield return _cachedItem2;
+                    if (_cachedItems != null)
+                    {
+                        list.AddRange(_cachedItems);
+                    }
+                }
 
-            if (_count < 3)
-            {
-                yield break;
-            }
-
-            foreach (var item in _cachedItems)
-            {
-                yield return item;
+                return list;
             }
         }
 
         private void SetCache(string protocolName, ReadOnlyMemory<byte> serialized)
         {
             // We set the fields before moving on to the list, if we need it to hold more than 2 items.
-            // In order to prevent "shearing" (where some of the fields of the struct are set by one thread,
-            // while another thread is reading the struct), we have a counter that tracks how many items
-            // are present. It's only ever modified in the lock, so it doesn't need Interlocked.
+            // We have to read/write these fields under the lock because the structs might tear and another
+            // thread might observe them half-assigned
 
             if (_cachedItem1.ProtocolName == null)
             {
                 _cachedItem1 = new SerializedMessage(protocolName, serialized);
-                _count += 1;
             }
             else if (_cachedItem2.ProtocolName == null)
             {
                 _cachedItem2 = new SerializedMessage(protocolName, serialized);
-                _count += 1;
             }
             else
             {
                 if (_cachedItems == null)
                 {
                     _cachedItems = new List<SerializedMessage>();
-                    _count += 1;
                 }
 
                 // No need to continue updating _count. It's just used to track the fields. The list
@@ -128,32 +122,21 @@ namespace Microsoft.AspNetCore.SignalR
             }
         }
 
-        private bool TryGetCachedFast(string protocolName, out ReadOnlyMemory<byte> result)
+        private bool TryGetCached(string protocolName, out ReadOnlyMemory<byte> result)
         {
-            if (_count > 0 && string.Equals(_cachedItem1.ProtocolName, protocolName, StringComparison.Ordinal))
+            if (string.Equals(_cachedItem1.ProtocolName, protocolName, StringComparison.Ordinal))
             {
                 result = _cachedItem1.Serialized;
                 return true;
             }
 
-            if (_count > 1 && string.Equals(_cachedItem2.ProtocolName, protocolName, StringComparison.Ordinal))
+            if (string.Equals(_cachedItem2.ProtocolName, protocolName, StringComparison.Ordinal))
             {
                 result = _cachedItem2.Serialized;
                 return true;
             }
 
-            result = ReadOnlyMemory<byte>.Empty;
-            return false;
-        }
-
-        private bool TryGetCached(string protocolName, out ReadOnlyMemory<byte> result)
-        {
-            if (TryGetCachedFast(protocolName, out result))
-            {
-                return true;
-            }
-
-            if (_count > 2)
+            if (_cachedItems != null)
             {
                 foreach (var serializedMessage in _cachedItems)
                 {
