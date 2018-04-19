@@ -104,9 +104,6 @@ namespace Microsoft.AspNetCore.SignalR
                     _cachedItems = new List<SerializedMessage>();
                 }
 
-                // No need to continue updating _count. It's just used to track the fields. The list
-                // always has to be accessed under a lock (except in the constructor) so we don't need the counter.
-
                 foreach (var item in _cachedItems)
                 {
                     if (string.Equals(item.ProtocolName, protocolName, StringComparison.Ordinal))
