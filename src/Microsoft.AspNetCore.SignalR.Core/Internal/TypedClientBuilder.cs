@@ -159,11 +159,13 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 generator.Emit(OpCodes.Stelem_Ref);
             }
 
+            // Load parameter array on to the stack.
+            generator.Emit(OpCodes.Ldloc_0);
+
             // Get 'CancellationToken.None' and put it on the stack, since we don't support CancellationToken right now
             generator.Emit(OpCodes.Call, CancellationTokenNoneProperty.GetMethod);
 
-            // Call SendCoreAsync
-            generator.Emit(OpCodes.Ldloc_0);
+            // Send!
             generator.Emit(OpCodes.Callvirt, invokeMethod);
 
             generator.Emit(OpCodes.Ret); // Return the Task returned by 'invokeMethod'

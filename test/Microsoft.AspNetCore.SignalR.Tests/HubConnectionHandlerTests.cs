@@ -2206,6 +2206,15 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
+        public class AnotherTypedHub : Hub<IAnotherTypedHubClient>
+        {
+        }
+
+        public interface IAnotherTypedHubClient
+        {
+            void Foo();
+        }
+
         public static IEnumerable<object[]> HubTypes()
         {
             yield return new[] { typeof(DynamicTestHub) };
