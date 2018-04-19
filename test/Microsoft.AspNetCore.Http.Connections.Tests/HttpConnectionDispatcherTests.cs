@@ -1832,8 +1832,6 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                     requestBody.Write(buffer, 0, buffer.Length);
                     requestBody.Seek(0, SeekOrigin.Begin);
 
-                    var t = loggerFactory.CreateLogger("testing");
-
                     // Write some data to the pipe to fill it up and make the next write wait
                     await connection.ApplicationStream.WriteAsync(buffer, 0, buffer.Length).OrTimeout();
 
@@ -1841,10 +1839,10 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                     var sendTask = dispatcher.ExecuteAsync(context, options, app).OrTimeout();
                     Assert.False(sendTask.IsCompleted);
 
-                    var poll = MakeRequest("/foo", connection);
+                    var pollContext = MakeRequest("/foo", connection);
                     // This should unblock the send that is waiting because of backpressure
                     // Testing deadlock regression where pipe backpressure would hold the same lock that poll would use
-                    await dispatcher.ExecuteAsync(poll, options, app).OrTimeout();
+                    await dispatcher.ExecuteAsync(pollContext, options, app).OrTimeout();
 
                     await sendTask.OrTimeout();
                 }
