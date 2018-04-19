@@ -2021,18 +2021,17 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 var connectionHandlerTask = await client.ConnectAsync(connectionHandler).OrTimeout();
 
                 // Long running hub invocation to test that other invocations will not run until it is completed
-                var longRunningTask = client.SendInvocationAsync(nameof(LongRunningHub.LongRunningMethod), nonBlocking: false);
+                await client.SendInvocationAsync(nameof(LongRunningHub.LongRunningMethod), nonBlocking: false).OrTimeout();
                 // Wait for the long running method to start
                 await tcsService.StartedMethod.Task.OrTimeout();
 
                 // Invoke another hub method which will wait for the first method to finish
-                var nonBlockingTask = client.SendInvocationAsync(nameof(LongRunningHub.SimpleMethod), nonBlocking: false);
+                await client.SendInvocationAsync(nameof(LongRunningHub.SimpleMethod), nonBlocking: false).OrTimeout();
+                // Both invocations should be waiting now
+                Assert.Null(client.TryRead());
 
                 // Release the long running hub method
                 tcsService.EndMethod.TrySetResult(null);
-
-                await longRunningTask.OrTimeout();
-                await nonBlockingTask.OrTimeout();
 
                 // Long running hub method result
                 var firstResult = await client.ReadAsync().OrTimeout();
