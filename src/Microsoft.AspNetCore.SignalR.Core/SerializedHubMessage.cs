@@ -90,6 +90,11 @@ namespace Microsoft.AspNetCore.SignalR
 
         private void SetCache(string protocolName, ReadOnlyMemory<byte> serialized)
         {
+            // We set the fields before moving on to the list, if we need it to hold more than 2 items.
+            // In order to prevent "shearing" (where some of the fields of the struct are set by one thread,
+            // while another thread is reading the struct), we atomically increment a counter to ensure
+            // consumers know which structs have been fully assigned.
+            
             if (_cachedItem1.ProtocolName == null)
             {
                 _cachedItem1 = new SerializedMessage(protocolName, serialized);
