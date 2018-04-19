@@ -64,6 +64,7 @@ namespace Microsoft.AspNetCore.SignalR
         // Currently used only for streaming methods
         internal ConcurrentDictionary<string, CancellationTokenSource> ActiveRequestCancellationSources { get; } = new ConcurrentDictionary<string, CancellationTokenSource>(StringComparer.Ordinal);
 
+        // REVIEW: Cancellable? The caller has no way to cancel without it (they can't CancelPendingFlush).
         public virtual ValueTask WriteAsync(HubMessage message)
         {
             // Try to grab the lock synchronously, if we fail, go to the slower path
