@@ -32,7 +32,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             _loggerFactory = loggerFactory;
         }
 
-        public async Task<ConnectionContext> ConnectAsync(TransferFormat transferFormat, CancellationToken cancellationToken)
+        public async Task<ConnectionContext> ConnectAsync(TransferFormat transferFormat, CancellationToken cancellationToken = default)
         {
             var connection = new HttpConnection(_httpConnectionOptions, _loggerFactory);
             await connection.StartAsync(transferFormat, cancellationToken);
