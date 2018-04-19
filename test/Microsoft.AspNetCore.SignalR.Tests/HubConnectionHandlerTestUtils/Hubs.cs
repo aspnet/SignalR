@@ -493,23 +493,23 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
     }
 
-    public class BlockingHub : Hub
+    public class LongRunningHub : Hub
     {
-        private TcsService _tcs;
+        private TcsService _tcsService;
 
-        public BlockingHub(TcsService tcs)
+        public LongRunningHub(TcsService tcsService)
         {
-            _tcs = tcs;
+            _tcsService = tcsService;
         }
 
-        public async Task<int> BlockingMethod()
+        public async Task<int> LongRunningMethod()
         {
-            _tcs.StartedMethod.TrySetResult(null);
-            await _tcs.EndMethod.Task;
+            _tcsService.StartedMethod.TrySetResult(null);
+            await _tcsService.EndMethod.Task;
             return 12;
         }
 
-        public int NonBlockingMethod()
+        public int SimpleMethod()
         {
             return 21;
         }

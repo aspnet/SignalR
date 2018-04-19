@@ -2013,38 +2013,38 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 builder.AddSingleton(tcsService);
             });
-            var connectionHandler = serviceProvider.GetService<HubConnectionHandler<BlockingHub>>();
+            var connectionHandler = serviceProvider.GetService<HubConnectionHandler<LongRunningHub>>();
 
-            // Because we use PipeScheduler.Inline the hub invocations will run inline until they wait, which happens inside the BlockingMethod call
-            using (var client = new TestClient(new JsonHubProtocol()))
+            // Because we use PipeScheduler.Inline the hub invocations will run inline until they wait, which happens inside the LongRunningMethod call
+            using (var client = new TestClient())
             {
                 var connectionHandlerTask = await client.ConnectAsync(connectionHandler).OrTimeout();
 
                 // Long running hub invocation to test that other invocations will not run until it is completed
-                var blockingTask = client.SendInvocationAsync(nameof(BlockingHub.BlockingMethod), nonBlocking: false);
-                // Wait for the blocking method to start
+                var longRunningTask = client.SendInvocationAsync(nameof(LongRunningHub.LongRunningMethod), nonBlocking: false);
+                // Wait for the long running method to start
                 await tcsService.StartedMethod.Task.OrTimeout();
 
                 // Invoke another hub method which will wait for the first method to finish
-                var nonBlockingTask = client.SendInvocationAsync(nameof(BlockingHub.NonBlockingMethod), nonBlocking: false);
+                var nonBlockingTask = client.SendInvocationAsync(nameof(LongRunningHub.SimpleMethod), nonBlocking: false);
 
-                // Release the blocking hub method
+                // Release the long running hub method
                 tcsService.EndMethod.TrySetResult(null);
 
-                var blockingResult = await blockingTask.OrTimeout();
-                var nonBlockingResult = await nonBlockingTask.OrTimeout();
+                await longRunningTask.OrTimeout();
+                await nonBlockingTask.OrTimeout();
 
-                // Blocking hub method result
+                // Long running hub method result
                 var firstResult = await client.ReadAsync().OrTimeout();
 
-                var blockingCompletion = Assert.IsType<CompletionMessage>(firstResult);
-                Assert.Equal(12L, blockingCompletion.Result);
+                var longRunningCompletion = Assert.IsType<CompletionMessage>(firstResult);
+                Assert.Equal(12L, longRunningCompletion.Result);
 
-                // Non-blocking hub method result
+                // simple hub method result
                 var secondResult = await client.ReadAsync().OrTimeout();
 
-                var nonBlockingCompletion = Assert.IsType<CompletionMessage>(secondResult);
-                Assert.Equal(21L, nonBlockingCompletion.Result);
+                var simpleCompletion = Assert.IsType<CompletionMessage>(secondResult);
+                Assert.Equal(21L, simpleCompletion.Result);
 
                 // Shut down
                 client.Dispose();
