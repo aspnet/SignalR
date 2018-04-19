@@ -8,14 +8,23 @@ import { HttpRequest, HttpResponse } from "../src/HttpClient";
 import { IHttpConnectionOptions } from "../src/HttpConnection";
 import { HubMessage, IHubProtocol } from "../src/IHubProtocol";
 import { ILogger, LogLevel } from "../src/ILogger";
-import { TransferFormat } from "../src/ITransport";
+import { TransferFormat, HttpTransportType } from "../src/ITransport";
 import { NullLogger } from "../src/Loggers";
 import { TestHttpClient } from "./TestHttpClient";
 import { asyncit as it, PromiseSource } from "./Utils";
 
-const negotiateResponse = {
+const allTransportsNegotiateResponse = {
     availableTransports: [
-        { transport: "LongPolling", transferFormats: ["Text", "Binary"] }
+        { transport: "WebSockets", transferFormats: ["Text", "Binary"] },
+        { transport: "ServerSentEvents", transferFormats: ["Text"] },
+        { transport: "LongPolling", transferFormats: ["Text", "Binary"] },
+    ],
+    connectionId: "abc123",
+};
+
+const longPollingNegotiateResponse = {
+    availableTransports: [
+        { transport: "LongPolling", transferFormats: ["Text", "Binary"] },
     ],
     connectionId: "abc123",
 };
@@ -66,6 +75,20 @@ describe("HubConnectionBuilder", () => {
         expect(pollRequest.url).toMatch(/http:\/\/example.com\?id=abc123.*/);
 
         await closed;
+    });
+
+    it("can configure transport type", async () => {
+        const protocol = new TestProtocol();
+
+        const pollSent = new PromiseSource<HttpRequest>();
+        const pollCompleted = new PromiseSource<HttpResponse>();
+        const negotiateReceived = new PromiseSource<HttpRequest>();
+        const testClient = createTestClient(pollSent, pollCompleted.promise, allTransportsNegotiateResponse);
+
+        const builder = createConnectionBuilder()
+            .withUrl("http://example.com", HttpTransportType.WebSockets)
+            .withHubProtocol(protocol);
+        expect(builder.httpConnectionOptions.transport).toBe(HttpTransportType.WebSockets);
     });
 
     it("can configure hub protocol", async () => {
@@ -189,10 +212,10 @@ function createConnectionBuilder(logger?: ILogger | LogLevel): HubConnectionBuil
         .configureLogging(logger || NullLogger.instance);
 }
 
-function createTestClient(pollSent: PromiseSource<HttpRequest>, pollCompleted: Promise<HttpResponse>): TestHttpClient {
+function createTestClient(pollSent: PromiseSource<HttpRequest>, pollCompleted: Promise<HttpResponse>, negotiateResponse?: any): TestHttpClient {
     let firstRequest = true;
     return new TestHttpClient()
-        .on("POST", "http://example.com/negotiate", () => negotiateResponse)
+        .on("POST", "http://example.com/negotiate", () => negotiateResponse || longPollingNegotiateResponse)
         .on("GET", /http:\/\/example.com\?id=abc123&_=.*/, (req) => {
             if (firstRequest) {
                 firstRequest = false;

@@ -5,14 +5,19 @@ import { HttpConnection, IHttpConnectionOptions } from "./HttpConnection";
 import { HubConnection, JsonHubProtocol } from "./HubConnection";
 import { IHubProtocol } from "./IHubProtocol";
 import { ILogger, LogLevel } from "./ILogger";
+import { HttpTransportType } from "./ITransport";
 import { NullLogger } from "./Loggers";
 import { Arg, ConsoleLogger } from "./Utils";
 
 export class HubConnectionBuilder {
-    private protocol: any;
-    private httpConnectionOptions: IHttpConnectionOptions;
-    private url: string;
-    private logger: ILogger;
+    /** @internal */
+    public protocol: any;
+    /** @internal */
+    public httpConnectionOptions: IHttpConnectionOptions;
+    /** @internal */
+    public url: string;
+    /** @internal */
+    public logger: ILogger;
 
     public configureLogging(logging: LogLevel | ILogger): HubConnectionBuilder {
         Arg.isRequired(logging, "logging");
@@ -28,11 +33,22 @@ export class HubConnectionBuilder {
 
     public withUrl(url: string): HubConnectionBuilder;
     public withUrl(url: string, options: IHttpConnectionOptions): HubConnectionBuilder;
-    public withUrl(url: string, options?: IHttpConnectionOptions): HubConnectionBuilder {
+    public withUrl(url: string, transportType: HttpTransportType): HubConnectionBuilder;
+    public withUrl(url: string, transportTypeOrOptions?: IHttpConnectionOptions | HttpTransportType): HubConnectionBuilder {
         Arg.isRequired(url, "url");
 
         this.url = url;
-        this.httpConnectionOptions = options;
+
+        // Flow-typing knows where it's at. Since HttpTransportType is a number and IHttpConnectionOptions is guaranteed
+        // to be an object, we know (as does TypeScript) this comparison is all we need to figure out which overload was called.
+        if (typeof transportTypeOrOptions === "object") {
+            this.httpConnectionOptions = transportTypeOrOptions;
+        } else {
+            this.httpConnectionOptions = {
+                transport: transportTypeOrOptions,
+            };
+        }
+
         return this;
     }
 
