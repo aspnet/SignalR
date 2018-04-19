@@ -92,25 +92,25 @@ namespace Microsoft.AspNetCore.SignalR
         {
             // We set the fields before moving on to the list, if we need it to hold more than 2 items.
             // In order to prevent "shearing" (where some of the fields of the struct are set by one thread,
-            // while another thread is reading the struct), we atomically increment a counter to ensure
-            // consumers know which structs have been fully assigned.
-            
+            // while another thread is reading the struct), we have a counter that tracks how many items
+            // are present. It's only ever modified in the lock, so it doesn't need Interlocked.
+
             if (_cachedItem1.ProtocolName == null)
             {
                 _cachedItem1 = new SerializedMessage(protocolName, serialized);
-                Interlocked.Increment(ref _count);
+                _count += 1;
             }
             else if (_cachedItem2.ProtocolName == null)
             {
                 _cachedItem2 = new SerializedMessage(protocolName, serialized);
-                Interlocked.Increment(ref _count);
+                _count += 1;
             }
             else
             {
                 if (_cachedItems == null)
                 {
                     _cachedItems = new List<SerializedMessage>();
-                    Interlocked.Increment(ref _count);
+                    _count += 1;
                 }
 
                 // No need to continue updating _count. It's just used to track the fields. The list
