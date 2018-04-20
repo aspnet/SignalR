@@ -96,7 +96,7 @@ function Get-KoreBuild {
 
     $version = Get-Content $lockFile | Where-Object { $_ -like 'version:*' } | Select-Object -first 1
     if (!$version) {
-        # Write-Error "Failed to parse version from $lockFile. Expected a line that begins with 'version:'"
+        Write-Error "Failed to parse version from $lockFile. Expected a line that begins with 'version:'"
     }
     $version = $version.TrimStart('version:').Trim()
     $korebuildPath = Join-Paths $DotNetHome ('buildtools', 'korebuild', $version)
@@ -106,7 +106,7 @@ function Get-KoreBuild {
     }
 
     if (!(Test-Path $korebuildPath)) {
-        # Write-Host "Downloading KoreBuild $version"
+        Write-Output "Downloading KoreBuild $version"
         New-Item -ItemType Directory -Path $korebuildPath | Out-Null
         $remotePath = "$ToolsSource/korebuild/artifacts/$version/korebuild.$version.zip"
 
