@@ -22,6 +22,10 @@
     <Exec Command="npm install --no-optional" WorkingDirectory="$(RepositoryRoot)clients/ts/webdriver-tap-runner" />
   </Target>
 
+  <Target Name="PublishSample">
+    <Exec Command="dotnet publish -c Release --framework netcoreapp2.1 --self-contained -r win7-x64 -o $(DEPLOYMENT_TARGET)" WorkingDirectory="$(RepositoryRoot)/samples/SignalRSamples" />
+  </Target>
+
   <PropertyGroup>
     <TestDependsOn>$(TestDependsOn);RunTSClientNodeTests;RunBrowserTests</TestDependsOn>
   </PropertyGroup>
