@@ -106,7 +106,7 @@ function Get-KoreBuild {
     }
 
     if (!(Test-Path $korebuildPath)) {
-        Write-Host -ForegroundColor Magenta "Downloading KoreBuild $version"
+        Write-Host "Downloading KoreBuild $version"
         New-Item -ItemType Directory -Path $korebuildPath | Out-Null
         $remotePath = "$ToolsSource/korebuild/artifacts/$version/korebuild.$version.zip"
 
