@@ -1,2 +1,2 @@
 [config]
-command = .\build.cmd /t:PublishSample
+command = build.cmd /t:PublishSample
