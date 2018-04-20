@@ -903,7 +903,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         [Fact]
         public async Task UserIdProviderCanAccessHttpContext()
         {
-            using (StartVerifableLog(out var loggerFactory))
+            using (StartVerifiableLog(out var loggerFactory))
             {
                 var hubConnection = new HubConnectionBuilder()
                     .WithLoggerFactory(loggerFactory)
