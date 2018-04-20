@@ -144,6 +144,15 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Fact]
+        public void FailsToLoadInvalidTypedHubClient()
+        {
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
+            var ex = Assert.Throws<InvalidOperationException>(() =>
+                serviceProvider.GetRequiredService<IHubContext<SimpleVoidReturningTypedHub, IVoidReturningTypedHubClient>>());
+            Assert.Equal($"Cannot generate proxy implementation for '{typeof(IVoidReturningTypedHubClient).FullName}.{nameof(IVoidReturningTypedHubClient.Send)}'. All client proxy methods must return '{typeof(Task).FullName}'.", ex.Message);
+        }
+
+        [Fact]
         public async Task HandshakeFailureFromUnknownProtocolSendsResponseWithError()
         {
             var hubProtocolMock = new Mock<IHubProtocol>();

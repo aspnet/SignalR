@@ -484,6 +484,14 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
     }
 
+    public class SimpleVoidReturningTypedHub : Hub<IVoidReturningTypedHubClient>
+    {
+        public override Task OnConnectedAsync()
+        {
+            throw new NotImplementedException("This shouldn't be called, since the typed hub client is invalid.");
+        }
+    }
+
     public class SimpleTypedHub : Hub<ITypedHubClient>
     {
         public override async Task OnConnectedAsync()
@@ -532,6 +540,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
     public interface ITypedHubClient
     {
         Task Send(string message);
+    }
+
+    public interface IVoidReturningTypedHubClient
+    {
+        void Send(string message);
     }
 
     public class ConnectionLifetimeHub : Hub
