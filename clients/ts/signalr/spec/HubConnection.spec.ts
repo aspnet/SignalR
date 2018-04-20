@@ -2,10 +2,11 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 import { HubConnection } from "../src/HubConnection";
+
 import { IConnection } from "../src/IConnection";
 import { HubMessage, IHubProtocol, MessageType } from "../src/IHubProtocol";
 import { ILogger, LogLevel } from "../src/ILogger";
-import { HttpTransportType, ITransport, TransferFormat } from "../src/ITransport";
+import { TransferFormat } from "../src/ITransport";
 import { JsonHubProtocol } from "../src/JsonHubProtocol";
 import { NullLogger } from "../src/Loggers";
 import { IStreamSubscriber } from "../src/Stream";
