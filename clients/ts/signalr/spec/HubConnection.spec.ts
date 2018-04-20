@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 import { HubConnection } from "../src/HubConnection";
-
 import { IConnection } from "../src/IConnection";
 import { HubMessage, IHubProtocol, MessageType } from "../src/IHubProtocol";
 import { ILogger, LogLevel } from "../src/ILogger";
