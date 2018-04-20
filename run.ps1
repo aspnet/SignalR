@@ -80,7 +80,7 @@ param(
 )
 
 Set-StrictMode -Version 2
-$ErrorActionPreference = 'SilentlyContinue'
+$ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
 #
