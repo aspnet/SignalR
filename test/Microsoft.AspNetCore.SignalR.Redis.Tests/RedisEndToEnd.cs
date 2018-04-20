@@ -78,7 +78,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
                 var tcs2 = new TaskCompletionSource<string>();
                 secondConnection.On<string>("Echo", message => tcs2.TrySetResult(message));
 
-                var groupName = $"TestGroup_{transportType}_{protocolName}";
+                var groupName = $"TestGroup_{transportType}_{protocolName}_{Guid.NewGuid()}";
 
                 await secondConnection.StartAsync().OrTimeout();
                 await connection.StartAsync().OrTimeout();
