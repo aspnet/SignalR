@@ -30,7 +30,9 @@ export class HubConnection {
 
     /** @internal */
     // Using a public static factory method means we can have a private constructor and an _internal_
-    // create method that can be used by HubConnectionBuilder.
+    // create method that can be used by HubConnectionBuilder. An "internal" constructor would just
+    // be stripped away and the '.d.ts' file would have no constructor, which is interpreted as a
+    // public parameter-less constructor.
     public static create(connection: IConnection, logger: ILogger, protocol: IHubProtocol): HubConnection {
         return new HubConnection(connection, logger, protocol);
     }
