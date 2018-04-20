@@ -147,6 +147,7 @@ function Get-RemoteFile([string]$RemotePath, [string]$LocalPath, [string]$Remote
     }
 
     $retries = 10
+    $error = $null
     while ($retries -gt 0) {
         $retries -= 1
         try {
@@ -154,11 +155,12 @@ function Get-RemoteFile([string]$RemotePath, [string]$LocalPath, [string]$Remote
             return
         }
         catch {
+            $error = $_.Exception
             Write-Verbose "Request failed. $retries retries remaining"
         }
     }
 
-    Write-Error "Download failed: '$RemotePath'."
+    Write-Error "Download failed: '$RemotePath'. $error"
 }
 
 #
