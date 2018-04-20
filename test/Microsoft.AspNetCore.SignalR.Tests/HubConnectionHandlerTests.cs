@@ -967,6 +967,22 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
+        [Fact]
+        public async Task FailsToInitializeInvalidTypedHub()
+        {
+            var connectionHandler = HubConnectionHandlerTestUtils.GetHubConnectionHandler(typeof(SimpleVoidReturningTypedHub));
+
+            using (var firstClient = new TestClient())
+            {
+                // ConnectAsync returns a Task<Task> and it's the INNER Task that will be faulted.
+                var connectionTask = await firstClient.ConnectAsync(connectionHandler);
+
+                // We should get a close frame now
+                var close = Assert.IsType<CloseMessage>(await firstClient.ReadAsync());
+                Assert.Equal("Connection closed with an error.", close.Error);
+            }
+        }
+
         [Theory]
         [MemberData(nameof(HubTypes))]
         public async Task SendToAllExcept(Type hubType)

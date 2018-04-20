@@ -54,9 +54,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
             foreach (var method in GetAllInterfaceMethods(typeof(T)))
             {
-                if (method.ReturnType != typeof(Task))
-                {
-                }
                 BuildMethod(type, method, proxyField);
             }
 

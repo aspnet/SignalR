@@ -488,7 +488,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
     {
         public override Task OnConnectedAsync()
         {
-            throw new NotImplementedException("This shouldn't be called, since the typed hub client is invalid.");
+            // Derefernce Clients, to force initialization of the TypedHubClient
+            Clients.All.Send("herp");
+            return Task.CompletedTask;
         }
     }
 
