@@ -867,7 +867,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         [Fact]
         public async Task CheckHttpConnectionFeatures()
         {
-            using (StartVerifiableLog(out var loggerFactory, $"{nameof(CheckHttpConnectionFeatures)}_{transportType}"))
+            using (StartVerifiableLog(out var loggerFactory))
             {
                 var hubConnection = new HubConnectionBuilder()
                     .WithLoggerFactory(loggerFactory)
