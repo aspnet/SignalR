@@ -20,7 +20,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         public Task SendCoreAsync(string method, object[] args, CancellationToken cancellationToken = default)
         {
-            return _lifetimeManager.SendUserAsync(_userId, method, args);
+            return _lifetimeManager.SendUserAsync(_userId, method, args, cancellationToken);
         }
     }
 
@@ -37,7 +37,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         public Task SendCoreAsync(string method, object[] args, CancellationToken cancellationToken = default)
         {
-            return _lifetimeManager.SendUsersAsync(_userIds, method, args);
+            return _lifetimeManager.SendUsersAsync(_userIds, method, args, cancellationToken);
         }
     }
 
@@ -54,7 +54,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         public Task SendCoreAsync(string method, object[] args, CancellationToken cancellationToken = default)
         {
-            return _lifetimeManager.SendGroupAsync(_groupName, method, args);
+            return _lifetimeManager.SendGroupAsync(_groupName, method, args, cancellationToken);
         }
     }
 
@@ -71,7 +71,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         public Task SendCoreAsync(string method, object[] args, CancellationToken cancellationToken = default)
         {
-            return _lifetimeManager.SendGroupsAsync(_groupNames, method, args);
+            return _lifetimeManager.SendGroupsAsync(_groupNames, method, args, cancellationToken);
         }
     }
 
@@ -90,7 +90,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         public Task SendCoreAsync(string method, object[] args, CancellationToken cancellationToken = default)
         {
-            return _lifetimeManager.SendGroupExceptAsync(_groupName, method, args, _excludedConnectionIds);
+            return _lifetimeManager.SendGroupExceptAsync(_groupName, method, args, _excludedConnectionIds, cancellationToken);
         }
     }
 
@@ -122,7 +122,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         public Task SendCoreAsync(string method, object[] args, CancellationToken cancellationToken = default)
         {
-            return _lifetimeManager.SendAllExceptAsync(method, args, _excludedConnectionIds);
+            return _lifetimeManager.SendAllExceptAsync(method, args, _excludedConnectionIds, cancellationToken);
         }
     }
 
@@ -139,7 +139,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         public Task SendCoreAsync(string method, object[] args, CancellationToken cancellationToken = default)
         {
-            return _lifetimeManager.SendConnectionAsync(_connectionId, method, args);
+            return _lifetimeManager.SendConnectionAsync(_connectionId, method, args, cancellationToken);
         }
     }
 
@@ -156,7 +156,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         public Task SendCoreAsync(string method, object[] args, CancellationToken cancellationToken = default)
         {
-            return _lifetimeManager.SendConnectionsAsync(_connectionIds, method, args);
+            return _lifetimeManager.SendConnectionsAsync(_connectionIds, method, args, cancellationToken);
         }
     }
 }
