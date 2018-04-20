@@ -80,8 +80,8 @@ param(
 )
 
 Set-StrictMode -Version 2
-$ErrorActionPreference = 'Stop'
-$progressPreference = 'silentlyContinue'    # Subsequent calls do not display UI.
+$ErrorActionPreference = 'SilentlyContinue'
+$ProgressPreference = 'SilentlyContinue'
 
 #
 # Functions
