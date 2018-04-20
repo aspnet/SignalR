@@ -81,6 +81,7 @@ param(
 
 Set-StrictMode -Version 2
 $ErrorActionPreference = 'Stop'
+$progressPreference = 'silentlyContinue'    # Subsequent calls do not display UI.
 
 #
 # Functions
@@ -151,7 +152,6 @@ function Get-RemoteFile([string]$RemotePath, [string]$LocalPath, [string]$Remote
     while ($retries -gt 0) {
         $retries -= 1
         try {
-            $progressPreference = 'silentlyContinue'    # Subsequent calls do not display UI.
             Invoke-WebRequest -UseBasicParsing -Uri $($RemotePath + $RemoteSuffix) -OutFile $LocalPath
             return
         }
