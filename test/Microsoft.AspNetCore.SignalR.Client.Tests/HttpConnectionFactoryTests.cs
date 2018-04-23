@@ -14,10 +14,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         [Fact]
         public async Task ConnectionIsDisposedIfItFailsToStartAsync()
         {
-            var testHandler = new TestHttpMessageHandler();
+            var testHandler = new TestHttpMessageHandler(autoNegotiate: false, handleFirstPoll: false);
             testHandler.OnRequest((req, next, ct) => Task.FromException<HttpResponseMessage>(new Exception("BOOM")));
 
             var factory = new HttpConnectionFactory(Options.Create(new HttpConnectionOptions() {
+                Url = new Uri("http://example.com"),
                 HttpMessageHandlerFactory = _ => testHandler
             }), NullLoggerFactory.Instance);
 
