@@ -1002,45 +1002,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             }
         }
 
-        [Fact]
-        public async Task UserCallbacksRunOnTheThreadPool()
-        {
-            using (StartVerifableLog(out var loggerFactory, LogLevel.Trace))
-            {
-                const string originalMessage = "SignalR";
-
-                var connection = CreateHubConnection("/default", HttpTransportType.WebSockets, new JsonHubProtocol(), loggerFactory: loggerFactory);
-                try
-                {
-                    await connection.StartAsync().OrTimeout();
-
-                    SynchronizationContext.SetSynchronizationContext(new SynchronizationContext());
-                    var currentContext = SynchronizationContext.Current;
-                    SynchronizationContext callbackContext = SynchronizationContext.Current;
-                    var tcs = new TaskCompletionSource<string>();
-                    connection.On<string>("Echo", s =>
-                    {
-                        callbackContext = SynchronizationContext.Current;
-                        tcs.SetResult(s);
-                    });
-
-                    await connection.InvokeAsync("CallEcho", originalMessage).OrTimeout();
-
-                    Assert.Equal(originalMessage, await tcs.Task.OrTimeout());
-                    Assert.NotEqual(currentContext, callbackContext);
-                }
-                catch (Exception ex)
-                {
-                    loggerFactory.CreateLogger<HubConnectionTests>().LogError(ex, "{ExceptionType} from test", ex.GetType().FullName);
-                    throw;
-                }
-                finally
-                {
-                    await connection.DisposeAsync().OrTimeout();
-                }
-            }
-        }
-
         private class PollTrackingMessageHandler : DelegatingHandler
         {
             public Task<HttpResponseMessage> ActivePoll { get; private set; }
