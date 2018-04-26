@@ -99,6 +99,6 @@ namespace Microsoft.AspNetCore.SignalR
         /// </summary>
         /// <param name="users">The user IDs.</param>
         /// <returns>An object that can be used to invoke methods.</returns>
-        public dynamic Users(IReadOnlyList<string> users) => new DynamicClientProxy(_clients.Users(users));
+        public dynamic Users(IReadOnlyList<string> userIds) => new DynamicClientProxy(_clients.Users(userIds));
     }
 }
