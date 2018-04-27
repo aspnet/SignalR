@@ -14,8 +14,9 @@ namespace Microsoft.Extensions.DependencyInjection
     public static class SignalRDependencyInjectionExtensions
     {
         /// <summary>
-        /// Adds hub specified options to an <see cref="ISignalRServerBuilder"/>.
+        /// Adds hub specific options to an <see cref="ISignalRServerBuilder"/>.
         /// </summary>
+        /// <typeparam name="THub">The hub type to configure.</typeparam>
         /// <param name="signalrBuilder">The <see cref="ISignalRServerBuilder"/>.</param>
         /// <param name="options">A callback to configure the hub options.</param>
         /// <returns>The same instance of the <see cref="ISignalRServerBuilder"/> for chaining.</returns>

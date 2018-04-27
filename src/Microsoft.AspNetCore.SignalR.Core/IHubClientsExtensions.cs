@@ -13,7 +13,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on all clients connected to the hub excluding the specified connection.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="excludedConnectionId1">The first connection to exclude.</param>
         /// <returns>A <typeparamref name="T" /> representing the methods that can be invoked on the clients.</returns>
         public static T AllExcept<T>(this IHubClients<T> hubClients, string excludedConnectionId1)
@@ -24,7 +24,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on all clients connected to the hub excluding the specified connections.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="excludedConnectionId1">The first connection to exclude.</param>
         /// <param name="excludedConnectionId2">The second connection to exclude.</param>
         /// <returns>A <typeparamref name="T" /> representing the methods that can be invoked on the clients.</returns>
@@ -36,7 +36,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on all clients connected to the hub excluding the specified connections.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="excludedConnectionId1">The first connection to exclude.</param>
         /// <param name="excludedConnectionId2">The second connection to exclude.</param>
         /// <param name="excludedConnectionId3">The third connection to exclude.</param>
@@ -49,7 +49,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on all clients connected to the hub excluding the specified connections.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="excludedConnectionId1">The first connection to exclude.</param>
         /// <param name="excludedConnectionId2">The second connection to exclude.</param>
         /// <param name="excludedConnectionId3">The third connection to exclude.</param>
@@ -63,7 +63,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on all clients connected to the hub excluding the specified connections.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="excludedConnectionId1">The first connection to exclude.</param>
         /// <param name="excludedConnectionId2">The second connection to exclude.</param>
         /// <param name="excludedConnectionId3">The third connection to exclude.</param>
@@ -78,7 +78,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on all clients connected to the hub excluding the specified connections.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="excludedConnectionId1">The first connection to exclude.</param>
         /// <param name="excludedConnectionId2">The second connection to exclude.</param>
         /// <param name="excludedConnectionId3">The third connection to exclude.</param>
@@ -94,7 +94,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on all clients connected to the hub excluding the specified connections.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="excludedConnectionId1">The first connection to exclude.</param>
         /// <param name="excludedConnectionId2">The second connection to exclude.</param>
         /// <param name="excludedConnectionId3">The third connection to exclude.</param>
@@ -111,7 +111,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on all clients connected to the hub excluding the specified connections.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="excludedConnectionId1">The first connection to exclude.</param>
         /// <param name="excludedConnectionId2">The second connection to exclude.</param>
         /// <param name="excludedConnectionId3">The third connection to exclude.</param>
@@ -129,7 +129,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on the specified connections.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="connection1">The first connection to include.</param>
         /// <returns>A <typeparamref name="T" /> representing the methods that can be invoked on the clients.</returns>
         public static T Clients<T>(this IHubClients<T> hubClients, string connection1)
@@ -140,7 +140,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on the specified connections.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="connection1">The first connection to include.</param>
         /// <param name="connection2">The second connection to include.</param>
         /// <returns>A <typeparamref name="T" /> representing the methods that can be invoked on the clients.</returns>
@@ -152,7 +152,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on the specified connections.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="connection1">The first connection to include.</param>
         /// <param name="connection2">The second connection to include.</param>
         /// <param name="connection3">The third connection to include.</param>
@@ -165,7 +165,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on the specified connections.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="connection1">The first connection to include.</param>
         /// <param name="connection2">The second connection to include.</param>
         /// <param name="connection3">The third connection to include.</param>
@@ -179,7 +179,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on the specified connections.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="connection1">The first connection to include.</param>
         /// <param name="connection2">The second connection to include.</param>
         /// <param name="connection3">The third connection to include.</param>
@@ -194,7 +194,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on the specified connections.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="connection1">The first connection to include.</param>
         /// <param name="connection2">The second connection to include.</param>
         /// <param name="connection3">The third connection to include.</param>
@@ -210,7 +210,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on the specified connections.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="connection1">The first connection to include.</param>
         /// <param name="connection2">The second connection to include.</param>
         /// <param name="connection3">The third connection to include.</param>
@@ -227,7 +227,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on the specified connections.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="connection1">The first connection to include.</param>
         /// <param name="connection2">The second connection to include.</param>
         /// <param name="connection3">The third connection to include.</param>
@@ -245,7 +245,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on all connections in all of the specified groups.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="group1">The first group to include.</param>
         /// <returns>A <typeparamref name="T" /> representing the methods that can be invoked on the clients.</returns>
         public static T Groups<T>(this IHubClients<T> hubClients, string group1)
@@ -256,7 +256,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on all connections in all of the specified groups.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="group1">The first group to include.</param>
         /// <param name="group2">The second group to include.</param>
         /// <returns>A <typeparamref name="T" /> representing the methods that can be invoked on the clients.</returns>
@@ -268,7 +268,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on all connections in all of the specified groups.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="group1">The first group to include.</param>
         /// <param name="group2">The second group to include.</param>
         /// <param name="group3">The third group to include.</param>
@@ -281,7 +281,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on all connections in all of the specified groups.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="group1">The first group to include.</param>
         /// <param name="group2">The second group to include.</param>
         /// <param name="group3">The third group to include.</param>
@@ -295,7 +295,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on all connections in all of the specified groups.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="group1">The first group to include.</param>
         /// <param name="group2">The second group to include.</param>
         /// <param name="group3">The third group to include.</param>
@@ -310,7 +310,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on all connections in all of the specified groups.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="group1">The first group to include.</param>
         /// <param name="group2">The second group to include.</param>
         /// <param name="group3">The third group to include.</param>
@@ -326,7 +326,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on all connections in all of the specified groups.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="group1">The first group to include.</param>
         /// <param name="group2">The second group to include.</param>
         /// <param name="group3">The third group to include.</param>
@@ -343,7 +343,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on all connections in all of the specified groups.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="group1">The first group to include.</param>
         /// <param name="group2">The second group to include.</param>
         /// <param name="group3">The third group to include.</param>
@@ -361,7 +361,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on all connections in the specified group excluding the specified connections.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="groupName">The group name.</param>
         /// <param name="excludedConnectionId1">The first connection to exclude.</param>
         /// <returns>A <typeparamref name="T" /> representing the methods that can be invoked on the clients.</returns>
@@ -373,7 +373,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on all connections in the specified group excluding the specified connections.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="groupName">The group name.</param>
         /// <param name="excludedConnectionId1">The first connection to exclude.</param>
         /// <param name="excludedConnectionId2">The second connection to exclude.</param>
@@ -386,7 +386,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on all connections in the specified group excluding the specified connections.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="groupName">The group name.</param>
         /// <param name="excludedConnectionId1">The first connection to exclude.</param>
         /// <param name="excludedConnectionId2">The second connection to exclude.</param>
@@ -400,7 +400,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on all connections in the specified group excluding the specified connections.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="groupName">The group name.</param>
         /// <param name="excludedConnectionId1">The first connection to exclude.</param>
         /// <param name="excludedConnectionId2">The second connection to exclude.</param>
@@ -415,7 +415,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on all connections in the specified group excluding the specified connections.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="groupName">The group name.</param>
         /// <param name="excludedConnectionId1">The first connection to exclude.</param>
         /// <param name="excludedConnectionId2">The second connection to exclude.</param>
@@ -431,7 +431,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on all connections in the specified group excluding the specified connections.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="groupName">The group name.</param>
         /// <param name="excludedConnectionId1">The first connection to exclude.</param>
         /// <param name="excludedConnectionId2">The second connection to exclude.</param>
@@ -448,7 +448,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on all connections in the specified group excluding the specified connections.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="groupName">The group name.</param>
         /// <param name="excludedConnectionId1">The first connection to exclude.</param>
         /// <param name="excludedConnectionId2">The second connection to exclude.</param>
@@ -466,7 +466,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on all connections in the specified group excluding the specified connections.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="groupName">The group name.</param>
         /// <param name="excludedConnectionId1">The first connection to exclude.</param>
         /// <param name="excludedConnectionId2">The second connection to exclude.</param>
@@ -485,7 +485,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on all connections associated with all of the specified users.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="user1">The first user to include.</param>
         /// <returns>A <typeparamref name="T" /> representing the methods that can be invoked on the clients.</returns>
         public static T Users<T>(this IHubClients<T> hubClients, string user1)
@@ -496,7 +496,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on all connections associated with all of the specified users.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="user1">The first user to include.</param>
         /// <param name="user2">The second user to include.</param>
         /// <returns>A <typeparamref name="T" /> representing the methods that can be invoked on the clients.</returns>
@@ -508,7 +508,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on all connections associated with all of the specified users.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="user1">The first user to include.</param>
         /// <param name="user2">The second user to include.</param>
         /// <param name="user3">The third user to include.</param>
@@ -521,7 +521,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on all connections associated with all of the specified users.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="user1">The first user to include.</param>
         /// <param name="user2">The second user to include.</param>
         /// <param name="user3">The third user to include.</param>
@@ -535,7 +535,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on all connections associated with all of the specified users.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="user1">The first user to include.</param>
         /// <param name="user2">The second user to include.</param>
         /// <param name="user3">The third user to include.</param>
@@ -550,7 +550,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on all connections associated with all of the specified users.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="user1">The first user to include.</param>
         /// <param name="user2">The second user to include.</param>
         /// <param name="user3">The third user to include.</param>
@@ -566,7 +566,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on all connections associated with all of the specified users.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="user1">The first user to include.</param>
         /// <param name="user2">The second user to include.</param>
         /// <param name="user3">The third user to include.</param>
@@ -583,7 +583,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets a <typeparamref name="T" /> that can be used to invoke methods on all connections associated with all of the specified users.
         /// </summary>
-        /// <param name="hubClients">The abstract that provides access to connections.</param>
+        /// <param name="hubClients">The abstraction that provides access to connections.</param>
         /// <param name="user1">The first user to include.</param>
         /// <param name="user2">The second user to include.</param>
         /// <param name="user3">The third user to include.</param>

@@ -54,7 +54,7 @@ namespace Microsoft.AspNetCore.SignalR
         public virtual CancellationToken ConnectionAborted { get; }
 
         /// <summary>
-        /// Get the ID for this connection.
+        /// Gets the ID for this connection.
         /// </summary>
         public virtual string ConnectionId => _connectionContext.ConnectionId;
 
