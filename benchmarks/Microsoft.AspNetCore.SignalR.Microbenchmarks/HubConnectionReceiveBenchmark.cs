@@ -27,8 +27,12 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
 
         private HubConnection _hubConnection;
         private TestDuplexPipe _pipe;
-        private TaskCompletionSource<ReadResult> _tcs;
         private ReadOnlyMemory<byte> _invocationMessageBytes;
+
+        private int _currentInterationMessageCount;
+        private TaskCompletionSource<ReadResult> _tcs;
+        private TaskCompletionSource<ReadResult> _nextReadTcs;
+        private TaskCompletionSource<bool> _waitTcs;
 
         [GlobalSetup]
         public void GlobalSetup()
@@ -94,8 +98,6 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             _hubConnection.StartAsync().GetAwaiter().GetResult();
         }
 
-        private int _currentInterationMessageCount;
-
         private Task OnInvoke(object[] args)
         {
             _currentInterationMessageCount++;
@@ -117,9 +119,6 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
 
         [Params("json", "messagepack")]
         public string Protocol;
-
-        private TaskCompletionSource<ReadResult> _nextReadTcs;
-        private TaskCompletionSource<bool> _waitTcs;
 
         [GlobalCleanup]
         public void GlobalCleanup()
