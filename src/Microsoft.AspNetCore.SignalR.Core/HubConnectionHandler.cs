@@ -100,7 +100,7 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 await DispatchMessagesAsync(connection);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!(ex is OperationCanceledException))
             {
                 Log.ErrorProcessingRequest(_logger, ex);
 
@@ -164,44 +164,41 @@ namespace Microsoft.AspNetCore.SignalR
 
         private async Task DispatchMessagesAsync(HubConnectionContext connection)
         {
-            try
+            var input = connection.Input;
+            var protocol = connection.Protocol;
+            while (true)
             {
-                var input = connection.Input;
-                var protocol = connection.Protocol;
-                while (true)
-                {
-                    var result = await input.ReadAsync(connection.ConnectionAborted);
-                    var buffer = result.Buffer;
+                var result = await input.ReadAsync();
+                var buffer = result.Buffer;
 
-                    try
+                try
+                {
+                    if (result.IsCanceled)
                     {
-                        if (!buffer.IsEmpty)
+                        break;
+                    }
+                    
+                    if (!buffer.IsEmpty)
+                    {
+                        while (protocol.TryParseMessage(ref buffer, _dispatcher, out var message))
                         {
-                            while (protocol.TryParseMessage(ref buffer, _dispatcher, out var message))
-                            {
-                                // Messages are dispatched sequentially and will block other messages from being processed until they complete.
-                                // Streaming methods will run sequentially until they start streaming, then they will fire-and-forget allowing other messages to run.
-                                await _dispatcher.DispatchMessageAsync(connection, message);
-                            }
-                        }
-                        else if (result.IsCompleted)
-                        {
-                            break;
+                            // Messages are dispatched sequentially and will block other messages from being processed until they complete.
+                            // Streaming methods will run sequentially until they start streaming, then they will fire-and-forget allowing other messages to run.
+                            await _dispatcher.DispatchMessageAsync(connection, message);
                         }
                     }
-                    finally
+                    else if (result.IsCompleted)
                     {
-                        // The buffer was sliced up to where it was consumed, so we can just advance to the start.
-                        // We mark examined as buffer.End so that if we didn't receive a full frame, we'll wait for more data
-                        // before yielding the read again.
-                        input.AdvanceTo(buffer.Start, buffer.End);
+                        break;
                     }
                 }
-            }
-            catch (OperationCanceledException)
-            {
-                // If there's an exception, bubble it to the caller
-                connection.AbortException?.Throw();
+                finally
+                {
+                    // The buffer was sliced up to where it was consumed, so we can just advance to the start.
+                    // We mark examined as buffer.End so that if we didn't receive a full frame, we'll wait for more data
+                    // before yielding the read again.
+                    input.AdvanceTo(buffer.Start, buffer.End);
+                }
             }
         }
 

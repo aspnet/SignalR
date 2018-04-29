@@ -142,26 +142,18 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         private async Task ProcessInvocation(HubConnectionContext connection,
             HubMethodInvocationMessage hubMethodInvocationMessage, bool isStreamedInvocation)
         {
-            try
+            // If an unexpected exception occurs then we want to kill the entire connection
+            // by ending the processing loop
+            if (!_methods.TryGetValue(hubMethodInvocationMessage.Target, out var descriptor))
             {
-                // If an unexpected exception occurs then we want to kill the entire connection
-                // by ending the processing loop
-                if (!_methods.TryGetValue(hubMethodInvocationMessage.Target, out var descriptor))
-                {
-                    // Send an error to the client. Then let the normal completion process occur
-                    Log.UnknownHubMethod(_logger, hubMethodInvocationMessage.Target);
-                    await connection.WriteAsync(CompletionMessage.WithError(
-                        hubMethodInvocationMessage.InvocationId, $"Unknown hub method '{hubMethodInvocationMessage.Target}'"));
-                }
-                else
-                {
-                    await Invoke(descriptor, connection, hubMethodInvocationMessage, isStreamedInvocation);
-                }
+                // Send an error to the client. Then let the normal completion process occur
+                Log.UnknownHubMethod(_logger, hubMethodInvocationMessage.Target);
+                await connection.WriteAsync(CompletionMessage.WithError(
+                    hubMethodInvocationMessage.InvocationId, $"Unknown hub method '{hubMethodInvocationMessage.Target}'"));
             }
-            catch (Exception ex)
+            else
             {
-                // Abort the entire connection if the invocation fails in an unexpected way
-                connection.Abort(ex);
+                await Invoke(descriptor, connection, hubMethodInvocationMessage, isStreamedInvocation);
             }
         }
 
