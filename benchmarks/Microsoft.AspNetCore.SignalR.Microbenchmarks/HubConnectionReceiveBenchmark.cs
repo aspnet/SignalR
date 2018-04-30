@@ -147,7 +147,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
                 _pipe.AddReadResult(new ValueTask<ReadResult>(new ReadResult(new ReadOnlySequence<byte>(_invocationMessageBytes), false, false)));
             }
 
-            // The reveice task that will be waited on once messages are read
+            // The receive task that will be waited on once messages are read
             _nextReadTcs = new TaskCompletionSource<ReadResult>();
             _pipe.AddReadResult(new ValueTask<ReadResult>(_nextReadTcs.Task));
 
