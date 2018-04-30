@@ -19,7 +19,7 @@ export class LongPollingTransport implements ITransport {
     private url: string;
     private pollXhr: XMLHttpRequest;
     private pollAbort: AbortController;
-    private shutdownTimeout: any;
+    private shutdownTimeout: any; // We use 'any' because this is an object in NodeJS. But it still gets passed to clearTimeout, so it doesn't really matter
     private running: boolean;
 
     constructor(httpClient: HttpClient, accessTokenFactory: () => string | Promise<string>, logger: ILogger, logMessageContent: boolean) {
