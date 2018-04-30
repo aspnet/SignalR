@@ -166,9 +166,10 @@ namespace Microsoft.AspNetCore.SignalR.Tests
     }
 
     // TestSink doesn't seem to be thread-safe :(.
-    internal class LogSinkProvider : ILoggerProvider
+    internal class LogSinkProvider : ILoggerProvider, ISupportExternalScope
     {
         private readonly ConcurrentQueue<LogRecord> _logs = new ConcurrentQueue<LogRecord>();
+        internal IExternalScopeProvider _scopeProvider;
 
         public event Action<LogRecord> RecordLogged;
 
@@ -205,18 +206,16 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             private readonly string _categoryName;
             private readonly LogSinkProvider _logSinkProvider;
-            private readonly LoggerExternalScopeProvider _scopeProvider;
 
             public LogSinkLogger(string categoryName, LogSinkProvider logSinkProvider)
             {
                 _categoryName = categoryName;
                 _logSinkProvider = logSinkProvider;
-                _scopeProvider = new LoggerExternalScopeProvider();
             }
 
             public IDisposable BeginScope<TState>(TState state)
             {
-                return _scopeProvider.Push(state);
+                return null;
             }
 
             public bool IsEnabled(LogLevel logLevel)
@@ -226,10 +225,10 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
             public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
             {
-                var connectionId = GetConnectionId();
-
                 Func<TState, Exception, string> newFormatter = (s, e) =>
                 {
+                    var connectionId = GetConnectionId();
+
                     StringBuilder sb = new StringBuilder();
                     if (connectionId != null)
                     {
@@ -245,7 +244,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             private string GetConnectionId()
             {
                 string connectionId = null;
-                _scopeProvider.ForEachScope<object>((scope, s) =>
+                _logSinkProvider._scopeProvider.ForEachScope<object>((scope, s) =>
                 {
                     if (scope is IReadOnlyList<KeyValuePair<string, object>> logScope)
                     {
@@ -258,6 +257,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 }, null);
                 return connectionId;
             }
+        }
+
+        public void SetScopeProvider(IExternalScopeProvider scopeProvider)
+        {
+            _scopeProvider = scopeProvider;
         }
     }
 }
