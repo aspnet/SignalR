@@ -100,7 +100,12 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 await DispatchMessagesAsync(connection);
             }
-            catch (Exception ex) when (!(ex is OperationCanceledException))
+            catch (OperationCanceledException)
+            {
+                // Don't treat OperationCanceledException as an error, it's basically a "control flow"
+                // exception to stop things from running
+            }
+            catch (Exception ex)
             {
                 Log.ErrorProcessingRequest(_logger, ex);
 
@@ -177,13 +182,11 @@ namespace Microsoft.AspNetCore.SignalR
                     {
                         break;
                     }
-                    
+
                     if (!buffer.IsEmpty)
                     {
                         while (protocol.TryParseMessage(ref buffer, _dispatcher, out var message))
                         {
-                            // Messages are dispatched sequentially and will block other messages from being processed until they complete.
-                            // Streaming methods will run sequentially until they start streaming, then they will fire-and-forget allowing other messages to run.
                             await _dispatcher.DispatchMessageAsync(connection, message);
                         }
                     }

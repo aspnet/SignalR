@@ -75,6 +75,9 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         public override async Task DispatchMessageAsync(HubConnectionContext connection, HubMessage hubMessage)
         {
+            // Messages are dispatched sequentially and will stop other messages from being processed until they complete.
+            // Streaming methods will run sequentially until they start streaming, then they will fire-and-forget allowing other messages to run.
+
             switch (hubMessage)
             {
                 case InvocationBindingFailureMessage bindingFailureMessage:
@@ -142,8 +145,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         private async Task ProcessInvocation(HubConnectionContext connection,
             HubMethodInvocationMessage hubMethodInvocationMessage, bool isStreamedInvocation)
         {
-            // If an unexpected exception occurs then we want to kill the entire connection
-            // by ending the processing loop
             if (!_methods.TryGetValue(hubMethodInvocationMessage.Target, out var descriptor))
             {
                 // Send an error to the client. Then let the normal completion process occur
