@@ -3,12 +3,14 @@
 
 /** Specifies a specific HTTP transport type. */
 export enum HttpTransportType {
+    /** Specifies no transport preference. */
+    None = 0,
     /** Specifies the WebSockets transport. */
-    WebSockets,
+    WebSockets = 1,
     /** Specifies the Server-Sent Events transport. */
-    ServerSentEvents,
+    ServerSentEvents = 2,
     /** Specifies the Long Polling transport. */
-    LongPolling,
+    LongPolling = 3,
 }
 
 /** Specifies the transfer format for a connection. */
