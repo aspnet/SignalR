@@ -20,8 +20,17 @@ export class JsonHubProtocol implements IHubProtocol {
     /** @inheritDoc */
     public readonly transferFormat: TransferFormat = TransferFormat.Text;
 
-    /** @inheritDoc */
+    /** Creates an array of {@link HubMessage} objects from the specified serialized representation.
+     *
+     * @param {string} input A string containing the serialized representation.
+     * @param {ILogger} logger A logger that will be used to log messages that occur during parsing.
+     */
     public parseMessages(input: string, logger: ILogger): HubMessage[] {
+        // The interface does allow "ArrayBuffer" to be passed in, but this implementation does not. So let's throw a useful error.
+        if (typeof input !== "string") {
+            throw new Error("Invalid input for JSON hub protocol. Expected a string.");
+        }
+
         if (!input) {
             return [];
         }
@@ -66,7 +75,11 @@ export class JsonHubProtocol implements IHubProtocol {
         return hubMessages;
     }
 
-    /** @inheritDoc */
+    /** Writes the specified {@link HubMessage} to a string and returns it.
+     *
+     * @param {HubMessage} message The message to write.
+     * @returns {string} A string containing the serialized representation of the message.
+     */
     public writeMessage(message: HubMessage): string {
         return TextMessageFormat.write(JSON.stringify(message));
     }
