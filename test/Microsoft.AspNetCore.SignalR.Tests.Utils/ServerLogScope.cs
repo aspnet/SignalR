@@ -53,15 +53,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 logger = _serverLoggers.GetOrAdd(write.LoggerName, loggerName => _loggerFactory.CreateLogger("SERVER " + loggerName));
             }
 
-            IDisposable scope = write.Scope != null ? logger.BeginScope(write.Scope) : null;
-            try
-            {
-                logger.Log(write.LogLevel, write.EventId, write.State, write.Exception, write.Formatter);
-            }
-            finally
-            {
-                scope?.Dispose();
-            }
+            logger.Log(write.LogLevel, write.EventId, write.State, write.Exception, write.Formatter);
         }
 
         public void Dispose()

@@ -225,20 +225,19 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
             public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
             {
+                // Build the message outside of the formatter
+                // Serilog doesn't appear to use the formatter and just writes the state
                 var connectionId = GetConnectionId();
 
-                Func<TState, Exception, string> newFormatter = (s, e) =>
+                var sb = new StringBuilder();
+                if (connectionId != null)
                 {
-                    StringBuilder sb = new StringBuilder();
-                    if (connectionId != null)
-                    {
-                        sb.Append(connectionId + " - ");
-                    }
-                    sb.Append(formatter(state, exception));
-                    return sb.ToString();
-                };
+                    sb.Append(connectionId + " - ");
+                }
+                sb.Append(formatter(state, exception));
+                var message = sb.ToString();
 
-                _logSinkProvider.Log(_categoryName, logLevel, eventId, state, exception, newFormatter);
+                _logSinkProvider.Log(_categoryName, logLevel, eventId, message, exception, (s, ex) => s);
             }
 
             private string GetConnectionId()
