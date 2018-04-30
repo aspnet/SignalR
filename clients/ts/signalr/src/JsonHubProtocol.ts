@@ -7,15 +7,20 @@ import { TransferFormat } from "./ITransport";
 import { NullLogger } from "./Loggers";
 import { TextMessageFormat } from "./TextMessageFormat";
 
-export const JSON_HUB_PROTOCOL_NAME: string = "json";
+const JSON_HUB_PROTOCOL_NAME: string = "json";
 
+/** Implements the JSON Hub Protocol */
 export class JsonHubProtocol implements IHubProtocol {
 
+    /** @inheritDoc */
     public readonly name: string = JSON_HUB_PROTOCOL_NAME;
+    /** @inheritDoc */
     public readonly version: number = 1;
 
+    /** @inheritDoc */
     public readonly transferFormat: TransferFormat = TransferFormat.Text;
 
+    /** @inheritDoc */
     public parseMessages(input: string, logger: ILogger): HubMessage[] {
         if (!input) {
             return [];
@@ -61,6 +66,7 @@ export class JsonHubProtocol implements IHubProtocol {
         return hubMessages;
     }
 
+    /** @inheritDoc */
     public writeMessage(message: HubMessage): string {
         return TextMessageFormat.write(JSON.stringify(message));
     }
