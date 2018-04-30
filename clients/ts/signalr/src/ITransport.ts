@@ -11,7 +11,7 @@ export enum HttpTransportType {
     LongPolling,
 }
 
-/** Specifies the transfer format for a connection */
+/** Specifies the transfer format for a connection. */
 export enum TransferFormat {
     /** Specifies that only text data will be transmitted over the connection. */
     Text = 1,

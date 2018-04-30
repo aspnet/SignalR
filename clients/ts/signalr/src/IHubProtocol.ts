@@ -121,7 +121,7 @@ export interface PingMessage extends HubMessageBase {
 export interface CloseMessage extends HubMessageBase {
     /** @inheritDoc */
     readonly type: MessageType.Close;
-    /** The error that triggered the close, if any
+    /** The error that triggered the close, if any.
      *
      * If this property is undefined, the connection was closed normally and without error.
      */
@@ -142,12 +142,12 @@ export interface IHubProtocol {
     readonly name: string;
     /** The version of the protocol. */
     readonly version: number;
-    /** The {@link TransferFormat} of the protocol */
+    /** The {@link TransferFormat} of the protocol. */
     readonly transferFormat: TransferFormat;
 
     /** Creates an array of {@link HubMessage} objects from the specified serialized representation.
      *
-     * If {@link transferFormat} is 'Text', the {@link input} parameter must be a string, otherwise it must be an ArrayBuffer
+     * If {@link transferFormat} is 'Text', the {@link input} parameter must be a string, otherwise it must be an ArrayBuffer.
      *
      * @param {string | ArrayBuffer} input A string, or ArrayBuffer containing the serialized representation.
      * @param {ILogger} logger A logger that will be used to log messages that occur during parsing.
@@ -156,7 +156,7 @@ export interface IHubProtocol {
 
     /** Writes the specified {@link HubMessage} to a string or ArrayBuffer and returns it.
      *
-     * If {@link transferFormat} is 'Text', the result of this method will be a string, otherwise it will be an ArrayBuffer
+     * If {@link transferFormat} is 'Text', the result of this method will be a string, otherwise it will be an ArrayBuffer.
      *
      * @param {HubMessage} message The message to write.
      * @returns {string | ArrayBuffer} A string or ArrayBuffer containing the serialized representation of the message.

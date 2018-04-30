@@ -23,9 +23,9 @@ export enum LogLevel {
     None = 6,
 }
 
-/** An abstraction that provides a sink for diagnostic messages */
+/** An abstraction that provides a sink for diagnostic messages. */
 export interface ILogger {
-    /** Called by the framework to emit a diagnostic message
+    /** Called by the framework to emit a diagnostic message.
      *
      * @param {LogLevel} logLevel The severity level of the message.
      * @param {string} message The message.

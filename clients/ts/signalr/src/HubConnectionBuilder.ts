@@ -89,7 +89,7 @@ export class HubConnectionBuilder {
         return this;
     }
 
-    /** Configures the {@link HubConnection} to use the specified Hub Protocol
+    /** Configures the {@link HubConnection} to use the specified Hub Protocol.
      *
      * @param {IHubProtocol} protocol The {@link IHubProtocol} implementation to use.
      */
@@ -100,7 +100,7 @@ export class HubConnectionBuilder {
         return this;
     }
 
-    /** Creates a {@link HubConnection} from the configuration options specified in this builder
+    /** Creates a {@link HubConnection} from the configuration options specified in this builder.
      *
      * @returns {HubConnection} The configured {@link HubConnection}.
      */

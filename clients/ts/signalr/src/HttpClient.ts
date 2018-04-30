@@ -33,44 +33,41 @@ export interface HttpRequest {
 export class HttpResponse {
     /** Constructs a new instance of {@link HttpResponse} with the specified status code.
      *
-     * @param {number} statusCode - The status code of the response.
+     * @param {number} statusCode The status code of the response.
      */
     constructor(statusCode: number);
 
     /** Constructs a new instance of {@link HttpResponse} with the specified status code and message.
      *
-     * @param {number} statusCode - The status code of the response.
-     * @param {string} statusText - The status message of the response.
+     * @param {number} statusCode The status code of the response.
+     * @param {string} statusText The status message of the response.
      */
     constructor(statusCode: number, statusText: string);
 
     /** Constructs a new instance of {@link HttpResponse} with the specified status code, message and string content.
      *
-     * @param {number} statusCode - The status code of the response.
-     * @param {string} statusText - The status message of the response.
-     * @param {string} content - The content of the response.
+     * @param {number} statusCode The status code of the response.
+     * @param {string} statusText The status message of the response.
+     * @param {string} content The content of the response.
      */
     constructor(statusCode: number, statusText: string, content: string);
 
     /** Constructs a new instance of {@link HttpResponse} with the specified status code, message and binary content.
      *
-     * @param {number} statusCode - The status code of the response.
-     * @param {string} statusText - The status message of the response.
-     * @param {ArrayBuffer} content - The content of the response.
+     * @param {number} statusCode The status code of the response.
+     * @param {string} statusText The status message of the response.
+     * @param {ArrayBuffer} content The content of the response.
      */
     constructor(statusCode: number, statusText: string, content: ArrayBuffer);
 
     constructor(
-        /** The status code of the response. */
         public readonly statusCode: number,
-        /** The status message of the response. */
         public readonly statusText?: string,
-        /** The body content of the response. */
         public readonly content?: string | ArrayBuffer) {
     }
 }
 
-/** Abstraction over an HTTP client
+/** Abstraction over an HTTP client.
  *
  * This class provides an abstraction over an HTTP client so that a different implementation can be provided on different platforms.
  */
@@ -149,7 +146,7 @@ export abstract class HttpClient {
     public abstract send(request: HttpRequest): Promise<HttpResponse>;
 }
 
-/** Default implementation of {@link HttpClient} */
+/** Default implementation of {@link HttpClient}. */
 export class DefaultHttpClient extends HttpClient {
     private readonly logger: ILogger;
 
