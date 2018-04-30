@@ -19,7 +19,7 @@ export class LongPollingTransport implements ITransport {
     private url: string;
     private pollXhr: XMLHttpRequest;
     private pollAbort: AbortController;
-    private shutdownTimeout: number;
+    private shutdownTimeout: any;
     private running: boolean;
 
     constructor(httpClient: HttpClient, accessTokenFactory: () => string | Promise<string>, logger: ILogger, logMessageContent: boolean) {
@@ -179,10 +179,10 @@ export class LongPollingTransport implements ITransport {
         } finally {
             // Abort the poll after 5 seconds if the server doesn't stop it.
             if (!this.pollAbort.aborted) {
-                this.shutdownTimeout = setTimeout(SHUTDOWN_TIMEOUT, () => {
+                this.shutdownTimeout = setTimeout(() => {
                     this.logger.log(LogLevel.Warning, "(LongPolling transport) server did not terminate within 5 seconds after DELETE request, cancelling poll.");
                     this.pollAbort.abort();
-                });
+                }, SHUTDOWN_TIMEOUT);
             }
         }
     }
