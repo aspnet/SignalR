@@ -7,7 +7,7 @@
 // depend on RxJS in the core library, so instead we duplicate the minimum logic needed and then users can easily adapt these into
 // proper RxJS observables if they want.
 
-/** Defines the expected type for a {@link IStreamSubscriber}.
+/** Defines the expected type for a receiver of results streamed by the server.
  *
  * @typeparam T The type of the items being sent by the server.
  */

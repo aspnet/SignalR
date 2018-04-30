@@ -51,7 +51,7 @@ export interface HubInvocationMessage extends HubMessageBase {
     /** The ID of the invocation relating to this message.
      *
      * This is expected to be present for {@link StreamInvocationMessage} and {@link CompletionMessage}. It may
-     * be 'undefined' for a {@link InvocationMessage} if the sender does not expect a response.
+     * be 'undefined' for an {@link InvocationMessage} if the sender does not expect a response.
      */
     readonly invocationId?: string;
 }
