@@ -225,10 +225,10 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
             public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
             {
+                var connectionId = GetConnectionId();
+
                 Func<TState, Exception, string> newFormatter = (s, e) =>
                 {
-                    var connectionId = GetConnectionId();
-
                     StringBuilder sb = new StringBuilder();
                     if (connectionId != null)
                     {
