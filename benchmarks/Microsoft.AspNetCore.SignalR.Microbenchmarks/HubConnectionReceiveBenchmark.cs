@@ -100,12 +100,16 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
 
         private Task OnInvoke(object[] args)
         {
-            _currentInterationMessageCount++;
+            Interlocked.Increment(ref _currentInterationMessageCount);
 
             if (_currentInterationMessageCount == MessageCount)
             {
                 _currentInterationMessageCount = 0;
                 _waitTcs.SetResult(true);
+            }
+            else if (_currentInterationMessageCount > MessageCount)
+            {
+                throw new InvalidOperationException("Should never happen.");
             }
 
             return Task.CompletedTask;
@@ -153,8 +157,9 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             // Start receive of the next batch of messages
             _tcs.SetResult(new ReadResult(new ReadOnlySequence<byte>(_invocationMessageBytes), false, false));
 
+            //await Task.Yield();
             // Wait for all messages to be read and invoked
-            await _waitTcs.Task;
+            await _waitTcs.Task.OrTimeout();
         }
     }
 }
