@@ -1,7 +1,6 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-using System;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
@@ -11,16 +10,16 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
 {
     internal class AccessTokenHttpMessageHandler : DelegatingHandler
     {
-        private readonly HttpConnection _httpConnection;
+        private readonly HttpConnectionOptions _httpConnectionOptions;
 
-        public AccessTokenHttpMessageHandler(HttpMessageHandler inner, HttpConnection httpConnection) : base(inner)
+        public AccessTokenHttpMessageHandler(HttpMessageHandler inner, HttpConnectionOptions httpConnectionOptions) : base(inner)
         {
-            _httpConnection = httpConnection;
+            _httpConnectionOptions = httpConnectionOptions;
         }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            var accessToken = await _httpConnection.GetAccessTokenAsync();
+            var accessToken = (_httpConnectionOptions.AccessTokenProvider != null) ? await _httpConnectionOptions.AccessTokenProvider() : null;
 
             if (!string.IsNullOrEmpty(accessToken))
             {
