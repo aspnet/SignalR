@@ -4,7 +4,7 @@
 // Everything that users need to access must be exported here. Including interfaces.
 export { AbortSignal } from "./AbortController";
 export { HttpError, TimeoutError } from "./Errors";
-export { HttpClient, HttpRequest, HttpResponse } from "./HttpClient";
+export { DefaultHttpClient, HttpClient, HttpRequest, HttpResponse } from "./HttpClient";
 export { IHttpConnectionOptions } from "./IHttpConnectionOptions";
 export { HubConnection } from "./HubConnection";
 export { HubConnectionBuilder } from "./HubConnectionBuilder";

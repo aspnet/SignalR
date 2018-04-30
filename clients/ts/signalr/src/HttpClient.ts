@@ -149,15 +149,17 @@ export abstract class HttpClient {
     public abstract send(request: HttpRequest): Promise<HttpResponse>;
 }
 
-// Not exported from index.
+/** Default implementation of {@link HttpClient} */
 export class DefaultHttpClient extends HttpClient {
     private readonly logger: ILogger;
 
-    constructor(logger: ILogger) {
+    /** Creates a new instance of the {@link DefaultHttpClient}, using the provided {@link ILogger} to log messages. */
+    public constructor(logger: ILogger) {
         super();
         this.logger = logger;
     }
 
+    /** @inheritDoc */
     public send(request: HttpRequest): Promise<HttpResponse> {
         return new Promise<HttpResponse>((resolve, reject) => {
             const xhr = new XMLHttpRequest();
