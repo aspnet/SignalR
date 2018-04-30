@@ -503,7 +503,6 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 _abortFailed(logger, exception);
             }
-
         }
     }
 }
