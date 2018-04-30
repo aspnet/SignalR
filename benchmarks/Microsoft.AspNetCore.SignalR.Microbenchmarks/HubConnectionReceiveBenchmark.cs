@@ -24,6 +24,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
     public class HubConnectionReceiveBenchmark
     {
         private const string MethodName = "TestMethodName";
+        private static readonly object _invokeLock = new object();
 
         private HubConnection _hubConnection;
         private TestDuplexPipe _pipe;
@@ -100,16 +101,21 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
 
         private Task OnInvoke(object[] args)
         {
-            Interlocked.Increment(ref _currentInterationMessageCount);
+            // HubConnection now runs this callback serially but just in case
+            // add a lock in case of future experimentation
+            lock (_invokeLock)
+            {
+                _currentInterationMessageCount++;
 
-            if (_currentInterationMessageCount == MessageCount)
-            {
-                _currentInterationMessageCount = 0;
-                _waitTcs.SetResult(true);
-            }
-            else if (_currentInterationMessageCount > MessageCount)
-            {
-                throw new InvalidOperationException("Should never happen.");
+                if (_currentInterationMessageCount == MessageCount)
+                {
+                    _currentInterationMessageCount = 0;
+                    _waitTcs.SetResult(true);
+                }
+                else if (_currentInterationMessageCount > MessageCount)
+                {
+                    throw new InvalidOperationException("Should never happen.");
+                }
             }
 
             return Task.CompletedTask;
@@ -157,7 +163,6 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             // Start receive of the next batch of messages
             _tcs.SetResult(new ReadResult(new ReadOnlySequence<byte>(_invocationMessageBytes), false, false));
 
-            //await Task.Yield();
             // Wait for all messages to be read and invoked
             await _waitTcs.Task.OrTimeout();
         }
