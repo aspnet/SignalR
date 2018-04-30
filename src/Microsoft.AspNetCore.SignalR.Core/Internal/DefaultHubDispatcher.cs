@@ -327,7 +327,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             // If there are no policies we don't need to run auth
             if (!policies.Any())
             {
-                return TaskCahe.True;
+                return TaskCache.True;
             }
 
             return IsHubMethodAuthorizedSlow(provider, principal, policies);
