@@ -4,21 +4,21 @@
 import { ILogger } from "./ILogger";
 import { TransferFormat } from "./ITransport";
 
-/** Defines the type of a Hub Message */
+/** Defines the type of a Hub Message. */
 export enum MessageType {
-    /** Indicates the message is an Invocation message and implements the {@link InvocationMessage} interface */
+    /** Indicates the message is an Invocation message and implements the {@link InvocationMessage} interface. */
     Invocation = 1,
-    /** Indicates the message is a StreamItem message and implements the {@link StreamItemMessage} interface */
+    /** Indicates the message is a StreamItem message and implements the {@link StreamItemMessage} interface. */
     StreamItem = 2,
-    /** Indicates the message is a Completion message and implements the {@link CompletionMessage} interface */
+    /** Indicates the message is a Completion message and implements the {@link CompletionMessage} interface. */
     Completion = 3,
-    /** Indicates the message is a Stream Invocation message and implements the {@link StreamInvocationMessage} interface */
+    /** Indicates the message is a Stream Invocation message and implements the {@link StreamInvocationMessage} interface. */
     StreamInvocation = 4,
-    /** Indicates the message is a Cancel Invocation message and implements the {@link CancelInvocationMessage} interface */
+    /** Indicates the message is a Cancel Invocation message and implements the {@link CancelInvocationMessage} interface. */
     CancelInvocation = 5,
-    /** Indicates the message is a Ping message and implements the {@link PingMessage} interface */
+    /** Indicates the message is a Ping message and implements the {@link PingMessage} interface. */
     Ping = 6,
-    /** Indicates the message is a Close message and implements the {@link CloseMessage} interface */
+    /** Indicates the message is a Close message and implements the {@link CloseMessage} interface. */
     Close = 7,
 }
 
@@ -28,7 +28,7 @@ export interface MessageHeaders {
     [key: string]: string;
 }
 
-/** Union type of all known Hub messages */
+/** Union type of all known Hub messages. */
 export type HubMessage =
     InvocationMessage |
     StreamInvocationMessage |
@@ -40,7 +40,7 @@ export type HubMessage =
 
 /** Defines properties common to all Hub messages. */
 export interface HubMessageBase {
-    /** A {@link MessageType} value indicating the type of this message */
+    /** A {@link MessageType} value indicating the type of this message. */
     readonly type: MessageType;
 }
 
