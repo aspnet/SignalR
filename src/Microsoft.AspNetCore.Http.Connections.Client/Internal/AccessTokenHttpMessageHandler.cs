@@ -10,16 +10,16 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
 {
     internal class AccessTokenHttpMessageHandler : DelegatingHandler
     {
-        private readonly HttpConnectionOptions _httpConnectionOptions;
+        private readonly HttpConnection _httpConnection;
 
-        public AccessTokenHttpMessageHandler(HttpMessageHandler inner, HttpConnectionOptions httpConnectionOptions) : base(inner)
+        public AccessTokenHttpMessageHandler(HttpMessageHandler inner, HttpConnection httpConnection) : base(inner)
         {
-            _httpConnectionOptions = httpConnectionOptions;
+            _httpConnection = httpConnection;
         }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            var accessToken = (_httpConnectionOptions.AccessTokenProvider != null) ? await _httpConnectionOptions.AccessTokenProvider() : null;
+            var accessToken = await _httpConnection.GetAccessTokenAsync();
 
             if (!string.IsNullOrEmpty(accessToken))
             {

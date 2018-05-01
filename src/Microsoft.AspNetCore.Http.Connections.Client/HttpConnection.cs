@@ -23,6 +23,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
         // Not configurable on purpose, high enough that if we reach here, it's likely
         // a buggy server
         private static readonly int _maxRedirects = 100;
+        private static readonly Task<string> _noAccessToken = Task.FromResult<string>(null);
 
         private static readonly TimeSpan HttpClientTimeout = TimeSpan.FromSeconds(120);
 #if !NETCOREAPP2_1
@@ -44,6 +45,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
         private readonly ConnectionLogScope _logScope;
         private readonly IDisposable _scopeDisposable;
         private readonly ILoggerFactory _loggerFactory;
+        private Func<Task<string>> _accessTokenProvider;
 
         public override IDuplexPipe Transport
         {
@@ -105,7 +107,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
                 _httpClient = CreateHttpClient();
             }
 
-            _transportFactory = new DefaultTransportFactory(httpConnectionOptions.Transports, _loggerFactory, _httpClient, httpConnectionOptions);
+            _transportFactory = new DefaultTransportFactory(httpConnectionOptions.Transports, _loggerFactory, _httpClient, httpConnectionOptions, GetAccessTokenAsync);
             _logScope = new ConnectionLogScope();
             _scopeDisposable = _logger.BeginScope(_logScope);
 
@@ -215,6 +217,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
         private async Task SelectAndStartTransport(TransferFormat transferFormat)
         {
             var uri = _httpConnectionOptions.Url;
+            // Set the initial access token provider back to the original one from options
+            _accessTokenProvider = _httpConnectionOptions.AccessTokenProvider;
 
             if (_httpConnectionOptions.SkipNegotiation)
             {
@@ -246,7 +250,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
                     {
                         string accessToken = negotiationResponse.AccessToken;
                         // Set the current access token factory so that future requests use this access token
-                        _httpConnectionOptions.AccessTokenProvider = () => Task.FromResult(accessToken);
+                        _accessTokenProvider = () => Task.FromResult(accessToken);
                     }
 
                     redirects++;
@@ -438,7 +442,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
                 }
 
                 // Apply the authorization header in a handler instead of a default header because it can change with each request
-                httpMessageHandler = new AccessTokenHttpMessageHandler(httpMessageHandler, _httpConnectionOptions);
+                httpMessageHandler = new AccessTokenHttpMessageHandler(httpMessageHandler, this);
             }
 
             // Wrap message handler after HttpMessageHandlerFactory to ensure not overriden
@@ -464,6 +468,15 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
             httpClient.DefaultRequestHeaders.Add("X-Requested-With", "XMLHttpRequest");
 
             return httpClient;
+        }
+
+        internal Task<string> GetAccessTokenAsync()
+        {
+            if (_accessTokenProvider == null)
+            {
+                return _noAccessToken;
+            }
+            return _accessTokenProvider();
         }
 
         private void CheckDisposed()
