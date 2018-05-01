@@ -24,7 +24,7 @@ export enum MessageType {
 
 /** Defines a dictionary of string keys and string values representing headers attached to a Hub message. */
 export interface MessageHeaders {
-    /** Gets or sets the header with the specified key */
+    /** Gets or sets the header with the specified key. */
     [key: string]: string;
 }
 

@@ -26,7 +26,7 @@ export class HubConnection {
     /** The server timeout in milliseconds.
      *
      * If this timeout elapses without receiving any messages from the server, the connection will be terminated with an error.
-     * The default timeout value is 30 seconds (30,000 milliseconds).
+     * The default timeout value is 30,000 milliseconds (30 seconds).
      */
     public serverTimeoutInMilliseconds: number;
 
@@ -236,6 +236,9 @@ export class HubConnection {
     public off(methodName: string): void;
 
     /** Removes the specified handler for the specified hub method.
+     *
+     * You must pass the exact same Function instance as was previously passed to {@link on}. Passing a different instance (even if the function
+     * body is the same) will not remove the handler.
      *
      * @param {string} methodName The name of the method to remove handlers for.
      * @param {Function} method The handler to remove. This must be the same Function instance as the one passed to {@link on}.
