@@ -22,6 +22,7 @@ export class LongPollingTransport implements ITransport {
     private shutdownTimer: any; // We use 'any' because this is an object in NodeJS. But it still gets passed to clearTimeout, so it doesn't really matter
     private shutdownTimeout: number;
     private running: boolean;
+    private receiving: Promise<void>;
 
     constructor(httpClient: HttpClient, accessTokenFactory: () => string | Promise<string>, logger: ILogger, logMessageContent: boolean, shutdownTimeout?: number) {
         this.httpClient = httpClient;
@@ -76,7 +77,7 @@ export class LongPollingTransport implements ITransport {
             this.running = true;
         }
 
-        this.poll(this.url, pollOptions, closeError);
+        this.receiving = this.poll(this.url, pollOptions, closeError);
         return Promise.resolve();
     }
 
@@ -167,7 +168,11 @@ export class LongPollingTransport implements ITransport {
     public async stop(): Promise<void> {
         // Send a DELETE request to stop the poll
         try {
+            this.logger.log(LogLevel.Trace, `(LongPolling transport) Stopping polling.`);
+
             this.running = false;
+            await this.receiving;
+
             this.logger.log(LogLevel.Trace, `(LongPolling transport) sending DELETE request to ${this.url}.`);
 
             const deleteOptions: HttpRequest = {
