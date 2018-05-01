@@ -16,7 +16,7 @@ export class MessagePackHubProtocol implements IHubProtocol {
     public readonly name: string = "messagepack";
     /** The version of the protocol. */
     public readonly version: number = 1;
-    /** The TransferFormat of the protocol */
+    /** The TransferFormat of the protocol. */
     public readonly transferFormat: TransferFormat = TransferFormat.Binary;
 
     /** Creates an array of HubMessage objects from the specified serialized representation.

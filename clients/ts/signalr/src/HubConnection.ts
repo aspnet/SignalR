@@ -165,7 +165,7 @@ export class HubConnection {
     /** Invokes a hub method on the server using the specified name and arguments.
      *
      * The Promise returned by this method resolves when the server indicates it has finished invoking the method. When the promise
-     * resolves, the server has finished invoking the method. If the server method returns a result, it is produces as the result of
+     * resolves, the server has finished invoking the method. If the server method returns a result, it is produced as the result of
      * resolving the Promise.
      *
      * @typeparam T The expected return type.

@@ -59,7 +59,6 @@ export class HttpResponse {
      * @param {ArrayBuffer} content The content of the response.
      */
     constructor(statusCode: number, statusText: string, content: ArrayBuffer);
-
     constructor(
         public readonly statusCode: number,
         public readonly statusText?: string,
