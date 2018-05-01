@@ -7,11 +7,11 @@ export enum HttpTransportType {
     /** Specifies no transport preference. */
     None = 0,
     /** Specifies the WebSockets transport. */
-    WebSockets = 1 << 0,
+    WebSockets = 1,
     /** Specifies the Server-Sent Events transport. */
-    ServerSentEvents = 1 << 1,
+    ServerSentEvents = 2,
     /** Specifies the Long Polling transport. */
-    LongPolling = 1 << 2,
+    LongPolling = 4,
 }
 
 /** Specifies the transfer format for a connection. */
