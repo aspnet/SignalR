@@ -136,7 +136,7 @@ export interface CancelInvocationMessage extends HubInvocationMessage {
     readonly invocationId: string;
 }
 
-/** A protocol abstraction for communicating with SignalR hubs.  */
+/** A protocol abstraction for communicating with SignalR Hubs.  */
 export interface IHubProtocol {
     /** The name of the protocol. This is used by SignalR to resolve the protocol between the client and server. */
     readonly name: string;

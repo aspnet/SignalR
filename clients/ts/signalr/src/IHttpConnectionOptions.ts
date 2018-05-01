@@ -35,7 +35,7 @@ export interface IHttpConnectionOptions {
 
     /** A boolean indicating if negotiation should be skipped.
      *
-     * Negotiation can only be skipped when the {@link transport} property is set to 'HttpTransportType.WebSockets'
+     * Negotiation can only be skipped when the {@link transport} property is set to 'HttpTransportType.WebSockets'.
      */
     skipNegotiation?: boolean;
 }
