@@ -182,7 +182,7 @@ export class LongPollingTransport implements ITransport {
             // Abort the poll after 5 seconds if the server doesn't stop it.
             if (!this.pollAbort.aborted) {
                 this.shutdownTimer = setTimeout(() => {
-                    this.logger.log(LogLevel.Warning, "(LongPolling transport) server did not terminate after DELETE request, cancelling poll.");
+                    this.logger.log(LogLevel.Warning, "(LongPolling transport) server did not terminate after DELETE request, canceling poll.");
                     this.pollAbort.abort();
                 }, this.shutdownTimeout);
             }
