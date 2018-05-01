@@ -180,7 +180,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
         {
             var disposeTask = Task.CompletedTask;
 
-            await StateLock.WaitAsync();
+            await Task.WhenAll(StateLock.WaitAsync(), WriteLock.WaitAsync());
             try
             {
                 if (Status == HttpConnectionStatus.Disposed)
@@ -202,6 +202,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
             finally
             {
                 StateLock.Release();
+                WriteLock.Release();
             }
 
             await disposeTask;

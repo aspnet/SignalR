@@ -1798,6 +1798,65 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
         }
 
         [Fact]
+        public async Task CannotWriteWhileConnectionDisposing()
+        {
+            using (StartVerifiableLog(out var loggerFactory, LogLevel.Debug))
+            {
+                var manager = CreateConnectionManager(loggerFactory);
+                var connection = manager.CreateConnection(PipeOptions.Default, PipeOptions.Default);
+                connection.TransportType = HttpTransportType.LongPolling;
+
+                var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
+
+                var services = new ServiceCollection();
+                services.AddSingleton<TestConnectionHandler>();
+                var builder = new ConnectionBuilder(services.BuildServiceProvider());
+                builder.UseConnectionHandler<TestConnectionHandler>();
+                var app = builder.Build();
+                var options = new HttpConnectionDispatcherOptions();
+
+                using (var responseBody = new MemoryStream())
+                using (var requestBody = new MemoryStream())
+                {
+                    var context = new DefaultHttpContext();
+                    context.Request.Body = requestBody;
+                    context.Response.Body = responseBody;
+                    context.Request.Path = "/foo";
+                    context.Request.Method = "POST";
+                    var values = new Dictionary<string, StringValues>();
+                    values["id"] = connection.ConnectionId;
+                    var qs = new QueryCollection(values);
+                    context.Request.Query = qs;
+                    var buffer = Encoding.UTF8.GetBytes("Hello, world");
+                    requestBody.Write(buffer, 0, buffer.Length);
+                    requestBody.Seek(0, SeekOrigin.Begin);
+
+                    // Simulate a part of SignalR taking the state lock
+                    await connection.StateLock.WaitAsync();
+
+                    // Start disposing. This will task the WriteLock and attempt to take the StateLock
+                    var disposeTask = connection.DisposeAsync();
+
+                    // Write. This will attempt to take the WriteLock (currently held by dispose)
+                    var sendTask = dispatcher.ExecuteAsync(context, options, app);
+
+                    // Simulate the part of SignalR releasing the state lock
+                    connection.StateLock.Release();
+
+                    // Dispose can now finish running
+                    await disposeTask.OrTimeout();
+
+                    // Send was waiting on dispose to release the WriteLock
+                    // It will see the connection was disposed and will return 404
+                    // This avoids the connection being disposed while in the middle of writing
+                    await sendTask.OrTimeout();
+
+                    Assert.Equal(404, context.Response.StatusCode);
+                }
+            }
+        }
+
+        [Fact]
         public async Task LongPollingCanPollIfWritePipeHasBackpressure()
         {
             using (StartVerifiableLog(out var loggerFactory, LogLevel.Debug))
