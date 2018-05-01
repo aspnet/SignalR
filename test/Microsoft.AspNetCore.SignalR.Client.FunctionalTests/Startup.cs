@@ -70,7 +70,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                     await context.Response.WriteAsync(GenerateJwtToken());
                     return;
                 }
-                else if(context.Request.Path.StartsWithSegments("/redirect"))
+                else if (context.Request.Path.StartsWithSegments("/redirect"))
                 {
                     await context.Response.WriteAsync(JsonConvert.SerializeObject(new
                     {
