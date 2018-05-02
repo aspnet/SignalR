@@ -14,6 +14,7 @@ namespace Microsoft.AspNetCore.Internal
     internal sealed class Utf8BufferTextWriter : TextWriter
     {
         private static readonly UTF8Encoding _utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+        private static readonly int MaximumBytesPerUtf8Char = 4;
 
         [ThreadStatic]
         private static Utf8BufferTextWriter _cachedInstance;
@@ -139,7 +140,8 @@ namespace Microsoft.AspNetCore.Internal
 
         private void EnsureBuffer()
         {
-            if (_memoryUsed == _memory.Length)
+            var remaining = _memory.Length - _memoryUsed;
+            if (remaining < MaximumBytesPerUtf8Char)
             {
                 // Used up the memory from the buffer writer so advance and get more
                 if (_memoryUsed > 0)
@@ -147,7 +149,7 @@ namespace Microsoft.AspNetCore.Internal
                     _bufferWriter.Advance(_memoryUsed);
                 }
 
-                _memory = _bufferWriter.GetMemory();
+                _memory = _bufferWriter.GetMemory(MaximumBytesPerUtf8Char);
                 _memoryUsed = 0;
             }
         }
