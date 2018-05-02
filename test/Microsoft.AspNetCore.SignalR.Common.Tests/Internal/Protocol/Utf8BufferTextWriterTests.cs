@@ -262,7 +262,10 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             // へ => E3-81-B8
             // ど => E3-81-A9
             // g => 67
-            const string testString = "aいbろcdはにeほfへどg";
+            // h => 68
+            // i => 69
+            // \uD800\uDC00 => F0-90-80-80 (this is a surrogate pair that is represented as a single 4-byte UTF-8 encoding)
+            const string testString = "aいbろcdはにeほfへどghi\uD800\uDC00";
 
             // By mixing single byte and multi-byte characters, we know that there will
             // be spaces in the active segment that cannot fit the current character. This
@@ -283,7 +286,8 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                 seg => Assert.Equal(new byte[] { 0xE3, 0x81, 0xAB, 0x65 }, seg),        // "にe"
                 seg => Assert.Equal(new byte[] { 0xE3, 0x81, 0xBB, 0x66 }, seg),        // "ほf"
                 seg => Assert.Equal(new byte[] { 0xE3, 0x81, 0xB8 }, seg),              // "へ"
-                seg => Assert.Equal(new byte[] { 0xE3, 0x81, 0xA9, 0x67 }, seg));       // "どg"
+                seg => Assert.Equal(new byte[] { 0xE3, 0x81, 0xA9, 0x67, 0x68 }, seg),        // "どgh"
+                seg => Assert.Equal(new byte[] { 0x69, 0xF0, 0x90, 0x80, 0x80 }, seg));       // "i\uD800\uDC00"
 
             Assert.Equal(testString, Encoding.UTF8.GetString(bufferWriter.ToArray()));
         }
