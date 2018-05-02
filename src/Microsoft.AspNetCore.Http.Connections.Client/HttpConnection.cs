@@ -81,6 +81,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
             get => _connectionId;
             set => throw new InvalidOperationException("The ConnectionId is set internally and should not be set by user code.");
         }
+
         public override IDictionary<object, object> Items { get; set; } = new ConnectionItems();
 
         /// <inheritdoc />
