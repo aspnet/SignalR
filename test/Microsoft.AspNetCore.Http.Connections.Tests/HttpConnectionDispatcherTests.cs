@@ -1815,7 +1815,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
         }
 
         [Fact]
-        public async Task WriteThatIsDisposedBeforeComplete()
+        public async Task WriteThatIsDisposedBeforeCompleteReturns404()
         {
             using (StartVerifiableLog(out var loggerFactory, LogLevel.Debug))
             {
@@ -1914,80 +1914,14 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                     await connection.ApplicationStream.WriteAsync(buffer, 0, buffer.Length).OrTimeout();
 
                     // Write. This will take the WriteLock and block because of back pressure
-                    var sendTask1 = dispatcher.ExecuteAsync(context, options, app);
-                    //var sendTask2 = dispatcher.ExecuteAsync(context, options, app);
+                    var sendTask = dispatcher.ExecuteAsync(context, options, app);
 
                     // Start disposing. This will take the StateLock and attempt to take the WriteLock
                     // Dispose will cancel pending flush and should unblock WriteLock
                     await connection.DisposeAsync().OrTimeout();
 
                     // Sends were unblock
-                    await sendTask1.OrTimeout();
-
-                    Assert.Equal(404, context.Response.StatusCode);
-                }
-            }
-        }
-
-        [Fact]
-        public async Task CannotWriteWhileConnectionDisposing()
-        {
-            using (StartVerifiableLog(out var loggerFactory, LogLevel.Debug))
-            {
-                var manager = CreateConnectionManager(loggerFactory);
-                var pipeOptions = new PipeOptions(pauseWriterThreshold: 13, resumeWriterThreshold: 10);
-                var connection = manager.CreateConnection(pipeOptions, pipeOptions);
-                connection.TransportType = HttpTransportType.LongPolling;
-
-                var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
-
-                var services = new ServiceCollection();
-                services.AddSingleton<TestConnectionHandler>();
-                var builder = new ConnectionBuilder(services.BuildServiceProvider());
-                builder.UseConnectionHandler<TestConnectionHandler>();
-                var app = builder.Build();
-                var options = new HttpConnectionDispatcherOptions();
-
-                using (var responseBody = new MemoryStream())
-                using (var requestBody = new MemoryStream())
-                {
-                    var context = new DefaultHttpContext();
-                    context.Request.Body = requestBody;
-                    context.Response.Body = responseBody;
-                    context.Request.Path = "/foo";
-                    context.Request.Method = "POST";
-                    var values = new Dictionary<string, StringValues>();
-                    values["id"] = connection.ConnectionId;
-                    var qs = new QueryCollection(values);
-                    context.Request.Query = qs;
-                    var buffer = Encoding.UTF8.GetBytes("Hello, world");
-                    requestBody.Write(buffer, 0, buffer.Length);
-                    requestBody.Seek(0, SeekOrigin.Begin);
-
-                    // Write some data to the pipe to fill it up and make the next write wait
-                    await connection.ApplicationStream.WriteAsync(buffer, 0, buffer.Length).OrTimeout();
-
-                    // Write. This will take the WriteLock and block because of back pressure
-                    var sendTask1 = dispatcher.ExecuteAsync(context, options, app);
-                    var sendTask2 = dispatcher.ExecuteAsync(context, options, app);
-
-                    // Start disposing. This will take the StateLock and attempt to take the WriteLock
-                    var disposeTask = connection.DisposeAsync();
-
-                    // Simulate a part of SignalR taking the state lock
-                    //await connection.StateLock.WaitAsync();
-
-                    // Simulate the part of SignalR releasing the state lock
-                    //connection.StateLock.Release();
-
-                    // Dispose can now finish running
-                    await disposeTask.OrTimeout();
-
-                    // Send was waiting on dispose to release the WriteLock
-                    // It will see the connection was disposed and will return 404
-                    // This avoids the connection being disposed while in the middle of writing
-                    await sendTask1.OrTimeout();
-                    await sendTask2.OrTimeout();
+                    await sendTask.OrTimeout();
 
                     Assert.Equal(404, context.Response.StatusCode);
                 }
