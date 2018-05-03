@@ -1,4 +1,4 @@
-﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
@@ -140,6 +140,10 @@ namespace Microsoft.AspNetCore.Internal
 
         private void EnsureBuffer()
         {
+            // We need at least enough bytes to encode a single UTF-8 character, or Encoder.Convert will throw.
+            // Normally, if there isn't enough space to write every character of a char buffer, Encoder.Convert just
+            // writes what it can. However, if it can't even write a single character, it throws. So if the buffer has only
+            // 2 bytes left and the next character to write is 3 bytes in UTF-8, an exception is thrown.
             var remaining = _memory.Length - _memoryUsed;
             if (remaining < MaximumBytesPerUtf8Char)
             {

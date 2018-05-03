@@ -1,4 +1,4 @@
-﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
@@ -6,7 +6,6 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -24,7 +23,7 @@ namespace Microsoft.AspNetCore.Internal
         private readonly int _minimumSegmentSize;
         private int _bytesWritten;
 
-        private List<BufferSegment> _completedSegments;
+        private List<CompletedBuffer> _completedSegments;
         private byte[] _currentSegment;
         private int _position;
 
@@ -126,7 +125,7 @@ namespace Microsoft.AspNetCore.Internal
                 var count = _completedSegments.Count;
                 for (var i = 0; i < count; i++)
                 {
-                    destination.Write(_completedSegments[i].Memory.Span);
+                    destination.Write(_completedSegments[i].Span);
                 }
             }
 
@@ -168,10 +167,13 @@ namespace Microsoft.AspNetCore.Internal
                 // We're adding a segment to the list
                 if (_completedSegments == null)
                 {
-                    _completedSegments = new List<BufferSegment>();
+                    _completedSegments = new List<CompletedBuffer>();
                 }
 
-                _completedSegments.Add(new BufferSegment(_currentSegment, _position));
+                // Position might be less than the segment length if there wasn't enough space to satisfy the sizeHint when
+                // GetMemory was called. In that case we'll take the current segment and call it "completed", but need to
+                // ignore any empty space in it.
+                _completedSegments.Add(new CompletedBuffer(_currentSegment, _position));
             }
 
             // Get a new buffer using the minimum segment size, unless the size hint is larger than a single segment.
@@ -213,8 +215,8 @@ namespace Microsoft.AspNetCore.Internal
                 for (var i = 0; i < count; i++)
                 {
                     var segment = _completedSegments[i];
-                    segment.Memory.Span.CopyTo(result.AsSpan(totalWritten));
-                    totalWritten += segment.Length;
+                    segment.Span.CopyTo(result.AsSpan(totalWritten));
+                    totalWritten += segment.Span.Length;
                 }
             }
 
@@ -242,8 +244,8 @@ namespace Microsoft.AspNetCore.Internal
                 for (var i = 0; i < count; i++)
                 {
                     var segment = _completedSegments[i];
-                    segment.Memory.Span.CopyTo(span.Slice(totalWritten));
-                    totalWritten += segment.Length;
+                    segment.Span.CopyTo(span.Slice(totalWritten));
+                    totalWritten += segment.Span.Length;
                 }
             }
 
@@ -317,17 +319,17 @@ namespace Microsoft.AspNetCore.Internal
         /// <summary>
         /// Holds a byte[] from the pool and a size value. Basically a Memory but guaranteed to be backed by an ArrayPool byte[], so that we know we can return it.
         /// </summary>
-        private struct BufferSegment
+        private readonly struct CompletedBuffer
         {
             public byte[] Buffer { get; }
             public int Length { get; }
 
-            public ReadOnlyMemory<byte> Memory => Buffer.AsMemory(0, Length);
+            public ReadOnlySpan<byte> Span => Buffer.AsSpan(0, Length);
 
-            public BufferSegment(byte[] buffer, int size)
+            public CompletedBuffer(byte[] buffer, int length)
             {
                 Buffer = buffer;
-                Length = size;
+                Length = length;
             }
 
             public void Return()
