@@ -469,20 +469,40 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
 
             try
             {
-                // Connection could have been disposed while waiting for the write lock
-                if (CheckConnectionNotDisposed(context, connection))
+                if (connection.Status == HttpConnectionStatus.Disposed)
                 {
+                    Log.ConnectionDisposed(_logger, connection.ConnectionId);
+
+                    // The connection was disposed
+                    context.Response.StatusCode = StatusCodes.Status404NotFound;
+                    context.Response.ContentType = "text/plain";
                     return;
                 }
 
                 try
                 {
-                    await context.Request.Body.CopyToAsync(connection.ApplicationStream, bufferSize);
-
-                    // Flushing the ApplicationStream could have been waiting on backpressure
-                    // Check connection was not disposed and the flush was cancelled
-                    if (CheckConnectionNotDisposed(context, connection))
+                    try
                     {
+                        await context.Request.Body.CopyToAsync(connection.ApplicationStream, bufferSize);
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        // PipeWriter will throw an error if it is written to while dispose is in progress and the writer has been completed
+                        // Dispose isn't taking WriteLock because it could be held because of backpressure, and calling CancelPendingFlush
+                        // then taking the lock introduces a race condition that could lead to a deadlock
+                        Log.ConnectionDisposedWhileWriteInProgress(_logger, connection.ConnectionId, ex);
+
+                        context.Response.StatusCode = StatusCodes.Status404NotFound;
+                        context.Response.ContentType = "text/plain";
+                        return;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // CancelPendingFlush has canceled pending writes caused by backpresure
+                        Log.ConnectionDisposed(_logger, connection.ConnectionId);
+
+                        context.Response.StatusCode = StatusCodes.Status404NotFound;
+                        context.Response.ContentType = "text/plain";
                         return;
                     }
 
@@ -498,21 +518,6 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
             {
                 connection.WriteLock.Release();
             }
-        }
-
-        private bool CheckConnectionNotDisposed(HttpContext context, HttpConnectionContext connection)
-        {
-            if (connection.Status == HttpConnectionStatus.Disposed)
-            {
-                Log.ConnectionDisposed(_logger, connection.ConnectionId);
-
-                // The connection was disposed
-                context.Response.StatusCode = StatusCodes.Status404NotFound;
-                context.Response.ContentType = "text/plain";
-                return true;
-            }
-
-            return false;
         }
 
         private async Task ProcessDeleteAsync(HttpContext context)

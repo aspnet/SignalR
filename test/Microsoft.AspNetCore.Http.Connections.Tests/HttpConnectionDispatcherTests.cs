@@ -1876,7 +1876,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
         }
 
         [Fact]
-        public async Task CanDiposeWhileWriteLockIsBlockedOnBackpressure()
+        public async Task CanDisposeWhileWriteLockIsBlockedOnBackpressureAndResponseReturns404()
         {
             using (StartVerifiableLog(out var loggerFactory, LogLevel.Debug))
             {

@@ -178,7 +178,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
 
         public async Task DisposeAsync(bool closeGracefully = false)
         {
-            var disposeTask = Task.CompletedTask;
+            Task disposeTask;
 
             await StateLock.WaitAsync();
             try
@@ -193,25 +193,10 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
 
                     Log.DisposingConnection(_logger, ConnectionId);
 
-                    // Unblock any writes waiting on backpressure
-                    // Needs to happen before taking the write lock
-                    // Waiting writes will return 404
-                    Application.Output.CancelPendingFlush();
+                    var applicationTask = ApplicationTask ?? Task.CompletedTask;
+                    var transportTask = TransportTask ?? Task.CompletedTask;
 
-                    // Take the write lock to make new writes wait while disposing
-                    // Writes will return 404 once dispose is complete
-                    await WriteLock.WaitAsync();
-                    try
-                    {
-                        var applicationTask = ApplicationTask ?? Task.CompletedTask;
-                        var transportTask = TransportTask ?? Task.CompletedTask;
-
-                        disposeTask = WaitOnTasks(applicationTask, transportTask, closeGracefully);
-                    }
-                    finally
-                    {
-                        WriteLock.Release();
-                    }
+                    disposeTask = WaitOnTasks(applicationTask, transportTask, closeGracefully);
                 }
             }
             finally
@@ -281,6 +266,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
                 else
                 {
                     Log.ShuttingDownTransportAndApplication(_logger, TransportType);
+
+                    // Cancel any pending flushes from back pressure
+                    Application?.Output.CancelPendingFlush();
 
                     // Shutdown both sides and wait for nothing
                     Transport?.Output.Complete(applicationTask.Exception?.InnerException);
