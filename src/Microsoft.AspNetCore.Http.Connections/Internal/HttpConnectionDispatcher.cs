@@ -469,27 +469,50 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
 
             try
             {
-                if (connection.Status == HttpConnectionStatus.Disposed)
+                // Connection could have been disposed while waiting for the write lock
+                if (CheckConnectionNotDisposed(context, connection))
                 {
-                    Log.ConnectionDisposed(_logger, connection.ConnectionId);
-
-                    // The connection was disposed
-                    context.Response.StatusCode = StatusCodes.Status404NotFound;
-                    context.Response.ContentType = "text/plain";
                     return;
                 }
 
-                await context.Request.Body.CopyToAsync(connection.ApplicationStream, bufferSize);
+                try
+                {
+                    await context.Request.Body.CopyToAsync(connection.ApplicationStream, bufferSize);
 
-                Log.ReceivedBytes(_logger, connection.ApplicationStream.Length);
+                    // Flushing the ApplicationStream could have been waiting on backpressure
+                    // Check connection was not disposed and the flush was cancelled
+                    if (CheckConnectionNotDisposed(context, connection))
+                    {
+                        return;
+                    }
 
-                // Clear the amount of read bytes so logging is accurate
-                connection.ApplicationStream.Reset();
+                    Log.ReceivedBytes(_logger, connection.ApplicationStream.Length);
+                }
+                finally
+                {
+                    // Clear the amount of read bytes so logging is accurate
+                    connection.ApplicationStream.Reset();
+                }
             }
             finally
             {
                 connection.WriteLock.Release();
             }
+        }
+
+        private bool CheckConnectionNotDisposed(HttpContext context, HttpConnectionContext connection)
+        {
+            if (connection.Status == HttpConnectionStatus.Disposed)
+            {
+                Log.ConnectionDisposed(_logger, connection.ConnectionId);
+
+                // The connection was disposed
+                context.Response.StatusCode = StatusCodes.Status404NotFound;
+                context.Response.ContentType = "text/plain";
+                return true;
+            }
+
+            return false;
         }
 
         private async Task ProcessDeleteAsync(HttpContext context)

@@ -180,7 +180,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
         {
             var disposeTask = Task.CompletedTask;
 
-            await Task.WhenAll(StateLock.WaitAsync(), WriteLock.WaitAsync());
+            await StateLock.WaitAsync();
             try
             {
                 if (Status == HttpConnectionStatus.Disposed)
@@ -193,16 +193,30 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
 
                     Log.DisposingConnection(_logger, ConnectionId);
 
-                    var applicationTask = ApplicationTask ?? Task.CompletedTask;
-                    var transportTask = TransportTask ?? Task.CompletedTask;
+                    // Unblock any writes waiting on backpressure
+                    // Needs to happen before taking the write lock
+                    // Waiting writes will return 404
+                    Application.Output.CancelPendingFlush();
 
-                    disposeTask = WaitOnTasks(applicationTask, transportTask, closeGracefully);
+                    // Take the write lock to make new writes wait while disposing
+                    // Writes will return 404 once dispose is complete
+                    await WriteLock.WaitAsync();
+                    try
+                    {
+                        var applicationTask = ApplicationTask ?? Task.CompletedTask;
+                        var transportTask = TransportTask ?? Task.CompletedTask;
+
+                        disposeTask = WaitOnTasks(applicationTask, transportTask, closeGracefully);
+                    }
+                    finally
+                    {
+                        WriteLock.Release();
+                    }
                 }
             }
             finally
             {
                 StateLock.Release();
-                WriteLock.Release();
             }
 
             await disposeTask;
