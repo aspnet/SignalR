@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Channels;
@@ -643,7 +644,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
                                     break;
                                 }
                             }
-                            else if (result.IsCompleted)
+
+                            if (result.IsCompleted)
                             {
                                 // Not enough data, and we won't be getting any more data.
                                 throw new InvalidOperationException(
@@ -720,8 +722,13 @@ namespace Microsoft.AspNetCore.SignalR.Client
                                 break;
                             }
                         }
-                        else if (result.IsCompleted)
+
+                        if (result.IsCompleted)
                         {
+                            if (!buffer.IsEmpty)
+                            {
+                                throw new InvalidDataException("Connection terminated while reading a message.");
+                            }
                             break;
                         }
                     }

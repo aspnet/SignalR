@@ -386,7 +386,8 @@ namespace Microsoft.AspNetCore.SignalR
                                     _logger.LogInformation("Didn't parse the handshake");
                                 }
                             }
-                            else if (result.IsCompleted)
+
+                            if (result.IsCompleted)
                             {
                                 // connection was closed before we ever received a response
                                 // can't send a handshake response because there is no longer a connection
