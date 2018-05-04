@@ -1799,16 +1799,16 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
 
         private class ControllableMemoryStream : MemoryStream
         {
-            private readonly TaskCompletionSource<bool> _tcs;
+            private readonly SyncPoint _syncPoint;
 
-            public ControllableMemoryStream(TaskCompletionSource<bool> tcs)
+            public ControllableMemoryStream(SyncPoint syncPoint)
             {
-                _tcs = tcs;
+                _syncPoint = syncPoint;
             }
 
             public override async Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
             {
-                await _tcs.Task;
+                await _syncPoint.WaitToContinue();
 
                 await base.CopyToAsync(destination, bufferSize, cancellationToken);
             }
@@ -1833,10 +1833,10 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                 var app = builder.Build();
                 var options = new HttpConnectionDispatcherOptions();
 
-                TaskCompletionSource<bool> tcs = new TaskCompletionSource<bool>();
+                SyncPoint streamCopySyncPoint = new SyncPoint();
 
                 using (var responseBody = new MemoryStream())
-                using (var requestBody = new ControllableMemoryStream(tcs))
+                using (var requestBody = new ControllableMemoryStream(streamCopySyncPoint))
                 {
                     var context = new DefaultHttpContext();
                     context.Request.Body = requestBody;
@@ -1851,25 +1851,22 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                     requestBody.Write(buffer, 0, buffer.Length);
                     requestBody.Seek(0, SeekOrigin.Begin);
 
-                    // Write. This will wait on the TCS inside ApplicationStream.CopyToAsync
-                    var sendTask1 = dispatcher.ExecuteAsync(context, options, app);
+                    // Write
+                    var sendTask = dispatcher.ExecuteAsync(context, options, app);
 
-                    // Extra check to make sure ExecuteAsync is waiting on the TCS
-                    if (sendTask1.Status != TaskStatus.WaitingForActivation)
-                    {
-                        await Task.Yield();
-                    }
+                    // Wait on the sync point inside ApplicationStream.CopyToAsync
+                    await streamCopySyncPoint.WaitForSyncPoint();
 
-                    // Start disposing. This will take the StateLock and attempt to take the WriteLock
+                    // Start disposing. This will close the output and cause the write to error
                     var disposeTask = connection.DisposeAsync().OrTimeout();
 
-                    // Continue writing
-                    tcs.SetResult(true);
+                    // Continue writing on a completed writer
+                    streamCopySyncPoint.Continue();
 
-                    await sendTask1.OrTimeout();
+                    await sendTask.OrTimeout();
                     await disposeTask.OrTimeout();
 
-                    // Connection was disposed while writing
+                    // Ensure response status is correctly set
                     Assert.Equal(404, context.Response.StatusCode);
                 }
             }
