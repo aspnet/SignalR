@@ -58,31 +58,33 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
         [Fact]
         public void WriteNegotiateResponseWithNullAvailableTransports()
         {
-            MemoryBufferWriter writer = new MemoryBufferWriter();
+            using (MemoryBufferWriter writer = new MemoryBufferWriter())
+            {
+                NegotiateProtocol.WriteResponse(new NegotiationResponse(), writer);
 
-            NegotiateProtocol.WriteResponse(new NegotiationResponse(), writer);
+                string json = Encoding.UTF8.GetString(writer.ToArray());
 
-            string json = Encoding.UTF8.GetString(writer.ToArray());
-
-            Assert.Equal("{\"availableTransports\":[]}", json);
+                Assert.Equal("{\"availableTransports\":[]}", json);
+            }
         }
 
         [Fact]
         public void WriteNegotiateResponseWithNullTransferFormats()
         {
-            MemoryBufferWriter writer = new MemoryBufferWriter();
-
-            NegotiateProtocol.WriteResponse(new NegotiationResponse
+            using (MemoryBufferWriter writer = new MemoryBufferWriter())
             {
-                AvailableTransports = new List<AvailableTransport>
+                NegotiateProtocol.WriteResponse(new NegotiationResponse
                 {
-                    new AvailableTransport()
-                }
-            }, writer);
+                    AvailableTransports = new List<AvailableTransport>
+                    {
+                        new AvailableTransport()
+                    }
+                }, writer);
 
-            string json = Encoding.UTF8.GetString(writer.ToArray());
+                string json = Encoding.UTF8.GetString(writer.ToArray());
 
-            Assert.Equal("{\"availableTransports\":[{\"transport\":null,\"transferFormats\":[]}]}", json);
+                Assert.Equal("{\"availableTransports\":[{\"transport\":null,\"transferFormats\":[]}]}", json);
+            }
         }
     }
 }
