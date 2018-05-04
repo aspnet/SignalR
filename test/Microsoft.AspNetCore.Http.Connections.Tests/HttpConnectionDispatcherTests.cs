@@ -1917,7 +1917,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                     // Dispose will cancel pending flush and should unblock WriteLock
                     await connection.DisposeAsync().OrTimeout();
 
-                    // Sends were unblock
+                    // Sends were unblocked
                     await sendTask.OrTimeout();
 
                     Assert.Equal(404, context.Response.StatusCode);
