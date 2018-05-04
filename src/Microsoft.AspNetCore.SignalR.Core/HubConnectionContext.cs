@@ -381,10 +381,6 @@ namespace Microsoft.AspNetCore.SignalR
                                     await WriteHandshakeResponseAsync(HandshakeResponseMessage.Empty);
                                     return true;
                                 }
-                                else
-                                {
-                                    _logger.LogInformation("Didn't parse the handshake");
-                                }
                             }
 
                             if (result.IsCompleted)
