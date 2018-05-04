@@ -64,4 +64,40 @@ describe("LongPollingTransport", () => {
         // This should complete, because the DELETE request triggers it to stop.
         await pollCompleted.promise;
     });
+
+    it("sends negotiation message", async () => {
+        let firstPoll = true;
+        let deleteSent = false;
+        const pollingPromiseSource = new PromiseSource();
+        const httpClient = new TestHttpClient()
+            .on("GET", async (r) => {
+                if (firstPoll) {
+                    firstPoll = false;
+                    return new HttpResponse(200);
+                } else {
+                    await pollingPromiseSource.promise;
+                    return new HttpResponse(204);
+                }
+            })
+            .on("DELETE", (r) => {
+                deleteSent = true;
+                return new HttpResponse(202);
+            });
+    
+        const transport = new LongPollingTransport(httpClient, null, NullLogger.instance, false);
+
+        await transport.connect("http://tempuri.org", TransferFormat.Binary);
+
+        const stopPromise = transport.stop();
+
+        // Delete will not be sent until polling is finished
+        expect(deleteSent).toEqual(false);
+
+        // Allow polling to complete
+        pollingPromiseSource.resolve();
+
+        expect(deleteSent).toEqual(true);
+
+        await stopPromise;
+    });
 });
