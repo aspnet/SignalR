@@ -2203,7 +2203,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 client.Connection.Application.Output.Complete();
 
                 // Ignore message from OnConnectedAsync
-                _ = await client.ReadAsync().OrTimeout();
+                await client.ReadAsync().OrTimeout();
 
                 var closeMessage = Assert.IsType<CloseMessage>(await client.ReadAsync().OrTimeout());
 
