@@ -39,7 +39,7 @@ const signalRMsgPack = require("@aspnet/signalr-protocol-msgpack");
 
 let connection = new signalR.HubConnectionBuilder()
     .withUrl("/chat")
-    .withHubProtocol(new signalR.protocols.msgpack.MessagePackHubProtocol())
+    .withHubProtocol(new signalRMsgPack.MessagePackHubProtocol())
     .build();
 
 connection.on('send', data => {
