@@ -15,9 +15,10 @@ To use the client in a browser, copy `*.js` files from the `dist/browser` folder
 ### Example (Browser)
 
 ```JavaScript
-let connection = new signalR.HubConnection('/chat', {
-    protocol: new signalR.protocols.msgpack.MessagePackHubProtocol()
-});
+let connection = new signalR.HubConnectionBuilder()
+    .withUrl("/chat")
+    .withHubProtocol(new signalR.protocols.msgpack.MessagePackHubProtocol())
+    .build();
 
 connection.on('send', data => {
     console.log(data);
@@ -33,9 +34,10 @@ connection.start()
 const signalR = require("@aspnet/signalr");
 const signalRMsgPack = require("@aspnet/signalr-protocol-msgpack");
 
-let connection = new signalR.HubConnection('/chat', {
-    protocol: new signalRMsgPack.MessagePackHubProtocol()
-});
+let connection = new signalR.HubConnectionBuilder()
+    .withUrl("/chat")
+    .withHubProtocol(new signalR.protocols.msgpack.MessagePackHubProtocol())
+    .build();
 
 connection.on('send', data => {
     console.log(data);

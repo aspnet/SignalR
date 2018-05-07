@@ -23,14 +23,16 @@ The following polyfills are required to use the client in Node.js applications:
 ### Example (Browser)
 
 ```JavaScript
-let connection = new signalR.HubConnection('/chat');
+let connection = new signalR.HubConnectionBuilder()
+    .withUrl("/chat")
+    .build();
 
-connection.on('send', data => {
+connection.on("send", data => {
     console.log(data);
 });
 
 connection.start()
-    .then(() => connection.invoke('send', 'Hello'));
+    .then(() => connection.invoke("send", "Hello"));
 ```
 
 ### Example (NodeJS)
@@ -38,12 +40,14 @@ connection.start()
 ```JavaScript
 const signalR = require("@aspnet/signalr");
 
-let connection = new signalR.HubConnection('/chat');
+let connection = new signalR.HubConnectionBuilder()
+    .withUrl("/chat")
+    .build();
 
-connection.on('send', data => {
+connection.on("send", data => {
     console.log(data);
 });
 
 connection.start()
-    .then(() => connection.invoke('send', 'Hello'));
+    .then(() => connection.invoke("send", "Hello"));
 ```
