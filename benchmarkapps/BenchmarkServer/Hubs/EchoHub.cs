@@ -31,9 +31,10 @@ namespace BenchmarkServer.Hubs
             Console.WriteLine("Broadcast exited: Sent {0} messages", sent);
         }
 
-        public Task Echo(DateTime time)
+        public DateTime Echo(DateTime time)
         {
-            return Clients.Client(Context.ConnectionId).SendAsync("send", time);
+            return time;
+            //return Clients.Client(Context.ConnectionId).SendAsync("send", time);
         }
 
         public Task EchoAll(DateTime time)
