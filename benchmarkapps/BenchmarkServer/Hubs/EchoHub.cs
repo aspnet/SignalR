@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
@@ -34,7 +33,6 @@ namespace BenchmarkServer.Hubs
         public DateTime Echo(DateTime time)
         {
             return time;
-            //return Clients.Client(Context.ConnectionId).SendAsync("send", time);
         }
 
         public Task EchoAll(DateTime time)
