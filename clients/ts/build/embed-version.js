@@ -4,11 +4,12 @@ const pkg = require(path.resolve(process.cwd(), "package.json"));
 
 function processDirectory(dir) {
     for (const item of fs.readdirSync(dir)) {
-        const stats = fs.statSync(item);
+        const fullPath = path.resolve(dir, item);
+        const stats = fs.statSync(fullPath);
         if (stats.isDirectory()) {
-            processDirectory(item);
+            processDirectory(fullPath);
         } else if (stats.isFile()) {
-            processFile(item);
+            processFile(fullPath);
         }
     }
 }
