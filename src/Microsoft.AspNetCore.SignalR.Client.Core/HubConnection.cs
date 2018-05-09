@@ -20,13 +20,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Microsoft.AspNetCore.SignalR.Client
 {
-    // TODO: Documentation
-    public enum HubConnectionStatus
-    {
-        Started,
-        Stopped
-    }
-
     /// <summary>
     /// A connection used to invoke hub methods on a SignalR Server.
     /// </summary>
@@ -64,19 +57,21 @@ namespace Microsoft.AspNetCore.SignalR.Client
         public TimeSpan ServerTimeout { get; set; } = DefaultServerTimeout;
         public TimeSpan HandshakeTimeout { get; set; } = DefaultHandshakeTimeout;
 
-        // TODO: Documentation
-        public HubConnectionStatus Status
+        /// <summary>
+        /// Indicates the state of the <see cref="HubConnection"/> to the server.
+        /// </summary>
+        public HubConnectionState State
         {
             get
             {
-                // Local copy for thread-safety
+                // Copy reference for thread-safety
                 var connectionState = _connectionState;
                 if (connectionState == null || connectionState.Stopped)
                 {
-                    return HubConnectionStatus.Stopped;
+                    return HubConnectionState.Disconnected;
                 }
 
-                return HubConnectionStatus.Started;
+                return HubConnectionState.Connected;
             }
         }
 

@@ -54,11 +54,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 var testConnection = new TestConnection();
                 await AsyncUsing(CreateHubConnection(testConnection), async connection =>
                 {
-                    Assert.Equal(HubConnectionStatus.Stopped, connection.Status);
+                    Assert.Equal(HubConnectionState.Disconnected, connection.State);
 
                     await connection.StartAsync();
                     Assert.True(testConnection.Started.IsCompleted);
-                    Assert.Equal(HubConnectionStatus.Started, connection.Status);
+                    Assert.Equal(HubConnectionState.Connected, connection.State);
                 });
             }
 
@@ -106,18 +106,18 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
                 await AsyncUsing(CreateHubConnection(ConnectionFactory, DisposeAsync), async connection =>
                 {
-                    Assert.Equal(HubConnectionStatus.Stopped, connection.Status);
+                    Assert.Equal(HubConnectionState.Disconnected, connection.State);
 
                     await connection.StartAsync().OrTimeout();
                     Assert.Equal(1, createCount);
-                    Assert.Equal(HubConnectionStatus.Started, connection.Status);
+                    Assert.Equal(HubConnectionState.Connected, connection.State);
 
                     await connection.StopAsync().OrTimeout();
-                    Assert.Equal(HubConnectionStatus.Stopped, connection.Status);
+                    Assert.Equal(HubConnectionState.Disconnected, connection.State);
 
                     await connection.StartAsync().OrTimeout();
                     Assert.Equal(2, createCount);
-                    Assert.Equal(HubConnectionStatus.Started, connection.Status);
+                    Assert.Equal(HubConnectionState.Connected, connection.State);
                 });
             }
 
@@ -236,7 +236,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     Assert.False(startTask.IsCompleted);
                     await syncPoint.WaitForSyncPoint();
 
-                    Assert.Equal(HubConnectionStatus.Stopped, connection.Status);
+                    Assert.Equal(HubConnectionState.Disconnected, connection.State);
 
                     // Release the SyncPoint
                     syncPoint.Continue();
@@ -244,7 +244,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     // Wait for start to finish
                     await startTask;
 
-                    Assert.Equal(HubConnectionStatus.Started, connection.Status);
+                    Assert.Equal(HubConnectionState.Connected, connection.State);
                 });
             }
 
@@ -258,19 +258,19 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     connection.Closed += exception =>
                     {
                         closed.TrySetResult(null);
-                        Assert.Equal(HubConnectionStatus.Stopped, connection.Status);
+                        Assert.Equal(HubConnectionState.Disconnected, connection.State);
                         return Task.CompletedTask;
                     };
 
-                    Assert.Equal(HubConnectionStatus.Stopped, connection.Status);
+                    Assert.Equal(HubConnectionState.Disconnected, connection.State);
 
                     await connection.StartAsync().OrTimeout();
                     Assert.True(testConnection.Started.IsCompleted);
-                    Assert.Equal(HubConnectionStatus.Started, connection.Status);
+                    Assert.Equal(HubConnectionState.Connected, connection.State);
 
                     await connection.StopAsync().OrTimeout();
                     await testConnection.Disposed.OrTimeout();
-                    Assert.Equal(HubConnectionStatus.Stopped, connection.Status);
+                    Assert.Equal(HubConnectionState.Disconnected, connection.State);
 
                     await closed.Task.OrTimeout();
                 });
@@ -307,18 +307,18 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 var testConnection = new TestConnection();
                 await AsyncUsing(CreateHubConnection(testConnection), async connection =>
                 {
-                    Assert.Equal(HubConnectionStatus.Stopped, connection.Status);
+                    Assert.Equal(HubConnectionState.Disconnected, connection.State);
 
                     await connection.StartAsync().OrTimeout();
                     Assert.True(testConnection.Started.IsCompleted);
-                    Assert.Equal(HubConnectionStatus.Started, connection.Status);
+                    Assert.Equal(HubConnectionState.Connected, connection.State);
 
                     await connection.StopAsync().OrTimeout();
                     await testConnection.Disposed.OrTimeout();
-                    Assert.Equal(HubConnectionStatus.Stopped, connection.Status);
+                    Assert.Equal(HubConnectionState.Disconnected, connection.State);
 
                     await connection.StopAsync().OrTimeout();
-                    Assert.Equal(HubConnectionStatus.Stopped, connection.Status);
+                    Assert.Equal(HubConnectionState.Disconnected, connection.State);
                 });
             }
 
@@ -461,7 +461,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     hubConnection.HandshakeTimeout = TimeSpan.FromMilliseconds(1);
 
                     await Assert.ThrowsAsync<OperationCanceledException>(() => hubConnection.StartAsync().OrTimeout());
-                    Assert.Equal(HubConnectionStatus.Stopped, hubConnection.Status);
+                    Assert.Equal(HubConnectionState.Disconnected, hubConnection.State);
                 }
                 finally
                 {
