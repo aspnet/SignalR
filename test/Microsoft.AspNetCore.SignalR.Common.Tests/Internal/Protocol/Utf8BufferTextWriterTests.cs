@@ -292,6 +292,42 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             Assert.Equal(testString, Encoding.UTF8.GetString(bufferWriter.ToArray()));
         }
 
+        public static IEnumerable<object[]> SegmentSizes => Enumerable.Range(4, 36).Select(segmentSize => new object[] { segmentSize });
+
+        [Theory]
+        [MemberData(nameof(SegmentSizes))]
+        public void WriteUnicodeCombinedStringAndCharsWithVaringSegmentSizes(int segmentSize)
+        {
+            const string testString = "aいbろcdはにeほfへどghi\uD800\uDC00";
+            const int iterations = 5;
+
+            var bufferWriter1 = new TestMemoryBufferWriter(segmentSize);
+            var sb = new StringBuilder();
+
+            using (var writer = new Utf8BufferTextWriter())
+            {
+                writer.SetWriter(bufferWriter1);
+
+                for (int i = 0; i < iterations; i++)
+                {
+                    writer.Write('"');
+                    writer.Write(testString);
+                    writer.Write('"');
+
+                    sb.Append('"');
+                    sb.Append(testString);
+                    sb.Append('"');
+                }
+            }
+
+            var expected = sb.ToString();
+
+            var data = bufferWriter1.ToArray();
+            var result = Encoding.UTF8.GetString(data);
+
+            Assert.Equal(expected, result);
+        }
+
         private sealed class TestMemoryBufferWriter : IBufferWriter<byte>
         {
             private readonly int _segmentSize;
