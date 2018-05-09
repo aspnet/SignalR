@@ -301,18 +301,18 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             const string testString = "aいbろcdはにeほfへどghi\uD800\uDC00";
             const int iterations = 5;
 
-            var bufferWriter1 = new TestMemoryBufferWriter(segmentSize);
+            var testBufferWriter = new TestMemoryBufferWriter(segmentSize);
             var sb = new StringBuilder();
 
-            using (var writer = new Utf8BufferTextWriter())
+            using (var textWriter = new Utf8BufferTextWriter())
             {
-                writer.SetWriter(bufferWriter1);
+                textWriter.SetWriter(testBufferWriter);
 
                 for (int i = 0; i < iterations; i++)
                 {
-                    writer.Write('"');
-                    writer.Write(testString);
-                    writer.Write('"');
+                    textWriter.Write('"');
+                    textWriter.Write(testString);
+                    textWriter.Write('"');
 
                     sb.Append('"');
                     sb.Append(testString);
@@ -322,7 +322,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
 
             var expected = sb.ToString();
 
-            var data = bufferWriter1.ToArray();
+            var data = testBufferWriter.ToArray();
             var result = Encoding.UTF8.GetString(data);
 
             Assert.Equal(expected, result);
