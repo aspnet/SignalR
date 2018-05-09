@@ -163,6 +163,7 @@ export class DefaultHttpClient extends HttpClient {
             xhr.open(request.method, request.url, true);
             xhr.withCredentials = true;
             xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+            xhr.setRequestHeader("Content-Type", "text/plain;charset=UTF-8");
 
             if (request.headers) {
                 Object.keys(request.headers)
