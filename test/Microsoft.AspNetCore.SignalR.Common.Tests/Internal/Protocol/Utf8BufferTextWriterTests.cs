@@ -292,14 +292,14 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             Assert.Equal(testString, Encoding.UTF8.GetString(bufferWriter.ToArray()));
         }
 
-        public static IEnumerable<object[]> SegmentSizes => Enumerable.Range(4, 36).Select(segmentSize => new object[] { segmentSize });
+        public static IEnumerable<object[]> SegmentSizes => Enumerable.Range(4, 16).Select(segmentSize => new object[] { segmentSize });
 
         [Theory]
         [MemberData(nameof(SegmentSizes))]
-        public void WriteUnicodeStringAndCharsWithVaringSegmentSizes(int segmentSize)
+        public void WriteUnicodeStringAndCharsWithVaryingSegmentSizes(int segmentSize)
         {
-            const string testString = "aいbろcdはにeほfへどghi\uD800\uDC00";
-            const int iterations = 5;
+            const string testString = "aいbろ";
+            const int iterations = 10;
 
             var testBufferWriter = new TestMemoryBufferWriter(segmentSize);
             var sb = new StringBuilder();
@@ -311,11 +311,15 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                 for (int i = 0; i < iterations; i++)
                 {
                     textWriter.Write('"');
+                    textWriter.Write('い');
                     textWriter.Write(testString);
+                    textWriter.Write('い');
                     textWriter.Write('"');
 
                     sb.Append('"');
+                    sb.Append('い');
                     sb.Append(testString);
+                    sb.Append('い');
                     sb.Append('"');
                 }
             }
