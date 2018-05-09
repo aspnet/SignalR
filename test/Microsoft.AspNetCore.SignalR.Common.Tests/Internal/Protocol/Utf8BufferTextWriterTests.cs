@@ -296,7 +296,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
 
         [Theory]
         [MemberData(nameof(SegmentSizes))]
-        public void WriteUnicodeCombinedStringAndCharsWithVaringSegmentSizes(int segmentSize)
+        public void WriteUnicodeStringAndCharsWithVaringSegmentSizes(int segmentSize)
         {
             const string testString = "aいbろcdはにeほfへどghi\uD800\uDC00";
             const int iterations = 5;
@@ -332,7 +332,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         {
             private readonly int _segmentSize;
 
-            private List<Memory<byte>> _completedSegments = new List<Memory<byte>>();
+            private readonly List<Memory<byte>> _completedSegments = new List<Memory<byte>>();
             private int _totalLength;
 
             public Memory<byte> CurrentSegment { get; private set; }
