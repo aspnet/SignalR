@@ -3,8 +3,8 @@
 
 using System.IO;
 using System.Net;
+using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SignalRSamples.Hubs;
