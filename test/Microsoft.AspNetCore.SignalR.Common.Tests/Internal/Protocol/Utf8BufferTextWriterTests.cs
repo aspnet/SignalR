@@ -292,11 +292,23 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             Assert.Equal(testString, Encoding.UTF8.GetString(bufferWriter.ToArray()));
         }
 
-        public static IEnumerable<object[]> SegmentSizes => Enumerable.Range(4, 16).Select(segmentSize => new object[] { segmentSize });
+        public static IEnumerable<object[]> CharAndSegmentSizes
+        {
+            get
+            {
+                foreach (var singleChar in new [] { '"', 'い' })
+                {
+                    for (int i = 4; i <= 16; i++)
+                    {
+                        yield return new object[] { singleChar, i };
+                    }
+                }
+            }
+        }
 
         [Theory]
-        [MemberData(nameof(SegmentSizes))]
-        public void WriteUnicodeStringAndCharsWithVaryingSegmentSizes(int segmentSize)
+        [MemberData(nameof(CharAndSegmentSizes))]
+        public void WriteUnicodeStringAndCharsWithVaryingSegmentSizes(char singleChar, int segmentSize)
         {
             const string testString = "aいbろ";
             const int iterations = 10;
@@ -310,17 +322,13 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
 
                 for (int i = 0; i < iterations; i++)
                 {
-                    textWriter.Write('"');
-                    textWriter.Write('い');
+                    textWriter.Write(singleChar);
                     textWriter.Write(testString);
-                    textWriter.Write('い');
-                    textWriter.Write('"');
+                    textWriter.Write(singleChar);
 
-                    sb.Append('"');
-                    sb.Append('い');
+                    sb.Append(singleChar);
                     sb.Append(testString);
-                    sb.Append('い');
-                    sb.Append('"');
+                    sb.Append(singleChar);
                 }
             }
 
