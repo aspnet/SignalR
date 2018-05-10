@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.2</TargetFramework>
+    <TargetFramework Condition="'$(BenchmarksTargetFramework)' != ''">$(BenchmarksTargetFramework)</TargetFramework>
     <!-- SignalR is versioned 1.0 alongside the 2.1 version of AspNetCore.All, this converts the .All version to the SignalR version -->
     <MessagePackPackageVersion Condition=" '$(BenchmarksTargetFramework)' != '' ">$([System.String]::Copy($(MicrosoftAspNetCoreAllPackageVersion)).Replace('2.2', '1.1'))</MessagePackPackageVersion>
     <!-- Prevent the SDK from validating the supported tfm. Can be removed when a new SDK supporting netcoreapp2.2 is available. -->
