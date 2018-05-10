@@ -11,7 +11,7 @@ import { HttpTransportType, TransferFormat } from "../src/ITransport";
 import { NullLogger } from "../src/Loggers";
 
 import { TestHttpClient } from "./TestHttpClient";
-import { asyncit as it, PromiseSource } from "./Utils";
+import { PromiseSource } from "./Utils";
 
 const allTransportsNegotiateResponse = {
     availableTransports: [
@@ -37,17 +37,17 @@ describe("HubConnectionBuilder", () => {
     eachMissingValue((val, name) => {
         it(`configureLogging throws if logger is ${name}`, () => {
             const builder = new HubConnectionBuilder();
-            expect(() => builder.configureLogging(val)).toThrow(new Error("The 'logging' argument is required."));
+            expect(() => builder.configureLogging(val)).toThrow("The 'logging' argument is required.");
         });
 
         it(`withUrl throws if url is ${name}`, () => {
             const builder = new HubConnectionBuilder();
-            expect(() => builder.withUrl(val)).toThrow(new Error("The 'url' argument is required."));
+            expect(() => builder.withUrl(val)).toThrow("The 'url' argument is required.");
         });
 
         it(`withHubProtocol throws if protocol is ${name}`, () => {
             const builder = new HubConnectionBuilder();
-            expect(() => builder.withHubProtocol(val)).toThrow(new Error("The 'protocol' argument is required."));
+            expect(() => builder.withHubProtocol(val)).toThrow("The 'protocol' argument is required.");
         });
     });
 
@@ -197,15 +197,15 @@ class TestProtocol implements IHubProtocol {
     public name: string = "test";
     public version: number = 1;
     public transferFormat: TransferFormat = TransferFormat.Text;
-    public parseMessages(input: any, logger: ILogger): HubMessage[] {
+    public parseMessages(input: string | ArrayBuffer, logger: ILogger): HubMessage[] {
         throw new Error("Method not implemented.");
     }
-    public writeMessage(message: HubMessage) {
+    public writeMessage(message: HubMessage): string | ArrayBuffer {
         throw new Error("Method not implemented.");
     }
 }
 
-function createConnectionBuilder(logger?: ILogger | LogLevel): HubConnectionBuilder {
+function createConnectionBuilder(logger?: ILogger): HubConnectionBuilder {
     // We don't want to spam test output with logs. This can be changed as needed
     return new HubConnectionBuilder()
         .configureLogging(logger || NullLogger.instance);

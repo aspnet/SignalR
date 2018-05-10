@@ -32,12 +32,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
 
         public PipeWriter Output => _transport.Output;
 
-        public WebSocketsTransport()
-            : this(null, null)
-        {
-        }
-
-        public WebSocketsTransport(HttpConnectionOptions httpConnectionOptions, ILoggerFactory loggerFactory)
+        public WebSocketsTransport(HttpConnectionOptions httpConnectionOptions, ILoggerFactory loggerFactory, Func<Task<string>> accessTokenProvider)
         {
             _webSocket = new ClientWebSocket();
 
@@ -79,11 +74,6 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
                     _webSocket.Options.UseDefaultCredentials = httpConnectionOptions.UseDefaultCredentials.Value;
                 }
 
-                if (httpConnectionOptions.AccessTokenProvider != null)
-                {
-                    _accessTokenProvider = httpConnectionOptions.AccessTokenProvider;
-                }
-
                 httpConnectionOptions.WebSocketConfiguration?.Invoke(_webSocket.Options);
 
                 _closeTimeout = httpConnectionOptions.CloseTimeout;
@@ -94,6 +84,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
             _webSocket.Options.SetRequestHeader("X-Requested-With", "XMLHttpRequest");
 
             _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<WebSocketsTransport>();
+
+            // Ignore the HttpConnectionOptions access token provider. We were given an updated delegate from the HttpConnection.
+            _accessTokenProvider = accessTokenProvider;
         }
 
         public async Task StartAsync(Uri url, TransferFormat transferFormat)
@@ -116,10 +109,14 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
 
             Log.StartTransport(_logger, transferFormat, resolvedUrl);
 
+            // We don't need to capture to a local because we never change this delegate.
             if (_accessTokenProvider != null)
             {
                 var accessToken = await _accessTokenProvider();
-                _webSocket.Options.SetRequestHeader("Authorization", $"Bearer {accessToken}");
+                if (!string.IsNullOrEmpty(accessToken))
+                {
+                    _webSocket.Options.SetRequestHeader("Authorization", $"Bearer {accessToken}");
+                }
             }
 
             await _webSocket.ConnectAsync(resolvedUrl, CancellationToken.None);
@@ -197,7 +194,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
             {
                 while (true)
                 {
-#if NETCOREAPP2_1
+#if NETCOREAPP2_2
                     var result = await socket.ReceiveAsync(Memory<byte>.Empty, CancellationToken.None);
 
                     if (result.MessageType == WebSocketMessageType.Close)
@@ -213,7 +210,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
                     }
 #endif
                     var memory = _application.Output.GetMemory();
-#if NETCOREAPP2_1
+#if NETCOREAPP2_2
                     // Because we checked the CloseStatus from the 0 byte read above, we don't need to check again after reading
                     var receiveResult = await socket.ReceiveAsync(memory, CancellationToken.None);
 #else
@@ -223,7 +220,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
                     // Exceptions are handled above where the send and receive tasks are being run.
                     var receiveResult = await socket.ReceiveAsync(arraySegment, CancellationToken.None);
 #endif
-                    // Need to check again for NetCoreApp2.1 because a close can happen between a 0-byte read and the actual read
+                    // Need to check again for NetCoreApp2.2 because a close can happen between a 0-byte read and the actual read
                     if (receiveResult.MessageType == WebSocketMessageType.Close)
                     {
                         Log.WebSocketClosed(_logger, _webSocket.CloseStatus);

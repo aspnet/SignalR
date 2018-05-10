@@ -116,9 +116,9 @@ describe("hubConnection", () => {
                     done();
                 });
 
-                const received = [];
+                const received: string[] = [];
                 hubConnection.start().then(() => {
-                    hubConnection.stream("Stream").subscribe({
+                    hubConnection.stream<string>("Stream").subscribe({
                         complete() {
                             expect(received).toEqual(["a", "b", "c"]);
                             hubConnection.stop();
@@ -577,13 +577,8 @@ describe("hubConnection", () => {
                     const hubConnection = getConnectionBuilder(transportType).build();
                     hubConnection.serverTimeoutInMilliseconds = 100;
 
-                    const timeout = setTimeout(200, () => {
-                        fail("Server timeout did not fire within expected interval");
-                    });
-
                     hubConnection.start().then(() => {
                         hubConnection.onclose((error) => {
-                            clearTimeout(timeout);
                             expect(error).toEqual(new Error("Server timeout elapsed without receiving a message from the server."));
                             done();
                         });
@@ -691,7 +686,7 @@ describe("hubConnection", () => {
         }
     });
 
-    function getJwtToken(url): Promise<string> {
+    function getJwtToken(url: string): Promise<string> {
         return new Promise((resolve, reject) => {
             const xhr = new XMLHttpRequest();
 
