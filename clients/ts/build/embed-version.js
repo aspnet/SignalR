@@ -13,7 +13,7 @@ for (let i = 0; i < args.length; i++) {
 }
 
 function processDirectory(dir) {
-    if(verbose) {
+    if (verbose) {
         console.log(`processing ${dir}`);
     }
     for (const item of fs.readdirSync(dir)) {
