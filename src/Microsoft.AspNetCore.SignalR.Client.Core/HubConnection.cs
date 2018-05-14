@@ -179,6 +179,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         public void Off(string methodName)
         {
             CheckDisposed();
+            Log.RemovingHandlers(_logger, methodName);
             _handlers.TryRemove(methodName, out _);
         }
 
