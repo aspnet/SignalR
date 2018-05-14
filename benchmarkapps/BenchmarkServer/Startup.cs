@@ -16,7 +16,7 @@ namespace BenchmarkServer
             {
                 o.EnableDetailedErrors = true;
             })
-                .AddMessagePackProtocol();
+            .AddMessagePackProtocol();
         }
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
