@@ -491,7 +491,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
                 // Mono does not support client certs and will throw NotImplementedException
                 // https://github.com/aspnet/SignalR/issues/2232
                 var clientCertificates = _httpConnectionOptions.ClientCertificates;
-                if (clientCertificates != null && clientCertificates.Count > 0)
+                if (clientCertificates?.Count > 0)
                 {
                     httpClientHandler.ClientCertificates.AddRange(clientCertificates);
                 }
