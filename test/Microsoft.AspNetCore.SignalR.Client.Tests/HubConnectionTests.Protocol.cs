@@ -380,6 +380,40 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             }
 
             [Fact]
+            public async Task HandlerIsRemovedProperlyWithOff()
+            {
+                var connection = new TestConnection();
+                var hubConnection = CreateHubConnection(connection);
+                var handlerCalled = new TaskCompletionSource<int>();
+                try
+                {
+                    await hubConnection.StartAsync().OrTimeout();
+
+                    hubConnection.On<int>("Foo", (val) =>
+                    {
+                        handlerCalled.TrySetResult(val);
+                    });
+
+                    hubConnection.Off("Foo");
+                    await connection.ReceiveJsonMessage(new { invocationId = "1", type = 1, target = "Foo", arguments = 1 }).OrTimeout();
+                    var handlerTask = handlerCalled.Task;
+
+                    // Give the handler task 4 seconds to complete. It shouldn't because we've removed it. 
+                    var completedTask = await Task.WhenAny(Task.Delay(4000), handlerTask).OrTimeout();
+
+                    // Ensure that the task from the WhenAny is not the handler task
+                    Assert.NotEqual(completedTask, handlerTask);
+                    Assert.False(handlerCalled.Task.IsCompleted);
+                }
+                finally
+                {
+                    await hubConnection.DisposeAsync().OrTimeout();
+                    await connection.DisposeAsync().OrTimeout();
+                }
+            }
+
+
+            [Fact]
             public async Task AcceptsPingMessages()
             {
                 var connection = new TestConnection();

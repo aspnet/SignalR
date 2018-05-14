@@ -175,6 +175,12 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             return new Subscription(invocationHandler, invocationList);
         }
+        
+        public void Off(string methodName)
+        {
+            CheckDisposed();
+            _handlers.TryRemove(methodName, out _);
+        }
 
         /// <summary>
         /// Invokes a streaming hub method on the server using the specified method name, return type and arguments.
