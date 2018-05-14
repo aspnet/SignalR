@@ -70,6 +70,7 @@ export class HubConnection {
         this.connectionState = HubConnectionState.Disconnected;
     }
 
+    /** Indicates the state of the {@link HubConnection} to the server. */
     get state(): HubConnectionState {
         return this.connectionState;
     }
