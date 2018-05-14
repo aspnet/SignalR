@@ -325,11 +325,11 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             await ack;
         }
 
-        private async Task RemoveUserAsync(HubConnectionContext connection)
+        private Task RemoveUserAsync(HubConnectionContext connection)
         {
             var userChannel = _channels.User(connection.UserIdentifier);
 
-            await _users.RemoveSubscriptionAsync(userChannel, connection, async channelName =>
+            return _users.RemoveSubscriptionAsync(userChannel, connection, async channelName =>
             {
                 RedisLog.Unsubscribe(_logger, channelName);
                 await _bus.UnsubscribeAsync(channelName);
@@ -431,11 +431,11 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             });
         }
 
-        private async Task SubscribeToUser(HubConnectionContext connection)
+        private Task SubscribeToUser(HubConnectionContext connection)
         {
             var userChannel = _channels.User(connection.UserIdentifier);
 
-            await _users.AddSubscriptionAsync(userChannel, connection, async (channelName, subscriptions) =>
+            return _users.AddSubscriptionAsync(userChannel, connection, async (channelName, subscriptions) =>
             {
                 await _bus.SubscribeAsync(channelName, async (c, data) =>
                 {
