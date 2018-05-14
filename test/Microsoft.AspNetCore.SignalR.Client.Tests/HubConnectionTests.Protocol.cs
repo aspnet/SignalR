@@ -398,11 +398,10 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     await connection.ReceiveJsonMessage(new { invocationId = "1", type = 1, target = "Foo", arguments = 1 }).OrTimeout();
                     var handlerTask = handlerCalled.Task;
 
-                    // Give the handler task 4 seconds to complete. It shouldn't because we've removed it. 
-                    var completedTask = await Task.WhenAny(Task.Delay(4000), handlerTask).OrTimeout();
+                    // We expect the handler task to timeout since the handler has been removed with the call to Off("Foo")
+                    var ex = Assert.ThrowsAsync<TimeoutException>(async () => await handlerTask.OrTimeout(2000));
 
                     // Ensure that the task from the WhenAny is not the handler task
-                    Assert.NotEqual(completedTask, handlerTask);
                     Assert.False(handlerCalled.Task.IsCompleted);
                 }
                 finally
