@@ -22,6 +22,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
         private readonly HubConnectionStore _connections = new HubConnectionStore();
         // TODO: Investigate "memory leak" entries never get removed
         private readonly ConcurrentDictionary<string, GroupData> _groups = new ConcurrentDictionary<string, GroupData>(StringComparer.Ordinal);
+        private readonly ConcurrentDictionary<string, UserData> _users = new ConcurrentDictionary<string, UserData>(StringComparer.Ordinal);
         private IConnectionMultiplexer _redisServerConnection;
         private ISubscriber _bus;
         private readonly ILogger _logger;
@@ -64,7 +65,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
             if (!string.IsNullOrEmpty(connection.UserIdentifier))
             {
-                userTask = SubscribeToUser(connection, redisSubscriptions);
+                userTask = SubscribeToUser(connection);
             }
 
             await Task.WhenAll(connectionTask, userTask);
@@ -100,6 +101,11 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                     // accidentally go to other servers with our remove request.
                     tasks.Add(RemoveGroupAsyncCore(connection, group));
                 }
+            }
+
+            if (!string.IsNullOrEmpty(connection.UserIdentifier))
+            {
+                tasks.Add(RemoveUserAsync(connection));
             }
 
             return Task.WhenAll(tasks);
@@ -365,6 +371,36 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             await ack;
         }
 
+        private async Task RemoveUserAsync(HubConnectionContext connection)
+        {
+            var userChannel = _channels.User(connection.UserIdentifier);
+
+            if (!_users.TryGetValue(connection.UserIdentifier, out var user))
+            {
+                return;
+            }
+
+            await user.Lock.WaitAsync();
+
+            try
+            {
+                if (user.Connections.Count > 0)
+                {
+                    user.Connections.Remove(connection);
+
+                    if (user.Connections.Count == 0)
+                    {
+                        RedisLog.Unsubscribe(_logger, userChannel);
+                        await _bus.UnsubscribeAsync(userChannel);
+                    }
+                }
+            }
+            finally
+            {
+                user.Lock.Release();
+            }
+        }
+
         public void Dispose()
         {
             _bus?.UnsubscribeAll();
@@ -461,17 +497,49 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             });
         }
 
-        private Task SubscribeToUser(HubConnectionContext connection, HashSet<string> redisSubscriptions)
+        private async Task SubscribeToUser(HubConnectionContext connection)
         {
-            var userChannel = _channels.User(connection.UserIdentifier);
-            redisSubscriptions.Add(userChannel);
+            var user = _users.GetOrAdd(connection.UserIdentifier, _ => new UserData());
 
-            // TODO: Look at optimizing (looping over connections checking for Name)
-            return _bus.SubscribeAsync(userChannel, async (c, data) =>
+            await user.Lock.WaitAsync();
+
+            try
             {
-                var invocation = _protocol.ReadInvocation((byte[])data);
-                await connection.WriteAsync(invocation.Message);
-            });
+                user.Connections.Add(connection);
+
+                // Subscribe once
+                if (user.Connections.Count > 1)
+                {
+                    return;
+                }
+
+                var userChannel = _channels.User(connection.UserIdentifier);
+
+                // TODO: Look at optimizing (looping over connections checking for Name)
+                await _bus.SubscribeAsync(userChannel, async (c, data) =>
+                {
+                    try
+                    {
+                        var invocation = _protocol.ReadInvocation((byte[])data);
+
+                        var tasks = new List<Task>();
+                        foreach (var userConnection in user.Connections)
+                        {
+                            tasks.Add(userConnection.WriteAsync(invocation.Message).AsTask());
+                        }
+
+                        await Task.WhenAll(tasks);
+                    }
+                    catch (Exception ex)
+                    {
+                        RedisLog.FailedWritingMessage(_logger, ex);
+                    }
+                });
+            }
+            finally
+            {
+                user.Lock.Release();
+            }
         }
 
         private Task SubscribeToGroup(string groupChannel, GroupData group)
@@ -515,6 +583,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
                         var writer = new LoggerTextWriter(_logger);
                         _redisServerConnection = await _options.ConnectAsync(writer);
                         _bus = _redisServerConnection.GetSubscriber();
+
                         _redisServerConnection.ConnectionRestored += (_, e) =>
                         {
                             // We use the subscription connection type
@@ -590,6 +659,12 @@ namespace Microsoft.AspNetCore.SignalR.Redis
         }
 
         private class GroupData
+        {
+            public readonly SemaphoreSlim Lock = new SemaphoreSlim(1, 1);
+            public readonly HubConnectionStore Connections = new HubConnectionStore();
+        }
+
+        private class UserData
         {
             public readonly SemaphoreSlim Lock = new SemaphoreSlim(1, 1);
             public readonly HubConnectionStore Connections = new HubConnectionStore();
