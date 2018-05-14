@@ -225,7 +225,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             }
 
             [Fact]
-            public async Task StatusIsNotStartedUntilStartAsyncIsFinished()
+            public async Task StatusIsNotConnectedUntilStartAsyncIsFinished()
             {
                 // Set up StartAsync to wait on the syncPoint when starting
                 var testConnection = new TestConnection(onStart: SyncPoint.Create(out var syncPoint));
@@ -249,7 +249,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             }
 
             [Fact]
-            public async Task StatusIsStoppedInCloseEvent()
+            public async Task StatusIsDisconnectedInCloseEvent()
             {
                 var testConnection = new TestConnection();
                 await AsyncUsing(CreateHubConnection(testConnection), async connection =>
