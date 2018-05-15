@@ -394,9 +394,43 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                         handlerCalled.TrySetResult(val);
                     });
 
-                    hubConnection.Remove("Foo");
+                    hubConnection.RemoveHandler("Foo");
                     await connection.ReceiveJsonMessage(new { invocationId = "1", type = 1, target = "Foo", arguments = 1 }).OrTimeout();
                     var handlerTask = handlerCalled.Task;
+
+                    // We expect the handler task to timeout since the handler has been removed with the call to Remove("Foo")
+                    var ex = Assert.ThrowsAsync<TimeoutException>(async () => await handlerTask.OrTimeout(2000));
+
+                    // Ensure that the task from the WhenAny is not the handler task
+                    Assert.False(handlerCalled.Task.IsCompleted);
+                }
+                finally
+                {
+                    await hubConnection.DisposeAsync().OrTimeout();
+                    await connection.DisposeAsync().OrTimeout();
+                }
+            }
+
+            [Fact]
+            public async Task DisposingSubscriptionAfterCallingRemoveHandlerDoesntFail()
+            {
+                var connection = new TestConnection();
+                var hubConnection = CreateHubConnection(connection);
+                var handlerCalled = new TaskCompletionSource<int>();
+                try
+                {
+                    await hubConnection.StartAsync().OrTimeout();
+
+                    var subscription = hubConnection.On<int>("Foo", (val) =>
+                    {
+                        handlerCalled.TrySetResult(val);
+                    });
+
+                    hubConnection.RemoveHandler("Foo");
+                    await connection.ReceiveJsonMessage(new { invocationId = "1", type = 1, target = "Foo", arguments = 1 }).OrTimeout();
+                    var handlerTask = handlerCalled.Task;
+
+                    subscription.Dispose();
 
                     // We expect the handler task to timeout since the handler has been removed with the call to Remove("Foo")
                     var ex = Assert.ThrowsAsync<TimeoutException>(async () => await handlerTask.OrTimeout(2000));
