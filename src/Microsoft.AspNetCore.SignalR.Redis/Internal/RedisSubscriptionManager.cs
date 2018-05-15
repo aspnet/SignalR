@@ -3,79 +3,64 @@
 
 using System;
 using System.Collections.Concurrent;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Microsoft.AspNetCore.SignalR.Redis.Internal
 {
     internal class RedisSubscriptionManager
     {
-        private class SubscriptionData
+        private readonly ConcurrentDictionary<string, HubConnectionStore> _subscriptions = new ConcurrentDictionary<string, HubConnectionStore>(StringComparer.Ordinal);
+        private readonly object _lock = new object();
+
+        public Task AddSubscriptionAsync(string id, HubConnectionContext connection, Func<string, HubConnectionStore, Task> subscribeMethod)
         {
-            public readonly SemaphoreSlim Lock = new SemaphoreSlim(1, 1);
-            public readonly HubConnectionStore Connections = new HubConnectionStore();
-        }
-
-        private readonly ConcurrentDictionary<string, SubscriptionData> _subscriptions = new ConcurrentDictionary<string, SubscriptionData>(StringComparer.Ordinal);
-        private readonly SemaphoreSlim _lock = new SemaphoreSlim(1, 1);
-
-        public async Task AddSubscriptionAsync(string id, HubConnectionContext connection, Func<string, HubConnectionStore, Task> subscribeMethod)
-        {
-            await _lock.WaitAsync();
-
-            try
+            var firstSubscription = false;
+            HubConnectionStore subscription;
+            lock (_lock)
             {
-                var subscription = _subscriptions.GetOrAdd(id, _ => new SubscriptionData());
+                subscription = _subscriptions.GetOrAdd(id, _ => new HubConnectionStore());
 
                 // Subscribe once
                 if (subscription.Connections.Count == 1)
                 {
-                    await subscribeMethod(id, subscription.Connections);
-                }
-                finally
-                {
-                    subscription.Lock.Release();
+                    firstSubscription = true;
                 }
             }
-            finally
+
+            if (firstSubscription)
             {
-                _lock.Release();
+                return subscribeMethod(id, subscription);
             }
+
+            return Task.CompletedTask;
         }
 
-        public async Task RemoveSubscriptionAsync(string id, HubConnectionContext connection, Func<string, Task> unsubscribeMethod)
+        public Task RemoveSubscriptionAsync(string id, HubConnectionContext connection, Func<string, Task> unsubscribeMethod)
         {
-            await _lock.WaitAsync();
+            var removeSubscription = false;
 
-            try
+            lock (_lock)
             {
                 if (!_subscriptions.TryGetValue(id, out var subscription))
                 {
-                    return;
+                    return Task.CompletedTask;
                 }
 
-                await subscription.Lock.WaitAsync();
+                subscription.Remove(connection);
 
-                try
+                if (subscription.Count == 0)
                 {
-                    subscription.Connections.Remove(connection);
-
-                    if (subscription.Connections.Count == 0)
-                    {
-                        await unsubscribeMethod(id);
-
-                        _subscriptions.TryRemove(id, out _);
-                    }
-                }
-                finally
-                {
-                    subscription.Lock.Release();
+                    _subscriptions.TryRemove(id, out _);
+                    removeSubscription = true;
                 }
             }
-            finally
+
+            if (removeSubscription)
             {
-                _lock.Release();
+                return unsubscribeMethod(id);
             }
+
+            return Task.CompletedTask;
         }
     }
 }
