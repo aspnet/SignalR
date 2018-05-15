@@ -53,13 +53,12 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             var feature = new RedisFeature();
             connection.Features.Set<IRedisFeature>(feature);
 
-            var redisSubscriptions = feature.Subscriptions;
             var connectionTask = Task.CompletedTask;
             var userTask = Task.CompletedTask;
 
             _connections.Add(connection);
 
-            connectionTask = SubscribeToConnection(connection, redisSubscriptions);
+            connectionTask = SubscribeToConnection(connection);
 
             if (!string.IsNullOrEmpty(connection.UserIdentifier))
             {
@@ -75,18 +74,11 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
             var tasks = new List<Task>();
 
+            var connectionChannel = _channels.Connection(connection.ConnectionId);
+            RedisLog.Unsubscribe(_logger, connectionChannel);
+            tasks.Add(_bus.UnsubscribeAsync(connectionChannel));
+
             var feature = connection.Features.Get<IRedisFeature>();
-
-            var redisSubscriptions = feature.Subscriptions;
-            if (redisSubscriptions != null)
-            {
-                foreach (var subscription in redisSubscriptions)
-                {
-                    RedisLog.Unsubscribe(_logger, subscription);
-                    tasks.Add(_bus.UnsubscribeAsync(subscription));
-                }
-            }
-
             var groupNames = feature.Groups;
 
             if (groupNames != null)
@@ -427,10 +419,9 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             });
         }
 
-        private Task SubscribeToConnection(HubConnectionContext connection, HashSet<string> redisSubscriptions)
+        private Task SubscribeToConnection(HubConnectionContext connection)
         {
             var connectionChannel = _channels.Connection(connection.ConnectionId);
-            redisSubscriptions.Add(connectionChannel);
 
             RedisLog.Subscribing(_logger, connectionChannel);
             return _bus.SubscribeAsync(connectionChannel, async (c, data) =>
@@ -586,13 +577,11 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
         private interface IRedisFeature
         {
-            HashSet<string> Subscriptions { get; }
             HashSet<string> Groups { get; }
         }
 
         private class RedisFeature : IRedisFeature
         {
-            public HashSet<string> Subscriptions { get; } = new HashSet<string>();
             public HashSet<string> Groups { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         }
     }

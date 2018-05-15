@@ -133,20 +133,20 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             {
                 var protocol = HubProtocolHelpers.GetHubProtocol(protocolName);
 
-                var connection = CreateConnection(_serverFixture.FirstServer.Url + "/echo", transportType, protocol, loggerFactory, userName: "userA");
+                var firstConnection = CreateConnection(_serverFixture.FirstServer.Url + "/echo", transportType, protocol, loggerFactory, userName: "userA");
                 var secondConnection = CreateConnection(_serverFixture.SecondServer.Url + "/echo", transportType, protocol, loggerFactory, userName: "userA");
 
                 var tcs = new TaskCompletionSource<string>();
-                connection.On<string>("Echo", message => tcs.TrySetResult(message));
+                firstConnection.On<string>("Echo", message => tcs.TrySetResult(message));
 
                 await secondConnection.StartAsync().OrTimeout();
-                await connection.StartAsync().OrTimeout();
+                await firstConnection.StartAsync().OrTimeout();
                 await secondConnection.DisposeAsync().OrTimeout();
-                await connection.InvokeAsync("EchoUser", "userA", "Hello, World!").OrTimeout();
+                await firstConnection.InvokeAsync("EchoUser", "userA", "Hello, World!").OrTimeout();
 
                 Assert.Equal("Hello, World!", await tcs.Task.OrTimeout());
 
-                await connection.DisposeAsync().OrTimeout();
+                await firstConnection.DisposeAsync().OrTimeout();
             }
         }
 
