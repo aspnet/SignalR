@@ -21,7 +21,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Internal
                 subscription = _subscriptions.GetOrAdd(id, _ => new HubConnectionStore());
 
                 // Subscribe once
-                if (subscription.Connections.Count == 1)
+                if (subscription.Count == 1)
                 {
                     firstSubscription = true;
                 }
