@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Microsoft.AspNetCore.SignalR.Redis.Internal
@@ -10,42 +11,39 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Internal
     internal class RedisSubscriptionManager
     {
         private readonly ConcurrentDictionary<string, HubConnectionStore> _subscriptions = new ConcurrentDictionary<string, HubConnectionStore>(StringComparer.Ordinal);
-        private readonly object _lock = new object();
+        private readonly SemaphoreSlim _lock = new SemaphoreSlim(1, 1);
 
-        public Task AddSubscriptionAsync(string id, HubConnectionContext connection, Func<string, HubConnectionStore, Task> subscribeMethod)
+        public async Task AddSubscriptionAsync(string id, HubConnectionContext connection, Func<string, HubConnectionStore, Task> subscribeMethod)
         {
-            var firstSubscription = false;
-            HubConnectionStore subscription;
-            lock (_lock)
+            await _lock.WaitAsync();
+
+            try
             {
-                subscription = _subscriptions.GetOrAdd(id, _ => new HubConnectionStore());
+                var subscription = _subscriptions.GetOrAdd(id, _ => new HubConnectionStore());
 
                 subscription.Add(connection);
 
                 // Subscribe once
                 if (subscription.Count == 1)
                 {
-                    firstSubscription = true;
+                    await subscribeMethod(id, subscription);
                 }
             }
-
-            if (firstSubscription)
+            finally
             {
-                return subscribeMethod(id, subscription);
+                _lock.Release();
             }
-
-            return Task.CompletedTask;
         }
 
-        public Task RemoveSubscriptionAsync(string id, HubConnectionContext connection, Func<string, Task> unsubscribeMethod)
+        public async Task RemoveSubscriptionAsync(string id, HubConnectionContext connection, Func<string, Task> unsubscribeMethod)
         {
-            var removeSubscription = false;
+            await _lock.WaitAsync();
 
-            lock (_lock)
+            try
             {
                 if (!_subscriptions.TryGetValue(id, out var subscription))
                 {
-                    return Task.CompletedTask;
+                    return;
                 }
 
                 subscription.Remove(connection);
@@ -53,16 +51,13 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Internal
                 if (subscription.Count == 0)
                 {
                     _subscriptions.TryRemove(id, out _);
-                    removeSubscription = true;
+                    await unsubscribeMethod(id);
                 }
             }
-
-            if (removeSubscription)
+            finally
             {
-                return unsubscribeMethod(id);
+                _lock.Release();
             }
-
-            return Task.CompletedTask;
         }
     }
 }
