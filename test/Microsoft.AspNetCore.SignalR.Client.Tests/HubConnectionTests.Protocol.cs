@@ -394,11 +394,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                         handlerCalled.TrySetResult(val);
                     });
 
-                    hubConnection.Off("Foo");
+                    hubConnection.Remove("Foo");
                     await connection.ReceiveJsonMessage(new { invocationId = "1", type = 1, target = "Foo", arguments = 1 }).OrTimeout();
                     var handlerTask = handlerCalled.Task;
 
-                    // We expect the handler task to timeout since the handler has been removed with the call to Off("Foo")
+                    // We expect the handler task to timeout since the handler has been removed with the call to Remove("Foo")
                     var ex = Assert.ThrowsAsync<TimeoutException>(async () => await handlerTask.OrTimeout(2000));
 
                     // Ensure that the task from the WhenAny is not the handler task

@@ -176,7 +176,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             return new Subscription(invocationHandler, invocationList);
         }
         
-        public void Off(string methodName)
+        public void Remove(string methodName)
         {
             CheckDisposed();
             Log.RemovingHandlers(_logger, methodName);
