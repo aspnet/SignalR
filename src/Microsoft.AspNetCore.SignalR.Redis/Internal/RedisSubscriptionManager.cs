@@ -30,12 +30,10 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Internal
                 subscription.Connections.Add(connection);
 
                 // Subscribe once
-                if (subscription.Connections.Count > 1)
+                if (subscription.Connections.Count == 0)
                 {
-                    return;
+                    await subscribeMethod(id, subscription.Connections);
                 }
-
-                await subscribeMethod(id, subscription.Connections);
             }
             finally
             {
