@@ -394,7 +394,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                         handlerCalled.TrySetResult(val);
                     });
 
-                    hubConnection.RemoveHandler("Foo");
+                    hubConnection.Remove("Foo");
                     await connection.ReceiveJsonMessage(new { invocationId = "1", type = 1, target = "Foo", arguments = 1 }).OrTimeout();
                     var handlerTask = handlerCalled.Task;
 
@@ -426,7 +426,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                         handlerCalled.TrySetResult(val);
                     });
 
-                    hubConnection.RemoveHandler("Foo");
+                    hubConnection.Remove("Foo");
                     await connection.ReceiveJsonMessage(new { invocationId = "1", type = 1, target = "Foo", arguments = 1 }).OrTimeout();
                     var handlerTask = handlerCalled.Task;
 
