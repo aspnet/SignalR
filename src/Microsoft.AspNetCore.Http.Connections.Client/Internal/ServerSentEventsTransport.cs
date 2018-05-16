@@ -81,8 +81,11 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
             _transport = pair.Transport;
             _application = pair.Application;
 
+            // Cancellation token will be triggered when the pipe is stopped on the client.
+            // This is to avoid the client throwing from a 404 response caused by the
+            // server stopping the connection while the send message request is in progress.
             CancellationTokenSource inputCts = new CancellationTokenSource();
-            _application.Input.OnWriterCompleted((exception, o) => { ((CancellationTokenSource)o).Cancel(); }, inputCts);
+            _application.Input.OnWriterCompleted((exception, state) => { ((CancellationTokenSource)state).Cancel(); }, inputCts);
 
             Running = ProcessAsync(url, response, inputCts.Token);
         }
