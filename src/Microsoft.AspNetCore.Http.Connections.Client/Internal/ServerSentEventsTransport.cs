@@ -82,7 +82,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
             _application = pair.Application;
 
             CancellationTokenSource inputCts = new CancellationTokenSource();
-            _application.Input.OnWriterCompleted((exception, o) => { ((CancellationTokenSource)o).Cancel(); },inputCts);
+            _application.Input.OnWriterCompleted((exception, o) => { ((CancellationTokenSource)o).Cancel(); }, inputCts);
 
             Running = ProcessAsync(url, response, inputCts.Token);
         }
