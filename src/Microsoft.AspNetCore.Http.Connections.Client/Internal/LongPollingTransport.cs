@@ -71,7 +71,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
         {
             // Start sending and polling (ask for binary if the server supports it)
             var receiving = Poll(url, _transportCts.Token);
-            var sending = SendUtils.SendMessages(url, _application, _httpClient, _logger);
+            var sending = SendUtils.SendMessages(url, _application, _httpClient, _logger, CancellationToken.None);
 
             // Wait for send or receive to complete
             var trigger = await Task.WhenAny(receiving, sending);
