@@ -5,13 +5,14 @@ using System;
 using System.Net.Http;
 using System.Net.WebSockets;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Xunit.Abstractions;
 
 namespace Microsoft.AspNetCore.SignalR.Tests
 {
-    public class VerifiableServerLoggedTest : VerifiableLoggedTest
+    public class VerifiableServerLoggedTest : VerifiableLoggedTest, IDisposable
     {
         private readonly Func<WriteContext, bool> _globalExpectedErrorsFilter;
 
@@ -53,6 +54,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             var disposable = base.StartVerifiableLog(out loggerFactory, testName, ResolveExpectedErrorsFilter(expectedErrorsFilter));
             return new ServerLogScope(ServerFixture, loggerFactory, disposable);
+        }
+
+        public void Dispose()
+        {
+            // Wait for the server to finish processing any in-progress requests
+            // Prevents server logging from a previous tests from showing up in test logs
+            Thread.Sleep(TimeSpan.FromMilliseconds(100));
         }
     }
 }
