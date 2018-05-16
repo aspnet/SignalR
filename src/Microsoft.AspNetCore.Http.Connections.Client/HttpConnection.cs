@@ -29,7 +29,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
         private static readonly Task<string> _noAccessToken = Task.FromResult<string>(null);
 
         private static readonly TimeSpan HttpClientTimeout = TimeSpan.FromSeconds(120);
-#if !NETCOREAPP2_1
+#if !NETCOREAPP2_2
         private static readonly Version Windows8Version = new Version(6, 2);
 #endif
 
@@ -486,10 +486,16 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
                 {
                     httpClientHandler.CookieContainer = _httpConnectionOptions.Cookies;
                 }
-                if (_httpConnectionOptions.ClientCertificates != null)
+
+                // Only access HttpClientHandler.ClientCertificates if the user has configured client certs
+                // Mono does not support client certs and will throw NotImplementedException
+                // https://github.com/aspnet/SignalR/issues/2232
+                var clientCertificates = _httpConnectionOptions.ClientCertificates;
+                if (clientCertificates?.Count > 0)
                 {
-                    httpClientHandler.ClientCertificates.AddRange(_httpConnectionOptions.ClientCertificates);
+                    httpClientHandler.ClientCertificates.AddRange(clientCertificates);
                 }
+
                 if (_httpConnectionOptions.UseDefaultCredentials != null)
                 {
                     httpClientHandler.UseDefaultCredentials = _httpConnectionOptions.UseDefaultCredentials.Value;
@@ -557,7 +563,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
 
         private static bool IsWebSocketsSupported()
         {
-#if NETCOREAPP2_1
+#if NETCOREAPP2_2
             // .NET Core 2.1 and above has a managed implementation
             return true;
 #else

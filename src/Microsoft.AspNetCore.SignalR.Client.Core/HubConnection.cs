@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Channels;
@@ -56,6 +57,24 @@ namespace Microsoft.AspNetCore.SignalR.Client
         /// </summary>
         public TimeSpan ServerTimeout { get; set; } = DefaultServerTimeout;
         public TimeSpan HandshakeTimeout { get; set; } = DefaultHandshakeTimeout;
+
+        /// <summary>
+        /// Indicates the state of the <see cref="HubConnection"/> to the server.
+        /// </summary>
+        public HubConnectionState State
+        {
+            get
+            {
+                // Copy reference for thread-safety
+                var connectionState = _connectionState;
+                if (connectionState == null || connectionState.Stopped)
+                {
+                    return HubConnectionState.Disconnected;
+                }
+
+                return HubConnectionState.Connected;
+            }
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HubConnection"/> class.
@@ -155,6 +174,16 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 });
 
             return new Subscription(invocationHandler, invocationList);
+        }
+        /// <summary>
+        /// Removes all handlers associated with the method with the specified method name.
+        /// </summary>
+        /// <param name="methodName">The name of the hub method from which handlers are being removed</param>
+        public void Remove(string methodName)
+        {
+            CheckDisposed();
+            Log.RemovingHandlers(_logger, methodName);
+            _handlers.TryRemove(methodName, out _);
         }
 
         /// <summary>
@@ -640,7 +669,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
                                     break;
                                 }
                             }
-                            else if (result.IsCompleted)
+
+                            if (result.IsCompleted)
                             {
                                 // Not enough data, and we won't be getting any more data.
                                 throw new InvalidOperationException(
@@ -717,8 +747,13 @@ namespace Microsoft.AspNetCore.SignalR.Client
                                 break;
                             }
                         }
-                        else if (result.IsCompleted)
+
+                        if (result.IsCompleted)
                         {
+                            if (!buffer.IsEmpty)
+                            {
+                                throw new InvalidDataException("Connection terminated while reading a message.");
+                            }
                             break;
                         }
                     }
@@ -986,6 +1021,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 get => _stopping;
                 set => _stopping = value;
             }
+
+            public bool Stopped => _stopTcs?.Task.Status == TaskStatus.RanToCompletion;
 
             public ConnectionState(ConnectionContext connection, HubConnection hubConnection)
             {

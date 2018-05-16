@@ -1,12 +1,16 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+// Version token that will be replaced by the prepack command
+/** The version of the SignalR client. */
+export const VERSION: string = "0.0.0-DEV_BUILD";
+
 // Everything that users need to access must be exported here. Including interfaces.
 export { AbortSignal } from "./AbortController";
 export { HttpError, TimeoutError } from "./Errors";
 export { DefaultHttpClient, HttpClient, HttpRequest, HttpResponse } from "./HttpClient";
 export { IHttpConnectionOptions } from "./IHttpConnectionOptions";
-export { HubConnection } from "./HubConnection";
+export { HubConnection, HubConnectionState } from "./HubConnection";
 export { HubConnectionBuilder } from "./HubConnectionBuilder";
 export { MessageType, MessageHeaders, HubMessage, HubMessageBase, HubInvocationMessage, InvocationMessage, StreamInvocationMessage, StreamItemMessage, CompletionMessage, PingMessage, CloseMessage, CancelInvocationMessage, IHubProtocol } from "./IHubProtocol";
 export { ILogger, LogLevel } from "./ILogger";

@@ -60,7 +60,7 @@ namespace System.IO.Pipelines
             return WriteCoreAsync(buffer.AsMemory(offset, count), cancellationToken).AsTask();
         }
 
-#if NETCOREAPP2_1
+#if NETCOREAPP2_2
         public override ValueTask WriteAsync(ReadOnlyMemory<byte> source, CancellationToken cancellationToken = default)
         {
             return WriteCoreAsync(source, cancellationToken);
@@ -83,7 +83,16 @@ namespace System.IO.Pipelines
 
             return default;
 
-            async ValueTask WriteSlowAsync(ValueTask<FlushResult> flushTask) => await flushTask;
+            async ValueTask WriteSlowAsync(ValueTask<FlushResult> flushTask)
+            {
+                var flushResult = await flushTask;
+
+                // Cancellation can be triggered by PipeWriter.CancelPendingFlush
+                if (flushResult.IsCanceled)
+                {
+                    throw new OperationCanceledException();
+                }
+            }
         }
 
         public void Reset()
