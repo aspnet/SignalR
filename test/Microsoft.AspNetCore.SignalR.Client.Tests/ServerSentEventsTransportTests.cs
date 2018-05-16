@@ -55,7 +55,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             try
             {
                 using (var httpClient = new HttpClient(mockHttpHandler.Object))
-                using (StartVerifiableLog(out var loggerFactory, nameof(CanStartStopSSETransport)))
+                using (StartVerifiableLog(out var loggerFactory))
                 {
                     var sseTransport = new ServerSentEventsTransport(httpClient, loggerFactory);
                     await sseTransport.StartAsync(
@@ -98,7 +98,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 });
 
             using (var httpClient = new HttpClient(mockHttpHandler.Object))
-            using (StartVerifiableLog(out var loggerFactory, nameof(CanStartStopSSETransport)))
+            using (StartVerifiableLog(out var loggerFactory))
             {
                 var sseTransport = new ServerSentEventsTransport(httpClient, loggerFactory);
 
@@ -146,7 +146,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 });
 
             using (var httpClient = new HttpClient(mockHttpHandler.Object))
-            using (StartVerifiableLog(out var loggerFactory, nameof(CanStartStopSSETransport)))
+            using (StartVerifiableLog(out var loggerFactory))
             {
                 var sseTransport = new ServerSentEventsTransport(httpClient, loggerFactory);
 
@@ -198,7 +198,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 });
 
             using (var httpClient = new HttpClient(mockHttpHandler.Object))
-            using (StartVerifiableLog(out var loggerFactory, nameof(CanStartStopSSETransport), expectedErrorsFilter: ExpectedErrors))
+            using (StartVerifiableLog(out var loggerFactory, expectedErrorsFilter: ExpectedErrors))
             {
                 var sseTransport = new ServerSentEventsTransport(httpClient, loggerFactory);
 
@@ -242,7 +242,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 });
 
             using (var httpClient = new HttpClient(mockHttpHandler.Object))
-            using (StartVerifiableLog(out var loggerFactory, nameof(CanStartStopSSETransport)))
+            using (StartVerifiableLog(out var loggerFactory))
             {
                 var sseTransport = new ServerSentEventsTransport(httpClient, loggerFactory);
 
@@ -269,7 +269,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 });
 
             using (var httpClient = new HttpClient(mockHttpHandler.Object))
-            using (StartVerifiableLog(out var loggerFactory, nameof(CanStartStopSSETransport)))
+            using (StartVerifiableLog(out var loggerFactory))
             {
                 var sseTransport = new ServerSentEventsTransport(httpClient, loggerFactory);
 
@@ -323,7 +323,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 });
 
             using (var httpClient = new HttpClient(mockHttpHandler.Object))
-            using (StartVerifiableLog(out var loggerFactory, nameof(CanStartStopSSETransport)))
+            using (StartVerifiableLog(out var loggerFactory))
             {
                 var sseTransport = new ServerSentEventsTransport(httpClient, loggerFactory);
 
@@ -358,7 +358,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 });
 
             using (var httpClient = new HttpClient(mockHttpHandler.Object))
-            using (StartVerifiableLog(out var loggerFactory, nameof(CanStartStopSSETransport)))
+            using (StartVerifiableLog(out var loggerFactory))
             {
                 var sseTransport = new ServerSentEventsTransport(httpClient, loggerFactory);
 
@@ -383,7 +383,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 });
 
             using (var httpClient = new HttpClient(mockHttpHandler.Object))
-            using (StartVerifiableLog(out var loggerFactory, nameof(CanStartStopSSETransport)))
+            using (StartVerifiableLog(out var loggerFactory, $"{nameof(SSETransportThrowsForInvalidTransferFormat)}_{transferFormat}"))
             {
                 var sseTransport = new ServerSentEventsTransport(httpClient, loggerFactory);
                 var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
