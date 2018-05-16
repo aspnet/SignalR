@@ -21,18 +21,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             ServerFixture = serverFixture;
 
-            _globalExpectedErrorsFilter = (writeContext) =>
-            {
-                // Suppress https://github.com/aspnet/SignalR/issues/2034
-                if (writeContext.LoggerName == "Microsoft.AspNetCore.Http.Connections.Client.Internal.ServerSentEventsTransport" &&
-                    writeContext.Message.StartsWith("Error while sending to") &&
-                    writeContext.Exception is HttpRequestException)
-                {
-                    return true;
-                }
-
-                return false;
-            };
+            // Suppress errors globally here
+            _globalExpectedErrorsFilter = (writeContext) => false;
         }
 
         private Func<WriteContext, bool> ResolveExpectedErrorsFilter(Func<WriteContext, bool> expectedErrorsFilter)
