@@ -58,8 +58,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
         public void Dispose()
         {
-            // Wait for the server to finish processing any in-progress requests
-            // Prevents server logging from a previous tests from showing up in test logs
+            // Unit tests in a fixture reuse the server.
+            // A small delay prevents server logging from a previous tests from showing up in the next test's logs
+            // by giving the server time to finish any in-progress request logic.
             Thread.Sleep(TimeSpan.FromMilliseconds(100));
         }
     }
