@@ -18,7 +18,7 @@ describe("AbortSignal", () => {
     });
 
     describe("onabort", () => {
-        it.only("is called when abort is called", () => {
+        it("is called when abort is called", () => {
             const controller = new AbortController();
             const signal = controller.signal;
             let abortCalled = false;
