@@ -78,7 +78,6 @@ export class LongPollingTransport implements ITransport {
         }
 
         this.receiving = this.poll(this.url, pollOptions);
-        return Promise.resolve();
     }
 
     private updateHeaderToken(request: HttpRequest, token: string) {
@@ -147,9 +146,8 @@ export class LongPollingTransport implements ITransport {
         } finally {
             this.logger.log(LogLevel.Trace, "(LongPolling transport) Polling complete.");
 
-            // We will reach here with pollAborted==false when the server returned a response causing
-            // the transport to close. If pollAborted==true then client initiated the stop
-            // and the stop method will raise the close event.
+            // We will reach here with pollAborted==false when the server returned a response causing the transport to stop.
+            // If pollAborted==true then client initiated the stop and the stop method will raise the close event after DELETE is sent.
             if (!this.pollAborted) {
                 this.raiseOnClose();
             }
@@ -164,7 +162,7 @@ export class LongPollingTransport implements ITransport {
     }
 
     public async stop(): Promise<void> {
-        this.logger.log(LogLevel.Trace, `(LongPolling transport) Stopping polling.`);
+        this.logger.log(LogLevel.Trace, "(LongPolling transport) Stopping polling.");
 
         // Tell receiving loop to stop, abort any current request, and then wait for it to finish
         this.running = false;
@@ -187,6 +185,8 @@ export class LongPollingTransport implements ITransport {
         } finally {
             this.logger.log(LogLevel.Trace, "(LongPolling transport) Stop finished.");
 
+            // Raise close event here instead of in polling
+            // It needs to happen after the DELETE request is sent
             this.raiseOnClose();
         }
     }

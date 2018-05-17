@@ -49,11 +49,10 @@ describe("LongPollingTransport", () => {
                     firstPoll = false;
                     return new HttpResponse(200);
                 } else {
-                    //
+                    // A 204 response will stop of the long polling transport
                     return new HttpResponse(204);
                 }
-            })
-            .on("DELETE", (r) => new HttpResponse(202));
+            });
         const transport = new LongPollingTransport(client, null, NullLogger.instance, false);
 
         const stopPromise = makeClosedPromise(transport);
