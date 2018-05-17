@@ -174,6 +174,14 @@ namespace Microsoft.AspNetCore.SignalR.Client
             private static readonly Action<ILogger, string, Exception> _removingHandlers =
                LoggerMessage.Define<string>(LogLevel.Debug, new EventId(58, "RemovingHandlers"), "Removing handlers for client method '{MethodName}'.");
 
+            private static readonly Action<ILogger, string, Exception> _sendingMessageGeneric =
+                LoggerMessage.Define<string>(LogLevel.Debug, new EventId(59, "SendingMessageGeneric"), "Sending {MessageType} message.");
+
+            private static readonly Action<ILogger, string, Exception> _messageSentGeneric =
+                LoggerMessage.Define<string>(LogLevel.Debug, new EventId(6, "MessageSentGeneric"), "Sending {MessageType} message completed.");
+
+
+
             public static void PreparingNonBlockingInvocation(ILogger logger, string target, int count)
             {
                 _preparingNonBlockingInvocation(logger, target, count, null);
@@ -203,19 +211,33 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 }
             }
 
-            public static void SendingMessage(ILogger logger, HubInvocationMessage message)
+            public static void SendingMessage(ILogger logger, HubMessage message)
             {
                 if (logger.IsEnabled(LogLevel.Debug))
                 {
-                    _sendingMessage(logger, message.GetType().Name, message.InvocationId, null);
+                    if (message is HubInvocationMessage invocationMessage)
+                    {
+                        _sendingMessage(logger, message.GetType().Name, invocationMessage.InvocationId, null);
+                    }
+                    else
+                    {
+                        _sendingMessageGeneric(logger, message.GetType().Name, null);
+                    }
                 }
             }
 
-            public static void MessageSent(ILogger logger, HubInvocationMessage message)
+            public static void MessageSent(ILogger logger, HubMessage message)
             {
                 if (logger.IsEnabled(LogLevel.Debug))
                 {
-                    _messageSent(logger, message.GetType().Name, message.InvocationId, null);
+                    if (message is HubInvocationMessage invocationMessage)
+                    {
+                        _messageSent(logger, message.GetType().Name, invocationMessage.InvocationId, null);
+                    }
+                    else
+                    {
+                        _messageSentGeneric(logger, message.GetType().Name, null);
+                    }
                 }
             }
 

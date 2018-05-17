@@ -565,6 +565,30 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     await connection.DisposeAsync().OrTimeout();
                 }
             }
+
+            [Fact]
+            public async Task ClientPingsOnInterval()
+            {
+                var connection = new TestConnection();
+                var hubConnection = CreateHubConnection(connection);
+
+                hubConnection.PingInterval = TimeSpan.FromMilliseconds(70);
+
+                try
+                {
+                    await hubConnection.StartAsync().OrTimeout();
+                    await Task.Delay(100);
+
+                    var received = await connection.ReadSentTextMessageAsync().OrTimeout();
+                    Assert.Equal("{\"type\":6}", received);
+
+                }
+                finally
+                {
+                    await hubConnection.DisposeAsync().OrTimeout();
+                    await connection.DisposeAsync().OrTimeout();
+                }
+            }
         }
     }
 }

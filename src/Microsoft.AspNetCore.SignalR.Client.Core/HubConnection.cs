@@ -33,6 +33,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
     {
         public static readonly TimeSpan DefaultServerTimeout = TimeSpan.FromSeconds(30); // Server ping rate is 15 sec, this is 2 times that.
         public static readonly TimeSpan DefaultHandshakeTimeout = TimeSpan.FromSeconds(15);
+        public static readonly TimeSpan DefaultPingInterval = TimeSpan.FromSeconds(15);
 
         // This lock protects the connection state.
         private readonly SemaphoreSlim _connectionLock = new SemaphoreSlim(1, 1);
@@ -44,6 +45,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
         private readonly IServiceProvider _serviceProvider;
         private readonly IConnectionFactory _connectionFactory;
         private readonly ConcurrentDictionary<string, InvocationHandlerList> _handlers = new ConcurrentDictionary<string, InvocationHandlerList>(StringComparer.Ordinal);
+        private readonly PeriodicConnectionTimer _timeoutTimer;
+        private readonly PeriodicConnectionTimer _pingTimer;
         private bool _disposed;
 
         // Transient state to a connection
@@ -55,8 +58,18 @@ namespace Microsoft.AspNetCore.SignalR.Client
         /// Gets or sets the server timeout interval for the connection. Changes to this value
         /// will not be applied until the Keep Alive timer is next reset.
         /// </summary>
-        public TimeSpan ServerTimeout { get; set; } = DefaultServerTimeout;
+        public TimeSpan ServerTimeout
+        {
+            get { return _timeoutTimer.Interval; }
+            set { _timeoutTimer.Interval = value; }
+        }
+        public TimeSpan PingInterval
+        {
+            get { return _pingTimer.Interval; }
+            set { _pingTimer.Interval = value; }
+        }
         public TimeSpan HandshakeTimeout { get; set; } = DefaultHandshakeTimeout;
+
 
         /// <summary>
         /// Indicates the state of the <see cref="HubConnection"/> to the server.
@@ -105,6 +118,60 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
             _logger = _loggerFactory.CreateLogger<HubConnection>();
+
+            // closes this class, if it goes `15s` without hearing from server
+            // starts in receive loop
+            _timeoutTimer = new PeriodicConnectionTimer(
+                DefaultServerTimeout,
+                _connectionState,
+                (state) =>
+                {
+                    if (Debugger.IsAttached)
+                    {
+                        return;
+                    }
+
+                    ((ConnectionState)state).CloseException = new TimeoutException(
+                        $"Server timeout ({_timeoutTimer.Interval.TotalMilliseconds:0.00}ms) elapsed without receiving a message from the server.");
+                    ((ConnectionState)state).Connection.Transport.Input.CancelPendingRead();
+                });
+
+            _pingTimer = new PeriodicConnectionTimer(
+                DefaultPingInterval,
+                state: this,
+                async (state) =>
+                {
+                    var hub = (HubConnection)state;
+                    
+                    if (hub._disposed)
+                    {
+                        return;
+                    }
+
+                    if (!hub._connectionLock.Wait(0))
+                    {
+                        // if we can't get the lock, someone else is sending, so we don't need to ping
+                        return;
+                    }
+
+                    // if we got here, we successfully have the lock
+
+
+                    try
+                    {
+                        if (hub._disposed || hub._connectionState == null || hub._connectionState.Stopping)
+                        {
+                            return;
+                        }
+
+                        await hub.SendHubMessage(PingMessage.Instance);
+                    }
+                    finally
+                    {
+                        hub.ReleaseConnectionLock();
+                    }
+                
+                });
         }
 
         /// <summary>
@@ -163,7 +230,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             // It's OK to be disposed while registering a callback, we'll just never call the callback anyway (as with all the callbacks registered before disposal).
             var invocationHandler = new InvocationHandler(parameterTypes, handler, state);
-            var invocationList = _handlers.AddOrUpdate(methodName, _ => new InvocationHandlerList(invocationHandler) ,
+            var invocationList = _handlers.AddOrUpdate(methodName, _ => new InvocationHandlerList(invocationHandler),
                 (_, invocations) =>
                 {
                     lock (invocations)
@@ -175,6 +242,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             return new Subscription(invocationHandler, invocationList);
         }
+
         /// <summary>
         /// Removes all handlers associated with the method with the specified method name.
         /// </summary>
@@ -274,7 +342,9 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 // Set this at the end to avoid setting internal state until the connection is real
                 _connectionState = startingConnectionState;
                 _connectionState.ReceiveTask = ReceiveLoop(_connectionState);
+
                 Log.Started(_logger);
+                _pingTimer.Start();
             }
             finally
             {
@@ -465,7 +535,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
         }
 
-        private async Task SendHubMessage(HubInvocationMessage hubMessage, CancellationToken cancellationToken = default)
+        private async Task SendHubMessage(HubMessage hubMessage, CancellationToken cancellationToken = default)
         {
             AssertConnectionValid();
 
@@ -477,6 +547,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             await _connectionState.Connection.Transport.Output.FlushAsync();
 
             Log.MessageSent(_logger, hubMessage);
+            _pingTimer.Reset();
         }
 
         private async Task SendCoreAsyncCore(string methodName, object[] args, CancellationToken cancellationToken)
@@ -703,7 +774,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             Log.ReceiveLoopStarting(_logger);
 
-            var timeoutTimer = StartTimeoutTimer(connectionState);
+            Log.StartingServerTimeoutTimer(_logger, ServerTimeout);
+            _timeoutTimer.Start();
 
             try
             {
@@ -721,7 +793,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
                         }
                         else if (!buffer.IsEmpty)
                         {
-                            ResetTimeoutTimer(timeoutTimer);
+                            Log.ResettingKeepAliveTimer(_logger);
+                            _timeoutTimer.Reset();
 
                             Log.ProcessingMessage(_logger, buffer.Length);
 
@@ -786,7 +859,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
 
             // Stop the timeout timer.
-            timeoutTimer?.Dispose();
+            // TODO :: Dispose the timer ??
 
             // Dispose the connection
             await CloseAsync(connectionState.Connection);
@@ -827,48 +900,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
             catch (Exception ex)
             {
                 Log.ErrorDuringClosedEvent(_logger, ex);
-            }
-        }
-
-        private void ResetTimeoutTimer(Timer timeoutTimer)
-        {
-            if (timeoutTimer != null)
-            {
-                Log.ResettingKeepAliveTimer(_logger);
-                timeoutTimer.Change(ServerTimeout, Timeout.InfiniteTimeSpan);
-            }
-        }
-
-        private Timer StartTimeoutTimer(ConnectionState connectionState)
-        {
-            // Check if we need keep-alive
-            Timer timeoutTimer = null;
-
-            // We use '!== true' because it could be null, which we treat as false.
-            if (connectionState.Connection.Features.Get<IConnectionInherentKeepAliveFeature>()?.HasInherentKeepAlive != true)
-            {
-                Log.StartingServerTimeoutTimer(_logger, ServerTimeout);
-                timeoutTimer = new Timer(
-                    state => OnTimeout((ConnectionState)state),
-                    connectionState,
-                    dueTime: ServerTimeout,
-                    period: Timeout.InfiniteTimeSpan);
-            }
-            else
-            {
-                Log.NotUsingServerTimeout(_logger);
-            }
-
-            return timeoutTimer;
-        }
-
-        private void OnTimeout(ConnectionState connectionState)
-        {
-            if (!Debugger.IsAttached)
-            {
-                connectionState.CloseException = new TimeoutException(
-                    $"Server timeout ({ServerTimeout.TotalMilliseconds:0.00}ms) elapsed without receiving a message from the server.");
-                connectionState.Connection.Transport.Input.CancelPendingRead();
             }
         }
 
@@ -1151,6 +1182,36 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 }
                 throw new InvalidOperationException($"There are no callbacks registered for the method '{methodName}'");
             }
+        }
+
+        private class PeriodicConnectionTimer
+        {
+            public TimeSpan Interval { get; set; }
+            private Timer _timer;
+            private readonly TimerCallback _onTimeout;
+            private readonly object _state;
+
+            public PeriodicConnectionTimer(TimeSpan interval, object state, TimerCallback onTimeout)
+            {
+                Interval = interval;
+                _onTimeout = onTimeout;
+                _state = state;
+            }
+
+            public void Start()
+            {
+                _timer = new Timer(
+                    _onTimeout,
+                    _state,
+                    dueTime: Interval,
+                    period: Timeout.InfiniteTimeSpan);
+            }
+
+            public void Reset()
+            {
+                _timer.Change(Interval, Timeout.InfiniteTimeSpan);
+            }
+
         }
     }
 }
