@@ -40,6 +40,30 @@ describe("LongPollingTransport", () => {
         await stopPromise;
     });
 
+    it("204 server response stops polling and raises onClose", async () => {
+        let firstPoll = true;
+        let onCloseCalled = false;
+        const client = new TestHttpClient()
+            .on("GET", async (r) => {
+                if (firstPoll) {
+                    firstPoll = false;
+                    return new HttpResponse(200);
+                } else {
+                    //
+                    return new HttpResponse(204);
+                }
+            })
+            .on("DELETE", (r) => new HttpResponse(202));
+        const transport = new LongPollingTransport(client, null, NullLogger.instance, false);
+
+        const stopPromise = makeClosedPromise(transport);
+
+        await transport.connect("http://example.com", TransferFormat.Text);
+
+        // Close will be called on transport because of 204 result from polling
+        await stopPromise;
+    });
+
     it("sends DELETE on stop after polling has finished", async () => {
         let firstPoll = true;
         let deleteSent = false;
@@ -83,5 +107,17 @@ describe("LongPollingTransport", () => {
 
         // Wait for stop to complete
         await stopPromise;
-    });    
+    });
 });
+
+function makeClosedPromise(transport: LongPollingTransport): Promise<void> {
+    const closed = new PromiseSource();
+    transport.onclose = (error) => {
+        if (error) {
+            closed.reject(error);
+        } else {
+            closed.resolve();
+        }
+    };
+    return closed.promise;
+}
