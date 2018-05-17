@@ -54,6 +54,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         public event Func<Exception, Task> Closed;
 
+        internal TimeSpan TickRate { get; set; } = TimeSpan.FromSeconds(1);
+
         /// <summary>
         /// Gets or sets the server timeout interval for the connection. Changes to this value
         /// will not be applied until the Keep Alive timer is next reset.
@@ -128,57 +130,9 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             // closes this class, if it goes `15s` without hearing from server
             // starts in receive loop
-            _timeoutTimer = new PeriodicConnectionTimer(
-                DefaultServerTimeout,
-                _connectionState,
-                (state) =>
-                {
-                    if (Debugger.IsAttached)
-                    {
-                        return;
-                    }
 
-                    ((ConnectionState)state).CloseException = new TimeoutException(
-                        $"Server timeout ({_timeoutTimer.Interval.TotalMilliseconds:0.00}ms) elapsed without receiving a message from the server.");
-                    ((ConnectionState)state).Connection.Transport.Input.CancelPendingRead();
-                });
-
-            _pingTimer = new PeriodicConnectionTimer(
-                DefaultPingInterval,
-                state: this,
-                async (state) =>
-                {
-                    var hub = (HubConnection)state;
-                    
-                    if (hub._disposed)
-                    {
-                        return;
-                    }
-
-                    if (!hub._connectionLock.Wait(0))
-                    {
-                        // if we can't get the lock, someone else is sending, so we don't need to ping
-                        return;
-                    }
-
-                    // if we got here, we successfully have the lock
-
-
-                    try
-                    {
-                        if (hub._disposed || hub._connectionState == null || hub._connectionState.Stopping)
-                        {
-                            return;
-                        }
-
-                        await hub.SendHubMessage(PingMessage.Instance);
-                    }
-                    finally
-                    {
-                        hub.ReleaseConnectionLock();
-                    }
-                
-                });
+            _timeoutTimer = new PeriodicConnectionTimer(DefaultServerTimeout);
+            _pingTimer = new PeriodicConnectionTimer(DefaultPingInterval);
         }
 
         /// <summary>
@@ -351,7 +305,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 _connectionState.ReceiveTask = ReceiveLoop(_connectionState);
 
                 Log.Started(_logger);
-                _pingTimer.Start();
             }
             finally
             {
@@ -553,8 +506,10 @@ namespace Microsoft.AspNetCore.SignalR.Client
             // REVIEW: If a token is passed in and is canceled during FlushAsync it seems to break .Complete()...
             await _connectionState.Connection.Transport.Output.FlushAsync();
 
-            Log.MessageSent(_logger, hubMessage);
+            // we've sent a message, so don't ping for a while
             _pingTimer.Reset();
+
+            Log.MessageSent(_logger, hubMessage);
         }
 
         private async Task SendCoreAsyncCore(string methodName, object[] args, CancellationToken cancellationToken)
@@ -781,8 +736,10 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             Log.ReceiveLoopStarting(_logger);
 
-            Log.StartingServerTimeoutTimer(_logger, ServerTimeout);
-            _timeoutTimer.Start();
+            // performs periodic tasks -- here sending pings and checking timeout
+            // disposed with `timer.Stop()` in the finally block below
+            TimerAwaitable timer = new TimerAwaitable(TickRate, TickRate);
+            _ = TimerLoop(timer);
 
             try
             {
@@ -851,6 +808,10 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 Log.ServerDisconnectedWithError(_logger, ex);
                 connectionState.CloseException = ex;
             }
+            finally
+            {
+                timer.Stop();
+            }
 
             // Clear the connectionState field
             await WaitConnectionLockAsync();
@@ -864,10 +825,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
             {
                 ReleaseConnectionLock();
             }
-
-            // Stop the timeout timer.
-            _pingTimer.Dispose();
-            _timeoutTimer.Dispose();
 
             // Dispose the connection
             await CloseAsync(connectionState.Connection);
@@ -892,6 +849,68 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
                 // Fire-and-forget the closed event
                 _ = RunClosedEvent(closed, connectionState.CloseException);
+            }
+        }
+
+        private async Task TimerLoop(TimerAwaitable timer)
+        {
+            // get them roughly synced
+            timer.Start();
+            _pingTimer.Reset();
+            _timeoutTimer.Reset();
+
+            using (timer)
+            {
+                // await returns True until `timer.Stop()` is called in the `finally` block of `ReceiveLoop`
+                while (await timer)
+                {
+                    if (_timeoutTimer.Ready)
+                    {
+                        OnTimeout();
+                    }
+
+                    if (_pingTimer.Ready)
+                    {
+                        await PingServer();
+                    }
+                }
+            }
+        }
+
+        private void OnTimeout()
+        {
+            if (Debugger.IsAttached)
+            {
+                return;
+            }
+
+            _connectionState.CloseException = new TimeoutException(
+                $"Server timeout ({_timeoutTimer.Interval.TotalMilliseconds:0.00}ms) elapsed without receiving a message from the server.");
+            _connectionState.Connection.Transport.Input.CancelPendingRead();
+        }
+
+        private async Task PingServer()
+        {
+            if (_disposed || !_connectionLock.Wait(0))
+            {
+                // if we're disposed or can't get the lock, we don't need to ping
+                return;
+            }
+
+            // if we got here, we successfully have the lock
+
+            try
+            {
+                if (_disposed || _connectionState == null || _connectionState.Stopping)
+                {
+                    return;
+                }
+
+                await SendHubMessage(PingMessage.Instance);
+            }
+            finally
+            {
+                ReleaseConnectionLock();
             }
         }
 
@@ -1192,38 +1211,23 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
         }
 
-        private class PeriodicConnectionTimer : IDisposable
+        private class PeriodicConnectionTimer
         {
             public TimeSpan Interval { get; set; }
-            private Timer _timer;
-            private readonly TimerCallback _onTimeout;
-            private readonly object _state;
+            public DateTime NextActivation { get; set; }
 
-            public PeriodicConnectionTimer(TimeSpan interval, object state, TimerCallback onTimeout)
+            public Boolean Ready { get => DateTime.Now > NextActivation; }
+
+            public PeriodicConnectionTimer(TimeSpan interval)
             {
                 Interval = interval;
-                _onTimeout = onTimeout;
-                _state = state;
+                Reset();
             }
-
-            public void Start()
-            {
-                _timer = new Timer(
-                    _onTimeout,
-                    _state,
-                    dueTime: Interval,
-                    period: Timeout.InfiniteTimeSpan);
-            }
-
             public void Reset()
             {
-                _timer.Change(Interval, Timeout.InfiniteTimeSpan);
+                NextActivation = DateTime.Now + Interval;
             }
 
-            public void Dispose()
-            {
-                _timer.Dispose();
-            }
         }
     }
 }
