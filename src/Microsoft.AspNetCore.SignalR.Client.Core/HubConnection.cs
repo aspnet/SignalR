@@ -63,6 +63,13 @@ namespace Microsoft.AspNetCore.SignalR.Client
             get { return _timeoutTimer.Interval; }
             set { _timeoutTimer.Interval = value; }
         }
+
+        /// <summary>
+        /// Gets or sets the interval at which the client sends ping messages.
+        /// </summary>
+        /// <remarks>
+        /// Sending any message resets the timer to the start of the interval.
+        /// </remarks>
         public TimeSpan PingInterval
         {
             get { return _pingTimer.Interval; }
@@ -859,7 +866,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
 
             // Stop the timeout timer.
-            // TODO :: Dispose the timer ??
+            _pingTimer.Dispose();
+            _timeoutTimer.Dispose();
 
             // Dispose the connection
             await CloseAsync(connectionState.Connection);
@@ -1184,7 +1192,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
         }
 
-        private class PeriodicConnectionTimer
+        private class PeriodicConnectionTimer : IDisposable
         {
             public TimeSpan Interval { get; set; }
             private Timer _timer;
@@ -1212,6 +1220,10 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 _timer.Change(Interval, Timeout.InfiniteTimeSpan);
             }
 
+            public void Dispose()
+            {
+                _timer.Dispose();
+            }
         }
     }
 }
