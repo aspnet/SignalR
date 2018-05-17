@@ -1215,7 +1215,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
         {
             public TimeSpan Interval { get; set; }
             public DateTime NextActivation { get; set; }
-
             public Boolean Ready { get => DateTime.Now > NextActivation; }
 
             public PeriodicConnectionTimer(TimeSpan interval)
