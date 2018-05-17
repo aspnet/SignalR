@@ -8,8 +8,6 @@ import { ILogger, LogLevel } from "./ILogger";
 import { ITransport, TransferFormat } from "./ITransport";
 import { Arg, getDataDetail, sendMessage } from "./Utils";
 
-const SHUTDOWN_TIMEOUT = 5 * 1000;
-
 // Not exported from 'index', this type is internal.
 export class LongPollingTransport implements ITransport {
     private readonly httpClient: HttpClient;
@@ -20,10 +18,7 @@ export class LongPollingTransport implements ITransport {
     private url: string;
     private pollXhr: XMLHttpRequest;
     private pollAbort: AbortController;
-    private shutdownTimer: any; // We use 'any' because this is an object in NodeJS. But it still gets passed to clearTimeout, so it doesn't really matter
-    private shutdownTimeout: number;
     private running: boolean;
-    private stopped: boolean;
     private receiving: Promise<void>;
 
     // This is an internal type, not exported from 'index' so this is really just internal.
@@ -31,13 +26,12 @@ export class LongPollingTransport implements ITransport {
         return this.pollAbort.aborted;
     }
 
-    constructor(httpClient: HttpClient, accessTokenFactory: () => string | Promise<string>, logger: ILogger, logMessageContent: boolean, shutdownTimeout?: number) {
+    constructor(httpClient: HttpClient, accessTokenFactory: () => string | Promise<string>, logger: ILogger, logMessageContent: boolean) {
         this.httpClient = httpClient;
         this.accessTokenFactory = accessTokenFactory || (() => null);
         this.logger = logger;
         this.pollAbort = new AbortController();
         this.logMessageContent = logMessageContent;
-        this.shutdownTimeout = shutdownTimeout || SHUTDOWN_TIMEOUT;
     }
 
     public async connect(url: string, transferFormat: TransferFormat): Promise<void> {
@@ -152,14 +146,6 @@ export class LongPollingTransport implements ITransport {
                 }
             }
         } finally {
-            // Indicate that we've stopped so the shutdown timer doesn't get registered.
-            this.stopped = true;
-
-            // Clean up the shutdown timer if it was registered
-            if (this.shutdownTimer) {
-                clearTimeout(this.shutdownTimer);
-            }
-
             // Fire our onclosed event
             if (this.onclose) {
                 this.logger.log(LogLevel.Trace, `(LongPolling transport) Firing onclose event. Error: ${closeError || "<undefined>"}`);
@@ -178,36 +164,25 @@ export class LongPollingTransport implements ITransport {
     }
 
     public async stop(): Promise<void> {
-        // Send a DELETE request to stop the poll
-        try {
-            this.logger.log(LogLevel.Trace, `(LongPolling transport) Stopping polling.`);
+        this.logger.log(LogLevel.Trace, `(LongPolling transport) Stopping polling.`);
 
-            // Tell receiving loop to stop and then wait for it to finish
-            this.running = false;
-            await this.receiving;
+        // Tell receiving loop to stop, abort any current request, and then wait for it to finish
+        this.running = false;
+        this.pollAbort.abort();
 
-            // Send DELETE to clean up long polling on the serverprivate receiving: Promise<void>;
-            this.logger.log(LogLevel.Trace, `(LongPolling transport) sending DELETE request to ${this.url}.`);
+        await this.receiving;
 
-            const deleteOptions: HttpRequest = {
-                headers: {},
-            };
-            const token = await this.accessTokenFactory();
-            this.updateHeaderToken(deleteOptions, token);
-            const response = await this.httpClient.delete(this.url, deleteOptions);
+        // Send DELETE to clean up long polling on the server
+        this.logger.log(LogLevel.Trace, `(LongPolling transport) sending DELETE request to ${this.url}.`);
 
-            this.logger.log(LogLevel.Trace, "(LongPolling transport) DELETE request accepted.");
-        } finally {
-            // Abort the poll after the shutdown timeout if the server doesn't stop the poll.
-            if (!this.stopped) {
-                this.shutdownTimer = setTimeout(() => {
-                    this.logger.log(LogLevel.Warning, "(LongPolling transport) server did not terminate after DELETE request, canceling poll.");
+        const deleteOptions: HttpRequest = {
+            headers: {},
+        };
+        const token = await this.accessTokenFactory();
+        this.updateHeaderToken(deleteOptions, token);
+        const response = await this.httpClient.delete(this.url, deleteOptions);
 
-                    // Abort any outstanding poll
-                    this.pollAbort.abort();
-                }, this.shutdownTimeout);
-            }
-        }
+        this.logger.log(LogLevel.Trace, "(LongPolling transport) DELETE request accepted.");
     }
 
     public onreceive: (data: string | ArrayBuffer) => void;
