@@ -1,8 +1,8 @@
 # Debugging/Running Jest Tests
 
-We use [Jest](https://facebook.github.io/jest/) as our JavaScript testing framework.
+We use [Jest](https://facebook.github.io/jest/) as our JavaScript testing framework. We also use [ts-jest](https://github.com/kulshekhar/ts-jest) which builds TypeScript automatically.
 
-Prerequisite: NodeJS, have run `./build.cmd /t:Restore` at least once since cleaning.
+Prerequisites: NodeJS, have run `./build.cmd /t:Restore` at least once since cleaning.
 
 All commands must be run from this directory (the `clients/ts` directory).
 
@@ -92,7 +92,3 @@ You can launch all tests under the debugger in Visual Studio Code by clicking on
 You can launch all tests **in the currently open file** under the debugger in Visual Studio Code by clicking on the "Debug" tab on the left side, selecting "Jest - Current File" in the dropdown at the top and clicking the play button, or pressing F5.
 
 **NOTE**: Pair this with `.only` to easily debug a single test!
-
-## Debugging a single test
-
-Here, you need to actually edit the `launch.json` unfortunately.
