@@ -508,7 +508,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
                     catch (IOException ex)
                     {
                         // Can occur when the HTTP request is canceled by the client
-                        Log.BadHttpRequest(_logger, connection.ConnectionId, ex);
+                        Log.FailedToReadRequestBody(_logger, connection.ConnectionId, ex);
 
                         context.Response.StatusCode = StatusCodes.Status400BadRequest;
                         context.Response.ContentType = "text/plain";

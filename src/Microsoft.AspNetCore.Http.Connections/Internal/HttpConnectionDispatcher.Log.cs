@@ -49,8 +49,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
             private static readonly Action<ILogger, string, Exception> _connectionDisposedWhileWriteInProgress =
                 LoggerMessage.Define<string>(LogLevel.Debug, new EventId(13, "ConnectionDisposedWhileWriteInProgress"), "Connection {TransportConnectionId} was disposed while a write was in progress.");
 
-            private static readonly Action<ILogger, string, Exception> _badHttpRequest =
-                LoggerMessage.Define<string>(LogLevel.Information, new EventId(14, "BadHttpRequest"), "Connection {TransportConnectionId} received a bad HTTP request.");
+            private static readonly Action<ILogger, string, Exception> _failedToReadHttpRequestBody =
+                LoggerMessage.Define<string>(LogLevel.Debug, new EventId(14, "FailedToReadHttpRequestBody"), "Connection {TransportConnectionId} failed to read the HTTP request body.");
 
             public static void ConnectionDisposed(ILogger logger, string connectionId)
             {
@@ -117,9 +117,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
                 _connectionDisposedWhileWriteInProgress(logger, connectionId, ex);
             }
 
-            public static void BadHttpRequest(ILogger logger, string connectionId, Exception ex)
+            public static void FailedToReadHttpRequestBody(ILogger logger, string connectionId, Exception ex)
             {
-                _badHttpRequest(logger, connectionId, ex);
+                _failedToReadHttpRequestBody(logger, connectionId, ex);
             }
         }
     }
