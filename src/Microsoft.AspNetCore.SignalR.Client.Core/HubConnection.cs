@@ -45,8 +45,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
         private readonly IServiceProvider _serviceProvider;
         private readonly IConnectionFactory _connectionFactory;
         private readonly ConcurrentDictionary<string, InvocationHandlerList> _handlers = new ConcurrentDictionary<string, InvocationHandlerList>(StringComparer.Ordinal);
-        private readonly PeriodicConnectionTimer _timeoutTimer;
-        private readonly PeriodicConnectionTimer _pingTimer;
+        private DateTime _nextActivationServerTimeout;
+        private DateTime _nextActivationSendPing;
         private bool _disposed;
 
         // Transient state to a connection
@@ -60,11 +60,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         /// <summary>
         /// Gets or sets the server timeout interval for the connection. 
         /// </summary>
-        public TimeSpan ServerTimeout
-        {
-            get { return _timeoutTimer.Interval; }
-            set { _timeoutTimer.Interval = value; }
-        }
+        public TimeSpan ServerTimeoutInterval { get; set; } = TimeSpan.FromSeconds(15);
 
         /// <summary>
         /// Gets or sets the interval at which the client sends ping messages.
@@ -72,11 +68,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
         /// <remarks>
         /// Sending any message resets the timer to the start of the interval.
         /// </remarks>
-        public TimeSpan PingInterval
-        {
-            get { return _pingTimer.Interval; }
-            set { _pingTimer.Interval = value; }
-        }
+        public TimeSpan SendPingInterval { get; set; } = TimeSpan.FromSeconds(15);
+        
         public TimeSpan HandshakeTimeout { get; set; } = DefaultHandshakeTimeout;
 
         /// <summary>
@@ -126,12 +119,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
             _logger = _loggerFactory.CreateLogger<HubConnection>();
-
-            // closes this class, if it goes `15s` without hearing from server
-            // starts in receive loop
-
-            _timeoutTimer = new PeriodicConnectionTimer(DefaultServerTimeout);
-            _pingTimer = new PeriodicConnectionTimer(DefaultPingInterval);
         }
 
         /// <summary>
@@ -506,7 +493,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             await _connectionState.Connection.Transport.Output.FlushAsync();
 
             // we've sent a message, so don't ping for a while
-            _pingTimer.Reset();
+            _nextActivationSendPing = DateTime.UtcNow + SendPingInterval;
 
             Log.MessageSent(_logger, hubMessage);
         }
@@ -757,7 +744,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                         else if (!buffer.IsEmpty)
                         {
                             Log.ResettingKeepAliveTimer(_logger);
-                            _timeoutTimer.Reset();
+                            _nextActivationServerTimeout = DateTime.UtcNow + ServerTimeoutInterval;
 
                             Log.ProcessingMessage(_logger, buffer.Length);
 
@@ -855,20 +842,21 @@ namespace Microsoft.AspNetCore.SignalR.Client
         {
             // get them roughly synced
             timer.Start();
-            _pingTimer.Reset();
-            _timeoutTimer.Reset();
 
+            _nextActivationSendPing = DateTime.UtcNow + SendPingInterval;
+            _nextActivationServerTimeout = DateTime.UtcNow + ServerTimeoutInterval;
+            
             using (timer)
             {
                 // await returns True until `timer.Stop()` is called in the `finally` block of `ReceiveLoop`
                 while (await timer)
                 {
-                    if (_timeoutTimer.Ready)
+                    if (DateTime.UtcNow > _nextActivationServerTimeout)
                     {
-                        OnTimeout();
+                        OnServerTimeout();
                     }
 
-                    if (_pingTimer.Ready)
+                    if (DateTime.UtcNow > _nextActivationSendPing)
                     {
                         await PingServer();
                     }
@@ -876,7 +864,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
         }
 
-        private void OnTimeout()
+        private void OnServerTimeout()
         {
             if (Debugger.IsAttached)
             {
@@ -884,7 +872,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
 
             _connectionState.CloseException = new TimeoutException(
-                $"Server timeout ({_timeoutTimer.Interval.TotalMilliseconds:0.00}ms) elapsed without receiving a message from the server.");
+                $"Server timeout ({ServerTimeoutInterval.TotalMilliseconds:0.00}ms) elapsed without receiving a message from the server.");
             _connectionState.Connection.Transport.Input.CancelPendingRead();
         }
 
@@ -905,7 +893,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 {
                     return;
                 }
-
                 await SendHubMessage(PingMessage.Instance);
             }
             finally
@@ -1209,41 +1196,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 }
                 throw new InvalidOperationException($"There are no callbacks registered for the method '{methodName}'");
             }
-        }
-
-
-
-        private class PeriodicConnectionTimer
-        {
-
-            public TimeSpan Interval
-            {
-                get { return TimeSpan.FromSeconds((double)_ticksPerInterval / Stopwatch.Frequency); }
-                set { _ticksPerInterval = ((long)value.TotalMilliseconds * Stopwatch.Frequency) / 1000; }
-            }
-            public long PreviousStart { get; set; }
-            public Boolean Ready
-            {
-                get
-                {
-                    var elapsed = Stopwatch.GetTimestamp() - PreviousStart;
-                    return elapsed > _ticksPerInterval;
-                }
-
-            }
-
-            private long _ticksPerInterval;
-
-            public PeriodicConnectionTimer(TimeSpan interval)
-            {
-                Interval = interval;
-                Reset();
-            }
-            public void Reset()
-            {
-                PreviousStart = Stopwatch.GetTimestamp();
-            }
-
         }
     }
 }
