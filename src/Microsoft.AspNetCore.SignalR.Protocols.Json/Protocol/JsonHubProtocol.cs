@@ -629,6 +629,10 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                         // Set all known arguments
                         arguments[paramIndex] = PayloadSerializer.Deserialize(reader, paramTypes[paramIndex]);
                     }
+                    else
+                    {
+                        reader.Skip();
+                    }
 
                     argumentsCount++;
                     paramIndex++;
