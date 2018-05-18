@@ -57,8 +57,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         internal TimeSpan TickRate { get; set; } = TimeSpan.FromSeconds(1);
 
         /// <summary>
-        /// Gets or sets the server timeout interval for the connection. Changes to this value
-        /// will not be applied until the Keep Alive timer is next reset.
+        /// Gets or sets the server timeout interval for the connection. 
         /// </summary>
         public TimeSpan ServerTimeout
         {
@@ -1232,12 +1231,9 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             private long _ticksPerInterval;
 
-            //private long _interval;
-
             public PeriodicConnectionTimer(TimeSpan interval)
             {
                 Interval = interval;
-                _ticksPerInterval = ((long)interval.TotalMilliseconds * Stopwatch.Frequency) / 1000;
                 Reset();
             }
             public void Reset()
