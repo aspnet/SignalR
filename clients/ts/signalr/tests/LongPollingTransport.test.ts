@@ -25,7 +25,8 @@ describe("LongPollingTransport", () => {
 
                     // Signal that the poll has completed.
                     pollCompleted.resolve();
-                    return new HttpResponse(204);
+
+                    return new HttpResponse(200);
                 }
             })
             .on("DELETE", (r) => new HttpResponse(202));
@@ -34,7 +35,6 @@ describe("LongPollingTransport", () => {
         await transport.connect("http://example.com", TransferFormat.Text);
         const stopPromise = transport.stop();
 
-        // This should complete within the shutdown timeout
         await pollCompleted.promise;
 
         await stopPromise;
@@ -49,7 +49,7 @@ describe("LongPollingTransport", () => {
                     firstPoll = false;
                     return new HttpResponse(200);
                 } else {
-                    // A 204 response will stop of the long polling transport
+                    // A 204 response will stop the long polling transport
                     return new HttpResponse(204);
                 }
             });
