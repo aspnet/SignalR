@@ -1213,18 +1213,36 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private class PeriodicConnectionTimer
         {
-            public TimeSpan Interval { get; set; }
-            public DateTime NextActivation { get; set; }
-            public Boolean Ready { get => DateTime.Now > NextActivation; }
+
+            public TimeSpan Interval
+            {
+                get { return TimeSpan.FromSeconds((double)_ticksPerInterval / Stopwatch.Frequency); }
+                set { _ticksPerInterval = ((long)value.TotalMilliseconds * Stopwatch.Frequency) / 1000; }
+            }
+            public long PreviousStart { get; set; }
+            public Boolean Ready
+            {
+                get
+                {
+                    var elapsed = Stopwatch.GetTimestamp() - PreviousStart;
+                    return elapsed > _ticksPerInterval;
+                }
+
+            }
+
+            private long _ticksPerInterval;
+
+            //private long _interval;
 
             public PeriodicConnectionTimer(TimeSpan interval)
             {
                 Interval = interval;
+                _ticksPerInterval = ((long)interval.TotalMilliseconds * Stopwatch.Frequency) / 1000;
                 Reset();
             }
             public void Reset()
             {
-                NextActivation = DateTime.Now + Interval;
+                PreviousStart = Stopwatch.GetTimestamp();
             }
 
         }
