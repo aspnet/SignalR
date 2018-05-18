@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 using StackExchange.Redis;
 
@@ -212,9 +213,20 @@ namespace Microsoft.AspNetCore.SignalR.Tests
     {
         private readonly ConcurrentDictionary<RedisChannel, List<Action<RedisChannel, RedisValue>>> _subscriptions =
             new ConcurrentDictionary<RedisChannel, List<Action<RedisChannel, RedisValue>>>();
+        private readonly int _networkDelay;
+
+        public TestRedisServer(int networkDelay = 0)
+        {
+            _networkDelay = networkDelay;
+        }
 
         public long Publish(RedisChannel channel, RedisValue message, CommandFlags flags = CommandFlags.None)
         {
+            if(_networkDelay > 0)
+            {
+                Thread.Sleep(_networkDelay);
+            }
+
             if (_subscriptions.TryGetValue(channel, out var handlers))
             {
                 foreach (var handler in handlers)
@@ -228,6 +240,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
         public void Subscribe(RedisChannel channel, Action<RedisChannel, RedisValue> handler, CommandFlags flags = CommandFlags.None)
         {
+            if (_networkDelay > 0)
+            {
+                Thread.Sleep(_networkDelay);
+            }
+
             _subscriptions.AddOrUpdate(channel, _ => new List<Action<RedisChannel, RedisValue>> { handler }, (_, list) =>
             {
                 list.Add(handler);
@@ -237,6 +254,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
         public void Unsubscribe(RedisChannel channel, Action<RedisChannel, RedisValue> handler = null, CommandFlags flags = CommandFlags.None)
         {
+            if (_networkDelay > 0)
+            {
+                Thread.Sleep(_networkDelay);
+            }
+
             if (_subscriptions.TryGetValue(channel, out var list))
             {
                 list.Remove(handler);
