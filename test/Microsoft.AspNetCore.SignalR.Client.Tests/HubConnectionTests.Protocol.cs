@@ -567,30 +567,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             }
 
             [Fact]
-            public async Task ClientPingsAutomatically()
-            {
-                var connection = new TestConnection();
-                var hubConnection = CreateHubConnection(connection);
-
-                hubConnection.TickRate = TimeSpan.FromMilliseconds(30);
-                hubConnection.PingInterval = TimeSpan.FromMilliseconds(80);
-
-                try
-                {
-                    await hubConnection.StartAsync().OrTimeout();
-                    await Task.Delay(120);
-
-                    var received = await connection.ReadSentTextMessageAsync().OrTimeout(TimeSpan.FromMilliseconds(100));
-                    Assert.Equal("{\"type\":6}", received);
-                }
-                finally
-                {
-                    await hubConnection.DisposeAsync().OrTimeout();
-                    await connection.DisposeAsync().OrTimeout();
-                }
-            }
-
-            [Fact]
             public async Task ClientPingsMultipleTimes()
             {
                 var connection = new TestConnection();
@@ -602,18 +578,12 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 try
                 {
                     await hubConnection.StartAsync().OrTimeout();
-                    await Task.Delay(220);
 
-                    var firstPing = await connection.ReadSentTextMessageAsync().OrTimeout(TimeSpan.FromMilliseconds(5));
+                    var firstPing = await connection.ReadSentTextMessageAsync().OrTimeout(TimeSpan.FromMilliseconds(120));
                     Assert.Equal("{\"type\":6}", firstPing);
 
-                    var secondPing = await connection.ReadSentTextMessageAsync().OrTimeout(TimeSpan.FromMilliseconds(5));
+                    var secondPing = await connection.ReadSentTextMessageAsync().OrTimeout(TimeSpan.FromMilliseconds(120));
                     Assert.Equal("{\"type\":6}", secondPing);
-                    
-                    // with a 200ms delay, we should have enough time for 2 pings but not 3
-                    await Assert.ThrowsAsync<TimeoutException>( 
-                        async () => await connection.ReadSentTextMessageAsync().OrTimeout(TimeSpan.FromMilliseconds(5))
-                    );
                 }
                 finally
                 {

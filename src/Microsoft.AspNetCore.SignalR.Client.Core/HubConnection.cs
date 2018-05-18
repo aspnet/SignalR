@@ -54,6 +54,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         public event Func<Exception, Task> Closed;
 
+        // internal for testing purposes
         internal TimeSpan TickRate { get; set; } = TimeSpan.FromSeconds(1);
 
         /// <summary>
@@ -77,7 +78,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
             set { _pingTimer.Interval = value; }
         }
         public TimeSpan HandshakeTimeout { get; set; } = DefaultHandshakeTimeout;
-
 
         /// <summary>
         /// Indicates the state of the <see cref="HubConnection"/> to the server.
@@ -737,7 +737,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             // performs periodic tasks -- here sending pings and checking timeout
             // disposed with `timer.Stop()` in the finally block below
-            TimerAwaitable timer = new TimerAwaitable(TickRate, TickRate);
+            var timer = new TimerAwaitable(TickRate, TickRate);
             _ = TimerLoop(timer);
 
             try
@@ -897,6 +897,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
 
             // if we got here, we successfully have the lock
+            // TODO: log that we have aquired the lock
 
             try
             {
@@ -1209,6 +1210,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 throw new InvalidOperationException($"There are no callbacks registered for the method '{methodName}'");
             }
         }
+
+
 
         private class PeriodicConnectionTimer
         {

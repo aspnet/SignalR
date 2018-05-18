@@ -178,9 +178,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 LoggerMessage.Define<string>(LogLevel.Debug, new EventId(59, "SendingMessageGeneric"), "Sending {MessageType} message.");
 
             private static readonly Action<ILogger, string, Exception> _messageSentGeneric =
-                LoggerMessage.Define<string>(LogLevel.Debug, new EventId(6, "MessageSentGeneric"), "Sending {MessageType} message completed.");
-
-
+                LoggerMessage.Define<string>(LogLevel.Debug, new EventId(60, "MessageSentGeneric"), "Sending {MessageType} message completed.");
 
             public static void PreparingNonBlockingInvocation(ILogger logger, string target, int count)
             {
