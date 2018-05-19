@@ -608,36 +608,6 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             return new InvocationMessage(invocationId, target, arguments);
         }
 
-        private bool ReadArgumentAsType(JsonTextReader reader, IReadOnlyList<Type> paramTypes, int paramIndex)
-        {
-            if (paramIndex < paramTypes.Count)
-            {
-                // Explicity read values as dates from JSON with reader.
-                // We do this because otherwise dates are read as strings
-                // and the JsonSerializer will use a conversion method that won't
-                // preserve UTC in DateTime.Kind for UTC ISO8601 dates
-                var paramType = paramTypes[paramIndex];
-                if (paramType == typeof(DateTime) || paramType == typeof(DateTime?))
-                {
-                    reader.ReadAsDateTime();
-                }
-                else if (paramType == typeof(DateTimeOffset) || paramType == typeof(DateTimeOffset?))
-                {
-                    reader.ReadAsDateTimeOffset();
-                }
-                else
-                {
-                    reader.Read();
-                }
-            }
-            else
-            {
-                reader.Read();
-            }
-
-            return reader.TokenType != JsonToken.None;
-        }
-
         private object[] BindArguments(JsonTextReader reader, IReadOnlyList<Type> paramTypes)
         {
             object[] arguments = null;
@@ -645,7 +615,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             var argumentsCount = 0;
             var paramCount = paramTypes.Count;
 
-            while (ReadArgumentAsType(reader, paramTypes, paramIndex))
+            while (reader.Read())
             {
                 if (reader.TokenType == JsonToken.EndArray)
                 {

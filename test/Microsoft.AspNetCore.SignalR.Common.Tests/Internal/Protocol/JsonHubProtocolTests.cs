@@ -250,7 +250,6 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         [InlineData("{'type':4,'invocationId':'42','target':'foo','arguments':[ 'abc', 'xyz']}", "Error binding arguments. Make sure that the types of the provided values match the types of the hub method being invoked.")]
         [InlineData("{'type':1,'invocationId':'42','target':'foo','arguments':[1,'',{'1':1,'2':2}]}", "Invocation provides 3 argument(s) but target expects 2.")]
         [InlineData("{'type':1,'arguments':[1,'',{'1':1,'2':2}]},'invocationId':'42','target':'foo'", "Invocation provides 3 argument(s) but target expects 2.")]
-        [InlineData("{'type':1,'invocationId':'42','target':'foo','arguments':[1,[]]}", "Error binding arguments. Make sure that the types of the provided values match the types of the hub method being invoked.")]
         public void ArgumentBindingErrors(string input, string expectedMessage)
         {
             input = Frame(input);
@@ -261,20 +260,6 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             protocol.TryParseMessage(ref data, binder, out var message);
             var bindingFailure = Assert.IsType<InvocationBindingFailureMessage>(message);
             Assert.Equal(expectedMessage, bindingFailure.BindingFailure.SourceException.Message);
-        }
-
-        [Fact]
-        public void DateTimeArgumentPreservesUtcKind()
-        {
-            var binder = new TestBinder(new[] { typeof(DateTime) });
-            var protocol = new JsonHubProtocol();
-            var data = new ReadOnlySequence<byte>(Encoding.UTF8.GetBytes(Frame("{'type':1,'invocationId':'42','target':'foo','arguments':['2007-03-01T13:00:00Z']}")));
-            protocol.TryParseMessage(ref data, binder, out var message);
-            var invocationMessage = Assert.IsType<InvocationMessage>(message);
-
-            Assert.Single(invocationMessage.Arguments);
-            var dt = Assert.IsType<DateTime>(invocationMessage.Arguments[0]);
-            Assert.Equal(DateTimeKind.Utc, dt.Kind);
         }
 
         [Fact]
