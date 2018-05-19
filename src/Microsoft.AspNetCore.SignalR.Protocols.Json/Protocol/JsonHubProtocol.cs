@@ -182,7 +182,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                                             // If we have an invocation id already we can parse the end result
                                             var returnType = binder.GetReturnType(invocationId);
 
-                                            if (!ReadForType(reader, returnType))
+                                            if (!JsonUtils.ReadForType(reader, returnType))
                                             {
                                                 throw new JsonReaderException("Unexpected end when reading JSON");
                                             }
@@ -605,35 +605,13 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             return new InvocationMessage(invocationId, target, arguments);
         }
 
-        private static bool ReadForType(JsonTextReader reader, Type type)
-        {
-            // Explicity read values as dates from JSON with reader.
-            // We do this because otherwise dates are read as strings
-            // and the JsonSerializer will use a conversion method that won't
-            // preserve UTC in DateTime.Kind for UTC ISO8601 dates
-            if (type == typeof(DateTime) || type == typeof(DateTime?))
-            {
-                reader.ReadAsDateTime();
-            }
-            else if (type == typeof(DateTimeOffset) || type == typeof(DateTimeOffset?))
-            {
-                reader.ReadAsDateTimeOffset();
-            }
-            else
-            {
-                reader.Read();
-            }
-
-            return reader.TokenType != JsonToken.None;
-        }
-
         private bool ReadArgumentAsType(JsonTextReader reader, IReadOnlyList<Type> paramTypes, int paramIndex)
         {
             if (paramIndex < paramTypes.Count)
             {
                 var paramType = paramTypes[paramIndex];
 
-                return ReadForType(reader, paramType);
+                return JsonUtils.ReadForType(reader, paramType);
             }
 
             return reader.Read();
