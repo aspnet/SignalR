@@ -41,6 +41,11 @@ export class HubConnection {
      */
     public serverTimeoutInMilliseconds: number;
 
+    /** Default interval at which to ping the server.
+     *
+     * The default value is 15,000 milliseconds (15 seconds).
+     * Allows the server to detect hard disconnects (like when a client unplugs their computer).
+     */
     public pingIntervalInMilliseconds: number;
 
     /** @internal */
@@ -100,7 +105,7 @@ export class HubConnection {
 
         this.logger.log(LogLevel.Debug, "Sending handshake request.");
 
-        await this.connectionSend(this.handshakeProtocol.writeHandshakeRequest(handshakeRequest));
+        await this.sendMessage(this.handshakeProtocol.writeHandshakeRequest(handshakeRequest));
 
         this.logger.log(LogLevel.Information, `Using HubProtocol '${this.protocol.name}'.`);
 
@@ -140,7 +145,7 @@ export class HubConnection {
 
             delete this.callbacks[invocationDescriptor.invocationId];
 
-            return this.connectionSend(cancelMessage);
+            return this.sendMessage(cancelMessage);
         });
 
         this.callbacks[invocationDescriptor.invocationId] = (invocationEvent: CompletionMessage | StreamItemMessage, error?: Error) => {
@@ -162,7 +167,7 @@ export class HubConnection {
 
         const message = this.protocol.writeMessage(invocationDescriptor);
 
-        this.connectionSend(message)
+        this.sendMessage(message)
             .catch((e) => {
                 subject.error(e);
                 delete this.callbacks[invocationDescriptor.invocationId];
@@ -171,7 +176,7 @@ export class HubConnection {
         return subject;
     }
 
-    private connectionSend(message: any) {
+    private sendMessage(message: any) {
         this.resetPingInterval();
         return this.connection.send(message);
     }
@@ -190,7 +195,7 @@ export class HubConnection {
 
         const message = this.protocol.writeMessage(invocationDescriptor);
 
-        return this.connectionSend(message);
+        return this.sendMessage(message);
     }
 
     /** Invokes a hub method on the server using the specified name and arguments.
@@ -227,7 +232,7 @@ export class HubConnection {
 
             const message = this.protocol.writeMessage(invocationDescriptor);
 
-            this.connectionSend(message)
+            this.sendMessage(message)
                 .catch((e) => {
                     reject(e);
                     delete this.callbacks[invocationDescriptor.invocationId];
@@ -382,7 +387,7 @@ export class HubConnection {
 
     private resetPingInterval() {
         this.cleanupPingTimer();
-        this.pingServerHandle = setTimeout(() => this.connectionSend(this.cachedPingMessage), this.pingIntervalInMilliseconds);
+        this.pingServerHandle = setTimeout(() => this.sendMessage(this.cachedPingMessage), this.pingIntervalInMilliseconds);
     }
 
     private resetTimeoutPeriod() {
