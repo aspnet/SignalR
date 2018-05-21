@@ -744,7 +744,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                         else if (!buffer.IsEmpty)
                         {
                             Log.ResettingKeepAliveTimer(_logger);
-                            _nextActivationServerTimeout = DateTime.UtcNow + ServerTimeoutInterval;
+                            _nextActivationServerTimeout = DateTime.UtcNow + ServerTimeout;
 
                             Log.ProcessingMessage(_logger, buffer.Length);
 
@@ -844,7 +844,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             timer.Start();
 
             _nextActivationSendPing = DateTime.UtcNow + SendPingInterval;
-            _nextActivationServerTimeout = DateTime.UtcNow + ServerTimeoutInterval;
+            _nextActivationServerTimeout = DateTime.UtcNow + ServerTimeout;
             
             using (timer)
             {
@@ -872,7 +872,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
 
             _connectionState.CloseException = new TimeoutException(
-                $"Server timeout ({ServerTimeoutInterval.TotalMilliseconds:0.00}ms) elapsed without receiving a message from the server.");
+                $"Server timeout ({ServerTimeout.TotalMilliseconds:0.00}ms) elapsed without receiving a message from the server.");
             _connectionState.Connection.Transport.Input.CancelPendingRead();
         }
 

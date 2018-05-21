@@ -102,7 +102,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         public async Task ConnectionTerminatedIfServerTimeoutIntervalElapsesWithNoMessages()
         {
             var hubConnection = CreateHubConnection(new TestConnection());
-            hubConnection.ServerTimeoutInterval = TimeSpan.FromMilliseconds(100);
+            hubConnection.ServerTimeout = TimeSpan.FromMilliseconds(100);
 
             var closeTcs = new TaskCompletionSource<Exception>();
             hubConnection.Closed += ex =>
@@ -129,7 +129,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             using (StartVerifiableLog(out var loggerFactory, LogLevel.Trace, expectedErrorsFilter: ExpectedErrors))
             {
                 var hubConnection = CreateHubConnection(new TestConnection(), loggerFactory: loggerFactory);
-                hubConnection.ServerTimeoutInterval = TimeSpan.FromMilliseconds(2000);
+                hubConnection.ServerTimeout = TimeSpan.FromMilliseconds(2000);
 
                 await hubConnection.StartAsync().OrTimeout();
 
