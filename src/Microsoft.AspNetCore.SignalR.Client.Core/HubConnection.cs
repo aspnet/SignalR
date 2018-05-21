@@ -481,7 +481,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
         }
 
-        private async Task SendHubMessage(HubMessage hubMessage, CancellationToken cancellationToken = default)
+        internal async Task SendHubMessage(HubMessage hubMessage, CancellationToken cancellationToken = default)
         {
             AssertConnectionValid();
 
@@ -885,7 +885,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
 
             // if we got here, we successfully have the lock
-            // TODO: log that we have aquired the lock
+            // TODO: log lock larceny
 
             try
             {

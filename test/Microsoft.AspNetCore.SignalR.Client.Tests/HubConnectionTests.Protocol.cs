@@ -591,6 +591,39 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     await connection.DisposeAsync().OrTimeout();
                 }
             }
+
+            [Fact]
+            public async Task ClientPingsStopIfSendingOtherMessages()
+            {
+                var connection = new TestConnection();
+                var hubConnection = CreateHubConnection(connection);
+
+                hubConnection.TickRate = TimeSpan.FromMilliseconds(30);
+                hubConnection.SendPingInterval = TimeSpan.FromMilliseconds(80);
+
+                try
+                {
+                    await hubConnection.StartAsync().OrTimeout();
+
+                    for (int i = 0; i < 15; i++)
+                    {
+                        await hubConnection.SendAsync("big oof");
+                        await Task.Delay(10);
+                    }
+
+                    await hubConnection.StopAsync();
+
+                    foreach (var message in await connection.ReadAllSentMessagesAsync())
+                    {
+                        Assert.NotEqual("{\"type\":6}", message);
+                    }
+                }
+                finally
+                {
+                    await hubConnection.DisposeAsync().OrTimeout();
+                    await connection.DisposeAsync().OrTimeout();
+                }
+            }
         }
     }
 }

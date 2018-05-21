@@ -136,7 +136,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     }
                     else if (result.IsCompleted)
                     {
-                        throw new InvalidOperationException("Out of data!");
+                        return null;
                     }
                 }
                 finally
@@ -144,6 +144,28 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     Application.Input.AdvanceTo(consumed);
                 }
             }
+        }
+
+        public async Task<IList<string>> ReadAllSentMessagesAsync()
+        {
+            if (!_disposed.Task.IsCompleted)
+            {
+                throw new InvalidOperationException("The connection must be stopped before this method can be used.");
+            }
+
+            var results = new List<string>();
+
+            while (true)
+            {
+                var message = await ReadSentTextMessageAsync();
+                if (message == null)
+                {
+                    break;
+                }
+                results.Add(message);
+            }
+
+            return results;
         }
 
         public void CompleteFromTransport(Exception ex = null)

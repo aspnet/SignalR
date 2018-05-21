@@ -7,19 +7,20 @@ import { CancelInvocationMessage, CompletionMessage, IHubProtocol, InvocationMes
 import { ILogger, LogLevel } from "./ILogger";
 import { IStreamResult } from "./Stream";
 import { Arg, Subject } from "./Utils";
+import { TextMessageFormat } from "./TextMessageFormat";
 
 const DEFAULT_TIMEOUT_IN_MS: number = 30 * 1000;
+const DEFAULT_PING_INTERVAL_IN_MS: number = 15 * 1000;
 
 /** Describes the current state of the {@link HubConnection} to the server. */
 export enum HubConnectionState {
-    /** The hub connection is disconnected. */
     Disconnected,
-    /** The hub connection is connected. */
     Connected,
 }
 
 /** Represents a connection to a SignalR Hub. */
 export class HubConnection {
+    private readonly cachedPingMessage: string | ArrayBuffer;
     private readonly connection: IConnection;
     private readonly logger: ILogger;
     private protocol: IHubProtocol;
@@ -29,6 +30,7 @@ export class HubConnection {
     private id: number;
     private closedCallbacks: Array<(error?: Error) => void>;
     private timeoutHandle: NodeJS.Timer;
+    private pingServerHandle: NodeJS.Timer;
     private receivedHandshakeResponse: boolean;
     private connectionState: HubConnectionState;
 
@@ -38,6 +40,8 @@ export class HubConnection {
      * The default timeout value is 30,000 milliseconds (30 seconds).
      */
     public serverTimeoutInMilliseconds: number;
+
+    public pingIntervalInMilliseconds: number;
 
     /** @internal */
     // Using a public static factory method means we can have a private constructor and an _internal_
@@ -54,6 +58,7 @@ export class HubConnection {
         Arg.isRequired(protocol, "protocol");
 
         this.serverTimeoutInMilliseconds = DEFAULT_TIMEOUT_IN_MS;
+        this.pingIntervalInMilliseconds = DEFAULT_PING_INTERVAL_IN_MS;
 
         this.logger = logger;
         this.protocol = protocol;
@@ -68,6 +73,8 @@ export class HubConnection {
         this.closedCallbacks = [];
         this.id = 0;
         this.connectionState = HubConnectionState.Disconnected;
+
+        this.cachedPingMessage = this.protocol.writeMessage({ type: MessageType.Ping, });
     }
 
     /** Indicates the state of the {@link HubConnection} to the server. */
@@ -93,13 +100,14 @@ export class HubConnection {
 
         this.logger.log(LogLevel.Debug, "Sending handshake request.");
 
-        await this.connection.send(this.handshakeProtocol.writeHandshakeRequest(handshakeRequest));
+        await this.connectionSend(this.handshakeProtocol.writeHandshakeRequest(handshakeRequest));
 
         this.logger.log(LogLevel.Information, `Using HubProtocol '${this.protocol.name}'.`);
 
         // defensively cleanup timeout in case we receive a message from the server before we finish start
         this.cleanupTimeout();
-        this.configureTimeout();
+        this.resetTimeoutPeriod();
+        this.resetPingInterval();
 
         this.connectionState = HubConnectionState.Connected;
     }
@@ -112,6 +120,7 @@ export class HubConnection {
         this.logger.log(LogLevel.Debug, "Stopping HubConnection.");
 
         this.cleanupTimeout();
+        this.cleanupPingTimer();
         return this.connection.stop();
     }
 
@@ -131,7 +140,7 @@ export class HubConnection {
 
             delete this.callbacks[invocationDescriptor.invocationId];
 
-            return this.connection.send(cancelMessage);
+            return this.connectionSend(cancelMessage);
         });
 
         this.callbacks[invocationDescriptor.invocationId] = (invocationEvent: CompletionMessage | StreamItemMessage, error?: Error) => {
@@ -153,13 +162,18 @@ export class HubConnection {
 
         const message = this.protocol.writeMessage(invocationDescriptor);
 
-        this.connection.send(message)
+        this.connectionSend(message)
             .catch((e) => {
                 subject.error(e);
                 delete this.callbacks[invocationDescriptor.invocationId];
             });
 
         return subject;
+    }
+
+    private connectionSend(message: any) {
+        this.resetPingInterval();
+        return this.connection.send(message);
     }
 
     /** Invokes a hub method on the server using the specified name and arguments. Does not wait for a response from the receiver.
@@ -176,7 +190,7 @@ export class HubConnection {
 
         const message = this.protocol.writeMessage(invocationDescriptor);
 
-        return this.connection.send(message);
+        return this.connectionSend(message);
     }
 
     /** Invokes a hub method on the server using the specified name and arguments.
@@ -213,7 +227,7 @@ export class HubConnection {
 
             const message = this.protocol.writeMessage(invocationDescriptor);
 
-            this.connection.send(message)
+            this.connectionSend(message)
                 .catch((e) => {
                     reject(e);
                     delete this.callbacks[invocationDescriptor.invocationId];
@@ -297,6 +311,7 @@ export class HubConnection {
 
     private processIncomingData(data: any) {
         this.cleanupTimeout();
+        this.cleanupPingTimer();
 
         if (!this.receivedHandshakeResponse) {
             data = this.processHandshakeResponse(data);
@@ -337,7 +352,7 @@ export class HubConnection {
             }
         }
 
-        this.configureTimeout();
+        this.resetTimeoutPeriod();
     }
 
     private processHandshakeResponse(data: any): any {
@@ -364,8 +379,13 @@ export class HubConnection {
 
         return remainingData;
     }
+    
+    private resetPingInterval() {
+        this.cleanupPingTimer();
+        this.pingServerHandle = setTimeout(() => this.connectionSend(this.cachedPingMessage), this.pingIntervalInMilliseconds);
+    }
 
-    private configureTimeout() {
+    private resetTimeoutPeriod() {
         if (!this.connection.features || !this.connection.features.inherentKeepAlive) {
             // Set the timeout timer
             this.timeoutHandle = setTimeout(() => this.serverTimeout(), this.serverTimeoutInMilliseconds);
@@ -406,8 +426,15 @@ export class HubConnection {
             });
 
         this.cleanupTimeout();
+        this.cleanupPingTimer();
 
         this.closedCallbacks.forEach((c) => c.apply(this, [error]));
+    }
+
+    private cleanupPingTimer(): void {
+        if (this.pingServerHandle) {
+            clearTimeout(this.pingServerHandle);
+        }
     }
 
     private cleanupTimeout(): void {

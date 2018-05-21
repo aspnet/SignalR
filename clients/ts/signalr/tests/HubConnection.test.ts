@@ -48,6 +48,46 @@ describe("HubConnection", () => {
         });
     });
 
+    describe("ping", () => {
+        it("automatically sends multiple pings", async () => {
+            const connection = new TestConnection();
+            const hubConnection = createHubConnection(connection);
+    
+            hubConnection.pingIntervalInMilliseconds = 60;
+    
+            try {
+                await hubConnection.start();
+                await delay(150);
+    
+                var numPings = connection.sentData.filter(s => JSON.parse(s).type==MessageType.Ping).length;
+                expect(numPings).toBeGreaterThanOrEqual(2); 
+            } finally {
+                await hubConnection.stop();
+            }
+        });
+
+        it("doesn't ping while sending other messages", async () => {
+            const connection = new TestConnection();
+            const hubConnection = createHubConnection(connection);
+
+            hubConnection.pingIntervalInMilliseconds = 60;
+
+            try {
+                await hubConnection.start();
+
+                for (var i=0; i<15; i++) {
+                    hubConnection.send("some message");
+                    await delay(10);
+                }
+
+                var numPings = connection.sentData.filter(s => JSON.parse(s).type==MessageType.Ping).length;
+                expect(numPings).toBe(0);
+            } finally {
+                await hubConnection.stop();
+            }
+        });
+    });
+
     describe("stop", () => {
         it("state disconnected", async () => {
             const connection = new TestConnection();
