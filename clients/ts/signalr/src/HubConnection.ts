@@ -6,8 +6,8 @@ import { IConnection } from "./IConnection";
 import { CancelInvocationMessage, CompletionMessage, IHubProtocol, InvocationMessage, MessageType, StreamInvocationMessage, StreamItemMessage } from "./IHubProtocol";
 import { ILogger, LogLevel } from "./ILogger";
 import { IStreamResult } from "./Stream";
-import { Arg, Subject } from "./Utils";
 import { TextMessageFormat } from "./TextMessageFormat";
+import { Arg, Subject } from "./Utils";
 
 const DEFAULT_TIMEOUT_IN_MS: number = 30 * 1000;
 const DEFAULT_PING_INTERVAL_IN_MS: number = 15 * 1000;
@@ -74,7 +74,7 @@ export class HubConnection {
         this.id = 0;
         this.connectionState = HubConnectionState.Disconnected;
 
-        this.cachedPingMessage = this.protocol.writeMessage({ type: MessageType.Ping, });
+        this.cachedPingMessage = this.protocol.writeMessage({ type: MessageType.Ping });
     }
 
     /** Indicates the state of the {@link HubConnection} to the server. */
@@ -379,7 +379,7 @@ export class HubConnection {
 
         return remainingData;
     }
-    
+
     private resetPingInterval() {
         this.cleanupPingTimer();
         this.pingServerHandle = setTimeout(() => this.connectionSend(this.cachedPingMessage), this.pingIntervalInMilliseconds);
