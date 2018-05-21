@@ -60,7 +60,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         /// <summary>
         /// Gets or sets the server timeout interval for the connection. 
         /// </summary>
-        public TimeSpan ServerTimeoutInterval { get; set; } = TimeSpan.FromSeconds(15);
+        public TimeSpan ServerTimeout { get; set; } = TimeSpan.FromSeconds(15);
 
         /// <summary>
         /// Gets or sets the interval at which the client sends ping messages.
