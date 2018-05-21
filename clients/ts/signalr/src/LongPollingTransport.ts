@@ -193,7 +193,11 @@ export class LongPollingTransport implements ITransport {
 
     private raiseOnClose() {
         if (this.onclose) {
-            this.logger.log(LogLevel.Trace, `(LongPolling transport) Firing onclose event. Error: ${this.closeError || "<undefined>"}`);
+            let logMessage = "(LongPolling transport) Firing onclose event.";
+            if (this.closeError) {
+                logMessage += " Error: " + this.closeError;
+            }
+            this.logger.log(LogLevel.Trace, logMessage);
             this.onclose(this.closeError);
         }
     }
