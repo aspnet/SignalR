@@ -387,6 +387,7 @@ namespace Microsoft.AspNetCore.SignalR
                                         Features.Get<IConnectionHeartbeatFeature>()?.OnHeartbeat(state => ((HubConnectionContext)state).KeepAliveTick(), this);
                                     }
 
+                                    // only assign this if the 
                                     Features.Get<IConnectionHeartbeatFeature>()?.OnHeartbeat(state => ((HubConnectionContext)state).CheckClientTimeout(), this);
 
                                     Log.HandshakeComplete(_logger, Protocol.Name);
@@ -454,10 +455,8 @@ namespace Microsoft.AspNetCore.SignalR
 
         private void CheckClientTimeout()
         {
-            var currentTime = DateTime.UtcNow.Ticks;
-
             // if it's been too long since we've heard from the client, then close this
-            if (currentTime - Interlocked.Read(ref _lastReceivedTimestamp) > _clientTimeoutInterval.Ticks)
+            if (DateTime.UtcNow.Ticks - Interlocked.Read(ref _lastReceivedTimestamp) > _clientTimeoutInterval.Ticks)
             {
                 Abort();
             }
