@@ -14,6 +14,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         internal static TimeSpan DefaultKeepAliveInterval => TimeSpan.FromSeconds(15);
 
+        public static TimeSpan DefaultClientTimeoutInterval => TimeSpan.FromSeconds(15);
+
         private readonly List<string> _protocols = new List<string>();
 
         public HubOptionsSetup(IEnumerable<IHubProtocol> protocols)

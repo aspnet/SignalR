@@ -2020,6 +2020,51 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Fact]
+        public async Task ClientConnectionTimeoutsIfNoMessagesReceived()
+        {
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(services =>
+                services.Configure<HubOptions>(options =>
+                   options.ClientTimeoutInterval = TimeSpan.FromMilliseconds(100)));
+            var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
+
+            using (var client = new TestClient(new JsonHubProtocol()))
+            {
+                var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
+                await client.Connected.OrTimeout();
+
+                await Task.Delay(120);
+                client.TickHeartbeat();
+
+                await connectionHandlerTask.OrTimeout(100);
+            }
+        }
+
+        [Fact]
+        public async Task ReceivingMessagesPreventsConnectionTimeoutFromOccuring()
+        {
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(services =>
+                services.Configure<HubOptions>(options =>
+                     options.ClientTimeoutInterval = TimeSpan.FromMilliseconds(100)));
+            var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
+
+            using (var client = new TestClient(new JsonHubProtocol()))
+            {
+                var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
+                await client.Connected.OrTimeout();
+
+                for (int i = 0; i < 5; i++)
+                {
+                    await Task.Delay(20);
+                    client.TickHeartbeat();
+                    await client.SendHubMessageAsync(PingMessage.Instance);
+                }
+
+                await Assert.ThrowsAsync<TimeoutException>(() => connectionHandlerTask.OrTimeout(50));
+                
+            }
+        }
+
+        [Fact]
         public async Task EndingConnectionSendsCloseMessageWithNoError()
         {
             var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();

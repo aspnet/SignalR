@@ -28,24 +28,28 @@ namespace Microsoft.AspNetCore.SignalR
         private readonly ILogger _logger;
         private readonly CancellationTokenSource _connectionAbortedTokenSource = new CancellationTokenSource();
         private readonly TaskCompletionSource<object> _abortCompletedTcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
-        private readonly long _keepAliveDuration;
+        private readonly TimeSpan _keepAliveInterval;
+        private readonly TimeSpan _clientTimeoutInterval;
         private readonly SemaphoreSlim _writeLock = new SemaphoreSlim(1);
 
-        private long _lastSendTimestamp = Stopwatch.GetTimestamp();
+        private long _lastSendTimestamp = DateTime.UtcNow.Ticks;
+        private long _lastReceivedTimestamp = DateTime.UtcNow.Ticks;
         private ReadOnlyMemory<byte> _cachedPingMessage;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HubConnectionContext"/> class.
         /// </summary>
         /// <param name="connectionContext">The underlying <see cref="ConnectionContext"/>.</param>
-        /// <param name="keepAliveInterval">The keep alive interval.</param>
+        /// <param name="keepAliveInterval">How often this client is pinged.</param>
         /// <param name="loggerFactory">The logger factory.</param>
-        public HubConnectionContext(ConnectionContext connectionContext, TimeSpan keepAliveInterval, ILoggerFactory loggerFactory)
+        /// <param name="clientTimeoutInterval">Clients we haven't heard from in this interval are assumed to have disconnected.</param>
+        public HubConnectionContext(ConnectionContext connectionContext, TimeSpan keepAliveInterval, ILoggerFactory loggerFactory, TimeSpan? clientTimeoutInterval = null)
         {
             _connectionContext = connectionContext;
             _logger = loggerFactory.CreateLogger<HubConnectionContext>();
             ConnectionAborted = _connectionAbortedTokenSource.Token;
-            _keepAliveDuration = (int)keepAliveInterval.TotalMilliseconds * (Stopwatch.Frequency / 1000);
+            _keepAliveInterval = keepAliveInterval;
+            _clientTimeoutInterval = clientTimeoutInterval ?? HubOptionsSetup.DefaultClientTimeoutInterval;
         }
 
         /// <summary>
@@ -383,6 +387,8 @@ namespace Microsoft.AspNetCore.SignalR
                                         Features.Get<IConnectionHeartbeatFeature>()?.OnHeartbeat(state => ((HubConnectionContext)state).KeepAliveTick(), this);
                                     }
 
+                                    Features.Get<IConnectionHeartbeatFeature>()?.OnHeartbeat(state => ((HubConnectionContext)state).CheckClientTimeout(), this);
+
                                     Log.HandshakeComplete(_logger, Protocol.Name);
                                     await WriteHandshakeResponseAsync(HandshakeResponseMessage.Empty);
                                     return true;
@@ -428,13 +434,13 @@ namespace Microsoft.AspNetCore.SignalR
 
         private void KeepAliveTick()
         {
-            var timestamp = Stopwatch.GetTimestamp();
+            var currentTime = DateTime.UtcNow.Ticks;
             // Implements the keep-alive tick behavior
             // Each tick, we check if the time since the last send is larger than the keep alive duration (in ticks).
             // If it is, we send a ping frame, if not, we no-op on this tick. This means that in the worst case, the
             // true "ping rate" of the server could be (_hubOptions.KeepAliveInterval + HubEndPoint.KeepAliveTimerInterval),
             // because if the interval elapses right after the last tick of this timer, it won't be detected until the next tick.
-            if (timestamp - Interlocked.Read(ref _lastSendTimestamp) > _keepAliveDuration)
+            if (currentTime - Interlocked.Read(ref _lastSendTimestamp) > _keepAliveInterval.Ticks)
             {
                 // Haven't sent a message for the entire keep-alive duration, so send a ping.
                 // If the transport channel is full, this will fail, but that's OK because
@@ -442,8 +448,24 @@ namespace Microsoft.AspNetCore.SignalR
                 // transport is still in the process of sending frames.
                 _ = TryWritePingAsync();
 
-                Interlocked.Exchange(ref _lastSendTimestamp, timestamp);
+                Interlocked.Exchange(ref _lastSendTimestamp, currentTime);
             }
+        }
+
+        private void CheckClientTimeout()
+        {
+            var currentTime = DateTime.UtcNow.Ticks;
+
+            // if it's been too long since we've heard from the client, then close this
+            if (currentTime - Interlocked.Read(ref _lastReceivedTimestamp) > _clientTimeoutInterval.Ticks)
+            {
+                Abort();
+            }
+        }
+
+        public void ResetClientTimeout()
+        {
+            _lastReceivedTimestamp = DateTime.UtcNow.Ticks;
         }
 
         private static void AbortConnection(object state)
