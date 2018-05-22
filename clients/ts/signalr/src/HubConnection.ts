@@ -316,7 +316,6 @@ export class HubConnection {
 
     private processIncomingData(data: any) {
         this.cleanupTimeout();
-        this.cleanupPingTimer();
 
         if (!this.receivedHandshakeResponse) {
             data = this.processHandshakeResponse(data);

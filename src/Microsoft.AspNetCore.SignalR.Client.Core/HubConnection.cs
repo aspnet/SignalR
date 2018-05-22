@@ -840,9 +840,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private async Task TimerLoop(TimerAwaitable timer)
         {
-            // get them roughly synced
+            // initialize the timers
             timer.Start();
-
             _nextActivationSendPing = DateTime.UtcNow + SendPingInterval;
             _nextActivationServerTimeout = DateTime.UtcNow + ServerTimeout;
             
