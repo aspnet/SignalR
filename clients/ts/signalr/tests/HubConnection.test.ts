@@ -53,11 +53,11 @@ describe("HubConnection", () => {
             const connection = new TestConnection();
             const hubConnection = createHubConnection(connection);
 
-            hubConnection.pingIntervalInMilliseconds = 60;
+            hubConnection.pingIntervalInMilliseconds = 150;
 
             try {
                 await hubConnection.start();
-                await delay(150);
+                await delay(322);
 
                 const numPings = connection.sentData.filter((s) => JSON.parse(s).type === MessageType.Ping).length;
                 expect(numPings).toBeGreaterThanOrEqual(2);
@@ -70,12 +70,12 @@ describe("HubConnection", () => {
             const connection = new TestConnection();
             const hubConnection = createHubConnection(connection);
 
-            hubConnection.pingIntervalInMilliseconds = 60;
+            hubConnection.pingIntervalInMilliseconds = 150;
 
             try {
                 await hubConnection.start();
 
-                for (let i = 0; i < 15; i++) {
+                for (let i = 0; i < 30; i++) {
                     hubConnection.send("some message");
                     await delay(10);
                 }

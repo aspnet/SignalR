@@ -34,6 +34,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         public static readonly TimeSpan DefaultServerTimeout = TimeSpan.FromSeconds(30); // Server ping rate is 15 sec, this is 2 times that.
         public static readonly TimeSpan DefaultHandshakeTimeout = TimeSpan.FromSeconds(15);
         public static readonly TimeSpan DefaultPingInterval = TimeSpan.FromSeconds(15);
+        public static readonly TimeSpan DefaultTickRate = TimeSpan.FromSeconds(1);
 
         // This lock protects the connection state.
         private readonly SemaphoreSlim _connectionLock = new SemaphoreSlim(1, 1);
@@ -55,12 +56,15 @@ namespace Microsoft.AspNetCore.SignalR.Client
         public event Func<Exception, Task> Closed;
 
         // internal for testing purposes
-        internal TimeSpan TickRate { get; set; } = TimeSpan.FromSeconds(1);
+        internal TimeSpan TickRate { get; set; } = DefaultTickRate;
 
         /// <summary>
         /// Gets or sets the server timeout interval for the connection. 
         /// </summary>
-        public TimeSpan ServerTimeout { get; set; } = TimeSpan.FromSeconds(15);
+        /// <remarks>
+        /// The client times out if it hasn't heard from the server for `this` long.
+        /// </remarks>
+        public TimeSpan ServerTimeout { get; set; } = DefaultServerTimeout;
 
         /// <summary>
         /// Gets or sets the interval at which the client sends ping messages.
@@ -68,8 +72,11 @@ namespace Microsoft.AspNetCore.SignalR.Client
         /// <remarks>
         /// Sending any message resets the timer to the start of the interval.
         /// </remarks>
-        public TimeSpan SendPingInterval { get; set; } = TimeSpan.FromSeconds(15);
+        public TimeSpan SendPingInterval { get; set; } = DefaultPingInterval;
         
+        /// <summary>
+        /// Gets or sets the timeout for the initial handshake.
+        /// </summary>
         public TimeSpan HandshakeTimeout { get; set; } = DefaultHandshakeTimeout;
 
         /// <summary>
@@ -492,7 +499,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             // REVIEW: If a token is passed in and is canceled during FlushAsync it seems to break .Complete()...
             await _connectionState.Connection.Transport.Output.FlushAsync();
 
-            // we've sent a message, so don't ping for a while
+            // We've sent a message, so don't ping for a while
             _nextActivationSendPing = DateTime.UtcNow + SendPingInterval;
 
             Log.MessageSent(_logger, hubMessage);
@@ -722,8 +729,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             Log.ReceiveLoopStarting(_logger);
 
-            // performs periodic tasks -- here sending pings and checking timeout
-            // disposed with `timer.Stop()` in the finally block below
+            // Performs periodic tasks -- here sending pings and checking timeout
+            // Disposed with `timer.Stop()` in the finally block below
             var timer = new TimerAwaitable(TickRate, TickRate);
             _ = TimerLoop(timer);
 
@@ -879,12 +886,11 @@ namespace Microsoft.AspNetCore.SignalR.Client
         {
             if (_disposed || !_connectionLock.Wait(0))
             {
-                // if we're disposed or can't get the lock, we don't need to ping
+                Log.UnableToAcquireConnectionLockForPing(_logger);
                 return;
             }
 
-            // if we got here, we successfully have the lock
-            // TODO: log lock larceny
+            Log.AcquiredConnectionLockForPing(_logger);
 
             try
             {

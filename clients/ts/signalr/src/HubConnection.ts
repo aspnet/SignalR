@@ -14,7 +14,9 @@ const DEFAULT_PING_INTERVAL_IN_MS: number = 15 * 1000;
 
 /** Describes the current state of the {@link HubConnection} to the server. */
 export enum HubConnectionState {
+    /** The hub connection is disconnected. */
     Disconnected,
+    /** The hub connection is connected. */
     Connected,
 }
 
