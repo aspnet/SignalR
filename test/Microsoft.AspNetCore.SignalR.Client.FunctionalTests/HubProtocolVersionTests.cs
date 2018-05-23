@@ -12,8 +12,10 @@ using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.Http.Connections.Client;
 using Microsoft.AspNetCore.SignalR.Protocol;
 using Microsoft.AspNetCore.SignalR.Tests;
+using Microsoft.AspNetCore.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 using Xunit;
@@ -76,7 +78,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 var connectionBuilder = new HubConnectionBuilder()
                     .WithLoggerFactory(loggerFactory)
                     .WithUrl(ServerFixture.Url + "/version", transportType);
-                connectionBuilder.Services.AddSingleton<IHubProtocol>(new VersionedJsonHubProtocol());
+                connectionBuilder.Services.AddSingleton<IHubProtocol>(new VersionedJsonHubProtocol(1000));
 
                 var connection = connectionBuilder.Build();
 
@@ -117,7 +119,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
                 var connectionBuilder = new HubConnectionBuilder()
                     .WithLoggerFactory(loggerFactory);
-                connectionBuilder.Services.AddSingleton<IHubProtocol>(new VersionedJsonHubProtocol());
+                connectionBuilder.Services.AddSingleton<IHubProtocol>(new VersionedJsonHubProtocol(1000));
                 connectionBuilder.Services.AddSingleton<IConnectionFactory>(proxyConnectionFactory);
 
                 var connection = connectionBuilder.Build();
@@ -131,7 +133,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                     await connection.StartAsync().OrTimeout();
 
                     // Task should already have been awaited in StartAsync
-                    var connectionContext = await proxyConnectionFactory._connectTask;
+                    var connectionContext = await proxyConnectionFactory.ConnectTask;
 
                     // Simulate a new call from the client
                     JObject messageToken = new JObject
@@ -157,10 +159,46 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             }
         }
 
+        [Theory]
+        [MemberData(nameof(TransportTypes))]
+        public async Task ClientWithUnsupportedProtocolVersionDoesNotConnect(HttpTransportType transportType)
+        {
+            bool ExpectedErrors(WriteContext writeContext)
+            {
+                return writeContext.LoggerName == typeof(HubConnection).FullName;
+            }
+
+            using (StartVerifiableLog(out var loggerFactory, $"{nameof(ClientUsingOldCallWithNewProtocol)}_{transportType}", expectedErrorsFilter: ExpectedErrors))
+            {
+                var connectionBuilder = new HubConnectionBuilder()
+                    .WithLoggerFactory(loggerFactory)
+                    .WithUrl(ServerFixture.Url + "/version", transportType);
+                connectionBuilder.Services.AddSingleton<IHubProtocol>(new VersionedJsonHubProtocol(int.MaxValue));
+
+                var connection = connectionBuilder.Build();
+
+                try
+                {
+                    await ExceptionAssert.ThrowsAsync<HubException>(
+                        () => connection.StartAsync(),
+                        "Unable to complete handshake with the server due to an error: The server does not support version 2147483647 of the 'json' protocol.").OrTimeout();
+                }
+                catch (Exception ex)
+                {
+                    loggerFactory.CreateLogger<HubConnectionTests>().LogError(ex, "{ExceptionType} from test", ex.GetType().FullName);
+                    throw;
+                }
+                finally
+                {
+                    await connection.DisposeAsync().OrTimeout();
+                }
+            }
+        }
+
         private class ProxyConnectionFactory : IConnectionFactory
         {
             private readonly IConnectionFactory _innerFactory;
-            internal Task<ConnectionContext> _connectTask;
+            public Task<ConnectionContext> ConnectTask { get; private set; }
 
             public ProxyConnectionFactory(IConnectionFactory innerFactory)
             {
@@ -169,8 +207,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
             public Task<ConnectionContext> ConnectAsync(TransferFormat transferFormat, CancellationToken cancellationToken = default)
             {
-                _connectTask = _innerFactory.ConnectAsync(transferFormat, cancellationToken);
-                return _connectTask;
+                ConnectTask = _innerFactory.ConnectAsync(transferFormat, cancellationToken);
+                return ConnectTask;
             }
 
             public Task DisposeAsync(ConnectionContext connection)

@@ -13,15 +13,17 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 {
     public class VersionedJsonHubProtocol : IHubProtocol
     {
+        private readonly int _version;
         private readonly JsonHubProtocol _innerProtocol;
 
-        public VersionedJsonHubProtocol()
+        public VersionedJsonHubProtocol(int version)
         {
+            _version = version;
             _innerProtocol = new JsonHubProtocol();
         }
 
         public string Name => _innerProtocol.Name;
-        public int Version => int.MaxValue;
+        public int Version => _version;
         public TransferFormat TransferFormat => _innerProtocol.TransferFormat;
 
         public bool TryParseMessage(ref ReadOnlySequence<byte> input, IInvocationBinder binder, out HubMessage message)
@@ -77,7 +79,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         public bool IsVersionSupported(int version)
         {
             // Support older clients
-            return version <= Version;
+            return version <= _version;
         }
     }
 }

@@ -26,7 +26,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             });
 
             services.RemoveAll<IHubProtocol>();
-            services.TryAddEnumerable(ServiceDescriptor.Singleton<IHubProtocol, VersionedJsonHubProtocol>());
+            services.TryAddEnumerable(ServiceDescriptor.Singleton<IHubProtocol>(new VersionedJsonHubProtocol(1000)));
 
             services.AddAuthentication();
         }
