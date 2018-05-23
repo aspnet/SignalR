@@ -2020,7 +2020,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Fact]
-        public async Task ConnectionNotTimedOutIfItNeverPings()
+        public async Task ConnectionNotTimedOutIfClientNeverPings()
         {
             var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(services =>
                 services.Configure<HubOptions>(options =>
@@ -2031,6 +2031,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
                 await client.Connected.OrTimeout();
+                // This is a fake client -- it doesn't auto-ping to signal
 
                 await Task.Delay(120);
                 client.TickHeartbeat();

@@ -116,9 +116,23 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         {
             return Application.Output.WriteAsync(bytes).AsTask();
         }
-        public async Task<string> ReadSentTextMessageAsync()
+        public async Task<string> ReadSentTextMessageAsync(bool ignorePings=true)
         {
             // Read a single text message from the Application Input pipe
+
+            while (true)
+            {
+                var result = await ReadSentTextMessageAsyncInner();
+                if (ignorePings && result == "{\"type\":6}")
+                {
+                    continue;
+                }
+                return result;
+            }
+        }
+        
+        private async Task<string> ReadSentTextMessageAsyncInner()
+        {
             while (true)
             {
                 var result = await Application.Input.ReadAsync();
@@ -144,7 +158,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             }
         }
 
-        public async Task<IList<string>> ReadAllSentMessagesAsync()
+        public async Task<IList<string>> ReadAllSentMessagesAsync(bool ignorePings=true)
         {
             if (!Disposed.IsCompleted)
             {
@@ -155,7 +169,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
             while (true)
             {
-                var message = await ReadSentTextMessageAsync();
+                var message = await ReadSentTextMessageAsync(ignorePings);
                 if (message == null)
                 {
                     break;
