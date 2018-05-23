@@ -25,7 +25,10 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 options.EnableDetailedErrors = true;
             });
 
+            services.RemoveAll<IHubProtocol>();
             services.TryAddEnumerable(ServiceDescriptor.Singleton<IHubProtocol, VersionedJsonHubProtocol>());
+
+            services.AddAuthentication();
         }
 
         public void Configure(IApplicationBuilder app)
