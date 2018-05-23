@@ -599,17 +599,17 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 var connection = new TestConnection();
                 var hubConnection = CreateHubConnection(connection);
 
-                hubConnection.TickRate = TimeSpan.FromMilliseconds(25);
-                hubConnection.PingInterval = TimeSpan.FromMilliseconds(120);
+                hubConnection.TickRate = TimeSpan.FromMilliseconds(30);
+                hubConnection.PingInterval = TimeSpan.FromMilliseconds(200);
 
                 try
                 {
                     await hubConnection.StartAsync().OrTimeout();
 
-                    for (int i = 0; i < 15; i++)
+                    for (int i = 0; i < 8; i++)
                     {
-                        await hubConnection.SendAsync("big oof");
-                        await Task.Delay(10);
+                        await hubConnection.SendAsync("oof");
+                        await Task.Delay(50);
                     }
 
                     await hubConnection.StopAsync();
