@@ -46,8 +46,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
         private readonly IServiceProvider _serviceProvider;
         private readonly IConnectionFactory _connectionFactory;
         private readonly ConcurrentDictionary<string, InvocationHandlerList> _handlers = new ConcurrentDictionary<string, InvocationHandlerList>(StringComparer.Ordinal);
-        private DateTime _nextActivationServerTimeout;
-        private DateTime _nextActivationSendPing;
+        private long _nextActivationServerTimeout;
+        private long _nextActivationSendPing;
         private bool _disposed;
 
         // Transient state to a connection
@@ -500,7 +500,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             await _connectionState.Connection.Transport.Output.FlushAsync();
 
             // We've sent a message, so don't ping for a while
-            _nextActivationSendPing = DateTime.UtcNow + PingInterval;
+            ResetSendPing();
 
             Log.MessageSent(_logger, hubMessage);
         }
@@ -751,7 +751,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                         else if (!buffer.IsEmpty)
                         {
                             Log.ResettingKeepAliveTimer(_logger);
-                            _nextActivationServerTimeout = DateTime.UtcNow + ServerTimeout;
+                            ResetTimeout();
 
                             Log.ProcessingMessage(_logger, buffer.Length);
 
@@ -845,24 +845,34 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
         }
 
+        public void ResetSendPing()
+        {
+            Volatile.Write(ref _nextActivationSendPing, (DateTime.UtcNow + PingInterval).Ticks);
+        }
+
+        public void ResetTimeout()
+        {
+            Volatile.Write(ref _nextActivationServerTimeout, (DateTime.UtcNow + ServerTimeout).Ticks);
+        }
+
         private async Task TimerLoop(TimerAwaitable timer)
         {
             // initialize the timers
             timer.Start();
-            _nextActivationSendPing = DateTime.UtcNow + PingInterval;
-            _nextActivationServerTimeout = DateTime.UtcNow + ServerTimeout;
+            ResetSendPing();
+            ResetTimeout();
             
             using (timer)
             {
                 // await returns True until `timer.Stop()` is called in the `finally` block of `ReceiveLoop`
                 while (await timer)
                 {
-                    if (DateTime.UtcNow > _nextActivationServerTimeout)
+                    if (DateTime.UtcNow.Ticks > Volatile.Read(ref _nextActivationServerTimeout))
                     {
                         OnServerTimeout();
                     }
 
-                    if (DateTime.UtcNow > _nextActivationSendPing)
+                    if (DateTime.UtcNow.Ticks > Volatile.Read(ref _nextActivationSendPing))
                     {
                         await PingServer();
                     }

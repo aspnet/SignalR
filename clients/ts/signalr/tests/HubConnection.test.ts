@@ -65,27 +65,6 @@ describe("HubConnection", () => {
                 await hubConnection.stop();
             }
         });
-
-        it("doesn't ping while sending other messages", async () => {
-            const connection = new TestConnection();
-            const hubConnection = createHubConnection(connection);
-
-            hubConnection.pingIntervalInMilliseconds = 150;
-
-            try {
-                await hubConnection.start();
-
-                for (let i = 0; i < 30; i++) {
-                    await hubConnection.send("some message");
-                    await delay(10);
-                }
-
-                const numPings = connection.sentData.filter((s) => JSON.parse(s).type === MessageType.Ping).length;
-                expect(numPings).toBe(0);
-            } finally {
-                await hubConnection.stop();
-            }
-        });
     });
 
     describe("stop", () => {
