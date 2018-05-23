@@ -24,7 +24,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         private readonly TaskCompletionSource<object> _disposed = new TaskCompletionSource<object>();
 
         private int _disposeCount = 0;
-
         public Task Started => _started.Task;
         public Task Disposed => _disposed.Task;
 
@@ -117,7 +116,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         {
             return Application.Output.WriteAsync(bytes).AsTask();
         }
-
         public async Task<string> ReadSentTextMessageAsync()
         {
             // Read a single text message from the Application Input pipe

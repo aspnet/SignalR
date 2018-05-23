@@ -76,7 +76,7 @@ describe("HubConnection", () => {
                 await hubConnection.start();
 
                 for (let i = 0; i < 30; i++) {
-                    hubConnection.send("some message");
+                    await hubConnection.send("some message");
                     await delay(10);
                 }
 

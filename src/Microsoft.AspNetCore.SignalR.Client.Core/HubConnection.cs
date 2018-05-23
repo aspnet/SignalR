@@ -72,7 +72,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         /// <remarks>
         /// Sending any message resets the timer to the start of the interval.
         /// </remarks>
-        public TimeSpan SendPingInterval { get; set; } = DefaultPingInterval;
+        public TimeSpan PingInterval { get; set; } = DefaultPingInterval;
         
         /// <summary>
         /// Gets or sets the timeout for the initial handshake.
@@ -488,7 +488,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
         }
 
-        internal async Task SendHubMessage(HubMessage hubMessage, CancellationToken cancellationToken = default)
+        private async Task SendHubMessage(HubMessage hubMessage, CancellationToken cancellationToken = default)
         {
             AssertConnectionValid();
 
@@ -500,7 +500,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             await _connectionState.Connection.Transport.Output.FlushAsync();
 
             // We've sent a message, so don't ping for a while
-            _nextActivationSendPing = DateTime.UtcNow + SendPingInterval;
+            _nextActivationSendPing = DateTime.UtcNow + PingInterval;
 
             Log.MessageSent(_logger, hubMessage);
         }
@@ -849,7 +849,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         {
             // initialize the timers
             timer.Start();
-            _nextActivationSendPing = DateTime.UtcNow + SendPingInterval;
+            _nextActivationSendPing = DateTime.UtcNow + PingInterval;
             _nextActivationServerTimeout = DateTime.UtcNow + ServerTimeout;
             
             using (timer)
