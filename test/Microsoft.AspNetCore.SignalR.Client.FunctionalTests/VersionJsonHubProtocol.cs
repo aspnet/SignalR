@@ -35,7 +35,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 return false;
             }
 
-            // Handle "new" calls
+            // Handle "new" call
             var json = Encoding.UTF8.GetString(payload.ToArray());
             var o = JObject.Parse(json);
             if ((int)o["type"] == int.MaxValue)
@@ -44,7 +44,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 return true;
             }
 
-            // Handle "old" call
+            // Handle "old" calls
             var result = _innerProtocol.TryParseMessage(ref inputCopy, binder, out message);
             input = inputCopy;
             return result;
