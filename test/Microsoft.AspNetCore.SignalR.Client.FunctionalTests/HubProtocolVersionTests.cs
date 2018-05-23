@@ -100,28 +100,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             }
         }
 
-        public class ProxyConnectionFactory : IConnectionFactory
-        {
-            private readonly IConnectionFactory _innerFactory;
-            internal Task<ConnectionContext> _connectTask;
-
-            public ProxyConnectionFactory(IConnectionFactory innerFactory)
-            {
-                _innerFactory = innerFactory;
-            }
-
-            public Task<ConnectionContext> ConnectAsync(TransferFormat transferFormat, CancellationToken cancellationToken = default)
-            {
-                _connectTask = _innerFactory.ConnectAsync(transferFormat, cancellationToken);
-                return _connectTask;
-            }
-
-            public Task DisposeAsync(ConnectionContext connection)
-            {
-                return _innerFactory.DisposeAsync(connection);
-            }
-        }
-
         [Theory]
         [MemberData(nameof(TransportTypes))]
         public async Task ClientUsingNewCallWithNewProtocol(HttpTransportType transportType)
@@ -155,6 +133,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                     // Task should already have been awaited in StartAsync
                     var connectionContext = await proxyConnectionFactory._connectTask;
 
+                    // Simulate a new call from the client
                     JObject messageToken = new JObject
                     {
                         ["type"] = int.MaxValue
@@ -175,6 +154,28 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 {
                     await connection.DisposeAsync().OrTimeout();
                 }
+            }
+        }
+
+        private class ProxyConnectionFactory : IConnectionFactory
+        {
+            private readonly IConnectionFactory _innerFactory;
+            internal Task<ConnectionContext> _connectTask;
+
+            public ProxyConnectionFactory(IConnectionFactory innerFactory)
+            {
+                _innerFactory = innerFactory;
+            }
+
+            public Task<ConnectionContext> ConnectAsync(TransferFormat transferFormat, CancellationToken cancellationToken = default)
+            {
+                _connectTask = _innerFactory.ConnectAsync(transferFormat, cancellationToken);
+                return _connectTask;
+            }
+
+            public Task DisposeAsync(ConnectionContext connection)
+            {
+                return _innerFactory.DisposeAsync(connection);
             }
         }
 

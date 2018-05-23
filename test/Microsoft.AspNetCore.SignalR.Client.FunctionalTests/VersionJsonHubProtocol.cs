@@ -33,8 +33,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 return false;
             }
 
-            string json = Encoding.UTF8.GetString(payload.ToArray());
-            JObject o = JObject.Parse(json);
+            // Handle "new" call
+            var json = Encoding.UTF8.GetString(payload.ToArray());
+            var o = JObject.Parse(json);
             if ((int)o["type"] == int.MaxValue)
             {
                 message = new InvocationMessage("NewProtocolMethodServer", Array.Empty<object>());
