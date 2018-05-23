@@ -614,9 +614,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
                     await hubConnection.StopAsync();
 
-                    var received = new List<string>(await connection.ReadAllSentMessagesAsync());
-
-                    foreach (var message in received)
+                    foreach (var message in await connection.ReadAllSentMessagesAsync())
                     {
                         Assert.NotEqual("{\"type\":6}", message);
                     }
