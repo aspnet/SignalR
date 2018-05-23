@@ -146,7 +146,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
         public async Task<IList<string>> ReadAllSentMessagesAsync()
         {
-            if (!_disposed.Task.IsCompleted)
+            if (!Disposed.IsCompleted)
             {
                 throw new InvalidOperationException("The connection must be stopped before this method can be used.");
             }

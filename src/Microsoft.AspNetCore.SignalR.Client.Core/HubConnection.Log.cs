@@ -181,10 +181,10 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 LoggerMessage.Define<string>(LogLevel.Debug, new EventId(60, "MessageSentGeneric"), "Sending {MessageType} message completed.");
 
             private static readonly Action<ILogger, Exception> _acquiredConnectionLockForPing =
-                LoggerMessage.Define(LogLevel.Trace, new EventId(61, "AcquiredConnectionLockForPing"), "Have the connection lock, about to ping the server.");
+                LoggerMessage.Define(LogLevel.Trace, new EventId(61, "AcquiredConnectionLockForPing"), "Acquired the Connection Lock in order to ping the server.");
 
             private static readonly Action<ILogger, Exception> _unableToAcquireConnectionLockForPing =
-                LoggerMessage.Define(LogLevel.Trace, new EventId(62, "UnableToAcquireConnectionLockForPing"), "Tried to get connection lock, but it's in use. No need to ping because another message is being sent.");
+                LoggerMessage.Define(LogLevel.Trace, new EventId(62, "UnableToAcquireConnectionLockForPing"), "Skipping ping because a send is already in progress.");
 
             public static void PreparingNonBlockingInvocation(ILogger logger, string target, int count)
             {
