@@ -44,6 +44,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 return true;
             }
 
+            // Handle "old" call
             var result = _innerProtocol.TryParseMessage(ref inputCopy, binder, out message);
             input = inputCopy;
             return result;

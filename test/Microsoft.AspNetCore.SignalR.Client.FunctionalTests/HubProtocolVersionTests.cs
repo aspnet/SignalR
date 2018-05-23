@@ -115,7 +115,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 }), loggerFactory);
                 var tcs = new TaskCompletionSource<object>();
 
-                ProxyConnectionFactory proxyConnectionFactory = new ProxyConnectionFactory(httpConnectionFactory);
+                var proxyConnectionFactory = new ProxyConnectionFactory(httpConnectionFactory);
 
                 var connectionBuilder = new HubConnectionBuilder()
                     .WithLoggerFactory(loggerFactory);
@@ -133,10 +133,10 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                     await connection.StartAsync().OrTimeout();
 
                     // Task should already have been awaited in StartAsync
-                    var connectionContext = await proxyConnectionFactory.ConnectTask;
+                    var connectionContext = await proxyConnectionFactory.ConnectTask.OrTimeout();
 
                     // Simulate a new call from the client
-                    JObject messageToken = new JObject
+                    var messageToken = new JObject
                     {
                         ["type"] = int.MaxValue
                     };
