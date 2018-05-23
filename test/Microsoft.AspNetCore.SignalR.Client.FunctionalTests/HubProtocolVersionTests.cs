@@ -168,7 +168,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 return writeContext.LoggerName == typeof(HubConnection).FullName;
             }
 
-            using (StartVerifiableLog(out var loggerFactory, $"{nameof(ClientUsingOldCallWithNewProtocol)}_{transportType}", expectedErrorsFilter: ExpectedErrors))
+            using (StartVerifiableLog(out var loggerFactory, LogLevel.Trace, $"{nameof(ClientWithUnsupportedProtocolVersionDoesNotConnect)}_{transportType}", expectedErrorsFilter: ExpectedErrors))
             {
                 var connectionBuilder = new HubConnectionBuilder()
                     .WithLoggerFactory(loggerFactory)
