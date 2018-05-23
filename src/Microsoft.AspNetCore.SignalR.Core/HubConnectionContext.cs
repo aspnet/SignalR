@@ -35,7 +35,6 @@ namespace Microsoft.AspNetCore.SignalR
         private long _lastSendTimestamp = DateTime.UtcNow.Ticks;
         private long _lastReceivedTimestamp = DateTime.UtcNow.Ticks;
         private ReadOnlyMemory<byte> _cachedPingMessage;
-        private bool _clientTimeoutActive;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HubConnectionContext"/> class.
@@ -388,6 +387,9 @@ namespace Microsoft.AspNetCore.SignalR
                                         Features.Get<IConnectionHeartbeatFeature>()?.OnHeartbeat(state => ((HubConnectionContext)state).KeepAliveTick(), this);
                                     }
 
+                                    // only assign this if the 
+                                    Features.Get<IConnectionHeartbeatFeature>()?.OnHeartbeat(state => ((HubConnectionContext)state).CheckClientTimeout(), this);
+
                                     Log.HandshakeComplete(_logger, Protocol.Name);
                                     await WriteHandshakeResponseAsync(HandshakeResponseMessage.Empty);
                                     return true;
@@ -449,16 +451,6 @@ namespace Microsoft.AspNetCore.SignalR
 
                 Interlocked.Exchange(ref _lastSendTimestamp, currentTime);
             }
-        }
-
-        public void StartPeriodicallyCheckingForClientTimeout()
-        {
-            if (_clientTimeoutActive)
-            {
-                return;
-            }
-            _clientTimeoutActive = true;
-            Features.Get<IConnectionHeartbeatFeature>()?.OnHeartbeat(state => ((HubConnectionContext)state).CheckClientTimeout(), this);
         }
 
         private void CheckClientTimeout()
