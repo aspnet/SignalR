@@ -35,7 +35,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                 return false;
             }
 
-            // Handle "new" call
+            // Handle "new" calls
             var json = Encoding.UTF8.GetString(payload.ToArray());
             var o = JObject.Parse(json);
             if ((int)o["type"] == int.MaxValue)
