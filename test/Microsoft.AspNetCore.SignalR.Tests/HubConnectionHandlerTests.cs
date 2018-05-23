@@ -2020,7 +2020,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Fact]
-        public async Task ClientConnectionTimeoutsIfNoMessagesReceived()
+        public async Task ConnectionNotTimedOutIfItNeverPings()
         {
             var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(services =>
                 services.Configure<HubOptions>(options =>
@@ -2035,7 +2035,28 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 await Task.Delay(120);
                 client.TickHeartbeat();
 
-                await connectionHandlerTask.OrTimeout(100);
+                await Assert.ThrowsAsync<TimeoutException>(() => connectionHandlerTask.OrTimeout(60));
+            }
+        }
+
+        [Fact]
+        public async Task ConnectionTimesOutIfInitialPingAndThenNoMessages()
+        {
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(services =>
+                services.Configure<HubOptions>(options =>
+                    options.ClientTimeoutInterval = TimeSpan.FromMilliseconds(100)));
+            var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
+
+            using (var client = new TestClient(new JsonHubProtocol()))
+            {
+                var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
+                await client.Connected.OrTimeout();
+                await client.SendHubMessageAsync(PingMessage.Instance);
+
+                await Task.Delay(120);
+                client.TickHeartbeat();
+
+                await connectionHandlerTask.OrTimeout(60);
             }
         }
 
@@ -2051,6 +2072,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
                 await client.Connected.OrTimeout();
+                await client.SendHubMessageAsync(PingMessage.Instance);
 
                 for (int i = 0; i < 5; i++)
                 {
@@ -2060,7 +2082,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 }
 
                 await Assert.ThrowsAsync<TimeoutException>(() => connectionHandlerTask.OrTimeout(50));
-                
             }
         }
 
