@@ -44,14 +44,17 @@ namespace Microsoft.AspNetCore.SignalR
         /// <param name="keepAliveInterval">How often this client is pinged.</param>
         /// <param name="loggerFactory">The logger factory.</param>
         /// <param name="clientTimeoutInterval">Clients we haven't heard from in this interval are assumed to have disconnected.</param>
-        public HubConnectionContext(ConnectionContext connectionContext, TimeSpan keepAliveInterval, ILoggerFactory loggerFactory, TimeSpan? clientTimeoutInterval = null)
+        public HubConnectionContext(ConnectionContext connectionContext, TimeSpan keepAliveInterval, ILoggerFactory loggerFactory, TimeSpan clientTimeoutInterval)
         {
             _connectionContext = connectionContext;
             _logger = loggerFactory.CreateLogger<HubConnectionContext>();
             ConnectionAborted = _connectionAbortedTokenSource.Token;
             _keepAliveInterval = keepAliveInterval.Ticks;
-            _clientTimeoutInterval = (clientTimeoutInterval ?? HubOptionsSetup.DefaultClientTimeoutInterval).Ticks;
+            _clientTimeoutInterval = clientTimeoutInterval.Ticks;
         }
+
+        public HubConnectionContext(ConnectionContext connectionContext, TimeSpan keepAliveInterval, ILoggerFactory loggerFactory)
+            : this(connectionContext, keepAliveInterval, loggerFactory, HubOptionsSetup.DefaultClientTimeoutInterval) { }
 
         /// <summary>
         /// Gets a <see cref="CancellationToken"/> that notifies when the connection is aborted.
