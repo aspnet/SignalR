@@ -463,7 +463,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         private void CheckClientTimeout()
         {
-            // if it's been too long since we've heard from the client, then close this
+            // If it's been too long since we've heard from the client, then close this
             if (DateTime.UtcNow.Ticks - Interlocked.Read(ref _lastReceivedTimestamp) > _clientTimeoutInterval.Ticks)
             {
                 Abort();

@@ -116,7 +116,8 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         {
             return Application.Output.WriteAsync(bytes).AsTask();
         }
-        public async Task<string> ReadSentTextMessageAsync(bool ignorePings=true)
+
+        public async Task<string> ReadSentTextMessageAsync(bool ignorePings = true)
         {
             // Read a single text message from the Application Input pipe
 

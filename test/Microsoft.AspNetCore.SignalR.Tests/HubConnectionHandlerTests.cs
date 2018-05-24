@@ -2033,9 +2033,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 await client.Connected.OrTimeout();
                 // This is a fake client -- it doesn't auto-ping to signal
 
+                // We go over the 100 ms timeout interval...
                 await Task.Delay(120);
                 client.TickHeartbeat();
 
+                // but client should still be open, since it never pinged to activate the timeout checking
                 await Assert.ThrowsAsync<TimeoutException>(() => connectionHandlerTask.OrTimeout(60));
             }
         }

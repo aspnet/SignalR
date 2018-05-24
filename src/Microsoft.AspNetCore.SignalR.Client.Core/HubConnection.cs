@@ -886,12 +886,11 @@ namespace Microsoft.AspNetCore.SignalR.Client
         {
             // tell the server you intend to ping
             await SendHubMessage(PingMessage.Instance);
-            //await SendCoreAsyncCore(PingMessage.Instance);
 
             // initialize the timers
-            ResetSendPing();
-            ResetTimeout();
             timer.Start();
+            ResetTimeout();
+            ResetSendPing();
 
             using (timer)
             {

@@ -14,7 +14,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         internal static TimeSpan DefaultKeepAliveInterval => TimeSpan.FromSeconds(15);
 
-        public static TimeSpan DefaultClientTimeoutInterval => TimeSpan.FromSeconds(30);
+        internal static TimeSpan DefaultClientTimeoutInterval => TimeSpan.FromSeconds(30);
 
         private readonly List<string> _defaultProtocols = new List<string>();
 
