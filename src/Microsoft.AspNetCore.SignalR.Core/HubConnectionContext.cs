@@ -28,8 +28,8 @@ namespace Microsoft.AspNetCore.SignalR
         private readonly ILogger _logger;
         private readonly CancellationTokenSource _connectionAbortedTokenSource = new CancellationTokenSource();
         private readonly TaskCompletionSource<object> _abortCompletedTcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
-        private readonly TimeSpan _keepAliveInterval;
-        private readonly TimeSpan _clientTimeoutInterval;
+        private readonly long _keepAliveInterval;
+        private readonly long _clientTimeoutInterval;
         private readonly SemaphoreSlim _writeLock = new SemaphoreSlim(1);
 
         private long _lastSendTimestamp = DateTime.UtcNow.Ticks;
@@ -49,8 +49,8 @@ namespace Microsoft.AspNetCore.SignalR
             _connectionContext = connectionContext;
             _logger = loggerFactory.CreateLogger<HubConnectionContext>();
             ConnectionAborted = _connectionAbortedTokenSource.Token;
-            _keepAliveInterval = keepAliveInterval;
-            _clientTimeoutInterval = clientTimeoutInterval ?? HubOptionsSetup.DefaultClientTimeoutInterval;
+            _keepAliveInterval = keepAliveInterval.Ticks;
+            _clientTimeoutInterval = (clientTimeoutInterval ?? HubOptionsSetup.DefaultClientTimeoutInterval).Ticks;
         }
 
         /// <summary>
@@ -439,7 +439,7 @@ namespace Microsoft.AspNetCore.SignalR
             // If it is, we send a ping frame, if not, we no-op on this tick. This means that in the worst case, the
             // true "ping rate" of the server could be (_hubOptions.KeepAliveInterval + HubEndPoint.KeepAliveTimerInterval),
             // because if the interval elapses right after the last tick of this timer, it won't be detected until the next tick.
-            if (currentTime - Interlocked.Read(ref _lastSendTimestamp) > _keepAliveInterval.Ticks)
+            if (currentTime - Interlocked.Read(ref _lastSendTimestamp) > _keepAliveInterval)
             {
                 // Haven't sent a message for the entire keep-alive duration, so send a ping.
                 // If the transport channel is full, this will fail, but that's OK because
@@ -464,7 +464,7 @@ namespace Microsoft.AspNetCore.SignalR
         private void CheckClientTimeout()
         {
             // If it's been too long since we've heard from the client, then close this
-            if (DateTime.UtcNow.Ticks - Interlocked.Read(ref _lastReceivedTimestamp) > _clientTimeoutInterval.Ticks)
+            if (DateTime.UtcNow.Ticks - Interlocked.Read(ref _lastReceivedTimestamp) > _clientTimeoutInterval)
             {
                 Abort();
             }
