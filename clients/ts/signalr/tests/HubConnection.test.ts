@@ -53,7 +53,7 @@ describe("HubConnection", () => {
             const connection = new TestConnection();
             const hubConnection = createHubConnection(connection);
 
-            hubConnection.pingIntervalInMilliseconds = 5;
+            hubConnection.keepAliveIntervalInMilliseconds = 5;
 
             try {
                 await hubConnection.start();
