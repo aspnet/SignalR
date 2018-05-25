@@ -121,7 +121,7 @@ namespace Microsoft.AspNetCore.SignalR
             }
 
             // Otherwise, release the lock acquired when entering WriteAsync
-            DoneWithSend();
+            _writeLock.Release();
 
             return default;
         }
@@ -151,7 +151,7 @@ namespace Microsoft.AspNetCore.SignalR
             }
 
             // Otherwise, release the lock acquired when entering WriteAsync
-            DoneWithSend();
+            _writeLock.Release();
 
             return default;
         }
@@ -204,7 +204,7 @@ namespace Microsoft.AspNetCore.SignalR
             finally
             {
                 // Release the lock acquired when entering WriteAsync
-                DoneWithSend();
+                _writeLock.Release();
             }
         }
 
@@ -223,7 +223,7 @@ namespace Microsoft.AspNetCore.SignalR
             }
             finally
             {
-                DoneWithSend();
+                _writeLock.Release();
             }
         }
 
@@ -242,7 +242,7 @@ namespace Microsoft.AspNetCore.SignalR
             }
             finally
             {
-                DoneWithSend();
+                _writeLock.Release();
             }
         }
 
@@ -272,7 +272,7 @@ namespace Microsoft.AspNetCore.SignalR
             }
             finally
             {
-                DoneWithSend();
+                _writeLock.Release();
             }
         }
 
@@ -296,7 +296,7 @@ namespace Microsoft.AspNetCore.SignalR
             }
             finally
             {
-                DoneWithSend();
+                _writeLock.Release();
             }
         }
 
@@ -456,6 +456,8 @@ namespace Microsoft.AspNetCore.SignalR
                 // adding a Ping message when the transport is full is unnecessary since the
                 // transport is still in the process of sending frames.
                 _ = TryWritePingAsync();
+
+                Interlocked.Exchange(ref _lastSendTimestamp, currentTime);
             }
         }
 
@@ -499,12 +501,6 @@ namespace Microsoft.AspNetCore.SignalR
                 // Communicate the fact that we're finished triggering abort callbacks
                 connection._abortCompletedTcs.TrySetResult(null);
             }
-        }
-
-        private void DoneWithSend()
-        {
-            _writeLock.Release();
-            Volatile.Write(ref _lastSendTimestamp, DateTime.UtcNow.Ticks);
         }
 
         private static class Log
