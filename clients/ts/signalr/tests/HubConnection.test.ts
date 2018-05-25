@@ -57,7 +57,7 @@ describe("HubConnection", () => {
 
             try {
                 await hubConnection.start();
-                await delay(32);
+                await delay(500);
 
                 const numPings = connection.sentData.filter((s) => JSON.parse(s).type === MessageType.Ping).length;
                 expect(numPings).toBeGreaterThanOrEqual(2);

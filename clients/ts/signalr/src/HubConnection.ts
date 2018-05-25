@@ -114,7 +114,7 @@ export class HubConnection {
         // defensively cleanup timeout in case we receive a message from the server before we finish start
         this.cleanupTimeout();
         this.resetTimeoutPeriod();
-        this.resetkeepAliveInterval();
+        this.resetKeepAliveInterval();
 
         this.connectionState = HubConnectionState.Connected;
     }
@@ -179,7 +179,7 @@ export class HubConnection {
     }
 
     private sendMessage(message: any) {
-        this.resetkeepAliveInterval();
+        this.resetKeepAliveInterval();
         return this.connection.send(message);
     }
 
@@ -386,7 +386,7 @@ export class HubConnection {
         return remainingData;
     }
 
-    private resetkeepAliveInterval() {
+    private resetKeepAliveInterval() {
         this.cleanupPingTimer();
         this.pingServerHandle = setTimeout(() => this.sendMessage(this.cachedPingMessage), this.keepAliveIntervalInMilliseconds);
     }
