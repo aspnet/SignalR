@@ -133,10 +133,10 @@ Ping messages do not have any payload, they are completely empty messages (aside
 
 The default ASP.NET implementation automatically pings both directions on active connections. These pings are at regular intervals, and allow detection of unpexpected disconnects (for example, unplugging a server). If the client detects that the server has stopped pinging, the client will close the connection, and vice versa.
 
-| .. | option name | default value |
+|  | Option name | Default value |
 |-|-|-|
-|**Server**: how often to ping client | ```_hubOptions.KeepAliveInterval``` | 15 seconds |
-|**Server**: if the client hasn't messaged in this interval, close the connection | ```_hubOptions.ClientTimeout``` | 30 seconds |
+|**Server**: how often to ping client | ```HubOptions.KeepAliveInterval``` | 15 seconds |
+|**Server**: if the client hasn't messaged in this interval, close the connection | ```HubOptions.ClientTimeout``` | 30 seconds |
 |**Client**: how often to ping server | ```HubConnection.PingInterval``` | 15 seconds |
 |**Client**: if the server hasn't messsaged in this interval, close the connection | ```HubConnection.ServerTimeout``` | 30 seconds |
 
