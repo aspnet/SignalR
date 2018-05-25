@@ -32,8 +32,8 @@ namespace Microsoft.AspNetCore.SignalR
         private readonly long _clientTimeoutInterval;
         private readonly SemaphoreSlim _writeLock = new SemaphoreSlim(1);
 
-        private int _heartbeatsFromLastSend = 0;
-        private int _heartbeatsFromLastReceive = 0;
+        private long _lastSendTimeStamp = DateTime.UtcNow.Ticks;
+        private long _lastReceivedTimeStamp = DateTime.UtcNow.Ticks;
         private ReadOnlyMemory<byte> _cachedPingMessage;
         private bool _clientTimeoutActive;
 
@@ -442,7 +442,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         private void KeepAliveTick()
         {
-            _heartbeatsFromLastSend += 1;
+            var currentTime = DateTime.UtcNow.Ticks;
 
             // Implements the keep-alive tick behavior
             // Each tick, we check if the time since the last send is larger than the keep alive duration (in ticks).
@@ -450,7 +450,7 @@ namespace Microsoft.AspNetCore.SignalR
             // true "ping rate" of the server could be (_hubOptions.KeepAliveInterval + HubEndPoint.KeepAliveTimerInterval),
             // because if the interval elapses right after the last tick of this timer, it won't be detected until the next tick.
 
-            if (currentTime - Volatile.Read(ref _lastSendTimestamp) > _keepAliveInterval)
+            if (currentTime - Volatile.Read(ref _lastSendTimeStamp) > _keepAliveInterval)
             {
                 // Haven't sent a message for the entire keep-alive duration, so send a ping.
                 // If the transport channel is full, this will fail, but that's OK because
@@ -460,7 +460,7 @@ namespace Microsoft.AspNetCore.SignalR
 
                 // We only update the timestamp here, because updating on each sent message is bad for performance
                 // There can be a lot of sent messages per 15 seconds
-                Volatile.Write(ref _lastSendTimestamp, currentTime);
+                Volatile.Write(ref _lastSendTimeStamp, currentTime);
             }
         }
 
@@ -477,7 +477,7 @@ namespace Microsoft.AspNetCore.SignalR
         private void CheckClientTimeout()
         {
             // If it's been too long since we've heard from the client, then close this
-            if (DateTime.UtcNow.Ticks - Volatile.Read(ref _lastReceivedTimestamp) > _clientTimeoutInterval)
+            if (DateTime.UtcNow.Ticks - Volatile.Read(ref _lastReceivedTimeStamp) > _clientTimeoutInterval)
             {
                 Abort();
             }
@@ -485,7 +485,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         internal void ResetClientTimeout()
         {
-            Volatile.Write(ref _lastReceivedTimestamp, DateTime.UtcNow.Ticks);
+            Volatile.Write(ref _lastReceivedTimeStamp, DateTime.UtcNow.Ticks);
         }
 
         private static void AbortConnection(object state)
