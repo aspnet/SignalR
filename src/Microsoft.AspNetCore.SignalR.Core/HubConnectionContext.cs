@@ -501,7 +501,7 @@ namespace Microsoft.AspNetCore.SignalR
             }
         }
 
-        private void SendCompleted()
+        private void DoneWithSend()
         {
             _writeLock.Release();
             Volatile.Write(ref _lastSendTimestamp, DateTime.UtcNow.Ticks);

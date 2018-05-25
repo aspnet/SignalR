@@ -107,7 +107,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                     break;
 
                 case PingMessage _:
-                    connection.StartPeriodicallyCheckingForClientTimeout();
+                    connection.StartClientTimeout();
                     break;
 
                 // Other kind of message we weren't expecting
