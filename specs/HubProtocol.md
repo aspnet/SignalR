@@ -131,13 +131,13 @@ Keep alive behavior is achieved via the `Ping` message type. **Either endpoint**
 
 Ping messages do not have any payload, they are completely empty messages (aside from the encoding necessary to identify the message as a `Ping` message).
 
-The default ASP.NET implementation automatically pings both directions on active connections. These pings are at regular intervals, and allow detection of unpexpected disconnects (for example, unplugging a server). If the client detects that the server has stopped pinging, the client will close the connection, and vice versa.
+The default ASP.NET Core implementation automatically pings both directions on active connections. These pings are at regular intervals, and allow detection of unexpected disconnects (for example, unplugging a server). If the client detects that the server has stopped pinging, the client will close the connection, and vice versa.
 
 |  | Option name | Default value |
 |-|-|-|
 |**Server**: how often to ping client | ```HubOptions.KeepAliveInterval``` | 15 seconds |
 |**Server**: if the client hasn't messaged in this interval, close the connection | ```HubOptions.ClientTimeout``` | 30 seconds |
-|**Client**: how often to ping server | ```HubConnection.PingInterval``` | 15 seconds |
+|**Client**: how often to ping server | ```HubConnection.KeepAliveInterval``` | 15 seconds |
 |**Client**: if the server hasn't messsaged in this interval, close the connection | ```HubConnection.ServerTimeout``` | 30 seconds |
 
 If there's other traffic through the connection, keep-alive pings aren't needed. A `Ping` is only sent if the interval has elapsed without a message being sent.
