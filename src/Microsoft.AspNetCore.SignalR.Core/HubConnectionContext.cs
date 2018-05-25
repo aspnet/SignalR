@@ -32,8 +32,8 @@ namespace Microsoft.AspNetCore.SignalR
         private readonly long _clientTimeoutInterval;
         private readonly SemaphoreSlim _writeLock = new SemaphoreSlim(1);
 
-        private long _lastSendTimestamp = DateTime.UtcNow.Ticks;
-        private long _lastReceivedTimestamp = DateTime.UtcNow.Ticks;
+        private int _heartbeatsFromLastSend = 0;
+        private int _heartbeatsFromLastReceive = 0;
         private ReadOnlyMemory<byte> _cachedPingMessage;
         private bool _clientTimeoutActive;
 
@@ -442,7 +442,8 @@ namespace Microsoft.AspNetCore.SignalR
 
         private void KeepAliveTick()
         {
-            var currentTime = DateTime.UtcNow.Ticks;
+            _heartbeatsFromLastSend += 1;
+
             // Implements the keep-alive tick behavior
             // Each tick, we check if the time since the last send is larger than the keep alive duration (in ticks).
             // If it is, we send a ping frame, if not, we no-op on this tick. This means that in the worst case, the
@@ -457,7 +458,9 @@ namespace Microsoft.AspNetCore.SignalR
                 // transport is still in the process of sending frames.
                 _ = TryWritePingAsync();
 
-                Interlocked.Exchange(ref _lastSendTimestamp, currentTime);
+                // We only update the timestamp here, because updating on each sent message is bad for performance
+                // There can be a lot of sent messages per 15 seconds
+                Volatile.Write(ref _lastSendTimestamp, currentTime);
             }
         }
 
