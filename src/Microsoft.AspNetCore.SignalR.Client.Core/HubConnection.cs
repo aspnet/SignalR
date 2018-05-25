@@ -884,7 +884,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private async Task TimerLoop(TimerAwaitable timer)
         {
-            // tell the server you intend to ping
+            // tell the server we intend to ping
             await SendHubMessage(PingMessage.Instance);
 
             // initialize the timers

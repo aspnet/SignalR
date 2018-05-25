@@ -27,7 +27,7 @@ namespace Microsoft.AspNetCore.SignalR
         public TimeSpan? KeepAliveInterval { get; set; } = null;
 
         /// <summary>
-        /// Gets or sets the time window clients have to send a message before we close the connection
+        /// Gets or sets the time window clients have to send a message before the server closes the connection.
         /// </summary>
         public TimeSpan? ClientTimeoutInterval { get; set; } = null;
 

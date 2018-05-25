@@ -41,7 +41,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// Initializes a new instance of the <see cref="HubConnectionContext"/> class.
         /// </summary>
         /// <param name="connectionContext">The underlying <see cref="ConnectionContext"/>.</param>
-        /// <param name="keepAliveInterval">How often this client is pinged.</param>
+        /// <param name="keepAliveInterval">The keep alive interval. If no messages are sent by the server in this interval, a Ping message will be sent.</param>
         /// <param name="loggerFactory">The logger factory.</param>
         /// <param name="clientTimeoutInterval">Clients we haven't heard from in this interval are assumed to have disconnected.</param>
         public HubConnectionContext(ConnectionContext connectionContext, TimeSpan keepAliveInterval, ILoggerFactory loggerFactory, TimeSpan clientTimeoutInterval)
@@ -53,6 +53,12 @@ namespace Microsoft.AspNetCore.SignalR
             _clientTimeoutInterval = clientTimeoutInterval.Ticks;
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HubConnectionContext"/> class.
+        /// </summary>
+        /// <param name="connectionContext">The underlying <see cref="ConnectionContext"/>.</param>
+        /// <param name="keepAliveInterval">The keep alive interval. If no messages are sent by the server in this interval, a Ping message will be sent.</param>
+        /// <param name="loggerFactory">The logger factory.</param>
         public HubConnectionContext(ConnectionContext connectionContext, TimeSpan keepAliveInterval, ILoggerFactory loggerFactory)
             : this(connectionContext, keepAliveInterval, loggerFactory, HubOptionsSetup.DefaultClientTimeoutInterval) { }
 
@@ -442,7 +448,8 @@ namespace Microsoft.AspNetCore.SignalR
             // If it is, we send a ping frame, if not, we no-op on this tick. This means that in the worst case, the
             // true "ping rate" of the server could be (_hubOptions.KeepAliveInterval + HubEndPoint.KeepAliveTimerInterval),
             // because if the interval elapses right after the last tick of this timer, it won't be detected until the next tick.
-            if (currentTime - Interlocked.Read(ref _lastSendTimestamp) > _keepAliveInterval)
+
+            if (currentTime - Volatile.Read(ref _lastSendTimestamp) > _keepAliveInterval)
             {
                 // Haven't sent a message for the entire keep-alive duration, so send a ping.
                 // If the transport channel is full, this will fail, but that's OK because
@@ -452,7 +459,7 @@ namespace Microsoft.AspNetCore.SignalR
             }
         }
 
-        public void StartPeriodicallyCheckingForClientTimeout()
+        internal void StartClientTimeout()
         {
             if (_clientTimeoutActive)
             {
@@ -465,15 +472,15 @@ namespace Microsoft.AspNetCore.SignalR
         private void CheckClientTimeout()
         {
             // If it's been too long since we've heard from the client, then close this
-            if (DateTime.UtcNow.Ticks - Interlocked.Read(ref _lastReceivedTimestamp) > _clientTimeoutInterval)
+            if (DateTime.UtcNow.Ticks - Volatile.Read(ref _lastReceivedTimestamp) > _clientTimeoutInterval)
             {
                 Abort();
             }
         }
 
-        public void ResetClientTimeout()
+        internal void ResetClientTimeout()
         {
-            _lastReceivedTimestamp = DateTime.UtcNow.Ticks;
+            Volatile.Write(ref _lastReceivedTimestamp, DateTime.UtcNow.Ticks);
         }
 
         private static void AbortConnection(object state)
@@ -494,10 +501,10 @@ namespace Microsoft.AspNetCore.SignalR
             }
         }
 
-        private void DoneWithSend()
+        private void SendCompleted()
         {
             _writeLock.Release();
-            Interlocked.Exchange(ref _lastSendTimestamp, DateTime.UtcNow.Ticks);
+            Volatile.Write(ref _lastSendTimestamp, DateTime.UtcNow.Ticks);
         }
 
         private static class Log

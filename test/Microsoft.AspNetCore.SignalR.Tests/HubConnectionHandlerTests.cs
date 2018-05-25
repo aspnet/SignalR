@@ -2038,7 +2038,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 client.TickHeartbeat();
 
                 // but client should still be open, since it never pinged to activate the timeout checking
-                await Assert.ThrowsAsync<TimeoutException>(() => connectionHandlerTask.OrTimeout(60));
+                Assert.False(connectionHandlerTask.IsCompleted);
             }
         }
 
@@ -2059,7 +2059,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 await Task.Delay(120);
                 client.TickHeartbeat();
 
-                await connectionHandlerTask.OrTimeout(60);
+                await connectionHandlerTask.OrTimeout();
             }
         }
 
@@ -2084,7 +2084,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     await client.SendHubMessageAsync(PingMessage.Instance);
                 }
 
-                await Assert.ThrowsAsync<TimeoutException>(() => connectionHandlerTask.OrTimeout(50));
+                Assert.False(connectionHandlerTask.IsCompleted);
             }
         }
 
