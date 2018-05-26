@@ -66,12 +66,12 @@ describe("MessageHubProtocol", () => {
             error: "Err",
             headers: {},
             invocationId: "abc",
-            result: null,
+            result: undefined,
             type: MessageType.Completion,
         } as CompletionMessage],
         [[0x0b, 0x95, 0x03, 0x80, 0xa3, 0x61, 0x62, 0x63, 0x03, 0xa2, 0x4f, 0x4b],
         {
-            error: null,
+            error: undefined,
             headers: {},
             invocationId: "abc",
             result: "OK",
@@ -79,15 +79,15 @@ describe("MessageHubProtocol", () => {
         } as CompletionMessage],
         [[0x08, 0x94, 0x03, 0x80, 0xa3, 0x61, 0x62, 0x63, 0x02],
         {
-            error: null,
+            error: undefined,
             headers: {},
             invocationId: "abc",
-            result: null,
+            result: undefined,
             type: MessageType.Completion,
         } as CompletionMessage],
         [[0x0E, 0x95, 0x03, 0x80, 0xa3, 0x61, 0x62, 0x63, 0x03, 0xD6, 0xFF, 0x5A, 0x4A, 0x1A, 0x50],
         {
-            error: null,
+            error: undefined,
             headers: {},
             invocationId: "abc",
             result: new Date(Date.UTC(2018, 0, 1, 11, 24, 0)),
@@ -96,10 +96,10 @@ describe("MessageHubProtocol", () => {
         // extra property at the end should be ignored (testing older protocol client working with newer protocol server)
         [[0x09, 0x95, 0x03, 0x80, 0xa3, 0x61, 0x62, 0x63, 0x02, 0x00],
         {
-            error: null,
+            error: undefined,
             headers: {},
             invocationId: "abc",
-            result: null,
+            result: undefined,
             type: MessageType.Completion,
         } as CompletionMessage],
     ] as Array<[number[], CompletionMessage]>).forEach(([payload, expectedMessage]) =>
@@ -174,7 +174,7 @@ describe("MessageHubProtocol", () => {
                 type: MessageType.StreamItem,
             } as StreamItemMessage,
             {
-                error: null,
+                error: undefined,
                 headers: {},
                 invocationId: "abc",
                 result: "OK",

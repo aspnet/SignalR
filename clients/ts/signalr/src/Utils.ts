@@ -22,19 +22,19 @@ export class Arg {
 }
 
 export function getDataDetail(data: any, includeContent: boolean): string {
-    let length: string = null;
+    let detail = "";
     if (data instanceof ArrayBuffer) {
-        length = `Binary data of length ${data.byteLength}`;
+        detail = `Binary data of length ${data.byteLength}`;
         if (includeContent) {
-            length += `. Content: '${formatArrayBuffer(data)}'`;
+            detail += `. Content: '${formatArrayBuffer(data)}'`;
         }
     } else if (typeof data === "string") {
-        length = `String data of length ${data.length}`;
+        detail = `String data of length ${data.length}`;
         if (includeContent) {
-            length += `. Content: '${data}'.`;
+            detail += `. Content: '${data}'.`;
         }
     }
-    return length;
+    return detail;
 }
 
 export function formatArrayBuffer(data: ArrayBuffer): string {
