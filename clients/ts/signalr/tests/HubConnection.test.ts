@@ -871,8 +871,8 @@ describe("HubConnection", () => {
             const connection = new TestConnection();
             const hubConnection = createHubConnection(connection);
             try {
-                hubConnection.onclose(<any>null);
-                hubConnection.onclose(<any>undefined);
+                hubConnection.onclose(null!);
+                hubConnection.onclose(undefined!);
                 // Typically this would be called by the transport
                 connection.onclose!();
                 // expect no errors

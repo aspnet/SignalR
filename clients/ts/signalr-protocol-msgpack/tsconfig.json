@@ -1,6 +1,5 @@
 {
     "extends": "../tsconfig.base.json",
-    "strict": true,
     "include": [
         "./src/**/*"
     ]
