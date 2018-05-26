@@ -3,6 +3,7 @@
 
 using System;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using SignalRSamples.ConnectionHandlers;
@@ -36,6 +37,8 @@ namespace SignalRSamples
                      .AllowCredentials();
                 });
             });
+
+            services.AddSingleton<SignalRV2Dispatcher>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -61,6 +64,16 @@ namespace SignalRSamples
             app.UseConnections(routes =>
             {
                 routes.MapConnectionHandler<MessagesConnectionHandler>("/chat");
+
+                routes.MapConnectionHandler<SignalR20ServerConnectionHandler>("/v2/server");
+            });
+
+            app.UseRouter(routes =>
+            {
+                routes.MapSignalRV2Connections("/signalr", builder =>
+                {
+                    builder.UseConnectionHandler<SignalR20ClientConnectionHandler>();
+                });
             });
         }
     }

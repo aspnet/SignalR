@@ -23,6 +23,7 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="$(MicrosoftExtensionsConfigurationCommandLinePackageVersion)" />
     <PackageReference Include="Google.Protobuf" Version="$(GoogleProtobufPackageVersion)" />
     <PackageReference Include="System.Reactive.Linq" Version="$(SystemReactiveLinqPackageVersion)" />
+    <PackageReference Include="Microsoft.Azure.SignalR.Protocols" Version="1.0.0-preview1-10009" />
   </ItemGroup>
 
   <Target Name="CopyTSClient" BeforeTargets="AfterBuild">

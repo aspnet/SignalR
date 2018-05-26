@@ -8,7 +8,7 @@ using System.Globalization;
 
 namespace Microsoft.AspNetCore.Http.Connections.Internal
 {
-    internal class ConnectionLogScope : IReadOnlyList<KeyValuePair<string, object>>
+    public class ConnectionLogScope : IReadOnlyList<KeyValuePair<string, object>>
     {
         private string _cachedToString;
 
