@@ -167,7 +167,6 @@ describe("MessageHubProtocol", () => {
                 type: MessageType.StreamItem,
             } as StreamItemMessage,
             {
-                error: undefined,
                 headers: {},
                 invocationId: "abc",
                 result: "OK",
