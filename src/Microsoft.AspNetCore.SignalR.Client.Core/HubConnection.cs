@@ -281,7 +281,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 // Start the connection
                 var connection = await _connectionFactory.ConnectAsync(_protocol.TransferFormat);
                 var startingConnectionState = new ConnectionState(connection, this);
-                
+
                 // From here on, if an error occurs we need to shut down the connection because
                 // we still own it.
                 try
