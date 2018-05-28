@@ -49,6 +49,9 @@ namespace Microsoft.AspNetCore.SignalR.Client
         private long _nextActivationSendPing;
         private bool _disposed;
 
+        private readonly ConnectionLogScope _logScope;
+        private readonly IDisposable _scopeDisposable;
+
         // Transient state to a connection
         private ConnectionState _connectionState;
 
@@ -125,6 +128,9 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
             _logger = _loggerFactory.CreateLogger<HubConnection>();
+
+            _logScope = new ConnectionLogScope();
+            _scopeDisposable = _logger.BeginScope(_logScope);
         }
 
         /// <summary>
@@ -275,7 +281,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 // Start the connection
                 var connection = await _connectionFactory.ConnectAsync(_protocol.TransferFormat);
                 var startingConnectionState = new ConnectionState(connection, this);
-
+                
                 // From here on, if an error occurs we need to shut down the connection because
                 // we still own it.
                 try
@@ -337,6 +343,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
                 if (disposing)
                 {
+                    _scopeDisposable.Dispose();
                     (_serviceProvider as IDisposable)?.Dispose();
                     _disposed = true;
                 }
@@ -1086,6 +1093,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             public ConnectionState(ConnectionContext connection, HubConnection hubConnection)
             {
                 _hubConnection = hubConnection;
+                _hubConnection._logScope.ConnectionId = connection.ConnectionId;
                 Connection = connection;
             }
 
@@ -1181,6 +1189,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 await ReceiveTask;
 
                 Log.Stopped(_hubConnection._logger);
+
+                _hubConnection._logScope.ConnectionId = null;
                 _stopTcs.TrySetResult(null);
             }
 
