@@ -1,14 +1,10 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-using System;
-using System.Buffers;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.Azure.SignalR.Protocol;
-using Newtonsoft.Json;
 
 namespace SignalRSamples
 {
@@ -24,13 +20,6 @@ namespace SignalRSamples
             var serverConnection = SignalR20ServerConnectionHandler.Connections.First();
 
             Connections.Add(connection);
-
-            // HACK: We shouldn't send this directly from the proxy
-            await connection.Transport.Output.WriteAsync(GetJsonBytes(new
-            {
-                M = new object[0],
-                S = 1
-            }));
 
             var openMessage = new OpenConnectionMessage(connection.ConnectionId, null);
             _protocol.WriteMessage(openMessage, serverConnection.Transport.Output);
@@ -74,15 +63,17 @@ namespace SignalRSamples
             {
                 Connections.Remove(connection);
 
-                var closeMessage = new CloseConnectionMessage(connection.ConnectionId, errorMessage: null);
-                _protocol.WriteMessage(closeMessage, serverConnection.Transport.Output);
-                await serverConnection.Transport.Output.FlushAsync();
+                try
+                {
+                    var closeMessage = new CloseConnectionMessage(connection.ConnectionId, errorMessage: null);
+                    _protocol.WriteMessage(closeMessage, serverConnection.Transport.Output);
+                    await serverConnection.Transport.Output.FlushAsync();
+                }
+                catch
+                {
+                    // Server connection died
+                }
             }
-        }
-
-        private byte[] GetJsonBytes(object o)
-        {
-            return Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(o));
         }
     }
 }
