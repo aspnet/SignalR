@@ -88,6 +88,8 @@ namespace Microsoft.AspNetCore.SignalR
                 return;
             }
 
+            // -- the connectionContext has been set up --
+
             try
             {
                 await _lifetimeManager.OnConnectedAsync(connectionContext);
