@@ -46,6 +46,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
             private static readonly Action<ILogger, Exception> _terminatingConnection =
                 LoggerMessage.Define(LogLevel.Trace, new EventId(12, "TerminatingConection"), "Terminating Long Polling connection due to a DELETE request.");
 
+            private static readonly Action<ILogger, string, Exception> _failedToReadHttpRequestBody =
+                LoggerMessage.Define<string>(LogLevel.Debug, new EventId(14, "FailedToReadHttpRequestBody"), "Connection {TransportConnectionId} failed to read the HTTP request body.");
+
             public static void ConnectionDisposed(ILogger logger, string connectionId)
             {
                 _connectionDisposed(logger, connectionId, null);
@@ -104,6 +107,11 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
             public static void TerminatingConection(ILogger logger)
             {
                 _terminatingConnection(logger, null);
+            }
+
+            public static void FailedToReadHttpRequestBody(ILogger logger, string connectionId, Exception ex)
+            {
+                _failedToReadHttpRequestBody(logger, connectionId, ex);
             }
         }
     }
