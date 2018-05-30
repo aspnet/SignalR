@@ -583,13 +583,11 @@ describe("HttpConnection", () => {
 
         it("uses global WebSocket if defined", async () => {
             // tslint:disable-next-line:no-string-literal
-            global["window"] = {
-                WebSocket: class WebSocket {
+            global["WebSocket"] = class WebSocket {
                     constructor(url: string, protocols?: string | string[]) {
                         throw new Error("WebSocket constructor called.");
                     }
-                },
-            };
+                };
 
             const options: IHttpConnectionOptions = {
                 ...commonOptions,
@@ -604,20 +602,18 @@ describe("HttpConnection", () => {
                 .toThrow("WebSocket constructor called.");
 
             // tslint:disable-next-line:no-string-literal
-            delete global["window"];
+            delete global["WebSocket"];
         });
 
         it("uses global EventSource if defined", async () => {
             let eventSourceConstructorCalled: boolean = false;
             // tslint:disable-next-line:no-string-literal
-            global["window"] = {
-                EventSource: class EventSource {
+            global["EventSource"] = class EventSource {
                     constructor(url: string, eventSourceInitDict?: EventSourceInit) {
                         eventSourceConstructorCalled = true;
                         throw new Error("EventSource constructor called.");
                     }
-                },
-            };
+                };
 
             const options: IHttpConnectionOptions = {
                 ...commonOptions,
@@ -641,7 +637,7 @@ describe("HttpConnection", () => {
             expect(eventSourceConstructorCalled).toEqual(true);
 
             // tslint:disable-next-line:no-string-literal
-            delete global["window"];
+            delete global["EventSource"];
         });
 
         it("uses EventSource option if passed in", async () => {

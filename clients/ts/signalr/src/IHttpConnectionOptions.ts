@@ -40,12 +40,14 @@ export interface IHttpConnectionOptions {
      */
     skipNegotiation?: boolean;
 
+    // Used for unit testing and code spelunkers
     /** A constructor that can be used to create a WebSocket.
      *
      * @internal
      */
     WebSocket?: WebSocketConstructor;
 
+    // Used for unit testing and code spelunkers
     /** A constructor that can be used to create an EventSource.
      *
      * @internal
