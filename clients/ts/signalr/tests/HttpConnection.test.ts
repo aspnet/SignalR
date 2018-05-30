@@ -8,12 +8,12 @@ import { HttpTransportType, ITransport, TransferFormat } from "../src/ITransport
 
 import { HttpError } from "../src/Errors";
 import { LogLevel } from "../src/ILogger";
+import { EventSourceConstructor, WebSocketConstructor } from "../src/Polyfills";
+import { TextMessageFormat } from "../src/TextMessageFormat";
+import { WebSocketTransport } from "../src/WebSocketTransport";
 import { eachEndpointUrl, eachTransport } from "./Common";
 import { TestHttpClient } from "./TestHttpClient";
 import { PromiseSource } from "./Utils";
-import { WebSocketTransport } from '../src/WebSocketTransport';
-import { TextMessageFormat } from '../src/TextMessageFormat';
-import { EventSourceConstructor, WebSocketConstructor } from '../src/Polyfills';
 
 const commonOptions: IHttpConnectionOptions = {
 };
