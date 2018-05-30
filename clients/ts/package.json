@@ -24,6 +24,7 @@
     "uglify-js": "^3.3.5"
   },
   "jest": {
+    "collectCoverage": true,
     "globals": {
       "ts-jest": {
         "tsConfigFile": "./tsconfig.jest.json",
