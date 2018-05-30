@@ -53,7 +53,6 @@ export class HttpConnection implements IConnection {
         this.baseUrl = this.resolveUrl(url);
 
         options = options || {};
-        options.accessTokenFactory = options.accessTokenFactory || (() => "");
         options.logMessageContent = options.logMessageContent || false;
 
         this.httpClient = options.httpClient || new DefaultHttpClient(this.logger);

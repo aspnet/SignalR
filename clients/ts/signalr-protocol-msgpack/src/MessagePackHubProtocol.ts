@@ -43,7 +43,7 @@ export class MessagePackHubProtocol implements IHubProtocol {
         const hubMessages = [];
         for (const message of messages) {
             const parsedMessage = this.parseMessage(message, logger);
-            // Can be null for an unknown message
+            // Can be null for an unknown message. Unknown message is logged in parseMessage
             if (parsedMessage) {
                 hubMessages.push(parsedMessage);
             }

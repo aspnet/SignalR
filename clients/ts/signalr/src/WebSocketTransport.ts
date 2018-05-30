@@ -7,7 +7,7 @@ import { Arg, getDataDetail } from "./Utils";
 
 export class WebSocketTransport implements ITransport {
     private readonly logger: ILogger;
-    private readonly accessTokenFactory: () => string | Promise<string>;
+    private readonly accessTokenFactory: (() => string | Promise<string>) | undefined;
     private readonly logMessageContent: boolean;
     private webSocket?: WebSocket;
 
@@ -16,7 +16,7 @@ export class WebSocketTransport implements ITransport {
 
     constructor(accessTokenFactory: (() => string | Promise<string>) | undefined, logger: ILogger, logMessageContent: boolean) {
         this.logger = logger;
-        this.accessTokenFactory = accessTokenFactory || (() => "");
+        this.accessTokenFactory = accessTokenFactory;
         this.logMessageContent = logMessageContent;
 
         this.onreceive = null;
@@ -34,9 +34,11 @@ export class WebSocketTransport implements ITransport {
 
         this.logger.log(LogLevel.Trace, "(WebSockets transport) Connecting");
 
-        const token = await this.accessTokenFactory();
-        if (token) {
-            url += (url.indexOf("?") < 0 ? "?" : "&") + `access_token=${encodeURIComponent(token)}`;
+        if (this.accessTokenFactory) {
+            const token = await this.accessTokenFactory();
+            if (token) {
+                url += (url.indexOf("?") < 0 ? "?" : "&") + `access_token=${encodeURIComponent(token)}`;
+            }
         }
 
         return new Promise<void>((resolve, reject) => {

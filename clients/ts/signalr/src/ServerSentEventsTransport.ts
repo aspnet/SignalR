@@ -8,7 +8,7 @@ import { Arg, getDataDetail, sendMessage } from "./Utils";
 
 export class ServerSentEventsTransport implements ITransport {
     private readonly httpClient: HttpClient;
-    private readonly accessTokenFactory: () => string | Promise<string>;
+    private readonly accessTokenFactory: (() => string | Promise<string>) | undefined;
     private readonly logger: ILogger;
     private readonly logMessageContent: boolean;
     private eventSource?: EventSource;
@@ -19,7 +19,7 @@ export class ServerSentEventsTransport implements ITransport {
 
     constructor(httpClient: HttpClient, accessTokenFactory: (() => string | Promise<string>) | undefined, logger: ILogger, logMessageContent: boolean) {
         this.httpClient = httpClient;
-        this.accessTokenFactory = accessTokenFactory || (() => "");
+        this.accessTokenFactory = accessTokenFactory;
         this.logger = logger;
         this.logMessageContent = logMessageContent;
 
@@ -38,9 +38,11 @@ export class ServerSentEventsTransport implements ITransport {
 
         this.logger.log(LogLevel.Trace, "(SSE transport) Connecting");
 
-        const token = await this.accessTokenFactory();
-        if (token) {
-            url += (url.indexOf("?") < 0 ? "?" : "&") + `access_token=${encodeURIComponent(token)}`;
+        if (this.accessTokenFactory) {
+            const token = await this.accessTokenFactory();
+            if (token) {
+                url += (url.indexOf("?") < 0 ? "?" : "&") + `access_token=${encodeURIComponent(token)}`;
+            }
         }
 
         this.url = url;

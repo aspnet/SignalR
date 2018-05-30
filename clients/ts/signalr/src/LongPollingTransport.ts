@@ -11,7 +11,7 @@ import { Arg, getDataDetail, sendMessage } from "./Utils";
 // Not exported from 'index', this type is internal.
 export class LongPollingTransport implements ITransport {
     private readonly httpClient: HttpClient;
-    private readonly accessTokenFactory: () => string | Promise<string>;
+    private readonly accessTokenFactory: (() => string | Promise<string>) | undefined;
     private readonly logger: ILogger;
     private readonly logMessageContent: boolean;
     private readonly pollAbort: AbortController;
@@ -32,7 +32,7 @@ export class LongPollingTransport implements ITransport {
 
     constructor(httpClient: HttpClient, accessTokenFactory: (() => string | Promise<string>) | undefined, logger: ILogger, logMessageContent: boolean) {
         this.httpClient = httpClient;
-        this.accessTokenFactory = accessTokenFactory || (() => "");
+        this.accessTokenFactory = accessTokenFactory;
         this.logger = logger;
         this.pollAbort = new AbortController();
         this.logMessageContent = logMessageContent;
@@ -67,7 +67,7 @@ export class LongPollingTransport implements ITransport {
             pollOptions.responseType = "arraybuffer";
         }
 
-        const token = await this.accessTokenFactory();
+        const token = await this.getAccessToken();
         this.updateHeaderToken(pollOptions, token);
 
         // Make initial long polling request
@@ -88,7 +88,15 @@ export class LongPollingTransport implements ITransport {
         this.receiving = this.poll(this.url, pollOptions);
     }
 
-    private updateHeaderToken(request: HttpRequest, token: string) {
+    private async getAccessToken(): Promise<string | null> {
+        if (this.accessTokenFactory) {
+            return await this.accessTokenFactory();
+        }
+
+        return null;
+    }
+
+    private updateHeaderToken(request: HttpRequest, token: string | null) {
         if (!request.headers) {
             request.headers = {};
         }
@@ -108,7 +116,7 @@ export class LongPollingTransport implements ITransport {
         try {
             while (this.running) {
                 // We have to get the access token on each poll, in case it changes
-                const token = await this.accessTokenFactory();
+                const token = await this.getAccessToken();
                 this.updateHeaderToken(pollOptions, token);
 
                 try {
@@ -188,7 +196,7 @@ export class LongPollingTransport implements ITransport {
             const deleteOptions: HttpRequest = {
                 headers: {},
             };
-            const token = await this.accessTokenFactory();
+            const token = await this.getAccessToken();
             this.updateHeaderToken(deleteOptions, token);
             await this.httpClient.delete(this.url!, deleteOptions);
 
