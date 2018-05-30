@@ -584,10 +584,10 @@ describe("HttpConnection", () => {
         it("uses global WebSocket if defined", async () => {
             // tslint:disable-next-line:no-string-literal
             global["WebSocket"] = class WebSocket {
-                    constructor(url: string, protocols?: string | string[]) {
-                        throw new Error("WebSocket constructor called.");
-                    }
-                };
+                constructor(url: string, protocols?: string | string[]) {
+                    throw new Error("WebSocket constructor called.");
+                }
+            };
 
             const options: IHttpConnectionOptions = {
                 ...commonOptions,
@@ -609,11 +609,11 @@ describe("HttpConnection", () => {
             let eventSourceConstructorCalled: boolean = false;
             // tslint:disable-next-line:no-string-literal
             global["EventSource"] = class EventSource {
-                    constructor(url: string, eventSourceInitDict?: EventSourceInit) {
-                        eventSourceConstructorCalled = true;
-                        throw new Error("EventSource constructor called.");
-                    }
-                };
+                constructor(url: string, eventSourceInitDict?: EventSourceInit) {
+                    eventSourceConstructorCalled = true;
+                    throw new Error("EventSource constructor called.");
+                }
+            };
 
             const options: IHttpConnectionOptions = {
                 ...commonOptions,
@@ -640,7 +640,7 @@ describe("HttpConnection", () => {
             delete global["EventSource"];
         });
 
-        it("uses EventSource option if passed in", async () => {
+        it("uses EventSource constructor from options if provided", async () => {
             let eventSourceConstructorCalled: boolean = false;
 
             const customEventSourceType = class EventSource {
@@ -673,7 +673,7 @@ describe("HttpConnection", () => {
             expect(eventSourceConstructorCalled).toEqual(true);
         });
 
-        it("uses WebSocket option if passed in", async () => {
+        it("uses WebSocket constructor from options if provided", async () => {
             const customWebSocketType = class WebSocket {
                 constructor(url: string, protocols?: string | string[]) {
                     throw new Error("WebSocket constructor called.");
