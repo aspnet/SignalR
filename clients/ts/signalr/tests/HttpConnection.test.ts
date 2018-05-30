@@ -604,7 +604,7 @@ describe("HttpConnection", () => {
                 .toThrow("WebSocket constructor called.");
 
             // tslint:disable-next-line:no-string-literal
-            global["window"] = undefined;
+            delete global["window"];
         });
 
         it("uses global EventSource if defined", async () => {
@@ -641,7 +641,7 @@ describe("HttpConnection", () => {
             expect(eventSourceConstructorCalled).toEqual(true);
 
             // tslint:disable-next-line:no-string-literal
-            global["window"] = undefined;
+            delete global["window"];
         });
 
         it("uses EventSource option if passed in", async () => {
