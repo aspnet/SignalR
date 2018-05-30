@@ -3,21 +3,24 @@
 
 import { ILogger, LogLevel } from "./ILogger";
 import { ITransport, TransferFormat } from "./ITransport";
+import { WebSocketConstructor } from "./Polyfills";
 import { Arg, getDataDetail } from "./Utils";
 
 export class WebSocketTransport implements ITransport {
     private readonly logger: ILogger;
     private readonly accessTokenFactory: (() => string | Promise<string>) | undefined;
     private readonly logMessageContent: boolean;
+    private readonly webSocketConstructor?: WebSocketConstructor;
     private webSocket?: WebSocket;
 
     public onreceive: ((data: string | ArrayBuffer) => void) | null;
     public onclose: ((error?: Error) => void) | null;
 
-    constructor(accessTokenFactory: (() => string | Promise<string>) | undefined, logger: ILogger, logMessageContent: boolean) {
+    constructor(accessTokenFactory: (() => string | Promise<string>) | undefined, logger: ILogger, logMessageContent: boolean, webSocketConstructor: WebSocketConstructor) {
         this.logger = logger;
         this.accessTokenFactory = accessTokenFactory;
         this.logMessageContent = logMessageContent;
+        this.webSocketConstructor = webSocketConstructor;
 
         this.onreceive = null;
         this.onclose = null;
@@ -28,7 +31,7 @@ export class WebSocketTransport implements ITransport {
         Arg.isRequired(transferFormat, "transferFormat");
         Arg.isIn(transferFormat, TransferFormat, "transferFormat");
 
-        if (typeof (WebSocket) === "undefined") {
+        if (!this.webSocketConstructor) {
             throw new Error("'WebSocket' is not supported in your environment.");
         }
 
@@ -43,7 +46,7 @@ export class WebSocketTransport implements ITransport {
 
         return new Promise<void>((resolve, reject) => {
             url = url.replace(/^http/, "ws");
-            const webSocket = new WebSocket(url);
+            const webSocket = new this.webSocketConstructor(url);
             if (transferFormat === TransferFormat.Binary) {
                 webSocket.binaryType = "arraybuffer";
             }
