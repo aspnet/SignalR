@@ -200,7 +200,7 @@ namespace Microsoft.AspNetCore.SignalR
 
                     if (!buffer.IsEmpty)
                     {
-                        connection.ResetClientTimeout();
+                        connection._receivedMessageThisInterval = true;
 
                         while (protocol.TryParseMessage(ref buffer, _dispatcher, out var message))
                         {

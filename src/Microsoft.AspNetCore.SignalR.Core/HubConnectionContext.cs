@@ -34,6 +34,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         private long _lastSendTimeStamp = DateTime.UtcNow.Ticks;
         private long _lastReceivedTimeStamp = DateTime.UtcNow.Ticks;
+        internal bool _receivedMessageThisInterval = false;
         private ReadOnlyMemory<byte> _cachedPingMessage;
         private bool _clientTimeoutActive;
 
@@ -479,15 +480,16 @@ namespace Microsoft.AspNetCore.SignalR
             // If it's been too long since we've heard from the client, then close this
             if (DateTime.UtcNow.Ticks - Volatile.Read(ref _lastReceivedTimeStamp) > _clientTimeoutInterval)
             {
-                Abort();
+                if (!_receivedMessageThisInterval)
+                {
+                    Abort();
+                }
+
+                _receivedMessageThisInterval = false;
+                Volatile.Write(ref _lastReceivedTimeStamp, DateTime.UtcNow.Ticks);
             }
         }
-
-        internal void ResetClientTimeout()
-        {
-            Volatile.Write(ref _lastReceivedTimeStamp, DateTime.UtcNow.Ticks);
-        }
-
+        
         private static void AbortConnection(object state)
         {
             var connection = (HubConnectionContext)state;

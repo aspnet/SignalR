@@ -2056,7 +2056,10 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 await client.Connected.OrTimeout();
                 await client.SendHubMessageAsync(PingMessage.Instance);
 
-                await Task.Delay(120);
+                await Task.Delay(300);
+                client.TickHeartbeat();
+
+                await Task.Delay(300);
                 client.TickHeartbeat();
 
                 await connectionHandlerTask.OrTimeout();
