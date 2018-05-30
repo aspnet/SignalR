@@ -2071,7 +2071,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(services =>
                 services.Configure<HubOptions>(options =>
-                     options.ClientTimeoutInterval = TimeSpan.FromMilliseconds(100)));
+                     options.ClientTimeoutInterval = TimeSpan.FromMilliseconds(300)));
             var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
             using (var client = new TestClient(new JsonHubProtocol()))
@@ -2080,9 +2080,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 await client.Connected.OrTimeout();
                 await client.SendHubMessageAsync(PingMessage.Instance);
 
-                for (int i = 0; i < 5; i++)
+                for (int i = 0; i < 10; i++)
                 {
-                    await Task.Delay(20);
+                    await Task.Delay(100);
                     client.TickHeartbeat();
                     await client.SendHubMessageAsync(PingMessage.Instance);
                 }

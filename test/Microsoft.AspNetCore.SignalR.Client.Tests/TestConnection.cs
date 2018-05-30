@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Internal;
 using Microsoft.AspNetCore.SignalR.Protocol;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Microsoft.AspNetCore.SignalR.Client.Tests
 {
@@ -124,7 +125,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             while (true)
             {
                 var result = await ReadSentTextMessageAsyncInner();
-                if (ignorePings && result == "{\"type\":6}")
+
+                var receivedMessageType = (int)JObject.Parse(result).Property("type").Value;
+                if (ignorePings && receivedMessageType == HubProtocolConstants.PingMessageType)
                 {
                     continue;
                 }
