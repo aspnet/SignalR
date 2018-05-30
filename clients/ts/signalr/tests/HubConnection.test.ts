@@ -1052,7 +1052,7 @@ class TestConnection implements IConnection {
         this.invokeOnReceive(data);
     }
 
-    invokeOnReceive(data: string | ArrayBuffer) {
+    private invokeOnReceive(data: string | ArrayBuffer) {
         if (this.onreceive) {
             this.onreceive(data);
         }

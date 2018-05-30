@@ -166,11 +166,11 @@ export class DefaultHttpClient extends HttpClient {
 
             const xhr = new XMLHttpRequest();
 
-            if (request.method === undefined) {
+            if (!request.method) {
                 reject(new Error("No method defined."));
                 return;
             }
-            if (request.url === undefined) {
+            if (!request.url) {
                 reject(new Error("No url defined."));
                 return;
             }

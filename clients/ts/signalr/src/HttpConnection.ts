@@ -18,7 +18,7 @@ const enum ConnectionState {
 }
 
 export interface INegotiateResponse {
-    connectionId?: string | null;
+    connectionId?: string;
     availableTransports?: IAvailableTransport[];
     url?: string;
     accessToken?: string;
@@ -231,7 +231,7 @@ export class HttpConnection implements IConnection {
             const transport = this.resolveTransport(endpoint, requestedTransport, requestedTransferFormat);
             if (typeof transport === "number") {
                 this.transport = this.constructTransport(transport);
-                if (negotiateResponse.connectionId === null || negotiateResponse.connectionId === undefined) {
+                if (!negotiateResponse.connectionId) {
                     negotiateResponse = await this.getNegotiationResponse(url);
                     connectUrl = this.createConnectUrl(url, negotiateResponse.connectionId);
                 }
@@ -242,7 +242,7 @@ export class HttpConnection implements IConnection {
                 } catch (ex) {
                     this.logger.log(LogLevel.Error, `Failed to start the transport '${HttpTransportType[transport]}': ${ex}`);
                     this.connectionState = ConnectionState.Disconnected;
-                    negotiateResponse.connectionId = null;
+                    negotiateResponse.connectionId = undefined;
                 }
             }
         }
