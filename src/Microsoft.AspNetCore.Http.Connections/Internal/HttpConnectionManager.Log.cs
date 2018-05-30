@@ -25,8 +25,12 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
             private static readonly Action<ILogger, string, Exception> _connectionTimedOut =
                 LoggerMessage.Define<string>(LogLevel.Trace, new EventId(5, "ConnectionTimedOut"), "Connection {TransportConnectionId} timed out.");
 
+            // 6, ScanningConnections - removed
+
             private static readonly Action<ILogger, Exception> _scanningConnectionsFailed =
                 LoggerMessage.Define(LogLevel.Error, new EventId(7, "ScanningConnectionsFailed"), "Scanning connections failed.");
+
+            // 8, ScannedConnections - removed
 
             private static readonly Action<ILogger, Exception> _heartbeatStarted =
                 LoggerMessage.Define(LogLevel.Trace, new EventId(9, "HeartBeatStarted"), "Starting connection heartbeat.");

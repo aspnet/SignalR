@@ -75,5 +75,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
                 }
             }
         }
+
+        // 4, ScanningConnections - removed
+
+        // 5, ScannedConnections - removed
     }
 }
