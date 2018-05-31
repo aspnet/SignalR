@@ -104,7 +104,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 {
                     if (scope is IReadOnlyList<KeyValuePair<string, object>> logScope)
                     {
-                        if (logScope.FirstOrDefault(kv => kv.Key == "TransportConnectionId" || kv.Key == "ConnectionId").Value is string id)
+                        if (logScope.FirstOrDefault(kv => kv.Key == "TransportConnectionId" || kv.Key == "ClientConnectionId").Value is string id)
                         {
                             connectionId = id;
                         }

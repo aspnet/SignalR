@@ -29,7 +29,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
             {
                 if (Count == 1 && index == 0)
                 {
-                    return new KeyValuePair<string, object>("ConnectionId", ConnectionId);
+                    return new KeyValuePair<string, object>("ClientConnectionId", ConnectionId);
                 }
 
                 throw new ArgumentOutOfRangeException(nameof(index));
@@ -57,7 +57,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
             {
                 if (!string.IsNullOrEmpty(ConnectionId))
                 {
-                    _cachedToString = FormattableString.Invariant($"ConnectionId:{ConnectionId}");
+                    _cachedToString = FormattableString.Invariant($"ClientConnectionId:{ConnectionId}");
                 }
             }
 
