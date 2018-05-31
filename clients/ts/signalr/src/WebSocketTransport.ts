@@ -10,14 +10,14 @@ export class WebSocketTransport implements ITransport {
     private readonly logger: ILogger;
     private readonly accessTokenFactory: (() => string | Promise<string>) | undefined;
     private readonly logMessageContent: boolean;
-    private readonly webSocketConstructor?: WebSocketConstructor;
+    private readonly webSocketConstructor: WebSocketConstructor;
     private webSocket?: WebSocket;
 
     public onreceive: ((data: string | ArrayBuffer) => void) | null;
     public onclose: ((error?: Error) => void) | null;
 
     constructor(accessTokenFactory: (() => string | Promise<string>) | undefined, logger: ILogger,
-                logMessageContent: boolean, webSocketConstructor?: WebSocketConstructor) {
+                logMessageContent: boolean, webSocketConstructor: WebSocketConstructor) {
         this.logger = logger;
         this.accessTokenFactory = accessTokenFactory;
         this.logMessageContent = logMessageContent;
@@ -32,10 +32,6 @@ export class WebSocketTransport implements ITransport {
         Arg.isRequired(transferFormat, "transferFormat");
         Arg.isIn(transferFormat, TransferFormat, "transferFormat");
 
-        if (!this.webSocketConstructor || this.webSocketConstructor === undefined) {
-            throw new Error("'WebSocket' is not supported in your environment.");
-        }
-
         this.logger.log(LogLevel.Trace, "(WebSockets transport) Connecting");
 
         if (this.accessTokenFactory) {
@@ -47,8 +43,7 @@ export class WebSocketTransport implements ITransport {
 
         return new Promise<void>((resolve, reject) => {
             url = url.replace(/^http/, "ws");
-            // we check the webSocketConstructor above
-            const webSocket = new this.webSocketConstructor!(url);
+            const webSocket = new this.webSocketConstructor(url);
             if (transferFormat === TransferFormat.Binary) {
                 webSocket.binaryType = "arraybuffer";
             }

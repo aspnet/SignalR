@@ -12,7 +12,7 @@ export class ServerSentEventsTransport implements ITransport {
     private readonly accessTokenFactory: (() => string | Promise<string>) | undefined;
     private readonly logger: ILogger;
     private readonly logMessageContent: boolean;
-    private readonly eventSourceConstructor?: EventSourceConstructor;
+    private readonly eventSourceConstructor: EventSourceConstructor;
     private eventSource?: EventSource;
     private url?: string;
 
@@ -20,7 +20,7 @@ export class ServerSentEventsTransport implements ITransport {
     public onclose: ((error?: Error) => void) | null;
 
     constructor(httpClient: HttpClient, accessTokenFactory: (() => string | Promise<string>) | undefined, logger: ILogger,
-                logMessageContent: boolean, eventSourceConstructor?: EventSourceConstructor) {
+                logMessageContent: boolean, eventSourceConstructor: EventSourceConstructor) {
         this.httpClient = httpClient;
         this.accessTokenFactory = accessTokenFactory;
         this.logger = logger;
@@ -35,10 +35,6 @@ export class ServerSentEventsTransport implements ITransport {
         Arg.isRequired(url, "url");
         Arg.isRequired(transferFormat, "transferFormat");
         Arg.isIn(transferFormat, TransferFormat, "transferFormat");
-
-        if (!this.eventSourceConstructor || this.eventSourceConstructor === undefined) {
-            throw new Error("'EventSource' is not supported in your environment.");
-        }
 
         this.logger.log(LogLevel.Trace, "(SSE transport) Connecting");
 
@@ -56,8 +52,7 @@ export class ServerSentEventsTransport implements ITransport {
                 reject(new Error("The Server-Sent Events transport only supports the 'Text' transfer format"));
             }
 
-            // we check the eventSourceConstructor above
-            const eventSource = new this.eventSourceConstructor!(url, { withCredentials: true });
+            const eventSource = new this.eventSourceConstructor(url, { withCredentials: true });
 
             try {
                 eventSource.onmessage = (e: MessageEvent) => {
