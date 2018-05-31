@@ -29,7 +29,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Internal
             {
                 if (Count == 1 && index == 0)
                 {
-                    return new KeyValuePair<string, object>("ClientConnectionId", ConnectionId);
+                    return new KeyValuePair<string, object>("ConnectionId", ConnectionId);
                 }
 
                 throw new ArgumentOutOfRangeException(nameof(index));
@@ -57,14 +57,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Internal
             {
                 if (!string.IsNullOrEmpty(ConnectionId))
                 {
-                    _cachedToString = string.Format(
-                        CultureInfo.InvariantCulture,
-                        "ClientConnectionId:{0}",
-                        ConnectionId);
+                    _cachedToString = FormattableString.Invariant($"ConnectionId:{ConnectionId}");
                 }
             }
 
-            return _cachedToString;
+            return _cachedToString ?? string.Empty;
         }
     }
 }
