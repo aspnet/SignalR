@@ -55,14 +55,12 @@ export class HttpConnection implements IConnection {
 
         options = options || {};
         options.logMessageContent = options.logMessageContent || false;
-        options.WebSocket = options.WebSocket;
-        options.EventSource = options.EventSource;
 
-        if (typeof WebSocket !== "undefined") {
-            options.WebSocket = options.WebSocket || WebSocket;
+        if (typeof WebSocket !== "undefined" && !options.WebSocket) {
+            options.WebSocket = WebSocket;
         }
-        if (typeof EventSource !== "undefined") {
-            options.EventSource = options.EventSource || EventSource;
+        if (typeof EventSource !== "undefined" && !options.EventSource) {
+            options.EventSource = EventSource;
         }
 
         this.httpClient = options.httpClient || new DefaultHttpClient(this.logger);
