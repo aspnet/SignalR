@@ -19,7 +19,8 @@ export class ServerSentEventsTransport implements ITransport {
     public onreceive: ((data: string | ArrayBuffer) => void) | null;
     public onclose: ((error?: Error) => void) | null;
 
-    constructor(httpClient: HttpClient, accessTokenFactory: (() => string | Promise<string>) | undefined, logger: ILogger, logMessageContent: boolean, eventSourceConstructor: EventSourceConstructor) {
+    constructor(httpClient: HttpClient, accessTokenFactory: (() => string | Promise<string>) | undefined, logger: ILogger,
+                logMessageContent: boolean, eventSourceConstructor?: EventSourceConstructor) {
         this.httpClient = httpClient;
         this.accessTokenFactory = accessTokenFactory;
         this.logger = logger;
@@ -35,7 +36,7 @@ export class ServerSentEventsTransport implements ITransport {
         Arg.isRequired(transferFormat, "transferFormat");
         Arg.isIn(transferFormat, TransferFormat, "transferFormat");
 
-        if (!this.eventSourceConstructor) {
+        if (!this.eventSourceConstructor || this.eventSourceConstructor === undefined) {
             throw new Error("'EventSource' is not supported in your environment.");
         }
 
@@ -55,7 +56,8 @@ export class ServerSentEventsTransport implements ITransport {
                 reject(new Error("The Server-Sent Events transport only supports the 'Text' transfer format"));
             }
 
-            const eventSource = new this.eventSourceConstructor(url, { withCredentials: true });
+            // we check the eventSourceConstructor above
+            const eventSource = new this.eventSourceConstructor!(url, { withCredentials: true });
 
             try {
                 eventSource.onmessage = (e: MessageEvent) => {
