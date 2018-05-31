@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging.Testing;
 
 namespace Microsoft.AspNetCore.SignalR.Tests
 {
-    // TestSink doesn't seem to be thread-safe :(.
+    // TestSink does not have an event
     internal class LogSinkProvider : ILoggerProvider
     {
         private readonly ConcurrentQueue<LogRecord> _logs = new ConcurrentQueue<LogRecord>();
