@@ -2,7 +2,7 @@
 
 // 'node' indicates to Jenkins that the enclosed block runs on a node that matches
 // the label 'windows-with-vs'
-simpleNode('Windows.10.Enterprise.RS3.ASPNET') {
+simpleNode('windows.10.enterprise.rs3.aspnet.open') {
     stage ('Checking out source') {
         checkout scm
     }
