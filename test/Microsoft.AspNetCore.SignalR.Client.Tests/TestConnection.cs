@@ -126,7 +126,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             {
                 var result = await ReadSentTextMessageAsyncInner();
 
-                var receivedMessageType = (int)JObject.Parse(result).Property("type").Value;
+                var receivedMessageType = (int?)JObject.Parse(result)["type"];
                 if (ignorePings && receivedMessageType == HubProtocolConstants.PingMessageType)
                 {
                     continue;
