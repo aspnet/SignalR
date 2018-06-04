@@ -26,6 +26,7 @@ namespace ClientSample
 
             RawSample.Register(app);
             HubSample.Register(app);
+            StreamingSample.Register(app);
 
             app.Command("help", cmd =>
             {
