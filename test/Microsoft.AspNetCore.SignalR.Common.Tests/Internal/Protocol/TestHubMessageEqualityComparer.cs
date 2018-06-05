@@ -34,11 +34,13 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                     return StreamInvocationMessagesEqual(streamInvocationMessage, (StreamInvocationMessage)y);
                 case CancelInvocationMessage cancelItemMessage:
                     return string.Equals(cancelItemMessage.InvocationId, ((CancelInvocationMessage)y).InvocationId, StringComparison.Ordinal);
-                case PingMessage pingMessage:
+                case PingMessage _:
                     // If the types are equal (above), then we're done.
                     return true;
                 case CloseMessage closeMessage:
                     return string.Equals(closeMessage.Error, ((CloseMessage) y).Error);
+                case UploadDoneMessage _:
+                    return true;
                 default:
                     throw new InvalidOperationException($"Unknown message type: {x.GetType().FullName}");
             }
@@ -73,7 +75,8 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             return SequenceEqual(x.Headers, y.Headers) &&
                 string.Equals(x.InvocationId, y.InvocationId, StringComparison.Ordinal) &&
                 string.Equals(x.Target, y.Target, StringComparison.Ordinal) &&
-                ArgumentListsEqual(x.Arguments, y.Arguments);
+                ArgumentListsEqual(x.Arguments, y.Arguments) &&
+                x.StreamingUpload == y.StreamingUpload;
         }
 
         private bool ArgumentListsEqual(object[] left, object[] right)

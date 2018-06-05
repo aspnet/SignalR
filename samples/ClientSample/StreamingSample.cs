@@ -40,7 +40,6 @@ namespace ClientSample
                 }
             }
 
-
             return 0;
         }
     }
