@@ -164,7 +164,11 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             try
             {
                 var arguments = BindArguments(input, ref offset, parameterTypes, resolver);
-                return ApplyHeaders(headers, new InvocationMessage(invocationId, target, arguments));
+
+                // optional flag, may or may not be present
+                var uploadFlag = (offset < input.Length) && ReadBoolean(input, ref offset, "streamingUpload");
+
+                return ApplyHeaders(headers, new InvocationMessage(invocationId, target, arguments, uploadFlag));
             }
             catch (Exception ex)
             {
@@ -183,11 +187,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             try
             {
                 var arguments = BindArguments(input, ref offset, parameterTypes, resolver);
-
-                // optional flag, may or may not be present
-                var uploadFlag = (offset < input.Length) && ReadBoolean(input, ref offset, "streamingUpload");
-
-                return ApplyHeaders(headers, new StreamInvocationMessage(invocationId, target, arguments, uploadFlag));
+                return ApplyHeaders(headers, new StreamInvocationMessage(invocationId, target, arguments));
             }
             catch (Exception ex)
             {
@@ -395,7 +395,12 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
 
         private void WriteInvocationMessage(InvocationMessage message, Stream packer)
         {
-            MessagePackBinary.WriteArrayHeader(packer, 5);
+            var arrayLength = 5;
+            if (message.StreamingUpload)
+            {
+                arrayLength += 1;
+            }
+            MessagePackBinary.WriteArrayHeader(packer, arrayLength);
             MessagePackBinary.WriteInt32(packer, HubProtocolConstants.InvocationMessageType);
             PackHeaders(packer, message.Headers);
             if (string.IsNullOrEmpty(message.InvocationId))
@@ -412,16 +417,16 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             {
                 WriteArgument(arg, packer);
             }
+
+            if (message.StreamingUpload)
+            {
+                MessagePackBinary.WriteBoolean(packer, true);
+            }
         }
 
         private void WriteStreamInvocationMessage(StreamInvocationMessage message, Stream packer)
         {
-            var arraylength = 5;
-            if (message.StreamingUpload)
-            {
-                arraylength += 1;
-            }
-            MessagePackBinary.WriteArrayHeader(packer, arraylength);
+            MessagePackBinary.WriteArrayHeader(packer, 5);
             MessagePackBinary.WriteInt16(packer, HubProtocolConstants.StreamInvocationMessageType);
             PackHeaders(packer, message.Headers);
             MessagePackBinary.WriteString(packer, message.InvocationId);
@@ -431,11 +436,6 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             foreach (var arg in message.Arguments)
             {
                 WriteArgument(arg, packer);
-            }
-
-            if (message.StreamingUpload)
-            {
-                MessagePackBinary.WriteBoolean(packer, true);
             }
         }
 

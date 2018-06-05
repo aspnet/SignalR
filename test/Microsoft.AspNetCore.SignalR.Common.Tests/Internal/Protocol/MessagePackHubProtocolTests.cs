@@ -91,6 +91,10 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                 name: "InvocationWithHeadersNoIdAndArrayOfCustomObjectArgs",
                 message: AddHeaders(TestHeaders, new InvocationMessage("method", new object[] { new CustomObject(), new CustomObject() })),
                 binary: "lQGDo0Zvb6NCYXKyS2V5V2l0aApOZXcNCkxpbmVzq1N0aWxsIFdvcmtzsVZhbHVlV2l0aE5ld0xpbmVzsEFsc28KV29ya3MNCkZpbmXApm1ldGhvZJKGqlN0cmluZ1Byb3CoU2lnbmFsUiGqRG91YmxlUHJvcMtAGSH7VELPEqdJbnRQcm9wKqxEYXRlVGltZVByb3DW/1jsHICoTnVsbFByb3DAq0J5dGVBcnJQcm9wxAMBAgOGqlN0cmluZ1Byb3CoU2lnbmFsUiGqRG91YmxlUHJvcMtAGSH7VELPEqdJbnRQcm9wKqxEYXRlVGltZVByb3DW/1jsHICoTnVsbFByb3DAq0J5dGVBcnJQcm9wxAMBAgM="),
+            new ProtocolTestData(
+                name: "InvocationMessageWithUploadStreamingFlag",
+                message: new InvocationMessage("xyz", "method", Array.Empty<object>(), true),
+                binary: "lgGAo3h5eqZtZXRob2SQww=="),
 
             // StreamItem Messages
             new ProtocolTestData(
@@ -217,10 +221,6 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                 name: "StreamInvocationWithHeadersAndCustomObjectArrayArg",
                 message: AddHeaders(TestHeaders, new StreamInvocationMessage("xyz", "method", new object[] { new CustomObject(), new CustomObject() })),
                 binary: "lQSDo0Zvb6NCYXKyS2V5V2l0aApOZXcNCkxpbmVzq1N0aWxsIFdvcmtzsVZhbHVlV2l0aE5ld0xpbmVzsEFsc28KV29ya3MNCkZpbmWjeHl6pm1ldGhvZJKGqlN0cmluZ1Byb3CoU2lnbmFsUiGqRG91YmxlUHJvcMtAGSH7VELPEqdJbnRQcm9wKqxEYXRlVGltZVByb3DW/1jsHICoTnVsbFByb3DAq0J5dGVBcnJQcm9wxAMBAgOGqlN0cmluZ1Byb3CoU2lnbmFsUiGqRG91YmxlUHJvcMtAGSH7VELPEqdJbnRQcm9wKqxEYXRlVGltZVByb3DW/1jsHICoTnVsbFByb3DAq0J5dGVBcnJQcm9wxAMBAgM="),
-            new ProtocolTestData(
-                name: "StreamInvocationMessageWithUploadStreamingFlag",
-                message: new StreamInvocationMessage("xyz", "method", Array.Empty<object>(), true),
-                binary: "lgSAo3h5eqZtZXRob2SQww=="),
 
             // CancelInvocation Messages
             new ProtocolTestData(
@@ -232,9 +232,9 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                 message: AddHeaders(TestHeaders, new CancelInvocationMessage("xyz")),
                 binary: "kwWDo0Zvb6NCYXKyS2V5V2l0aApOZXcNCkxpbmVzq1N0aWxsIFdvcmtzsVZhbHVlV2l0aE5ld0xpbmVzsEFsc28KV29ya3MNCkZpbmWjeHl6"),
 
-            // UploadDoneMessages
+            // StreamComplete Messages
             new ProtocolTestData(
-                name: "UploadDone",
+                name: "StreamComplete",
                 message: new StreamCompleteMessage("xyz"),
                 binary: "kgijeHl6"),
 
@@ -266,10 +266,10 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         [Fact]
         public void ParseMessageWithExtraData()
         {
-            var expectedMessage = new InvocationMessage("xyz", "method", Array.Empty<object>());
+            var expectedMessage = new InvocationMessage("xyz", "method", Array.Empty<object>(), true);
 
             // Verify that the input binary string decodes to the expected MsgPack primitives
-            var bytes = new byte[] { ArrayBytes(6), 1, 0x80, StringBytes(3), (byte)'x', (byte)'y', (byte)'z', StringBytes(6), (byte)'m', (byte)'e', (byte)'t', (byte)'h', (byte)'o', (byte)'d', ArrayBytes(0), StringBytes(2), (byte)'e', (byte)'x' };
+            var bytes = new byte[] { ArrayBytes(7), 1, 0x80, StringBytes(3), (byte)'x', (byte)'y', (byte)'z', StringBytes(6), (byte)'m', (byte)'e', (byte)'t', (byte)'h', (byte)'o', (byte)'d', ArrayBytes(0), 0xC3, StringBytes(2), (byte)'e', (byte)'x' };
 
             // Parse the input fully now.
             bytes = Frame(bytes);

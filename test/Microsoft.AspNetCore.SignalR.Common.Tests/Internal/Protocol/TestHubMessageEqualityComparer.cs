@@ -67,7 +67,8 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             return SequenceEqual(x.Headers, y.Headers) &&
                 string.Equals(x.InvocationId, y.InvocationId, StringComparison.Ordinal) &&
                 string.Equals(x.Target, y.Target, StringComparison.Ordinal) &&
-                ArgumentListsEqual(x.Arguments, y.Arguments);
+                ArgumentListsEqual(x.Arguments, y.Arguments) &&
+                x.StreamingUpload == y.StreamingUpload;
         }
 
         private bool StreamInvocationMessagesEqual(StreamInvocationMessage x, StreamInvocationMessage y)
@@ -75,8 +76,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             return SequenceEqual(x.Headers, y.Headers) &&
                 string.Equals(x.InvocationId, y.InvocationId, StringComparison.Ordinal) &&
                 string.Equals(x.Target, y.Target, StringComparison.Ordinal) &&
-                ArgumentListsEqual(x.Arguments, y.Arguments) &&
-                x.StreamingUpload == y.StreamingUpload;
+                ArgumentListsEqual(x.Arguments, y.Arguments);
         }
 
         private bool ArgumentListsEqual(object[] left, object[] right)
