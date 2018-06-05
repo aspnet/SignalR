@@ -39,7 +39,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                     return true;
                 case CloseMessage closeMessage:
                     return string.Equals(closeMessage.Error, ((CloseMessage) y).Error);
-                case UploadDoneMessage _:
+                case StreamCompleteMessage _:
                     return true;
                 default:
                     throw new InvalidOperationException($"Unknown message type: {x.GetType().FullName}");

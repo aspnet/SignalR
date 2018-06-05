@@ -235,7 +235,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             // UploadDoneMessages
             new ProtocolTestData(
                 name: "UploadDone",
-                message: new UploadDoneMessage("xyz"),
+                message: new StreamCompleteMessage("xyz"),
                 binary: "kgijeHl6"),
 
             // Ping Messages

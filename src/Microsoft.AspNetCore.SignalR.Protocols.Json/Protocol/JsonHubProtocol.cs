@@ -339,8 +339,8 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                         return PingMessage.Instance;
                     case HubProtocolConstants.CloseMessageType:
                         return BindCloseMessage(error);
-                    case HubProtocolConstants.UploadDoneMessageType:
-                        message = BindUploadDoneMessage(invocationId);
+                    case HubProtocolConstants.StreamCompleteMessageType:
+                        message = BindStreamCompleteMessage(invocationId);
                         break;
                     case null:
                         throw new InvalidDataException($"Missing required property '{TypePropertyName}'.");
@@ -434,9 +434,9 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                             WriteMessageType(writer, HubProtocolConstants.CloseMessageType);
                             WriteCloseMessage(m, writer);
                             break;
-                        case UploadDoneMessage m:
-                            WriteMessageType(writer, HubProtocolConstants.UploadDoneMessageType);
-                            WriteUploadDoneMessage(m, writer);
+                        case StreamCompleteMessage m:
+                            WriteMessageType(writer, HubProtocolConstants.StreamCompleteMessageType);
+                            WriteStreamCompleteMessage(m, writer);
                             break;
                         default:
                             throw new InvalidOperationException($"Unsupported message type: {message.GetType().FullName}");
@@ -486,7 +486,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             WriteInvocationId(message, writer);
         }
 
-        private void WriteUploadDoneMessage(UploadDoneMessage message, JsonTextWriter writer)
+        private void WriteStreamCompleteMessage(StreamCompleteMessage message, JsonTextWriter writer)
         {
             WriteInvocationId(message, writer);
         }
@@ -567,14 +567,14 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             return new CancelInvocationMessage(invocationId);
         }
 
-        private HubMessage BindUploadDoneMessage(string invocationId)
+        private HubMessage BindStreamCompleteMessage(string invocationId)
         {
             if (string.IsNullOrEmpty(invocationId))
             {
                 throw new InvalidDataException($"Missing required property '{InvocationIdPropertyName}'.");
             }
 
-            return new UploadDoneMessage(invocationId);
+            return new StreamCompleteMessage(invocationId);
         }
 
         private HubMessage BindCompletionMessage(string invocationId, string error, object result, bool hasResult, IInvocationBinder binder)

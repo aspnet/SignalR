@@ -92,7 +92,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             new JsonProtocolTestData("CloseMessage_HasErrorWithCamelCase", new CloseMessage("Error!"), true, NullValueHandling.Ignore, "{\"type\":7,\"error\":\"Error!\"}"),
             new JsonProtocolTestData("CloseMessage_HasErrorEmptyString", new CloseMessage(""), false, NullValueHandling.Ignore, "{\"type\":7,\"error\":\"\"}"),
 
-            new JsonProtocolTestData("UploadDoneMessage", new UploadDoneMessage("123"), true, NullValueHandling.Ignore, "{\"type\":8,\"invocationId\":\"123\"}"),
+            new JsonProtocolTestData("StreamCompleteMessage", new StreamCompleteMessage("123"), true, NullValueHandling.Ignore, "{\"type\":8,\"invocationId\":\"123\"}"),
 
 
         }.ToDictionary(t => t.Name);
