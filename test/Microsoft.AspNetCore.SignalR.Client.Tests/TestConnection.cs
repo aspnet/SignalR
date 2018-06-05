@@ -56,7 +56,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             Application.Input.OnWriterCompleted((ex, _) =>
             {
                 Application.Output.Complete();
-            }, 
+            },
             null);
         }
 
@@ -127,6 +127,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 var result = await ReadSentTextMessageAsyncInner();
 
                 var receivedMessageType = (int?)JObject.Parse(result)["type"];
+
                 if (ignorePings && receivedMessageType == HubProtocolConstants.PingMessageType)
                 {
                     continue;
@@ -134,7 +135,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 return result;
             }
         }
-        
+
         private async Task<string> ReadSentTextMessageAsyncInner()
         {
             while (true)
@@ -162,7 +163,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             }
         }
 
-        public async Task<IList<string>> ReadAllSentMessagesAsync(bool ignorePings=true)
+        public async Task<IList<string>> ReadAllSentMessagesAsync(bool ignorePings = true)
         {
             if (!Disposed.IsCompleted)
             {

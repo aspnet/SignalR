@@ -34,7 +34,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         private long _lastSendTimeStamp = DateTime.UtcNow.Ticks;
         private long _lastReceivedTimeStamp = DateTime.UtcNow.Ticks;
-        internal bool _receivedMessageThisInterval = false;
+        private bool _receivedMessageThisInterval = false;
         private ReadOnlyMemory<byte> _cachedPingMessage;
         private bool _clientTimeoutActive;
 
@@ -506,6 +506,11 @@ namespace Microsoft.AspNetCore.SignalR
                 // Communicate the fact that we're finished triggering abort callbacks
                 connection._abortCompletedTcs.TrySetResult(null);
             }
+        }
+
+        internal void ResetClientTimeout()
+        {
+            _receivedMessageThisInterval = true;
         }
 
         private static class Log
