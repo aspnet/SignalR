@@ -79,7 +79,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             new JsonProtocolTestData("StreamInvocationMessage_HasCustomArgumentWithNullValueIgnoreAndNoCamelCase", new StreamInvocationMessage("123", "Target", new object[] { new CustomObject() }), false, NullValueHandling.Include, "{\"type\":4,\"invocationId\":\"123\",\"target\":\"Target\",\"arguments\":[{\"StringProp\":\"SignalR!\",\"DoubleProp\":6.2831853071,\"IntProp\":42,\"DateTimeProp\":\"2017-04-11T00:00:00Z\",\"NullProp\":null,\"ByteArrProp\":\"AQID\"}]}"),
             new JsonProtocolTestData("StreamInvocationMessage_HasCustomArgumentWithNullValueInclude", new StreamInvocationMessage("123", "Target", new object[] { new CustomObject() }), true, NullValueHandling.Include, "{\"type\":4,\"invocationId\":\"123\",\"target\":\"Target\",\"arguments\":[{\"stringProp\":\"SignalR!\",\"doubleProp\":6.2831853071,\"intProp\":42,\"dateTimeProp\":\"2017-04-11T00:00:00Z\",\"nullProp\":null,\"byteArrProp\":\"AQID\"}]}"),
             new JsonProtocolTestData("StreamInvocationMessage_HasHeaders", AddHeaders(TestHeaders, new StreamInvocationMessage("123", "Target", new object[] { new CustomObject() })), true, NullValueHandling.Include, "{\"type\":4," + SerializedHeaders + ",\"invocationId\":\"123\",\"target\":\"Target\",\"arguments\":[{\"stringProp\":\"SignalR!\",\"doubleProp\":6.2831853071,\"intProp\":42,\"dateTimeProp\":\"2017-04-11T00:00:00Z\",\"nullProp\":null,\"byteArrProp\":\"AQID\"}]}"),
-            new JsonProtocolTestData("StreamInvocationMessage_UploadStreamingFlag", new StreamInvocationMessage("123", "Target", new object[] { }, "true"), true, NullValueHandling.Ignore, "{\"type\":4,\"invocationId\":\"123\",\"target\":\"Target\",\"arguments\":[],\"streamingUpload\":\"true\"}"),
+            new JsonProtocolTestData("StreamInvocationMessage_UploadStreamingFlag", new StreamInvocationMessage("123", "Target", new object[] { }, true), true, NullValueHandling.Ignore, "{\"type\":4,\"invocationId\":\"123\",\"target\":\"Target\",\"arguments\":[],\"streamingUpload\":true}"),
             // add flag to the invoation message class, and add code to JSONHUBPROTOcol which does the parsing
 
             new JsonProtocolTestData("CancelInvocationMessage_HasInvocationId", new CancelInvocationMessage("123"), true, NullValueHandling.Ignore, "{\"type\":5,\"invocationId\":\"123\"}"),
@@ -92,7 +92,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             new JsonProtocolTestData("CloseMessage_HasErrorWithCamelCase", new CloseMessage("Error!"), true, NullValueHandling.Ignore, "{\"type\":7,\"error\":\"Error!\"}"),
             new JsonProtocolTestData("CloseMessage_HasErrorEmptyString", new CloseMessage(""), false, NullValueHandling.Ignore, "{\"type\":7,\"error\":\"\"}"),
 
-            new JsonProtocolTestData("UploadDoneMessage", UploadDoneMessage.Instance, true, NullValueHandling.Ignore, "{\"type\":8}"),
+            new JsonProtocolTestData("UploadDoneMessage", new UploadDoneMessage("123"), true, NullValueHandling.Ignore, "{\"type\":8,\"invocationId\":\"123\"}"),
 
 
         }.ToDictionary(t => t.Name);

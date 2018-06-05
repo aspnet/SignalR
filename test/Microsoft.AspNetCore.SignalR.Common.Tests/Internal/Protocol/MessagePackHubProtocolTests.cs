@@ -217,6 +217,10 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                 name: "StreamInvocationWithHeadersAndCustomObjectArrayArg",
                 message: AddHeaders(TestHeaders, new StreamInvocationMessage("xyz", "method", new object[] { new CustomObject(), new CustomObject() })),
                 binary: "lQSDo0Zvb6NCYXKyS2V5V2l0aApOZXcNCkxpbmVzq1N0aWxsIFdvcmtzsVZhbHVlV2l0aE5ld0xpbmVzsEFsc28KV29ya3MNCkZpbmWjeHl6pm1ldGhvZJKGqlN0cmluZ1Byb3CoU2lnbmFsUiGqRG91YmxlUHJvcMtAGSH7VELPEqdJbnRQcm9wKqxEYXRlVGltZVByb3DW/1jsHICoTnVsbFByb3DAq0J5dGVBcnJQcm9wxAMBAgOGqlN0cmluZ1Byb3CoU2lnbmFsUiGqRG91YmxlUHJvcMtAGSH7VELPEqdJbnRQcm9wKqxEYXRlVGltZVByb3DW/1jsHICoTnVsbFByb3DAq0J5dGVBcnJQcm9wxAMBAgM="),
+            new ProtocolTestData(
+                name: "StreamInvocationMessageWithUploadStreamingFlag",
+                message: new StreamInvocationMessage("xyz", "method", Array.Empty<object>(), true),
+                binary: "lgSAo3h5eqZtZXRob2SQww=="),
 
             // CancelInvocation Messages
             new ProtocolTestData(
@@ -227,6 +231,12 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                 name: "CancelInvocationWithHeaders",
                 message: AddHeaders(TestHeaders, new CancelInvocationMessage("xyz")),
                 binary: "kwWDo0Zvb6NCYXKyS2V5V2l0aApOZXcNCkxpbmVzq1N0aWxsIFdvcmtzsVZhbHVlV2l0aE5ld0xpbmVzsEFsc28KV29ya3MNCkZpbmWjeHl6"),
+
+            // UploadDoneMessages
+            new ProtocolTestData(
+                name: "UploadDone",
+                message: new UploadDoneMessage("xyz"),
+                binary: "kgijeHl6"),
 
             // Ping Messages
             new ProtocolTestData(

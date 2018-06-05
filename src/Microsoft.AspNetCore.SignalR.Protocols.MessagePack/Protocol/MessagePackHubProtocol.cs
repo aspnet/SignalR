@@ -138,6 +138,8 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                     return PingMessage.Instance;
                 case HubProtocolConstants.CloseMessageType:
                     return CreateCloseMessage(input, ref startOffset);
+                case HubProtocolConstants.UploadDoneMessageType:
+                    return CreateUploadDoneMessage(input, ref startOffset);
                 default:
                     // Future protocol changes can add message types, old clients can ignore them
                     return null;
@@ -175,12 +177,17 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             var headers = ReadHeaders(input, ref offset);
             var invocationId = ReadInvocationId(input, ref offset);
             var target = ReadString(input, ref offset, "target");
+
             var parameterTypes = binder.GetParameterTypes(target);
 
             try
             {
                 var arguments = BindArguments(input, ref offset, parameterTypes, resolver);
-                return ApplyHeaders(headers, new StreamInvocationMessage(invocationId, target, arguments));
+
+                // optional flag, may or may not be present
+                var uploadFlag = (offset < input.Length) && ReadBoolean(input, ref offset, "streamingUpload");
+
+                return ApplyHeaders(headers, new StreamInvocationMessage(invocationId, target, arguments, uploadFlag));
             }
             catch (Exception ex)
             {
@@ -238,6 +245,12 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         {
             var error = ReadString(input, ref offset, "error");
             return new CloseMessage(error);
+        }
+
+        private static UploadDoneMessage CreateUploadDoneMessage(byte[] input, ref int offset)
+        {
+            var invocationId = ReadInvocationId(input, ref offset);
+            return new UploadDoneMessage(invocationId);
         }
 
         private static Dictionary<string, string> ReadHeaders(byte[] input, ref int offset)
@@ -372,6 +385,9 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                 case CloseMessage closeMessage:
                     WriteCloseMessage(closeMessage, packer);
                     break;
+                case UploadDoneMessage m:
+                    WriteUploadDoneMessage(m, packer);
+                    break;
                 default:
                     throw new InvalidDataException($"Unexpected message type: {message.GetType().Name}");
             }
@@ -400,7 +416,12 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
 
         private void WriteStreamInvocationMessage(StreamInvocationMessage message, Stream packer)
         {
-            MessagePackBinary.WriteArrayHeader(packer, 5);
+            var arraylength = 5;
+            if (message.StreamingUpload)
+            {
+                arraylength += 1;
+            }
+            MessagePackBinary.WriteArrayHeader(packer, arraylength);
             MessagePackBinary.WriteInt16(packer, HubProtocolConstants.StreamInvocationMessageType);
             PackHeaders(packer, message.Headers);
             MessagePackBinary.WriteString(packer, message.InvocationId);
@@ -410,6 +431,11 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             foreach (var arg in message.Arguments)
             {
                 WriteArgument(arg, packer);
+            }
+
+            if (message.StreamingUpload)
+            {
+                MessagePackBinary.WriteBoolean(packer, true);
             }
         }
 
@@ -462,6 +488,13 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             MessagePackBinary.WriteArrayHeader(packer, 3);
             MessagePackBinary.WriteInt16(packer, HubProtocolConstants.CancelInvocationMessageType);
             PackHeaders(packer, message.Headers);
+            MessagePackBinary.WriteString(packer, message.InvocationId);
+        }
+
+        private void WriteUploadDoneMessage(UploadDoneMessage message, Stream packer)
+        {
+            MessagePackBinary.WriteArrayHeader(packer, 2);
+            MessagePackBinary.WriteInt16(packer, HubProtocolConstants.UploadDoneMessageType);
             MessagePackBinary.WriteString(packer, message.InvocationId);
         }
 

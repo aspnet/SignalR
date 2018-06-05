@@ -87,7 +87,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
     /// </summary>
     public class StreamInvocationMessage : HubMethodInvocationMessage
     {
-        public string StreamingUpload { get; } = "false";
+        public bool StreamingUpload { get; } = false;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="StreamInvocationMessage"/> class.
@@ -104,7 +104,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             }
         }
 
-        public StreamInvocationMessage(string invocationId, string target, object[] arguments, string streamingUpload)
+        public StreamInvocationMessage(string invocationId, string target, object[] arguments, bool streamingUpload)
             : base(invocationId, target, arguments)
         {
             StreamingUpload = streamingUpload;

@@ -130,7 +130,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                 ExceptionDispatchInfo argumentBindingException = null;
                 Dictionary<string, string> headers = null;
                 var completed = false;
-                var streamingUpload = "false";
+                var streamingUpload = false;
 
                 using (var reader = JsonUtils.CreateJsonTextReader(textReader))
                 {
@@ -250,7 +250,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                                         headers = ReadHeaders(reader);
                                         break;
                                     case StreamingUploadName:
-                                        streamingUpload = JsonUtils.ReadAsString(reader, InvocationIdPropertyName);
+                                        streamingUpload = JsonUtils.ReadForType(reader, typeof(bool));
                                         break;
                                     default:
                                         // Skip read the property name
@@ -340,7 +340,8 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                     case HubProtocolConstants.CloseMessageType:
                         return BindCloseMessage(error);
                     case HubProtocolConstants.UploadDoneMessageType:
-                        return UploadDoneMessage.Instance;
+                        message = BindUploadDoneMessage(invocationId);
+                        break;
                     case null:
                         throw new InvalidDataException($"Missing required property '{TypePropertyName}'.");
                     default:
@@ -433,8 +434,9 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                             WriteMessageType(writer, HubProtocolConstants.CloseMessageType);
                             WriteCloseMessage(m, writer);
                             break;
-                        case UploadDoneMessage _:
+                        case UploadDoneMessage m:
                             WriteMessageType(writer, HubProtocolConstants.UploadDoneMessageType);
+                            WriteUploadDoneMessage(m, writer);
                             break;
                         default:
                             throw new InvalidOperationException($"Unsupported message type: {message.GetType().FullName}");
@@ -484,6 +486,11 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             WriteInvocationId(message, writer);
         }
 
+        private void WriteUploadDoneMessage(UploadDoneMessage message, JsonTextWriter writer)
+        {
+            WriteInvocationId(message, writer);
+        }
+
         private void WriteStreamItemMessage(StreamItemMessage message, JsonTextWriter writer)
         {
             WriteInvocationId(message, writer);
@@ -508,7 +515,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
 
             WriteArguments(message.Arguments, writer);
 
-            if (message.StreamingUpload == "true")
+            if (message.StreamingUpload)
             {
                 writer.WritePropertyName(StreamingUploadName);
                 writer.WriteValue(message.StreamingUpload);
@@ -560,6 +567,16 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             return new CancelInvocationMessage(invocationId);
         }
 
+        private HubMessage BindUploadDoneMessage(string invocationId)
+        {
+            if (string.IsNullOrEmpty(invocationId))
+            {
+                throw new InvalidDataException($"Missing required property '{InvocationIdPropertyName}'.");
+            }
+
+            return new UploadDoneMessage(invocationId);
+        }
+
         private HubMessage BindCompletionMessage(string invocationId, string error, object result, bool hasResult, IInvocationBinder binder)
         {
             if (string.IsNullOrEmpty(invocationId))
@@ -595,7 +612,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             return new StreamItemMessage(invocationId, item);
         }
 
-        private HubMessage BindStreamInvocationMessage(string invocationId, string target, object[] arguments, bool hasArguments, string streamingUpload, IInvocationBinder binder)
+        private HubMessage BindStreamInvocationMessage(string invocationId, string target, object[] arguments, bool hasArguments, bool streamingUpload, IInvocationBinder binder)
         {
             if (string.IsNullOrEmpty(invocationId))
             {
