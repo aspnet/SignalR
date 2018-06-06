@@ -58,39 +58,39 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             new ProtocolTestData(
                 name: "InvocationWithNoHeadersAndNoArgs",
                 message: new InvocationMessage("xyz", "method", Array.Empty<object>()),
-                binary: "lQGAo3h5eqZtZXRob2SQ"),
+                binary: "lgGAo3h5eqZtZXRob2SQwg=="),
             new ProtocolTestData(
                 name: "InvocationWithNoHeadersNoIdAndNoArgs",
                 message: new InvocationMessage("method", Array.Empty<object>()),
-                binary: "lQGAwKZtZXRob2SQ"),
+                binary: "lgGAwKZtZXRob2SQwg=="),
             new ProtocolTestData(
                 name: "InvocationWithNoHeadersNoIdAndSingleNullArg",
                 message: new InvocationMessage("method", new object[] { null }),
-                binary: "lQGAwKZtZXRob2SRwA=="),
+                binary: "lgGAwKZtZXRob2SRwMI="),
             new ProtocolTestData(
                 name: "InvocationWithNoHeadersNoIdAndSingleIntArg",
                 message: new InvocationMessage("method", new object[] { 42 }),
-                binary: "lQGAwKZtZXRob2SRKg=="),
+                binary: "lgGAwKZtZXRob2SRKsI="),
             new ProtocolTestData(
                 name: "InvocationWithNoHeadersNoIdIntAndStringArgs",
                 message: new InvocationMessage("method", new object[] { 42, "string" }),
-                binary: "lQGAwKZtZXRob2SSKqZzdHJpbmc="),
+                binary: "lgGAwKZtZXRob2SSKqZzdHJpbmfC"),
             new ProtocolTestData(
                 name: "InvocationWithNoHeadersNoIdIntAndEnumArgs",
                 message: new InvocationMessage("method", new object[] { 42, TestEnum.One }),
-                binary: "lQGAwKZtZXRob2SSKqNPbmU="),
+                binary: "lgGAwKZtZXRob2SSKqNPbmXC"),
             new ProtocolTestData(
                 name: "InvocationWithNoHeadersNoIdAndCustomObjectArg",
                 message: new InvocationMessage("method", new object[] { 42, "string", new CustomObject() }),
-                binary: "lQGAwKZtZXRob2STKqZzdHJpbmeGqlN0cmluZ1Byb3CoU2lnbmFsUiGqRG91YmxlUHJvcMtAGSH7VELPEqdJbnRQcm9wKqxEYXRlVGltZVByb3DW/1jsHICoTnVsbFByb3DAq0J5dGVBcnJQcm9wxAMBAgM="),
+                binary: "lgGAwKZtZXRob2STKqZzdHJpbmeGqlN0cmluZ1Byb3CoU2lnbmFsUiGqRG91YmxlUHJvcMtAGSH7VELPEqdJbnRQcm9wKqxEYXRlVGltZVByb3DW/1jsHICoTnVsbFByb3DAq0J5dGVBcnJQcm9wxAMBAgPC"),
             new ProtocolTestData(
                 name: "InvocationWithNoHeadersNoIdAndArrayOfCustomObjectArgs",
                 message: new InvocationMessage("method", new object[] { new CustomObject(), new CustomObject() }),
-                binary: "lQGAwKZtZXRob2SShqpTdHJpbmdQcm9wqFNpZ25hbFIhqkRvdWJsZVByb3DLQBkh+1RCzxKnSW50UHJvcCqsRGF0ZVRpbWVQcm9w1v9Y7ByAqE51bGxQcm9wwKtCeXRlQXJyUHJvcMQDAQIDhqpTdHJpbmdQcm9wqFNpZ25hbFIhqkRvdWJsZVByb3DLQBkh+1RCzxKnSW50UHJvcCqsRGF0ZVRpbWVQcm9w1v9Y7ByAqE51bGxQcm9wwKtCeXRlQXJyUHJvcMQDAQID"),
+                binary: "lgGAwKZtZXRob2SShqpTdHJpbmdQcm9wqFNpZ25hbFIhqkRvdWJsZVByb3DLQBkh+1RCzxKnSW50UHJvcCqsRGF0ZVRpbWVQcm9w1v9Y7ByAqE51bGxQcm9wwKtCeXRlQXJyUHJvcMQDAQIDhqpTdHJpbmdQcm9wqFNpZ25hbFIhqkRvdWJsZVByb3DLQBkh+1RCzxKnSW50UHJvcCqsRGF0ZVRpbWVQcm9w1v9Y7ByAqE51bGxQcm9wwKtCeXRlQXJyUHJvcMQDAQIDwg=="),
             new ProtocolTestData(
                 name: "InvocationWithHeadersNoIdAndArrayOfCustomObjectArgs",
                 message: AddHeaders(TestHeaders, new InvocationMessage("method", new object[] { new CustomObject(), new CustomObject() })),
-                binary: "lQGDo0Zvb6NCYXKyS2V5V2l0aApOZXcNCkxpbmVzq1N0aWxsIFdvcmtzsVZhbHVlV2l0aE5ld0xpbmVzsEFsc28KV29ya3MNCkZpbmXApm1ldGhvZJKGqlN0cmluZ1Byb3CoU2lnbmFsUiGqRG91YmxlUHJvcMtAGSH7VELPEqdJbnRQcm9wKqxEYXRlVGltZVByb3DW/1jsHICoTnVsbFByb3DAq0J5dGVBcnJQcm9wxAMBAgOGqlN0cmluZ1Byb3CoU2lnbmFsUiGqRG91YmxlUHJvcMtAGSH7VELPEqdJbnRQcm9wKqxEYXRlVGltZVByb3DW/1jsHICoTnVsbFByb3DAq0J5dGVBcnJQcm9wxAMBAgM="),
+                binary: "lgGDo0Zvb6NCYXKyS2V5V2l0aApOZXcNCkxpbmVzq1N0aWxsIFdvcmtzsVZhbHVlV2l0aE5ld0xpbmVzsEFsc28KV29ya3MNCkZpbmXApm1ldGhvZJKGqlN0cmluZ1Byb3CoU2lnbmFsUiGqRG91YmxlUHJvcMtAGSH7VELPEqdJbnRQcm9wKqxEYXRlVGltZVByb3DW/1jsHICoTnVsbFByb3DAq0J5dGVBcnJQcm9wxAMBAgOGqlN0cmluZ1Byb3CoU2lnbmFsUiGqRG91YmxlUHJvcMtAGSH7VELPEqdJbnRQcm9wKqxEYXRlVGltZVByb3DW/1jsHICoTnVsbFByb3DAq0J5dGVBcnJQcm9wxAMBAgPC"),
             new ProtocolTestData(
                 name: "InvocationMessageWithUploadStreamingFlag",
                 message: new InvocationMessage("xyz", "method", Array.Empty<object>(), true),
@@ -269,7 +269,14 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             var expectedMessage = new InvocationMessage("xyz", "method", Array.Empty<object>(), true);
 
             // Verify that the input binary string decodes to the expected MsgPack primitives
-            var bytes = new byte[] { ArrayBytes(7), 1, 0x80, StringBytes(3), (byte)'x', (byte)'y', (byte)'z', StringBytes(6), (byte)'m', (byte)'e', (byte)'t', (byte)'h', (byte)'o', (byte)'d', ArrayBytes(0), 0xC3, StringBytes(2), (byte)'e', (byte)'x' };
+            var bytes = new byte[] { ArrayBytes(8),
+                1,
+                0x80,
+                StringBytes(3), (byte)'x', (byte)'y', (byte)'z',
+                StringBytes(6), (byte)'m', (byte)'e', (byte)'t', (byte)'h', (byte)'o', (byte)'d',
+                ArrayBytes(0),
+                0xc3,
+                StringBytes(2), (byte)'e', (byte)'x' };
 
             // Parse the input fully now.
             bytes = Frame(bytes);

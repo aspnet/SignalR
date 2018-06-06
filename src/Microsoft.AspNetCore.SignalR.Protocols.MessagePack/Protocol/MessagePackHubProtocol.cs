@@ -117,7 +117,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
 
         private static HubMessage ParseMessage(byte[] input, int startOffset, IInvocationBinder binder, IFormatterResolver resolver)
         {
-            _ = MessagePackBinary.ReadArrayHeader(input, startOffset, out var readSize);
+            var numItems = MessagePackBinary.ReadArrayHeader(input, startOffset, out var readSize);
             startOffset += readSize;
 
             var messageType = ReadInt32(input, ref startOffset, "messageType");
@@ -125,7 +125,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             switch (messageType)
             {
                 case HubProtocolConstants.InvocationMessageType:
-                    return CreateInvocationMessage(input, ref startOffset, binder, resolver);
+                    return CreateInvocationMessage(input, ref startOffset, binder, resolver, numItems);
                 case HubProtocolConstants.StreamInvocationMessageType:
                     return CreateStreamInvocationMessage(input, ref startOffset, binder, resolver);
                 case HubProtocolConstants.StreamItemMessageType:
@@ -146,7 +146,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             }
         }
 
-        private static HubMessage CreateInvocationMessage(byte[] input, ref int offset, IInvocationBinder binder, IFormatterResolver resolver)
+        private static HubMessage CreateInvocationMessage(byte[] input, ref int offset, IInvocationBinder binder, IFormatterResolver resolver, int numItems)
         {
             var headers = ReadHeaders(input, ref offset);
             var invocationId = ReadInvocationId(input, ref offset);
@@ -165,8 +165,8 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             {
                 var arguments = BindArguments(input, ref offset, parameterTypes, resolver);
 
-                // optional flag, may or may not be present
-                var uploadFlag = (offset < input.Length) && ReadBoolean(input, ref offset, "streamingUpload");
+                // optional flag on the end of the message, read it if present
+                var uploadFlag = (numItems > 5) && ReadBoolean(input, ref offset, "streamingUpload");
 
                 return ApplyHeaders(headers, new InvocationMessage(invocationId, target, arguments, uploadFlag));
             }
@@ -395,12 +395,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
 
         private void WriteInvocationMessage(InvocationMessage message, Stream packer)
         {
-            var arrayLength = 5;
-            if (message.StreamingUpload)
-            {
-                arrayLength += 1;
-            }
-            MessagePackBinary.WriteArrayHeader(packer, arrayLength);
+            MessagePackBinary.WriteArrayHeader(packer, 6);
             MessagePackBinary.WriteInt32(packer, HubProtocolConstants.InvocationMessageType);
             PackHeaders(packer, message.Headers);
             if (string.IsNullOrEmpty(message.InvocationId))
@@ -418,10 +413,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                 WriteArgument(arg, packer);
             }
 
-            if (message.StreamingUpload)
-            {
-                MessagePackBinary.WriteBoolean(packer, true);
-            }
+            MessagePackBinary.WriteBoolean(packer, message.StreamingUpload);
         }
 
         private void WriteStreamInvocationMessage(StreamInvocationMessage message, Stream packer)
