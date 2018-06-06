@@ -35,7 +35,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             return CreateLifetimeManager(_server);
         }
 
-        class TestObject
+        public class TestObject
         {
             public string TestProperty { get; set; }
         }
