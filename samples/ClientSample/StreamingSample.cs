@@ -30,7 +30,7 @@ namespace ClientSample
 
             await connection.StartAsync();
 
-            var reader = await connection.StreamAsChannelAsync<int>("ChannelCounter", 10, 100);
+            var reader = await connection.StreamAsChannelAsync<int>("ChannelCounter", 10, 2000);
 
             while (await reader.WaitToReadAsync())
             {

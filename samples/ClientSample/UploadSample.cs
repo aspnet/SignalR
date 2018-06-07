@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.SignalR.Protocol;
 using Microsoft.Extensions.CommandLineUtils;
 using System;
+using System.Diagnostics;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
@@ -17,9 +18,46 @@ namespace ClientSample
 
                 var baseUrlArgument = cmd.Argument("<BASEURL>", "The URL to the Chat Hub to test");
 
-                cmd.OnExecute(() => ExecuteAsync(baseUrlArgument.Value));
+                cmd.OnExecute(() => RealBasicRun(baseUrlArgument.Value));
             });
         }
+
+        public static async Task<int> TestStreamItemSend(string baseUrl)
+        {
+            var connection = new HubConnectionBuilder()
+                .WithUrl(baseUrl)
+                .Build();
+            await connection.StartAsync();
+
+            await connection.SendStreamItemCoreAsyncCore(new StreamItemMessage("322", "ggez"));
+
+            Debug.WriteLine("done");
+
+            return 0;
+        }
+
+        public static async Task<int> RealBasicRun(string baseUrl)
+        {
+            var connection = new HubConnectionBuilder()
+                .WithUrl(baseUrl)
+                .Build();
+            await connection.StartAsync();
+
+            var channel = Channel.CreateUnbounded<char>();
+            await connection.InvokeAsync<string>("UploadWord", channel.Reader);
+
+            await Task.Delay(5000);
+            foreach (char c in "glhf")
+            {
+                await connection.SendStreamItemCoreAsyncCore(new StreamItemMessage("1", c));
+                await Task.Delay(20000);
+                Debug.WriteLine("oof sent an item");
+                await Task.Delay(135000);
+            }
+
+            return 0;
+        }
+
         public static async Task<int> ExecuteAsync(string baseUrl)
         {
             var connection = new HubConnectionBuilder()
@@ -28,13 +66,19 @@ namespace ClientSample
 
             await connection.StartAsync();
 
+            //var response = await connection.InvokeAsync<int>("TraceMethod", 5);
+            //Debug.Write($"Trace Done, response <{response}> should be 5.");
+
             var channel = Channel.CreateUnbounded<char>();
             var uploadStream = connection.InvokeAsync<string>("UploadWord", channel.Reader);
 
-            foreach (char c in "hello world")
+            await Task.Delay(5000);
+            foreach (char c in "glhf")
             {
                 await channel.Writer.WriteAsync(c);
-                await Task.Delay(300);
+                await Task.Delay(20000);
+                Debug.WriteLine("oof sent an item");
+                await Task.Delay(135000);
             }
 
             channel.Writer.TryComplete();

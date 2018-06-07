@@ -27,6 +27,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         private readonly ILogger<HubDispatcher<THub>> _logger;
         private readonly bool _enableDetailedErrors;
 
+        private static Dictionary<string, ChannelWriter<char>> _pipeStore = new Dictionary<string, ChannelWriter<char>>();
+
         public DefaultHubDispatcher(IServiceScopeFactory serviceScopeFactory, IHubContext<THub> hubContext, IOptions<HubOptions<THub>> hubOptions,
             IOptions<HubOptions> globalHubOptions, ILogger<DefaultHubDispatcher<THub>> logger)
         {
@@ -85,11 +87,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
                 case InvocationMessage invocationMessage:
                     Log.ReceivedHubInvocation(_logger, invocationMessage);
-                    return ProcessInvocation(connection, invocationMessage, isStreamedInvocation: false);
+                    return ProcessInvocation(connection, invocationMessage, isStreamResponse: false, isStreamCall: invocationMessage.StreamingUpload);
 
                 case StreamInvocationMessage streamInvocationMessage:
                     Log.ReceivedStreamHubInvocation(_logger, streamInvocationMessage);
-                    return ProcessInvocation(connection, streamInvocationMessage, isStreamedInvocation: true);
+                    return ProcessInvocation(connection, streamInvocationMessage, isStreamResponse: true, isStreamCall: false);
 
                 case CancelInvocationMessage cancelInvocationMessage:
                     // Check if there is an associated active stream and cancel it if it exists.
@@ -109,6 +111,13 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 case PingMessage _:
                     // We don't care about pings
                     break;
+
+                case StreamItemMessage streamItem:
+                    Debug.WriteLine($"LOG:: received item {streamItem.Item}");
+                    return ProcessStreamItem(connection, streamItem);
+
+                case StreamCompleteMessage streamComplete:
+                    return ProcessStreamComplete(connection, streamComplete);
 
                 // Other kind of message we weren't expecting
                 default:
@@ -141,8 +150,29 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             return descriptor.ParameterTypes;
         }
 
+        private async Task ProcessStreamItem(HubConnectionContext connection, StreamItemMessage message)
+        {            
+            var writer = _pipeStore[message.InvocationId];
+
+            await writer.WriteAsync((char)message.Item);
+        }
+
+        private async Task ProcessStreamComplete(HubConnectionContext connection, StreamCompleteMessage message)
+        {
+            var writer = _pipeStore[message.InvocationId];
+            writer.TryComplete();
+
+
+            await Task.Delay(100); // do the cleanup
+
+            // close the associate pipe, remove from routing table
+            // close the associated hub
+
+            // gonna need to pass around some cancellation tokens probably
+        }
+
         private Task ProcessInvocation(HubConnectionContext connection,
-            HubMethodInvocationMessage hubMethodInvocationMessage, bool isStreamedInvocation)
+            HubMethodInvocationMessage hubMethodInvocationMessage, bool isStreamResponse, bool isStreamCall)
         {
             if (!_methods.TryGetValue(hubMethodInvocationMessage.Target, out var descriptor))
             {
@@ -153,12 +183,12 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             }
             else
             {
-                return Invoke(descriptor, connection, hubMethodInvocationMessage, isStreamedInvocation);
+                return Invoke(descriptor, connection, hubMethodInvocationMessage, isStreamResponse, isStreamCall);
             }
         }
-
+        // TODO :: possibly combine these methods?? `Invoke` is only called once
         private async Task Invoke(HubMethodDescriptor descriptor, HubConnectionContext connection,
-            HubMethodInvocationMessage hubMethodInvocationMessage, bool isStreamedInvocation)
+            HubMethodInvocationMessage hubMethodInvocationMessage, bool isStreamResponse, bool isStreamCall)
         {
             var methodExecutor = descriptor.MethodExecutor;
 
@@ -176,7 +206,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                     return;
                 }
 
-                if (!await ValidateInvocationMode(descriptor, isStreamedInvocation, hubMethodInvocationMessage, connection))
+                if (!await ValidateInvocationMode(descriptor, isStreamResponse, hubMethodInvocationMessage, connection))
                 {
                     return;
                 }
@@ -188,9 +218,39 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 {
                     InitializeHub(hub, connection);
 
+
+
+                    if (isStreamCall)
+                    {
+                        disposeScope = false;
+
+                        // need to make a pipe
+                        // and pass one end of the pipe to the proper method on the hub
+
+                        if (hubMethodInvocationMessage.Arguments[0] as string != "placeholder")
+                        {
+                            // SlightOfHand<plumbing> ::
+                            //   currently the idea is
+                            //   the client sees that you pass in a channel listener
+                            //   and replaces that with the string "placeholder"
+                            //   and then sends that string over
+                            //   so if it's a valid upload stream, there should be this string where the listener originally was
+                            //   and we replace it with a new pipe on the server side, and send that to the hub
+                            throw new Exception("invalid arguments for a streaming upload.");
+                        }
+
+                        var channel = Channel.CreateUnbounded<char>();
+
+                        // save the writer, so we can pull it up later and drop items in
+                        _pipeStore[hubMethodInvocationMessage.InvocationId] = channel.Writer;
+
+                        // reader goes here, used to invoke the hub's method
+                        hubMethodInvocationMessage.Arguments[0] = channel.Reader;
+                    }
+
                     var result = await ExecuteHubMethod(methodExecutor, hub, hubMethodInvocationMessage.Arguments);
 
-                    if (isStreamedInvocation)
+                    if (isStreamResponse)
                     {
                         if (!TryGetStreamingEnumerator(connection, hubMethodInvocationMessage.InvocationId, descriptor, result, out var enumerator, out var streamCts))
                         {
@@ -212,6 +272,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                         Log.SendingResult(_logger, hubMethodInvocationMessage.InvocationId, methodExecutor);
                         await connection.WriteAsync(CompletionMessage.WithResult(hubMethodInvocationMessage.InvocationId, result));
                     }
+
                 }
                 catch (TargetInvocationException ex)
                 {
@@ -236,7 +297,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             }
         }
 
-        private async Task StreamResultsAsync(string invocationId, HubConnectionContext connection, IAsyncEnumerator<object> enumerator, IServiceScope scope, IHubActivator<THub> hubActivator, THub hub, CancellationTokenSource streamCts)
+        private async Task StreamResultsAsync(string invocationId, HubConnectionContext connection, IAsyncEnumerator<object> enumerator, IServiceScope scope,
+            IHubActivator<THub> hubActivator, THub hub, CancellationTokenSource streamCts)
         {
             string error = null;
 
@@ -282,7 +344,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 }
             }
         }
-
         private static async Task<object> ExecuteHubMethod(ObjectMethodExecutor methodExecutor, THub hub, object[] arguments)
         {
             if (methodExecutor.IsMethodAsync)

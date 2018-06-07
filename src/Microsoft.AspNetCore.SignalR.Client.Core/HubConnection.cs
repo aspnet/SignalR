@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Channels;
@@ -74,7 +75,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         /// Sending any message resets the timer to the start of the interval.
         /// </remarks>
         public TimeSpan KeepAliveInterval { get; set; } = DefaultKeepAliveInterval;
-        
+
         /// <summary>
         /// Gets or sets the timeout for the initial handshake.
         /// </summary>
@@ -448,7 +449,17 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 CheckConnectionActive(nameof(InvokeCoreAsync));
 
                 var irq = InvocationRequest.Invoke(cancellationToken, returnType, _connectionState.GetNextId(), _loggerFactory, this, out invocationTask);
-                await InvokeCore(methodName, irq, args, cancellationToken);
+
+                AssertConnectionValid();
+
+                if (methodName.StartsWith("Upload"))
+                {
+                    await InvokeUploadCore(methodName, irq, args, cancellationToken);
+                }
+                else
+                {
+                    await InvokeCore(methodName, irq, args, cancellationToken);
+                }
             }
             finally
             {
@@ -461,15 +472,12 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private async Task InvokeCore(string methodName, InvocationRequest irq, object[] args, CancellationToken cancellationToken)
         {
-            AssertConnectionValid();
-
             Log.PreparingBlockingInvocation(_logger, irq.InvocationId, methodName, irq.ResultType.FullName, args.Length);
 
             // Client invocations are always blocking
             var invocationMessage = new InvocationMessage(irq.InvocationId, methodName, args);
 
             Log.RegisteringInvocation(_logger, invocationMessage.InvocationId);
-
             _connectionState.AddInvocation(irq);
 
             // Trace the full invocation
@@ -485,6 +493,91 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 _connectionState.TryRemoveInvocation(invocationMessage.InvocationId, out _);
                 irq.Fail(ex);
             }
+        }
+
+        private async Task InvokeUploadCore(string methodName, InvocationRequest irq, object[] args, CancellationToken ct)
+        {
+            Debug.WriteLine("Log preparing a non-blocking upload invocaton");
+
+            var reader = args[0] as ChannelReader<char>;
+            if (reader == null)
+            {
+                throw new Exception("Upload invocation, but first argument isn't a CHAR channel reader");
+            }
+
+            args[0] = "placeholder";
+
+            // kick off the server
+            await SendCoreAsync(methodName, args);
+
+            // send the items over
+            while (await reader.WaitToReadAsync())
+            {
+                while (reader.TryRead(out var item))
+                {
+                    await SendStreamItemCoreAsyncCore(new StreamItemMessage(irq.InvocationId, item));
+                }
+            }
+
+            Debug.WriteLine("complete hit");
+            await reader.Completion;
+
+            // TODO ::
+            // make a final blocking call
+            // which tells the server to finish up
+            // and then returns the result
+            await SendHubMessage(new StreamCompleteMessage(irq.InvocationId));
+
+
+            // TODO ::
+            // find out how to use the irq to return the result
+            // it's a funky boy
+
+            //async Task ForwardingLoop()
+            //{
+            //    // :: TODO ::
+            //    // here, need to trap the reader in a task
+            //    // where whenever it has something availible it sends a stream item
+
+            //    while (await reader.WaitToReadAsync())
+            //    {
+            //        while (reader.TryRead(out var item))
+            //        {
+            //            // send the stream item
+            //            await SendPolitely(new StreamItemMessage(irq.InvocationId, item));
+            //        }
+            //    }
+
+            //    Debug.WriteLine("complete hit");
+            //    await reader.Completion;
+
+            //    await SendPolitely(new StreamCompleteMessage(irq.InvocationId));
+
+            //}
+
+            //async Task SendPolitely(HubMessage message)
+            //{
+            //    if (_disposed || !_connectionLock.Wait(0))
+            //    {
+            //        Log.UnableToAcquireConnectionLockForPing(_logger);
+            //        return;
+            //    }
+
+            //    Debug.WriteLine($"SendPolitely :: {message}");
+
+            //    try
+            //    {
+            //        if (_disposed || _connectionState == null || _connectionState.Stopping)
+            //        {
+            //            return;
+            //        }
+            //        await SendHubMessage(message);
+            //    }
+            //    finally
+            //    {
+            //        ReleaseConnectionLock();
+            //    }
+            //}
         }
 
         private async Task InvokeStreamCore(string methodName, InvocationRequest irq, object[] args, CancellationToken cancellationToken)
@@ -525,11 +618,28 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             // REVIEW: If a token is passed in and is canceled during FlushAsync it seems to break .Complete()...
             await _connectionState.Connection.Transport.Output.FlushAsync();
+            Log.MessageSent(_logger, hubMessage);
 
             // We've sent a message, so don't ping for a while
             ResetSendPing();
+        }
 
-            Log.MessageSent(_logger, hubMessage);
+        public async Task SendStreamItemCoreAsyncCore(StreamItemMessage message)
+        {
+            CheckDisposed();
+
+            await WaitConnectionLockAsync();
+            try
+            {
+                CheckDisposed();
+                CheckConnectionActive(nameof(SendCoreAsync));
+
+                await SendHubMessage(message);
+            }
+            finally
+            {
+                ReleaseConnectionLock();
+            }
         }
 
         private async Task SendCoreAsyncCore(string methodName, object[] args, CancellationToken cancellationToken)
@@ -888,7 +998,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             timer.Start();
             ResetSendPing();
             ResetTimeout();
-            
+
             using (timer)
             {
                 // await returns True until `timer.Stop()` is called in the `finally` block of `ReceiveLoop`
@@ -921,6 +1031,11 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private async Task PingServer()
         {
+            if (Debugger.IsAttached)
+            {
+                return;
+            }
+
             if (_disposed || !_connectionLock.Wait(0))
             {
                 Log.UnableToAcquireConnectionLockForPing(_logger);
