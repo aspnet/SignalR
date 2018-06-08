@@ -29,7 +29,7 @@ describe("LongPollingTransport", () => {
                     return new HttpResponse(200);
                 }
             })
-            .on("DELETE", (r) => new HttpResponse(202));
+            .on("DELETE", () => new HttpResponse(202));
         const transport = new LongPollingTransport(client, undefined, NullLogger.instance, false);
 
         await transport.connect("http://example.com", TransferFormat.Text);
@@ -42,17 +42,16 @@ describe("LongPollingTransport", () => {
 
     it("204 server response stops polling and raises onClose", async () => {
         let firstPoll = true;
-        let onCloseCalled = false;
         const client = new TestHttpClient()
-            .on("GET", async (r) => {
-                if (firstPoll) {
-                    firstPoll = false;
-                    return new HttpResponse(200);
-                } else {
-                    // A 204 response will stop the long polling transport
-                    return new HttpResponse(204);
-                }
-            });
+            .on("GET", async () => {
+                    if (firstPoll) {
+                        firstPoll = false;
+                        return new HttpResponse(200);
+                    } else {
+                        // A 204 response will stop the long polling transport
+                        return new HttpResponse(204);
+                    }
+                });
         const transport = new LongPollingTransport(client, undefined, NullLogger.instance, false);
 
         const stopPromise = makeClosedPromise(transport);
@@ -83,7 +82,7 @@ describe("LongPollingTransport", () => {
                 await deleteSyncPoint.waitToContinue();
                 return new HttpResponse(202);
             });
-    
+
         const transport = new LongPollingTransport(httpClient, undefined, NullLogger.instance, false);
 
         await transport.connect("http://tempuri.org", TransferFormat.Text);

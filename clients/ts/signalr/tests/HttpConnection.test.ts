@@ -7,15 +7,15 @@ import { IHttpConnectionOptions } from "../src/IHttpConnectionOptions";
 import { HttpTransportType, ITransport, TransferFormat } from "../src/ITransport";
 
 import { HttpError } from "../src/Errors";
-import { LogLevel } from "../src/ILogger";
+import { NullLogger } from "../src/Loggers";
 import { EventSourceConstructor, WebSocketConstructor } from "../src/Polyfills";
-import { TextMessageFormat } from "../src/TextMessageFormat";
-import { WebSocketTransport } from "../src/WebSocketTransport";
+
 import { eachEndpointUrl, eachTransport } from "./Common";
 import { TestHttpClient } from "./TestHttpClient";
 import { PromiseSource } from "./Utils";
 
 const commonOptions: IHttpConnectionOptions = {
+    logger: NullLogger.instance,
 };
 
 const defaultConnectionId = "abc123";
@@ -45,8 +45,8 @@ describe("HttpConnection", () => {
         const options: IHttpConnectionOptions = {
             ...commonOptions,
             httpClient: new TestHttpClient()
-                .on("POST", (r) => Promise.reject("error"))
-                .on("GET", (r) => ""),
+                .on("POST", () => Promise.reject("error"))
+                .on("GET", () => ""),
         } as IHttpConnectionOptions;
 
         const connection = new HttpConnection("http://tempuri.org", options);
@@ -61,15 +61,15 @@ describe("HttpConnection", () => {
         const options: IHttpConnectionOptions = {
             ...commonOptions,
             httpClient: new TestHttpClient()
-                .on("POST", (r) => {
-                    negotiating.resolve();
-                    return defaultNegotiateResponse;
-                }),
+                .on("POST", () => {
+                        negotiating.resolve();
+                        return defaultNegotiateResponse;
+                    }),
             transport: {
-                connect(url: string, transferFormat: TransferFormat) {
+                connect() {
                     return Promise.resolve();
                 },
-                send(data: any) {
+                send() {
                     return Promise.resolve();
                 },
                 stop() {
@@ -97,11 +97,11 @@ describe("HttpConnection", () => {
         const options: IHttpConnectionOptions = {
             ...commonOptions,
             httpClient: new TestHttpClient()
-                .on("POST", (r) => {
-                    negotiateCalls += 1;
-                    return Promise.reject("reached negotiate");
-                })
-                .on("GET", (r) => ""),
+                .on("POST", () => {
+                        negotiateCalls += 1;
+                        return Promise.reject("reached negotiate");
+                    })
+                .on("GET", () => ""),
         } as IHttpConnectionOptions;
 
         const connection = new HttpConnection("http://tempuri.org", options);
@@ -119,14 +119,14 @@ describe("HttpConnection", () => {
         const options: IHttpConnectionOptions = {
             ...commonOptions,
             httpClient: new TestHttpClient()
-                .on("POST", (r) => {
-                    connection.stop();
-                    return "{}";
-                })
-                .on("GET", (r) => {
-                    connection.stop();
-                    return "";
-                }),
+                .on("POST", () => {
+                        connection.stop();
+                        return "{}";
+                    })
+                .on("GET", () => {
+                        connection.stop();
+                        return "";
+                    }),
         } as IHttpConnectionOptions;
 
         const connection = new HttpConnection("http://tempuri.org", options);
@@ -143,8 +143,8 @@ describe("HttpConnection", () => {
         const options: IHttpConnectionOptions = {
             ...commonOptions,
             httpClient: new TestHttpClient()
-                .on("POST", (r) => ({ connectionId: "42", availableTransports: [] }))
-                .on("GET", (r) => { throw new Error("fail"); }),
+                .on("POST", () => ({ connectionId: "42", availableTransports: [] }))
+                .on("GET", () => { throw new Error("fail"); }),
         } as IHttpConnectionOptions;
 
         const connection = new HttpConnection("http://tempuri.org?q=myData", options);
@@ -161,7 +161,7 @@ describe("HttpConnection", () => {
                 connectUrl.resolve(url);
                 return Promise.resolve();
             },
-            send(data: any): Promise<void> {
+            send(): Promise<void> {
                 return Promise.resolve();
             },
             stop(): Promise<void> {
@@ -174,8 +174,8 @@ describe("HttpConnection", () => {
         const options: IHttpConnectionOptions = {
             ...commonOptions,
             httpClient: new TestHttpClient()
-                .on("POST", (r) => "{ \"connectionId\": \"42\" }")
-                .on("GET", (r) => ""),
+                .on("POST", () => "{ \"connectionId\": \"42\" }")
+                .on("GET", () => ""),
             transport: fakeTransport,
         } as IHttpConnectionOptions;
 
@@ -201,10 +201,10 @@ describe("HttpConnection", () => {
                         negotiateUrl.resolve(r.url);
                         throw new HttpError("We don't care how this turns out", 500);
                     })
-                    .on("GET", (r) => {
-                        return new HttpResponse(204);
-                    })
-                    .on("DELETE", (r) => new HttpResponse(202)),
+                    .on("GET", () => {
+                            return new HttpResponse(204);
+                        })
+                    .on("DELETE", () => new HttpResponse(202)),
             } as IHttpConnectionOptions;
 
             const connection = new HttpConnection(givenUrl, options);
@@ -232,8 +232,8 @@ describe("HttpConnection", () => {
             const options: IHttpConnectionOptions = {
                 ...commonOptions,
                 httpClient: new TestHttpClient()
-                    .on("POST", (r) => negotiateResponse)
-                    .on("GET", (r) => new HttpResponse(204)),
+                    .on("POST", () => negotiateResponse)
+                    .on("GET", () => new HttpResponse(204)),
                 transport: requestedTransport,
             } as IHttpConnectionOptions;
 
@@ -258,8 +258,8 @@ describe("HttpConnection", () => {
                 const options: IHttpConnectionOptions = {
                     ...commonOptions,
                     httpClient: new TestHttpClient()
-                        .on("POST", (r) => negotiateResponse)
-                        .on("GET", (r) => new HttpResponse(204)),
+                        .on("POST", () => negotiateResponse)
+                        .on("GET", () => new HttpResponse(204)),
                     transport: val,
                 } as IHttpConnectionOptions;
 
@@ -289,8 +289,8 @@ describe("HttpConnection", () => {
             const options: IHttpConnectionOptions = {
                 ...commonOptions,
                 httpClient: new TestHttpClient()
-                    .on("POST", (r) => negotiateResponse)
-                    .on("GET", (r) => new HttpResponse(204)),
+                    .on("POST", () => negotiateResponse)
+                    .on("GET", () => new HttpResponse(204)),
                 transport: transportMask,
             } as IHttpConnectionOptions;
 
@@ -309,8 +309,8 @@ describe("HttpConnection", () => {
         const options: IHttpConnectionOptions = {
             ...commonOptions,
             httpClient: new TestHttpClient()
-                .on("POST", (r) => ({ connectionId: "42", availableTransports: [] }))
-                .on("GET", (r) => ""),
+                .on("POST", () => ({ connectionId: "42", availableTransports: [] }))
+                .on("GET", () => ""),
         } as IHttpConnectionOptions;
 
         const connection = new HttpConnection("http://tempuri.org", options);
@@ -351,24 +351,24 @@ describe("HttpConnection", () => {
         let firstNegotiate = true;
         let firstPoll = true;
         const httpClient = new TestHttpClient()
-            .on("POST", /negotiate$/, (r) => {
-                if (firstNegotiate) {
-                    firstNegotiate = false;
-                    return { url: "https://another.domain.url/chat" };
-                }
-                return {
-                    availableTransports: [{ transport: "LongPolling", transferFormats: ["Text"] }],
-                    connectionId: "0rge0d00-0040-0030-0r00-000q00r00e00",
-                };
-            })
-            .on("GET", (r) => {
-                if (firstPoll) {
-                    firstPoll = false;
-                    return "";
-                }
-                return new HttpResponse(204, "No Content", "");
-            })
-            .on("DELETE", (r) => new HttpResponse(202));
+            .on("POST", /negotiate$/, () => {
+                    if (firstNegotiate) {
+                        firstNegotiate = false;
+                        return { url: "https://another.domain.url/chat" };
+                    }
+                    return {
+                        availableTransports: [{ transport: "LongPolling", transferFormats: ["Text"] }],
+                        connectionId: "0rge0d00-0040-0030-0r00-000q00r00e00",
+                    };
+                })
+            .on("GET", () => {
+                    if (firstPoll) {
+                        firstPoll = false;
+                        return "";
+                    }
+                    return new HttpResponse(204, "No Content", "");
+                })
+            .on("DELETE", () => new HttpResponse(202));
 
         const options: IHttpConnectionOptions = {
             ...commonOptions,
@@ -392,7 +392,7 @@ describe("HttpConnection", () => {
 
     it("fails to start if negotiate redirects more than 100 times", async () => {
         const httpClient = new TestHttpClient()
-            .on("POST", /negotiate$/, (r) => ({ url: "https://another.domain.url/chat" }));
+            .on("POST", /negotiate$/, () => ({ url: "https://another.domain.url/chat" }));
 
         const options: IHttpConnectionOptions = {
             ...commonOptions,
@@ -441,7 +441,7 @@ describe("HttpConnection", () => {
                 }
                 return new HttpResponse(204, "No Content", "");
             })
-            .on("DELETE", (r) => new HttpResponse(202));
+            .on("DELETE", () => new HttpResponse(202));
 
         const options: IHttpConnectionOptions = {
             ...commonOptions,
@@ -481,7 +481,7 @@ describe("HttpConnection", () => {
                 }
             },
             httpClient: new TestHttpClient()
-                .on("POST", (r) => ({ connectionId: "42", availableTransports: [availableTransport] }))
+                .on("POST", () => ({ connectionId: "42", availableTransports: [availableTransport] }))
                 .on("GET", (r) => {
                     httpClientGetCount++;
                     // tslint:disable-next-line:no-string-literal
@@ -500,7 +500,7 @@ describe("HttpConnection", () => {
                         throw new Error("fail");
                     }
                 })
-                .on("DELETE", (r) => new HttpResponse(202)),
+                .on("DELETE", () => new HttpResponse(202)),
         } as IHttpConnectionOptions;
 
         const connection = new HttpConnection("http://tempuri.org", options);
@@ -521,17 +521,17 @@ describe("HttpConnection", () => {
         const options: IHttpConnectionOptions = {
             ...commonOptions,
             httpClient: new TestHttpClient()
-                .on("POST", (r) => ({ connectionId: "42", availableTransports: [availableTransport] }))
-                .on("GET", (r) => {
-                    httpClientGetCount++;
-                    if (httpClientGetCount === 1) {
-                        // First long polling request must succeed so start completes
-                        return "";
-                    } else {
-                        throw new Error("fail");
-                    }
-                })
-                .on("DELETE", (r) => new HttpResponse(202)),
+                .on("POST", () => ({ connectionId: "42", availableTransports: [availableTransport] }))
+                .on("GET", () => {
+                        httpClientGetCount++;
+                        if (httpClientGetCount === 1) {
+                            // First long polling request must succeed so start completes
+                            return "";
+                        } else {
+                            throw new Error("fail");
+                        }
+                    })
+                .on("DELETE", () => new HttpResponse(202)),
         } as IHttpConnectionOptions;
 
         const connection = new HttpConnection("http://tempuri.org", options);
@@ -549,7 +549,7 @@ describe("HttpConnection", () => {
         const options: IHttpConnectionOptions = {
             ...commonOptions,
             httpClient: new TestHttpClient()
-                .on("POST", (r) => ({ connectionId: "42", availableTransports: [serverSentEventsTransport] })),
+                .on("POST", () => ({ connectionId: "42", availableTransports: [serverSentEventsTransport] })),
         } as IHttpConnectionOptions;
 
         const connection = new HttpConnection("http://tempuri.org", options);
@@ -565,7 +565,7 @@ describe("HttpConnection", () => {
         const options: IHttpConnectionOptions = {
             ...commonOptions,
             httpClient: new TestHttpClient()
-                .on("POST", (r) => ({ connectionId: "42", availableTransports: [webSocketsTransport] })),
+                .on("POST", () => ({ connectionId: "42", availableTransports: [webSocketsTransport] })),
         } as IHttpConnectionOptions;
 
         const connection = new HttpConnection("http://tempuri.org", options);
@@ -584,7 +584,7 @@ describe("HttpConnection", () => {
         it("uses global WebSocket if defined", async () => {
             // tslint:disable-next-line:no-string-literal
             global["WebSocket"] = class WebSocket {
-                constructor(url: string, protocols?: string | string[]) {
+                constructor() {
                     throw new Error("WebSocket constructor called.");
                 }
             };
@@ -609,7 +609,7 @@ describe("HttpConnection", () => {
             let eventSourceConstructorCalled: boolean = false;
             // tslint:disable-next-line:no-string-literal
             global["EventSource"] = class EventSource {
-                constructor(url: string, eventSourceInitDict?: EventSourceInit) {
+                constructor() {
                     eventSourceConstructorCalled = true;
                     throw new Error("EventSource constructor called.");
                 }
@@ -617,7 +617,7 @@ describe("HttpConnection", () => {
 
             const options: IHttpConnectionOptions = {
                 ...commonOptions,
-                httpClient: new TestHttpClient().on("POST", (r) => {
+                httpClient: new TestHttpClient().on("POST", () => {
                     return {
                         availableTransports: [
                             { transport: "ServerSentEvents", transferFormats: ["Text"] },
@@ -644,7 +644,7 @@ describe("HttpConnection", () => {
             let eventSourceConstructorCalled: boolean = false;
 
             const customEventSourceType = class EventSource {
-                constructor(url: string, eventSourceInitDict?: EventSourceInit) {
+                constructor() {
                     eventSourceConstructorCalled = true;
                     throw new Error("EventSource constructor called.");
                 }
@@ -652,8 +652,8 @@ describe("HttpConnection", () => {
 
             const options: IHttpConnectionOptions = {
                 ...commonOptions,
-                EventSource: customEventSourceType as EventSourceConstructor,
-                httpClient: new TestHttpClient().on("POST", (r) => {
+                EventSource: customEventSourceType as any,
+                httpClient: new TestHttpClient().on("POST", () => {
                     return {
                         availableTransports: [
                             { transport: "ServerSentEvents", transferFormats: ["Text"] },
@@ -675,14 +675,14 @@ describe("HttpConnection", () => {
 
         it("uses WebSocket constructor from options if provided", async () => {
             const customWebSocketType = class WebSocket {
-                constructor(url: string, protocols?: string | string[]) {
+                constructor() {
                     throw new Error("WebSocket constructor called.");
                 }
             };
 
             const options: IHttpConnectionOptions = {
                 ...commonOptions,
-                WebSocket: customWebSocketType as WebSocketConstructor,
+                WebSocket: customWebSocketType as any,
                 skipNegotiation: true,
                 transport: HttpTransportType.WebSockets,
             } as IHttpConnectionOptions;
