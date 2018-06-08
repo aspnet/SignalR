@@ -26,4 +26,8 @@ before_install:
 - nvm install $TRAVIS_NODE_VERSION
 - if test "$TRAVIS_OS_NAME" == "linux"; then docker pull redis; fi
 script:
+- npx where google-chrome
+- npx where google-chrome-stable
+- npx where chromium
+- npx where chromium-browser
 - ./build.sh --ci
