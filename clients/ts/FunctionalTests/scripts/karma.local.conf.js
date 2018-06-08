@@ -17,6 +17,7 @@ function tryAddBrowser(name, b) {
   if (b.ENV_CMD && process.env[b.ENV_CMD]) {
     path = process.env[b.ENV_CMD];
   }
+  console.log(`Checking for ${name} at ${path}...`);
   if (path && fs.existsSync(path)) {
     console.log(`Located ${name} at ${path}.`);
     browsers.push(name);
