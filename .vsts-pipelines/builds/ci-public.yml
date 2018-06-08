@@ -34,7 +34,7 @@ phases:
   parameters:
     agentOs: Linux
     beforeBuild:
-    - script: type -p firefox
+    - script: ./test.sh
     - task: NodeTool@0
       displayName: Use Node 8.x
       inputs:
