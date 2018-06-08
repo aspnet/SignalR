@@ -158,6 +158,13 @@ function runKarma(karmaConfig) {
 
 (async () => {
     try {
+        // Check if we got any browsers
+        if (config.browsers.length === 0) {
+            console.log("Unable to locate any suitable browsers. Skipping browser functional tests.");
+            process.exit(0);
+            return; // For good measure
+        }
+
         const serverPath = path.resolve(__dirname, "..", "bin", configuration, "netcoreapp2.2", "FunctionalTests.dll");
 
         debug(`Launching Functional Test Server: ${serverPath}`);
