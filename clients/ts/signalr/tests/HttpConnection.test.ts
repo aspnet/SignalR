@@ -643,16 +643,18 @@ describe("HttpConnection", () => {
         it("uses EventSource constructor from options if provided", async () => {
             let eventSourceConstructorCalled: boolean = false;
 
-            const customEventSourceType = class EventSource {
-                constructor() {
+            class TestEventSource {
+                // The "_" prefix tell TypeScript not to worry about unused parameter, but tslint doesn't like it.
+                // tslint:disable-next-line:variable-name
+                constructor(_url: string, _eventSourceInitDict: EventSourceInit) {
                     eventSourceConstructorCalled = true;
                     throw new Error("EventSource constructor called.");
                 }
-            };
+            }
 
             const options: IHttpConnectionOptions = {
                 ...commonOptions,
-                EventSource: customEventSourceType as any,
+                EventSource: TestEventSource as EventSourceConstructor,
                 httpClient: new TestHttpClient().on("POST", () => {
                     return {
                         availableTransports: [
@@ -674,15 +676,17 @@ describe("HttpConnection", () => {
         });
 
         it("uses WebSocket constructor from options if provided", async () => {
-            const customWebSocketType = class WebSocket {
-                constructor() {
+            class TestWebSocket {
+                // The "_" prefix tell TypeScript not to worry about unused parameter, but tslint doesn't like it.
+                // tslint:disable-next-line:variable-name
+                constructor(_url: string, _protocols?: string | string[]) {
                     throw new Error("WebSocket constructor called.");
                 }
-            };
+            }
 
             const options: IHttpConnectionOptions = {
                 ...commonOptions,
-                WebSocket: customWebSocketType as any,
+                WebSocket: TestWebSocket,
                 skipNegotiation: true,
                 transport: HttpTransportType.WebSockets,
             } as IHttpConnectionOptions;
