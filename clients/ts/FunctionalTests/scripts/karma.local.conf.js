@@ -18,7 +18,10 @@ function tryAddBrowser(name, b) {
     path = process.env[b.ENV_CMD];
   }
   console.log(`Checking for ${name} at ${path}...`);
-  if (path && fs.existsSync(path)) {
+  
+  // On linux, the browsers just return the command, not a path, but they also return undefined if they can't
+  // find the browser, we don't need to check if the path exists.
+  if (path && (process.platform === "linux" || fs.existsSync(path))) {
     console.log(`Located ${name} at ${path}.`);
     browsers.push(name);
   }
