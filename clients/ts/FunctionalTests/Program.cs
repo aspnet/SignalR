@@ -15,7 +15,7 @@ namespace FunctionalTests
             string url = null;
             for (var i = 0; i < args.Length; i++)
             {
-                switch (args[0])
+                switch (args[i])
                 {
                     case "--url":
                         i += 1;
