@@ -1,0 +1,6 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "types": [ "@aspnet/signalr" ] 
+  }
+}

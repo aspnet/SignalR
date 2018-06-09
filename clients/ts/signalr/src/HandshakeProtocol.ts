@@ -6,6 +6,7 @@ import { TextMessageFormat } from "./TextMessageFormat";
 export interface HandshakeRequestMessage {
     readonly protocol: string;
     readonly version: number;
+    cursor?: string;
 }
 
 export interface HandshakeResponseMessage {

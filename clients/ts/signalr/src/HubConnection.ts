@@ -36,6 +36,8 @@ export class HubConnection {
     private receivedHandshakeResponse: boolean;
     private connectionState: HubConnectionState;
 
+    private cursor?: string;
+
     /** The server timeout in milliseconds.
      *
      * If this timeout elapses without receiving any messages from the server, the connection will be terminated with an error.
@@ -99,6 +101,11 @@ export class HubConnection {
             protocol: this.protocol.name,
             version: this.protocol.version,
         };
+
+        // If we have a cursor, send it to the server in the handshake request.
+        if (this.cursor) {
+            handshakeRequest.cursor = this.cursor;
+        }
 
         this.logger.log(LogLevel.Debug, "Starting HubConnection.");
 
@@ -321,6 +328,12 @@ export class HubConnection {
         }
     }
 
+    private updateCursor(message: InvocationMessage | StreamItemMessage | CompletionMessage) {
+        if (message.headers && message.headers["signalR.cursor"]) {
+            this.cursor = message.headers["signalR.cursor"];
+        }
+    }
+
     private processIncomingData(data: any) {
         this.cleanupTimeout();
 
@@ -337,10 +350,12 @@ export class HubConnection {
             for (const message of messages) {
                 switch (message.type) {
                     case MessageType.Invocation:
+                        this.updateCursor(message);
                         this.invokeClientMethod(message);
                         break;
                     case MessageType.StreamItem:
                     case MessageType.Completion:
+                        this.updateCursor(message);
                         const callback = this.callbacks[message.invocationId];
                         if (callback != null) {
                             if (message.type === MessageType.Completion) {

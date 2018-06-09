@@ -1,0 +1,35 @@
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
+using System.IO;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+
+namespace CursorSample
+{
+    public class Program
+    {
+        public static void Main(string[] args)
+        {
+            var config = new ConfigurationBuilder()
+                .AddCommandLine(args)
+                .Build();
+
+            var host = new WebHostBuilder()
+                .UseConfiguration(config)
+                .UseSetting(WebHostDefaults.PreventHostingStartupKey, "true")
+                .UseContentRoot(Directory.GetCurrentDirectory())
+                .UseKestrel()
+                .UseIISIntegration()
+                .UseStartup<Startup>()
+                .ConfigureLogging(builder =>
+                {
+                    builder.AddConsole(options => options.IncludeScopes = true);
+                })
+                .Build();
+
+            host.Run();
+        }
+    }
+}
