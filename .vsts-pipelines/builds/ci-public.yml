@@ -14,7 +14,7 @@ resources:
 phases:
 - template: .vsts-pipelines/templates/phases/default-build.yml@buildtools
   parameters:
-    agentOs: Windows
+    agentOs: Windowts
     beforeBuild:
     - task: NodeTool@0
       displayName: Use Node 8.x
@@ -34,7 +34,7 @@ phases:
   parameters:
     agentOs: Linux
     beforeBuild:
-    - script: echo Hello World
+    - script: type -p firefox || echo "type failed"
     - task: NodeTool@0
       displayName: Use Node 8.x
       inputs:
