@@ -1,1 +1,0 @@
-type -p firefox

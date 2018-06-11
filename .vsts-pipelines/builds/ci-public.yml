@@ -34,7 +34,7 @@ phases:
   parameters:
     agentOs: Linux
     beforeBuild:
-    - script: ./.vsts-pipelines/builds/test.sh
+    - script: echo Hello World
     - task: NodeTool@0
       displayName: Use Node 8.x
       inputs:
