@@ -1,6 +1,7 @@
 // Karma configuration for a local run (the default)
 const createKarmaConfig = require("./karma.base.conf");
 const fs = require("fs");
+const which = require("which");
 
 // Bring in the launchers directly to detect browsers
 const ChromeHeadlessBrowser = require("karma-chrome-launcher")["launcher:ChromeHeadless"][1];
@@ -12,16 +13,23 @@ const IEBrowser = require("karma-ie-launcher")["launcher:IE"][1];
 
 let browsers = [];
 
+function browserExists(path) {
+  // On linux, the browsers just return the command, not a path, so we need to check if it exists.
+  if (process.platform === "linux") {
+    return !!which.sync(path, { nothrow: true });
+  } else {
+    return fs.existsSync(path);
+  }
+}
+
 function tryAddBrowser(name, b) {
   var path = b.DEFAULT_CMD[process.platform];
   if (b.ENV_CMD && process.env[b.ENV_CMD]) {
     path = process.env[b.ENV_CMD];
   }
   console.log(`Checking for ${name} at ${path}...`);
-  
-  // On linux, the browsers just return the command, not a path, but they also return undefined if they can't
-  // find the browser, we don't need to check if the path exists.
-  if (path && (process.platform === "linux" || fs.existsSync(path))) {
+
+  if (path && browserExists(path)) {
     console.log(`Located ${name} at ${path}.`);
     browsers.push(name);
   }
