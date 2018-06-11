@@ -42,7 +42,7 @@ describe("HttpConnection", () => {
     });
 
     it("starting connection fails if getting id fails", async () => {
-        VerifyLogger.run(async (logger) => {
+        await VerifyLogger.run(async (logger) => {
             const options: IHttpConnectionOptions = {
                 ...commonOptions,
                 httpClient: new TestHttpClient()
