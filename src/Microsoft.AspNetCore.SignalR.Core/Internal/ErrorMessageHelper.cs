@@ -11,7 +11,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         {
             if (exception is HubException || includeExceptionDetails)
             {
-                return message + $" {exception.GetType().Name}: {exception.Message}";
+                return $"{message} {exception.GetType().Name}: {exception.Message}";
 
             }
 

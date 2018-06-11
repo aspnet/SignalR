@@ -543,10 +543,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task DetailedExceptionEvenWhenNotExplicitlySet()
         {
-            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(builder =>
-            {
-                builder.AddSignalR();
-            });
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
 
             var methodName = nameof(MethodHub.ThrowHubException);
 
@@ -558,9 +555,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 var message = await client.InvokeAsync(methodName).OrTimeout();
 
-                {
-                    Assert.Equal($"An unexpected error occurred invoking '{methodName}' on the server. HubException: This is a hub exception", message.Error);
-                }
+                Assert.Equal($"An unexpected error occurred invoking '{methodName}' on the server. HubException: This is a hub exception", message.Error);
 
                 // kill the connection
                 client.Dispose();
