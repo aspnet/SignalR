@@ -1,13 +1,13 @@
-import { HttpError, TimeoutError } from "../src/Errors";
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 import { HttpResponse } from "../src/HttpClient";
-import { LogLevel } from "../src/ILogger";
 import { TransferFormat } from "../src/ITransport";
 import { NullLogger } from "../src/Loggers";
 import { LongPollingTransport } from "../src/LongPollingTransport";
-import { ConsoleLogger } from "../src/Utils";
 
 import { TestHttpClient } from "./TestHttpClient";
-import { delay, PromiseSource, SyncPoint } from "./Utils";
+import { PromiseSource, SyncPoint } from "./Utils";
 
 describe("LongPollingTransport", () => {
     it("shuts down polling by aborting in-progress request", async () => {

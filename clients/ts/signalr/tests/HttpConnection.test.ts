@@ -8,7 +8,7 @@ import { HttpTransportType, ITransport, TransferFormat } from "../src/ITransport
 
 import { HttpError } from "../src/Errors";
 import { NullLogger } from "../src/Loggers";
-import { EventSourceConstructor, WebSocketConstructor } from "../src/Polyfills";
+import { EventSourceConstructor } from "../src/Polyfills";
 
 import { eachEndpointUrl, eachTransport } from "./Common";
 import { TestHttpClient } from "./TestHttpClient";
@@ -51,7 +51,7 @@ describe("HttpConnection", () => {
 
         const connection = new HttpConnection("http://tempuri.org", options);
 
-        expect(connection.start(TransferFormat.Text))
+        await expect(connection.start(TransferFormat.Text))
             .rejects
             .toThrow("error");
     });
@@ -62,9 +62,9 @@ describe("HttpConnection", () => {
             ...commonOptions,
             httpClient: new TestHttpClient()
                 .on("POST", () => {
-                        negotiating.resolve();
-                        return defaultNegotiateResponse;
-                    }),
+                    negotiating.resolve();
+                    return defaultNegotiateResponse;
+                }),
             transport: {
                 connect() {
                     return Promise.resolve();
@@ -93,14 +93,12 @@ describe("HttpConnection", () => {
     });
 
     it("can start a stopped connection", async () => {
-        let negotiateCalls = 0;
         const options: IHttpConnectionOptions = {
             ...commonOptions,
             httpClient: new TestHttpClient()
                 .on("POST", () => {
-                        negotiateCalls += 1;
-                        return Promise.reject("reached negotiate");
-                    })
+                    return Promise.reject("reached negotiate");
+                })
                 .on("GET", () => ""),
         } as IHttpConnectionOptions;
 
@@ -119,14 +117,14 @@ describe("HttpConnection", () => {
         const options: IHttpConnectionOptions = {
             ...commonOptions,
             httpClient: new TestHttpClient()
-                .on("POST", () => {
-                        connection.stop();
-                        return "{}";
-                    })
-                .on("GET", () => {
-                        connection.stop();
-                        return "";
-                    }),
+                .on("POST", async () => {
+                    await connection.stop();
+                    return "{}";
+                })
+                .on("GET", async () => {
+                    await connection.stop();
+                    return "";
+                }),
         } as IHttpConnectionOptions;
 
         const connection = new HttpConnection("http://tempuri.org", options);
@@ -202,8 +200,8 @@ describe("HttpConnection", () => {
                         throw new HttpError("We don't care how this turns out", 500);
                     })
                     .on("GET", () => {
-                            return new HttpResponse(204);
-                        })
+                        return new HttpResponse(204);
+                    })
                     .on("DELETE", () => new HttpResponse(202)),
             } as IHttpConnectionOptions;
 
@@ -248,9 +246,9 @@ describe("HttpConnection", () => {
             it(`can be started using ${HttpTransportType[requestedTransport]} transport when transport mask is ${name}`, async () => {
                 const negotiateResponse = {
                     availableTransports: [
-                        { transport: "WebSockets", transferFormats: [ "Text", "Binary" ] },
-                        { transport: "ServerSentEvents", transferFormats: [ "Text" ] },
-                        { transport: "LongPolling", transferFormats: [ "Text", "Binary" ] },
+                        { transport: "WebSockets", transferFormats: ["Text", "Binary"] },
+                        { transport: "ServerSentEvents", transferFormats: ["Text"] },
+                        { transport: "LongPolling", transferFormats: ["Text", "Binary"] },
                     ],
                     connectionId: "abc123",
                 };
@@ -272,9 +270,9 @@ describe("HttpConnection", () => {
         it(`cannot be started if server's only transport (${HttpTransportType[requestedTransport]}) is masked out by the transport option`, async () => {
             const negotiateResponse = {
                 availableTransports: [
-                    { transport: "WebSockets", transferFormats: [ "Text", "Binary" ] },
-                    { transport: "ServerSentEvents", transferFormats: [ "Text" ] },
-                    { transport: "LongPolling", transferFormats: [ "Text", "Binary" ] },
+                    { transport: "WebSockets", transferFormats: ["Text", "Binary"] },
+                    { transport: "ServerSentEvents", transferFormats: ["Text"] },
+                    { transport: "LongPolling", transferFormats: ["Text", "Binary"] },
                 ],
                 connectionId: "abc123",
             };
@@ -352,22 +350,22 @@ describe("HttpConnection", () => {
         let firstPoll = true;
         const httpClient = new TestHttpClient()
             .on("POST", /negotiate$/, () => {
-                    if (firstNegotiate) {
-                        firstNegotiate = false;
-                        return { url: "https://another.domain.url/chat" };
-                    }
-                    return {
-                        availableTransports: [{ transport: "LongPolling", transferFormats: ["Text"] }],
-                        connectionId: "0rge0d00-0040-0030-0r00-000q00r00e00",
-                    };
-                })
+                if (firstNegotiate) {
+                    firstNegotiate = false;
+                    return { url: "https://another.domain.url/chat" };
+                }
+                return {
+                    availableTransports: [{ transport: "LongPolling", transferFormats: ["Text"] }],
+                    connectionId: "0rge0d00-0040-0030-0r00-000q00r00e00",
+                };
+            })
             .on("GET", () => {
-                    if (firstPoll) {
-                        firstPoll = false;
-                        return "";
-                    }
-                    return new HttpResponse(204, "No Content", "");
-                })
+                if (firstPoll) {
+                    firstPoll = false;
+                    return "";
+                }
+                return new HttpResponse(204, "No Content", "");
+            })
             .on("DELETE", () => new HttpResponse(202));
 
         const options: IHttpConnectionOptions = {
@@ -523,14 +521,14 @@ describe("HttpConnection", () => {
             httpClient: new TestHttpClient()
                 .on("POST", () => ({ connectionId: "42", availableTransports: [availableTransport] }))
                 .on("GET", () => {
-                        httpClientGetCount++;
-                        if (httpClientGetCount === 1) {
-                            // First long polling request must succeed so start completes
-                            return "";
-                        } else {
-                            throw new Error("fail");
-                        }
-                    })
+                    httpClientGetCount++;
+                    if (httpClientGetCount === 1) {
+                        // First long polling request must succeed so start completes
+                        return "";
+                    } else {
+                        throw new Error("fail");
+                    }
+                })
                 .on("DELETE", () => new HttpResponse(202)),
         } as IHttpConnectionOptions;
 
@@ -570,7 +568,7 @@ describe("HttpConnection", () => {
 
         const connection = new HttpConnection("http://tempuri.org", options);
 
-        expect(connection.start(TransferFormat.Text))
+        await expect(connection.start(TransferFormat.Text))
             .rejects
             .toThrow("Unable to initialize any of the available transports.");
     });
