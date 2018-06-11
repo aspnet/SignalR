@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.SignalR.Protocol;
 using Microsoft.Extensions.CommandLineUtils;
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
@@ -18,127 +19,153 @@ namespace ClientSample
 
                 var baseUrlArgument = cmd.Argument("<BASEURL>", "The URL to the Chat Hub to test");
 
-                cmd.OnExecute(() => RealBasicRun(baseUrlArgument.Value));
+                cmd.OnExecute(() => RunThatBoi(baseUrlArgument.Value));
             });
         }
 
-        public static async Task<int> TestStreamItemSend(string baseUrl)
+        public static async Task<int> RunThatBoi(string baseUrl)
         {
             var connection = new HubConnectionBuilder()
                 .WithUrl(baseUrl)
                 .Build();
             await connection.StartAsync();
 
-            await connection.SendStreamItemCoreAsyncCore(new StreamItemMessage("322", "ggez"));
-
-            Debug.WriteLine("done");
+            //await BasicRun(connection);
+            //await AdditionalArgs(connection);
+            //await InterleavedUploads(connection);
+            await FileUploadDemo(connection);
 
             return 0;
         }
 
-        public static async Task<int> RealBasicRun(string baseUrl)
+        public static async Task BasicRun(HubConnection connection)
         {
-            var connection = new HubConnectionBuilder()
-                .WithUrl(baseUrl)
-                .Build();
-            await connection.StartAsync();
+            var channel = Channel.CreateUnbounded<string>();
+            _ = WriteItemsAsync(channel.Writer);
 
-            var channel = Channel.CreateUnbounded<char>();
-            await connection.InvokeAsync<string>("UploadWord", channel.Reader);
-
-            await Task.Delay(5000);
-            foreach (char c in "glhf")
-            {
-                await connection.SendStreamItemCoreAsyncCore(new StreamItemMessage("1", c));
-                await Task.Delay(20000);
-                Debug.WriteLine("oof sent an item");
-                await Task.Delay(135000);
-            }
-
-            return 0;
-        }
-
-        public static async Task<int> ExecuteAsync(string baseUrl)
-        {
-            var connection = new HubConnectionBuilder()
-                .WithUrl(baseUrl)
-                .Build();
-
-            await connection.StartAsync();
-
-            //var response = await connection.InvokeAsync<int>("TraceMethod", 5);
-            //Debug.Write($"Trace Done, response <{response}> should be 5.");
-
-            var channel = Channel.CreateUnbounded<char>();
-            var uploadStream = connection.InvokeAsync<string>("UploadWord", channel.Reader);
-
-            await Task.Delay(5000);
-            foreach (char c in "glhf")
-            {
-                await channel.Writer.WriteAsync(c);
-                await Task.Delay(20000);
-                Debug.WriteLine("oof sent an item");
-                await Task.Delay(135000);
-            }
-
-            channel.Writer.TryComplete();
-
-            var result = await uploadStream;
-            // check if it's errored
-
-            return 0;
-        }
-
-        public static async Task<int> ExecuteAsyncTwo(string baseUrl)
-        {
-            var connection = new HubConnectionBuilder()
-                .WithUrl(baseUrl)
-                .Build();
-
-            await connection.StartAsync();
-
-            var channel = Channel.CreateUnbounded<char>();
-            _ = WriteLettersAsync(channel.Writer);
             var result = await connection.InvokeAsync<string>("UploadWord", channel.Reader);
+            Debug.WriteLine($"You message was: {result}");
 
-            // check if it's errored
-
-            return 0;
-
-            async Task WriteLettersAsync(ChannelWriter<char> writer)
+            async Task WriteItemsAsync(ChannelWriter<string> source)
             {
-                foreach (char c in "hello world")
+                await Task.Delay(3000);
+                foreach (char c in "hello")
                 {
-                    await Task.Delay(1000);
-                    await writer.WriteAsync(c);
+                    await source.WriteAsync(c.ToString());
+                    await Task.Delay(500);
                 }
-                writer.TryComplete(); // should send StreamCompleteMessage
+
+                // tryComplete triggers the end of this upload's relayLoop
+                // which sends a StreamComplete to the server
+                source.TryComplete();
             }
         }
 
+        public static async Task AdditionalArgs(HubConnection connection)
+        {
+            var channel = Channel.CreateUnbounded<string>();
+            _ = WriteItemsAsync(channel.Writer);
 
-        //public static async Task<int> ExecuteAsyncThree(string baseUrl)
-        //{
-        //    var connection = new HubConnectionBuilder().WithUrl(baseUrl).Build();
+            var result = await connection.InvokeAsync<string>("UploadWithSuffix", channel.Reader, " + wooh I'm a suffix");
+            Debug.WriteLine($"Your message was: {result}");
 
-        //    await connection.StartAsync();
+            async Task WriteItemsAsync(ChannelWriter<string> source)
+            {
+                await Task.Delay(1000);
+                foreach (char c in "streamed stuff")
+                {
+                    await source.WriteAsync(c.ToString());
+                    await Task.Delay(500);
+                }
 
-        //    var result = await connection.StreamToServerAsync<string>(
-        //        source: WriteLettersAsync,
-        //        channel: Channel.CreateUnbounded<char>(),
-        //        target: "UploadWord"
-        //    );
+                // tryComplete triggers the end of this upload's relayLoop
+                // which sends a StreamComplete to the server
+                source.TryComplete();
+            }
+        }
 
-        //    return 0;
+        public static async Task InterleavedUploads(HubConnection connection)
+        {
+            var channel_one = Channel.CreateBounded<string>(2);
+            _ = WriteItemsAsync(channel_one.Writer, "first message");
+            var taskOne = connection.InvokeAsync<string>("UploadWord", channel_one.Reader);
 
-        //    async Task WriteLettersAsync(ChannelWriter<char> writer)
-        //    {
-        //        foreach (char c in "hello world")
-        //        {
-        //            await Task.Delay(1000);
-        //            await writer.WriteAsync(c);
-        //        }
-        //    }
-        //}
+            var channel_two = Channel.CreateBounded<string>(2);
+            _ = WriteItemsAsync(channel_two.Writer, "second message");
+            var taskTwo = connection.InvokeAsync<string>("UploadWord", channel_two.Reader);
+
+
+            var result_one = await taskOne;
+            var result_two = await taskTwo;
+
+            Debug.WriteLine($"MESSAGES: '{result_one}', '{result_two}'");
+
+
+            async Task WriteItemsAsync(ChannelWriter<string> source, string data)
+            {
+                await Task.Delay(1000);
+                foreach (char c in data)
+                {
+                    await source.WriteAsync(c.ToString());
+                    await Task.Delay(250);
+                }
+
+                // tryComplete triggers the end of this upload's relayLoop
+                // which sends a StreamComplete to the server
+                source.TryComplete();
+            }
+        }
+
+        public static async Task FileUploadDemo(HubConnection connection)
+        {
+            
+            var original = @"C:\Users\t-dygray\Desktop\uploads\sample.txt";
+            var target = @"C:\Users\t-dygray\Desktop\uploads\bloop.txt";
+
+            original = @"C:\Users\t-dygray\Pictures\weeg.jpg";
+            target = @"C:\Users\t-dygray\Desktop\uploads\bloop.jpg";
+
+
+            var channel = Channel.CreateUnbounded<byte[]>();
+            _ = StreamFileAsync(channel.Writer);
+
+            var result = await connection.InvokeAsync<string>("UploadFile", channel.Reader, target);
+            Debug.WriteLine($"upload complete with status: {result}");
+
+            async Task StreamFileAsync(ChannelWriter<byte[]> source)
+            {
+                await Task.Delay(1000);
+
+                using (FileStream fs = File.OpenRead(original))
+                {
+                    byte[] b = new byte[8 * 1024];
+
+                    while (true)
+                    {
+                        var n = fs.Read(b, 0, b.Length);
+                        if (n < b.Length) {
+                            // on the last cycle, there may not be enough to fill the buffer completely
+                            // in this case, we want to empty the buffer completely before refilling it
+                            byte[] lastbit = new byte[n];
+                            Array.Copy(b, lastbit, n);
+
+                            await source.WriteAsync(lastbit);
+
+                            break;
+                        }
+
+                        await source.WriteAsync(b);
+                        await Task.Delay(500);
+                    }
+
+                    
+
+                }
+
+                // should be good
+                source.TryComplete();
+            }
+        }
     }
 }
+

@@ -6,6 +6,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.ExceptionServices;
+using System.Threading.Channels;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Internal;
 using Microsoft.AspNetCore.SignalR.Internal;
@@ -199,7 +200,8 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
 
                                         if (string.IsNullOrEmpty(invocationId))
                                         {
-                                            // If we don't have an invocation id then we need to store it as a JToken so we can parse it later
+                                            // If we don't have an invocation id we can't look up the type now
+                                            // need to store it as a JToken so we can parse it later
                                             itemToken = JToken.Load(reader);
                                         }
                                         else
@@ -688,7 +690,16 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                     if (paramIndex < paramCount)
                     {
                         // Set all known arguments
-                        arguments[paramIndex] = PayloadSerializer.Deserialize(reader, paramTypes[paramIndex]);
+                        if (paramTypes[paramIndex].IsGenericType && paramTypes[paramIndex].GetGenericTypeDefinition() == typeof(ChannelReader<>))
+                        {
+                            // It's a channel reader, so the parameter is just a placeholder
+                            arguments[paramIndex] = new ChannelPlaceholder(paramTypes[paramIndex].GetGenericArguments()[0]);
+                            reader.Skip();
+                        }
+                        else
+                        {
+                            arguments[paramIndex] = PayloadSerializer.Deserialize(reader, paramTypes[paramIndex]);
+                        }
                     }
                     else
                     {

@@ -439,43 +439,117 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private async Task<object> InvokeCoreAsyncCore(string methodName, Type returnType, object[] args, CancellationToken cancellationToken)
         {
+            bool upload = methodName.StartsWith("Upload");
+
+            //var reader = args[0] as ChannelReader<string>;  
+            object genericReader = args[0];
+
+            if (upload)
+            {
+                args[0] = "placeholder";
+            }
+
+
             CheckDisposed();
             await WaitConnectionLockAsync();
 
+            InvocationRequest irq;
             Task<object> invocationTask;
             try
             {
                 CheckDisposed();
                 CheckConnectionActive(nameof(InvokeCoreAsync));
 
-                var irq = InvocationRequest.Invoke(cancellationToken, returnType, _connectionState.GetNextId(), _loggerFactory, this, out invocationTask);
+                irq = InvocationRequest.Invoke(cancellationToken, returnType, _connectionState.GetNextId(), _loggerFactory, this, out invocationTask);
 
                 AssertConnectionValid();
 
-                if (methodName.StartsWith("Upload"))
-                {
-                    await InvokeUploadCore(methodName, irq, args, cancellationToken);
-                }
-                else
-                {
-                    await InvokeCore(methodName, irq, args, cancellationToken);
-                }
+                await InvokeCore(methodName, irq, args, cancellationToken, streamingUpload: methodName.StartsWith("Upload"));
+
             }
             finally
             {
                 ReleaseConnectionLock();
             }
 
+
+            if (upload)
+            {
+                // at this point we've initiated the upload, ie installed pipe on the server so that the dispatcher is ready
+
+                // dynamic reader = Convert.ChangeType(readerBackup, readerBackup.GetType());  // stupid
+
+                var genericType = genericReader.GetType().GetGenericArguments()[0];
+
+
+                Debug.WriteLine("Log :: setting up relay loop");
+
+                if (genericType == typeof(String))
+                {
+                    var reader = genericReader as ChannelReader<String>;
+                    _ = RelayLoop(reader);
+                }
+                else if (genericType == typeof(byte[]))
+                {
+                    var reader = genericReader as ChannelReader<byte[]>;
+                    _ = RelayLoop(reader);
+                }
+                else
+                {
+                    throw new Exception("Dynamic types are hard.");
+                }
+            }
+
             // Wait for this outside the lock, because it won't complete until the server responds.
             return await invocationTask;
+
+
+            async Task RelayLoop<T>(ChannelReader<T> reader)
+            {
+                while (await reader.WaitToReadAsync())
+                {
+                    while (reader.TryRead(out var item))
+                    {
+                        var streamItem = new StreamItemMessage(irq.InvocationId, item);
+
+                        CheckDisposed();
+
+                        await WaitConnectionLockAsync();
+                        try
+                        {
+                            CheckDisposed();
+                            await SendHubMessage(streamItem);
+                        }
+                        finally
+                        {
+                            ReleaseConnectionLock();
+                        }
+
+                    }
+                }
+
+                // we're done
+                // send stream complete
+                CheckDisposed();
+                await WaitConnectionLockAsync();
+                try
+                {
+                    CheckDisposed();
+                    await SendHubMessage(new StreamCompleteMessage(irq.InvocationId));
+                }
+                finally
+                {
+                    ReleaseConnectionLock();
+                }
+            }
         }
 
-        private async Task InvokeCore(string methodName, InvocationRequest irq, object[] args, CancellationToken cancellationToken)
+        private async Task InvokeCore(string methodName, InvocationRequest irq, object[] args, CancellationToken cancellationToken, bool streamingUpload = false)
         {
             Log.PreparingBlockingInvocation(_logger, irq.InvocationId, methodName, irq.ResultType.FullName, args.Length);
 
             // Client invocations are always blocking
-            var invocationMessage = new InvocationMessage(irq.InvocationId, methodName, args);
+            var invocationMessage = new InvocationMessage(irq.InvocationId, methodName, args, streamingUpload);
 
             Log.RegisteringInvocation(_logger, invocationMessage.InvocationId);
             _connectionState.AddInvocation(irq);
@@ -493,91 +567,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 _connectionState.TryRemoveInvocation(invocationMessage.InvocationId, out _);
                 irq.Fail(ex);
             }
-        }
-
-        private async Task InvokeUploadCore(string methodName, InvocationRequest irq, object[] args, CancellationToken ct)
-        {
-            Debug.WriteLine("Log preparing a non-blocking upload invocaton");
-
-            var reader = args[0] as ChannelReader<char>;
-            if (reader == null)
-            {
-                throw new Exception("Upload invocation, but first argument isn't a CHAR channel reader");
-            }
-
-            args[0] = "placeholder";
-
-            // kick off the server
-            await SendCoreAsync(methodName, args);
-
-            // send the items over
-            while (await reader.WaitToReadAsync())
-            {
-                while (reader.TryRead(out var item))
-                {
-                    await SendStreamItemCoreAsyncCore(new StreamItemMessage(irq.InvocationId, item));
-                }
-            }
-
-            Debug.WriteLine("complete hit");
-            await reader.Completion;
-
-            // TODO ::
-            // make a final blocking call
-            // which tells the server to finish up
-            // and then returns the result
-            await SendHubMessage(new StreamCompleteMessage(irq.InvocationId));
-
-
-            // TODO ::
-            // find out how to use the irq to return the result
-            // it's a funky boy
-
-            //async Task ForwardingLoop()
-            //{
-            //    // :: TODO ::
-            //    // here, need to trap the reader in a task
-            //    // where whenever it has something availible it sends a stream item
-
-            //    while (await reader.WaitToReadAsync())
-            //    {
-            //        while (reader.TryRead(out var item))
-            //        {
-            //            // send the stream item
-            //            await SendPolitely(new StreamItemMessage(irq.InvocationId, item));
-            //        }
-            //    }
-
-            //    Debug.WriteLine("complete hit");
-            //    await reader.Completion;
-
-            //    await SendPolitely(new StreamCompleteMessage(irq.InvocationId));
-
-            //}
-
-            //async Task SendPolitely(HubMessage message)
-            //{
-            //    if (_disposed || !_connectionLock.Wait(0))
-            //    {
-            //        Log.UnableToAcquireConnectionLockForPing(_logger);
-            //        return;
-            //    }
-
-            //    Debug.WriteLine($"SendPolitely :: {message}");
-
-            //    try
-            //    {
-            //        if (_disposed || _connectionState == null || _connectionState.Stopping)
-            //        {
-            //            return;
-            //        }
-            //        await SendHubMessage(message);
-            //    }
-            //    finally
-            //    {
-            //        ReleaseConnectionLock();
-            //    }
-            //}
         }
 
         private async Task InvokeStreamCore(string methodName, InvocationRequest irq, object[] args, CancellationToken cancellationToken)
@@ -623,25 +612,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
             // We've sent a message, so don't ping for a while
             ResetSendPing();
         }
-
-        public async Task SendStreamItemCoreAsyncCore(StreamItemMessage message)
-        {
-            CheckDisposed();
-
-            await WaitConnectionLockAsync();
-            try
-            {
-                CheckDisposed();
-                CheckConnectionActive(nameof(SendCoreAsync));
-
-                await SendHubMessage(message);
-            }
-            finally
-            {
-                ReleaseConnectionLock();
-            }
-        }
-
         private async Task SendCoreAsyncCore(string methodName, object[] args, CancellationToken cancellationToken)
         {
             CheckDisposed();
@@ -1201,6 +1171,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 return _callback(parameters, _state);
             }
         }
+
+
 
         // Represents all the transient state about a connection
         // This includes binding information because return type binding depends upon _pendingCalls

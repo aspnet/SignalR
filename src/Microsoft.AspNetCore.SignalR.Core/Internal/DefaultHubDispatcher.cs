@@ -21,13 +21,15 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 {
     public partial class DefaultHubDispatcher<THub> : HubDispatcher<THub> where THub : Hub
     {
+        private readonly static MethodInfo _createUnboundedMethod = typeof(Channel).GetMethod("CreateUnbounded", BindingFlags.Public | BindingFlags.Static, Type.DefaultBinder, Type.EmptyTypes, Array.Empty<ParameterModifier>());
+
         private readonly Dictionary<string, HubMethodDescriptor> _methods = new Dictionary<string, HubMethodDescriptor>(StringComparer.OrdinalIgnoreCase);
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly IHubContext<THub> _hubContext;
         private readonly ILogger<HubDispatcher<THub>> _logger;
         private readonly bool _enableDetailedErrors;
 
-        private static Dictionary<string, ChannelWriter<char>> _pipeStore = new Dictionary<string, ChannelWriter<char>>();
+        private static Dictionary<string, dynamic> _pipeStore = new Dictionary<string, dynamic>();
 
         public DefaultHubDispatcher(IServiceScopeFactory serviceScopeFactory, IHubContext<THub> hubContext, IOptions<HubOptions<THub>> hubOptions,
             IOptions<HubOptions> globalHubOptions, ILogger<DefaultHubDispatcher<THub>> logger)
@@ -113,7 +115,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                     break;
 
                 case StreamItemMessage streamItem:
-                    Debug.WriteLine($"LOG:: received item {streamItem.Item}");
                     return ProcessStreamItem(connection, streamItem);
 
                 case StreamCompleteMessage streamComplete:
@@ -138,7 +139,9 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         public override Type GetReturnType(string invocationId)
         {
-            return typeof(object);
+            // the back of the hack
+            // lookup the placeholder type 
+            return _pipeStore[invocationId].kind;
         }
 
         public override IReadOnlyList<Type> GetParameterTypes(string methodName)
@@ -151,17 +154,18 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         }
 
         private async Task ProcessStreamItem(HubConnectionContext connection, StreamItemMessage message)
-        {            
-            var writer = _pipeStore[message.InvocationId];
+        {
+            Debug.WriteLine($"item: id={message.InvocationId} data={message.Item}");
+            var writer = _pipeStore[message.InvocationId].writer;
 
-            await writer.WriteAsync((char)message.Item);
+            dynamic hackybit = Convert.ChangeType(message.Item, GetReturnType(message.InvocationId));
+            await writer.WriteAsync(hackybit, CancellationToken.None);
         }
 
         private async Task ProcessStreamComplete(HubConnectionContext connection, StreamCompleteMessage message)
         {
-            var writer = _pipeStore[message.InvocationId];
+            var writer = _pipeStore[message.InvocationId].writer;
             writer.TryComplete();
-
 
             await Task.Delay(100); // do the cleanup
 
@@ -181,12 +185,16 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 return connection.WriteAsync(CompletionMessage.WithError(
                     hubMethodInvocationMessage.InvocationId, $"Unknown hub method '{hubMethodInvocationMessage.Target}'")).AsTask();
             }
+            if (isStreamResponse && isStreamCall)
+            {
+                throw new Exception("Woah Slow Down There Partner Ya Can't Stream BOTH Ways");
+            }
             else
             {
                 return Invoke(descriptor, connection, hubMethodInvocationMessage, isStreamResponse, isStreamCall);
             }
         }
-        // TODO :: possibly combine these methods?? `Invoke` is only called once
+
         private async Task Invoke(HubMethodDescriptor descriptor, HubConnectionContext connection,
             HubMethodInvocationMessage hubMethodInvocationMessage, bool isStreamResponse, bool isStreamCall)
         {
@@ -218,8 +226,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 {
                     InitializeHub(hub, connection);
 
-
-
+                    // TODO :: refactor this flow control lmao
                     if (isStreamCall)
                     {
                         disposeScope = false;
@@ -227,9 +234,10 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                         // need to make a pipe
                         // and pass one end of the pipe to the proper method on the hub
 
-                        if (hubMethodInvocationMessage.Arguments[0] as string != "placeholder")
+                        var placeholder = hubMethodInvocationMessage.Arguments[0] as ChannelPlaceholder;
+                        if (placeholder == null)
                         {
-                            // SlightOfHand<plumbing> ::
+                            // Sneaky Plumbing ::
                             //   currently the idea is
                             //   the client sees that you pass in a channel listener
                             //   and replaces that with the string "placeholder"
@@ -239,40 +247,55 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                             throw new Exception("invalid arguments for a streaming upload.");
                         }
 
-                        var channel = Channel.CreateUnbounded<char>();
+                        var createMethod = _createUnboundedMethod.MakeGenericMethod(placeholder.ItemType);
+
+                        // now, 'createMethod' is a pointer to "Channel.CreateUnbounded<placeholder.ItemType>"
+                        dynamic channel = createMethod.Invoke(null, Array.Empty<object>());
 
                         // save the writer, so we can pull it up later and drop items in
-                        _pipeStore[hubMethodInvocationMessage.InvocationId] = channel.Writer;
+                        _pipeStore[hubMethodInvocationMessage.InvocationId] = new { writer = channel.Writer, kind = placeholder.ItemType };
 
                         // reader goes here, used to invoke the hub's method
                         hubMethodInvocationMessage.Arguments[0] = channel.Reader;
-                    }
 
-                    var result = await ExecuteHubMethod(methodExecutor, hub, hubMethodInvocationMessage.Arguments);
-
-                    if (isStreamResponse)
-                    {
-                        if (!TryGetStreamingEnumerator(connection, hubMethodInvocationMessage.InvocationId, descriptor, result, out var enumerator, out var streamCts))
+                        // spin off that boy in a background thread
+                        // it waits until the hubMethod finishes and returns the result
+                        async Task ExecuteStreamingUpload()
                         {
-                            Log.InvalidReturnValueFromStreamingMethod(_logger, methodExecutor.MethodInfo.Name);
-
-                            await SendInvocationError(hubMethodInvocationMessage.InvocationId, connection,
-                                $"The value returned by the streaming method '{methodExecutor.MethodInfo.Name}' is not a ChannelReader<>.");
-                            return;
+                            var result = await ExecuteHubMethod(methodExecutor, hub, hubMethodInvocationMessage.Arguments);
+                            Log.SendingResult(_logger, hubMethodInvocationMessage.InvocationId, methodExecutor);
+                            await connection.WriteAsync(CompletionMessage.WithResult(hubMethodInvocationMessage.InvocationId, result));
                         }
-
-                        disposeScope = false;
-                        Log.StreamingResult(_logger, hubMethodInvocationMessage.InvocationId, methodExecutor);
-                        // Fire-and-forget stream invocations, otherwise they would block other hub invocations from being able to run
-                        _ = StreamResultsAsync(hubMethodInvocationMessage.InvocationId, connection, enumerator, scope, hubActivator, hub, streamCts);
+                        _ = ExecuteStreamingUpload();
                     }
-                    // Non-empty/null InvocationId ==> Blocking invocation that needs a response
-                    else if (!string.IsNullOrEmpty(hubMethodInvocationMessage.InvocationId))
+
+                    else
                     {
-                        Log.SendingResult(_logger, hubMethodInvocationMessage.InvocationId, methodExecutor);
-                        await connection.WriteAsync(CompletionMessage.WithResult(hubMethodInvocationMessage.InvocationId, result));
-                    }
+                        var result = await ExecuteHubMethod(methodExecutor, hub, hubMethodInvocationMessage.Arguments);
 
+                        if (isStreamResponse)
+                        {
+                            if (!TryGetStreamingEnumerator(connection, hubMethodInvocationMessage.InvocationId, descriptor, result, out var enumerator, out var streamCts))
+                            {
+                                Log.InvalidReturnValueFromStreamingMethod(_logger, methodExecutor.MethodInfo.Name);
+
+                                await SendInvocationError(hubMethodInvocationMessage.InvocationId, connection,
+                                    $"The value returned by the streaming method '{methodExecutor.MethodInfo.Name}' is not a ChannelReader<>.");
+                                return;
+                            }
+
+                            disposeScope = false;
+                            Log.StreamingResult(_logger, hubMethodInvocationMessage.InvocationId, methodExecutor);
+                            // Fire-and-forget stream invocations, otherwise they would block other hub invocations from being able to run
+                            _ = StreamResultsAsync(hubMethodInvocationMessage.InvocationId, connection, enumerator, scope, hubActivator, hub, streamCts);
+                        }
+                        // Non-empty/null InvocationId ==> Blocking invocation that needs a response
+                        else if (!string.IsNullOrEmpty(hubMethodInvocationMessage.InvocationId))
+                        {
+                            Log.SendingResult(_logger, hubMethodInvocationMessage.InvocationId, methodExecutor);
+                            await connection.WriteAsync(CompletionMessage.WithResult(hubMethodInvocationMessage.InvocationId, result));
+                        }
+                    }
                 }
                 catch (TargetInvocationException ex)
                 {
