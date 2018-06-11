@@ -10,7 +10,7 @@ import { HttpError } from "../src/Errors";
 import { NullLogger } from "../src/Loggers";
 import { EventSourceConstructor } from "../src/Polyfills";
 
-import { eachEndpointUrl, eachTransport } from "./Common";
+import { eachEndpointUrl, eachTransport, VerifyLogger } from "./Common";
 import { TestHttpClient } from "./TestHttpClient";
 import { PromiseSource } from "./Utils";
 
@@ -42,18 +42,23 @@ describe("HttpConnection", () => {
     });
 
     it("starting connection fails if getting id fails", async () => {
-        const options: IHttpConnectionOptions = {
-            ...commonOptions,
-            httpClient: new TestHttpClient()
-                .on("POST", () => Promise.reject("error"))
-                .on("GET", () => ""),
-        } as IHttpConnectionOptions;
+        VerifyLogger.run(async (logger) => {
+            const options: IHttpConnectionOptions = {
+                ...commonOptions,
+                httpClient: new TestHttpClient()
+                    .on("POST", () => Promise.reject("error"))
+                    .on("GET", () => ""),
+                   logger,
+            } as IHttpConnectionOptions;
 
-        const connection = new HttpConnection("http://tempuri.org", options);
+            const connection = new HttpConnection("http://tempuri.org", options);
 
-        await expect(connection.start(TransferFormat.Text))
-            .rejects
-            .toThrow("error");
+            await expect(connection.start(TransferFormat.Text))
+                .rejects
+                .toThrow("error");
+        },
+        "Failed to start the connection: error",
+        "Failed to complete negotiation with the server: error");
     });
 
     it("cannot start a running connection", async () => {
