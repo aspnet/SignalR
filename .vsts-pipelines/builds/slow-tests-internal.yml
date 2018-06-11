@@ -14,7 +14,7 @@ phases:
         checkLatest: true
 
     - task: BatchScript@1
-      displayName: Restore Packages
+      displayName: Build
       inputs:
         filename: './build.cmd'
         arguments: '/p:SkipTests=true'
