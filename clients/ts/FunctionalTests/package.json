@@ -7,7 +7,7 @@
   "dependencies": {
     "@aspnet/signalr": "file:../signalr",
     "@aspnet/signalr-protocol-msgpack": "file:../signalr-protocol-msgpack",
-    "msgpack5": "^4.2.0"
+    "msgpack5": "^4.0.2"
   },
   "devDependencies": {
     "@types/debug": "0.0.30",
