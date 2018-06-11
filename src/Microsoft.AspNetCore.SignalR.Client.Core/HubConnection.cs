@@ -440,9 +440,9 @@ namespace Microsoft.AspNetCore.SignalR.Client
         private async Task<object> InvokeCoreAsyncCore(string methodName, Type returnType, object[] args, CancellationToken cancellationToken)
         {
             bool upload = methodName.StartsWith("Upload");
+            
 
-            //var reader = args[0] as ChannelReader<string>;  
-            object genericReader = args[0];
+            object genericReader = args.Length>0 ? args[0] : null;
 
             if (upload)
             {
