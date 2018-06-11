@@ -48,7 +48,7 @@ describe("HttpConnection", () => {
                 httpClient: new TestHttpClient()
                     .on("POST", () => Promise.reject("error"))
                     .on("GET", () => ""),
-                   logger,
+                logger,
             } as IHttpConnectionOptions;
 
             const connection = new HttpConnection("http://tempuri.org", options);
