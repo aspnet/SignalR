@@ -465,7 +465,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 AssertConnectionValid();
 
                 await InvokeCore(methodName, irq, args, cancellationToken, streamingUpload: methodName.StartsWith("Upload"));
-
             }
             finally
             {

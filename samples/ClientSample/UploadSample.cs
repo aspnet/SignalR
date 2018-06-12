@@ -30,10 +30,10 @@ namespace ClientSample
                 .Build();
             await connection.StartAsync();
 
-            //await BasicRun(connection);
+            await BasicRun(connection);
             //await AdditionalArgs(connection);
             //await InterleavedUploads(connection);
-            await FileUploadDemo(connection);
+            //await FileUploadDemo(connection);
 
             return 0;
         }

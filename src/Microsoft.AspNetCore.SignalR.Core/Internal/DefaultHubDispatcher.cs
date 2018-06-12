@@ -21,16 +21,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 {
     public partial class DefaultHubDispatcher<THub> : HubDispatcher<THub> where THub : Hub
     {
-        private readonly static MethodInfo _createUnboundedMethod = typeof(Channel).GetMethod("CreateUnbounded", BindingFlags.Public | BindingFlags.Static, Type.DefaultBinder, Type.EmptyTypes, Array.Empty<ParameterModifier>());
-
         private readonly Dictionary<string, HubMethodDescriptor> _methods = new Dictionary<string, HubMethodDescriptor>(StringComparer.OrdinalIgnoreCase);
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly IHubContext<THub> _hubContext;
         private readonly ILogger<HubDispatcher<THub>> _logger;
         private readonly bool _enableDetailedErrors;
-
-        private static Dictionary<string, dynamic> _pipeStore = new Dictionary<string, dynamic>();
-
         public DefaultHubDispatcher(IServiceScopeFactory serviceScopeFactory, IHubContext<THub> hubContext, IOptions<HubOptions<THub>> hubOptions,
             IOptions<HubOptions> globalHubOptions, ILogger<DefaultHubDispatcher<THub>> logger)
         {
@@ -136,14 +131,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 bindingFailureMessage.BindingFailure.SourceException, _enableDetailedErrors);
             return SendInvocationError(bindingFailureMessage.InvocationId, connection, errorMessage);
         }
-
-        public override Type GetReturnType(string invocationId)
-        {
-            // the back of the hack
-            // lookup the placeholder type 
-            return _pipeStore[invocationId].kind;
-        }
-
         public override IReadOnlyList<Type> GetParameterTypes(string methodName)
         {
             if (!_methods.TryGetValue(methodName, out var descriptor))
@@ -156,16 +143,12 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         private async Task ProcessStreamItem(HubConnectionContext connection, StreamItemMessage message)
         {
             Debug.WriteLine($"item: id={message.InvocationId} data={message.Item}");
-            var writer = _pipeStore[message.InvocationId].writer;
-
-            dynamic hackybit = Convert.ChangeType(message.Item, GetReturnType(message.InvocationId));
-            await writer.WriteAsync(hackybit, CancellationToken.None);
+            await PipeStore.ProcessMessage(message);
         }
 
         private async Task ProcessStreamComplete(HubConnectionContext connection, StreamCompleteMessage message)
         {
-            var writer = _pipeStore[message.InvocationId].writer;
-            writer.TryComplete();
+            PipeStore.Complete(message);
 
             await Task.Delay(100); // do the cleanup
 
@@ -247,13 +230,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                             throw new Exception("invalid arguments for a streaming upload.");
                         }
 
-                        var createMethod = _createUnboundedMethod.MakeGenericMethod(placeholder.ItemType);
-
-                        // now, 'createMethod' is a pointer to "Channel.CreateUnbounded<placeholder.ItemType>"
-                        dynamic channel = createMethod.Invoke(null, Array.Empty<object>());
-
-                        // save the writer, so we can pull it up later and drop items in
-                        _pipeStore[hubMethodInvocationMessage.InvocationId] = new { writer = channel.Writer, kind = placeholder.ItemType };
+                        var channel = PipeStore.Create(placeholder.ItemType, hubMethodInvocationMessage.InvocationId);
 
                         // reader goes here, used to invoke the hub's method
                         hubMethodInvocationMessage.Arguments[0] = channel.Reader;
@@ -508,5 +485,75 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 Log.HubMethodBound(_logger, hubName, methodName);
             }
         }
+
+        public override Type GetReturnType(string invocationId)
+        {
+            return PipeStore.Lookup[invocationId].ReturnType;
+        }
+    }
+
+    // container class instead of static
+
+    public class PipeStore
+    {
+        public static Dictionary<string, PipeStore> Lookup = new Dictionary<string, PipeStore>();
+
+        private readonly static MethodInfo _createUnboundedMethod = typeof(Channel).GetMethod("CreateUnbounded", BindingFlags.Public | BindingFlags.Static, Type.DefaultBinder, Type.EmptyTypes, Array.Empty<ParameterModifier>());
+
+        // TODO: Consider cleaning this up
+        private readonly static MethodInfo _convertChannelMethod = typeof(PipeStore).GetMethods().Single(m => m.Name.Equals("ConvertChannel"));
+
+        public readonly Type ReturnType;
+
+
+        public object Reader { get; }
+
+        public ChannelWriter<object> Writer { get;  }
+
+        public static dynamic Create(Type itemType, string invocationId)
+        {
+            Lookup[invocationId] = new PipeStore(itemType);
+            return Lookup[invocationId]._channel;
+        }
+
+        private PipeStore(Type itemType)
+        {
+            ReturnType = itemType;
+
+            // create a new channel of that type
+            var createMethod = _createUnboundedMethod.MakeGenericMethod(itemType);
+            var channel = createMethod.Invoke(null, Array.Empty<object>());
+
+            Reader = channel.GetType().GetProperty("Reader").GetValue(channel);
+
+            // this is the writer<T>
+            var writer = channel.GetType().GetProperty("Writer").GetValue(channel);
+            Writer = (ChannelWriter<object>)_convertChannelMethod.MakeGenericMethod(itemType).Invoke(null, new[] { writer });
+
+        }
+
+        public static async Task ProcessMessage(StreamItemMessage message)
+        {
+            dynamic hackybit = Convert.ChangeType(message.Item, self.ReturnType);
+            await Writer.WriteAsync(hackybit, CancellationToken.None);
+        }
+
+        public static void Complete(StreamCompleteMessage message)
+        {
+            Writer.TryComplete();
+        }
+
+        public static ChannelWriter<object> ConvertChannel<T>(ChannelWriter<T> channel)
+        {
+            var genericChannel = Channel.CreateUnbounded<object>();
+            // start a background process that reads from this generic one
+            // same as the relay loop
+            // casts to T, and sends to the specific one
+
+            _ = ,,,,,,,,()
+
+            return genericChannel.Writer;
+        }
+        
     }
 }
