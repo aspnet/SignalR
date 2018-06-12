@@ -24,13 +24,13 @@ export function eachEndpointUrl(action: (givenUrl: string, expectedUrl: string) 
     urls.forEach((t) => action(t[0], t[1]));
 }
 
-type errorFn = (error: string) => boolean;
+type ErrorMatchFunction = (error: string) => boolean;
 
 export class VerifyLogger implements ILogger {
     public unexpectedErrors: string[];
-    private expectedErrors: errorFn[];
+    private expectedErrors: ErrorMatchFunction[];
 
-    public constructor(...expectedErrors: Array<RegExp | string | errorFn>) {
+    public constructor(...expectedErrors: Array<RegExp | string | ErrorMatchFunction>) {
         this.unexpectedErrors = [];
         this.expectedErrors = [];
         expectedErrors.forEach((element) => {
@@ -44,7 +44,7 @@ export class VerifyLogger implements ILogger {
         }, this);
     }
 
-    public static async run(fn: (logger: VerifyLogger) => Promise<void>, ...expectedErrors: Array<RegExp | string | errorFn>): Promise<void> {
+    public static async run(fn: (logger: VerifyLogger) => Promise<void>, ...expectedErrors: Array<RegExp | string | ErrorMatchFunction>): Promise<void> {
         const logger = new VerifyLogger(...expectedErrors);
         await fn(logger);
         expect(logger.unexpectedErrors.join(EOL)).toBe("");
@@ -52,7 +52,7 @@ export class VerifyLogger implements ILogger {
 
     public log(logLevel: LogLevel, message: string): void {
         if (logLevel >= LogLevel.Error) {
-            if (this.expectedErrors.filter((fn) => fn(message)).length === 0) {
+            if (!this.expectedErrors.some((fn) => fn(message))) {
                 this.unexpectedErrors.push(message);
             }
         }
