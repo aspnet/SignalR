@@ -1,6 +1,7 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+import { EOL } from "os";
 import { ILogger, LogLevel } from "../src/ILogger";
 import { HttpTransportType } from "../src/ITransport";
 
@@ -43,10 +44,10 @@ export class VerifyLogger implements ILogger {
         }, this);
     }
 
-    public static async run(fn: (logger: VerifyLogger) => Promise<any>, ...expectedErrors: Array<RegExp | string | errorFn>): Promise<any> {
+    public static async run(fn: (logger: VerifyLogger) => Promise<void>, ...expectedErrors: Array<RegExp | string | errorFn>): Promise<void> {
         const logger = new VerifyLogger(...expectedErrors);
         await fn(logger);
-        expect(logger.unexpectedErrors.length).toBe(0);
+        expect(logger.unexpectedErrors.join(EOL)).toBe("");
     }
 
     public log(logLevel: LogLevel, message: string): void {
