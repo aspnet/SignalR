@@ -23,16 +23,27 @@ export function eachEndpointUrl(action: (givenUrl: string, expectedUrl: string) 
     urls.forEach((t) => action(t[0], t[1]));
 }
 
+type errorFn = (error: string) => boolean;
+
 export class VerifyLogger implements ILogger {
     public unexpectedErrors: string[];
-    private expectedErrors: string[];
+    private expectedErrors: errorFn[];
 
-    public constructor(...expectedErrors: string[]) {
-        this.unexpectedErrors = new Array<string>();
-        this.expectedErrors = expectedErrors;
+    public constructor(...expectedErrors: Array<RegExp | string | errorFn>) {
+        this.unexpectedErrors = [];
+        this.expectedErrors = [];
+        expectedErrors.forEach((element) => {
+            if (element instanceof RegExp) {
+                this.expectedErrors.push((e) => element.test(e));
+            } else if (typeof element === "string") {
+                this.expectedErrors.push((e) => element === e);
+            } else {
+                this.expectedErrors.push(element);
+            }
+        }, this);
     }
 
-    public static async run(fn: (logger: VerifyLogger) => Promise<any>, ...expectedErrors: string[]): Promise<any> {
+    public static async run(fn: (logger: VerifyLogger) => Promise<any>, ...expectedErrors: Array<RegExp | string | errorFn>): Promise<any> {
         const logger = new VerifyLogger(...expectedErrors);
         await fn(logger);
         expect(logger.unexpectedErrors.length).toBe(0);
@@ -40,7 +51,7 @@ export class VerifyLogger implements ILogger {
 
     public log(logLevel: LogLevel, message: string): void {
         if (logLevel >= LogLevel.Error) {
-            if (this.expectedErrors.filter((error) => error === message).length === 0) {
+            if (this.expectedErrors.filter((fn) => fn(message)).length === 0) {
                 this.unexpectedErrors.push(message);
             }
         }
