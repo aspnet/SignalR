@@ -21,6 +21,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 {
     public partial class DefaultHubDispatcher<THub> : HubDispatcher<THub> where THub : Hub
     {
+        private readonly ChannelStore _channelStore = new ChannelStore();
+
         private readonly Dictionary<string, HubMethodDescriptor> _methods = new Dictionary<string, HubMethodDescriptor>(StringComparer.OrdinalIgnoreCase);
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly IHubContext<THub> _hubContext;
@@ -143,19 +145,18 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         private async Task ProcessStreamItem(HubConnectionContext connection, StreamItemMessage message)
         {
             Debug.WriteLine($"item: id={message.InvocationId} data={message.Item}");
-            await PipeStore.ProcessMessage(message);
+            await _channelStore.ProcessItem(message);
         }
 
         private async Task ProcessStreamComplete(HubConnectionContext connection, StreamCompleteMessage message)
         {
-            PipeStore.Complete(message);
+            // closes channels, removes from Lookup dict
+            _channelStore.Complete(message);
 
-            await Task.Delay(100); // do the cleanup
+            await Task.Delay(100); 
 
-            // close the associate pipe, remove from routing table
             // close the associated hub
-
-            // gonna need to pass around some cancellation tokens probably
+            // gonna need to cancel some tokens probably
         }
 
         private Task ProcessInvocation(HubConnectionContext connection,
@@ -230,10 +231,10 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                             throw new Exception("invalid arguments for a streaming upload.");
                         }
 
-                        var channel = PipeStore.Create(placeholder.ItemType, hubMethodInvocationMessage.InvocationId);
+                        _channelStore.AddStream(hubMethodInvocationMessage.InvocationId, placeholder.ItemType);
 
                         // reader goes here, used to invoke the hub's method
-                        hubMethodInvocationMessage.Arguments[0] = channel.Reader;
+                        hubMethodInvocationMessage.Arguments[0] = _channelStore.Lookup[hubMethodInvocationMessage.InvocationId].Reader;
 
                         // spin off that boy in a background thread
                         // it waits until the hubMethod finishes and returns the result
@@ -488,72 +489,94 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         public override Type GetReturnType(string invocationId)
         {
-            return PipeStore.Lookup[invocationId].ReturnType;
+            return _channelStore.Lookup[invocationId].ReturnType;
         }
     }
 
     // container class instead of static
 
-    public class PipeStore
+    public class ChannelStore
     {
-        public static Dictionary<string, PipeStore> Lookup = new Dictionary<string, PipeStore>();
+        public Dictionary<string, ChannelConverter> Lookup = new Dictionary<string, ChannelConverter>();
 
+        public ChannelStore()
+        {
+
+        }
+
+        public void AddStream(string invocationId, Type itemType)
+        {
+            Lookup[invocationId] = new ChannelConverter(itemType);
+        }   
+
+        public async Task ProcessItem(StreamItemMessage message)
+        {
+            await Lookup[message.InvocationId].Writer.WriteAsync(message.Item);
+        }
+
+        public void Complete(StreamCompleteMessage message)
+        {
+            var ConverterToClose = Lookup[message.InvocationId];
+            Lookup.Remove(message.InvocationId);
+
+            ConverterToClose.Writer.TryComplete();
+             
+        }
+    }
+
+    public class ChannelConverter
+    {
         private readonly static MethodInfo _createUnboundedMethod = typeof(Channel).GetMethod("CreateUnbounded", BindingFlags.Public | BindingFlags.Static, Type.DefaultBinder, Type.EmptyTypes, Array.Empty<ParameterModifier>());
 
         // TODO: Consider cleaning this up
-        private readonly static MethodInfo _convertChannelMethod = typeof(PipeStore).GetMethods().Single(m => m.Name.Equals("ConvertChannel"));
+        private readonly static MethodInfo _convertChannelMethod = typeof(ChannelConverter).GetMethods().Single(m => m.Name.Equals("GetGenericChannel"));
 
         public readonly Type ReturnType;
 
-
-        public object Reader { get; }
-
+        // incoming messages from the client get written in here
         public ChannelWriter<object> Writer { get;  }
 
-        public static dynamic Create(Type itemType, string invocationId)
-        {
-            Lookup[invocationId] = new PipeStore(itemType);
-            return Lookup[invocationId]._channel;
-        }
 
-        private PipeStore(Type itemType)
+        // the hubMethod can pull cast messages out from here
+        public object Reader { get; }
+
+
+        public ChannelConverter(Type itemType)
         {
             ReturnType = itemType;
 
             // create a new channel of that type
             var createMethod = _createUnboundedMethod.MakeGenericMethod(itemType);
-            var channel = createMethod.Invoke(null, Array.Empty<object>());
+            var channelToHub = createMethod.Invoke(null, Array.Empty<object>());
 
-            Reader = channel.GetType().GetProperty("Reader").GetValue(channel);
-
-            // this is the writer<T>
-            var writer = channel.GetType().GetProperty("Writer").GetValue(channel);
-            Writer = (ChannelWriter<object>)_convertChannelMethod.MakeGenericMethod(itemType).Invoke(null, new[] { writer });
-
+            Reader = channelToHub.GetType().GetProperty("Reader").GetValue(channelToHub);
+            var writerToHub = channelToHub.GetType().GetProperty("Writer").GetValue(channelToHub);
+            Writer = (ChannelWriter<object>)_convertChannelMethod.MakeGenericMethod(itemType).Invoke(this, new[] { writerToHub });
         }
 
-        public static async Task ProcessMessage(StreamItemMessage message)
-        {
-            dynamic hackybit = Convert.ChangeType(message.Item, self.ReturnType);
-            await Writer.WriteAsync(hackybit, CancellationToken.None);
-        }
-
-        public static void Complete(StreamCompleteMessage message)
-        {
-            Writer.TryComplete();
-        }
-
-        public static ChannelWriter<object> ConvertChannel<T>(ChannelWriter<T> channel)
+        public ChannelWriter<object> GetGenericChannel<T>(ChannelWriter<T> writerToHub)
         {
             var genericChannel = Channel.CreateUnbounded<object>();
-            // start a background process that reads from this generic one
-            // same as the relay loop
-            // casts to T, and sends to the specific one
 
-            _ = ,,,,,,,,()
+            _ = LaunchRelayLoop(genericChannel.Reader, writerToHub);
 
             return genericChannel.Writer;
         }
         
+        public async Task LaunchRelayLoop<T>(ChannelReader<object> readerFromClient, ChannelWriter<T> writerToHub)
+        {
+            // incoming messages from the client can be read from Reader
+            // cast them to type T
+            // and send them the writerT
+            while (await readerFromClient.WaitToReadAsync())
+            {
+                while (readerFromClient.TryRead(out var item))
+                {
+                    await writerToHub.WriteAsync((T)item);
+                }
+            }
+
+            writerToHub.TryComplete();
+        }
     }
 }
