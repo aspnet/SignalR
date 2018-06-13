@@ -9,7 +9,6 @@ import { ServerSentEventsTransport } from "../src/ServerSentEventsTransport";
 import { VerifyLogger } from "./Common";
 import { TestEventSource, TestMessageEvent } from "./TestEventSource";
 import { TestHttpClient } from "./TestHttpClient";
-import { PromiseSource } from "./Utils";
 
 describe("ServerSentEventsTransport", () => {
     it("does not allow non-text formats", async () => {
@@ -44,7 +43,7 @@ describe("ServerSentEventsTransport", () => {
 
     it("appends access_token to url", async () => {
         await VerifyLogger.run(async (logger) => {
-            const sse = await createAndStartSSE(logger, "http://example.com", () => "secretToken");
+            await createAndStartSSE(logger, "http://example.com", () => "secretToken");
 
             expect(TestEventSource.eventSource.url).toEqual("http://example.com?access_token=secretToken");
         });
@@ -52,7 +51,7 @@ describe("ServerSentEventsTransport", () => {
 
     it("appends access_token to existing query string", async () => {
         await VerifyLogger.run(async (logger) => {
-            const sse = await createAndStartSSE(logger, "http://example.com?value=null", () => "secretToken");
+            await createAndStartSSE(logger, "http://example.com?value=null", () => "secretToken");
 
             expect(TestEventSource.eventSource.url).toEqual("http://example.com?value=null&access_token=secretToken");
         });
