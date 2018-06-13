@@ -25,8 +25,6 @@ dependencies {
     implementation 'com.google.code.gson:gson:2.8.5'
 }
 
-apply plugin: 'java-library'
-
 // In this section you declare where to find the dependencies of your project
 repositories {
     // Use jcenter for resolving your dependencies.

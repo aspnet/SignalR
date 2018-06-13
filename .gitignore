@@ -28,11 +28,6 @@ nuget.exe
 project.lock.json
 runtimes/
 .build/
-#Gradle
-.gradletasknamecache
-.gradle/
-build/
-bin/
 .testPublish/
 launchSettings.json
 node_modules/
@@ -61,3 +56,8 @@ ipch/
 *.opendb
 *.db
 coverage/
+# Gradle Files
+.gradletasknamecache
+.gradle/
+build/
+bin/
