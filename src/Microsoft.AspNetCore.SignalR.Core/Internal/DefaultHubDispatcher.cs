@@ -533,11 +533,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         public readonly Type ReturnType;
 
-        // incoming messages from the client get written in here
+        // write incoming messages here
         public ChannelWriter<object> Writer { get;  }
 
 
-        // the hubMethod can pull cast messages out from here
+        // pass this to the hub method
         public object Reader { get; }
 
 
@@ -545,9 +545,10 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         {
             ReturnType = itemType;
 
-            // create a new channel of that type
-            var createMethod = _createUnboundedMethod.MakeGenericMethod(itemType);
-            var channelToHub = createMethod.Invoke(null, Array.Empty<object>());
+            // create a new channel of type T
+            var channelToHub = _createUnboundedMethod
+                .MakeGenericMethod(itemType)
+                .Invoke(null, Array.Empty<object>());
 
             Reader = channelToHub.GetType().GetProperty("Reader").GetValue(channelToHub);
             var writerToHub = channelToHub.GetType().GetProperty("Writer").GetValue(channelToHub);

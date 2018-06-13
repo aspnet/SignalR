@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Channels;
@@ -38,6 +39,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         // This lock protects the connection state.
         private readonly SemaphoreSlim _connectionLock = new SemaphoreSlim(1, 1);
+
+        private readonly static MethodInfo _relayLoopInfo = typeof(HubConnection).GetMethods().Single(m => m.Name.Equals("RelayLoop"));
 
         // Persistent across all connections
         private readonly ILoggerFactory _loggerFactory;
@@ -478,69 +481,59 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
                 // dynamic reader = Convert.ChangeType(readerBackup, readerBackup.GetType());  // stupid
 
-                var genericType = genericReader.GetType().GetGenericArguments()[0];
-
-
                 Debug.WriteLine("Log :: setting up relay loop");
 
-                if (genericType == typeof(String))
-                {
-                    var reader = genericReader as ChannelReader<String>;
-                    _ = RelayLoop(reader);
-                }
-                else if (genericType == typeof(byte[]))
-                {
-                    var reader = genericReader as ChannelReader<byte[]>;
-                    _ = RelayLoop(reader);
-                }
-                else
-                {
-                    throw new Exception("Dynamic types are hard.");
-                }
+                //var genericType = genericReader.GetType().GetGenericArguments()[0];
+                //if (genericType == typeof(String))
+                //{
+                //    var reader = genericReader as ChannelReader<String>;
+                //    _ = RelayLoop(reader);
+                //}
+                //else if (genericType == typeof(byte[]))
+                //{
+                //    var reader = genericReader as ChannelReader<byte[]>;
+                //    _ = RelayLoop(reader);
+                //}
+                //else
+                //{
+                //    throw new Exception("Dynamic types are hard.");
+                //}
+
+                var channelType = genericReader.GetType().GetGenericArguments()[0];
+
+                var loop = _relayLoopInfo.MakeGenericMethod(channelType);
+                _ = loop.Invoke(this, new object[] { irq.InvocationId, genericReader });
+                
             }
 
             // Wait for this outside the lock, because it won't complete until the server responds.
             return await invocationTask;
 
+            //async Task RelayLoop<T>(ChannelReader<T> reader)
+            //{
+            //    while (await reader.WaitToReadAsync())
+            //    {
+            //        while (reader.TryRead(out var item))
+            //        {
+            //            await SendWithLock(new StreamItemMessage(irq.InvocationId, item));
+            //        }
+            //    }
 
-            async Task RelayLoop<T>(ChannelReader<T> reader)
+            //    await SendWithLock(new StreamCompleteMessage(irq.InvocationId));                
+            //}
+        }
+
+        public async Task RelayLoop<T>(string invocationId, ChannelReader<T> reader)
+        {
+            while (await reader.WaitToReadAsync())
             {
-                while (await reader.WaitToReadAsync())
+                while (reader.TryRead(out var item))
                 {
-                    while (reader.TryRead(out var item))
-                    {
-                        var streamItem = new StreamItemMessage(irq.InvocationId, item);
-
-                        CheckDisposed();
-
-                        await WaitConnectionLockAsync();
-                        try
-                        {
-                            CheckDisposed();
-                            await SendHubMessage(streamItem);
-                        }
-                        finally
-                        {
-                            ReleaseConnectionLock();
-                        }
-
-                    }
-                }
-
-                // we're done
-                // send stream complete
-                CheckDisposed();
-                await WaitConnectionLockAsync();
-                try
-                {
-                    CheckDisposed();
-                    await SendHubMessage(new StreamCompleteMessage(irq.InvocationId));
-                }
-                finally
-                {
-                    ReleaseConnectionLock();
+                    await SendWithLock(new StreamItemMessage(invocationId, item));
                 }
             }
+
+            await SendWithLock(new StreamCompleteMessage(invocationId));
         }
 
         private async Task InvokeCore(string methodName, InvocationRequest irq, object[] args, CancellationToken cancellationToken, bool streamingUpload = false)
@@ -613,19 +606,21 @@ namespace Microsoft.AspNetCore.SignalR.Client
         }
         private async Task SendCoreAsyncCore(string methodName, object[] args, CancellationToken cancellationToken)
         {
-            CheckDisposed();
+            Log.PreparingNonBlockingInvocation(_logger, methodName, args.Length);
 
+            var invocationMessage = new InvocationMessage(null, methodName, args);
+            await SendWithLock(invocationMessage, callerName: nameof(SendCoreAsync));
+        }
+
+        private async Task SendWithLock(HubMessage message, CancellationToken cancellationToken = default, [CallerMemberName] string callerName = "")
+        {
+            CheckDisposed();
             await WaitConnectionLockAsync();
             try
             {
+                CheckConnectionActive(callerName);
                 CheckDisposed();
-                CheckConnectionActive(nameof(SendCoreAsync));
-
-                Log.PreparingNonBlockingInvocation(_logger, methodName, args.Length);
-
-                var invocationMessage = new InvocationMessage(null, methodName, args);
-
-                await SendHubMessage(invocationMessage, cancellationToken);
+                await SendHubMessage(message, cancellationToken);
             }
             finally
             {
