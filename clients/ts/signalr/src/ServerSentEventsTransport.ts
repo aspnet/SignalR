@@ -38,6 +38,8 @@ export class ServerSentEventsTransport implements ITransport {
 
         this.logger.log(LogLevel.Trace, "(SSE transport) Connecting");
 
+        this.url = url;
+
         if (this.accessTokenFactory) {
             const token = await this.accessTokenFactory();
             if (token) {
@@ -45,11 +47,11 @@ export class ServerSentEventsTransport implements ITransport {
             }
         }
 
-        this.url = url;
         return new Promise<void>((resolve, reject) => {
             let opened = false;
             if (transferFormat !== TransferFormat.Text) {
                 reject(new Error("The Server-Sent Events transport only supports the 'Text' transfer format"));
+                return;
             }
 
             const eventSource = new this.eventSourceConstructor(url, { withCredentials: true });
@@ -61,16 +63,14 @@ export class ServerSentEventsTransport implements ITransport {
                             this.logger.log(LogLevel.Trace, `(SSE transport) data received. ${getDataDetail(e.data, this.logMessageContent)}.`);
                             this.onreceive(e.data);
                         } catch (error) {
-                            if (this.onclose) {
-                                this.onclose(error);
-                            }
+                            this.close(error);
                             return;
                         }
                     }
                 };
 
-                eventSource.onerror = (e: any) => {
-                    const error = new Error(e.message || "Error occurred");
+                eventSource.onerror = (e: MessageEvent) => {
+                    const error = new Error(e.data || "Error occurred");
                     if (opened) {
                         this.close(error);
                     } else {
@@ -85,7 +85,8 @@ export class ServerSentEventsTransport implements ITransport {
                     resolve();
                 };
             } catch (e) {
-                return Promise.reject(e);
+                reject(e);
+                return;
             }
         });
     }
