@@ -61,3 +61,4 @@ coverage/
 .gradle/
 build/
 bin/
+.settings/
