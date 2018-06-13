@@ -28,6 +28,11 @@ nuget.exe
 project.lock.json
 runtimes/
 .build/
+#Gradle
+.gradletasknamecache
+.gradle/
+build/
+bin/
 .testPublish/
 launchSettings.json
 node_modules/
