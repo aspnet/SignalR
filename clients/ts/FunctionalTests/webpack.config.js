@@ -8,9 +8,6 @@ module.exports = {
     entry: path.resolve(__dirname, "ts", "index.ts"),
     mode: "none",
     devtool: "source-map",
-    node: {
-        process: false,
-    },
     module: {
         rules: [
             {
