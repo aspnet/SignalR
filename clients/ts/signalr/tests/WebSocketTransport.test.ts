@@ -10,73 +10,80 @@ import { TestMessageEvent } from "./TestEventSource";
 import { TestCloseEvent, TestEvent, TestWebSocket } from "./TestWebSocket";
 
 describe("WebSocketTransport", () => {
-    [[TransferFormat.Text, "blob"],
-    [TransferFormat.Binary, "arraybuffer"]]
+    it("sets websocket binarytype to arraybuffer on Binary transferformat", async () => {
+        await VerifyLogger.run(async (logger) => {
+            await createAndStartWebSocket(logger, "http://example.com", undefined, TransferFormat.Binary);
+
+            expect(TestWebSocket.webSocket.binaryType).toBe("arraybuffer");
+        });
+    });
+
+    it("connect waits for WebSocket to be connected", async () => {
+        await VerifyLogger.run(async (logger) => {
+            const webSocket = new WebSocketTransport(undefined, logger, true, TestWebSocket);
+
+            let connectComplete: boolean = false;
+            const connectPromise = (async () => {
+                await webSocket.connect("http://example.com", TransferFormat.Text);
+                connectComplete = true;
+            })();
+
+            await TestWebSocket.webSocket.openSet;
+
+            expect(connectComplete).toBe(false);
+
+            TestWebSocket.webSocket.onopen(new TestEvent());
+
+            await connectPromise;
+            expect(connectComplete).toBe(true);
+        });
+    });
+
+    it("connect fails if there is error during connect", async () => {
+        await VerifyLogger.run(async (logger) => {
+            (global as any).ErrorEvent = TestEvent;
+            const webSocket = new WebSocketTransport(undefined, logger, true, TestWebSocket);
+
+            let connectComplete: boolean = false;
+            const connectPromise = (async () => {
+                await webSocket.connect("http://example.com", TransferFormat.Text);
+                connectComplete = true;
+            })();
+
+            await TestWebSocket.webSocket.openSet;
+
+            expect(connectComplete).toBe(false);
+
+            TestWebSocket.webSocket.onerror(new TestEvent());
+
+            await expect(connectPromise)
+                .rejects;
+            expect(connectComplete).toBe(false);
+        });
+    });
+
+    [["http://example.com", "ws://example.com?access_token=secretToken"],
+    ["http://example.com?value=null", "ws://example.com?value=null&access_token=secretToken"],
+    ["https://example.com?value=null", "wss://example.com?value=null&access_token=secretToken"]]
         .forEach(([input, expected]) => {
-            it(`sets websocket binarytype based on transferformat: ${TransferFormat[input]}`, async () => {
+            it(`generates correct WebSocket URL for  ${input} with access_token`, async () => {
                 await VerifyLogger.run(async (logger) => {
-                    const webSocket = new WebSocketTransport(undefined, logger, true, TestWebSocket);
+                    await createAndStartWebSocket(logger, input, () => "secretToken");
 
-                    const connectPromise = webSocket.connect("http://example.com", input as TransferFormat);
-
-                    await TestWebSocket.webSocket.openSet;
-                    TestWebSocket.webSocket.onopen(new TestEvent());
-
-                    await connectPromise;
-
-                    expect(TestWebSocket.webSocket.binaryType).toEqual(expected);
+                    expect(TestWebSocket.webSocket.url).toBe(expected);
                 });
             });
         });
 
-    it("connect waits for WebSocket to be connected", async () => {
-        const webSocket = new WebSocketTransport(undefined, NullLogger.instance, true, TestWebSocket);
-
-        let connectComplete: boolean = false;
-        const connectPromise = (async () => {
-            await webSocket.connect("http://example.com", TransferFormat.Text);
-            connectComplete = true;
-        })();
-
-        await TestWebSocket.webSocket.openSet;
-
-        expect(connectComplete).toEqual(false);
-
-        TestWebSocket.webSocket.onopen(new TestEvent());
-
-        await connectPromise;
-        expect(connectComplete).toEqual(true);
-    });
-
-    it("connect fails if there is error during connect", async () => {
-        (global as any).ErrorEvent = TestEvent;
-        const webSocket = new WebSocketTransport(undefined, NullLogger.instance, true, TestWebSocket);
-
-        let connectComplete: boolean = false;
-        const connectPromise = (async () => {
-            await webSocket.connect("http://example.com", TransferFormat.Text);
-            connectComplete = true;
-        })();
-
-        await TestWebSocket.webSocket.openSet;
-
-        expect(connectComplete).toEqual(false);
-
-        TestWebSocket.webSocket.onerror(new TestEvent());
-
-        await expect(connectPromise)
-            .rejects;
-        expect(connectComplete).toEqual(false);
-    });
-
-    [["http://example.com", "ws://example.com?access_token=secretToken"],
-    ["http://example.com?value=null", "ws://example.com?value=null&access_token=secretToken"]]
+    [["http://example.com", "ws://example.com"],
+    ["http://example.com?value=null", "ws://example.com?value=null"],
+    ["https://example.com?value=null", "wss://example.com?value=null"]]
         .forEach(([input, expected]) => {
-            it(`appends access_token to url ${input}`, async () => {
+            it(`generates correct WebSocket URL for ${input}`, async () => {
                 await VerifyLogger.run(async (logger) => {
-                    await createAndStartWebSocket(logger, input, () => "secretToken");
+                    await createAndStartWebSocket(logger, input, undefined);
 
-                    expect(TestWebSocket.webSocket.url).toEqual(expected);
+                    expect(TestWebSocket.webSocket.url).toBe(expected);
                 });
             });
         });
@@ -94,8 +101,8 @@ describe("WebSocketTransport", () => {
             message.data = "receive data";
             TestWebSocket.webSocket.onmessage(message);
 
-            expect(typeof received!).toEqual("string");
-            expect(received!).toEqual("receive data");
+            expect(typeof received!).toBe("string");
+            expect(received!).toBe("receive data");
         });
     });
 
@@ -117,7 +124,7 @@ describe("WebSocketTransport", () => {
             message.reason = "just cause";
             TestWebSocket.webSocket.onclose(message);
 
-            expect(closeCalled).toEqual(true);
+            expect(closeCalled).toBe(true);
             expect(error!).toEqual(new Error("Websocket closed with status code: 1 (just cause)"));
 
             await expect(webSocket.send(""))
@@ -144,8 +151,8 @@ describe("WebSocketTransport", () => {
             message.reason = "success";
             TestWebSocket.webSocket.onclose(message);
 
-            expect(closeCalled).toEqual(true);
-            expect(error!).toEqual(undefined);
+            expect(closeCalled).toBe(true);
+            expect(error!).toBeUndefined();
 
             await expect(webSocket.send(""))
                 .rejects
@@ -167,8 +174,8 @@ describe("WebSocketTransport", () => {
 
             await webSocket.stop();
 
-            expect(closeCalled).toEqual(true);
-            expect(error!).toEqual(undefined);
+            expect(closeCalled).toBe(true);
+            expect(error!).toBeUndefined();
 
             await expect(webSocket.send(""))
                 .rejects
@@ -176,23 +183,27 @@ describe("WebSocketTransport", () => {
         });
     });
 
-    it("can send data", async () => {
-        await VerifyLogger.run(async (logger) => {
-            const webSocket = await createAndStartWebSocket(logger);
+    [[TransferFormat.Text, "send data"],
+    [TransferFormat.Binary, new Uint8Array([0, 1, 3])]]
+        .forEach(([format, data]) => {
+            it(`can send ${TransferFormat[format as TransferFormat]} data`, async () => {
+                await VerifyLogger.run(async (logger) => {
+                    const webSocket = await createAndStartWebSocket(logger, "http://example.com", undefined, format as TransferFormat);
 
-            TestWebSocket.webSocket.readyState = TestWebSocket.OPEN;
-            await webSocket.send("send data");
+                    TestWebSocket.webSocket.readyState = TestWebSocket.OPEN;
+                    await webSocket.send(data);
 
-            expect(TestWebSocket.webSocket.receivedData.length).toEqual(1);
-            expect(TestWebSocket.webSocket.receivedData[0]).toEqual("send data");
+                    expect(TestWebSocket.webSocket.receivedData.length).toBe(1);
+                    expect(TestWebSocket.webSocket.receivedData[0]).toBe(data);
+                });
+            });
         });
-    });
 });
 
-async function createAndStartWebSocket(logger: ILogger, url?: string, accessTokenFactory?: (() => string | Promise<string>)): Promise<WebSocketTransport> {
+async function createAndStartWebSocket(logger: ILogger, url?: string, accessTokenFactory?: (() => string | Promise<string>), format?: TransferFormat): Promise<WebSocketTransport> {
     const webSocket = new WebSocketTransport(accessTokenFactory, logger, true, TestWebSocket);
 
-    const connectPromise = webSocket.connect(url || "http://example.com", TransferFormat.Text);
+    const connectPromise = webSocket.connect(url || "http://example.com", format || TransferFormat.Text);
 
     await TestWebSocket.webSocket.openSet;
     TestWebSocket.webSocket.onopen(new TestEvent());
