@@ -17,7 +17,7 @@ describe("ServerSentEventsTransport", () => {
 
             await expect(sse.connect("", TransferFormat.Binary))
                 .rejects
-                .toMatchObject({ message: "The Server-Sent Events transport only supports the 'Text' transfer format" });
+                .toEqual(new Error("The Server-Sent Events transport only supports the 'Text' transfer format"));
         });
     });
 
@@ -25,37 +25,34 @@ describe("ServerSentEventsTransport", () => {
         await VerifyLogger.run(async (logger) => {
             const sse = new ServerSentEventsTransport(new TestHttpClient(), undefined, logger, true, TestEventSource);
 
-            let connectPromise = sse.connect("http://example.com", TransferFormat.Text);
+            let connectComplete: boolean = false;
+            const connectPromise = (async () => {
+                await sse.connect("http://example.com", TransferFormat.Text);
+                connectComplete = true;
+            })();
+
             await TestEventSource.eventSource.openSet;
 
-            let done: boolean = false;
-            connectPromise = connectPromise.then(() => {
-                done = true;
-            });
-            expect(done).toEqual(false);
+            expect(connectComplete).toEqual(false);
 
             TestEventSource.eventSource.onopen(new TestMessageEvent());
 
             await connectPromise;
-            expect(done).toEqual(true);
+            expect(connectComplete).toEqual(true);
         });
     });
 
-    it("appends access_token to url", async () => {
-        await VerifyLogger.run(async (logger) => {
-            await createAndStartSSE(logger, "http://example.com", () => "secretToken");
+    [["http://example.com", "http://example.com?access_token=secretToken"],
+    ["http://example.com?value=null", "http://example.com?value=null&access_token=secretToken"]]
+        .forEach(([input, expected]) => {
+            it("appends access_token to url", async () => {
+                await VerifyLogger.run(async (logger) => {
+                    await createAndStartSSE(logger, input, () => "secretToken");
 
-            expect(TestEventSource.eventSource.url).toEqual("http://example.com?access_token=secretToken");
+                    expect(TestEventSource.eventSource.url).toEqual(expected);
+                });
+            });
         });
-    });
-
-    it("appends access_token to existing query string", async () => {
-        await VerifyLogger.run(async (logger) => {
-            await createAndStartSSE(logger, "http://example.com?value=null", () => "secretToken");
-
-            expect(TestEventSource.eventSource.url).toEqual("http://example.com?value=null&access_token=secretToken");
-        });
-    });
 
     it("sets Authorization header on sends", async () => {
         await VerifyLogger.run(async (logger) => {

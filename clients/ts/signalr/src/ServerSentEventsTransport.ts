@@ -38,6 +38,7 @@ export class ServerSentEventsTransport implements ITransport {
 
         this.logger.log(LogLevel.Trace, "(SSE transport) Connecting");
 
+        // set url before accessTokenFactory because this.url is only for send and we set the auth header instead of the query string for send
         this.url = url;
 
         if (this.accessTokenFactory) {
