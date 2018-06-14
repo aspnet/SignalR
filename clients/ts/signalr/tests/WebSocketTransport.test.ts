@@ -3,7 +3,6 @@
 
 import { ILogger } from "../src/ILogger";
 import { TransferFormat } from "../src/ITransport";
-import { NullLogger } from "../src/Loggers";
 import { WebSocketTransport } from "../src/WebSocketTransport";
 import { VerifyLogger } from "./Common";
 import { TestMessageEvent } from "./TestEventSource";
