@@ -342,7 +342,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                     case HubProtocolConstants.CloseMessageType:
                         return BindCloseMessage(error);
                     case HubProtocolConstants.StreamCompleteMessageType:
-                        message = BindStreamCompleteMessage(invocationId);
+                        message = BindStreamCompleteMessage(invocationId, error);
                         break;
                     case null:
                         throw new InvalidDataException($"Missing required property '{TypePropertyName}'.");
@@ -491,6 +491,12 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         private void WriteUploadDoneMessage(StreamCompleteMessage message, JsonTextWriter writer)
         {
             WriteInvocationId(message, writer);
+
+            if (message.Error != null)
+            {
+                writer.WritePropertyName(ErrorPropertyName);
+                writer.WriteValue(message.Error);
+            }
         }
 
         private void WriteStreamItemMessage(StreamItemMessage message, JsonTextWriter writer)
@@ -569,14 +575,15 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             return new CancelInvocationMessage(invocationId);
         }
 
-        private HubMessage BindStreamCompleteMessage(string invocationId)
+        private HubMessage BindStreamCompleteMessage(string invocationId, string error)
         {
             if (string.IsNullOrEmpty(invocationId))
             {
                 throw new InvalidDataException($"Missing required property '{InvocationIdPropertyName}'.");
             }
 
-            return new StreamCompleteMessage(invocationId);
+            // note : if the stream completes normally, the error should be `null`
+            return new StreamCompleteMessage(invocationId, error);
         }
 
         private HubMessage BindCompletionMessage(string invocationId, string error, object result, bool hasResult, IInvocationBinder binder)

@@ -40,7 +40,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
         // This lock protects the connection state.
         private readonly SemaphoreSlim _connectionLock = new SemaphoreSlim(1, 1);
 
-        private readonly static MethodInfo _relayLoopInfo = typeof(HubConnection).GetMethods().Single(m => m.Name.Equals("RelayLoop"));
+        private readonly static MethodInfo _relayLoopMethod = typeof(HubConnection).GetMethods(BindingFlags.NonPublic | BindingFlags.Instance).Single(m => m.Name.Equals("RelayLoop"));
+
 
         // Persistent across all connections
         private readonly ILoggerFactory _loggerFactory;
@@ -442,16 +443,23 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private async Task<object> InvokeCoreAsyncCore(string methodName, Type returnType, object[] args, CancellationToken cancellationToken)
         {
-            bool upload = methodName.StartsWith("Upload");
-            
-
-            object genericReader = args.Length>0 ? args[0] : null;
-
-            if (upload)
+            object reader = null;
+            bool upload = false;
+            for (int i = 0; i < args.Length; i++)
             {
-                args[0] = "placeholder";
-            }
+                // {System.Threading.Channels.UnboundedChannel`1+UnboundedChannelReader[T]}
+                if (isChannelReader(args[i].GetType()))
+                {
+                    if (upload)
+                    {
+                        throw new Exception("The streaming protocol does not support multiple ChannelReaders in a single invocation.");
+                    }
 
+                    reader = args[i];
+                    args[i] = "placeholder";
+                    upload = true;
+                }
+            }
 
             CheckDisposed();
             await WaitConnectionLockAsync();
@@ -478,62 +486,57 @@ namespace Microsoft.AspNetCore.SignalR.Client
             if (upload)
             {
                 // at this point we've initiated the upload, ie installed pipe on the server so that the dispatcher is ready
-
-                // dynamic reader = Convert.ChangeType(readerBackup, readerBackup.GetType());  // stupid
-
                 Debug.WriteLine("Log :: setting up relay loop");
 
-                //var genericType = genericReader.GetType().GetGenericArguments()[0];
-                //if (genericType == typeof(String))
-                //{
-                //    var reader = genericReader as ChannelReader<String>;
-                //    _ = RelayLoop(reader);
-                //}
-                //else if (genericType == typeof(byte[]))
-                //{
-                //    var reader = genericReader as ChannelReader<byte[]>;
-                //    _ = RelayLoop(reader);
-                //}
-                //else
-                //{
-                //    throw new Exception("Dynamic types are hard.");
-                //}
-
-                var channelType = genericReader.GetType().GetGenericArguments()[0];
-
-                var loop = _relayLoopInfo.MakeGenericMethod(channelType);
-                _ = loop.Invoke(this, new object[] { irq.InvocationId, genericReader });
-                
+                // create a relay loop of the appropiate type, run in a background thread
+                _ = _relayLoopMethod
+                    .MakeGenericMethod(reader.GetType().GetGenericArguments())
+                    .Invoke(this, new object[] { irq.InvocationId, reader, cancellationToken });
             }
 
-            // Wait for this outside the lock, because it won't complete until the server responds.
             return await invocationTask;
 
-            //async Task RelayLoop<T>(ChannelReader<T> reader)
-            //{
-            //    while (await reader.WaitToReadAsync())
-            //    {
-            //        while (reader.TryRead(out var item))
-            //        {
-            //            await SendWithLock(new StreamItemMessage(irq.InvocationId, item));
-            //        }
-            //    }
-
-            //    await SendWithLock(new StreamCompleteMessage(irq.InvocationId));                
-            //}
-        }
-
-        public async Task RelayLoop<T>(string invocationId, ChannelReader<T> reader)
-        {
-            while (await reader.WaitToReadAsync())
+            bool isChannelReader(Type type)
             {
-                while (reader.TryRead(out var item))
+                // walk up inheritance chain, until parent is either null or a ChannelReader<T> 
+                while (true)
                 {
-                    await SendWithLock(new StreamItemMessage(invocationId, item));
+                    if (type == null)
+                    {
+                        return false;
+                    }
+
+                    if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ChannelReader<>))
+                    {
+                        return true;
+                    }
+
+                    type = type.BaseType;
                 }
             }
+        }
 
-            await SendWithLock(new StreamCompleteMessage(invocationId));
+        private async Task RelayLoop<T>(string invocationId, ChannelReader<T> reader, CancellationToken token)
+        {
+            string responseError = null;
+
+            try
+            {
+                while (await reader.WaitToReadAsync(token))
+                {
+                    while (!token.IsCancellationRequested && reader.TryRead(out var item))
+                    {
+                        await SendWithLock(new StreamItemMessage(invocationId, item));
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // TODO: Log the cancellation
+                responseError = "stream cancelled by user";
+            }
+
+            await SendWithLock(new StreamCompleteMessage(invocationId, responseError));
         }
 
         private async Task InvokeCore(string methodName, InvocationRequest irq, object[] args, CancellationToken cancellationToken, bool streamingUpload = false)
@@ -654,7 +657,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     }
                     break;
                 case StreamItemMessage streamItem:
-                    // Complete the invocation with an error, we don't support streaming (yet)
+                    // if there's no open StreamInvocation with the given id, then complete with an error
                     if (!connectionState.TryGetInvocation(streamItem.InvocationId, out irq))
                     {
                         Log.DroppedStreamMessage(_logger, streamItem.InvocationId);

@@ -6,8 +6,12 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
 {
     public class StreamCompleteMessage : HubInvocationMessage
     {
-        public StreamCompleteMessage(string invocationId) : base(invocationId)
+        public string Error { get; }
+        public bool HasError { get => Error != null; }
+        public StreamCompleteMessage(string invocationId, string error = null) : base(invocationId)
         {
+            Error = error;
+
         }
     }
 }

@@ -250,7 +250,11 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         private static StreamCompleteMessage CreateStreamCompleteMessage(byte[] input, ref int offset)
         {
             var invocationId = ReadInvocationId(input, ref offset);
-            return new StreamCompleteMessage(invocationId);
+            var error = ReadString(input, ref offset, "error");
+            
+            // if there's no error, it's just an empty string
+            // convert back to null here
+            return new StreamCompleteMessage(invocationId, error == "" ? null : error);
         }
 
         private static Dictionary<string, string> ReadHeaders(byte[] input, ref int offset)
@@ -485,9 +489,10 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
 
         private void WriteStreamCompleteMessage(StreamCompleteMessage message, Stream packer)
         {
-            MessagePackBinary.WriteArrayHeader(packer, 2);
+            MessagePackBinary.WriteArrayHeader(packer, 3);
             MessagePackBinary.WriteInt16(packer, HubProtocolConstants.StreamCompleteMessageType);
             MessagePackBinary.WriteString(packer, message.InvocationId);
+            MessagePackBinary.WriteString(packer, message.HasError ? message.Error : "");
         }
 
         private void WriteCloseMessage(CloseMessage message, Stream packer)

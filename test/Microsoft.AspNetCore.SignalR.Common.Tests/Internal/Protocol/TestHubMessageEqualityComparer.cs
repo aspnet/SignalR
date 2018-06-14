@@ -39,8 +39,8 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                     return true;
                 case CloseMessage closeMessage:
                     return string.Equals(closeMessage.Error, ((CloseMessage) y).Error);
-                case StreamCompleteMessage _:
-                    return true;
+                case StreamCompleteMessage streamCompleteMessage:
+                    return StreamCompleteMessagesEqual(streamCompleteMessage, (StreamCompleteMessage)y);
                 default:
                     throw new InvalidOperationException($"Unknown message type: {x.GetType().FullName}");
             }
@@ -77,6 +77,11 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                 string.Equals(x.InvocationId, y.InvocationId, StringComparison.Ordinal) &&
                 string.Equals(x.Target, y.Target, StringComparison.Ordinal) &&
                 ArgumentListsEqual(x.Arguments, y.Arguments);
+        }
+
+        private bool StreamCompleteMessagesEqual(StreamCompleteMessage x, StreamCompleteMessage y)
+        {
+            return x.InvocationId == y.InvocationId && y.Error == y.Error;
         }
 
         private bool ArgumentListsEqual(object[] left, object[] right)

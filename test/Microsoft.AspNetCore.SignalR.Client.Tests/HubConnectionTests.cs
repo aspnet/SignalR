@@ -3,6 +3,9 @@
 
 using System;
 using System.Buffers;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.SignalR.Protocol;
@@ -140,6 +143,139 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 Assert.Equal("Server timeout (2000.00ms) elapsed without receiving a message from the server.", exception.Message);
             }
         }
+
+
+        [Fact]
+        public async Task StreamIntsToServer()
+        {
+            var connection = new TestConnection();
+            var hubConnection = CreateHubConnection(connection);
+            await hubConnection.StartAsync().OrTimeout();
+
+            var channel = Channel.CreateUnbounded<int>();
+            var invokeTask = hubConnection.InvokeAsync<List<int>>("UploadArray", channel.Reader);
+
+            var invocation = await connection.ReadSentJsonAsync();
+            Assert.Equal(HubProtocolConstants.InvocationMessageType, invocation["type"]);
+            Assert.Equal("UploadArray", invocation["target"]);
+            Assert.True((bool)invocation["streamingUpload"]);
+            var id = invocation["invocationId"];
+
+            foreach (var number in new[] { 42, 43, 322, 3145, -1234 })
+            {
+                await channel.Writer.WriteAsync(number);
+
+                var item = await connection.ReadSentJsonAsync();
+                Assert.Equal(HubProtocolConstants.StreamItemMessageType, item["type"]);
+                Assert.Equal(number, item["item"]);
+                Assert.Equal(id, item["invocationId"]);
+            }
+
+            channel.Writer.TryComplete();
+            var completion = await connection.ReadSentJsonAsync();
+            Assert.Equal(HubProtocolConstants.StreamCompleteMessageType, completion["type"]);
+            Assert.Equal(id, completion["invocationId"]);
+
+            await connection.ReceiveJsonMessage(new { type = HubProtocolConstants.CompletionMessageType, HasResult = true, Result = 42 });
+            
+
+            // send a completion message
+            //connection.ReceiveJsonMessage(new { type = HubProtocolConstants.CompletionMessageType, ... });
+        }
+
+        [Fact]
+        public async Task StreamsObjectsToServer()
+        {
+            var connection = new TestConnection();
+            var hubConnection = CreateHubConnection(connection);
+            await hubConnection.StartAsync().OrTimeout();
+
+            var channel = Channel.CreateUnbounded<object>();
+            var invokeTask = hubConnection.InvokeAsync<object>("UploadMethod", channel.Reader);
+
+            var invocation = await connection.ReadSentJsonAsync();
+            Assert.Equal(HubProtocolConstants.InvocationMessageType, invocation["type"]);
+            Assert.Equal("UploadMethod", invocation["target"]);
+            Assert.True((bool)invocation["streamingUpload"]);
+            var id = invocation["invocationId"];
+
+            var items = new[] { new SampleObject("ab", 12), new SampleObject("ef", 23) };
+            foreach (var item in items)
+            {
+                await channel.Writer.WriteAsync(item);
+
+                var received = await connection.ReadSentJsonAsync();
+                Assert.Equal(HubProtocolConstants.StreamItemMessageType, received["type"]);
+                Assert.Equal(item.Foo, received["item"]["foo"]);
+                Assert.Equal(item.Bar, received["item"]["bar"]);
+                Assert.Equal(id, received["invocationId"]);
+            }
+
+            channel.Writer.TryComplete();
+            var completion = await connection.ReadSentJsonAsync();
+            Assert.Equal(HubProtocolConstants.StreamCompleteMessageType, completion["type"]);
+            Assert.Equal(id, completion["invocationId"]);
+        }
+
+        [Fact]
+        public async Task UploadStreamCancelled()
+        {
+            var connection = new TestConnection();
+            var hubConnection = CreateHubConnection(connection);
+            await hubConnection.StartAsync().OrTimeout();
+
+            var cts = new CancellationTokenSource();
+            var channel = Channel.CreateUnbounded<int>();
+            var invokeTask = hubConnection.InvokeAsync<object>("UploadMethod", channel.Reader, cts.Token);
+
+            var invokeMessage = await connection.ReadSentJsonAsync();
+            Assert.Equal(HubProtocolConstants.InvocationMessageType, invokeMessage["type"]);
+
+            cts.Cancel();
+
+            // after cancellation, don't send from the pipe
+            foreach (var number in new[] { 42, 43, 322, 3145, -1234 })
+            {
+                await channel.Writer.WriteAsync(number);
+            }
+
+            // the next sent message should be a completion message
+            var complete = await connection.ReadSentJsonAsync();
+            Assert.Equal(HubProtocolConstants.StreamCompleteMessageType, complete["type"]);
+            Assert.Equal("stream cancelled by user", complete["error"]);
+        }
+
+        [Fact]
+        public async Task PrematureInvocationResponse()
+        {
+            var connection = new TestConnection();
+            var hubConnection = CreateHubConnection(connection);
+            await hubConnection.StartAsync().OrTimeout();
+
+            var channel = Channel.CreateUnbounded<int>();
+            var invokeTask = hubConnection.InvokeAsync<object>("UploadMethod", channel.Reader);
+            await connection.ReadSentTextMessageAsync().OrTimeout();
+
+            //connection.send(new InvocationResponse("1", "error message");
+            //connection.ReceiveJsonMessage(new { type = HubProtocolConstants.CompletionMessageType, ... });
+
+            // `await invokeTask` throw the error from the repones 
+            // and the connection should stop sending messages
+
+        }
+
+        private class SampleObject
+        {
+            public SampleObject(string foo, int bar)
+            {
+                Foo = foo;
+                Bar = bar;
+            }
+
+            public string Foo { get; private set; }
+            public int Bar { get; private set; }
+        }
+
 
         // Moq really doesn't handle out parameters well, so to make these tests work I added a manual mock -anurse
         private class MockHubProtocol : IHubProtocol

@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Internal;
 using Microsoft.AspNetCore.SignalR.Protocol;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Microsoft.AspNetCore.SignalR.Client.Tests
 {
@@ -142,6 +143,10 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     Application.Input.AdvanceTo(consumed);
                 }
             }
+        }
+        public async Task<JObject> ReadSentJsonAsync()
+        {
+            return JObject.Parse(await ReadSentTextMessageAsync());
         }
 
         public async Task<IList<string>> ReadAllSentMessagesAsync()
