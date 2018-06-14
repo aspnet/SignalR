@@ -45,7 +45,7 @@ describe("ServerSentEventsTransport", () => {
     [["http://example.com", "http://example.com?access_token=secretToken"],
     ["http://example.com?value=null", "http://example.com?value=null&access_token=secretToken"]]
         .forEach(([input, expected]) => {
-            it("appends access_token to url", async () => {
+            it(`appends access_token to url ${input}`, async () => {
                 await VerifyLogger.run(async (logger) => {
                     await createAndStartSSE(logger, input, () => "secretToken");
 
@@ -68,6 +68,22 @@ describe("ServerSentEventsTransport", () => {
 
             expect(request!.headers!.Authorization).toEqual("Bearer secretToken");
             expect(request!.url).toEqual("http://example.com");
+        });
+    });
+
+    it("can send data", async () => {
+        await VerifyLogger.run(async (logger) => {
+            let request: HttpRequest;
+            const httpClient = new TestHttpClient().on((r) => {
+                request = r;
+                return "";
+            });
+
+            const sse = await createAndStartSSE(logger, "http://example.com", undefined, httpClient);
+
+            await sse.send("send data");
+
+            expect(request!.content).toEqual("send data");
         });
     });
 
