@@ -33,6 +33,6 @@ module.exports = {
     },
     externals: {
         "@aspnet/signalr": "signalR",
-        "@aspnet/signalr-protocols-msgpack": "signalR.protocols.msgpack",
+        "@aspnet/signalr-protocol-msgpack": "signalR.protocols.msgpack",
     },
 };
