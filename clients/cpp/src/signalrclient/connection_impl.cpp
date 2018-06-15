@@ -103,6 +103,16 @@ namespace signalr
             }, m_disconnect_cts.get_token())
             .then([connection](negotiation_response negotiation_response)
             {
+                if (negotiation_response.connection_id.empty())
+                {
+                    connection->m_base_url = negotiation_response.url;
+                    auto headers = connection->m_signalr_client_config.get_http_headers();
+                    headers.add(_XPLATSTR("Authorization"), _XPLATSTR("Bearer ") + negotiation_response.accessToken);
+                    connection->m_signalr_client_config.set_http_headers(headers);
+
+                    negotiation_response = request_sender::negotiate(*connection->m_web_request_factory, connection->m_base_url,
+                        connection->m_query_string, connection->m_signalr_client_config).get();
+                }
                 connection->m_connection_id = negotiation_response.connection_id;
 
                 // TODO: check available transports
@@ -136,7 +146,7 @@ namespace signalr
                     if (task_canceled_exception)
                     {
                         connection->m_logger.log(trace_level::info,
-                            _XPLATSTR("starting the connection has been cancelled."));
+                            _XPLATSTR("starting the connection has been canceled."));
                     }
                     else
                     {

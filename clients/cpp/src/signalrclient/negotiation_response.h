@@ -11,5 +11,8 @@ namespace signalr
     {
         utility::string_t connection_id;
         web::json::value availableTransports;
+
+        utility::string_t url;
+        utility::string_t accessToken;
     };
 }

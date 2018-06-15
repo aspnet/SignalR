@@ -19,12 +19,18 @@ namespace signalr
             return http_sender::post(request_factory, negotiate_url, signalr_client_config)
                 .then([](utility::string_t body)
             {
+                negotiation_response response;
                 auto negotiation_response_json = web::json::value::parse(body);
-                negotiation_response response
+                if (negotiation_response_json.has_field(_XPLATSTR("connectionId")))
                 {
-                    negotiation_response_json[_XPLATSTR("connectionId")].as_string(),
-                    negotiation_response_json[_XPLATSTR("availableTransports")],
-                };
+                    response.connection_id = negotiation_response_json[_XPLATSTR("connectionId")].as_string();
+                    response.availableTransports = negotiation_response_json[_XPLATSTR("availableTransports")];
+                }
+                else
+                {
+                    response.url = negotiation_response_json[_XPLATSTR("url")].as_string();
+                    response.accessToken = negotiation_response_json[_XPLATSTR("accessToken")].as_string();
+                }
 
                 return response;
             });

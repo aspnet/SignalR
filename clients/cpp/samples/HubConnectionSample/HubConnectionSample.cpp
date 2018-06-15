@@ -13,7 +13,7 @@ class logger : public signalr::log_writer
     // Inherited via log_writer
     virtual void __cdecl write(const utility::string_t & entry) override
     {
-        //std::cout << utility::conversions::to_utf8string(entry) << std::endl;
+        std::cout << utility::conversions::to_utf8string(entry) << std::endl;
     }
 };
 
