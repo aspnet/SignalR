@@ -203,11 +203,23 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                                             // If we don't have an invocation id we can't look up the type now
                                             // need to store it as a JToken so we can parse it later
                                             itemToken = JToken.Load(reader);
+                                            break;
                                         }
-                                        else
+
+                                        var itemType = binder.GetReturnType(invocationId);
+                                        if (itemType == null)
                                         {
-                                            var returnType = binder.GetReturnType(invocationId);
-                                            item = PayloadSerializer.Deserialize(reader, returnType);
+                                            // if there's no matching id for this message, just ignore it
+                                            return null;
+                                        }
+
+                                        try
+                                        {
+                                            item = PayloadSerializer.Deserialize(reader, itemType);
+                                        }
+                                        catch (JsonSerializationException ex)
+                                        {
+                                            return new InvocationBindingFailureMessage(invocationId, target, ExceptionDispatchInfo.Capture(ex), isUploadStream:true);
                                         }
                                         break;
                                     case ArgumentsPropertyName:

@@ -251,10 +251,11 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         {
             var invocationId = ReadInvocationId(input, ref offset);
             var error = ReadString(input, ref offset, "error");
-            
-            // if there's no error, it's just an empty string
-            // convert back to null here
-            return new StreamCompleteMessage(invocationId, error == "" ? null : error);
+            if (string.IsNullOrEmpty(error))
+            {
+                error = null;
+            }
+            return new StreamCompleteMessage(invocationId, error);
         }
 
         private static Dictionary<string, string> ReadHeaders(byte[] input, ref int offset)

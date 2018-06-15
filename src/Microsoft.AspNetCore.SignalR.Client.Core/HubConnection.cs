@@ -444,20 +444,20 @@ namespace Microsoft.AspNetCore.SignalR.Client
         private async Task<object> InvokeCoreAsyncCore(string methodName, Type returnType, object[] args, CancellationToken cancellationToken)
         {
             object reader = null;
-            bool upload = false;
+            bool isStreamingUpload = false;
             for (int i = 0; i < args.Length; i++)
             {
                 // {System.Threading.Channels.UnboundedChannel`1+UnboundedChannelReader[T]}
                 if (isChannelReader(args[i].GetType()))
                 {
-                    if (upload)
+                    if (isStreamingUpload)
                     {
                         throw new Exception("The streaming protocol does not support multiple ChannelReaders in a single invocation.");
                     }
 
                     reader = args[i];
                     args[i] = "placeholder";
-                    upload = true;
+                    isStreamingUpload = true;
                 }
             }
 
@@ -475,7 +475,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
                 AssertConnectionValid();
 
-                await InvokeCore(methodName, irq, args, cancellationToken, streamingUpload: methodName.StartsWith("Upload"));
+                await InvokeCore(methodName, irq, args, cancellationToken, isStreamingUpload);
             }
             finally
             {
@@ -483,7 +483,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
 
 
-            if (upload)
+            if (isStreamingUpload)
             {
                 // at this point we've initiated the upload, ie installed pipe on the server so that the dispatcher is ready
                 Debug.WriteLine("Log :: setting up relay loop");
@@ -649,12 +649,12 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     if (!connectionState.TryRemoveInvocation(completion.InvocationId, out irq))
                     {
                         Log.DroppedCompletionMessage(_logger, completion.InvocationId);
+                        break;
                     }
-                    else
-                    {
-                        DispatchInvocationCompletion(completion, irq);
-                        irq.Dispose();
-                    }
+                    
+                    DispatchInvocationCompletion(completion, irq);
+                    irq.Dispose();
+                    
                     break;
                 case StreamItemMessage streamItem:
                     // if there's no open StreamInvocation with the given id, then complete with an error

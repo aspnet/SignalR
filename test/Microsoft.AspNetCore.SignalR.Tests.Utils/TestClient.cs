@@ -5,12 +5,14 @@ using System;
 using System.Collections.Generic;
 using System.IO.Pipelines;
 using System.Security.Claims;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Connections.Features;
 using Microsoft.AspNetCore.Internal;
 using Microsoft.AspNetCore.SignalR.Protocol;
+using Newtonsoft.Json.Linq;
 
 namespace Microsoft.AspNetCore.SignalR.Tests
 {
@@ -172,6 +174,12 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             var invocationId = GetInvocationId();
             return SendHubMessageAsync(new StreamInvocationMessage(invocationId, methodName, args));
         }
+
+        public Task<string> BeginUploadStreamAsync(string invocationId, string methodName, params object[] args)
+        {
+            var message = new InvocationMessage(invocationId, methodName, args, streamingUpload: true);            
+            return SendHubMessageAsync(message);
+        } 
 
         public async Task<string> SendHubMessageAsync(HubMessage message)
         {

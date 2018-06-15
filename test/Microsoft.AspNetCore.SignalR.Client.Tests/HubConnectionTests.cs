@@ -153,11 +153,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             await hubConnection.StartAsync().OrTimeout();
 
             var channel = Channel.CreateUnbounded<int>();
-            var invokeTask = hubConnection.InvokeAsync<List<int>>("UploadArray", channel.Reader);
+            var invokeTask = hubConnection.InvokeAsync<int>("QueryCosmos", channel.Reader);
 
             var invocation = await connection.ReadSentJsonAsync();
             Assert.Equal(HubProtocolConstants.InvocationMessageType, invocation["type"]);
-            Assert.Equal("UploadArray", invocation["target"]);
+            Assert.Equal("QueryCosmos", invocation["target"]);
             Assert.True((bool)invocation["streamingUpload"]);
             var id = invocation["invocationId"];
 
@@ -176,11 +176,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             Assert.Equal(HubProtocolConstants.StreamCompleteMessageType, completion["type"]);
             Assert.Equal(id, completion["invocationId"]);
 
-            await connection.ReceiveJsonMessage(new { type = HubProtocolConstants.CompletionMessageType, HasResult = true, Result = 42 });
-            
-
-            // send a completion message
-            //connection.ReceiveJsonMessage(new { type = HubProtocolConstants.CompletionMessageType, ... });
+            await connection.ReceiveJsonMessage(new { type = HubProtocolConstants.CompletionMessageType, invocationId=id, result = 42 });
+            var result = await invokeTask;
+            Assert.Equal(42, result);
         }
 
         [Fact]
@@ -191,7 +189,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             await hubConnection.StartAsync().OrTimeout();
 
             var channel = Channel.CreateUnbounded<object>();
-            var invokeTask = hubConnection.InvokeAsync<object>("UploadMethod", channel.Reader);
+            var invokeTask = hubConnection.InvokeAsync<SampleObject>("UploadMethod", channel.Reader);
 
             var invocation = await connection.ReadSentJsonAsync();
             Assert.Equal(HubProtocolConstants.InvocationMessageType, invocation["type"]);
@@ -215,6 +213,13 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             var completion = await connection.ReadSentJsonAsync();
             Assert.Equal(HubProtocolConstants.StreamCompleteMessageType, completion["type"]);
             Assert.Equal(id, completion["invocationId"]);
+
+            var expected = new SampleObject("oof", 14);
+            await connection.ReceiveJsonMessage(new { type = HubProtocolConstants.CompletionMessageType, invocationId = id, result = expected });
+            var result = await invokeTask;
+
+            Assert.Equal(expected.Foo, result.Foo);
+            Assert.Equal(expected.Bar, result.Bar);
         }
 
         [Fact]
@@ -254,14 +259,42 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
             var channel = Channel.CreateUnbounded<int>();
             var invokeTask = hubConnection.InvokeAsync<object>("UploadMethod", channel.Reader);
-            await connection.ReadSentTextMessageAsync().OrTimeout();
+            var invocation = await connection.ReadSentJsonAsync();
+            Assert.Equal(HubProtocolConstants.InvocationMessageType, invocation["type"]);
+            var id = invocation["invocationId"];
 
-            //connection.send(new InvocationResponse("1", "error message");
-            //connection.ReceiveJsonMessage(new { type = HubProtocolConstants.CompletionMessageType, ... });
+            await connection.ReceiveJsonMessage(new { type = HubProtocolConstants.CompletionMessageType, invocationId = id, result = 10 });
 
-            // `await invokeTask` throw the error from the repones 
-            // and the connection should stop sending messages
+            var result = await invokeTask;
+            Assert.Equal(10L, result);
 
+            // after the server returns, with whatever response
+            // the client's behavior is undefined, and the server is responsible for ignoring stray messages
+        }
+
+        [Fact]
+        public async Task WrongTypeOnServerResponse()
+        {
+            var connection = new TestConnection();
+            var hubConnection = CreateHubConnection(connection);
+            await hubConnection.StartAsync().OrTimeout();
+
+            // we expect to get send ints, and receive an int back
+            var channel = Channel.CreateUnbounded<int>();
+            var invokeTask = hubConnection.InvokeAsync<int>("SumInts", channel.Reader);
+
+            var invocation = await connection.ReadSentJsonAsync();
+            Assert.Equal(HubProtocolConstants.InvocationMessageType, invocation["type"]);
+            var id = invocation["invocationId"];
+
+            await channel.Writer.WriteAsync(5);
+            await channel.Writer.WriteAsync(10);
+
+            await connection.ReceiveJsonMessage(new { type = HubProtocolConstants.CompletionMessageType, invocationId = id, result = "humbug" });
+
+            await Assert.ThrowsAsync<Newtonsoft.Json.JsonSerializationException>(async () => await invokeTask);
+            
+            
         }
 
         private class SampleObject

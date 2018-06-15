@@ -4,6 +4,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Security.Claims;
 using System.Text;
@@ -2233,6 +2234,252 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 client.Dispose();
 
                 await connectionHandlerTask.OrTimeout();
+            }
+        }
+
+
+        [Fact]
+        public async Task UploadStringsToConcat()
+        {
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
+
+            var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
+
+            using (var client = new TestClient())
+            {
+                var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
+                await client.BeginUploadStreamAsync("id", nameof(MethodHub.StreamingConcat), "placeholder");
+
+                foreach (var letter in new[] { "B", "E", "A", "N", "E", "D" })
+                {
+                    await client.SendHubMessageAsync(new StreamItemMessage("id", letter));
+                }
+
+                await client.SendHubMessageAsync(new StreamCompleteMessage("id"));
+                var result = (CompletionMessage)await client.ReadAsync();
+
+                Assert.Equal("BEANED", result.Result);
+
+            }
+        }
+
+
+        private class SampleObject
+        {
+            public SampleObject(string foo, int bar)
+            {
+                Bar = bar;
+                Foo = foo;
+            }
+            public int Bar { get; }
+            public string Foo { get; }
+        }
+
+        [Fact]
+        public async Task UploadStreamedObjects()
+        {
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
+
+            var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
+
+            using (var client = new TestClient())
+            {
+                var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
+                await client.BeginUploadStreamAsync("id", nameof(MethodHub.UploadArray), "placeholder");
+
+                var objects = new[] { new SampleObject("solo", 322), new SampleObject("ggez", 3145) };
+
+                foreach (var thing in objects)
+                {
+                    await client.SendHubMessageAsync(new StreamItemMessage("id", thing));
+                }
+
+                await client.SendHubMessageAsync(new StreamCompleteMessage("id"));
+                var response = (CompletionMessage)await client.ReadAsync();
+
+                var result = ((JArray)response.Result).ToArray<object>();
+
+                Assert.Equal(objects[0].Foo, ((JContainer)result[0])["foo"]);
+                Assert.Equal(objects[0].Bar, ((JContainer)result[0])["bar"]);
+                Assert.Equal(objects[1].Foo, ((JContainer)result[1])["foo"]);
+                Assert.Equal(objects[1].Bar, ((JContainer)result[1])["bar"]);
+            }
+        }
+
+        [Fact]
+        public async Task UploadManyStreams()
+        {
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
+            var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
+
+            using (var client = new TestClient())
+            {
+                var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
+                var ids = new[] { "0", "1", "2" };
+
+                foreach (string id in ids)
+                {
+                    await client.BeginUploadStreamAsync(id, nameof(MethodHub.StreamingConcat), "placeholder");
+                }
+
+                var words = new[] { "karkalicious", "tumpus", "ggez" };
+                var pos = new[] { 0, 0, 0 };
+                var order = new[] { 2, 2, 0, 2, 1, 0, 0, 0, 0, 0, 0, 2, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1 };
+
+                foreach (var spot in order)
+                {
+                    await client.SendHubMessageAsync(new StreamItemMessage(spot.ToString(), words[spot][pos[spot]]));
+                    pos[spot] += 1;
+                }
+
+                foreach (string id in new[] { "0", "2", "1" })
+                {
+                    await client.SendHubMessageAsync(new StreamCompleteMessage(id));
+                    var response = await client.ReadAsync();
+                    Debug.Write(response);
+                    Assert.Equal(words[Int32.Parse(id)], ((CompletionMessage)response).Result);
+                }
+            }
+        }
+
+        // NOTE -- THIS TEST DISPLAYS FUNKY BEHAVIOR
+        // THAT EXISTS CURRENTLY WITHIN THE SYSTEM.
+        // BASICALLY THINGS CAN GET AUTO-CAST FROM JSON
+        // THIS mAYBE SHOULD EXPLICITLY ERROR
+        // BUT LEAVING THIS HERE AS DOCUMENTATION
+        [Fact]
+        public async Task InvalidTypeOnStreamingUploadCasting()
+        {
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
+            var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
+
+            using (var client = new TestClient())
+            {
+                var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
+                await client.BeginUploadStreamAsync("id", nameof(MethodHub.StreamingConcat), "placeholder");
+
+                // items should be strings, so send an integer instead
+                await client.SendHubMessageAsync(new StreamItemMessage("id", 5));
+                await client.SendHubMessageAsync(new StreamItemMessage("id", 10));
+
+                await client.SendHubMessageAsync(new StreamCompleteMessage("id"));
+                var response = (CompletionMessage)await client.ReadAsync();
+                
+                Assert.Equal("510", response.Result);
+            }
+        }
+
+        [Fact]
+        public async Task InvalidTypeOnStreamingUpload()
+        {
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
+            var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
+
+            using (var client = new TestClient())
+            {
+                var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
+                await client.BeginUploadStreamAsync("id", nameof(MethodHub.TestTypeCastingErrors    ), "placeholder");
+
+                // client is running wild, sending strings not ints. 
+                // this error should be propogated to the user's HubMethod code
+                await client.SendHubMessageAsync(new StreamItemMessage("id", "not a number"));
+                var response = await client.ReadAsync();
+
+                Assert.Equal(typeof(CompletionMessage), response.GetType());
+                Assert.True((bool)((CompletionMessage)response).Result);
+            }
+        }
+
+        [Fact]
+        public async Task InvalidIdOnStreamItem()
+        {
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
+            var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
+
+            using (var client = new TestClient())
+            {
+                var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
+
+                await client.SendHubMessageAsync(new StreamItemMessage("fake_id", "not a number"));
+
+                // this should be ignored -- no response, no messages
+            }
+        }
+
+        [Fact]
+        public async Task InvalidIdOnStreamComplete()
+        {
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
+            var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
+
+            using (var client = new TestClient())
+            {
+                var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
+
+                await client.SendHubMessageAsync(new StreamCompleteMessage("fake_id"));
+
+                // this should be ignored -- no response, no messages
+            }
+        }
+
+        public static string CustomErrorMessage = "custom error for testing ::::)";
+
+        [Fact]
+        public async Task SignalStreamCompleteWithError()
+        {
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
+            var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
+
+            using (var client = new TestClient())
+            {
+                var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
+                await client.BeginUploadStreamAsync("id", nameof(MethodHub.TestCustomErrorPassing), "placeholder");
+                await client.SendHubMessageAsync(new StreamCompleteMessage("id", CustomErrorMessage));
+
+                var response = (CompletionMessage)await client.ReadAsync();
+                Assert.True((bool)response.Result);
+            }
+        }
+
+        [Fact]
+        public async Task StreamUploadInvocationWithIdAfter()
+        {
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
+            var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
+
+            using (var client = new TestClient())
+            {
+                var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
+
+                await client.BeginUploadStreamAsync("id", nameof(MethodHub.StreamingSum), "placeholder");
+
+                // a valid StreamItem for reference
+                // var payload = new ReadOnlyMemory<byte>(Encoding.ASCII.GetBytes(
+                //    "{\"type\":2,\"invocationId\":\"id\",\"item\":1}\x1e"));
+
+                var orderings = new[]
+                {
+                    "{\"item\": 1, \"type\": 2, \"invocationId\": \"id\"}\x1e",
+                    "{\"item\": 1, \"invocationId\": \"id\", \"type\": 2}\x1e",
+                    "{\"type\": 2, \"item\": 1, \"invocationId\": \"id\"}\x1e",
+                    "{\"type\": 2, \"invocationId\": \"id\", \"item\": 1}\x1e",
+                    "{\"invocationId\": \"id\", \"item\": 1, \"type\": 2}\x1e",
+                    "{\"invocationId\": \"id\", \"type\": 2, \"item\": 1}\x1e",
+                };
+
+                foreach (var rawjson in orderings)
+                {
+                    var payload = new ReadOnlyMemory<byte>(Encoding.ASCII.GetBytes(
+                        "{\"item\":1,\"type\":2,\"invocationId\":\"id\"}\x1e"));
+
+                    await client.Connection.Application.Output.WriteAsync(payload);
+                }
+
+                await client.SendHubMessageAsync(new StreamCompleteMessage("id"));
+                var response = (CompletionMessage)await client.ReadAsync();
+
+                // make sure 6 items got through
+                Assert.Equal(6L, response.Result);
             }
         }
 

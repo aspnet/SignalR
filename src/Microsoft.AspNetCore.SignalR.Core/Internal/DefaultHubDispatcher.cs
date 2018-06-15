@@ -115,7 +115,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                     return ProcessStreamItem(connection, streamItem);
 
                 case StreamCompleteMessage streamComplete:
-                    return ProcessStreamComplete(connection, streamComplete);
+                    ProcessStreamComplete(connection, streamComplete);
+                    break;
 
                 // Other kind of message we weren't expecting
                 default:
@@ -129,6 +130,15 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         private Task ProcessBindingFailure(HubConnectionContext connection, InvocationBindingFailureMessage bindingFailureMessage)
         {
             Log.FailedInvokingHubMethod(_logger, bindingFailureMessage.Target, bindingFailureMessage.BindingFailure.SourceException);
+
+            if (bindingFailureMessage.StreamingUpload)
+            {
+                var message = new StreamCompleteMessage(bindingFailureMessage.InvocationId, bindingFailureMessage.BindingFailure.SourceException.ToString());
+                _channelStore.Complete(message);
+
+                return Task.CompletedTask;
+            }
+
             var errorMessage = ErrorMessageHelper.BuildErrorMessage($"Failed to invoke '{bindingFailureMessage.Target}' due to an error on the server.",
                 bindingFailureMessage.BindingFailure.SourceException, _enableDetailedErrors);
             return SendInvocationError(bindingFailureMessage.InvocationId, connection, errorMessage);
@@ -148,12 +158,10 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             await _channelStore.ProcessItem(message);
         }
 
-        private async Task ProcessStreamComplete(HubConnectionContext connection, StreamCompleteMessage message)
+        private void ProcessStreamComplete(HubConnectionContext connection, StreamCompleteMessage message)
         {
             // closes channels, removes from Lookup dict
             _channelStore.Complete(message);
-
-            await Task.Delay(100); 
 
             // close the associated hub
             // gonna need to cancel some tokens probably
@@ -489,7 +497,14 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         public override Type GetReturnType(string invocationId)
         {
-            return _channelStore.Lookup[invocationId].GetReturnType();
+            if (_channelStore.Lookup.TryGetValue(invocationId, out var value))
+            {
+                return value.GetReturnType();
+            }
+
+            // TODO
+            // LOG: DEBUG: stream item id could not be found, ignoring
+            return null;
         }
     }
 
@@ -510,9 +525,15 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         public void Complete(StreamCompleteMessage message)
         {
+            if (!Lookup.TryGetValue(message.InvocationId, out var value))
+            {
+                // TODO
+                // LOG: DEBUG: "can't find invocationId <42>, ignoring message"
+                return;
+            }
             var ConverterToClose = Lookup[message.InvocationId];
             Lookup.Remove(message.InvocationId);
-            ConverterToClose.TryComplete();
+            ConverterToClose.TryComplete(message.HasError ? new Exception(message.Error) : null);
         }
 
         public static IChannelConverter BuildStream<T>()
@@ -526,7 +547,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         Type GetReturnType();
         object ReaderAsObject();
         Task WriteToChannel(object item);
-        void TryComplete();
+        void TryComplete(Exception ex);
     }
 
     internal class ChannelConverter<T> : IChannelConverter
@@ -556,9 +577,9 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             await _channel.Writer.WriteAsync((T)o);
         }
 
-        public void TryComplete()
+        public void TryComplete(Exception ex)
         {
-            _channel.Writer.TryComplete();
+            _channel.Writer.TryComplete(ex);
         }
     }
 
@@ -601,7 +622,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
     //        return genericChannel.Writer;
     //    }
-        
+
     //    public async Task LaunchRelayLoop<T>(ChannelReader<object> readerFromClient, ChannelWriter<T> writerToHub)
     //    {
     //        // incoming messages from the client can be read from Reader

@@ -155,6 +155,88 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             return Clients.Caller.SendAsync("Send", message);
         }
+
+        public async Task<string> StreamingConcat(ChannelReader<string> source)
+        {
+            var sb = new StringBuilder();
+
+            while (await source.WaitToReadAsync())
+            {
+                while (source.TryRead(out var item))
+                {
+                    sb.Append(item);
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        public async Task<int> StreamingSum(ChannelReader<int> source)
+        {
+            var total = 0;
+            while (await source.WaitToReadAsync())
+            {
+                while (source.TryRead(out var item))
+                {
+                    total += item;
+                }
+            }
+            return total;
+        }
+
+        public async Task<List<object>> UploadArray(ChannelReader<object> source)
+        {
+            var results = new List<object>();
+
+            while (await source.WaitToReadAsync())
+            {
+                while (source.TryRead(out var item))
+                {
+                    results.Add(item);
+                }
+            }
+
+            return results;
+        }
+
+        public async Task<bool> TestTypeCastingErrors(ChannelReader<int> source)
+        {
+            // TODO -- Smarter Exceptions, new exception types.
+            // Currently, when there's a problem casting JSON,
+            // it ends up taking the full error message from the custom converter,
+            // and putting the whole error text + stack trace in as the message field in a default message.
+            //
+            // This is bad.
+            // An end user would want to see something like 
+            //     `could not cast "qwer" to an integer`
+            //     `make sure method signatures match from server and client`
+
+            try
+            {
+                await source.WaitToReadAsync();
+            }
+            catch (Exception)
+            {
+                return true;
+            }
+
+            return false;
+
+        }
+
+        public async Task<bool> TestCustomErrorPassing(ChannelReader<int> source)
+        {
+            try
+            {
+                await source.WaitToReadAsync();
+            }
+            catch (Exception ex)
+            {
+                return ex.Message == HubConnectionHandlerTests.CustomErrorMessage;
+            }
+
+            return false;
+        }
     }
 
     public abstract class TestHub : Hub
