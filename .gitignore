@@ -56,3 +56,9 @@ ipch/
 *.opendb
 *.db
 coverage/
+# Gradle Files
++.gradletasknamecache
++.gradle/
++build/
++bin/
++.settings/ 
