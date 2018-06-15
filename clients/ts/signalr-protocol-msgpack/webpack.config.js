@@ -4,6 +4,11 @@
 const path = require("path");
 const baseConfig = require("../webpack.config.base");
 module.exports = baseConfig(__dirname, "signalr-protocol-msgpack", {
-    msgpack5: "msgpack5",
-    "@aspnet/signalr": "signalR"
+    externals: {
+        msgpack5: "msgpack5",
+        "@aspnet/signalr": "signalR"
+    },
+    alias: {
+        buffer: path.resolve(__dirname, "node_modules", "buffer", "index.js"),
+    },
 });

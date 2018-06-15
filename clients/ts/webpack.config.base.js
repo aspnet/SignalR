@@ -4,8 +4,10 @@
 const path = require("path");
 const webpack = require("webpack");
 
-module.exports = function (modulePath, browserBaseName, externals) {
+module.exports = function (modulePath, browserBaseName, options) {
     const pkg = require(path.resolve(modulePath, "package.json"));
+
+    options = options || {};
 
     return {
         entry: path.resolve(modulePath, "src", "browser-index.ts"),
@@ -32,7 +34,8 @@ module.exports = function (modulePath, browserBaseName, externals) {
             ]
         },
         resolve: {
-            extensions: [".ts", ".js"]
+            extensions: [".ts", ".js"],
+            alias: options.alias,
         },
         output: {
             filename: `${browserBaseName}.js`,
@@ -66,6 +69,6 @@ module.exports = function (modulePath, browserBaseName, externals) {
             // ES6 Promise uses this module in certain circumstances but we don't need it.
             new webpack.IgnorePlugin(/vertx/),
         ],
-        externals,
+        externals: options.externals,
     };
 }
