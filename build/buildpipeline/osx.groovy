@@ -8,7 +8,7 @@ simpleNode('OSX.1012.Amd64.Open') {
     }
     stage ('Build') {
         def logFolder = getLogFolder()
-        def environment = "export ASPNETCORE_TEST_LOG_DIR=${WORKSPACE}\\${logFolder}"
-        bat "${environment}&.\\run.sh --ci default-build"
+        def environment = "export ASPNETCORE_TEST_LOG_DIR=${WORKSPACE}/${logFolder}"
+        sh "${environment}&./run.sh --ci default-build"
     }
 }
