@@ -4,7 +4,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 {
     public static class ExceptionMessageExtensions
     {
-        public static string GetLocalizationSafeMessage(this ArgumentException argex)
+        public static string GetLocalizationSafeMessage(this ArgumentException argEx)
         {
             // Strip off the last line since it's "Parameter Name: [parameterName]" and:
             // 1. We verify the parameter name separately
