@@ -509,7 +509,10 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 {
                     var startTask = hubConnection.StartAsync(cts.Token);
                     var exception = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => startTask.OrTimeout());
-                    Assert.Equal("The operation was canceled.", exception.Message);
+
+                    // REVIEW: Alternatively, we could just not assert the message...
+                    // We need the localized version of the default message
+                    Assert.Equal(new OperationCanceledException().Message, exception.Message);
                 }
                 finally
                 {
