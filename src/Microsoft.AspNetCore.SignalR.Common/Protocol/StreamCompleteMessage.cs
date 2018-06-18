@@ -11,7 +11,6 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         public StreamCompleteMessage(string invocationId, string error = null) : base(invocationId)
         {
             Error = error;
-
         }
     }
 }

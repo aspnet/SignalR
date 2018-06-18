@@ -1169,8 +1169,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
         }
 
-
-
         // Represents all the transient state about a connection
         // This includes binding information because return type binding depends upon _pendingCalls
         private class ConnectionState : IInvocationBinder

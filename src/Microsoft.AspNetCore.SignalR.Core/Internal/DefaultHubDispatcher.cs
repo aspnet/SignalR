@@ -138,10 +138,13 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
                 return Task.CompletedTask;
             }
+            else
+            {
+                var errorMessage = ErrorMessageHelper.BuildErrorMessage($"Failed to invoke '{bindingFailureMessage.Target}' due to an error on the server.",
+                    bindingFailureMessage.BindingFailure.SourceException, _enableDetailedErrors);
+                return SendInvocationError(bindingFailureMessage.InvocationId, connection, errorMessage);
+            }
 
-            var errorMessage = ErrorMessageHelper.BuildErrorMessage($"Failed to invoke '{bindingFailureMessage.Target}' due to an error on the server.",
-                bindingFailureMessage.BindingFailure.SourceException, _enableDetailedErrors);
-            return SendInvocationError(bindingFailureMessage.InvocationId, connection, errorMessage);
         }
         public override IReadOnlyList<Type> GetParameterTypes(string methodName)
         {
@@ -161,10 +164,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         private void ProcessStreamComplete(HubConnectionContext connection, StreamCompleteMessage message)
         {
             // closes channels, removes from Lookup dict
+            // user's method can see the channel is complete and begin wrapping up
             _channelStore.Complete(message);
-
-            // close the associated hub
-            // gonna need to cancel some tokens probably
         }
 
         private Task ProcessInvocation(HubConnectionContext connection,
@@ -179,7 +180,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             }
             if (isStreamResponse && isStreamCall)
             {
-                throw new Exception("Woah Slow Down There Partner Ya Can't Stream BOTH Ways");
+                throw new Exception("Currently, streaming responses for streaming uploads are not supported.");
             }
             else
             {
@@ -241,7 +242,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
                         _channelStore.AddStream(hubMethodInvocationMessage.InvocationId, placeholder.ItemType);
 
-                        // reader goes here, used to invoke the hub's method
+                        // reader sent here, used to invoke the hub's method
                         hubMethodInvocationMessage.Arguments[0] = _channelStore.Lookup[hubMethodInvocationMessage.InvocationId].ReaderAsObject();
 
                         // spin off that boy in a background thread

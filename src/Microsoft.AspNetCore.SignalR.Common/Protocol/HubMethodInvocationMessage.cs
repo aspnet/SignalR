@@ -102,7 +102,6 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
     /// </summary>
     public class StreamInvocationMessage : HubMethodInvocationMessage
     {
-
         /// <summary>
         /// Initializes a new instance of the <see cref="StreamInvocationMessage"/> class.
         /// </summary>
