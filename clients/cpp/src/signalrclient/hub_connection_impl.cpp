@@ -7,6 +7,7 @@
 #include "trace_log_writer.h"
 #include "make_unique.h"
 #include "signalrclient/signalr_exception.h"
+#include <future>
 
 using namespace web;
 
@@ -153,6 +154,8 @@ namespace signalr
         invoke_hub_method(method_name, arguments, callback_id, nullptr,
             [tce](const std::exception_ptr e){tce.set_exception(e); });
 
+        //auto task = pplx::create_task(tce);
+        //return std::async(std::launch::async, [task]() { return task.get(); });
         return pplx::create_task(tce);
     }
 

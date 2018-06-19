@@ -17,11 +17,39 @@ class logger : public signalr::log_writer
     }
 };
 
+template <typename T>
+web::json::value to_json(T item)
+{
+    return web::json::value(item);
+}
+
+template <>
+web::json::value to_json<int>(int item)
+{
+    return 42;
+}
+
+template <typename T>
+void tryparse(web::json::value& json, T first)
+{
+    json[json.size()] = to_json(first);
+}
+
+template <typename arg, typename ...T>
+void tryparse(web::json::value& json, arg first, T... arguments)
+{
+    tryparse(json, first);
+    tryparse(json, arguments...);
+}
+
 void send_message(signalr::hub_connection& connection, const utility::string_t& name, const utility::string_t& message)
 {
     web::json::value args{};
     args[0] = web::json::value::string(name);
     args[1] = web::json::value(message);
+
+    web::json::value tmp{};
+    tryparse(tmp, name, message);
 
     // if you get an internal compiler error uncomment the lambda below or install VS Update 4
     connection.invoke(U("Invoke"), args/*, [](const web::json::value&){}*/)
@@ -88,6 +116,8 @@ int main()
     utility::string_t name;
     std::getline(ucin, name);
 
+    web::json::value tmp{};
+    tryparse(tmp, name, U("test"));
     chat(name);
 
     return 0;
