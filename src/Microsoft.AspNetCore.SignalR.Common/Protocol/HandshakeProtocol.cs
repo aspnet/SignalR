@@ -4,6 +4,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using Microsoft.AspNetCore.Internal;
 using Microsoft.AspNetCore.SignalR.Internal;
@@ -22,14 +23,15 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         private const string ErrorPropertyName = "error";
         private const string TypePropertyName = "type";
 
-        /// <summary>
-        /// The serialized representation of a success handshake.
-        /// </summary>
-        public static Dictionary<IHubProtocol, ReadOnlyMemory<byte>> messageCache = new Dictionary<IHubProtocol, ReadOnlyMemory<byte>>();
+        [Obsolete()]
+        public static ReadOnlyMemory<byte> SuccessHandshakeData = new byte[] { 123, 34, 109, 105, 110, 111, 114, 86, 101, 114, 115, 105, 111, 110, 34, 58, 48, 125, 30 }; 
+
+
+        private static Dictionary<IHubProtocol, ReadOnlyMemory<byte>> _messageCache = new Dictionary<IHubProtocol, ReadOnlyMemory<byte>>();
 
         public static ReadOnlySpan<byte> GetCachedSuccessMessage(IHubProtocol protocol)
         {
-            if (messageCache.TryGetValue(protocol, out var message))
+            if (_messageCache.TryGetValue(protocol, out var message))
             {
                 return message.Span;
             }
@@ -38,14 +40,14 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             try
             {
                 WriteResponseMessage(new HandshakeResponseMessage(protocol), memoryBufferWriter);
-                messageCache.Add(protocol, memoryBufferWriter.ToArray());
+                _messageCache.Add(protocol, memoryBufferWriter.ToArray());
             }
             finally
             {
                 MemoryBufferWriter.Return(memoryBufferWriter);
             }
 
-            messageCache.TryGetValue(protocol, out var result);
+            _messageCache.TryGetValue(protocol, out var result);
             return result.Span;
         }
 
