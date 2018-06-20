@@ -32,7 +32,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
 
         private static readonly string ProtocolName = "json";
         private static readonly int ProtocolVersion = 1;
-        private static readonly int ProtocolMinorVersion = 5;
+        private static readonly int ProtocolMinorVersion = 0;
 
         /// <summary>
         /// Gets the serializer used to serialize invocation arguments and return values.
