@@ -64,6 +64,26 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             }
 
             [Fact]
+            public async Task ClientRecordsMinorVersionFromServerOnHandshake()
+            {
+                var connection = new TestConnection(autoHandshake: false);
+                var hubConnection = CreateHubConnection(connection);
+                try
+                {
+                    var startTask = hubConnection.StartAsync();
+                    var message = await connection.ReadHandshakeAndSendResponseAsync(56);
+
+                    await startTask;
+                    Assert.Equal(56, hubConnection._serverProtocolMinorVersion);
+                }
+                finally
+                {
+                    await hubConnection.DisposeAsync().OrTimeout();
+                    await connection.DisposeAsync().OrTimeout();
+                }
+            }
+
+            [Fact]
             public async Task InvokeSendsAnInvocationMessage()
             {
                 var connection = new TestConnection();

@@ -29,9 +29,8 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
 
         public static ReadOnlySpan<byte> GetCachedSuccessMessage(IHubProtocol protocol)
         {
-
             if (messageCache.TryGetValue(protocol, out var message))
-            { 
+            {
                 return message.Span;
             }
 

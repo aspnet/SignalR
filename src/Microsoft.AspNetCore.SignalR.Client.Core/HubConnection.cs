@@ -53,7 +53,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         // Transient state to a connection
         private ConnectionState _connectionState;
-        private int _serverProtocolMinorVersion;
+        internal int _serverProtocolMinorVersion;
 
         public event Func<Exception, Task> Closed;
 
