@@ -87,7 +87,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             var output = MemoryBufferWriter.Get();
             try
             {
-                HandshakeProtocol.WriteResponseMessage(HandshakeResponseMessage.Empty, output);
+                HandshakeProtocol.WriteResponseMessage(HandshakeResponseMessage.Default, output);
                 response = output.ToArray();
             }
             finally

@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.IO;
 using Microsoft.AspNetCore.Internal;
 using Microsoft.AspNetCore.SignalR.Internal;
@@ -17,27 +18,38 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
     {
         private const string ProtocolPropertyName = "protocol";
         private const string ProtocolVersionPropertyName = "version";
+        private const string MinorVersionName = "minorVersion";
         private const string ErrorPropertyName = "error";
         private const string TypePropertyName = "type";
 
         /// <summary>
         /// The serialized representation of a success handshake.
         /// </summary>
-        public static ReadOnlyMemory<byte> SuccessHandshakeData;
+        public static Dictionary<IHubProtocol, ReadOnlyMemory<byte>> messageCache = new Dictionary<IHubProtocol, ReadOnlyMemory<byte>>();
 
-        static HandshakeProtocol()
+        public static ReadOnlySpan<byte> GetCachedSuccessMessage(IHubProtocol protocol)
         {
+
+            if (messageCache.TryGetValue(protocol, out var message))
+            { 
+                return message.Span;
+            }
+
             var memoryBufferWriter = MemoryBufferWriter.Get();
             try
             {
-                WriteResponseMessage(HandshakeResponseMessage.Empty, memoryBufferWriter);
-                SuccessHandshakeData = memoryBufferWriter.ToArray();
+                WriteResponseMessage(new HandshakeResponseMessage(protocol), memoryBufferWriter);
+                messageCache.Add(protocol, memoryBufferWriter.ToArray());
             }
             finally
             {
                 MemoryBufferWriter.Return(memoryBufferWriter);
             }
+
+            messageCache.TryGetValue(protocol, out var result);
+            return result.Span;
         }
+
 
         /// <summary>
         /// Writes the serialized representation of a <see cref="HandshakeRequestMessage"/> to the specified writer.
@@ -87,6 +99,9 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                         writer.WriteValue(responseMessage.Error);
                     }
 
+                    writer.WritePropertyName(MinorVersionName);
+                    writer.WriteValue(responseMessage.MinorVersion);
+
                     writer.WriteEndObject();
                     writer.Flush();
                 }
@@ -107,6 +122,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         /// <returns>A value that is <c>true</c> if the <see cref="HandshakeResponseMessage"/> was successfully parsed; otherwise, <c>false</c>.</returns>
         public static bool TryParseResponseMessage(ref ReadOnlySequence<byte> buffer, out HandshakeResponseMessage responseMessage)
         {
+
             if (!TextMessageParser.TryParseMessage(ref buffer, out var payload))
             {
                 responseMessage = null;
@@ -122,6 +138,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                     JsonUtils.CheckRead(reader);
                     JsonUtils.EnsureObjectStart(reader);
 
+                    int? minorVersion = null;
                     string error = null;
 
                     var completed = false;
@@ -141,6 +158,9 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                                     case ErrorPropertyName:
                                         error = JsonUtils.ReadAsString(reader, ErrorPropertyName);
                                         break;
+                                    case MinorVersionName:
+                                        minorVersion = (int)JsonUtils.ReadAsInt32(reader, MinorVersionName);
+                                        break;
                                     default:
                                         reader.Skip();
                                         break;
@@ -154,7 +174,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                         }
                     };
 
-                    responseMessage = (error != null) ? new HandshakeResponseMessage(error) : HandshakeResponseMessage.Empty;
+                    responseMessage = new HandshakeResponseMessage(minorVersion, error);
                     return true;
                 }
             }
@@ -163,6 +183,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                 Utf8BufferTextReader.Return(textReader);
             }
         }
+
 
         /// <summary>
         /// Creates a new <see cref="HandshakeRequestMessage"/> from the specified serialized representation.

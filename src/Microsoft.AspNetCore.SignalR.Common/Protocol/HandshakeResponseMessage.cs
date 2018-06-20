@@ -9,9 +9,10 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
     public class HandshakeResponseMessage : HubMessage
     {
         /// <summary>
+        /// Depreciated.
         /// An empty response message with no error.
         /// </summary>
-        public static readonly HandshakeResponseMessage Empty = new HandshakeResponseMessage(null);
+        public static readonly HandshakeResponseMessage Default = new HandshakeResponseMessage(error: null);
 
         /// <summary>
         /// Gets the optional error message.
@@ -19,13 +20,31 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         public string Error { get; }
 
         /// <summary>
+        /// Highest minor protocol version that the server supports.
+        /// </summary>
+        public int MinorVersion { get; }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HandshakeResponseMessage"/> class.
+        /// If you are intending to send back an error, the minor version doesn't matter.
+        /// </summary>
+        /// <param name="error"></param>
+        public HandshakeResponseMessage(string error) : this(null, error) { }
+
+        public HandshakeResponseMessage(int minorVersion) : this(minorVersion, null) { }
+
+        public HandshakeResponseMessage(IHubProtocol protocol) 
+            : this((protocol is IHubProtocolWithMinorVersion) ? ((IHubProtocolWithMinorVersion)protocol).MinorVersion : 0) { }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="HandshakeResponseMessage"/> class.
         /// </summary>
-        /// <param name="error">An optional response error message. A <c>null</c> error message indicates a succesful handshake.</param>
-        public HandshakeResponseMessage(string error)
+        public HandshakeResponseMessage(int? minorVersion, string error)
         {
-            // Note that a response with an empty string for error in the JSON is considered an errored response
+            // MinorVersion defaults to 0, because old servers don't send a minor version 
+            MinorVersion = minorVersion ?? 0;
             Error = error;
         }
+
     }
 }

@@ -19,7 +19,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
     /// <summary>
     /// Implements the SignalR Hub Protocol using JSON.
     /// </summary>
-    public class JsonHubProtocol : IHubProtocol
+    public class JsonHubProtocol : IHubProtocolWithMinorVersion
     {
         private const string ResultPropertyName = "result";
         private const string ItemPropertyName = "item";
@@ -32,6 +32,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
 
         private static readonly string ProtocolName = "json";
         private static readonly int ProtocolVersion = 1;
+        private static readonly int ProtocolMinorVersion = 5;
 
         /// <summary>
         /// Gets the serializer used to serialize invocation arguments and return values.
@@ -59,6 +60,9 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
 
         /// <inheritdoc />
         public int Version => ProtocolVersion;
+
+        /// <inheritdoc />        
+        public int MinorVersion => ProtocolMinorVersion;
 
         /// <inheritdoc />
         public TransferFormat TransferFormat => TransferFormat.Text;

@@ -283,10 +283,9 @@ namespace Microsoft.AspNetCore.SignalR
 
             try
             {
-                if (message == HandshakeResponseMessage.Empty)
+                if (message.Error == null)
                 {
-                    // success response is always an empty object so send cached data
-                    _connectionContext.Transport.Output.Write(HandshakeProtocol.SuccessHandshakeData.Span);
+                    _connectionContext.Transport.Output.Write(HandshakeProtocol.GetCachedSuccessMessage(Protocol));
                 }
                 else
                 {
@@ -399,7 +398,8 @@ namespace Microsoft.AspNetCore.SignalR
                                     }
 
                                     Log.HandshakeComplete(_logger, Protocol.Name);
-                                    await WriteHandshakeResponseAsync(HandshakeResponseMessage.Empty);
+
+                                    await WriteHandshakeResponseAsync(new HandshakeResponseMessage(Protocol));
                                     return true;
                                 }
                             }

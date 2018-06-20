@@ -25,7 +25,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         private List<(Action<object> handler, object state)> _heartbeatHandlers;
 
         private static int _id;
-        private readonly IHubProtocol _protocol;
+        private IHubProtocol _protocol;
         private readonly IInvocationBinder _invocationBinder;
         private readonly CancellationTokenSource _cts;
 
@@ -61,6 +61,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             _invocationBinder = invocationBinder ?? new DefaultInvocationBinder();
 
             _cts = new CancellationTokenSource();
+        }
+
+        public void SetProtocol(IHubProtocolWithMinorVersion protocol)
+        {
+            _protocol = protocol;
         }
 
         public async Task<Task> ConnectAsync(

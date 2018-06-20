@@ -47,7 +47,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             var writer = MemoryBufferWriter.Get();
             try
             {
-                HandshakeProtocol.WriteResponseMessage(HandshakeResponseMessage.Empty, writer);
+                HandshakeProtocol.WriteResponseMessage(HandshakeResponseMessage.Default, writer);
                 var handshakeResponseResult = new ReadResult(new ReadOnlySequence<byte>(writer.ToArray()), false, false);
 
                 _pipe = new TestDuplexPipe();
