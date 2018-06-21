@@ -54,26 +54,26 @@ public class WebSocketTransport implements ITransport {
     }
 
     private WebSocketClient createWebSocket() {
-     return new WebSocketClient(_url) {
-         @Override
-         public void onOpen(ServerHandshake handshakedata) {
-             System.out.println("Connected to " + _url);
-         }
+        return new WebSocketClient(_url) {
+             @Override
+             public void onOpen(ServerHandshake handshakedata) {
+                 System.out.println("Connected to " + _url);
+             }
 
-         @Override
-         public void onMessage(String message) {
-             onReceive(message);
-         }
+             @Override
+             public void onMessage(String message) {
+                 onReceive(message);
+             }
 
-         @Override
-         public void onClose(int code, String reason, boolean remote) {
-            System.out.println("Connection Closed");
-         }
+             @Override
+             public void onClose(int code, String reason, boolean remote) {
+                System.out.println("Connection Closed");
+             }
 
-         @Override
-         public void onError(Exception ex) {
-            System.out.println("Error: " + ex.getMessage());
-         }
-     };
+             @Override
+             public void onError(Exception ex) {
+                System.out.println("Error: " + ex.getMessage());
+             }
+         };
     }
 }

@@ -10,18 +10,16 @@ import java.util.HashMap;
 public class HubConnection {
     private String _url;
     private ITransport _transport;
-    private int _invocationId = 0;
     private OnReceiveCallBack callback;
     private HashMap<String, Action> handlers = new HashMap<>();
     private JsonParser jsonParser = new JsonParser();
     private static final String RECORD_SEPARATOR = "\u001e";
 
-
-    public  Boolean connected = false;
+    public Boolean connected = false;
 
     public HubConnection(String url) {
         _url = url;
-        callback = (payload)-> {
+        callback = (payload) -> {
             String[] messages = payload.split(RECORD_SEPARATOR);
 
             for (String splitMessage : messages) {
@@ -48,7 +46,7 @@ public class HubConnection {
             case "1":
                 //Invocation Message
                 String target = jsonMessage.get("target").getAsString();
-                if(handlers.containsKey(target)){
+                if (handlers.containsKey(target)) {
                     handlers.get(target).invoke(jsonMessage.get("arguments"));
                 }
                 break;
