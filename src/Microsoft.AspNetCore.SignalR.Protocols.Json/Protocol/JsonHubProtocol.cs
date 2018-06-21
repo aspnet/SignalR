@@ -19,7 +19,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
     /// <summary>
     /// Implements the SignalR Hub Protocol using JSON.
     /// </summary>
-    public class JsonHubProtocol : IHubProtocolWithMinorVersion
+    public class JsonHubProtocol : IHubProtocol2
     {
         private const string ResultPropertyName = "result";
         private const string ItemPropertyName = "item";

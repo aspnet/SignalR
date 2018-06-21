@@ -29,7 +29,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             var writer = MemoryBufferWriter.Get();
             try
             {
-                HandshakeProtocol.WriteResponseMessage(HandshakeResponseMessage.Default, writer);
+                HandshakeProtocol.WriteResponseMessage(HandshakeResponseMessage.Empty, writer);
                 _handshakeResponseResult = new ReadResult(new ReadOnlySequence<byte>(writer.ToArray()), false, false);
             }
             finally

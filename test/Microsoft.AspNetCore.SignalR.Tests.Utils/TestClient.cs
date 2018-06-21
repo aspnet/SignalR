@@ -63,7 +63,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             _cts = new CancellationTokenSource();
         }
 
-        public void SetProtocol(IHubProtocolWithMinorVersion protocol)
+        public void SetProtocol(IHubProtocol2 protocol)
         {
             _protocol = protocol;
         }

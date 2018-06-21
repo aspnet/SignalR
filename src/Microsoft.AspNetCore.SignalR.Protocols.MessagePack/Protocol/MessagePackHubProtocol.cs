@@ -19,7 +19,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
     /// <summary>
     /// Implements the SignalR Hub Protocol using MessagePack.
     /// </summary>
-    public class MessagePackHubProtocol : IHubProtocolWithMinorVersion
+    public class MessagePackHubProtocol : IHubProtocol2
     {
         private const int ErrorResult = 1;
         private const int VoidResult = 2;
@@ -31,7 +31,6 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         private static readonly int ProtocolVersion = 1;
         private static readonly int ProtocolMinorVersion = 0;
         
-
         /// <inheritdoc />
         public string Name => ProtocolName;
 

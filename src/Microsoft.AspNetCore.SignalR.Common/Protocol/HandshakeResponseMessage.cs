@@ -12,7 +12,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         /// Depreciated.
         /// An empty response message with no error.
         /// </summary>
-        public static readonly HandshakeResponseMessage Default = new HandshakeResponseMessage(error: null);
+        public static readonly HandshakeResponseMessage Empty = new HandshakeResponseMessage(error: null);
 
         /// <summary>
         /// Gets the optional error message.
@@ -34,7 +34,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         public HandshakeResponseMessage(int minorVersion) : this(minorVersion, null) { }
 
         public HandshakeResponseMessage(IHubProtocol protocol) 
-            : this((protocol is IHubProtocolWithMinorVersion) ? ((IHubProtocolWithMinorVersion)protocol).MinorVersion : 0) { }
+            : this((protocol is IHubProtocol2) ? ((IHubProtocol2)protocol).MinorVersion : 0) { }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HandshakeResponseMessage"/> class.

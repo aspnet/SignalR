@@ -285,7 +285,7 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 if (message.Error == null)
                 {
-                    _connectionContext.Transport.Output.Write(HandshakeProtocol.GetCachedSuccessMessage(Protocol));
+                    _connectionContext.Transport.Output.Write(HandshakeProtocol.GetCachedSuccessMessageData(Protocol));
                 }
                 else
                 {

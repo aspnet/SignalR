@@ -58,7 +58,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         bool IsVersionSupported(int version);
     }
 
-    public interface IHubProtocolWithMinorVersion : IHubProtocol
+    public interface IHubProtocol2 : IHubProtocol
     {
         int MinorVersion { get; }
     }

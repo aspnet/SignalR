@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -19,17 +20,20 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
     {
         private const string ProtocolPropertyName = "protocol";
         private const string ProtocolVersionPropertyName = "version";
-        private const string MinorVersionName = "minorVersion";
+        private const string MinorVersionPropertyName = "minorVersion";
         private const string ErrorPropertyName = "error";
         private const string TypePropertyName = "type";
 
+        /// <summary>
+        /// Previously used to cache the errorless return message.
+        /// Now, return messages need a minor version number, so multiple are cached in a dictionary.
+        /// </summary>
         [Obsolete()]
         public static ReadOnlyMemory<byte> SuccessHandshakeData = new byte[] { 123, 34, 109, 105, 110, 111, 114, 86, 101, 114, 115, 105, 111, 110, 34, 58, 48, 125, 30 }; 
 
+        private static ConcurrentDictionary<IHubProtocol, ReadOnlyMemory<byte>> _messageCache = new ConcurrentDictionary<IHubProtocol, ReadOnlyMemory<byte>>();
 
-        private static Dictionary<IHubProtocol, ReadOnlyMemory<byte>> _messageCache = new Dictionary<IHubProtocol, ReadOnlyMemory<byte>>();
-
-        public static ReadOnlySpan<byte> GetCachedSuccessMessage(IHubProtocol protocol)
+        public static ReadOnlySpan<byte> GetCachedSuccessMessageData(IHubProtocol protocol)
         {
             if (_messageCache.TryGetValue(protocol, out var message))
             {
@@ -40,7 +44,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             try
             {
                 WriteResponseMessage(new HandshakeResponseMessage(protocol), memoryBufferWriter);
-                _messageCache.Add(protocol, memoryBufferWriter.ToArray());
+                _messageCache.TryAdd(protocol, memoryBufferWriter.ToArray());
             }
             finally
             {
@@ -50,7 +54,6 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             _messageCache.TryGetValue(protocol, out var result);
             return result.Span;
         }
-
 
         /// <summary>
         /// Writes the serialized representation of a <see cref="HandshakeRequestMessage"/> to the specified writer.
@@ -100,7 +103,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                         writer.WriteValue(responseMessage.Error);
                     }
 
-                    writer.WritePropertyName(MinorVersionName);
+                    writer.WritePropertyName(MinorVersionPropertyName);
                     writer.WriteValue(responseMessage.MinorVersion);
 
                     writer.WriteEndObject();
@@ -159,8 +162,8 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                                     case ErrorPropertyName:
                                         error = JsonUtils.ReadAsString(reader, ErrorPropertyName);
                                         break;
-                                    case MinorVersionName:
-                                        minorVersion = (int)JsonUtils.ReadAsInt32(reader, MinorVersionName);
+                                    case MinorVersionPropertyName:
+                                        minorVersion = (int)JsonUtils.ReadAsInt32(reader, MinorVersionPropertyName);
                                         break;
                                     default:
                                         reader.Skip();
