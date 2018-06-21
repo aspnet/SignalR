@@ -87,13 +87,13 @@ void tryparse(web::json::value& json, arg first, T... arguments)
 //}
 
 template <typename T>
-T from_json(web::json::value item)
+T from_json(const web::json::value& item)
 {
     static_assert(false, "No conversion to json could be found for the given type, see below output for more info.");
 }
 
 template <>
-signed int from_json<signed int>(web::json::value item)
+signed int from_json<signed int>(const web::json::value& item)
 {
     if (!item.is_integer())
     {
@@ -103,13 +103,23 @@ signed int from_json<signed int>(web::json::value item)
 }
 
 template <>
-bool from_json<bool>(web::json::value item)
+bool from_json<bool>(const web::json::value& item)
 {
     if (!item.is_boolean())
     {
         throw std::runtime_error("Could not convert json to type 'bool'");
     }
     return item.as_bool();
+}
+
+template <>
+std::string from_json<std::string>(const web::json::value& item)
+{
+    if (!item.is_string())
+    {
+        throw std::runtime_error("Could not convert json to type 'bool'");
+    }
+    return utility::conversions::to_utf8string(item.as_string());
 }
 
 //template <>
@@ -212,33 +222,97 @@ void chat(const utility::string_t& name)
         }).get();
 }
 
-#include <map>
-std::map<std::string, std::function<void(web::json::value)>> map;
-
-template <typename ...T>
-void de(web::json::value items, std::function<void(T...)> call)
+class IProtocol
 {
-    static_assert(false, "too many args");
+public:
+    template <typename ...T>
+    IProtocol(std::function<std::tuple<T...>(const std::string &)> parse)
+    {
+        auto f = parse;
+    }
+
+    template <typename ...T>
+    std::tuple<T...> parse_message(const std::string& data)
+    {
+        return reinterpret_cast<Protocol*>(this)->parse_message<T...>(data);
+    }
+private:
+
+};
+
+class ProtocolTest
+{
+public:
+    template <typename ...T>
+    std::tuple<T...> parse_message(const std::string& data) const
+    {
+        auto parsed = web::json::value::parse(utility::conversions::to_string_t(data));
+        if (!parsed.is_array())
+        {
+            throw std::exception("expected json array");
+        }
+        if (parsed.size() != sizeof...(T))
+        {
+            throw std::exception("incorrect number of arguments");
+        }
+        return parse_args<T...>(parsed);
+    }
+private:
+    /*template <typename ...T>
+    std::tuple<T...> parse_args(web::json::value& items)
+    {
+        static_assert(false, "too many args");
+    }*/
+
+    template <typename T, typename T2, typename T3>
+    std::tuple<T, T2, T3> parse_args(const web::json::value& items) const
+    {
+        return std::make_tuple(from_json<T>(items.at(0)), from_json<T2>(items.at(1)), from_json<T3>(items.at(2)));
+    }
+
+    template <typename T, typename T2>
+    std::tuple<T, T2> parse_args(const web::json::value& items) const
+    {
+        return std::make_tuple(from_json<T>(items.at(0)), from_json<T2>(items.at(1)));
+    }
+
+    template <typename T>
+    std::tuple<T> parse_args(const web::json::value& items) const
+    {
+        return std::make_tuple(from_json<T>(items.at(0)));
+    }
+};
+
+#include <map>
+std::map<std::string, std::function<void(const std::string&)>> map;
+
+template <typename T>
+void invoke_with_args(const std::function<void(T)>& func, std::tuple<T> args)
+{
+    func(std::get<0>(args));
 }
 
 template <typename T, typename T2>
-void de(web::json::value items, std::function<void(T, T2)> call)
+void invoke_with_args(const std::function<void(T, T2)>& func, std::tuple<T, T2> args)
 {
-    call(from_json<T>(items[0]), from_json<T2>(items[1]));
+    func(std::get<0>(args), std::get<1>(args));
 }
 
-template <typename T>
-void de(web::json::value items, std::function<void(T)> call)
+template <typename T, typename T2, typename T3>
+void invoke_with_args(const std::function<void(T, T2, T3)>& func, std::tuple<T, T2, T3> args)
 {
-    call(from_json<T>(items[0]));
+    func(std::get<0>(args), std::get<1>(args), std::get<2>(args));
 }
 
 template <typename ...T>
-void on(const std::string& name, const std::function<void(T...)>& rest)
+void on(const std::string& name, const std::function<void(T...)>& handler)
 {
-    map[name] = [rest](web::json::value args)
+    map[name] = [handler](const std::string& args)
     {
-        de(args, rest);
+        ProtocolTest p = ProtocolTest();
+        auto tuple = p.parse_message<T...>(args);
+
+        invoke_with_args<T...>(handler, tuple);
     };
 }
 
@@ -253,13 +327,19 @@ int main()
 
     tmp[0] = web::json::value(10);
     tmp[1] = web::json::value(true);
+    tmp[2] = web::json::value("t");
 
     on<int, bool>(std::string("methodName"), [](int i, bool b)
     {
         std::cout << i << " " << b << std::endl;
     });
 
-    map[std::string("methodName")](tmp);
+    on<int, bool, std::string>(std::string("methodName"), [](int i, bool b, std::string s)
+    {
+        std::cout << i << " " << b << std::endl;
+    });
+
+    map[std::string("methodName")](utility::conversions::to_utf8string(tmp.serialize()));
     /*de<int>(tmp, [](int i)
     {
         std::cout << i << " " << std::endl;
