@@ -1,13 +1,11 @@
-﻿using Microsoft.AspNetCore.SignalR;
-using Microsoft.AspNetCore.SignalR.Protocol;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.SignalR;
 
 namespace SignalRSamples.Hubs
 {

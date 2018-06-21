@@ -219,7 +219,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 {
                     InitializeHub(hub, connection);
 
-                    // TODO :: refactor this flow control lmao
+                    // TODO :: refactor this flow control 
                     if (isStreamCall)
                     {
                         disposeScope = false;

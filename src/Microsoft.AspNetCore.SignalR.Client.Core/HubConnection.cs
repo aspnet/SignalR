@@ -482,7 +482,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 ReleaseConnectionLock();
             }
 
-
             if (isStreamingUpload)
             {
                 // at this point we've initiated the upload, ie installed pipe on the server so that the dispatcher is ready
