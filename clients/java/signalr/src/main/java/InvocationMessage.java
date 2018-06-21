@@ -7,7 +7,7 @@ public class InvocationMessage {
     String target;
     Object[] arguments;
 
-    public InvocationMessage(String target, Object[] args){
+    public InvocationMessage(String target, Object[] args) {
         this.target = target;
         arguments = args;
     }

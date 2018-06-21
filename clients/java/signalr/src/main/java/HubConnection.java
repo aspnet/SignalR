@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import java.net.URISyntaxException;
 import java.util.HashMap;
@@ -12,12 +13,26 @@ public class HubConnection {
     private int _invocationId = 0;
     private OnReceiveCallBack callback;
     private HashMap<String, Action> handlers = new HashMap<>();
+    private JsonParser jsonParser = new JsonParser();
+    private static final String RECORD_SEPARATOR = "\u001e";
+
 
     public  Boolean connected = false;
 
-    public HubConnection(String url){
+    public HubConnection(String url) {
         _url = url;
-        callback = (message)-> processMessage(message);
+        callback = (payload)-> {
+            String[] messages = payload.split(RECORD_SEPARATOR);
+
+            for (String splitMessage : messages) {
+
+                // Empty handshake response "{}". We can ignore it
+                if (splitMessage.length() == 2) {
+                    continue;
+                }
+                processMessage(splitMessage);
+            }
+        };
 
         try {
             _transport = new WebSocketTransport(_url);
@@ -26,14 +41,15 @@ public class HubConnection {
         }
     }
 
-    private void processMessage(JsonObject message){
-        String messageType = message.get("type").toString();
+    private void processMessage(String message) {
+        JsonObject jsonMessage = jsonParser.parse(message).getAsJsonObject();
+        String messageType = jsonMessage.get("type").toString();
         switch(messageType) {
             case "1":
                 //Invocation Message
-                String target = message.get("target").getAsString();
+                String target = jsonMessage.get("target").getAsString();
                 if(handlers.containsKey(target)){
-                    handlers.get(target).invoke(message.get("arguments"));
+                    handlers.get(target).invoke(jsonMessage.get("arguments"));
                 }
                 break;
             case "2":
@@ -74,17 +90,12 @@ public class HubConnection {
         connected = false;
     }
 
-    public void send(String method, Object arg1){
-        InvocationMessage message = new InvocationMessage(method, new Object[]{arg1});
+    public void send(String method, Object arg1) {
+        InvocationMessage message = new InvocationMessage(method, new Object[]{ arg1 });
         _transport.send(message);
     }
 
-    public void On(String target, Action callback){
+    public void On(String target, Action callback) {
         handlers.put(target, callback);
-    }
-
-    private String getNextInvocationId(){
-        _invocationId++;
-        return String.valueOf(_invocationId);
     }
 }

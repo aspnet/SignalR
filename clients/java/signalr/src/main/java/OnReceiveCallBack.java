@@ -4,5 +4,5 @@
 import com.google.gson.JsonObject;
 
 public interface OnReceiveCallBack {
-    void invoke(JsonObject message);
+    void invoke(String message);
 }

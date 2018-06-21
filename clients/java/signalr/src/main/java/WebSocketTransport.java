@@ -2,8 +2,6 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 
@@ -11,11 +9,10 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 public class WebSocketTransport implements ITransport {
-    private char record_separator = 0x1e;
+    private static final String RECORD_SEPARATOR = "\u001e";
     private WebSocketClient _webSocket;
     private OnReceiveCallBack onReceiveCallBack;
     private URI _url;
-    private JsonParser jsonParser = new JsonParser();
 
     public WebSocketTransport(String url) throws URISyntaxException {
         // To Do: Format the  incoming URL for a websocket connection.
@@ -26,13 +23,13 @@ public class WebSocketTransport implements ITransport {
     @Override
     public void start() throws InterruptedException {
         _webSocket.connectBlocking();
-        _webSocket.send(createHandshakeMessage() + record_separator);
+        _webSocket.send(createHandshakeMessage() + RECORD_SEPARATOR);
     }
 
     @Override
     public void send(InvocationMessage invocationMessage) {
         Gson gson = new Gson();
-        String message = gson.toJson(invocationMessage) + record_separator;
+        String message = gson.toJson(invocationMessage) + RECORD_SEPARATOR;
         _webSocket.send(message);
     }
 
@@ -43,20 +40,10 @@ public class WebSocketTransport implements ITransport {
 
     @Override
     public void onReceive(String message) {
-        //Hacking parsing the message type
-        String[] messages = message.split(Character.toString(record_separator));
-        for (String splitMessage : messages) {
-
-            // Empty handshake response "{}". We can ignore it
-            if(splitMessage.length() == 2){
-                continue;
-            }
-            JsonObject jObject = jsonParser.parse(splitMessage).getAsJsonObject();
-            this.onReceiveCallBack.invoke(jObject);
-        }
+        this.onReceiveCallBack.invoke(message);
     }
 
-    private String createHandshakeMessage(){
+    private String createHandshakeMessage() {
         Gson gson = new Gson();
         return gson.toJson(new DefaultJsonProtocolHandShakeMessage());
     }
@@ -66,7 +53,7 @@ public class WebSocketTransport implements ITransport {
         _webSocket.closeConnection(0, "HubConnection Stopped");
     }
 
-    private WebSocketClient createWebSocket(){
+    private WebSocketClient createWebSocket() {
      return new WebSocketClient(_url) {
          @Override
          public void onOpen(ServerHandshake handshakedata) {

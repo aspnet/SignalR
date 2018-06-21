@@ -6,6 +6,7 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class HubConnectionTest {
+    // Coming soon!
     @Test
     public void testEmptyCollection() {
     }
