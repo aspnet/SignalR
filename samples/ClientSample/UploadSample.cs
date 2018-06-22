@@ -157,8 +157,6 @@ namespace ClientSample
                         await Task.Delay(500);
                     }
 
-                    
-
                 }
 
                 // should be good

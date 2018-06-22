@@ -114,7 +114,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 case StreamItemMessage streamItem:
                     return ProcessStreamItem(connection, streamItem);
 
-                case StreamCompleteMessage streamComplete:
+                case ChannelCompleteMessage streamComplete:
                     ProcessStreamComplete(connection, streamComplete);
                     break;
 
@@ -133,7 +133,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
             if (bindingFailureMessage.StreamingUpload)
             {
-                var message = new StreamCompleteMessage(bindingFailureMessage.InvocationId, bindingFailureMessage.BindingFailure.SourceException.ToString());
+                var message = new ChannelCompleteMessage(bindingFailureMessage.InvocationId, bindingFailureMessage.BindingFailure.SourceException.ToString());
                 _channelStore.Complete(message);
 
                 return Task.CompletedTask;
@@ -161,7 +161,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             await _channelStore.ProcessItem(message);
         }
 
-        private void ProcessStreamComplete(HubConnectionContext connection, StreamCompleteMessage message)
+        private void ProcessStreamComplete(HubConnectionContext connection, ChannelCompleteMessage message)
         {
             // closes channels, removes from Lookup dict
             // user's method can see the channel is complete and begin wrapping up
@@ -219,34 +219,25 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 {
                     InitializeHub(hub, connection);
 
-                    // TODO :: refactor this flow control 
+                    // TODO :: refactor this flow control lol
                     if (isStreamCall)
                     {
                         disposeScope = false;
 
-                        // need to make a pipe
-                        // and pass one end of the pipe to the proper method on the hub
-
-                        var placeholder = hubMethodInvocationMessage.Arguments[0] as ChannelPlaceholder;
-                        if (placeholder == null)
+                        //foreach (var arg in hubMethodInvocationMessage.Arguments)
+                        var args = hubMethodInvocationMessage.Arguments;
+                        for (int i = 0; i<args.Length; i++)
                         {
-                            // Sneaky Plumbing ::
-                            //   currently the idea is
-                            //   the client sees that you pass in a channel listener
-                            //   and replaces that with the string "placeholder"
-                            //   and then sends that string over
-                            //   so if it's a valid upload stream, there should be this string where the listener originally was
-                            //   and we replace it with a new pipe on the server side, and send that to the hub
-                            throw new Exception("invalid arguments for a streaming upload.");
+                            var placeholder = args[i] as ChannelPlaceholder;
+                            if (placeholder == null)
+                            {
+                                continue;
+                            }
+
+                            _channelStore.AddStream(placeholder);
+                            args[i] = _channelStore.Lookup[placeholder.ChannelId.ToString()].ReaderAsObject();
                         }
 
-                        _channelStore.AddStream(hubMethodInvocationMessage.InvocationId, placeholder.ItemType);
-
-                        // reader sent here, used to invoke the hub's method
-                        hubMethodInvocationMessage.Arguments[0] = _channelStore.Lookup[hubMethodInvocationMessage.InvocationId].ReaderAsObject();
-
-                        // spin off that boy in a background thread
-                        // it waits until the hubMethod finishes and returns the result
                         async Task ExecuteStreamingUpload()
                         {
                             var result = await ExecuteHubMethod(methodExecutor, hub, hubMethodInvocationMessage.Arguments);
@@ -254,6 +245,18 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                             await connection.WriteAsync(CompletionMessage.WithResult(hubMethodInvocationMessage.InvocationId, result));
                         }
                         _ = ExecuteStreamingUpload();
+
+                        // note -- we're going to need alternatives to ExecuteStreamingUpload for the other invocation types
+                        // basically, the non-locking sendAsync one is going to have to 
+                        // fire off the ExecuteHubMethod in another thread, and then the dispatcher is good
+                        //
+                        // where it gets really tricky is when the upload is streaming as well.
+                        // there's a decision to make, should we wait until the upload finishes entirely?
+                        // no that's a bad question, this can and should be left entirely up to the user
+                        // just give them the channels, let them do whatever they want to do
+                        // so the stream fires off the return relay loop, which is named `StreamResultsAsync`
+                        // and also fires and forgots ExecuteHubMethod
+                        // there's no need to do this wrapping as the returns happen whenever, not when it's finished
                     }
 
                     else
@@ -354,6 +357,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 }
             }
         }
+
         private static async Task<object> ExecuteHubMethod(ObjectMethodExecutor methodExecutor, THub hub, object[] arguments)
         {
             if (methodExecutor.IsMethodAsync)
@@ -514,9 +518,10 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         private readonly MethodInfo _buildConverterMethod = typeof(ChannelStore).GetMethods().Single(m => m.Name.Equals("BuildStream"));
         public Dictionary<string, IChannelConverter> Lookup = new Dictionary<string, IChannelConverter>();
 
-        public void AddStream(string invocationId, Type itemType)
+        public void AddStream(ChannelPlaceholder placeholder)
         {
-            Lookup[invocationId] = (IChannelConverter)_buildConverterMethod.MakeGenericMethod(itemType).Invoke(null, Array.Empty<object>());
+            var id = placeholder.ChannelId.ToString();
+            Lookup[id] = (IChannelConverter)_buildConverterMethod.MakeGenericMethod(placeholder.ItemType).Invoke(null, Array.Empty<object>());
         }
 
         public async Task ProcessItem(StreamItemMessage message)
@@ -524,13 +529,14 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             await Lookup[message.InvocationId].WriteToChannel(message.Item);
         }
 
-        public void Complete(StreamCompleteMessage message)
+        public void Complete(ChannelCompleteMessage message)
         {
             if (!Lookup.TryGetValue(message.InvocationId, out var value))
             {
                 // TODO
                 // LOG: DEBUG: "can't find invocationId <42>, ignoring message"
-                return;
+                throw new Exception("INVALID CHANNEL ID ON CANCEL");
+                //return;
             }
             var ConverterToClose = Lookup[message.InvocationId];
             Lookup.Remove(message.InvocationId);

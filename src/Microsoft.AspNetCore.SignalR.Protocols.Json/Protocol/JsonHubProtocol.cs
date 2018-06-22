@@ -1,12 +1,6 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-using System;
-using System.Buffers;
-using System.Collections.Generic;
-using System.IO;
-using System.Runtime.ExceptionServices;
-using System.Threading.Channels;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Internal;
 using Microsoft.AspNetCore.SignalR.Internal;
@@ -14,6 +8,12 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
+using System;
+using System.Buffers;
+using System.Collections.Generic;
+using System.IO;
+using System.Runtime.ExceptionServices;
+using System.Threading.Channels;
 
 namespace Microsoft.AspNetCore.SignalR.Protocol
 {
@@ -219,7 +219,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                                         }
                                         catch (JsonSerializationException ex)
                                         {
-                                            return new InvocationBindingFailureMessage(invocationId, target, ExceptionDispatchInfo.Capture(ex), isUploadStream:true);
+                                            return new InvocationBindingFailureMessage(invocationId, target, ExceptionDispatchInfo.Capture(ex), isUploadStream: true);
                                         }
                                         break;
                                     case ArgumentsPropertyName:
@@ -448,7 +448,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                             WriteMessageType(writer, HubProtocolConstants.CloseMessageType);
                             WriteCloseMessage(m, writer);
                             break;
-                        case StreamCompleteMessage m:
+                        case ChannelCompleteMessage m:
                             WriteMessageType(writer, HubProtocolConstants.StreamCompleteMessageType);
                             WriteUploadDoneMessage(m, writer);
                             break;
@@ -500,7 +500,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             WriteInvocationId(message, writer);
         }
 
-        private void WriteUploadDoneMessage(StreamCompleteMessage message, JsonTextWriter writer)
+        private void WriteUploadDoneMessage(ChannelCompleteMessage message, JsonTextWriter writer)
         {
             WriteInvocationId(message, writer);
 
@@ -595,7 +595,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             }
 
             // note : if the stream completes normally, the error should be `null`
-            return new StreamCompleteMessage(invocationId, error);
+            return new ChannelCompleteMessage(invocationId, error);
         }
 
         private HubMessage BindCompletionMessage(string invocationId, string error, object result, bool hasResult, IInvocationBinder binder)
@@ -708,17 +708,36 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                 {
                     if (paramIndex < paramCount)
                     {
-                        // Set all known arguments
+
                         if (paramTypes[paramIndex].IsGenericType && paramTypes[paramIndex].GetGenericTypeDefinition() == typeof(ChannelReader<>))
                         {
-                            // It's a channel reader, so the parameter is just a placeholder
-                            arguments[paramIndex] = new ChannelPlaceholder(paramTypes[paramIndex].GetGenericArguments()[0]);
-                            reader.Skip();
+                            var rawString = (string)PayloadSerializer.Deserialize(reader, typeof(string));
+                            arguments[paramIndex] = new ChannelPlaceholder(
+                                paramTypes[paramIndex].GetGenericArguments()[0],
+                                Guid.Parse(rawString));
                         }
                         else
                         {
                             arguments[paramIndex] = PayloadSerializer.Deserialize(reader, paramTypes[paramIndex]);
                         }
+
+                        //// Set all known arguments
+                        //if (paramTypes[paramIndex].IsGenericType && paramTypes[paramIndex].GetGenericTypeDefinition() == typeof(ChannelReader<>))
+                        //{
+                        //    // It's a channel reader, so the parameter is just a placeholder
+
+                        //    // this here is the big oof, need to do actual checks
+                        //    arguments[paramIndex] = new ChannelPlaceholder(
+                        //        paramTypes[paramIndex].GetGenericArguments()[0],
+                        //        Guid.Parse((string)PayloadSerializer.Deserialize(reader, paramTypes[paramIndex]))
+                        //        );
+                        //    arguments[paramIndex] = new ChannelPlaceholder(paramTypes[paramIndex].GetGenericArguments()[0], Guid.Parse((string)arguments[paramIndex]));
+                        //    reader.Skip();
+                        //}
+                        //else
+                        //{
+                        //    arguments[paramIndex] = PayloadSerializer.Deserialize(reader, paramTypes[paramIndex]);
+                        //}
                     }
                     else
                     {

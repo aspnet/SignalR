@@ -1,6 +1,12 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using Microsoft.AspNetCore.Connections;
+using Microsoft.AspNetCore.Internal;
+using Microsoft.AspNetCore.SignalR.Client.Internal;
+using Microsoft.AspNetCore.SignalR.Protocol;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -13,13 +19,6 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Connections;
-using Microsoft.AspNetCore.Connections.Features;
-using Microsoft.AspNetCore.Internal;
-using Microsoft.AspNetCore.SignalR.Client.Internal;
-using Microsoft.AspNetCore.SignalR.Protocol;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Microsoft.AspNetCore.SignalR.Client
 {
@@ -40,7 +39,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         // This lock protects the connection state.
         private readonly SemaphoreSlim _connectionLock = new SemaphoreSlim(1, 1);
 
-        private readonly static MethodInfo _relayLoopMethod = typeof(HubConnection).GetMethods(BindingFlags.NonPublic | BindingFlags.Instance).Single(m => m.Name.Equals("RelayLoop"));
+        private static readonly MethodInfo _relayLoopMethod = typeof(HubConnection).GetMethods(BindingFlags.NonPublic | BindingFlags.Instance).Single(m => m.Name.Equals("RelayLoop"));
 
 
         // Persistent across all connections
@@ -443,23 +442,36 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private async Task<object> InvokeCoreAsyncCore(string methodName, Type returnType, object[] args, CancellationToken cancellationToken)
         {
-            object reader = null;
-            bool isStreamingUpload = false;
+            //object reader = null;
+            //bool isStreamingUpload = false;
+            //for (int i = 0; i < args.Length; i++)
+            //{
+            //    // {System.Threading.Channels.UnboundedChannel`1+UnboundedChannelReader[T]}
+            //    if (isChannelReader(args[i].GetType()))
+            //    {
+            //        if (isStreamingUpload)
+            //        {
+            //            throw new Exception("The streaming protocol does not support multiple ChannelReaders in a single invocation.");
+            //        }
+
+            //        reader = args[i];
+            //        args[i] = "placeholder";
+            //        isStreamingUpload = true;
+            //    }
+            //}
+
+            var readers = new Dictionary<Guid, object>();
             for (int i = 0; i < args.Length; i++)
             {
-                // {System.Threading.Channels.UnboundedChannel`1+UnboundedChannelReader[T]}
                 if (isChannelReader(args[i].GetType()))
                 {
-                    if (isStreamingUpload)
-                    {
-                        throw new Exception("The streaming protocol does not support multiple ChannelReaders in a single invocation.");
-                    }
-
-                    reader = args[i];
-                    args[i] = "placeholder";
-                    isStreamingUpload = true;
+                    var id = Guid.NewGuid();
+                    readers[id] = args[i];
+                    args[i] = id.ToString();
                 }
             }
+            bool isStreamingUpload = readers.Count > 0;
+
 
             CheckDisposed();
             await WaitConnectionLockAsync();
@@ -487,10 +499,16 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 // at this point we've initiated the upload, ie installed pipe on the server so that the dispatcher is ready
                 Debug.WriteLine("Log :: setting up relay loop");
 
-                // create a relay loop of the appropiate type, run in a background thread
-                _ = _relayLoopMethod
-                    .MakeGenericMethod(reader.GetType().GetGenericArguments())
-                    .Invoke(this, new object[] { irq.InvocationId, reader, cancellationToken });
+                foreach (KeyValuePair<Guid, object> entry in readers)
+                {
+                    var reader = entry.Value;
+
+                    // create a relay loop of the appropiate type, run in a background thread
+                    _ = _relayLoopMethod
+                        .MakeGenericMethod(reader.GetType().GetGenericArguments())
+                        .Invoke(this, new object[] { entry.Key.ToString(), reader, cancellationToken });
+
+                }
             }
 
             return await invocationTask;
@@ -515,7 +533,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
         }
 
-        private async Task RelayLoop<T>(string invocationId, ChannelReader<T> reader, CancellationToken token)
+        private async Task RelayLoop<T>(string channelId, ChannelReader<T> reader, CancellationToken token)
         {
             string responseError = null;
 
@@ -525,7 +543,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 {
                     while (!token.IsCancellationRequested && reader.TryRead(out var item))
                     {
-                        await SendWithLock(new StreamItemMessage(invocationId, item));
+                        await SendWithLock(new StreamItemMessage(channelId, item));
                     }
                 }
             }
@@ -535,7 +553,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 responseError = "stream cancelled by user";
             }
 
-            await SendWithLock(new StreamCompleteMessage(invocationId, responseError));
+            await SendWithLock(new ChannelCompleteMessage(channelId, responseError));
         }
 
         private async Task InvokeCore(string methodName, InvocationRequest irq, object[] args, CancellationToken cancellationToken, bool streamingUpload = false)
@@ -650,10 +668,10 @@ namespace Microsoft.AspNetCore.SignalR.Client
                         Log.DroppedCompletionMessage(_logger, completion.InvocationId);
                         break;
                     }
-                    
+
                     DispatchInvocationCompletion(completion, irq);
                     irq.Dispose();
-                    
+
                     break;
                 case StreamItemMessage streamItem:
                     // if there's no open StreamInvocation with the given id, then complete with an error

@@ -4,11 +4,11 @@ using System.Text;
 
 namespace Microsoft.AspNetCore.SignalR.Protocol
 {
-    public class StreamCompleteMessage : HubInvocationMessage
+    public class ChannelCompleteMessage : HubInvocationMessage
     {
         public string Error { get; }
         public bool HasError { get => Error != null; }
-        public StreamCompleteMessage(string invocationId, string error = null) : base(invocationId)
+        public ChannelCompleteMessage(string invocationId, string error = null) : base(invocationId)
         {
             Error = error;
         }

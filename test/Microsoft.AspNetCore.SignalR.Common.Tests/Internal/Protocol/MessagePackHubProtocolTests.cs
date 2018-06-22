@@ -235,11 +235,11 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             // StreamComplete Messages
             new ProtocolTestData(
                 name: "StreamComplete",
-                message: new StreamCompleteMessage("xyz"),
+                message: new ChannelCompleteMessage("xyz"),
                 binary: "kwijeHl6oA=="),
             new ProtocolTestData(
                 name: "StreamCompleteWithError",
-                message: new StreamCompleteMessage("xyz", "zoinks scoob"),
+                message: new ChannelCompleteMessage("xyz", "zoinks scoob"),
                 binary: "kwijeHl6rHpvaW5rcyBzY29vYg=="),
 
             // Ping Messages

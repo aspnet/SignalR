@@ -2255,7 +2255,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     await client.SendHubMessageAsync(new StreamItemMessage("id", letter));
                 }
 
-                await client.SendHubMessageAsync(new StreamCompleteMessage("id"));
+                await client.SendHubMessageAsync(new ChannelCompleteMessage("id"));
                 var result = (CompletionMessage)await client.ReadAsync();
 
                 Assert.Equal("BEANED", result.Result);
@@ -2294,7 +2294,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     await client.SendHubMessageAsync(new StreamItemMessage("id", thing));
                 }
 
-                await client.SendHubMessageAsync(new StreamCompleteMessage("id"));
+                await client.SendHubMessageAsync(new ChannelCompleteMessage("id"));
                 var response = (CompletionMessage)await client.ReadAsync();
 
                 var result = ((JArray)response.Result).ToArray<object>();
@@ -2334,7 +2334,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 foreach (string id in new[] { "0", "2", "1" })
                 {
-                    await client.SendHubMessageAsync(new StreamCompleteMessage(id));
+                    await client.SendHubMessageAsync(new ChannelCompleteMessage(id));
                     var response = await client.ReadAsync();
                     Debug.Write(response);
                     Assert.Equal(words[Int32.Parse(id)], ((CompletionMessage)response).Result);
@@ -2362,7 +2362,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 await client.SendHubMessageAsync(new StreamItemMessage("id", 5));
                 await client.SendHubMessageAsync(new StreamItemMessage("id", 10));
 
-                await client.SendHubMessageAsync(new StreamCompleteMessage("id"));
+                await client.SendHubMessageAsync(new ChannelCompleteMessage("id"));
                 var response = (CompletionMessage)await client.ReadAsync();
                 
                 Assert.Equal("510", response.Result);
@@ -2416,7 +2416,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
 
-                await client.SendHubMessageAsync(new StreamCompleteMessage("fake_id"));
+                await client.SendHubMessageAsync(new ChannelCompleteMessage("fake_id"));
 
                 // this should be ignored -- no response, no messages
             }
@@ -2434,7 +2434,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
                 await client.BeginUploadStreamAsync("id", nameof(MethodHub.TestCustomErrorPassing), "placeholder");
-                await client.SendHubMessageAsync(new StreamCompleteMessage("id", CustomErrorMessage));
+                await client.SendHubMessageAsync(new ChannelCompleteMessage("id", CustomErrorMessage));
 
                 var response = (CompletionMessage)await client.ReadAsync();
                 Assert.True((bool)response.Result);
@@ -2475,7 +2475,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     await client.Connection.Application.Output.WriteAsync(payload);
                 }
 
-                await client.SendHubMessageAsync(new StreamCompleteMessage("id"));
+                await client.SendHubMessageAsync(new ChannelCompleteMessage("id"));
                 var response = (CompletionMessage)await client.ReadAsync();
 
                 // make sure 6 items got through

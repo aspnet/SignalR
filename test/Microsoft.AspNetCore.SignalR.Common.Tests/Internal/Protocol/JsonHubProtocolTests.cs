@@ -91,8 +91,8 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             new JsonProtocolTestData("CloseMessage_HasErrorWithCamelCase", new CloseMessage("Error!"), true, NullValueHandling.Ignore, "{\"type\":7,\"error\":\"Error!\"}"),
             new JsonProtocolTestData("CloseMessage_HasErrorEmptyString", new CloseMessage(""), false, NullValueHandling.Ignore, "{\"type\":7,\"error\":\"\"}"),
 
-            new JsonProtocolTestData("StreamCompleteMessage", new StreamCompleteMessage("123"), true, NullValueHandling.Ignore, "{\"type\":8,\"invocationId\":\"123\"}"),
-            new JsonProtocolTestData("StreamCompleteMessageWithError", new StreamCompleteMessage("123", "zoinks!"), true, NullValueHandling.Ignore, "{\"type\":8,\"invocationId\":\"123\",\"error\":\"zoinks!\"}"),
+            new JsonProtocolTestData("StreamCompleteMessage", new ChannelCompleteMessage("123"), true, NullValueHandling.Ignore, "{\"type\":8,\"invocationId\":\"123\"}"),
+            new JsonProtocolTestData("StreamCompleteMessageWithError", new ChannelCompleteMessage("123", "zoinks!"), true, NullValueHandling.Ignore, "{\"type\":8,\"invocationId\":\"123\",\"error\":\"zoinks!\"}"),
 
         }.ToDictionary(t => t.Name);
 

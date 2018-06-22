@@ -153,11 +153,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             await hubConnection.StartAsync().OrTimeout();
 
             var channel = Channel.CreateUnbounded<int>();
-            var invokeTask = hubConnection.InvokeAsync<int>("QueryCosmos", channel.Reader);
+            var invokeTask = hubConnection.InvokeAsync<int>("SomeMethod", channel.Reader);
 
             var invocation = await connection.ReadSentJsonAsync();
             Assert.Equal(HubProtocolConstants.InvocationMessageType, invocation["type"]);
-            Assert.Equal("QueryCosmos", invocation["target"]);
+            Assert.Equal("SomeMethod", invocation["target"]);
             Assert.True((bool)invocation["streamingUpload"]);
             var id = invocation["invocationId"];
 
@@ -180,6 +180,24 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             var result = await invokeTask;
             Assert.Equal(42, result);
         }
+
+        //[Fact]
+        //public async Task StreamIntsToServerViaSend()
+        //{
+        //    var connection = new TestConnection();
+        //    var hubConnection = CreateHubConnection(connection);
+        //    await hubConnection.StartAsync().OrTimeout();
+
+        //    var channel = Channel.CreateUnbounded<int>();
+        //    var sendTask = hubConnection.SendAsync<int>("SomeMethod", channel.Reader);
+
+        //    var invocation = await connection.ReadSentJsonAsync();
+        //    Assert.Equal(HubProtocolConstants.InvocationMessageType, invocation["type"]);
+        //    Assert.Equal("SomeMethod", invocation["target"]);
+        //    Assert.True((bool)invocation["streamingUpload"]);
+        //    // assert field mismsing -- there should be no invocation id on this boy
+        
+        //}
 
         [Fact]
         public async Task StreamsObjectsToServer()
