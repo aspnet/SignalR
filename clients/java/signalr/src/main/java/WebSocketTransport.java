@@ -70,7 +70,7 @@ public class WebSocketTransport implements ITransport {
 
              @Override
              public void onError(Exception ex) {
-                System.out.println("Error: TTT " + ex.getMessage());
+                System.out.println("Error: " + ex.getMessage());
              }
          };
     }
