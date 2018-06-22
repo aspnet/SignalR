@@ -27,9 +27,7 @@ public class WebSocketTransport implements ITransport {
     }
 
     @Override
-    public void send(InvocationMessage invocationMessage) {
-        Gson gson = new Gson();
-        String message = gson.toJson(invocationMessage) + RECORD_SEPARATOR;
+    public void send(String message) {
         _webSocket.send(message);
     }
 
@@ -72,7 +70,7 @@ public class WebSocketTransport implements ITransport {
 
              @Override
              public void onError(Exception ex) {
-                System.out.println("Error: " + ex.getMessage());
+                System.out.println("Error: TTT " + ex.getMessage());
              }
          };
     }

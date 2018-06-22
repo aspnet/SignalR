@@ -3,7 +3,7 @@
 
 public interface ITransport {
     void start() throws InterruptedException;
-    void send(InvocationMessage invocationMessage);
+    void send(String message);
     void setOnReceive(OnReceiveCallBack callback);
     void onReceive(String message);
     void stop();

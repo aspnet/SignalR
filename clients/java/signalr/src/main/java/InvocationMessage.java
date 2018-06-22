@@ -28,7 +28,7 @@ public class InvocationMessage {
         this.target = target;
     }
 
-    public Object getArguments() {
+    public Object[] getArguments() {
         return arguments;
     }
 

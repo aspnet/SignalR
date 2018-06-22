@@ -1,9 +1,6 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-
 import java.net.URISyntaxException;
 import java.util.HashMap;
 
@@ -12,7 +9,7 @@ public class HubConnection {
     private ITransport _transport;
     private OnReceiveCallBack callback;
     private HashMap<String, Action> handlers = new HashMap<>();
-    private JsonParser jsonParser = new JsonParser();
+    private IHubProtocol protocol;
     private static final String RECORD_SEPARATOR = "\u001e";
 
     public Boolean connected = false;
@@ -28,9 +25,17 @@ public class HubConnection {
                 if (splitMessage.length() == 2) {
                     continue;
                 }
-                processMessage(splitMessage);
+
+                InvocationMessage message = protocol.parseMessage(splitMessage);
+
+                // message will be null if we receive any message other than an invocation.
+                // Adding this to avoid getting error messages on pings for now.
+                if (message != null && handlers.containsKey(message.target)) {
+                    handlers.get(message.target).invoke(message.arguments[0]);
+                }
             }
         };
+        protocol = new JsonHubProtocol();
 
         try {
             _transport = new WebSocketTransport(_url);
@@ -39,43 +44,7 @@ public class HubConnection {
         }
     }
 
-    private void processMessage(String message) {
-        JsonObject jsonMessage = jsonParser.parse(message).getAsJsonObject();
-        String messageType = jsonMessage.get("type").toString();
-        switch(messageType) {
-            case "1":
-                //Invocation Message
-                String target = jsonMessage.get("target").getAsString();
-                if (handlers.containsKey(target)) {
-                    handlers.get(target).invoke(jsonMessage.get("arguments"));
-                }
-                break;
-            case "2":
-                //Stream item
-                //Don't care yet
-                break;
-            case "3":
-                //Completion
-                //Don't care yet
-                break;
-            case "4":
-                //Stream invocation
-                //Don't care yet;
-                break;
-            case "5":
-                //Cancel invocation
-                //Don't care yet
-                break;
-            case "6":
-                //Ping
-                //Don't care yet
-                break;
-            case "7":
-                // Close message
-                //Don't care yet;
-                break;
-        }
-    }
+
 
     public void start() throws InterruptedException {
         _transport.setOnReceive(this.callback);
@@ -89,7 +58,8 @@ public class HubConnection {
     }
 
     public void send(String method, Object arg1) {
-        InvocationMessage message = new InvocationMessage(method, new Object[]{ arg1 });
+        InvocationMessage invocationMessage = new InvocationMessage(method, new Object[]{ arg1 });
+        String message = protocol.writeMessage(invocationMessage);
         _transport.send(message);
     }
 
