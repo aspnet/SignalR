@@ -166,9 +166,17 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
 
                 Log.EstablishedConnection(_logger);
 
-                var ws = new WebSocketsTransport(options.WebSockets, connection.Application, connection, _loggerFactory);
+                IHttpTransport transport = null;
+                if (options.WebSockets.PreserveWebSocketFrames)
+                {
+                    transport = new HttpUpgradeTransport(options.WebSockets, connection.Application, connection, _loggerFactory);
+                }
+                else
+                {
+                    transport = new WebSocketsTransport(options.WebSockets, connection.Application, connection, _loggerFactory);
+                }
 
-                await DoPersistentConnection(connectionDelegate, ws, context, connection);
+                await DoPersistentConnection(connectionDelegate, transport, context, connection);
             }
             else
             {

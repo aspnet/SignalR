@@ -66,6 +66,10 @@ namespace SignalRSamples
             app.UseConnections(routes =>
             {
                 routes.MapConnectionHandler<MessagesConnectionHandler>("/chat");
+                routes.MapConnectionHandler<WebSocketConnectionHandler>("/ws", options =>
+                {
+                    options.WebSockets.PreserveWebSocketFrames = true;
+                });
             });
 
             app.Use(next => (context) =>
