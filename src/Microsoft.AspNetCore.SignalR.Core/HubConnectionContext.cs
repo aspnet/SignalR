@@ -7,7 +7,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO.Pipelines;
-using System.Runtime.ExceptionServices;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
@@ -453,11 +452,14 @@ namespace Microsoft.AspNetCore.SignalR
 
             if (currentTime - Volatile.Read(ref _lastSendTimeStamp) > _keepAliveInterval)
             {
-                // Haven't sent a message for the entire keep-alive duration, so send a ping.
-                // If the transport channel is full, this will fail, but that's OK because
-                // adding a Ping message when the transport is full is unnecessary since the
-                // transport is still in the process of sending frames.
-                _ = TryWritePingAsync();
+                if (!Debugger.IsAttached)
+                {
+                    // Haven't sent a message for the entire keep-alive duration, so send a ping.
+                    // If the transport channel is full, this will fail, but that's OK because
+                    // adding a Ping message when the transport is full is unnecessary since the
+                    // transport is still in the process of sending frames.
+                    _ = TryWritePingAsync();
+                }
 
                 // We only update the timestamp here, because updating on each sent message is bad for performance
                 // There can be a lot of sent messages per 15 seconds
@@ -489,7 +491,7 @@ namespace Microsoft.AspNetCore.SignalR
                 Volatile.Write(ref _lastReceivedTimeStamp, DateTime.UtcNow.Ticks);
             }
         }
-        
+
         private static void AbortConnection(object state)
         {
             var connection = (HubConnectionContext)state;
