@@ -10,32 +10,24 @@ public class HubConnection {
     private OnReceiveCallBack callback;
     private HashMap<String, Action> handlers = new HashMap<>();
     private IHubProtocol protocol;
-    private static final String RECORD_SEPARATOR = "\u001e";
 
     public Boolean connected = false;
 
     public HubConnection(String url) {
         _url = url;
+        protocol = new JsonHubProtocol();
         callback = (payload) -> {
-            String[] messages = payload.split(RECORD_SEPARATOR);
 
-            for (String splitMessage : messages) {
+            InvocationMessage[] messages = protocol.parseMessages(payload);
 
-                // Empty handshake response "{}". We can ignore it
-                if (splitMessage.length() == 2) {
-                    continue;
-                }
-
-                InvocationMessage message = protocol.parseMessage(splitMessage);
-
-                // message will be null if we receive any message other than an invocation.
-                // Adding this to avoid getting error messages on pings for now.
+            // message will be null if we receive any message other than an invocation.
+            // Adding this to avoid getting error messages on pings for now.
+            for (InvocationMessage message: messages) {
                 if (message != null && handlers.containsKey(message.target)) {
                     handlers.get(message.target).invoke(message.arguments[0]);
                 }
             }
         };
-        protocol = new JsonHubProtocol();
 
         try {
             _transport = new WebSocketTransport(_url);
@@ -43,8 +35,6 @@ public class HubConnection {
             e.printStackTrace();
         }
     }
-
-
 
     public void start() throws InterruptedException {
         _transport.setOnReceive(this.callback);

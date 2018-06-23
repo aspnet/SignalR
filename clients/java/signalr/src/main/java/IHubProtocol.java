@@ -5,7 +5,7 @@ public interface IHubProtocol {
     String name();
     int version();
     TransferFormat transferFormat();
-    InvocationMessage parseMessage(String message);
+    InvocationMessage[] parseMessages(String message);
     String writeMessage(InvocationMessage message);
 }
 
