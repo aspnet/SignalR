@@ -34,7 +34,10 @@ namespace signalR
         hub_connection_builder& with_url(const std::string& url, std::function<void(HttpConnectionOptions&)> configure = nullptr);
 
         template <typename Protocol>
-        hub_connection_builder_impl<Protocol> use_protocol(Protocol);
+        internal::hub_connection_builder_impl<Protocol> use_protocol(Protocol)
+        {
+            return internal::hub_connection_builder_impl(*this, Protocol());
+        }
 
         template <typename Protocol>
         hub_connection<Protocol> build(Protocol protocol);
@@ -43,35 +46,24 @@ namespace signalR
         hub_connection<JsonHubProtocol> build();
     };
 
-    template <typename Protocol>
-    class hub_connection_builder_impl : public hub_connection_builder
+    namespace internal
     {
-    public:
-        hub_connection_builder_impl(hub_connection_builder& internalBuilder, Protocol protocol)
-            : mBuilder(internalBuilder), mProtocol(protocol)
+        template <typename Protocol>
+        class hub_connection_builder_impl
         {
-        }
+        public:
+            hub_connection_builder_impl(hub_connection_builder& internalBuilder, Protocol protocol);
 
-        hub_connection_builder_impl<Protocol>& configure_logging()
-        {
-            return *this;
-        }
+            hub_connection_builder_impl<Protocol>& configure_logging(LogLevel);
 
-        hub_connection_builder_impl<Protocol>& with_url(const std::string& url, std::function<void(HttpConnectionOptions&)> configure = nullptr)
-        {
-            mBuilder.with_url(url, configure);
-            return *this;
-        }
+            hub_connection_builder_impl<Protocol>& with_url(const std::string& url, std::function<void(HttpConnectionOptions&)> configure = nullptr);
 
-        hub_connection<Protocol> build()
-        {
-            static_assert(has_parse_message<Protocol>::value, "parse_message function expected from protocol");
-            return mBuilder.build<Protocol>(mProtocol);
-        }
-    private:
-        hub_connection_builder & mBuilder;
-        Protocol mProtocol;
-    };
+            hub_connection<Protocol> build();
+        private:
+            hub_connection_builder & mBuilder;
+            Protocol mProtocol;
+        };
+    }
 
     template <typename Protocol>
     class hub_connection
