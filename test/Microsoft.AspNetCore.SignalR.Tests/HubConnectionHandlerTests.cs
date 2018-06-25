@@ -2344,9 +2344,8 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             var connectionHandler = HubConnectionHandlerTestUtils.GetHubConnectionHandler(typeof(HubT),
                 (services) => services.AddSingleton<IHubProtocol>(testProtocol.Object));
 
-            using (var client = new TestClient())
+            using (var client = new TestClient(protocol: testProtocol.Object))
             {
-                client.SetProtocol(testProtocol.Object);
                 var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
 
                 Assert.NotNull(client.HandshakeResponseMessage);

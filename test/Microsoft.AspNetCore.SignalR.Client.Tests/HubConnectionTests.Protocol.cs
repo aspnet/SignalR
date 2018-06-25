@@ -64,7 +64,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             }
 
             [Fact]
-            public async Task ClientRecordsMinorVersionFromServerOnHandshake()
+            public async Task ClientIsOkayReceivingMinorVersionInHandshake()
             {
                 var connection = new TestConnection(autoHandshake: false);
                 var hubConnection = CreateHubConnection(connection);
@@ -74,7 +74,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     var message = await connection.ReadHandshakeAndSendResponseAsync(56);
 
                     await startTask;
-                    Assert.Equal(56, hubConnection._serverProtocolMinorVersion);
                 }
                 finally
                 {

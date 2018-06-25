@@ -28,30 +28,30 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         /// Previously used to cache the errorless return message.
         /// Now, return messages need a minor version number, so multiple are cached in a dictionary.
         /// </summary>
-        [Obsolete()]
+        [Obsolete("A successful handshake should include a minor version, but the value here does not.")]
         public static ReadOnlyMemory<byte> SuccessHandshakeData = new byte[] { 123, 34, 109, 105, 110, 111, 114, 86, 101, 114, 115, 105, 111, 110, 34, 58, 48, 125, 30 }; 
 
         private static ConcurrentDictionary<IHubProtocol, ReadOnlyMemory<byte>> _messageCache = new ConcurrentDictionary<IHubProtocol, ReadOnlyMemory<byte>>();
 
-        public static ReadOnlySpan<byte> GetCachedSuccessMessageData(IHubProtocol protocol)
+        public static ReadOnlySpan<byte> GetSuccessfulHandshake(IHubProtocol protocol)
         {
-            if (_messageCache.TryGetValue(protocol, out var message))
+            ReadOnlyMemory<byte> result;
+
+            if(!_messageCache.TryGetValue(protocol, out result))
             {
-                return message.Span;
+                var memoryBufferWriter = MemoryBufferWriter.Get();
+                try
+                {
+                    WriteResponseMessage(new HandshakeResponseMessage(protocol.GetMinorVersion()), memoryBufferWriter);
+                    _messageCache.TryAdd(protocol, memoryBufferWriter.ToArray());
+                    result = (ReadOnlyMemory<byte>)memoryBufferWriter.ToArray();
+                }
+                finally
+                {
+                    MemoryBufferWriter.Return(memoryBufferWriter);
+                }
             }
 
-            var memoryBufferWriter = MemoryBufferWriter.Get();
-            try
-            {
-                WriteResponseMessage(new HandshakeResponseMessage(protocol), memoryBufferWriter);
-                _messageCache.TryAdd(protocol, memoryBufferWriter.ToArray());
-            }
-            finally
-            {
-                MemoryBufferWriter.Return(memoryBufferWriter);
-            }
-
-            _messageCache.TryGetValue(protocol, out var result);
             return result.Span;
         }
 
@@ -163,7 +163,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                                         error = JsonUtils.ReadAsString(reader, ErrorPropertyName);
                                         break;
                                     case MinorVersionPropertyName:
-                                        minorVersion = (int)JsonUtils.ReadAsInt32(reader, MinorVersionPropertyName);
+                                        minorVersion = JsonUtils.ReadAsInt32(reader, MinorVersionPropertyName);
                                         break;
                                     default:
                                         reader.Skip();

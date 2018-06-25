@@ -63,11 +63,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             _cts = new CancellationTokenSource();
         }
 
-        public void SetProtocol(IHubProtocol2 protocol)
-        {
-            _protocol = protocol;
-        }
-
         public async Task<Task> ConnectAsync(
             Connections.ConnectionHandler handler,
             bool sendHandshakeRequestMessage = true,

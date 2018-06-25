@@ -29,5 +29,10 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                 MemoryBufferWriter.Return(writer);
             }
         }
+
+        public static int GetMinorVersion(this IHubProtocol protocol)
+        {
+            return (protocol is IHubProtocol2) ? ((IHubProtocol2)protocol).MinorVersion : 0;
+        }
     }
 }

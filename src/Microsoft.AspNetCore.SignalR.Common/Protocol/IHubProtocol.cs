@@ -18,7 +18,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         string Name { get; }
 
         /// <summary>
-        /// Gets the version of the protocol.
+        /// Gets the major version of the protocol.
         /// </summary>
         int Version { get; }
 
@@ -58,8 +58,14 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         bool IsVersionSupported(int version);
     }
 
+    /// <summary>
+    /// A HubProtocol that includes support for specifying a minor version.
+    /// </summary>
     public interface IHubProtocol2 : IHubProtocol
     {
+        /// <summary>
+        /// Gets the minor version of the protocol.
+        /// </summary>
         int MinorVersion { get; }
     }
 }

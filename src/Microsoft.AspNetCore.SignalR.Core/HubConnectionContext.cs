@@ -285,7 +285,7 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 if (message.Error == null)
                 {
-                    _connectionContext.Transport.Output.Write(HandshakeProtocol.GetCachedSuccessMessageData(Protocol));
+                    _connectionContext.Transport.Output.Write(HandshakeProtocol.GetSuccessfulHandshake(Protocol));
                 }
                 else
                 {
@@ -399,7 +399,7 @@ namespace Microsoft.AspNetCore.SignalR
 
                                     Log.HandshakeComplete(_logger, Protocol.Name);
 
-                                    await WriteHandshakeResponseAsync(new HandshakeResponseMessage(Protocol));
+                                    await WriteHandshakeResponseAsync(new HandshakeResponseMessage(Protocol.GetMinorVersion()));
                                     return true;
                                 }
                             }
