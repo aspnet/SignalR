@@ -1,6 +1,12 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR.Protocol;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Internal;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -10,12 +16,6 @@ using System.Security.Claims;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.SignalR.Protocol;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Internal;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Microsoft.AspNetCore.SignalR.Internal
 {
@@ -114,8 +114,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 case StreamItemMessage streamItem:
                     return ProcessStreamItem(connection, streamItem);
 
-                case ChannelCompleteMessage streamComplete:
-                    ProcessStreamComplete(connection, streamComplete);
+                case ChannelCompleteMessage channelComplete:
+                    ProcessStreamComplete(connection, channelComplete);
                     break;
 
                 // Other kind of message we weren't expecting
@@ -220,13 +220,14 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                     InitializeHub(hub, connection);
 
                     // TODO :: refactor this flow control lol
+                    // this is "if there's an upload stream"
                     if (isStreamCall)
                     {
                         disposeScope = false;
 
                         //foreach (var arg in hubMethodInvocationMessage.Arguments)
                         var args = hubMethodInvocationMessage.Arguments;
-                        for (int i = 0; i<args.Length; i++)
+                        for (int i = 0; i < args.Length; i++)
                         {
                             var placeholder = args[i] as ChannelPlaceholder;
                             if (placeholder == null)
@@ -238,27 +239,31 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                             args[i] = _channelStore.Lookup[placeholder.ChannelId.ToString()].ReaderAsObject();
                         }
 
-                        async Task ExecuteStreamingUpload()
+                        if (string.IsNullOrEmpty(hubMethodInvocationMessage.InvocationId))
                         {
-                            var result = await ExecuteHubMethod(methodExecutor, hub, hubMethodInvocationMessage.Arguments);
-                            Log.SendingResult(_logger, hubMethodInvocationMessage.InvocationId, methodExecutor);
-                            await connection.WriteAsync(CompletionMessage.WithResult(hubMethodInvocationMessage.InvocationId, result));
+                            // a non blocking streaming upload
+                            // just fire-and-forget the execution
+                            _ = ExecuteHubMethod(methodExecutor, hub, hubMethodInvocationMessage.Arguments);
                         }
-                        _ = ExecuteStreamingUpload();
+                        else
+                        {
+                            // needs a return value
+                            async Task ExecuteStreamingUpload()
+                            {
+                                var result = await ExecuteHubMethod(methodExecutor, hub, hubMethodInvocationMessage.Arguments);
+                                Log.SendingResult(_logger, hubMethodInvocationMessage.InvocationId, methodExecutor);
+                                await connection.WriteAsync(CompletionMessage.WithResult(hubMethodInvocationMessage.InvocationId, result));
+                            }
+                            _ = ExecuteStreamingUpload();
+                        }
 
-                        // note -- we're going to need alternatives to ExecuteStreamingUpload for the other invocation types
-                        // basically, the non-locking sendAsync one is going to have to 
-                        // fire off the ExecuteHubMethod in another thread, and then the dispatcher is good
-                        //
-                        // where it gets really tricky is when the upload is streaming as well.
-                        // there's a decision to make, should we wait until the upload finishes entirely?
-                        // no that's a bad question, this can and should be left entirely up to the user
-                        // just give them the channels, let them do whatever they want to do
-                        // so the stream fires off the return relay loop, which is named `StreamResultsAsync`
-                        // and also fires and forgots ExecuteHubMethod
-                        // there's no need to do this wrapping as the returns happen whenever, not when it's finished
+                        // as for streaming downloads, ie called via `InvokeStream`
+                        // these do not support passing channels
+
                     }
 
+                    // this is "if there's NOT an upload stream"
+                    // it's literally all the old code that used to be here
                     else
                     {
                         var result = await ExecuteHubMethod(methodExecutor, hub, hubMethodInvocationMessage.Arguments);
@@ -559,7 +564,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
     internal class ChannelConverter<T> : IChannelConverter
     {
-        private readonly static MethodInfo _createUnboundedMethod = typeof(Channel).GetMethod("CreateUnbounded", BindingFlags.Public | BindingFlags.Static, Type.DefaultBinder, Type.EmptyTypes, Array.Empty<ParameterModifier>());
+        private static readonly MethodInfo _createUnboundedMethod = typeof(Channel).GetMethod("CreateUnbounded", BindingFlags.Public | BindingFlags.Static, Type.DefaultBinder, Type.EmptyTypes, Array.Empty<ParameterModifier>());
 
         private Channel<T> _channel;
 

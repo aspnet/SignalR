@@ -159,7 +159,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             Assert.Equal(HubProtocolConstants.InvocationMessageType, invocation["type"]);
             Assert.Equal("SomeMethod", invocation["target"]);
             Assert.True((bool)invocation["streamingUpload"]);
-            var id = invocation["invocationId"];
+            var channelId = invocation["arguments"][0];
 
             foreach (var number in new[] { 42, 43, 322, 3145, -1234 })
             {
@@ -168,15 +168,14 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 var item = await connection.ReadSentJsonAsync();
                 Assert.Equal(HubProtocolConstants.StreamItemMessageType, item["type"]);
                 Assert.Equal(number, item["item"]);
-                Assert.Equal(id, item["invocationId"]);
+                Assert.Equal(channelId, item["invocationId"]); // I realize this is poorly named, TODO change
             }
 
             channel.Writer.TryComplete();
             var completion = await connection.ReadSentJsonAsync();
-            Assert.Equal(HubProtocolConstants.StreamCompleteMessageType, completion["type"]);
-            Assert.Equal(id, completion["invocationId"]);
+            Assert.Equal(HubProtocolConstants.ChannelCompleteMessageType, completion["type"]);
 
-            await connection.ReceiveJsonMessage(new { type = HubProtocolConstants.CompletionMessageType, invocationId=id, result = 42 });
+            await connection.ReceiveJsonMessage(new { type = HubProtocolConstants.CompletionMessageType, invocationId = invocation["invocationId"], result = 42 });
             var result = await invokeTask;
             Assert.Equal(42, result);
         }
@@ -224,13 +223,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 Assert.Equal(HubProtocolConstants.StreamItemMessageType, received["type"]);
                 Assert.Equal(item.Foo, received["item"]["foo"]);
                 Assert.Equal(item.Bar, received["item"]["bar"]);
-                Assert.Equal(id, received["invocationId"]);
             }
 
             channel.Writer.TryComplete();
             var completion = await connection.ReadSentJsonAsync();
-            Assert.Equal(HubProtocolConstants.StreamCompleteMessageType, completion["type"]);
-            Assert.Equal(id, completion["invocationId"]);
+            Assert.Equal(HubProtocolConstants.ChannelCompleteMessageType, completion["type"]);
 
             var expected = new SampleObject("oof", 14);
             await connection.ReceiveJsonMessage(new { type = HubProtocolConstants.CompletionMessageType, invocationId = id, result = expected });
@@ -264,7 +261,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
             // the next sent message should be a completion message
             var complete = await connection.ReadSentJsonAsync();
-            Assert.Equal(HubProtocolConstants.StreamCompleteMessageType, complete["type"]);
+            Assert.Equal(HubProtocolConstants.ChannelCompleteMessageType, complete["type"]);
             Assert.Equal("stream cancelled by user", complete["error"]);
         }
 

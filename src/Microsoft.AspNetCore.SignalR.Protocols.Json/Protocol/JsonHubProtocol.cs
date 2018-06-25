@@ -353,7 +353,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                         return PingMessage.Instance;
                     case HubProtocolConstants.CloseMessageType:
                         return BindCloseMessage(error);
-                    case HubProtocolConstants.StreamCompleteMessageType:
+                    case HubProtocolConstants.ChannelCompleteMessageType:
                         message = BindStreamCompleteMessage(invocationId, error);
                         break;
                     case null:
@@ -449,7 +449,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                             WriteCloseMessage(m, writer);
                             break;
                         case ChannelCompleteMessage m:
-                            WriteMessageType(writer, HubProtocolConstants.StreamCompleteMessageType);
+                            WriteMessageType(writer, HubProtocolConstants.ChannelCompleteMessageType);
                             WriteUploadDoneMessage(m, writer);
                             break;
                         default:

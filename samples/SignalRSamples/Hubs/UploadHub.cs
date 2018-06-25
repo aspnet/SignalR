@@ -1,11 +1,11 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.SignalR;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Channels;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.SignalR;
 
 namespace SignalRSamples.Hubs
 {
@@ -15,6 +15,48 @@ namespace SignalRSamples.Hubs
         {
             Debug.WriteLine("Ope");
             return i;
+        }
+
+        public async Task<string> DoubleTrouble(ChannelReader<string> letters, ChannelReader<int> numbers)
+        {
+            var total = await Sum(numbers);
+            var word = await UploadWord(letters);
+
+            return String.Format("You sent over <{0}> <{1}s>", total, word);
+        }
+
+        public async Task SoftDoubleUpload(ChannelReader<string> letters, ChannelReader<int> numbers)
+        {
+            var result = await DoubleTrouble(letters, numbers);
+            Debug.WriteLine(String.Format("Server knows: {0}", result));
+        }
+
+        public async Task<int> Sum(ChannelReader<int> source)
+        {
+            var total = 0;
+            while (await source.WaitToReadAsync())
+            {
+                while (source.TryRead(out var item))
+                {
+                    total += item;
+                }
+            }
+            return total;
+        }
+
+        public async Task LocalSum(ChannelReader<int> source)
+        {
+            var total = 0;
+            while (await source.WaitToReadAsync())
+            {
+                {
+                    while (source.TryRead(out var item))
+                    {
+                        total += item;
+                    }
+                }
+            }
+            Debug.WriteLine(String.Format("Complete, your total is <{0}>.", total));
         }
 
         public async Task<string> UploadWord(ChannelReader<string> source)

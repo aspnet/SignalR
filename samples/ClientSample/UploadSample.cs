@@ -1,14 +1,15 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.CommandLineUtils;
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Channels;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.SignalR.Client;
-using Microsoft.Extensions.CommandLineUtils;
 
 namespace ClientSample
 {
-    class UploadSample
+    internal class UploadSample
     {
         internal static void Register(CommandLineApplication app)
         {
@@ -29,12 +30,67 @@ namespace ClientSample
                 .Build();
             await connection.StartAsync();
 
-            await BasicRun(connection);
+            //await MultiParamInvoke(connection);
+            await BasicSend(connection);
+
+            //await BasicRun(connection);
             //await AdditionalArgs(connection);
             //await InterleavedUploads(connection);
             //await FileUploadDemo(connection);
 
             return 0;
+        }
+
+        private static async Task WriteStreamAsync<T>(IEnumerable<T> sequence, ChannelWriter<T> writer)
+        {
+            foreach (T element in sequence)
+            {
+                await writer.WriteAsync(element);
+                await Task.Delay(100);
+            }
+
+            writer.TryComplete();
+        }
+
+        public static async Task MultiParamInvoke(HubConnection connection)
+        {
+            var letters = Channel.CreateUnbounded<string>();
+            var numbers = Channel.CreateUnbounded<int>();
+
+            _ = WriteStreamAsync(new[] { "h", "i", "!" }, letters.Writer);
+            _ = WriteStreamAsync(new[] { 1, 2, 3, 4, 5 }, numbers.Writer);
+
+            var result = await connection.InvokeAsync<string>("DoubleTrouble", letters.Reader, numbers.Reader);
+
+            Debug.WriteLine(result);
+        }
+
+        public static async Task BasicSend(HubConnection connection)
+        {
+            //var letters = Channel.CreateUnbounded<string>();
+            var numbers = Channel.CreateUnbounded<int>();
+
+            // we can call the boy from here, since there's no need to wait on ~"completion"~
+            await connection.SendAsync("LocalSum", numbers.Reader);
+
+            _ = WriteStreamAsync(new[] { 1, 2, 3 }, numbers.Writer);
+
+            await Task.Delay(300000);
+            // the server will "Debug.WriteLine"
+        }
+
+        public static async Task APITest(HubConnection connection)
+        {
+            var channel = Channel.CreateUnbounded<int>();
+            var uploadTask = connection.InvokeAsync<int>("Sum", channel.Reader);
+
+            foreach (int i in new[] { 1, 2, 3, 4, 5 })
+            {
+                await channel.Writer.WriteAsync(i);
+            }
+
+            var result = await uploadTask;
+            Debug.WriteLine(result);
         }
 
         public static async Task BasicRun(HubConnection connection)
@@ -117,7 +173,7 @@ namespace ClientSample
 
         public static async Task FileUploadDemo(HubConnection connection)
         {
-            
+
             var original = @"C:\Users\t-dygray\Desktop\uploads\sample.txt";
             var target = @"C:\Users\t-dygray\Desktop\uploads\bloop.txt";
 
@@ -142,7 +198,8 @@ namespace ClientSample
                     while (true)
                     {
                         var n = fs.Read(b, 0, b.Length);
-                        if (n < b.Length) {
+                        if (n < b.Length)
+                        {
                             // on the last cycle, there may not be enough to fill the buffer completely
                             // in this case, we want to empty the buffer completely before refilling it
                             byte[] lastbit = new byte[n];

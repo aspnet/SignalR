@@ -423,6 +423,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 CheckDisposed();
                 CheckConnectionActive(nameof(StreamAsChannelCoreAsync));
 
+                // I just want an excuse to use 'irq' as a variable name...
                 var irq = InvocationRequest.Stream(cancellationToken, returnType, _connectionState.GetNextId(), _loggerFactory, this, out channel);
                 await InvokeStreamCore(methodName, irq, args, cancellationToken);
 
@@ -438,28 +439,9 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             return channel;
         }
-
-
-        private async Task<object> InvokeCoreAsyncCore(string methodName, Type returnType, object[] args, CancellationToken cancellationToken)
+        
+        private Dictionary<Guid, object> PackageStreamingParams(object[] args)
         {
-            //object reader = null;
-            //bool isStreamingUpload = false;
-            //for (int i = 0; i < args.Length; i++)
-            //{
-            //    // {System.Threading.Channels.UnboundedChannel`1+UnboundedChannelReader[T]}
-            //    if (isChannelReader(args[i].GetType()))
-            //    {
-            //        if (isStreamingUpload)
-            //        {
-            //            throw new Exception("The streaming protocol does not support multiple ChannelReaders in a single invocation.");
-            //        }
-
-            //        reader = args[i];
-            //        args[i] = "placeholder";
-            //        isStreamingUpload = true;
-            //    }
-            //}
-
             var readers = new Dictionary<Guid, object>();
             for (int i = 0; i < args.Length; i++)
             {
@@ -470,48 +452,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     args[i] = id.ToString();
                 }
             }
-            bool isStreamingUpload = readers.Count > 0;
 
-
-            CheckDisposed();
-            await WaitConnectionLockAsync();
-
-            InvocationRequest irq;
-            Task<object> invocationTask;
-            try
-            {
-                CheckDisposed();
-                CheckConnectionActive(nameof(InvokeCoreAsync));
-
-                irq = InvocationRequest.Invoke(cancellationToken, returnType, _connectionState.GetNextId(), _loggerFactory, this, out invocationTask);
-
-                AssertConnectionValid();
-
-                await InvokeCore(methodName, irq, args, cancellationToken, isStreamingUpload);
-            }
-            finally
-            {
-                ReleaseConnectionLock();
-            }
-
-            if (isStreamingUpload)
-            {
-                // at this point we've initiated the upload, ie installed pipe on the server so that the dispatcher is ready
-                Debug.WriteLine("Log :: setting up relay loop");
-
-                foreach (KeyValuePair<Guid, object> entry in readers)
-                {
-                    var reader = entry.Value;
-
-                    // create a relay loop of the appropiate type, run in a background thread
-                    _ = _relayLoopMethod
-                        .MakeGenericMethod(reader.GetType().GetGenericArguments())
-                        .Invoke(this, new object[] { entry.Key.ToString(), reader, cancellationToken });
-
-                }
-            }
-
-            return await invocationTask;
+            return readers;
 
             bool isChannelReader(Type type)
             {
@@ -531,6 +473,19 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     type = type.BaseType;
                 }
             }
+        }
+
+        private void LaunchRelayLoops(Dictionary<Guid, object> readers, CancellationToken cancellationToken)
+        {
+            foreach (KeyValuePair<Guid, object> kv in readers)
+            {
+                var reader = kv.Value;
+
+                _ = _relayLoopMethod
+                    .MakeGenericMethod(reader.GetType().GetGenericArguments())
+                    .Invoke(this, new object[] { kv.Key.ToString(), reader, cancellationToken });
+            }
+
         }
 
         private async Task RelayLoop<T>(string channelId, ChannelReader<T> reader, CancellationToken token)
@@ -555,6 +510,38 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             await SendWithLock(new ChannelCompleteMessage(channelId, responseError));
         }
+
+        private async Task<object> InvokeCoreAsyncCore(string methodName, Type returnType, object[] args, CancellationToken cancellationToken)
+        {
+            var readers = PackageStreamingParams(args);
+            var isStreamingUpload = readers.Count > 0;
+
+            CheckDisposed();
+            await WaitConnectionLockAsync();
+
+            InvocationRequest irq;
+            Task<object> invocationTask;
+            try
+            {
+                CheckDisposed();
+                CheckConnectionActive(nameof(InvokeCoreAsync));
+
+                irq = InvocationRequest.Invoke(cancellationToken, returnType, _connectionState.GetNextId(), _loggerFactory, this, out invocationTask);
+
+                AssertConnectionValid();
+
+                await InvokeCore(methodName, irq, args, cancellationToken, isStreamingUpload);
+            }
+            finally
+            {
+                ReleaseConnectionLock();
+            }
+
+            LaunchRelayLoops(readers, cancellationToken);
+
+            return await invocationTask;
+        }
+
 
         private async Task InvokeCore(string methodName, InvocationRequest irq, object[] args, CancellationToken cancellationToken, bool streamingUpload = false)
         {
@@ -589,7 +576,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             var invocationMessage = new StreamInvocationMessage(irq.InvocationId, methodName, args);
 
-            // I just want an excuse to use 'irq' as a variable name...
             Log.RegisteringInvocation(_logger, invocationMessage.InvocationId);
 
             _connectionState.AddInvocation(irq);
@@ -624,12 +610,17 @@ namespace Microsoft.AspNetCore.SignalR.Client
             // We've sent a message, so don't ping for a while
             ResetSendPing();
         }
+
         private async Task SendCoreAsyncCore(string methodName, object[] args, CancellationToken cancellationToken)
         {
+            var readers = PackageStreamingParams(args);
+
             Log.PreparingNonBlockingInvocation(_logger, methodName, args.Length);
 
-            var invocationMessage = new InvocationMessage(null, methodName, args);
+            var invocationMessage = new InvocationMessage(null, methodName, args, streamingUpload: readers.Count>0);
             await SendWithLock(invocationMessage, callerName: nameof(SendCoreAsync));
+
+            LaunchRelayLoops(readers, cancellationToken);
         }
 
         private async Task SendWithLock(HubMessage message, CancellationToken cancellationToken = default, [CallerMemberName] string callerName = "")

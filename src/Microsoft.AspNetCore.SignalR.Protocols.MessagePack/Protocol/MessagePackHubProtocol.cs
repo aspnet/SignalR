@@ -138,7 +138,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                     return PingMessage.Instance;
                 case HubProtocolConstants.CloseMessageType:
                     return CreateCloseMessage(input, ref startOffset);
-                case HubProtocolConstants.StreamCompleteMessageType:
+                case HubProtocolConstants.ChannelCompleteMessageType:
                     return CreateStreamCompleteMessage(input, ref startOffset);
                 default:
                     // Future protocol changes can add message types, old clients can ignore them
@@ -491,7 +491,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         private void WriteStreamCompleteMessage(ChannelCompleteMessage message, Stream packer)
         {
             MessagePackBinary.WriteArrayHeader(packer, 3);
-            MessagePackBinary.WriteInt16(packer, HubProtocolConstants.StreamCompleteMessageType);
+            MessagePackBinary.WriteInt16(packer, HubProtocolConstants.ChannelCompleteMessageType);
             MessagePackBinary.WriteString(packer, message.InvocationId);
             MessagePackBinary.WriteString(packer, message.HasError ? message.Error : "");
         }
