@@ -22,7 +22,7 @@ public class HubConnection {
 
             // message will be null if we receive any message other than an invocation.
             // Adding this to avoid getting error messages on pings for now.
-            for (InvocationMessage message: messages) {
+            for (InvocationMessage message : messages) {
                 if (message != null && handlers.containsKey(message.target)) {
                     handlers.get(message.target).invoke(message.arguments[0]);
                 }

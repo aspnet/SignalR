@@ -1,3 +1,6 @@
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 import com.google.gson.JsonArray;
 import org.junit.Test;
 
@@ -13,17 +16,17 @@ public class JsonHubProtocolTest {
     }
 
     @Test
-    public void checkVersionNumber(){
-        assertEquals(1,jsonHubProtocol.getVersion());
+    public void checkVersionNumber() {
+        assertEquals(1, jsonHubProtocol.getVersion());
     }
 
     @Test
-    public void checkTransferFormat(){
+    public void checkTransferFormat() {
         assertEquals(TransferFormat.Text, jsonHubProtocol.getTransferFormat());
     }
 
     @Test
-    public void VerifyWriteMessage(){
+    public void VerifyWriteMessage() {
         InvocationMessage invocationMessage = new InvocationMessage("test", new Object[] {"42"});
         String result = jsonHubProtocol.writeMessage(invocationMessage);
         String expectedResult = "{\"type\":1,\"target\":\"test\",\"arguments\":[\"42\"]}\u001E";
@@ -31,10 +34,12 @@ public class JsonHubProtocolTest {
     }
 
     @Test
-    public void ParseSingleMessage(){
+    public void ParseSingleMessage() {
         String stringifiedMessage = "{\"type\":1,\"target\":\"test\",\"arguments\":[42]}\u001E";
         InvocationMessage[] messages = jsonHubProtocol.parseMessages(stringifiedMessage);
+
         //We know it's only one message
+        assertEquals(1, messages.length);
         InvocationMessage message = messages[0];
         assertEquals("test", message.target);
         assertEquals(null, message.invocationId);
@@ -44,7 +49,7 @@ public class JsonHubProtocolTest {
     }
 
     @Test
-    public void ParseHandshakeResponsePlusMessage(){
+    public void ParseHandshakeResponsePlusMessage() {
         String twoMessages = "{}\u001E{\"type\":1,\"target\":\"test\",\"arguments\":[42]}\u001E";
         InvocationMessage[] messages = jsonHubProtocol.parseMessages(twoMessages);
 
@@ -58,7 +63,7 @@ public class JsonHubProtocolTest {
     }
 
     @Test
-    public void ParseTwoMessages(){
+    public void ParseTwoMessages() {
         String twoMessages = "{\"type\":1,\"target\":\"one\",\"arguments\":[42]}\u001E{\"type\":1,\"target\":\"two\",\"arguments\":[43]}\u001E";
         InvocationMessage[] messages = jsonHubProtocol.parseMessages(twoMessages);
         assertEquals(2, messages.length);
@@ -81,7 +86,7 @@ public class JsonHubProtocolTest {
     }
 
     @Test
-    public void ParseSingleMessageMutipleArgs(){
+    public void ParseSingleMessageMutipleArgs() {
         String stringifiedMessage = "{\"type\":1,\"target\":\"test\",\"arguments\":[42, 24]}\u001E";
         InvocationMessage[] messages = jsonHubProtocol.parseMessages(stringifiedMessage);
 

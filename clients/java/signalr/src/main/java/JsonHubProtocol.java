@@ -31,18 +31,18 @@ public class JsonHubProtocol implements HubProtocol {
 
     @Override
     public InvocationMessage[] parseMessages(String payload) {
-
         String[] messages = payload.split(RECORD_SEPARATOR);
         List<InvocationMessage> invocationMessages = new ArrayList<>();
-        // Empty handshake response "{}". We can ignore it
-        for (String splitMessage: messages) {
+        for (String splitMessage : messages) {
+
+            // Empty handshake response "{}". We can ignore it
             if (splitMessage.equals("{}")) {
                 continue;
             }
 
             JsonObject jsonMessage = jsonParser.parse(splitMessage).getAsJsonObject();
             String messageType = jsonMessage.get("type").toString();
-            switch(messageType) {
+            switch (messageType) {
                 case "1":
                     //Invocation Message
                     String target = jsonMessage.get("target").getAsString();
