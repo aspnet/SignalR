@@ -43,6 +43,43 @@ public class JsonHubProtocolTest {
         JsonArray messageResult = (JsonArray) message.arguments[0];
         assertEquals(42, messageResult.getAsInt());
     }
+
+    @Test
+    public void ParseHandshakeResponsePlusMessage(){
+        String twoMessages = "{}\u001E{\"type\":1,\"target\":\"test\",\"arguments\":[42]}\u001E";
+        InvocationMessage[] messages = jsonHubProtocol.parseMessages(twoMessages);
+
+        //We ignore the Handshake response for now
+        InvocationMessage message = messages[0];
+        assertEquals("test", message.target);
+        assertEquals(null, message.invocationId);
+        assertEquals(1, message.type);
+        JsonArray messageResult = (JsonArray) message.arguments[0];
+        assertEquals(42, messageResult.getAsInt());
+    }
+
+    @Test
+    public void ParseTwoMessages(){
+        String twoMessages = "{\"type\":1,\"target\":\"one\",\"arguments\":[42]}\u001E{\"type\":1,\"target\":\"two\",\"arguments\":[43]}\u001E";
+        InvocationMessage[] messages = jsonHubProtocol.parseMessages(twoMessages);
+        assertEquals(2, messages.length);
+
+        // Check the first message
+        InvocationMessage message = messages[0];
+        assertEquals("one", message.target);
+        assertEquals(null, message.invocationId);
+        assertEquals(1, message.type);
+        JsonArray messageResult = (JsonArray) message.arguments[0];
+        assertEquals(42, messageResult.getAsInt());
+
+        // Check the second message
+        InvocationMessage secondMessage = messages[1];
+        assertEquals("two", secondMessage.target);
+        assertEquals(null, secondMessage.invocationId);
+        assertEquals(1, secondMessage.type);
+        JsonArray secondMessageResult = (JsonArray) secondMessage.arguments[0];
+        assertEquals(43, secondMessageResult.getAsInt());
+    }
 }
 
 /*
