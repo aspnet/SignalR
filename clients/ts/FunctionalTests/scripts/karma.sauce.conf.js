@@ -1,3 +1,4 @@
+try {
 // Karma configuration for a SauceLabs-based CI run.
 const createKarmaConfig = require("./karma.base.conf");
 
@@ -66,3 +67,6 @@ module.exports = createKarmaConfig({
         }
     },
 });
+} catch (e) {
+    console.error(e);
+}
