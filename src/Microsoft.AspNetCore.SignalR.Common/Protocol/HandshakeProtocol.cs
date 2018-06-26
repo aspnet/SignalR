@@ -43,8 +43,8 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                 try
                 {
                     WriteResponseMessage(new HandshakeResponseMessage(protocol.GetMinorVersion()), memoryBufferWriter);
-                    _messageCache.TryAdd(protocol, memoryBufferWriter.ToArray());
-                    result = (ReadOnlyMemory<byte>)memoryBufferWriter.ToArray();
+                    result = memoryBufferWriter.ToArray();
+                    _messageCache.TryAdd(protocol, result);
                 }
                 finally
                 {

@@ -37,6 +37,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         /// <inheritdoc />
         public int Version => ProtocolVersion;
 
+        /// <inheritdoc />
         public int MinorVersion => ProtocolMinorVersion;
 
         /// <inheritdoc />
