@@ -47,8 +47,8 @@ public class HubConnection {
         connected = false;
     }
 
-    public void send(String method, Object arg1) {
-        InvocationMessage invocationMessage = new InvocationMessage(method, new Object[]{ arg1 });
+    public void send(String method, Object...args) {
+        InvocationMessage invocationMessage = new InvocationMessage(method, args);
         String message = protocol.writeMessage(invocationMessage);
         _transport.send(message);
     }

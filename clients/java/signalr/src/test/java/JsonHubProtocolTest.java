@@ -1,5 +1,4 @@
 import com.google.gson.JsonArray;
-import org.junit.Assert;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -80,12 +79,19 @@ public class JsonHubProtocolTest {
         JsonArray secondMessageResult = (JsonArray) secondMessage.arguments[0];
         assertEquals(43, secondMessageResult.getAsInt());
     }
-}
 
-/*
-*     String getName();
-    int getVersion();
-    TransferFormat getTransferFormat();
-    InvocationMessage[] parseMessages(String message);
-    String writeMessage(InvocationMessage message);
-* */
+    @Test
+    public void ParseSingleMessageMutipleArgs(){
+        String stringifiedMessage = "{\"type\":1,\"target\":\"test\",\"arguments\":[42, 24]}\u001E";
+        InvocationMessage[] messages = jsonHubProtocol.parseMessages(stringifiedMessage);
+
+        //We know it's only one message
+        InvocationMessage message = messages[0];
+        assertEquals("test", message.target);
+        assertEquals(null, message.invocationId);
+        assertEquals(1, message.type);
+        JsonArray messageResult = ((JsonArray) message.arguments[0]);
+        assertEquals(42, messageResult.get(0).getAsInt());
+        assertEquals(24, messageResult.get(1).getAsInt());
+    }
+}
