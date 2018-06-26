@@ -34,7 +34,6 @@ public class JsonHubProtocol implements HubProtocol {
         String[] messages = payload.split(RECORD_SEPARATOR);
         List<InvocationMessage> invocationMessages = new ArrayList<>();
         for (String splitMessage : messages) {
-
             // Empty handshake response "{}". We can ignore it
             if (splitMessage.equals("{}")) {
                 continue;
