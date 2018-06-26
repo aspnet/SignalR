@@ -73,9 +73,9 @@ namespace ClientSample
             // we can call the boy from here, since there's no need to wait on ~"completion"~
             await connection.SendAsync("LocalSum", numbers.Reader);
 
-            _ = WriteStreamAsync(new[] { 1, 2, 3 }, numbers.Writer);
+            _ = WriteStreamAsync(new[] { 37, 2, 3 }, numbers.Writer);
 
-            await Task.Delay(300000);
+            await Task.Delay(3000);
             // the server will "Debug.WriteLine"
         }
 

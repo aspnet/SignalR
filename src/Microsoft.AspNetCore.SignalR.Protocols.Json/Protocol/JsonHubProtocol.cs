@@ -711,10 +711,9 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
 
                         if (paramTypes[paramIndex].IsGenericType && paramTypes[paramIndex].GetGenericTypeDefinition() == typeof(ChannelReader<>))
                         {
-                            var rawString = (string)PayloadSerializer.Deserialize(reader, typeof(string));
                             arguments[paramIndex] = new ChannelPlaceholder(
                                 paramTypes[paramIndex].GetGenericArguments()[0],
-                                Guid.Parse(rawString));
+                                (string)PayloadSerializer.Deserialize(reader, typeof(string)));
                         }
                         else
                         {

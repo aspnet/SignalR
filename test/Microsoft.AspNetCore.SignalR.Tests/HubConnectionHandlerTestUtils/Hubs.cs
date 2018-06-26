@@ -199,14 +199,14 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             return results;
         }
 
-        public async Task<bool> TestTypeCastingErrors(ChannelReader<int> source)
+        public async Task<string> TestTypeCastingErrors(ChannelReader<int> source)
         {
             // TODO -- Smarter Exceptions, new exception types.
             // Currently, when there's a problem casting JSON,
             // it ends up taking the full error message from the custom converter,
             // and putting the whole error text + stack trace in as the message field in a default message.
             //
-            // This is bad.
+            // This is confusing.
             // An end user would want to see something like 
             //     `could not cast "qwer" to an integer`
             //     `make sure method signatures match from server and client`
@@ -215,13 +215,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 await source.WaitToReadAsync();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return true;
+                Console.WriteLine(ex.ToString());
+                return "error identified and caught";
             }
 
-            return false;
-
+            return "wrong type accepted, this is bad";
         }
 
         public async Task<bool> TestCustomErrorPassing(ChannelReader<int> source)
