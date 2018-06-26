@@ -6,10 +6,10 @@ import java.util.HashMap;
 
 public class HubConnection {
     private String _url;
-    private ITransport _transport;
+    private Transport _transport;
     private OnReceiveCallBack callback;
     private HashMap<String, Action> handlers = new HashMap<>();
-    private IHubProtocol protocol;
+    private HubProtocol protocol;
 
     public Boolean connected = false;
 

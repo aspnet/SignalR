@@ -8,7 +8,7 @@ import org.java_websocket.handshake.ServerHandshake;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-public class WebSocketTransport implements ITransport {
+public class WebSocketTransport implements Transport {
     private static final String RECORD_SEPARATOR = "\u001e";
     private WebSocketClient _webSocket;
     private OnReceiveCallBack onReceiveCallBack;

@@ -7,23 +7,25 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import java.util.ArrayList;
+import java.util.List;
 
-public class JsonHubProtocol implements IHubProtocol{
-    private JsonParser jsonParser = new JsonParser();
+public class JsonHubProtocol implements HubProtocol {
+    private final JsonParser jsonParser = new JsonParser();
+    private final Gson gson = new Gson();
     private static final String RECORD_SEPARATOR = "\u001e";
 
     @Override
-    public String name() {
+    public String getName() {
         return "json";
     }
 
     @Override
-    public int version() {
+    public int getVersion() {
         return 1;
     }
 
     @Override
-    public TransferFormat transferFormat() {
+    public TransferFormat getTransferFormat() {
         return TransferFormat.Text;
     }
 
@@ -31,10 +33,10 @@ public class JsonHubProtocol implements IHubProtocol{
     public InvocationMessage[] parseMessages(String payload) {
 
         String[] messages = payload.split(RECORD_SEPARATOR);
-        ArrayList<InvocationMessage> invocationMessages = new ArrayList<>();
+        List<InvocationMessage> invocationMessages = new ArrayList<>();
         // Empty handshake response "{}". We can ignore it
         for (String splitMessage: messages) {
-            if (splitMessage.length() == 2) {
+            if (splitMessage.equals("{}")) {
                 continue;
             }
 
@@ -73,14 +75,11 @@ public class JsonHubProtocol implements IHubProtocol{
                     break;
             }
         }
-        InvocationMessage[] copiedMessages = new InvocationMessage[invocationMessages.size()];
-        invocationMessages.toArray(copiedMessages);
-        return copiedMessages;
+        return invocationMessages.toArray(new InvocationMessage[invocationMessages.size()]);
     }
 
     @Override
     public String writeMessage(InvocationMessage invocationMessage) {
-        Gson gson = new Gson();
         return gson.toJson(invocationMessage) + RECORD_SEPARATOR;
     }
 }
