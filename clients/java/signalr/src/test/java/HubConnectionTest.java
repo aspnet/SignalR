@@ -24,7 +24,7 @@ public class HubConnectionTest {
         Transport mockTransport = new MockEchoTransport();
         HubConnection hubConnection = new HubConnection("placeholder", mockTransport);
 
-        Action callback = (param)-> {
+        Action callback = (param) -> {
             assertEquals(0, obj.counter);
             obj.incrementCounter();
         };
@@ -41,9 +41,9 @@ public class HubConnectionTest {
     public void SendWithParamTriggersOnHandler() throws InterruptedException {
         TestObject obj = new TestObject();
         Transport mockTransport = new MockEchoTransport();
-        HubConnection hubConnection = new HubConnection("placeholder", mockTransport);
+        HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
 
-        Action callback = (param)-> {
+        Action callback = (param) -> {
             assertNull(obj.message);
             String message = ((JsonArray) param).get(0).getAsString();
             obj.message = message;
@@ -57,11 +57,11 @@ public class HubConnectionTest {
         assertEquals("Hello World", obj.message);
     }
 
-    private class MockEchoTransport implements Transport{
+    private class MockEchoTransport implements Transport {
         private OnReceiveCallBack onReceiveCallBack;
 
         @Override
-        public void start() throws InterruptedException {return;}
+        public void start() throws InterruptedException {}
 
         @Override
         public void send(String message) {

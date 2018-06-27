@@ -35,8 +35,7 @@ public class HubConnection {
             } catch (URISyntaxException e) {
                 e.printStackTrace();
             }
-        }
-        else {
+        } else {
             this.transport = transport;
         }
     }
