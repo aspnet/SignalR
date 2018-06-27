@@ -219,10 +219,18 @@ namespace Microsoft.AspNetCore.SignalR
                 }
                 finally
                 {
-                    // The buffer was sliced up to where it was consumed, so we can just advance to the start.
-                    // We mark examined as buffer.End so that if we didn't receive a full frame, we'll wait for more data
-                    // before yielding the read again.
-                    input.AdvanceTo(buffer.Start, buffer.End);
+                    try
+                    {
+                        // The buffer was sliced up to where it was consumed, so we can just advance to the start.
+                        // We mark examined as buffer.End so that if we didn't receive a full frame, we'll wait for more data
+                        // before yielding the read again.
+                        input.AdvanceTo(buffer.Start, buffer.End);
+                    }
+                    catch (InvalidOperationException ex) when (ex.Message.Contains("deadlock"))
+                    {
+                        // System.InvalidOperationException: Advancing examined to the end would cause pipe to deadlock because FlushAsync is waiting.
+                        throw new InvalidOperationException($"Message exceeded the maximum buffer size, buffer reached {buffer.Length} bytes.");
+                    }
                 }
             }
         }
