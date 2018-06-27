@@ -36,12 +36,13 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             }
 
             var docker = new Docker(location);
+            Console.WriteLine($"docker locations: {location}");
 
             // Windows docker must have Linux containers turned on, if they don't skip the docker tests
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            //if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 docker.RunCommand("info --format '{{.OSType}}'", out var output);
-
+                Console.WriteLine(output);
                 if (!string.Equals(output, "linux"))
                 {
                     return null;
