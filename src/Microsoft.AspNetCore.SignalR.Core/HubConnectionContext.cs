@@ -7,9 +7,12 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO.Pipelines;
+using System.Linq;
+using System.Reflection;
 using System.Runtime.ExceptionServices;
 using System.Security.Claims;
 using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Connections.Features;
@@ -22,6 +25,7 @@ namespace Microsoft.AspNetCore.SignalR
 {
     public class HubConnectionContext
     {
+        internal readonly ChannelStore _channelStore = new ChannelStore();
         private static readonly WaitCallback _abortedCallback = AbortConnection;
 
         private readonly ConnectionContext _connectionContext;
@@ -530,6 +534,83 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 _abortFailed(logger, exception);
             }
+        }
+    }
+
+    internal class ChannelStore
+    {
+        private readonly MethodInfo _buildConverterMethod = typeof(ChannelStore).GetMethods().Single(m => m.Name.Equals("BuildStream"));
+        public Dictionary<string, IChannelConverter> Lookup = new Dictionary<string, IChannelConverter>();
+
+        public void AddStream(ChannelPlaceholder placeholder)
+        {
+            var id = placeholder.ChannelId.ToString();
+            Lookup[id] = (IChannelConverter)_buildConverterMethod.MakeGenericMethod(placeholder.ItemType).Invoke(null, Array.Empty<object>());
+        }
+
+        public async Task ProcessItem(StreamItemMessage message)
+        {
+            await Lookup[message.InvocationId].WriteToChannel(message.Item);
+        }
+
+        public void Complete(ChannelCompleteMessage message)
+        {
+            if (!Lookup.TryGetValue(message.InvocationId, out var value))
+            {
+                // TODO
+                // LOG: DEBUG: "can't find invocationId <42>, ignoring message"
+                throw new Exception("INVALID CHANNEL ID ON CANCEL");
+                //return;
+            }
+            var ConverterToClose = Lookup[message.InvocationId];
+            Lookup.Remove(message.InvocationId);
+            ConverterToClose.TryComplete(message.HasError ? new Exception(message.Error) : null);
+        }
+
+        public static IChannelConverter BuildStream<T>()
+        {
+            return new ChannelConverter<T>();
+        }
+    }
+
+    internal interface IChannelConverter
+    {
+        Type GetReturnType();
+        object ReaderAsObject();
+        Task WriteToChannel(object item);
+        void TryComplete(Exception ex);
+    }
+
+    internal class ChannelConverter<T> : IChannelConverter
+    {
+        private static readonly MethodInfo _createUnboundedMethod = typeof(Channel).GetMethod("CreateUnbounded", BindingFlags.Public | BindingFlags.Static, Type.DefaultBinder, Type.EmptyTypes, Array.Empty<ParameterModifier>());
+
+        private Channel<T> _channel;
+
+        public ChannelConverter()
+        {
+            _channel = (Channel<T>)_createUnboundedMethod
+                .MakeGenericMethod(typeof(T))
+                .Invoke(null, Array.Empty<object>());
+        }
+
+        public Type GetReturnType()
+        {
+            return typeof(T);
+        }
+        public object ReaderAsObject()
+        {
+            return _channel.Reader;
+        }
+
+        public async Task WriteToChannel(object o)
+        {
+            await _channel.Writer.WriteAsync((T)o);
+        }
+
+        public void TryComplete(Exception ex)
+        {
+            _channel.Writer.TryComplete(ex);
         }
     }
 }

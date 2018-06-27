@@ -1315,6 +1315,11 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 return irq.ResultType;
             }
 
+            Type IInvocationBinder.GetStreamItemType(string channelId)
+            {
+                throw new NotImplementedException();
+            }
+
             IReadOnlyList<Type> IInvocationBinder.GetParameterTypes(string methodName)
             {
                 if (!_hubConnection._handlers.TryGetValue(methodName, out var invocationHandlerList))

@@ -146,15 +146,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             }
 
         }
-        public override IReadOnlyList<Type> GetParameterTypes(string methodName)
-        {
-            if (!_methods.TryGetValue(methodName, out var descriptor))
-            {
-                return Type.EmptyTypes;
-            }
-            return descriptor.ParameterTypes;
-        }
-
         private async Task ProcessStreamItem(HubConnectionContext connection, StreamItemMessage message)
         {
             Debug.WriteLine($"item: id={message.InvocationId} data={message.Item}");
@@ -503,18 +494,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
                 Log.HubMethodBound(_logger, hubName, methodName);
             }
-        }
-
-        public override Type GetReturnType(string invocationId)
-        {
-            if (_channelStore.Lookup.TryGetValue(invocationId, out var value))
-            {
-                return value.GetReturnType();
-            }
-
-            // TODO
-            // LOG: DEBUG: stream item id could not be found, ignoring
-            return null;
         }
     }
 
