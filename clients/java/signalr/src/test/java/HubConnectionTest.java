@@ -10,7 +10,7 @@ public class HubConnectionTest {
     @Test
     public void checkHubConnectionState() throws InterruptedException {
         Transport mockTransport = new MockEchoTransport();
-        HubConnection hubConnection = new HubConnection("test", mockTransport);
+        HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
             hubConnection.start();
             assertTrue(hubConnection.connected);
 
@@ -22,7 +22,7 @@ public class HubConnectionTest {
     public void SendWithNoParamsTriggersOnHandler() throws InterruptedException {
         TestObject obj = new TestObject();
         Transport mockTransport = new MockEchoTransport();
-        HubConnection hubConnection = new HubConnection("placeholder", mockTransport);
+        HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
 
         Action callback = (param) -> {
             assertEquals(0, obj.counter);
@@ -33,7 +33,7 @@ public class HubConnectionTest {
         hubConnection.start();
         hubConnection.send("inc");
 
-        // Confirming that our handlers was called and that the counter property was incremented.
+        // Confirming that our handler was called and that the counter property was incremented.
         assertEquals(1, obj.counter);
     }
 
