@@ -11,11 +11,11 @@ public class HubConnectionTest {
     public void checkHubConnectionState() throws InterruptedException {
         Transport mockTransport = new MockEchoTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
-            hubConnection.start();
-            assertTrue(hubConnection.connected);
+        hubConnection.start();
+        assertTrue(hubConnection.connected);
 
-            hubConnection.stop();
-            assertFalse(hubConnection.connected);
+        hubConnection.stop();
+        assertFalse(hubConnection.connected);
     }
 
     @Test
@@ -61,7 +61,7 @@ public class HubConnectionTest {
         private OnReceiveCallBack onReceiveCallBack;
 
         @Override
-        public void start() throws InterruptedException {}
+        public void start() {}
 
         @Override
         public void send(String message) {
