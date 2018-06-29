@@ -21,8 +21,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 {
     public partial class DefaultHubDispatcher<THub> : HubDispatcher<THub> where THub : Hub
     {
-        private readonly ChannelStore _channelStore = new ChannelStore();
-
         private readonly Dictionary<string, HubMethodDescriptor> _methods = new Dictionary<string, HubMethodDescriptor>(StringComparer.OrdinalIgnoreCase);
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly IHubContext<THub> _hubContext;
@@ -134,7 +132,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             if (bindingFailureMessage.StreamingUpload)
             {
                 var message = new ChannelCompleteMessage(bindingFailureMessage.InvocationId, bindingFailureMessage.BindingFailure.SourceException.ToString());
-                _channelStore.Complete(message);
+                connection._channelStore.Complete(message);
 
                 return Task.CompletedTask;
             }
@@ -149,14 +147,14 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         private async Task ProcessStreamItem(HubConnectionContext connection, StreamItemMessage message)
         {
             Debug.WriteLine($"item: id={message.InvocationId} data={message.Item}");
-            await _channelStore.ProcessItem(message);
+            await connection._channelStore.ProcessItem(message);
         }
 
         private void ProcessStreamComplete(HubConnectionContext connection, ChannelCompleteMessage message)
         {
             // closes channels, removes from Lookup dict
             // user's method can see the channel is complete and begin wrapping up
-            _channelStore.Complete(message);
+            connection._channelStore.Complete(message);
         }
 
         private Task ProcessInvocation(HubConnectionContext connection,
@@ -226,8 +224,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                                 continue;
                             }
 
-                            _channelStore.AddStream(placeholder);
-                            args[i] = _channelStore.Lookup[placeholder.ChannelId.ToString()].ReaderAsObject();
+                            args[i] = connection._channelStore.NewStream(placeholder);
                         }
 
                         if (string.IsNullOrEmpty(hubMethodInvocationMessage.InvocationId))
@@ -494,6 +491,15 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
                 Log.HubMethodBound(_logger, hubName, methodName);
             }
+        }
+
+        public override IReadOnlyList<Type> GetParameterTypes(string methodName)
+        {
+            if (!_methods.TryGetValue(methodName, out var descriptor))
+            {
+                return Type.EmptyTypes;
+            }
+            return descriptor.ParameterTypes;
         }
     }
 }

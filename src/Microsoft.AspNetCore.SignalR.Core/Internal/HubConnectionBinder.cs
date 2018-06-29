@@ -20,17 +20,17 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         public IReadOnlyList<Type> GetParameterTypes(string methodName)
         {
-            throw new NotImplementedException();
+            return _dispatcher.GetParameterTypes(methodName);
         }
 
         public Type GetReturnType(string invocationId)
         {
-            throw new NotImplementedException();
+            return GetStreamItemType(invocationId);
         }
 
-        public Type GetStreamItemType(string channelId)
+        public Type GetStreamItemType(string streamId)
         {
-            throw new NotImplementedException();
+            return _connection._channelStore.Lookup[streamId].GetReturnType();
         }
     }
 }

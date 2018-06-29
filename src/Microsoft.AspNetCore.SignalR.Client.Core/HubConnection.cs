@@ -1317,7 +1317,14 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             Type IInvocationBinder.GetStreamItemType(string channelId)
             {
-                throw new NotImplementedException();
+                // previously, streaming was only server->client, and used GetReturnType for StreamItems
+                // literally the same code as the above method
+                if (!TryGetInvocation(channelId, out var irq))
+                {
+                    Log.ReceivedUnexpectedResponse(_hubConnection._logger, channelId);
+                    return null;
+                }
+                return irq.ResultType;
             }
 
             IReadOnlyList<Type> IInvocationBinder.GetParameterTypes(string methodName)

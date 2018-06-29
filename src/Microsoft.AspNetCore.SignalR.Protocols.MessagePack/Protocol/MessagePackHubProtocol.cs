@@ -199,7 +199,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         {
             var headers = ReadHeaders(input, ref offset);
             var invocationId = ReadInvocationId(input, ref offset);
-            var itemType = binder.GetReturnType(invocationId);
+            var itemType = binder.GetStreamItemType(invocationId);
             var value = DeserializeObject(input, ref offset, itemType, "item", resolver);
             return ApplyHeaders(headers, new StreamItemMessage(invocationId, value));
         }

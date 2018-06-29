@@ -298,6 +298,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 }
             }
         }
+
         private class DefaultInvocationBinder : IInvocationBinder
         {
             public IReadOnlyList<Type> GetParameterTypes(string methodName)
@@ -309,6 +310,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             public Type GetReturnType(string invocationId)
             {
                 return typeof(object);
+            }
+
+            public Type GetStreamItemType(string streamId)
+            {
+                throw new NotImplementedException();
             }
         }
     }

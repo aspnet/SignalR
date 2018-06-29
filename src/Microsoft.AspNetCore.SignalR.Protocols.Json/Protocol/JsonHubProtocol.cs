@@ -206,7 +206,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                                             break;
                                         }
 
-                                        var itemType = binder.GetReturnType(invocationId);
+                                        var itemType = binder.GetStreamItemType(invocationId);
                                         if (itemType == null)
                                         {
                                             // if there's no matching id for this message, just ignore it

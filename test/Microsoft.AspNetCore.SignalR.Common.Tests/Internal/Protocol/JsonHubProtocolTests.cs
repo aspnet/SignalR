@@ -106,6 +106,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             new JsonProtocolTestData("StreamInvocationMessage_IntegerArrayArgumentFirst", new StreamInvocationMessage("3", "Method", new object[] { 1, 2 }), false, NullValueHandling.Ignore, "{ \"type\":4, \"arguments\": [1,2], \"target\": \"Method\", \"invocationId\": \"3\" }"),
             new JsonProtocolTestData("CompletionMessage_ResultFirst", new CompletionMessage("15", null, 10, hasResult: true), false, NullValueHandling.Ignore, "{ \"type\":3, \"result\": 10, \"invocationId\": \"15\" }"),
             new JsonProtocolTestData("StreamItemMessage_ItemFirst", new StreamItemMessage("1a", "foo"), false, NullValueHandling.Ignore, "{ \"item\": \"foo\", \"invocationId\": \"1a\", \"type\":2 }")
+
         }.ToDictionary(t => t.Name);
 
         public static IEnumerable<object[]> OutOfOrderJsonTestDataNames => OutOfOrderJsonTestData.Keys.Select(name => new object[] { name });

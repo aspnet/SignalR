@@ -1437,7 +1437,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
             var connectionHandler = serviceProvider.GetService<HubConnectionHandler<StreamingHub>>();
             var invocationBinder = new Mock<IInvocationBinder>();
-            invocationBinder.Setup(b => b.GetReturnType(It.IsAny<string>())).Returns(typeof(string));
+            invocationBinder.Setup(b => b.GetStreamItemType(It.IsAny<string>())).Returns(typeof(string));
 
             using (var client = new TestClient(protocol: protocol, invocationBinder: invocationBinder.Object))
             {
@@ -2440,49 +2440,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 Assert.True((bool)response.Result);
             }
         }
-
-        [Fact]
-        public async Task StreamUploadInvocationWithIdAfter()
-        {
-            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
-            var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
-
-            using (var client = new TestClient())
-            {
-                var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
-
-                await client.BeginUploadStreamAsync("invocation", nameof(MethodHub.StreamingSum), "id");
-
-                // a valid StreamItem for reference
-                // var payload = new ReadOnlyMemory<byte>(Encoding.ASCII.GetBytes(
-                //    "{\"type\":2,\"invocationId\":\"id\",\"item\":1}\x1e"));
-
-                var orderings = new[]
-                {
-                    "{\"item\": 1, \"type\": 2, \"invocationId\": \"id\"}\x1e",
-                    "{\"item\": 1, \"invocationId\": \"id\", \"type\": 2}\x1e",
-                    "{\"type\": 2, \"item\": 1, \"invocationId\": \"id\"}\x1e",
-                    "{\"type\": 2, \"invocationId\": \"id\", \"item\": 1}\x1e",
-                    "{\"invocationId\": \"id\", \"item\": 1, \"type\": 2}\x1e",
-                    "{\"invocationId\": \"id\", \"type\": 2, \"item\": 1}\x1e",
-                };
-
-                foreach (var rawjson in orderings)
-                {
-                    var payload = new ReadOnlyMemory<byte>(Encoding.ASCII.GetBytes(
-                        "{\"item\":1,\"type\":2,\"invocationId\":\"id\"}\x1e"));
-
-                    await client.Connection.Application.Output.WriteAsync(payload);
-                }
-
-                await client.SendHubMessageAsync(new ChannelCompleteMessage("id"));
-                var response = (CompletionMessage)await client.ReadAsync();
-
-                // make sure 6 items got through
-                Assert.Equal(6L, response.Result);
-            }
-        }
-
         private class CustomHubActivator<THub> : IHubActivator<THub> where THub : Hub
         {
             public int ReleaseCount;
