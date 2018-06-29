@@ -29,7 +29,7 @@ public class HubConnectionTest {
 
         Action callback = (param) -> {
             assertEquals(0, value.get());
-            value.set(value.incrementAndGet());
+            value.incrementAndGet();
         };
         hubConnection.On("inc", callback);
 
