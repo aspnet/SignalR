@@ -27,7 +27,6 @@ public class ActionBase {
     public <T1> ActionBase(Action1<T1> action, Class<T1> type1){
         this.action1 = action;
         this.type1 = type1;
-
     }
 
     public <T1, T2> ActionBase(Action2<T1, T2> action, Class<T1> type1, Class<T2> type2){
@@ -64,28 +63,29 @@ public class ActionBase {
             this.action.invoke();
             return;
         }
+
         // At this point we know we have params sos we initialize an array to store the types to deserialize.
-        ArrayList<Object> t = gson.fromJson((JsonArray)args[0], (new ArrayList<Object>()).getClass());
+        ArrayList<Object> types = gson.fromJson((JsonArray)args[0], (new ArrayList<Object>()).getClass());
         if(action1 != null){
-            action1.invoke(this.type1.cast(t.get(0)));
+            action1.invoke(this.type1.cast(types.get(0)));
             return;
         }
         if(action2 !=null){
-            action2.invoke(this.type1.cast(t.get(0)), this.type2.cast(t.get(1)));
+            action2.invoke(this.type1.cast(types.get(0)), this.type2.cast(types.get(1)));
             return;
         }
         if(action3 !=null){
-            action3.invoke(this.type1.cast(t.get(0)), this.type2.cast(t.get(1)), this.type3.cast(t.get(2)));
+            action3.invoke(this.type1.cast(types.get(0)), this.type2.cast(types.get(1)), this.type3.cast(types.get(2)));
             return;
         }
         if(action4 !=null){
-            action4.invoke(this.type1.cast(t.get(0)), this.type2.cast(t.get(1)), this.type3.cast(t.get(2)),this.type4
-                    .cast(t.get(3)));
+            action4.invoke(this.type1.cast(types.get(0)), this.type2.cast(types.get(1)), this.type3.cast(types.get(2)),this.type4
+                    .cast(types.get(3)));
             return;
         }
         if(action5 !=null){
-            action5.invoke(this.type1.cast(t.get(0)), this.type2.cast(t.get(1)), this.type3.cast(t.get(2)),this.type4
-                    .cast(t.get(3)), this.type5.cast(t.get(4)));
+            action5.invoke(this.type1.cast(types.get(0)), this.type2.cast(types.get(1)), this.type3.cast(types.get(2)),this.type4
+                    .cast(types.get(3)), this.type5.cast(types.get(4)));
             return;
         }
     }
