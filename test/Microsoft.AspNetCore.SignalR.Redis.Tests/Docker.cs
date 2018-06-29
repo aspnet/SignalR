@@ -109,7 +109,6 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             {
                 throw new Exception($"Command '{fileName} {arguments}' failed with exit code '{exitCode}'. Output:{Environment.NewLine}{output}");
             }
-            Console.WriteLine($"docker output: {output}");
         }
 
         private static int RunProcess(string fileName, string arguments, ILogger logger, TimeSpan timeout, out string output)
@@ -156,6 +155,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             process.WaitForExit();
 
             output = string.Join(Environment.NewLine, lines);
+
+            Console.WriteLine($"docker output: {output}");
 
             return exitCode;
         }
