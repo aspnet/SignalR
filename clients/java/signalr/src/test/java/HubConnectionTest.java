@@ -81,6 +81,102 @@ public class HubConnectionTest {
         assertEquals(12, value2.get(), 0);
     }
 
+    @Test
+    public void SendWithThreeParamsTriggersOnHandler() throws Exception {
+        AtomicReference<String> value1 = new AtomicReference<>();
+        AtomicReference<String> value2 = new AtomicReference<>();
+        AtomicReference<String> value3 = new AtomicReference<>();
+
+        Transport mockTransport = new MockEchoTransport();
+        HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
+
+        hubConnection.On("inc", (param1, param2, param3) ->{
+            assertNull(value1.get());
+            assertNull(value2.get());
+            assertNull(value3.get());
+
+            value1.set(param1);
+            value2.set(param2);
+            value3.set(param3);
+        }, String.class, String.class, String.class);
+
+        hubConnection.start();
+        hubConnection.send("inc", "A", "B", "C");
+
+        // Confirming that our handler was called and the correct message was passed in.
+        assertEquals("A", value1.get());
+        assertEquals("B", value2.get());
+        assertEquals("C", value3.get());
+    }
+
+    @Test
+    public void SendWithFourParamsTriggersOnHandler() throws Exception {
+        AtomicReference<String> value1 = new AtomicReference<>();
+        AtomicReference<String> value2 = new AtomicReference<>();
+        AtomicReference<String> value3 = new AtomicReference<>();
+        AtomicReference<String> value4 = new AtomicReference<>();
+
+        Transport mockTransport = new MockEchoTransport();
+        HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
+
+        hubConnection.On("inc", (param1, param2, param3, param4) ->{
+            assertNull(value1.get());
+            assertNull(value2.get());
+            assertNull(value3.get());
+            assertNull(value4.get());
+
+            value1.set(param1);
+            value2.set(param2);
+            value3.set(param3);
+            value4.set(param4);
+        }, String.class, String.class, String.class, String.class);
+
+        hubConnection.start();
+        hubConnection.send("inc", "A", "B", "C", "D");
+
+        // Confirming that our handler was called and the correct message was passed in.
+        assertEquals("A", value1.get());
+        assertEquals("B", value2.get());
+        assertEquals("C", value3.get());
+        assertEquals("D", value4.get());
+    }
+
+    @Test
+    public void SendWithFiveParamsTriggersOnHandler() throws Exception {
+        AtomicReference<String> value1 = new AtomicReference<>();
+        AtomicReference<String> value2 = new AtomicReference<>();
+        AtomicReference<String> value3 = new AtomicReference<>();
+        AtomicReference<Boolean> value4 = new AtomicReference<>();
+        AtomicReference<Double> value5 = new AtomicReference<>();
+
+        Transport mockTransport = new MockEchoTransport();
+        HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
+
+        hubConnection.On("inc", (param1, param2, param3, param4, param5) ->{
+            assertNull(value1.get());
+            assertNull(value2.get());
+            assertNull(value3.get());
+            assertNull(value4.get());
+            assertNull(value5.get());
+
+            value1.set(param1);
+            value2.set(param2);
+            value3.set(param3);
+            value4.set(param4);
+            value5.set(param5);
+        }, String.class, String.class, String.class, Boolean.class, Double.class);
+
+        hubConnection.start();
+        hubConnection.send("inc", "A", "B", "C", true, 12.0);
+
+        // Confirming that our handler was called and the correct message was passed in.
+        assertEquals("A", value1.get());
+        assertEquals("B", value2.get());
+        assertEquals("C", value3.get());
+        assertTrue(value4.get());
+        assertEquals(12, value5.get(), 0);
+    }
+
     private class MockEchoTransport implements Transport {
         private OnReceiveCallBack onReceiveCallBack;
 
