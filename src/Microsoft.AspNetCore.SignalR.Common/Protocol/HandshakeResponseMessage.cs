@@ -46,6 +46,5 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             MinorVersion = minorVersion ?? 0;
             Error = error;
         }
-
     }
 }

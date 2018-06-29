@@ -31,10 +31,9 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         }
 
         /// <summary>
-        /// Gets the minor version for an <see cref="IHubProtocol"/>.
-        /// Defaults to 0 if the protocol does not specify a minor version.
+        /// The minor protocol version. Defaults to 0 if the protocol does not specify a minor version.
         /// </summary>
-        /// <param name="protocol"></param>
+        /// <param name="protocol">The protocol.</param>
         /// <returns></returns>
         public static int GetMinorVersion(this IHubProtocol protocol)
         {

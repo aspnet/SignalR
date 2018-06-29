@@ -4,9 +4,8 @@
 using System;
 using System.Buffers;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
+using System.Text;
 using Microsoft.AspNetCore.Internal;
 using Microsoft.AspNetCore.SignalR.Internal;
 using Newtonsoft.Json;
@@ -25,18 +24,16 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         private const string TypePropertyName = "type";
 
         /// <summary>
-        /// Previously used to cache the errorless return message.
-        /// Now, return messages need a minor version number, so multiple are cached in a dictionary.
+        /// The serialized representation of a successful handshake with no minor version value.
         /// </summary>
-        [Obsolete("A successful handshake should include a minor version, but the value here does not.")]
-        public static ReadOnlyMemory<byte> SuccessHandshakeData = new byte[] { 123, 34, 109, 105, 110, 111, 114, 86, 101, 114, 115, 105, 111, 110, 34, 58, 48, 125, 30 }; 
+        [Obsolete("A successful handshake should include a minor version, but the value here defaults to 0.")]
+        public static ReadOnlyMemory<byte> SuccessHandshakeData = Encoding.UTF8.GetBytes("{\"minorVersion\":0}"); 
 
         private static ConcurrentDictionary<IHubProtocol, ReadOnlyMemory<byte>> _messageCache = new ConcurrentDictionary<IHubProtocol, ReadOnlyMemory<byte>>();
 
         public static ReadOnlySpan<byte> GetSuccessfulHandshake(IHubProtocol protocol)
         {
             ReadOnlyMemory<byte> result;
-
             if(!_messageCache.TryGetValue(protocol, out result))
             {
                 var memoryBufferWriter = MemoryBufferWriter.Get();
