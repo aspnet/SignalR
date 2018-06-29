@@ -4,6 +4,9 @@
 import com.google.gson.JsonArray;
 import org.junit.Test;
 
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+
 import static org.junit.Assert.*;
 
 public class HubConnectionTest {
@@ -20,13 +23,13 @@ public class HubConnectionTest {
 
     @Test
     public void SendWithNoParamsTriggersOnHandler() throws InterruptedException {
-        TestObject obj = new TestObject();
+        AtomicInteger value = new AtomicInteger(0);
         Transport mockTransport = new MockEchoTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
 
         Action callback = (param) -> {
-            assertEquals(0, obj.counter);
-            obj.incrementCounter();
+            assertEquals(0, value.get());
+            value.set(value.incrementAndGet());
         };
         hubConnection.On("inc", callback);
 
@@ -34,19 +37,18 @@ public class HubConnectionTest {
         hubConnection.send("inc");
 
         // Confirming that our handler was called and that the counter property was incremented.
-        assertEquals(1, obj.counter);
+        assertEquals(1, value.get());
     }
 
     @Test
     public void SendWithParamTriggersOnHandler() throws InterruptedException {
-        TestObject obj = new TestObject();
+        AtomicReference<String> value = new AtomicReference<>();
         Transport mockTransport = new MockEchoTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
 
         Action callback = (param) -> {
-            assertNull(obj.message);
-            String message = ((JsonArray) param).get(0).getAsString();
-            obj.message = message;
+            assertNull(value.get());
+            value.set(((JsonArray) param).get(0).getAsString());
         };
         hubConnection.On("inc", callback);
 
@@ -54,7 +56,7 @@ public class HubConnectionTest {
         hubConnection.send("inc", "Hello World");
 
         // Confirming that our handler was called and the correct message was passed in.
-        assertEquals("Hello World", obj.message);
+        assertEquals("Hello World", value.get());
     }
 
     private class MockEchoTransport implements Transport {
@@ -80,13 +82,5 @@ public class HubConnectionTest {
 
         @Override
         public void stop() {return;}
-    }
-
-    private class TestObject {
-        public int counter = 0;
-        public String message;
-        public void incrementCounter() {
-            counter++;
-        }
     }
 }
