@@ -7,7 +7,7 @@ import java.net.URISyntaxException;
 import java.util.Scanner;
 
 public class Chat {
-    public static void main(String[] args) throws URISyntaxException, InterruptedException {
+    public static void main(String[] args) throws Exception {
             System.out.println("Enter the URL of the SignalR Chat you want to join");
             Scanner reader = new Scanner(System.in);  // Reading from System.in
             String input;
@@ -15,9 +15,8 @@ public class Chat {
             HubConnection hubConnection = new HubConnection(input);
 
             hubConnection.On("Send", (message) -> {
-                String newMessage = ((JsonArray) message).get(0).getAsString();
-                System.out.println("REGISTERED HANDLER: " + newMessage);
-            });
+                System.out.println("REGISTERED HANDLER: " + message);
+            }, String.class);
 
             //This is a blocking call
             hubConnection.start();

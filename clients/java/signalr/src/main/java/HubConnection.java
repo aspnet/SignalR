@@ -8,7 +8,7 @@ public class HubConnection {
     private String url;
     private Transport transport;
     private OnReceiveCallBack callback;
-    private HashMap<String, Action> handlers = new HashMap<>();
+    private HashMap<String, ActionBase> handlers = new HashMap<>();
     private HubProtocol protocol;
 
     public Boolean connected = false;
@@ -24,7 +24,7 @@ public class HubConnection {
             // Adding this to avoid getting error messages on pings for now.
             for (InvocationMessage message : messages) {
                 if (message != null && handlers.containsKey(message.target)) {
-                    handlers.get(message.target).invoke(message.arguments[0]);
+                    handlers.get(message.target).invoke(message.arguments);
                 }
             }
         };
@@ -55,14 +55,10 @@ public class HubConnection {
         connected = false;
     }
 
-    public void send(String method, Object... args) {
+    public void send(String method, Object... args) throws Exception {
         InvocationMessage invocationMessage = new InvocationMessage(method, args);
         String message = protocol.writeMessage(invocationMessage);
         transport.send(message);
-    }
-
-    public void On(String target, Action callback) {
-        handlers.put(target, callback);
     }
 
     public void On(String target, Action callback) {
@@ -80,17 +76,17 @@ public class HubConnection {
         handlers.put(target, actionBase);
     }
 
-    public <T1, T2, T3> void On(String target, Action2<T1,T2, T3> callback, Class<T1> param1, Class<T2> param2, Class<T3> param3) {
+    public <T1, T2, T3> void On(String target, Action3<T1,T2, T3> callback, Class<T1> param1, Class<T2> param2, Class<T3> param3) {
         ActionBase actionBase = new ActionBase(callback, param1, param2, param3);
         handlers.put(target, actionBase);
     }
 
-    public <T1, T2, T3, T4> void On(String target, Action2<T1,T2, T3> callback, Class<T1> param1, Class<T2> param2, Class<T3> param3, Class<T4> param4) {
+    public <T1, T2, T3, T4> void On(String target, Action4<T1,T2, T3, T4> callback, Class<T1> param1, Class<T2> param2, Class<T3> param3, Class<T4> param4) {
         ActionBase actionBase = new ActionBase(callback, param1, param2, param3, param4);
         handlers.put(target, actionBase);
     }
 
-    public <T1, T2, T3, T4,T5> void On(String target, Action2<T1,T2, T3, T4, T5> callback, Class<T1> param1, Class<T2> param2, Class<T3> param3, Class<T4> param4, Class<T5> param5) {
+    public <T1, T2, T3, T4,T5> void On(String target, Action5<T1,T2, T3, T4, T5> callback, Class<T1> param1, Class<T2> param2, Class<T3> param3, Class<T4> param4, Class<T5> param5) {
         ActionBase actionBase = new ActionBase(callback, param1, param2, param3, param4, param5);
         handlers.put(target, actionBase);
     }

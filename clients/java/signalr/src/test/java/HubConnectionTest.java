@@ -22,41 +22,63 @@ public class HubConnectionTest {
     }
 
     @Test
-    public void SendWithNoParamsTriggersOnHandler() throws InterruptedException {
-        AtomicInteger value = new AtomicInteger(0);
+    public void SendWithNoParamsTriggersOnHandler() throws Exception {
+        AtomicReference<Double> value = new AtomicReference<Double>(0.0);
         Transport mockTransport = new MockEchoTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
 
-        Action callback = (param) -> {
-            assertEquals(0, value.get());
-            value.incrementAndGet();
-        };
-        hubConnection.On("inc", callback);
+        hubConnection.On("inc", () ->{
+            assertEquals(0.0, value.get(), 0);
+            value.getAndSet(value.get() + 1);
+        });
 
         hubConnection.start();
         hubConnection.send("inc");
 
         // Confirming that our handler was called and that the counter property was incremented.
-        assertEquals(1, value.get());
+        assertEquals(1, value.get(), 0);
     }
 
     @Test
-    public void SendWithParamTriggersOnHandler() throws InterruptedException {
+    public void SendWithParamTriggersOnHandler() throws Exception {
         AtomicReference<String> value = new AtomicReference<>();
         Transport mockTransport = new MockEchoTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
 
-        Action callback = (param) -> {
+        hubConnection.On("inc", (param) ->{
             assertNull(value.get());
-            value.set(((JsonArray) param).get(0).getAsString());
-        };
-        hubConnection.On("inc", callback);
+            value.set(param);
+        }, String.class);
 
         hubConnection.start();
         hubConnection.send("inc", "Hello World");
 
         // Confirming that our handler was called and the correct message was passed in.
         assertEquals("Hello World", value.get());
+    }
+
+    @Test
+    public void SendWithTwoParamsTriggersOnHandler() throws Exception {
+        AtomicReference<String> value1 = new AtomicReference<>();
+        AtomicReference<Double> value2 = new AtomicReference<>();
+
+        Transport mockTransport = new MockEchoTransport();
+        HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
+
+        hubConnection.On("inc", (param1, param2) ->{
+            assertNull(value1.get());
+            assertNull((value2.get()));
+
+            value1.set(param1);
+            value2.set(param2);
+        }, String.class, Double.class);
+
+        hubConnection.start();
+        hubConnection.send("inc", "Hello World", 12);
+
+        // Confirming that our handler was called and the correct message was passed in.
+        assertEquals("Hello World", value1.get());
+        assertEquals(12, value2.get(), 0);
     }
 
     private class MockEchoTransport implements Transport {
@@ -66,7 +88,7 @@ public class HubConnectionTest {
         public void start() {}
 
         @Override
-        public void send(String message) {
+        public void send(String message) throws Exception {
             this.onReceive(message);
         }
 
@@ -76,7 +98,7 @@ public class HubConnectionTest {
         }
 
         @Override
-        public void onReceive(String message) {
+        public void onReceive(String message) throws Exception {
             this.onReceiveCallBack.invoke(message);
         }
 
