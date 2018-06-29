@@ -11,7 +11,7 @@ public class Chat {
             input = reader.nextLine();
             HubConnection hubConnection = new HubConnection(input);
 
-            hubConnection.On("Send", (message) -> {
+            hubConnection.on("Send", (message) -> {
                 System.out.println("REGISTERED HANDLER: " + message);
             }, String.class);
 

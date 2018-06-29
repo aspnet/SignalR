@@ -1,10 +1,8 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-import com.google.gson.JsonArray;
 import org.junit.Test;
 
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.*;
@@ -27,7 +25,7 @@ public class HubConnectionTest {
         Transport mockTransport = new MockEchoTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
 
-        hubConnection.On("inc", () ->{
+        hubConnection.on("inc", () ->{
             assertEquals(0.0, value.get(), 0);
             value.getAndSet(value.get() + 1);
         });
@@ -45,7 +43,7 @@ public class HubConnectionTest {
         Transport mockTransport = new MockEchoTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
 
-        hubConnection.On("inc", (param) ->{
+        hubConnection.on("inc", (param) ->{
             assertNull(value.get());
             value.set(param);
         }, String.class);
@@ -65,7 +63,7 @@ public class HubConnectionTest {
         Transport mockTransport = new MockEchoTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
 
-        hubConnection.On("inc", (param1, param2) ->{
+        hubConnection.on("inc", (param1, param2) ->{
             assertNull(value1.get());
             assertNull((value2.get()));
 
@@ -90,7 +88,7 @@ public class HubConnectionTest {
         Transport mockTransport = new MockEchoTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
 
-        hubConnection.On("inc", (param1, param2, param3) ->{
+        hubConnection.on("inc", (param1, param2, param3) ->{
             assertNull(value1.get());
             assertNull(value2.get());
             assertNull(value3.get());
@@ -119,7 +117,7 @@ public class HubConnectionTest {
         Transport mockTransport = new MockEchoTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
 
-        hubConnection.On("inc", (param1, param2, param3, param4) ->{
+        hubConnection.on("inc", (param1, param2, param3, param4) ->{
             assertNull(value1.get());
             assertNull(value2.get());
             assertNull(value3.get());
@@ -152,7 +150,7 @@ public class HubConnectionTest {
         Transport mockTransport = new MockEchoTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
 
-        hubConnection.On("inc", (param1, param2, param3, param4, param5) ->{
+        hubConnection.on("inc", (param1, param2, param3, param4, param5) ->{
             assertNull(value1.get());
             assertNull(value2.get());
             assertNull(value3.get());

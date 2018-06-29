@@ -61,32 +61,32 @@ public class HubConnection {
         transport.send(message);
     }
 
-    public void On(String target, Action callback) {
+    public void on(String target, Action callback) {
         ActionBase actionBase = new ActionBase(callback);
         handlers.put(target, actionBase);
     }
 
-    public <T1> void On(String target, Action1<T1> callback, Class<T1> param1) {
+    public <T1> void on(String target, Action1<T1> callback, Class<T1> param1) {
         ActionBase actionBase = new ActionBase(callback, param1);
         handlers.put(target, actionBase);
     }
 
-    public <T1, T2> void On(String target, Action2<T1,T2> callback, Class<T1> param1, Class<T2> param2) {
+    public <T1, T2> void on(String target, Action2<T1,T2> callback, Class<T1> param1, Class<T2> param2) {
         ActionBase actionBase = new ActionBase(callback, param1, param2);
         handlers.put(target, actionBase);
     }
 
-    public <T1, T2, T3> void On(String target, Action3<T1,T2, T3> callback, Class<T1> param1, Class<T2> param2, Class<T3> param3) {
+    public <T1, T2, T3> void on(String target, Action3<T1,T2, T3> callback, Class<T1> param1, Class<T2> param2, Class<T3> param3) {
         ActionBase actionBase = new ActionBase(callback, param1, param2, param3);
         handlers.put(target, actionBase);
     }
 
-    public <T1, T2, T3, T4> void On(String target, Action4<T1,T2, T3, T4> callback, Class<T1> param1, Class<T2> param2, Class<T3> param3, Class<T4> param4) {
+    public <T1, T2, T3, T4> void on(String target, Action4<T1,T2, T3, T4> callback, Class<T1> param1, Class<T2> param2, Class<T3> param3, Class<T4> param4) {
         ActionBase actionBase = new ActionBase(callback, param1, param2, param3, param4);
         handlers.put(target, actionBase);
     }
 
-    public <T1, T2, T3, T4,T5> void On(String target, Action5<T1,T2, T3, T4, T5> callback, Class<T1> param1, Class<T2> param2, Class<T3> param3, Class<T4> param4, Class<T5> param5) {
+    public <T1, T2, T3, T4,T5> void on(String target, Action5<T1,T2, T3, T4, T5> callback, Class<T1> param1, Class<T2> param2, Class<T3> param3, Class<T4> param4, Class<T5> param5) {
         ActionBase actionBase = new ActionBase(callback, param1, param2, param3, param4, param5);
         handlers.put(target, actionBase);
     }
