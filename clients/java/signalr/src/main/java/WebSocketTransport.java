@@ -11,15 +11,18 @@ public class WebSocketTransport implements Transport {
     private WebSocketClient webSocketClient;
     private OnReceiveCallBack onReceiveCallBack;
     private URI url;
+
     private static final String HTTP = "http";
     private static final String HTTPS = "https";
     private static final String WS = "ws";
     private static final String WSS = "wss";
 
     public WebSocketTransport(String url) throws URISyntaxException {
-        // To Do: Format the  incoming URL for a websocket connection.
         this.url = formatUrl(url);
-        this.webSocketClient = createWebSocket();
+    }
+
+    public URI getUrl(){
+        return url;
     }
 
     private URI formatUrl(String url) throws URISyntaxException {
@@ -34,6 +37,7 @@ public class WebSocketTransport implements Transport {
 
     @Override
     public void start() throws InterruptedException {
+        webSocketClient = createWebSocket();
         webSocketClient.connectBlocking();
         webSocketClient.send((new DefaultJsonProtocolHandShakeMessage()).createHandshakeMessage());
     }
