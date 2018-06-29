@@ -571,6 +571,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis
 
             public override void WriteLine(string value)
             {
+                Console.WriteLine(value);
                 RedisLog.ConnectionMultiplexerMessage(_logger, value);
             }
         }

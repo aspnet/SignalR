@@ -24,7 +24,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
                     options.Configuration.ConnectTimeout = 1;
                     options.Configuration.EndPoints.Add(Environment.GetEnvironmentVariable("REDIS_CONNECTION"));
                 });
-
+            Console.WriteLine($"REDIS_CONNECTION env set to: {Environment.GetEnvironmentVariable("REDIS_CONNECTION")}");
             services.AddSingleton<IUserIdProvider, UserNameIdProvider>();
         }
 
