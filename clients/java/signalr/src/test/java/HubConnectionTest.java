@@ -55,6 +55,7 @@ public class HubConnectionTest {
         assertEquals("Hello World", value.get());
     }
 
+    /*
     @Test
     public void SendWithTwoParamsTriggersOnHandler() throws Exception {
         AtomicReference<String> value1 = new AtomicReference<>();
@@ -174,7 +175,7 @@ public class HubConnectionTest {
         assertTrue(value4.get());
         assertEquals(12, value5.get(), 0);
     }
-
+*/
     private class MockEchoTransport implements Transport {
         private OnReceiveCallBack onReceiveCallBack;
 

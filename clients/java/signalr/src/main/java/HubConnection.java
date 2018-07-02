@@ -1,15 +1,19 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+import com.google.gson.JsonArray;
+
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class HubConnection {
     private String url;
     private Transport transport;
     private OnReceiveCallBack callback;
-    private HashMap<String, ActionBase> handlers = new HashMap<>();
+    private HashMap<String, ActionVarArgs> handlers = new HashMap<>();
     private HubProtocol protocol;
+    private 
 
     public Boolean connected = false;
 
@@ -24,6 +28,8 @@ public class HubConnection {
             // Adding this to avoid getting error messages on pings for now.
             for (InvocationMessage message : messages) {
                 if (message != null && handlers.containsKey(message.target)) {
+                    ArrayList<Object> types = gson.fromJson((JsonArray)args[0], (new ArrayList<Object>()).getClass());
+
                     handlers.get(message.target).invoke(message.arguments);
                 }
             }
@@ -63,14 +69,26 @@ public class HubConnection {
 
     public void on(String target, Action callback) {
         ActionBase actionBase = new ActionBase(callback);
-        handlers.put(target, actionBase);
+        ActionVarArgs ac = new ActionVarArgs() {
+            @Override
+            public void invoke(Object ... args) {
+                callback.invoke();
+            }
+        };
+        handlers.put(target, ac);
     }
 
     public <T1> void on(String target, Action1<T1> callback, Class<T1> param1) {
         ActionBase actionBase = new ActionBase(callback, param1);
-        handlers.put(target, actionBase);
+        ActionVarArgs ac = new ActionVarArgs() {
+            @Override
+            public void invoke(Object... params) {
+                callback.invoke(param1.cast(params[0]));
+            }
+        };
+        handlers.put(target, ac);
     }
-
+    /*
     public <T1, T2> void on(String target, Action2<T1,T2> callback, Class<T1> param1, Class<T2> param2) {
         ActionBase actionBase = new ActionBase(callback, param1, param2);
         handlers.put(target, actionBase);
@@ -90,4 +108,5 @@ public class HubConnection {
         ActionBase actionBase = new ActionBase(callback, param1, param2, param3, param4, param5);
         handlers.put(target, actionBase);
     }
+    */
 }
