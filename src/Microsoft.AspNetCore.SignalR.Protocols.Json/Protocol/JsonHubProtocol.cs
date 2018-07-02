@@ -708,8 +708,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                 {
                     if (paramIndex < paramCount)
                     {
-
-                        if (paramTypes[paramIndex].IsGenericType && paramTypes[paramIndex].GetGenericTypeDefinition() == typeof(ChannelReader<>))
+                        if (paramTypes[paramIndex] == typeof(ChannelPlaceholder))
                         {
                             arguments[paramIndex] = new ChannelPlaceholder(
                                 paramTypes[paramIndex].GetGenericArguments()[0],

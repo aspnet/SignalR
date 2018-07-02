@@ -1,12 +1,6 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-using Microsoft.AspNetCore.Connections;
-using Microsoft.AspNetCore.Internal;
-using Microsoft.AspNetCore.SignalR.Client.Internal;
-using Microsoft.AspNetCore.SignalR.Protocol;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -19,6 +13,12 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Connections;
+using Microsoft.AspNetCore.Internal;
+using Microsoft.AspNetCore.SignalR.Client.Internal;
+using Microsoft.AspNetCore.SignalR.Protocol;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Microsoft.AspNetCore.SignalR.Client
 {
@@ -445,7 +445,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             var readers = new Dictionary<Guid, object>();
             for (int i = 0; i < args.Length; i++)
             {
-                if (isChannelReader(args[i].GetType()))
+                if (Helpers.ShouldBeTreatedAsStreamingParameter(args[i].GetType()))
                 {
                     var id = Guid.NewGuid();
                     readers[id] = args[i];
@@ -454,25 +454,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
 
             return readers;
-
-            bool isChannelReader(Type type)
-            {
-                // walk up inheritance chain, until parent is either null or a ChannelReader<T> 
-                while (true)
-                {
-                    if (type == null)
-                    {
-                        return false;
-                    }
-
-                    if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ChannelReader<>))
-                    {
-                        return true;
-                    }
-
-                    type = type.BaseType;
-                }
-            }
         }
 
         private void LaunchRelayLoops(Dictionary<Guid, object> readers, CancellationToken cancellationToken)
@@ -485,9 +466,9 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     .MakeGenericMethod(reader.GetType().GetGenericArguments())
                     .Invoke(this, new object[] { kv.Key.ToString(), reader, cancellationToken });
             }
-
         }
 
+        // this has "no references" because it's called generically from the `_relayLoopInfo` field 
         private async Task RelayLoop<T>(string channelId, ChannelReader<T> reader, CancellationToken token)
         {
             string responseError = null;

@@ -11,6 +11,7 @@
     <Compile Include="..\Common\ForceAsyncAwaiter.cs" Link="ForceAsyncAwaiter.cs" />
     <Compile Include="..\Common\PipeWriterStream.cs" Link="PipeWriterStream.cs" />
     <Compile Include="..\Common\TimerAwaitable.cs" Link="Internal\TimerAwaitable.cs" />
+    <Compile Include="..\Microsoft.AspNetCore.SignalR.Common\Helpers.cs" Link="Helpers.cs" />
   </ItemGroup>
 
   <ItemGroup>

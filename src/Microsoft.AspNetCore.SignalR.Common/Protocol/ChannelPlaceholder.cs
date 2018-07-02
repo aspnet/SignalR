@@ -6,12 +6,12 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
 {
     public class ChannelPlaceholder
     {
-        public Type ItemType { get; private set; }
+        //public Type ItemType { get; private set; }
         public string StreamId { get; private set; }
 
         public ChannelPlaceholder(Type itemType, string streamId)
         {
-            ItemType = itemType;
+            //ItemType = itemType;
             StreamId = streamId;
         }
     }

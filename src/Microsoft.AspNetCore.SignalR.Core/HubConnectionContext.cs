@@ -542,10 +542,10 @@ namespace Microsoft.AspNetCore.SignalR
         private readonly MethodInfo _buildConverterMethod = typeof(ChannelStore).GetMethods().Single(m => m.Name.Equals("BuildStream"));
         public Dictionary<string, IChannelConverter> Lookup = new Dictionary<string, IChannelConverter>();
 
-        public object NewStream(ChannelPlaceholder placeholder)
+        public object NewStream(string streamId, Type itemType)
         {
-            var newConverter = (IChannelConverter)_buildConverterMethod.MakeGenericMethod(placeholder.ItemType).Invoke(null, Array.Empty<object>());
-            Lookup[placeholder.StreamId] = newConverter;
+            var newConverter = (IChannelConverter)_buildConverterMethod.MakeGenericMethod(itemType).Invoke(null, Array.Empty<object>());
+            Lookup[streamId] = newConverter;
             return newConverter.ReaderAsObject();
         }
 

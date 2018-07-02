@@ -224,7 +224,9 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                                 continue;
                             }
 
-                            args[i] = connection._channelStore.NewStream(placeholder);
+                            args[i] = connection._channelStore.NewStream(
+                                placeholder.StreamId, methodExecutor.MethodParameters[i].ParameterType);
+
                         }
 
                         if (string.IsNullOrEmpty(hubMethodInvocationMessage.InvocationId))
@@ -499,6 +501,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             {
                 return Type.EmptyTypes;
             }
+            // TODO, replace channelreaders with channel placeholders
             return descriptor.ParameterTypes;
         }
     }
