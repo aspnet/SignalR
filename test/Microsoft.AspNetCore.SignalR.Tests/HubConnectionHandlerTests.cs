@@ -2335,7 +2335,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task ServerReportsProtocolMinorVersion()
         {
-            var testProtocol = new Mock<IHubProtocol2>();
+            var testProtocol = new Mock<IHubProtocol>();
             testProtocol.Setup(m => m.Name).Returns("CustomProtocol");
             testProtocol.Setup(m => m.MinorVersion).Returns(112);
             testProtocol.Setup(m => m.IsVersionSupported(It.IsAny<int>())).Returns(true);

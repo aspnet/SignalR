@@ -39,7 +39,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                 var memoryBufferWriter = MemoryBufferWriter.Get();
                 try
                 {
-                    WriteResponseMessage(new HandshakeResponseMessage(protocol.GetMinorVersion()), memoryBufferWriter);
+                    WriteResponseMessage(new HandshakeResponseMessage(protocol.MinorVersion), memoryBufferWriter);
                     result = memoryBufferWriter.ToArray();
                     _messageCache.TryAdd(protocol, result);
                 }

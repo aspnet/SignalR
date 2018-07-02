@@ -19,7 +19,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
     /// <summary>
     /// Implements the SignalR Hub Protocol using MessagePack.
     /// </summary>
-    public class MessagePackHubProtocol : IHubProtocol2
+    public class MessagePackHubProtocol : IHubProtocol
     {
         private const int ErrorResult = 1;
         private const int VoidResult = 2;

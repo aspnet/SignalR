@@ -56,13 +56,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         /// <param name="version">The version.</param>
         /// <returns>A value indicating whether the protocol supports the specified version.</returns>
         bool IsVersionSupported(int version);
-    }
 
-    /// <summary>
-    /// A HubProtocol that includes support for specifying a minor version.
-    /// </summary>
-    public interface IHubProtocol2 : IHubProtocol
-    {
         /// <summary>
         /// Gets the minor version of the protocol.
         /// </summary>

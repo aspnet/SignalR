@@ -29,15 +29,5 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                 MemoryBufferWriter.Return(writer);
             }
         }
-
-        /// <summary>
-        /// The minor protocol version. Defaults to 0 if the protocol does not specify a minor version.
-        /// </summary>
-        /// <param name="protocol">The protocol.</param>
-        /// <returns></returns>
-        public static int GetMinorVersion(this IHubProtocol protocol)
-        {
-            return (protocol is IHubProtocol2 protocol2) ? protocol2.MinorVersion : 0;
-        }
     }
 }
