@@ -49,6 +49,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
         private readonly IServiceProvider _serviceProvider;
         private readonly IConnectionFactory _connectionFactory;
         private readonly ConcurrentDictionary<string, InvocationHandlerList> _handlers = new ConcurrentDictionary<string, InvocationHandlerList>(StringComparer.Ordinal);
+
+        private int _currentChannelId = 0;
         private long _nextActivationServerTimeout;
         private long _nextActivationSendPing;
         private bool _disposed;
@@ -439,26 +441,25 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             return channel;
         }
-        
-        private Dictionary<Guid, object> PackageStreamingParams(object[] args)
+        private Dictionary<string, object> PackageStreamingParams(object[] args)
         {
-            var readers = new Dictionary<Guid, object>();
+            var readers = new Dictionary<string, object>();
             for (int i = 0; i < args.Length; i++)
             {
                 if (ReflectionHelper.IsStreamingType(args[i].GetType()))
                 {
-                    var id = Guid.NewGuid();
-                    readers[id] = args[i];
-                    args[i] = id.ToString();
+                    _currentChannelId += 1;
+                    readers[_currentChannelId.ToString()] = args[i];
+                    args[i] = _currentChannelId;
                 }
             }
 
             return readers;
         }
 
-        private void LaunchRelayLoops(Dictionary<Guid, object> readers, CancellationToken cancellationToken)
+        private void LaunchRelayLoops(Dictionary<string, object> readers, CancellationToken cancellationToken)
         {
-            foreach (KeyValuePair<Guid, object> kv in readers)
+            foreach (KeyValuePair<string, object> kv in readers)
             {
                 var reader = kv.Value;
 
@@ -520,6 +521,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             LaunchRelayLoops(readers, cancellationToken);
 
+            // Wait for this outside the lock, because it won't complete until the server responds
             return await invocationTask;
         }
 

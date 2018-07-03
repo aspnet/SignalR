@@ -25,7 +25,7 @@ namespace Microsoft.AspNetCore.SignalR
 {
     public class HubConnectionContext
     {
-        internal readonly ChannelStore _channelStore = new ChannelStore();
+        private ChannelStore _channelStoreField;
         private static readonly WaitCallback _abortedCallback = AbortConnection;
 
         private readonly ConnectionContext _connectionContext;
@@ -52,6 +52,17 @@ namespace Microsoft.AspNetCore.SignalR
             _keepAliveDuration = (int)keepAliveInterval.TotalMilliseconds * (Stopwatch.Frequency / 1000);
         }
 
+        internal ChannelStore _channelStore
+        {
+            get
+            {
+                if (_channelStoreField == null)
+                {
+                    _channelStoreField = new ChannelStore();
+                }
+                return _channelStoreField;
+            }
+        }
         /// <summary>
         /// Gets a <see cref="CancellationToken"/> that notifies when the connection is aborted.
         /// </summary>
@@ -539,7 +550,7 @@ namespace Microsoft.AspNetCore.SignalR
 
     internal class ChannelStore
     {
-        private readonly MethodInfo _buildConverterMethod = typeof(ChannelStore).GetMethods().Single(m => m.Name.Equals("BuildStream"));
+        private static readonly MethodInfo _buildConverterMethod = typeof(ChannelStore).GetMethods().Single(m => m.Name.Equals("BuildStream"));
         public Dictionary<string, IChannelConverter> Lookup = new Dictionary<string, IChannelConverter>();
 
         public object NewStream(string streamId, Type itemType)
@@ -549,9 +560,9 @@ namespace Microsoft.AspNetCore.SignalR
             return newConverter.ReaderAsObject();
         }
 
-        public async Task ProcessItem(StreamItemMessage message)
+        public Task ProcessItem(StreamItemMessage message)
         {
-            await Lookup[message.InvocationId].WriteToChannel(message.Item);
+            return Lookup[message.InvocationId].WriteToChannel(message.Item);
         }
 
         public void Complete(ChannelCompleteMessage message)

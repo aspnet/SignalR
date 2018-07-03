@@ -112,8 +112,10 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 case StreamItemMessage streamItem:
                     return ProcessStreamItem(connection, streamItem);
 
-                case ChannelCompleteMessage channelComplete:
-                    ProcessStreamComplete(connection, channelComplete);
+                case ChannelCompleteMessage channelCompleteMessage:
+                    // closes channels, removes from Lookup dict
+                    // user's method can see the channel is complete and begin wrapping up
+                    connection._channelStore.Complete(channelCompleteMessage);
                     break;
 
                 // Other kind of message we weren't expecting
@@ -131,8 +133,10 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
             if (bindingFailureMessage.StreamingUpload)
             {
-                var message = new ChannelCompleteMessage(bindingFailureMessage.InvocationId, bindingFailureMessage.BindingFailure.SourceException.ToString());
-                connection._channelStore.Complete(message);
+                var errorString = ErrorMessageHelper.BuildErrorMessage(
+                    $"Failed to bind Stream Item arguments due to an error on the server.",
+                    bindingFailureMessage.BindingFailure.SourceException, _enableDetailedErrors);
+                connection._channelStore.Complete(new ChannelCompleteMessage(bindingFailureMessage.InvocationId, errorString));
 
                 return Task.CompletedTask;
             }
@@ -148,13 +152,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         {
             Debug.WriteLine($"item: id={message.InvocationId} data={message.Item}");
             await connection._channelStore.ProcessItem(message);
-        }
-
-        private void ProcessStreamComplete(HubConnectionContext connection, ChannelCompleteMessage message)
-        {
-            // closes channels, removes from Lookup dict
-            // user's method can see the channel is complete and begin wrapping up
-            connection._channelStore.Complete(message);
         }
 
         private Task ProcessInvocation(HubConnectionContext connection,
