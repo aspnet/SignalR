@@ -147,7 +147,7 @@ export interface IHubProtocol {
 
     /** Creates an array of {@link @aspnet/signalr.HubMessage} objects from the specified serialized representation.
      *
-     * If {@link @aspnet/signalr.IHubProtocol.transferFormat} is 'Text', the {@link input} parameter must be a string, otherwise it must be an ArrayBuffer.
+     * If {@link @aspnet/signalr.IHubProtocol.transferFormat} is 'Text', the `input` parameter must be a string, otherwise it must be an ArrayBuffer.
      *
      * @param {string | ArrayBuffer} input A string, or ArrayBuffer containing the serialized representation.
      * @param {ILogger} logger A logger that will be used to log messages that occur during parsing.
