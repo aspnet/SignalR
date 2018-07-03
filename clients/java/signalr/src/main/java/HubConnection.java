@@ -1,6 +1,7 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 
 import java.net.URISyntaxException;
@@ -11,9 +12,9 @@ public class HubConnection {
     private String url;
     private Transport transport;
     private OnReceiveCallBack callback;
-    private HashMap<String, ActionVarArgs> handlers = new HashMap<>();
+    private HashMap<String, ActionBase> handlers = new HashMap<>();
     private HubProtocol protocol;
-    private 
+    private Gson gson = new Gson();
 
     public Boolean connected = false;
 
@@ -28,9 +29,9 @@ public class HubConnection {
             // Adding this to avoid getting error messages on pings for now.
             for (InvocationMessage message : messages) {
                 if (message != null && handlers.containsKey(message.target)) {
-                    ArrayList<Object> types = gson.fromJson((JsonArray)args[0], (new ArrayList<Object>()).getClass());
+                    ArrayList<Object> types = gson.fromJson((JsonArray)message.arguments[0], (new ArrayList<Object>()).getClass());
 
-                    handlers.get(message.target).invoke(message.arguments);
+                    handlers.get(message.target).invoke(types.toArray());
                 }
             }
         };
@@ -68,45 +69,41 @@ public class HubConnection {
     }
 
     public void on(String target, Action callback) {
-        ActionBase actionBase = new ActionBase(callback);
-        ActionVarArgs ac = new ActionVarArgs() {
-            @Override
-            public void invoke(Object ... args) {
-                callback.invoke();
-            }
-        };
+        ActionBase ac = args -> callback.invoke();
         handlers.put(target, ac);
     }
 
     public <T1> void on(String target, Action1<T1> callback, Class<T1> param1) {
-        ActionBase actionBase = new ActionBase(callback, param1);
-        ActionVarArgs ac = new ActionVarArgs() {
-            @Override
-            public void invoke(Object... params) {
-                callback.invoke(param1.cast(params[0]));
-            }
-        };
+        ActionBase ac = params -> callback.invoke(param1.cast(params[0]));
         handlers.put(target, ac);
     }
-    /*
+
     public <T1, T2> void on(String target, Action2<T1,T2> callback, Class<T1> param1, Class<T2> param2) {
-        ActionBase actionBase = new ActionBase(callback, param1, param2);
-        handlers.put(target, actionBase);
+        ActionBase action = params -> {
+            callback.invoke(param1.cast(params[0]), param2.cast(params[1]));
+        };
+        handlers.put(target, action);
     }
 
     public <T1, T2, T3> void on(String target, Action3<T1,T2, T3> callback, Class<T1> param1, Class<T2> param2, Class<T3> param3) {
-        ActionBase actionBase = new ActionBase(callback, param1, param2, param3);
-        handlers.put(target, actionBase);
+        ActionBase action = params -> {
+            callback.invoke(param1.cast(params[0]), param2.cast(params[1]), param3.cast(params[2]));
+        };
+        handlers.put(target, action);
     }
 
     public <T1, T2, T3, T4> void on(String target, Action4<T1,T2, T3, T4> callback, Class<T1> param1, Class<T2> param2, Class<T3> param3, Class<T4> param4) {
-        ActionBase actionBase = new ActionBase(callback, param1, param2, param3, param4);
-        handlers.put(target, actionBase);
+        ActionBase action = params -> {
+            callback.invoke(param1.cast(params[0]), param2.cast(params[1]), param3.cast(params[2]), param4.cast(params[3]));
+        };
+        handlers.put(target, action);
     }
 
     public <T1, T2, T3, T4,T5> void on(String target, Action5<T1,T2, T3, T4, T5> callback, Class<T1> param1, Class<T2> param2, Class<T3> param3, Class<T4> param4, Class<T5> param5) {
-        ActionBase actionBase = new ActionBase(callback, param1, param2, param3, param4, param5);
-        handlers.put(target, actionBase);
+        ActionBase action = params -> {
+            callback.invoke(param1.cast(params[0]), param2.cast(params[1]), param3.cast(params[2]), param4.cast(params[3]),
+                    param5.cast(params[4]));
+        };
+        handlers.put(target, action);
     }
-    */
 }
