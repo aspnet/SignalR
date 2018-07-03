@@ -2255,7 +2255,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     await client.SendHubMessageAsync(new StreamItemMessage("id", letter));
                 }
 
-                await client.SendHubMessageAsync(new ChannelCompleteMessage("id"));
+                await client.SendHubMessageAsync(new StreamCompleteMessage("id"));
                 var result = (CompletionMessage)await client.ReadAsync();
 
                 Assert.Equal("BEANED", result.Result);
@@ -2294,7 +2294,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     await client.SendHubMessageAsync(new StreamItemMessage("id", thing));
                 }
 
-                await client.SendHubMessageAsync(new ChannelCompleteMessage("id"));
+                await client.SendHubMessageAsync(new StreamCompleteMessage("id"));
                 var response = (CompletionMessage)await client.ReadAsync();
 
                 var result = ((JArray)response.Result).ToArray<object>();
@@ -2334,7 +2334,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 foreach (string id in new[] { "0", "2", "1" })
                 {
-                    await client.SendHubMessageAsync(new ChannelCompleteMessage(id));
+                    await client.SendHubMessageAsync(new StreamCompleteMessage(id));
                     var response = await client.ReadAsync();
                     Debug.Write(response);
                     Assert.Equal(words[Int32.Parse(id)], ((CompletionMessage)response).Result);
@@ -2342,14 +2342,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
-        // NOTE -- THIS TEST DISPLAYS FUNKY BEHAVIOR
-        // THAT EXISTS CURRENTLY WITHIN THE SYSTEM.
-        // BASICALLY THINGS CAN GET AUTO-CAST FROM JSON
-        // THIS mAYBE SHOULD EXPLICITLY ERROR
-        // BUT LEAVING THIS HERE AS DOCUMENTATION
         [Fact]
         public async Task UploadStreamItemInvalidTypeAutoCasts()
         {
+            // NOTE -- json.net is flexible here, and casts for us
+
             var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
             var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
@@ -2362,7 +2359,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 await client.SendHubMessageAsync(new StreamItemMessage("id", 5));
                 await client.SendHubMessageAsync(new StreamItemMessage("id", 10));
 
-                await client.SendHubMessageAsync(new ChannelCompleteMessage("id"));
+                await client.SendHubMessageAsync(new StreamCompleteMessage("id"));
                 var response = (CompletionMessage)await client.ReadAsync();
                 
                 Assert.Equal("510", response.Result);
@@ -2416,7 +2413,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
 
-                await client.SendHubMessageAsync(new ChannelCompleteMessage("fake_id"));
+                await client.SendHubMessageAsync(new StreamCompleteMessage("fake_id"));
 
                 // this should be ignored -- no response, no messages
             }
@@ -2434,7 +2431,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
                 await client.BeginUploadStreamAsync("invocation", nameof(MethodHub.TestCustomErrorPassing), "id");
-                await client.SendHubMessageAsync(new ChannelCompleteMessage("id", CustomErrorMessage));
+                await client.SendHubMessageAsync(new StreamCompleteMessage("id", CustomErrorMessage));
 
                 var response = (CompletionMessage)await client.ReadAsync();
                 Assert.True((bool)response.Result);

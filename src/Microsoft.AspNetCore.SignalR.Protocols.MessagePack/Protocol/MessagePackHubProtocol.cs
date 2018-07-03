@@ -138,7 +138,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                     return PingMessage.Instance;
                 case HubProtocolConstants.CloseMessageType:
                     return CreateCloseMessage(input, ref startOffset);
-                case HubProtocolConstants.ChannelCompleteMessageType:
+                case HubProtocolConstants.StreamCompleteMessageType:
                     return CreateStreamCompleteMessage(input, ref startOffset);
                 default:
                     // Future protocol changes can add message types, old clients can ignore them
@@ -247,7 +247,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             return new CloseMessage(error);
         }
 
-        private static ChannelCompleteMessage CreateStreamCompleteMessage(byte[] input, ref int offset)
+        private static StreamCompleteMessage CreateStreamCompleteMessage(byte[] input, ref int offset)
         {
             var invocationId = ReadInvocationId(input, ref offset);
             var error = ReadString(input, ref offset, "error");
@@ -255,7 +255,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             {
                 error = null;
             }
-            return new ChannelCompleteMessage(invocationId, error);
+            return new StreamCompleteMessage(invocationId, error);
         }
 
         private static Dictionary<string, string> ReadHeaders(byte[] input, ref int offset)
@@ -398,7 +398,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                 case CloseMessage closeMessage:
                     WriteCloseMessage(closeMessage, packer);
                     break;
-                case ChannelCompleteMessage m:
+                case StreamCompleteMessage m:
                     WriteStreamCompleteMessage(m, packer);
                     break;
                 default:
@@ -426,7 +426,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                 WriteArgument(arg, packer);
             }
 
-            MessagePackBinary.WriteBoolean(packer, message.StreamingUpload);
+            MessagePackBinary.WriteBoolean(packer, message.HasStream);
         }
 
         private void WriteStreamInvocationMessage(StreamInvocationMessage message, Stream packer)
@@ -496,11 +496,11 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             MessagePackBinary.WriteString(packer, message.InvocationId);
         }
 
-        private void WriteStreamCompleteMessage(ChannelCompleteMessage message, Stream packer)
+        private void WriteStreamCompleteMessage(StreamCompleteMessage message, Stream packer)
         {
             MessagePackBinary.WriteArrayHeader(packer, 3);
-            MessagePackBinary.WriteInt16(packer, HubProtocolConstants.ChannelCompleteMessageType);
-            MessagePackBinary.WriteString(packer, message.InvocationId);
+            MessagePackBinary.WriteInt16(packer, HubProtocolConstants.StreamCompleteMessageType);
+            MessagePackBinary.WriteString(packer, message.StreamId);
             MessagePackBinary.WriteString(packer, message.HasError ? message.Error : "");
         }
 

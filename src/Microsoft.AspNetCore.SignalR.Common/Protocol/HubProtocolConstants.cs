@@ -46,6 +46,6 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         /// <summary>
         /// Represents the upload done message type.
         /// </summary>
-        public const int ChannelCompleteMessageType = 8;
+        public const int StreamCompleteMessageType = 8;
     }
 }

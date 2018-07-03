@@ -25,7 +25,7 @@ namespace Microsoft.AspNetCore.SignalR
 {
     public class HubConnectionContext
     {
-        private ChannelStore _channelStoreField;
+        private StreamTracker _streamTrackerField;
         private static readonly WaitCallback _abortedCallback = AbortConnection;
 
         private readonly ConnectionContext _connectionContext;
@@ -52,15 +52,15 @@ namespace Microsoft.AspNetCore.SignalR
             _keepAliveDuration = (int)keepAliveInterval.TotalMilliseconds * (Stopwatch.Frequency / 1000);
         }
 
-        internal ChannelStore _channelStore
+        internal StreamTracker _streamTracker
         {
             get
             {
-                if (_channelStoreField == null)
+                if (_streamTrackerField == null)
                 {
-                    _channelStoreField = new ChannelStore();
+                    _streamTrackerField = new StreamTracker();
                 }
-                return _channelStoreField;
+                return _streamTrackerField;
             }
         }
         /// <summary>
@@ -548,16 +548,16 @@ namespace Microsoft.AspNetCore.SignalR
         }
     }
 
-    internal class ChannelStore
+    internal class StreamTracker
     {
-        private static readonly MethodInfo _buildConverterMethod = typeof(ChannelStore).GetMethods().Single(m => m.Name.Equals("BuildStream"));
+        private static readonly MethodInfo _buildConverterMethod = typeof(StreamTracker).GetMethods().Single(m => m.Name.Equals("BuildStream"));
         public Dictionary<string, IChannelConverter> Lookup = new Dictionary<string, IChannelConverter>();
 
         public object NewStream(string streamId, Type itemType)
         {
             var newConverter = (IChannelConverter)_buildConverterMethod.MakeGenericMethod(itemType).Invoke(null, Array.Empty<object>());
             Lookup[streamId] = newConverter;
-            return newConverter.ReaderAsObject();
+            return newConverter.GetReaderAsObject();
         }
 
         public Task ProcessItem(StreamItemMessage message)
@@ -565,17 +565,17 @@ namespace Microsoft.AspNetCore.SignalR
             return Lookup[message.InvocationId].WriteToChannel(message.Item);
         }
 
-        public void Complete(ChannelCompleteMessage message)
+        public void Complete(StreamCompleteMessage message)
         {
-            if (!Lookup.TryGetValue(message.InvocationId, out var value))
+            if (!Lookup.TryGetValue(message.StreamId, out var value))
             {
                 // TODO
                 // LOG: DEBUG: "can't find invocationId <42>, ignoring message"
                 throw new Exception("INVALID CHANNEL ID ON CANCEL");
                 //return;
             }
-            var ConverterToClose = Lookup[message.InvocationId];
-            Lookup.Remove(message.InvocationId);
+            var ConverterToClose = Lookup[message.StreamId];
+            Lookup.Remove(message.StreamId);
             ConverterToClose.TryComplete(message.HasError ? new Exception(message.Error) : null);
         }
 
@@ -588,29 +588,26 @@ namespace Microsoft.AspNetCore.SignalR
     internal interface IChannelConverter
     {
         Type GetReturnType();
-        object ReaderAsObject();
+        object GetReaderAsObject();
         Task WriteToChannel(object item);
         void TryComplete(Exception ex);
     }
 
     internal class ChannelConverter<T> : IChannelConverter
     {
-        private static readonly MethodInfo _createUnboundedMethod = typeof(Channel).GetMethod("CreateUnbounded", BindingFlags.Public | BindingFlags.Static, Type.DefaultBinder, Type.EmptyTypes, Array.Empty<ParameterModifier>());
-
         private Channel<T> _channel;
 
         public ChannelConverter()
         {
-            _channel = (Channel<T>)_createUnboundedMethod
-                .MakeGenericMethod(typeof(T))
-                .Invoke(null, Array.Empty<object>());
+            _channel = Channel.CreateUnbounded<T>();
         }
 
         public Type GetReturnType()
         {
             return typeof(T);
         }
-        public object ReaderAsObject()
+
+        public object GetReaderAsObject()
         {
             return _channel.Reader;
         }

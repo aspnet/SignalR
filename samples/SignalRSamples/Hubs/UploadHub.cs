@@ -61,7 +61,6 @@ namespace SignalRSamples.Hubs
 
         public async Task<string> UploadWord(ChannelReader<string> source)
         {
-            //var source = hackyWeaklyTypedParam as ChannelReader<char>;
             var sb = new StringBuilder();
 
             // receiving a StreamCompleteMessage should cause this WaitToRead to return false

@@ -45,7 +45,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
     /// </summary>
     public class InvocationMessage : HubMethodInvocationMessage
     {
-        public bool StreamingUpload { get; } = false;
+        public bool HasStream { get; } = false;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="InvocationMessage"/> class.
@@ -74,11 +74,11 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         /// <param name="invocationId">The invocation ID.</param>
         /// <param name="target">The target method name.</param>
         /// <param name="arguments">The target method arguments.</param>
-        /// <param name="streamingUpload">If true, this invocation will open a streaming hub on the server, letting you send StreamItems to the same invocationId.</param>
-        public InvocationMessage(string invocationId, string target, object[] arguments, bool streamingUpload)
+        /// <param name="hasStream">If true, this invocation will open a streaming hub on the server, letting you send StreamItems to the same invocationId.</param>
+        public InvocationMessage(string invocationId, string target, object[] arguments, bool hasStream)
             : base(invocationId, target, arguments)
         {
-            StreamingUpload = streamingUpload;
+            HasStream = hasStream;
         }
 
         /// <inheritdoc />
@@ -93,7 +93,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             {
                 args = $"Error: {ex.Message}";
             }
-            return $"InvocationMessage {{ {nameof(InvocationId)}: \"{InvocationId}\", {nameof(Target)}: \"{Target}\", {nameof(Arguments)}: [ {args} ], {nameof(StreamingUpload)}: {StreamingUpload} }}";
+            return $"InvocationMessage {{ {nameof(InvocationId)}: \"{InvocationId}\", {nameof(Target)}: \"{Target}\", {nameof(Arguments)}: [ {args} ], {nameof(HasStream)}: {HasStream} }}";
         }
     }
 

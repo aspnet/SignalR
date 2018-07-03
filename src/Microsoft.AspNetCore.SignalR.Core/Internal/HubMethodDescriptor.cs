@@ -9,6 +9,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Channels;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR.Protocol;
 using Microsoft.Extensions.Internal;
 
 namespace Microsoft.AspNetCore.SignalR.Internal
@@ -57,7 +58,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             var type = p.ParameterType;
             if (ReflectionHelper.IsStreamingType(type))
             {
-                return typeof(Protocol.StreamPlaceholder);
+                return typeof(StreamPlaceholder);
             }
             return type;
         }

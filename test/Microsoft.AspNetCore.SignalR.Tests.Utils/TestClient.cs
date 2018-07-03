@@ -177,7 +177,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
         public Task<string> BeginUploadStreamAsync(string invocationId, string methodName, params object[] args)
         {
-            var message = new InvocationMessage(invocationId, methodName, args, streamingUpload: true);            
+            var message = new InvocationMessage(invocationId, methodName, args, hasStream: true);            
             return SendHubMessageAsync(message);
         } 
 

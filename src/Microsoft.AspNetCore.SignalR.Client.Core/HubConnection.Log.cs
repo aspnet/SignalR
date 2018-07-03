@@ -186,6 +186,9 @@ namespace Microsoft.AspNetCore.SignalR.Client
             private static readonly Action<ILogger, Exception> _unableToAcquireConnectionLockForPing =
                 LoggerMessage.Define(LogLevel.Trace, new EventId(62, "UnableToAcquireConnectionLockForPing"), "Skipping ping because a send is already in progress.");
 
+            private static readonly Action<ILogger, string, Exception> _streamCanceledByClient =
+                LoggerMessage.Define<string>(LogLevel.Trace, new EventId(63, "StreamCanceledByClient"), "Stream id='{streamId}' has been cancelled by client.");
+
             public static void PreparingNonBlockingInvocation(ILogger logger, string target, int count)
             {
                 _preparingNonBlockingInvocation(logger, target, count, null);
@@ -495,6 +498,11 @@ namespace Microsoft.AspNetCore.SignalR.Client
             public static void UnableToAcquireConnectionLockForPing(ILogger logger)
             {
                 _unableToAcquireConnectionLockForPing(logger, null);
+            }
+            
+            public static void StreamCanceledByClient(ILogger logger, string streamId)
+            {
+                _streamCanceledByClient(logger, streamId, null);
             }
         }
     }

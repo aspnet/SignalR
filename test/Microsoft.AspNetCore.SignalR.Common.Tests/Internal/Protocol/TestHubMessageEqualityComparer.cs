@@ -39,8 +39,8 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                     return true;
                 case CloseMessage closeMessage:
                     return string.Equals(closeMessage.Error, ((CloseMessage) y).Error);
-                case ChannelCompleteMessage streamCompleteMessage:
-                    return StreamCompleteMessagesEqual(streamCompleteMessage, (ChannelCompleteMessage)y);
+                case StreamCompleteMessage streamCompleteMessage:
+                    return StreamCompleteMessagesEqual(streamCompleteMessage, (StreamCompleteMessage)y);
                 default:
                     throw new InvalidOperationException($"Unknown message type: {x.GetType().FullName}");
             }
@@ -68,7 +68,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                 string.Equals(x.InvocationId, y.InvocationId, StringComparison.Ordinal) &&
                 string.Equals(x.Target, y.Target, StringComparison.Ordinal) &&
                 ArgumentListsEqual(x.Arguments, y.Arguments) &&
-                x.StreamingUpload == y.StreamingUpload;
+                x.HasStream == y.HasStream;
         }
 
         private bool StreamInvocationMessagesEqual(StreamInvocationMessage x, StreamInvocationMessage y)
@@ -79,9 +79,9 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                 ArgumentListsEqual(x.Arguments, y.Arguments);
         }
 
-        private bool StreamCompleteMessagesEqual(ChannelCompleteMessage x, ChannelCompleteMessage y)
+        private bool StreamCompleteMessagesEqual(StreamCompleteMessage x, StreamCompleteMessage y)
         {
-            return x.InvocationId == y.InvocationId && y.Error == y.Error;
+            return x.StreamId == y.StreamId && y.Error == y.Error;
         }
 
         private bool ArgumentListsEqual(object[] left, object[] right)

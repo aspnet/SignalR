@@ -170,56 +170,6 @@ namespace ClientSample
                 source.TryComplete();
             }
         }
-
-        public static async Task FileUploadDemo(HubConnection connection)
-        {
-
-            var original = @"C:\Users\t-dygray\Desktop\uploads\sample.txt";
-            var target = @"C:\Users\t-dygray\Desktop\uploads\bloop.txt";
-
-            original = @"C:\Users\t-dygray\Pictures\weeg.jpg";
-            target = @"C:\Users\t-dygray\Desktop\uploads\bloop.jpg";
-
-
-            var channel = Channel.CreateUnbounded<byte[]>();
-            _ = StreamFileAsync(channel.Writer);
-
-            var result = await connection.InvokeAsync<string>("UploadFile", channel.Reader, target);
-            Debug.WriteLine($"upload complete with status: {result}");
-
-            async Task StreamFileAsync(ChannelWriter<byte[]> source)
-            {
-                await Task.Delay(1000);
-
-                using (FileStream fs = File.OpenRead(original))
-                {
-                    byte[] b = new byte[8 * 1024];
-
-                    while (true)
-                    {
-                        var n = fs.Read(b, 0, b.Length);
-                        if (n < b.Length)
-                        {
-                            // on the last cycle, there may not be enough to fill the buffer completely
-                            // in this case, we want to empty the buffer completely before refilling it
-                            byte[] lastbit = new byte[n];
-                            Array.Copy(b, lastbit, n);
-
-                            await source.WriteAsync(lastbit);
-
-                            break;
-                        }
-
-                        await source.WriteAsync(b);
-                        await Task.Delay(500);
-                    }
-
-                }
-
-                // should be good
-                source.TryComplete();
-            }
-        }
     }
 }
 

@@ -1,12 +1,6 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.SignalR.Protocol;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Internal;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -16,6 +10,12 @@ using System.Security.Claims;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR.Protocol;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Internal;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Microsoft.AspNetCore.SignalR.Internal
 {
@@ -84,7 +84,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
                 case InvocationMessage invocationMessage:
                     Log.ReceivedHubInvocation(_logger, invocationMessage);
-                    return ProcessInvocation(connection, invocationMessage, isStreamResponse: false, isStreamCall: invocationMessage.StreamingUpload);
+                    return ProcessInvocation(connection, invocationMessage, isStreamResponse: false, isStreamCall: invocationMessage.HasStream);
 
                 case StreamInvocationMessage streamInvocationMessage:
                     Log.ReceivedStreamHubInvocation(_logger, streamInvocationMessage);
@@ -112,10 +112,10 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 case StreamItemMessage streamItem:
                     return ProcessStreamItem(connection, streamItem);
 
-                case ChannelCompleteMessage channelCompleteMessage:
+                case StreamCompleteMessage channelCompleteMessage:
                     // closes channels, removes from Lookup dict
                     // user's method can see the channel is complete and begin wrapping up
-                    connection._channelStore.Complete(channelCompleteMessage);
+                    connection._streamTracker.Complete(channelCompleteMessage);
                     break;
 
                 // Other kind of message we weren't expecting
@@ -131,12 +131,12 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         {
             Log.FailedInvokingHubMethod(_logger, bindingFailureMessage.Target, bindingFailureMessage.BindingFailure.SourceException);
 
-            if (bindingFailureMessage.StreamingUpload)
+            if (bindingFailureMessage.HasStream)
             {
                 var errorString = ErrorMessageHelper.BuildErrorMessage(
                     $"Failed to bind Stream Item arguments due to an error on the server.",
                     bindingFailureMessage.BindingFailure.SourceException, _enableDetailedErrors);
-                connection._channelStore.Complete(new ChannelCompleteMessage(bindingFailureMessage.InvocationId, errorString));
+                connection._streamTracker.Complete(new StreamCompleteMessage(bindingFailureMessage.InvocationId, errorString));
 
                 return Task.CompletedTask;
             }
@@ -151,7 +151,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         private async Task ProcessStreamItem(HubConnectionContext connection, StreamItemMessage message)
         {
             Debug.WriteLine($"item: id={message.InvocationId} data={message.Item}");
-            await connection._channelStore.ProcessItem(message);
+            await connection._streamTracker.ProcessItem(message);
         }
 
         private Task ProcessInvocation(HubConnectionContext connection,
@@ -211,12 +211,10 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                     {
                         disposeScope = false;
 
-                        //foreach (var arg in hubMethodInvocationMessage.Arguments)
                         var args = hubMethodInvocationMessage.Arguments;
                         for (int i = 0; i < args.Length; i++)
                         {
-                            var placeholder = args[i] as StreamPlaceholder;
-                            if (placeholder == null)
+                            if (!(args[i] is StreamPlaceholder placeholder))
                             {
                                 continue;
                             }
@@ -224,7 +222,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                             // because this is being called, we know that `ReflectionHelper.IsStreamingType` is true for the param type
                             // this means that the type *must* be generic
                             var itemType = methodExecutor.MethodParameters[i].ParameterType.GetGenericArguments()[0];
-                            args[i] = connection._channelStore.NewStream(placeholder.StreamId, itemType);
+                            args[i] = connection._streamTracker.NewStream(placeholder.StreamId, itemType);
 
                         }
 

@@ -469,8 +469,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
             }
         }
 
-        // this has "no references" because it's called generically from the `_relayLoopInfo` field 
-        private async Task RelayLoop<T>(string channelId, ChannelReader<T> reader, CancellationToken token)
+        // this is called via reflection using the `_relayLoopInfo` field 
+        private async Task RelayLoop<T>(string streamId, ChannelReader<T> reader, CancellationToken token)
         {
             string responseError = null;
 
@@ -480,17 +480,17 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 {
                     while (!token.IsCancellationRequested && reader.TryRead(out var item))
                     {
-                        await SendWithLock(new StreamItemMessage(channelId, item));
+                        await SendWithLock(new StreamItemMessage(streamId, item));
                     }
                 }
             }
             catch (OperationCanceledException)
             {
-                // TODO: Log the cancellation
-                responseError = "stream cancelled by user";
+                Log.StreamCanceledByClient(_logger, streamId);
+                responseError = $"Stream id='{streamId}' cancelled by client.";
             }
 
-            await SendWithLock(new ChannelCompleteMessage(channelId, responseError));
+            await SendWithLock(new StreamCompleteMessage(streamId, responseError));
         }
 
         private async Task<object> InvokeCoreAsyncCore(string methodName, Type returnType, object[] args, CancellationToken cancellationToken)
@@ -501,14 +501,13 @@ namespace Microsoft.AspNetCore.SignalR.Client
             CheckDisposed();
             await WaitConnectionLockAsync();
 
-            InvocationRequest irq;
             Task<object> invocationTask;
             try
             {
                 CheckDisposed();
                 CheckConnectionActive(nameof(InvokeCoreAsync));
 
-                irq = InvocationRequest.Invoke(cancellationToken, returnType, _connectionState.GetNextId(), _loggerFactory, this, out invocationTask);
+                InvocationRequest irq = InvocationRequest.Invoke(cancellationToken, returnType, _connectionState.GetNextId(), _loggerFactory, this, out invocationTask);
 
                 AssertConnectionValid();
 
@@ -600,7 +599,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             Log.PreparingNonBlockingInvocation(_logger, methodName, args.Length);
 
-            var invocationMessage = new InvocationMessage(null, methodName, args, streamingUpload: readers.Count>0);
+            var invocationMessage = new InvocationMessage(null, methodName, args, hasStream: readers.Count > 0);
             await SendWithLock(invocationMessage, callerName: nameof(SendCoreAsync));
 
             LaunchRelayLoops(readers, cancellationToken);
