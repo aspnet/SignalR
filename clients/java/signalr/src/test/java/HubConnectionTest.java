@@ -19,8 +19,10 @@ public class HubConnectionTest {
         assertFalse(hubConnection.connected);
     }
 
+    // We're using AtomicReference<Double> in the send tests instead of int here because Gson has trouble deserializing to Integer
     @Test
     public void SendWithNoParamsTriggersOnHandler() throws Exception {
+
         AtomicReference<Double> value = new AtomicReference<Double>(0.0);
         Transport mockTransport = new MockEchoTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
