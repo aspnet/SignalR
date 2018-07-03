@@ -218,14 +218,16 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                         var args = hubMethodInvocationMessage.Arguments;
                         for (int i = 0; i < args.Length; i++)
                         {
-                            var placeholder = args[i] as ChannelPlaceholder;
+                            var placeholder = args[i] as StreamPlaceholder;
                             if (placeholder == null)
                             {
                                 continue;
                             }
 
-                            args[i] = connection._channelStore.NewStream(
-                                placeholder.StreamId, methodExecutor.MethodParameters[i].ParameterType);
+                            // because this is being called, we know that `ReflectionHelper.IsStreamingType` is true for the param type
+                            // this means that the type *must* be generic
+                            var itemType = methodExecutor.MethodParameters[i].ParameterType.GetGenericArguments()[0];
+                            args[i] = connection._channelStore.NewStream(placeholder.StreamId, itemType);
 
                         }
 
@@ -501,7 +503,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             {
                 return Type.EmptyTypes;
             }
-            // TODO, replace channelreaders with channel placeholders
+
             return descriptor.ParameterTypes;
         }
     }

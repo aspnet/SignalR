@@ -4,14 +4,12 @@ using System.Text;
 
 namespace Microsoft.AspNetCore.SignalR.Protocol
 {
-    public class ChannelPlaceholder
+    public class StreamPlaceholder
     {
-        //public Type ItemType { get; private set; }
         public string StreamId { get; private set; }
 
-        public ChannelPlaceholder(Type itemType, string streamId)
+        public StreamPlaceholder(string streamId)
         {
-            //ItemType = itemType;
             StreamId = streamId;
         }
     }

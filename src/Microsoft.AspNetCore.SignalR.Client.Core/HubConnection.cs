@@ -445,7 +445,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             var readers = new Dictionary<Guid, object>();
             for (int i = 0; i < args.Length; i++)
             {
-                if (Helpers.ShouldBeTreatedAsStreamingParameter(args[i].GetType()))
+                if (ReflectionHelper.IsStreamingType(args[i].GetType()))
                 {
                     var id = Guid.NewGuid();
                     readers[id] = args[i];

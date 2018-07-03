@@ -708,34 +708,17 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                 {
                     if (paramIndex < paramCount)
                     {
-                        if (paramTypes[paramIndex] == typeof(ChannelPlaceholder))
+                        // ChannelPlaceholder is basically a wrapper over an `id` string
+                        // To send a stream, the client sends a single string, and we "wrap" it here to label it as a `streamId`
+                        if (paramTypes[paramIndex] == typeof(StreamPlaceholder))
                         {
-                            arguments[paramIndex] = new ChannelPlaceholder(
-                                paramTypes[paramIndex].GetGenericArguments()[0],
+                            arguments[paramIndex] = new StreamPlaceholder(
                                 (string)PayloadSerializer.Deserialize(reader, typeof(string)));
                         }
                         else
                         {
                             arguments[paramIndex] = PayloadSerializer.Deserialize(reader, paramTypes[paramIndex]);
                         }
-
-                        //// Set all known arguments
-                        //if (paramTypes[paramIndex].IsGenericType && paramTypes[paramIndex].GetGenericTypeDefinition() == typeof(ChannelReader<>))
-                        //{
-                        //    // It's a channel reader, so the parameter is just a placeholder
-
-                        //    // this here is the big oof, need to do actual checks
-                        //    arguments[paramIndex] = new ChannelPlaceholder(
-                        //        paramTypes[paramIndex].GetGenericArguments()[0],
-                        //        Guid.Parse((string)PayloadSerializer.Deserialize(reader, paramTypes[paramIndex]))
-                        //        );
-                        //    arguments[paramIndex] = new ChannelPlaceholder(paramTypes[paramIndex].GetGenericArguments()[0], Guid.Parse((string)arguments[paramIndex]));
-                        //    reader.Skip();
-                        //}
-                        //else
-                        //{
-                        //    arguments[paramIndex] = PayloadSerializer.Deserialize(reader, paramTypes[paramIndex]);
-                        //}
                     }
                     else
                     {

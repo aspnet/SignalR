@@ -22,7 +22,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         public HubMethodDescriptor(ObjectMethodExecutor methodExecutor, IEnumerable<IAuthorizeData> policies)
         {
             MethodExecutor = methodExecutor;
-            ParameterTypes = methodExecutor.MethodParameters.Select(p => p.ParameterType).ToArray();
+            ParameterTypes = methodExecutor.MethodParameters.Select(GetParameterType).ToArray();
             Policies = policies.ToArray();
 
             NonAsyncReturnType = (MethodExecutor.IsMethodAsync)
@@ -51,6 +51,16 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         public Type StreamReturnType { get; }
 
         public IList<IAuthorizeData> Policies { get; }
+
+        private static Type GetParameterType(ParameterInfo p)
+        {
+            var type = p.ParameterType;
+            if (ReflectionHelper.IsStreamingType(type))
+            {
+                return typeof(Protocol.StreamPlaceholder);
+            }
+            return type;
+        }
 
         private static bool IsChannelType(Type type, out Type payloadType)
         {

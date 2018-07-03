@@ -2348,7 +2348,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         // THIS mAYBE SHOULD EXPLICITLY ERROR
         // BUT LEAVING THIS HERE AS DOCUMENTATION
         [Fact]
-        public async Task InvalidTypeOnStreamingUploadCasting()
+        public async Task UploadStreamItemInvalidTypeAutoCasts()
         {
             var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
             var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
@@ -2370,7 +2370,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Fact]
-        public async Task InvalidTypeOnStreamingUpload()
+        public async Task UploadStreamItemInvalidType()
         {
             var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
             var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
@@ -2391,7 +2391,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Fact]
-        public async Task InvalidIdOnStreamItem()
+        public async Task UploadStreamItemInvalidId()
         {
             var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
             var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
@@ -2407,7 +2407,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Fact]
-        public async Task InvalidIdOnStreamComplete()
+        public async Task UploadStreamCompleteInvalidId()
         {
             var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
             var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
