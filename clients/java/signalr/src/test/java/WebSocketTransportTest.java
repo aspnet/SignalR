@@ -23,8 +23,11 @@ public class WebSocketTransportTest {
 
     @Parameterized.Parameters
     public static Collection protocols(){
-        return Arrays.asList(new String[][] {{"http://example.com", "ws://example.com"}, {"https://example.com", "wss://example.com"},
-                {"ws://example.com", "ws://example.com"}, {"wss://example.com", "wss://example.com"}});
+        return Arrays.asList(new String[][] {
+                {"http://example.com", "ws://example.com"},
+                {"https://example.com", "wss://example.com"},
+                {"ws://example.com", "ws://example.com"},
+                {"wss://example.com", "wss://example.com"}});
     }
 
     @Test
