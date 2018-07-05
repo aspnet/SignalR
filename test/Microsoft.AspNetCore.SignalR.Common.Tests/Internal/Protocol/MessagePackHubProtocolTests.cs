@@ -239,8 +239,8 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
                 binary: "kwijeHl6oA=="),
             new ProtocolTestData(
                 name: "StreamCompleteWithError",
-                message: new StreamCompleteMessage("xyz", "zoinks scoob"),
-                binary: "kwijeHl6rHpvaW5rcyBzY29vYg=="),
+                message: new StreamCompleteMessage("xyz", "zoinks"),
+                binary: "kwijeHl6pnpvaW5rcw=="),
 
             // Ping Messages
             new ProtocolTestData(

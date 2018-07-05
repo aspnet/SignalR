@@ -249,13 +249,13 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
 
         private static StreamCompleteMessage CreateStreamCompleteMessage(byte[] input, ref int offset)
         {
-            var invocationId = ReadInvocationId(input, ref offset);
+            var streamId = ReadString(input, ref offset, "channelId");
             var error = ReadString(input, ref offset, "error");
             if (string.IsNullOrEmpty(error))
             {
                 error = null;
             }
-            return new StreamCompleteMessage(invocationId, error);
+            return new StreamCompleteMessage(streamId, error);
         }
 
         private static Dictionary<string, string> ReadHeaders(byte[] input, ref int offset)

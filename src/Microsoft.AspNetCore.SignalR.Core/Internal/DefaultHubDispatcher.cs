@@ -148,10 +148,10 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             }
 
         }
-        private async Task ProcessStreamItem(HubConnectionContext connection, StreamItemMessage message)
+        private Task ProcessStreamItem(HubConnectionContext connection, StreamItemMessage message)
         {
             Debug.WriteLine($"item: id={message.InvocationId} data={message.Item}");
-            await connection._streamTracker.ProcessItem(message);
+            return connection._streamTracker.ProcessItem(message);
         }
 
         private Task ProcessInvocation(HubConnectionContext connection,
@@ -267,7 +267,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                         // complete the non-streaming calls now
                         await invocation;
                     }
-
                 }
                 catch (TargetInvocationException ex)
                 {

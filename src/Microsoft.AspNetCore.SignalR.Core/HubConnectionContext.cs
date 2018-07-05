@@ -612,9 +612,9 @@ namespace Microsoft.AspNetCore.SignalR
             return _channel.Reader;
         }
 
-        public async Task WriteToChannel(object o)
+        public Task WriteToChannel(object o)
         {
-            await _channel.Writer.WriteAsync((T)o);
+            return _channel.Writer.WriteAsync((T)o).AsTask();
         }
 
         public void TryComplete(Exception ex)

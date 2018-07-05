@@ -92,7 +92,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             new JsonProtocolTestData("CloseMessage_HasErrorEmptyString", new CloseMessage(""), false, NullValueHandling.Ignore, "{\"type\":7,\"error\":\"\"}"),
 
             new JsonProtocolTestData("StreamCompleteMessage", new StreamCompleteMessage("123"), true, NullValueHandling.Ignore, "{\"type\":8,\"streamId\":\"123\"}"),
-            new JsonProtocolTestData("StreamCompleteMessageWithError", new StreamCompleteMessage("123", "zoinks!"), true, NullValueHandling.Ignore, "{\"type\":8,\"streamId\":\"123\",\"error\":\"zoinks!\"}"),
+            new JsonProtocolTestData("StreamCompleteMessageWithError", new StreamCompleteMessage("123", "zoinks"), true, NullValueHandling.Ignore, "{\"type\":8,\"streamId\":\"123\",\"error\":\"zoinks\"}"),
 
         }.ToDictionary(t => t.Name);
 

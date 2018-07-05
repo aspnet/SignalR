@@ -41,7 +41,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private static readonly MethodInfo _relayLoopMethod = typeof(HubConnection).GetMethods(BindingFlags.NonPublic | BindingFlags.Instance).Single(m => m.Name.Equals("RelayLoop"));
 
-
         // Persistent across all connections
         private readonly ILoggerFactory _loggerFactory;
         private readonly ILogger _logger;
