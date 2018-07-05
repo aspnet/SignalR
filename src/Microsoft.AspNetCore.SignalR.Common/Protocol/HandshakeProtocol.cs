@@ -23,12 +23,6 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         private const string ErrorPropertyName = "error";
         private const string TypePropertyName = "type";
 
-        /// <summary>
-        /// The serialized representation of a successful handshake with no minor version value.
-        /// </summary>
-        [Obsolete("A successful handshake should include a minor version, but the value here defaults to 0.")]
-        public static ReadOnlyMemory<byte> SuccessHandshakeData = Encoding.UTF8.GetBytes("{\"minorVersion\":0}"); 
-
         private static ConcurrentDictionary<IHubProtocol, ReadOnlyMemory<byte>> _messageCache = new ConcurrentDictionary<IHubProtocol, ReadOnlyMemory<byte>>();
 
         public static ReadOnlySpan<byte> GetSuccessfulHandshake(IHubProtocol protocol)
@@ -123,7 +117,6 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         /// <returns>A value that is <c>true</c> if the <see cref="HandshakeResponseMessage"/> was successfully parsed; otherwise, <c>false</c>.</returns>
         public static bool TryParseResponseMessage(ref ReadOnlySequence<byte> buffer, out HandshakeResponseMessage responseMessage)
         {
-
             if (!TextMessageParser.TryParseMessage(ref buffer, out var payload))
             {
                 responseMessage = null;
@@ -184,7 +177,6 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                 Utf8BufferTextReader.Return(textReader);
             }
         }
-
 
         /// <summary>
         /// Creates a new <see cref="HandshakeRequestMessage"/> from the specified serialized representation.
