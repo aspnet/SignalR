@@ -186,6 +186,7 @@ namespace Microsoft.AspNetCore.SignalR
         {
             var input = connection.Input;
             var protocol = connection.Protocol;
+            var abortedToken = connection.ConnectionAborted;
             while (true)
             {
                 var result = await input.ReadAsync();
@@ -202,7 +203,7 @@ namespace Microsoft.AspNetCore.SignalR
                     {
                         connection.ResetClientTimeout();
 
-                        while (protocol.TryParseMessage(ref buffer, _dispatcher, out var message))
+                        while (!abortedToken.IsCancellationRequested && protocol.TryParseMessage(ref buffer, _dispatcher, out var message))
                         {
                             await _dispatcher.DispatchMessageAsync(connection, message);
                         }

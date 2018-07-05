@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Http.Connections.Features;
 using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Protocol;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Moq;
 using Newtonsoft.Json;
@@ -2328,6 +2329,26 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 // Shut down
                 client.Dispose();
 
+                await connectionHandlerTask.OrTimeout();
+            }
+        }
+
+        [Fact]
+        public async Task ConnectionAbortedIfSendFailsWithProtocolError()
+        {
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(services =>
+            {
+                services.AddSignalR(options => options.EnableDetailedErrors = true);
+            });
+            var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
+
+            using (var client = new TestClient())
+            {
+                var connectionHandlerTask = await client.ConnectAsync(connectionHandler).OrTimeout();
+
+                await client.SendInvocationAsync(nameof(MethodHub.ProtocolError)).OrTimeout();
+
+                await client.Connected.OrTimeout();
                 await connectionHandlerTask.OrTimeout();
             }
         }

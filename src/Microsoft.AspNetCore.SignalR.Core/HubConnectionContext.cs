@@ -170,6 +170,8 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 Log.FailedWritingMessage(_logger, ex);
 
+                Abort();
+
                 return new ValueTask<FlushResult>(new FlushResult(isCanceled: false, isCompleted: true));
             }
         }
@@ -187,6 +189,8 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 Log.FailedWritingMessage(_logger, ex);
 
+                Abort();
+
                 return new ValueTask<FlushResult>(new FlushResult(isCanceled: false, isCompleted: true));
             }
         }
@@ -200,6 +204,8 @@ namespace Microsoft.AspNetCore.SignalR
             catch (Exception ex)
             {
                 Log.FailedWritingMessage(_logger, ex);
+
+                Abort();
             }
             finally
             {
@@ -220,6 +226,7 @@ namespace Microsoft.AspNetCore.SignalR
             catch (Exception ex)
             {
                 Log.FailedWritingMessage(_logger, ex);
+                Abort();
             }
             finally
             {
@@ -239,6 +246,7 @@ namespace Microsoft.AspNetCore.SignalR
             catch (Exception ex)
             {
                 Log.FailedWritingMessage(_logger, ex);
+                Abort();
             }
             finally
             {
@@ -531,7 +539,7 @@ namespace Microsoft.AspNetCore.SignalR
                 LoggerMessage.Define(LogLevel.Error, new EventId(5, "HandshakeFailed"), "Failed connection handshake.");
 
             private static readonly Action<ILogger, Exception> _failedWritingMessage =
-                LoggerMessage.Define(LogLevel.Debug, new EventId(6, "FailedWritingMessage"), "Failed writing message.");
+                LoggerMessage.Define(LogLevel.Error, new EventId(6, "FailedWritingMessage"), "Failed writing message. Aborting connection.");
 
             private static readonly Action<ILogger, string, int, Exception> _protocolVersionFailed =
                 LoggerMessage.Define<string, int>(LogLevel.Warning, new EventId(7, "ProtocolVersionFailed"), "Server does not support version {Version} of the {Protocol} protocol.");
