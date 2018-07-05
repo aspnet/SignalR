@@ -179,7 +179,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         {
             var methodExecutor = descriptor.MethodExecutor;
 
-            bool disposeScope;
+            var disposeScope = true;
             var scope = _serviceScopeFactory.CreateScope();
             IHubActivator<THub> hubActivator = null;
             THub hub = null;
@@ -221,8 +221,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 try
                 {
                     InitializeHub(hub, connection);
-
-                    Task invocation;
+                    Task invocation = null;
 
                     if (isStreamResponse)
                     {
@@ -231,42 +230,41 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                         if (!TryGetStreamingEnumerator(connection, hubMethodInvocationMessage.InvocationId, descriptor, result, out var enumerator, out var streamCts))
                         {
                             Log.InvalidReturnValueFromStreamingMethod(_logger, methodExecutor.MethodInfo.Name);
-
                             await SendInvocationError(hubMethodInvocationMessage.InvocationId, connection,
                                 $"The value returned by the streaming method '{methodExecutor.MethodInfo.Name}' is not a ChannelReader<>.");
                             return;
                         }
 
                         Log.StreamingResult(_logger, hubMethodInvocationMessage.InvocationId, methodExecutor);
-                        invocation = StreamResultsAsync(hubMethodInvocationMessage.InvocationId, connection, enumerator, scope, hubActivator, hub, streamCts);
+                        _ = StreamResultsAsync(hubMethodInvocationMessage.InvocationId, connection, enumerator, scope, hubActivator, hub, streamCts);
                     }
 
+                    // Send Async, no response expected
                     else if (string.IsNullOrEmpty(hubMethodInvocationMessage.InvocationId))
                     {
-                        // Send Async, no response expected
                         invocation = ExecuteHubMethod(methodExecutor, hub, hubMethodInvocationMessage.Arguments);
                     }
 
+                    // Invoke Async, one reponse expected
                     else
                     {
-                        // Invoke Async, response expected
-                        invocation = Task.Run(async () =>
+                        async Task ExecuteInvocation()
                         {
                             var result = await ExecuteHubMethod(methodExecutor, hub, hubMethodInvocationMessage.Arguments);
                             Log.SendingResult(_logger, hubMethodInvocationMessage.InvocationId, methodExecutor);
                             await connection.WriteAsync(CompletionMessage.WithResult(hubMethodInvocationMessage.InvocationId, result));
-                        });
+                        }
+                        invocation = ExecuteInvocation();
                     }
-
 
                     if (isStreamCall || isStreamResponse)
                     {
-                        // Fire-and-forget stream invocations, otherwise they would block other hub invocations from being able to run
+                        // leave streaming calls running in the background, otherwise they would block other hub invocations from being able to run
                         disposeScope = false;
                     }
                     else
                     {
-                        disposeScope = true;
+                        // complete the non-streaming calls now
                         await invocation;
                     }
 
