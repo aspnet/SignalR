@@ -179,7 +179,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         {
             var methodExecutor = descriptor.MethodExecutor;
 
-            var disposeScope = true;
+            bool disposeScope;
             var scope = _serviceScopeFactory.CreateScope();
             IHubActivator<THub> hubActivator = null;
             THub hub = null;
@@ -201,83 +201,75 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 hubActivator = scope.ServiceProvider.GetRequiredService<IHubActivator<THub>>();
                 hub = hubActivator.Create();
 
+                if (isStreamCall)
+                {
+                    // swap out placeholders for channels
+                    var args = hubMethodInvocationMessage.Arguments;
+                    for (int i = 0; i < args.Length; i++)
+                    {
+                        var placeholder = args[i] as StreamPlaceholder;
+                        if (placeholder == null)
+                        {
+                            continue;
+                        }
+
+                        var itemType = methodExecutor.MethodParameters[i].ParameterType.GetGenericArguments()[0];
+                        args[i] = connection._streamTracker.NewStream(placeholder.StreamId, itemType);
+                    }
+                }
+
                 try
                 {
                     InitializeHub(hub, connection);
 
-                    // TODO :: refactor this flow control lol
-                    // this is "if there's an upload stream"
-                    if (isStreamCall)
-                    {
-                        disposeScope = false;
+                    Task invocation;
 
-                        var args = hubMethodInvocationMessage.Arguments;
-                        for (int i = 0; i < args.Length; i++)
-                        {
-                            if (!(args[i] is StreamPlaceholder placeholder))
-                            {
-                                continue;
-                            }
-
-                            // because this is being called, we know that `ReflectionHelper.IsStreamingType` is true for the param type
-                            // this means that the type *must* be generic
-                            var itemType = methodExecutor.MethodParameters[i].ParameterType.GetGenericArguments()[0];
-                            args[i] = connection._streamTracker.NewStream(placeholder.StreamId, itemType);
-
-                        }
-
-                        if (string.IsNullOrEmpty(hubMethodInvocationMessage.InvocationId))
-                        {
-                            // a non blocking streaming upload
-                            // just fire-and-forget the execution
-                            _ = ExecuteHubMethod(methodExecutor, hub, hubMethodInvocationMessage.Arguments);
-                        }
-                        else
-                        {
-                            // needs a return value
-                            async Task ExecuteStreamingUpload()
-                            {
-                                var result = await ExecuteHubMethod(methodExecutor, hub, hubMethodInvocationMessage.Arguments);
-                                Log.SendingResult(_logger, hubMethodInvocationMessage.InvocationId, methodExecutor);
-                                await connection.WriteAsync(CompletionMessage.WithResult(hubMethodInvocationMessage.InvocationId, result));
-                            }
-                            _ = ExecuteStreamingUpload();
-                        }
-
-                        // as for streaming downloads, ie called via `InvokeStream`
-                        // these do not support passing channels
-
-                    }
-
-                    // this is "if there's NOT an upload stream"
-                    // it's literally all the old code that used to be here
-                    else
+                    if (isStreamResponse)
                     {
                         var result = await ExecuteHubMethod(methodExecutor, hub, hubMethodInvocationMessage.Arguments);
 
-                        if (isStreamResponse)
+                        if (!TryGetStreamingEnumerator(connection, hubMethodInvocationMessage.InvocationId, descriptor, result, out var enumerator, out var streamCts))
                         {
-                            if (!TryGetStreamingEnumerator(connection, hubMethodInvocationMessage.InvocationId, descriptor, result, out var enumerator, out var streamCts))
-                            {
-                                Log.InvalidReturnValueFromStreamingMethod(_logger, methodExecutor.MethodInfo.Name);
+                            Log.InvalidReturnValueFromStreamingMethod(_logger, methodExecutor.MethodInfo.Name);
 
-                                await SendInvocationError(hubMethodInvocationMessage.InvocationId, connection,
-                                    $"The value returned by the streaming method '{methodExecutor.MethodInfo.Name}' is not a ChannelReader<>.");
-                                return;
-                            }
-
-                            disposeScope = false;
-                            Log.StreamingResult(_logger, hubMethodInvocationMessage.InvocationId, methodExecutor);
-                            // Fire-and-forget stream invocations, otherwise they would block other hub invocations from being able to run
-                            _ = StreamResultsAsync(hubMethodInvocationMessage.InvocationId, connection, enumerator, scope, hubActivator, hub, streamCts);
+                            await SendInvocationError(hubMethodInvocationMessage.InvocationId, connection,
+                                $"The value returned by the streaming method '{methodExecutor.MethodInfo.Name}' is not a ChannelReader<>.");
+                            return;
                         }
-                        // Non-empty/null InvocationId ==> Blocking invocation that needs a response
-                        else if (!string.IsNullOrEmpty(hubMethodInvocationMessage.InvocationId))
+
+                        Log.StreamingResult(_logger, hubMethodInvocationMessage.InvocationId, methodExecutor);
+                        invocation = StreamResultsAsync(hubMethodInvocationMessage.InvocationId, connection, enumerator, scope, hubActivator, hub, streamCts);
+                    }
+
+                    else if (string.IsNullOrEmpty(hubMethodInvocationMessage.InvocationId))
+                    {
+                        // Send Async, no response expected
+                        invocation = ExecuteHubMethod(methodExecutor, hub, hubMethodInvocationMessage.Arguments);
+                    }
+
+                    else
+                    {
+                        // Invoke Async, response expected
+                        invocation = Task.Run(async () =>
                         {
+                            var result = await ExecuteHubMethod(methodExecutor, hub, hubMethodInvocationMessage.Arguments);
                             Log.SendingResult(_logger, hubMethodInvocationMessage.InvocationId, methodExecutor);
                             await connection.WriteAsync(CompletionMessage.WithResult(hubMethodInvocationMessage.InvocationId, result));
-                        }
+                        });
                     }
+
+
+                    if (isStreamCall || isStreamResponse)
+                    {
+                        // Fire-and-forget stream invocations, otherwise they would block other hub invocations from being able to run
+                        disposeScope = false;
+                    }
+                    else
+                    {
+                        disposeScope = true;
+                        await invocation;
+                    }
+
                 }
                 catch (TargetInvocationException ex)
                 {
