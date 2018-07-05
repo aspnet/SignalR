@@ -23,6 +23,11 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         int Version { get; }
 
         /// <summary>
+        /// Gets the minor version of the protocol.
+        /// </summary>
+        int MinorVersion { get; }
+
+        /// <summary>
         /// Gets the transfer format of the protocol.
         /// </summary>
         TransferFormat TransferFormat { get; }
@@ -56,10 +61,5 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         /// <param name="version">The version.</param>
         /// <returns>A value indicating whether the protocol supports the specified version.</returns>
         bool IsVersionSupported(int version);
-
-        /// <summary>
-        /// Gets the minor version of the protocol.
-        /// </summary>
-        int MinorVersion { get; }
     }
 }

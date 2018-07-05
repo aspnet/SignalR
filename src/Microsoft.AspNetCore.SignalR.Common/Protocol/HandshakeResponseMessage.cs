@@ -27,19 +27,21 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         /// Initializes a new instance of the <see cref="HandshakeResponseMessage"/> class.
         /// An error response does need a minor version. Since the handshake has failed, any extra data will be ignored.
         /// </summary>
-        /// <param name="error"></param>
+        /// <param name="error">Error encountered by the server, indicating why the handshake has failed.</param>
         public HandshakeResponseMessage(string error) : this(null, error) { }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HandshakeResponseMessage"/> class.
         /// A reponse with a minor version indicates success, and doesn't require an error field.
         /// </summary>
-        /// <param name="minorVersion"></param>
+        /// <param name="minorVersion">The highest protocol minor version that the server supports.</param>
         public HandshakeResponseMessage(int minorVersion) : this(minorVersion, null) { }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HandshakeResponseMessage"/> class.
         /// </summary>
+        /// <param name="error">Error encountered by the server, indicating why the handshake has failed.</param>
+        /// <param name="minorVersion">The highest protocol minor version that the server supports.</param>
         public HandshakeResponseMessage(int? minorVersion, string error)
         {
             // MinorVersion defaults to 0, because old servers don't send a minor version 
