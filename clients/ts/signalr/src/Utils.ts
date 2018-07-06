@@ -6,6 +6,7 @@ import { ILogger, LogLevel } from "./ILogger";
 import { NullLogger } from "./Loggers";
 import { IStreamResult, IStreamSubscriber, ISubscription } from "./Stream";
 
+/** @private */
 export class Arg {
     public static isRequired(val: any, name: string): void {
         if (val === null || val === undefined) {
@@ -86,6 +87,7 @@ export function createLogger(logger?: ILogger | LogLevel) {
     return new ConsoleLogger(logger as LogLevel);
 }
 
+/** @private */
 export class Subject<T> implements IStreamResult<T> {
     public observers: Array<IStreamSubscriber<T>>;
     public cancelCallback: () => Promise<void>;
@@ -123,6 +125,7 @@ export class Subject<T> implements IStreamResult<T> {
     }
 }
 
+/** @private */
 export class SubjectSubscription<T> implements ISubscription<T> {
     private subject: Subject<T>;
     private observer: IStreamSubscriber<T>;
@@ -144,6 +147,7 @@ export class SubjectSubscription<T> implements ISubscription<T> {
     }
 }
 
+/** @private */
 export class ConsoleLogger implements ILogger {
     private readonly minimumLogLevel: LogLevel;
 

@@ -58,6 +58,7 @@ export interface HubInvocationMessage extends HubMessageBase {
 
 /** A hub message representing a non-streaming invocation. */
 export interface InvocationMessage extends HubInvocationMessage {
+    /** @inheritDoc */
     readonly type: MessageType.Invocation;
     /** The target method name. */
     readonly target: string;
