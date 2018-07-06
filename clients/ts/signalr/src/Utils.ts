@@ -22,6 +22,7 @@ export class Arg {
     }
 }
 
+/** @private */
 export function getDataDetail(data: any, includeContent: boolean): string {
     let length: string = null;
     if (data instanceof ArrayBuffer) {
@@ -38,6 +39,7 @@ export function getDataDetail(data: any, includeContent: boolean): string {
     return length;
 }
 
+/** @private */
 export function formatArrayBuffer(data: ArrayBuffer): string {
     const view = new Uint8Array(data);
 
@@ -52,6 +54,7 @@ export function formatArrayBuffer(data: ArrayBuffer): string {
     return str.substr(0, str.length - 1);
 }
 
+/** @private */
 export async function sendMessage(logger: ILogger, transportName: string, httpClient: HttpClient, url: string, accessTokenFactory: () => string | Promise<string>, content: string | ArrayBuffer, logMessageContent: boolean): Promise<void> {
     let headers;
     const token = await accessTokenFactory();
@@ -71,6 +74,7 @@ export async function sendMessage(logger: ILogger, transportName: string, httpCl
     logger.log(LogLevel.Trace, `(${transportName} transport) request complete. Response status: ${response.statusCode}.`);
 }
 
+/** @private */
 export function createLogger(logger?: ILogger | LogLevel) {
     if (logger === undefined) {
         return new ConsoleLogger(LogLevel.Information);

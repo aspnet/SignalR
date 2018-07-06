@@ -13,13 +13,13 @@ import { Arg, ConsoleLogger } from "./Utils";
 
 /** A builder for configuring {@link @aspnet/signalr.HubConnection} instances. */
 export class HubConnectionBuilder {
-    /** @internal */
+    /** @private */
     public protocol: IHubProtocol;
-    /** @internal */
+    /** @private */
     public httpConnectionOptions: IHttpConnectionOptions;
-    /** @internal */
+    /** @private */
     public url: string;
-    /** @internal */
+    /** @private */
     public logger: ILogger;
 
     /** Configures console logging for the {@link @aspnet/signalr.HubConnection}.
