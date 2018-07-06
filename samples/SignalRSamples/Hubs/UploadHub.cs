@@ -1,11 +1,11 @@
-﻿using Microsoft.AspNetCore.SignalR;
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.SignalR;
 
 namespace SignalRSamples.Hubs
 {
@@ -17,18 +17,12 @@ namespace SignalRSamples.Hubs
             return i;
         }
 
-        public async Task<string> DoubleTrouble(ChannelReader<string> letters, ChannelReader<int> numbers)
+        public async Task<string> DoubleStreamUpload(ChannelReader<string> letters, ChannelReader<int> numbers)
         {
             var total = await Sum(numbers);
             var word = await UploadWord(letters);
 
             return String.Format("You sent over <{0}> <{1}s>", total, word);
-        }
-
-        public async Task SoftDoubleUpload(ChannelReader<string> letters, ChannelReader<int> numbers)
-        {
-            var result = await DoubleTrouble(letters, numbers);
-            Debug.WriteLine(String.Format("Server knows: {0}", result));
         }
 
         public async Task<int> Sum(ChannelReader<int> source)
@@ -49,11 +43,9 @@ namespace SignalRSamples.Hubs
             var total = 0;
             while (await source.WaitToReadAsync())
             {
+                while (source.TryRead(out var item))
                 {
-                    while (source.TryRead(out var item))
-                    {
-                        total += item;
-                    }
+                    total += item;
                 }
             }
             Debug.WriteLine(String.Format("Complete, your total is <{0}>.", total));
@@ -106,8 +98,6 @@ namespace SignalRSamples.Hubs
             {
                 while (source.TryRead(out var item))
                 {
-                    //File.WriteAllBytes($@"C:\Users\t-dygray\Desktop\uploads\bloop_{chunk}.txt", item);
-
                     Debug.WriteLine($"received chunk #{chunk++}");
                     result = result.Concat(item);  // atrocious
                     await Task.Delay(50);

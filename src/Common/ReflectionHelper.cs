@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) .NET Foundation. All rights reserved. 
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information. 
+
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Channels;
@@ -20,7 +23,7 @@ namespace Microsoft.AspNetCore.SignalR
             }
 
             // walk up inheritance chain, until parent is either null or a ChannelReader<T>
-            // TODO -- add Streams here, to make sending files ez
+            // TODO #2594 - add Streams here, to make sending files easy
             while (true)
             {
                 if (type == null)

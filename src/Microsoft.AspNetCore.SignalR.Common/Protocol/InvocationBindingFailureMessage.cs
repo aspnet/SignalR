@@ -22,9 +22,9 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
 
         /// <summary>
         /// Gets the whether the invocation had initiated an uploading method.
-        /// In that case, the error needs to be routed to the user's hubMethod.
+        /// In that case, the error needs to be routed to the user's hub method.
         /// </summary>
-        public bool HasStream { get; } = false;
+        public bool HasStream { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="InvocationBindingFailureMessage"/> class.
@@ -44,7 +44,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         /// <param name="invocationId">The invocation ID.</param>
         /// <param name="target">The target method name.</param>
         /// <param name="bindingFailure">The exception thrown during binding.</param>
-        /// <param name="hasStream">Whether to route the error into the user's upload method.</param>
+        /// <param name="hasStream">Indicates if the error ocurred during a streaming invocation binding.</param>
         public InvocationBindingFailureMessage(string invocationId, string target, ExceptionDispatchInfo bindingFailure, bool hasStream) 
             : this(invocationId, target, bindingFailure)
         {

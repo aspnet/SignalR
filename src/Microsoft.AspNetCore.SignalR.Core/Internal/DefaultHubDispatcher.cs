@@ -26,6 +26,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         private readonly IHubContext<THub> _hubContext;
         private readonly ILogger<HubDispatcher<THub>> _logger;
         private readonly bool _enableDetailedErrors;
+
         public DefaultHubDispatcher(IServiceScopeFactory serviceScopeFactory, IHubContext<THub> hubContext, IOptions<HubOptions<THub>> hubOptions,
             IOptions<HubOptions> globalHubOptions, ILogger<DefaultHubDispatcher<THub>> logger)
         {
@@ -110,12 +111,14 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                     break;
 
                 case StreamItemMessage streamItem:
+                    Log.ReceivedStreamItem(_logger, streamItem);
                     return ProcessStreamItem(connection, streamItem);
 
-                case StreamCompleteMessage channelCompleteMessage:
+                case StreamCompleteMessage streamCompleteMessage:
                     // closes channels, removes from Lookup dict
                     // user's method can see the channel is complete and begin wrapping up
-                    connection._streamTracker.Complete(channelCompleteMessage);
+                    Log.CompletingStream(_logger, streamCompleteMessage);
+                    connection.StreamTracker.Complete(streamCompleteMessage);
                     break;
 
                 // Other kind of message we weren't expecting
@@ -136,7 +139,10 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 var errorString = ErrorMessageHelper.BuildErrorMessage(
                     $"Failed to bind Stream Item arguments due to an error on the server.",
                     bindingFailureMessage.BindingFailure.SourceException, _enableDetailedErrors);
-                connection._streamTracker.Complete(new StreamCompleteMessage(bindingFailureMessage.InvocationId, errorString));
+
+                var message = new StreamCompleteMessage(bindingFailureMessage.InvocationId, errorString);
+                Log.ClosingStreamWithError(_logger, message);
+                connection.StreamTracker.Complete(new StreamCompleteMessage(bindingFailureMessage.InvocationId, errorString));
 
                 return Task.CompletedTask;
             }
@@ -146,12 +152,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                     bindingFailureMessage.BindingFailure.SourceException, _enableDetailedErrors);
                 return SendInvocationError(bindingFailureMessage.InvocationId, connection, errorMessage);
             }
-
         }
         private Task ProcessStreamItem(HubConnectionContext connection, StreamItemMessage message)
         {
             Debug.WriteLine($"item: id={message.InvocationId} data={message.Item}");
-            return connection._streamTracker.ProcessItem(message);
+            return connection.StreamTracker.ProcessItem(message);
         }
 
         private Task ProcessInvocation(HubConnectionContext connection,
@@ -213,8 +218,9 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                             continue;
                         }
 
+                        Log.StartingParameterStream(_logger, placeholder.StreamId);
                         var itemType = methodExecutor.MethodParameters[i].ParameterType.GetGenericArguments()[0];
-                        args[i] = connection._streamTracker.NewStream(placeholder.StreamId, itemType);
+                        args[i] = connection.StreamTracker.NewStream(placeholder.StreamId, itemType);
                     }
                 }
 

@@ -57,6 +57,18 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             private static readonly Action<ILogger, string, Exception> _invalidReturnValueFromStreamingMethod =
                 LoggerMessage.Define<string>(LogLevel.Error, new EventId(15, "InvalidReturnValueFromStreamingMethod"), "A streaming method returned a value that cannot be used to build enumerator {HubMethod}.");
 
+            private static readonly Action<ILogger, string, Exception> _receivedStreamItem =
+                LoggerMessage.Define<string>(LogLevel.Trace, new EventId(16, "ReceivedStreamItem"), "Received item for stream '{streamId}'.");
+
+            private static readonly Action<ILogger, string, Exception> _startingParameterStream =
+                LoggerMessage.Define<string>(LogLevel.Trace, new EventId(17, "StartingParameterStream"), "Creating streaming parameter channel '{streamId}'.");
+
+            private static readonly Action<ILogger, string, Exception> _completingStream =
+                LoggerMessage.Define<string>(LogLevel.Trace, new EventId(18, "CompletingStream"), "Stream '{streamId}' has been completed by client.");
+
+            private static readonly Action<ILogger, string, string, Exception> _closingStreamWithError =
+                LoggerMessage.Define<string, string>(LogLevel.Debug, new EventId(19, "ClosingStreamWithError"), "Stream '{streamId}' closed with error '{error}.");
+
             public static void ReceivedHubInvocation(ILogger logger, InvocationMessage invocationMessage)
             {
                 _receivedHubInvocation(logger, invocationMessage, null);
@@ -132,6 +144,26 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             public static void InvalidReturnValueFromStreamingMethod(ILogger logger, string hubMethod)
             {
                 _invalidReturnValueFromStreamingMethod(logger, hubMethod, null);
+            }
+
+            public static void ReceivedStreamItem(ILogger logger, StreamItemMessage message)
+            {
+                _receivedStreamItem(logger, message.InvocationId, null);
+            }
+
+            public static void StartingParameterStream(ILogger logger, string streamId)
+            {
+                _startingParameterStream(logger, streamId, null);
+            }
+
+            public static void CompletingStream(ILogger logger, StreamCompleteMessage message)
+            {
+                _completingStream(logger, message.StreamId, null);
+            }
+
+            public static void ClosingStreamWithError(ILogger logger, StreamCompleteMessage message)
+            {
+                _closingStreamWithError(logger, message.StreamId, message.Error, null);
             }
         }
     }

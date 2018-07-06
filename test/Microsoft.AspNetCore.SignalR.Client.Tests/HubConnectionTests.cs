@@ -306,8 +306,6 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             await connection.ReceiveJsonMessage(new { type = HubProtocolConstants.CompletionMessageType, invocationId = id, result = "humbug" });
 
             await Assert.ThrowsAsync<Newtonsoft.Json.JsonSerializationException>(async () => await invokeTask);
-            
-            
         }
 
         private class SampleObject

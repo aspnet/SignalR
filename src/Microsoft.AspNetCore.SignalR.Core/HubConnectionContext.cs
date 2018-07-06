@@ -7,12 +7,8 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO.Pipelines;
-using System.Linq;
-using System.Reflection;
-using System.Runtime.ExceptionServices;
 using System.Security.Claims;
 using System.Threading;
-using System.Threading.Channels;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Connections.Features;
@@ -25,7 +21,7 @@ namespace Microsoft.AspNetCore.SignalR
 {
     public class HubConnectionContext
     {
-        private StreamTracker _streamTrackerField;
+        private StreamTracker _streamTracker;
         private static readonly WaitCallback _abortedCallback = AbortConnection;
 
         private readonly ConnectionContext _connectionContext;
@@ -52,15 +48,15 @@ namespace Microsoft.AspNetCore.SignalR
             _keepAliveDuration = (int)keepAliveInterval.TotalMilliseconds * (Stopwatch.Frequency / 1000);
         }
 
-        internal StreamTracker _streamTracker
+        internal StreamTracker StreamTracker
         {
             get
             {
-                if (_streamTrackerField == null)
+                if (_streamTracker == null)
                 {
-                    _streamTrackerField = new StreamTracker();
+                    _streamTracker = new StreamTracker();
                 }
-                return _streamTrackerField;
+                return _streamTracker;
             }
         }
         /// <summary>
@@ -545,81 +541,6 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 _abortFailed(logger, exception);
             }
-        }
-    }
-
-    internal class StreamTracker
-    {
-        private static readonly MethodInfo _buildConverterMethod = typeof(StreamTracker).GetMethods().Single(m => m.Name.Equals("BuildStream"));
-        public Dictionary<string, IChannelConverter> Lookup = new Dictionary<string, IChannelConverter>();
-
-        public object NewStream(string streamId, Type itemType)
-        {
-            var newConverter = (IChannelConverter)_buildConverterMethod.MakeGenericMethod(itemType).Invoke(null, Array.Empty<object>());
-            Lookup[streamId] = newConverter;
-            return newConverter.GetReaderAsObject();
-        }
-
-        public Task ProcessItem(StreamItemMessage message)
-        {
-            return Lookup[message.InvocationId].WriteToChannel(message.Item);
-        }
-
-        public void Complete(StreamCompleteMessage message)
-        {
-            if (!Lookup.TryGetValue(message.StreamId, out var value))
-            {
-                // TODO
-                // LOG: DEBUG: "can't find invocationId <42>, ignoring message"
-                throw new Exception("INVALID CHANNEL ID ON CANCEL");
-                //return;
-            }
-            var ConverterToClose = Lookup[message.StreamId];
-            Lookup.Remove(message.StreamId);
-            ConverterToClose.TryComplete(message.HasError ? new Exception(message.Error) : null);
-        }
-
-        public static IChannelConverter BuildStream<T>()
-        {
-            return new ChannelConverter<T>();
-        }
-    }
-
-    internal interface IChannelConverter
-    {
-        Type GetReturnType();
-        object GetReaderAsObject();
-        Task WriteToChannel(object item);
-        void TryComplete(Exception ex);
-    }
-
-    internal class ChannelConverter<T> : IChannelConverter
-    {
-        private Channel<T> _channel;
-
-        public ChannelConverter()
-        {
-            _channel = Channel.CreateUnbounded<T>();
-        }
-
-        public Type GetReturnType()
-        {
-            return typeof(T);
-        }
-
-        public object GetReaderAsObject()
-        {
-            return _channel.Reader;
-        }
-
-        public Task WriteToChannel(object o)
-        {
-            return _channel.Writer.WriteAsync((T)o).AsTask();
-        }
-
-        public void TryComplete(Exception ex)
-        {
-            _channel.Writer.TryComplete(ex);
         }
     }
 }

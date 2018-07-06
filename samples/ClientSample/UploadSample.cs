@@ -1,11 +1,9 @@
-﻿using Microsoft.AspNetCore.SignalR.Client;
-using Microsoft.Extensions.CommandLineUtils;
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.CommandLineUtils;
 
 namespace ClientSample
 {
@@ -15,15 +13,15 @@ namespace ClientSample
         {
             app.Command("uploading", cmd =>
             {
-                cmd.Description = "Tests a streaming from client to hub";
+                cmd.Description = "Tests a streaming invocation from client to hub";
 
                 var baseUrlArgument = cmd.Argument("<BASEURL>", "The URL to the Chat Hub to test");
 
-                cmd.OnExecute(() => RunThatBoi(baseUrlArgument.Value));
+                cmd.OnExecute(() => ExecuteAsync(baseUrlArgument.Value));
             });
         }
 
-        public static async Task<int> RunThatBoi(string baseUrl)
+        public static async Task<int> ExecuteAsync(string baseUrl)
         {
             var connection = new HubConnectionBuilder()
                 .WithUrl(baseUrl)
@@ -60,7 +58,7 @@ namespace ClientSample
             _ = WriteStreamAsync(new[] { "h", "i", "!" }, letters.Writer);
             _ = WriteStreamAsync(new[] { 1, 2, 3, 4, 5 }, numbers.Writer);
 
-            var result = await connection.InvokeAsync<string>("DoubleTrouble", letters.Reader, numbers.Reader);
+            var result = await connection.InvokeAsync<string>("DoubleStreamUpload", letters.Reader, numbers.Reader);
 
             Debug.WriteLine(result);
         }

@@ -39,7 +39,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         // This lock protects the connection state.
         private readonly SemaphoreSlim _connectionLock = new SemaphoreSlim(1, 1);
 
-        private static readonly MethodInfo _relayLoopMethod = typeof(HubConnection).GetMethods(BindingFlags.NonPublic | BindingFlags.Instance).Single(m => m.Name.Equals("RelayLoop"));
+        private static readonly MethodInfo _sendStreamItemsMethod = typeof(HubConnection).GetMethods(BindingFlags.NonPublic | BindingFlags.Instance).Single(m => m.Name.Equals("SendStreamItems"));
 
         // Persistent across all connections
         private readonly ILoggerFactory _loggerFactory;
@@ -440,39 +440,56 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             return channel;
         }
-        private Dictionary<string, object> PackageStreamingParams(object[] args)
+
+        private Dictionary<string, object> PackageStreamingParams(object[] args, out bool isStreamingUpload)
         {
-            var readers = new Dictionary<string, object>();
+            // lazy initialized, to avoid allocation unecessary dictionaries
+            Dictionary<string, object> readers = null;
+            isStreamingUpload = false;
+
             for (int i = 0; i < args.Length; i++)
             {
                 if (ReflectionHelper.IsStreamingType(args[i].GetType()))
                 {
+                    if (readers == null)
+                    {
+                        readers = new Dictionary<string, object>();
+                        isStreamingUpload = true;
+                    }
                     _currentChannelId += 1;
                     readers[_currentChannelId.ToString()] = args[i];
-                    args[i] = _currentChannelId;
+                    args[i] = _currentChannelId.ToString();
+
+                    Log.StartingStream(_logger, (string)args[i]);
                 }
             }
 
             return readers;
         }
 
-        private void LaunchRelayLoops(Dictionary<string, object> readers, CancellationToken cancellationToken)
+        private void LaunchStreams(Dictionary<string, object> readers, CancellationToken cancellationToken)
         {
-            foreach (KeyValuePair<string, object> kv in readers)
+            if (readers == null)
             {
-                var reader = kv.Value;
+                // if there were no streaming parameters then this is never initialized
+                return;
+            }
+            foreach (var kvp in readers)
+            {
+                var reader = kvp.Value;
 
-                _ = _relayLoopMethod
+                _ = _sendStreamItemsMethod
                     .MakeGenericMethod(reader.GetType().GetGenericArguments())
-                    .Invoke(this, new object[] { kv.Key.ToString(), reader, cancellationToken });
+                    .Invoke(this, new object[] { kvp.Key.ToString(), reader, cancellationToken });
             }
         }
 
         // this is called via reflection using the `_relayLoopInfo` field 
-        private async Task RelayLoop<T>(string streamId, ChannelReader<T> reader, CancellationToken token)
+        private async Task SendStreamItems<T>(string streamId, ChannelReader<T> reader, CancellationToken token)
         {
-            string responseError = null;
+            Log.StartingStream(_logger, streamId);
 
+            string responseError = null;
             try
             {
                 while (await reader.WaitToReadAsync(token))
@@ -480,22 +497,23 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     while (!token.IsCancellationRequested && reader.TryRead(out var item))
                     {
                         await SendWithLock(new StreamItemMessage(streamId, item));
+                        Log.SendingStreamItem(_logger, streamId);
                     }
                 }
             }
             catch (OperationCanceledException)
             {
-                Log.StreamCanceledByClient(_logger, streamId);
-                responseError = $"Stream id='{streamId}' cancelled by client.";
+                Log.CancelingStream(_logger, streamId);
+                responseError = $"Stream id='{streamId}' canceled by client.";
             }
 
+            Log.CompletingStream(_logger, streamId);
             await SendWithLock(new StreamCompleteMessage(streamId, responseError));
         }
 
         private async Task<object> InvokeCoreAsyncCore(string methodName, Type returnType, object[] args, CancellationToken cancellationToken)
         {
-            var readers = PackageStreamingParams(args);
-            var isStreamingUpload = readers.Count > 0;
+            var readers = PackageStreamingParams(args, out var isStreamingUpload);
 
             CheckDisposed();
             await WaitConnectionLockAsync();
@@ -517,7 +535,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 ReleaseConnectionLock();
             }
 
-            LaunchRelayLoops(readers, cancellationToken);
+            LaunchStreams(readers, cancellationToken);
 
             // Wait for this outside the lock, because it won't complete until the server responds
             return await invocationTask;
@@ -594,14 +612,14 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private async Task SendCoreAsyncCore(string methodName, object[] args, CancellationToken cancellationToken)
         {
-            var readers = PackageStreamingParams(args);
+            var readers = PackageStreamingParams(args, out var isStreamingUpload);
 
             Log.PreparingNonBlockingInvocation(_logger, methodName, args.Length);
 
-            var invocationMessage = new InvocationMessage(null, methodName, args, hasStream: readers.Count > 0);
+            var invocationMessage = new InvocationMessage(null, methodName, args, isStreamingUpload);
             await SendWithLock(invocationMessage, callerName: nameof(SendCoreAsync));
 
-            LaunchRelayLoops(readers, cancellationToken);
+            LaunchStreams(readers, cancellationToken);
         }
 
         private async Task SendWithLock(HubMessage message, CancellationToken cancellationToken = default, [CallerMemberName] string callerName = "")

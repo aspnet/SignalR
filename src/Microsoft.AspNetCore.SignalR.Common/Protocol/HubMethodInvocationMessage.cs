@@ -45,7 +45,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
     /// </summary>
     public class InvocationMessage : HubMethodInvocationMessage
     {
-        public bool HasStream { get; } = false;
+        public bool HasStream { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="InvocationMessage"/> class.

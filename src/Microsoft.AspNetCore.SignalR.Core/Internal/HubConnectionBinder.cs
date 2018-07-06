@@ -25,12 +25,12 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         public Type GetReturnType(string invocationId)
         {
-            return GetStreamItemType(invocationId);
+            return typeof(object);
         }
 
         public Type GetStreamItemType(string streamId)
         {
-            return _connection._streamTracker.Lookup[streamId].GetReturnType();
+            return _connection.StreamTracker.Lookup[streamId].GetReturnType();
         }
     }
 }
