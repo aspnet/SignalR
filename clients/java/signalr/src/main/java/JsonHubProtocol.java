@@ -30,9 +30,9 @@ public class JsonHubProtocol implements HubProtocol {
     }
 
     @Override
-    public InvocationMessage[] parseMessages(String payload) {
+    public HubMessage[] parseMessages(String payload) {
         String[] messages = payload.split(RECORD_SEPARATOR);
-        List<InvocationMessage> invocationMessages = new ArrayList<>();
+        List<HubMessage> hubMessages = new ArrayList<>();
         for (String splitMessage : messages) {
             // Empty handshake response "{}". We can ignore it
             if (splitMessage.equals("{}")) {
@@ -46,12 +46,12 @@ public class JsonHubProtocol implements HubProtocol {
                     //Invocation Message
                     String target = jsonMessage.get("target").getAsString();
                     JsonElement args = jsonMessage.get("arguments");
-                    invocationMessages.add(new InvocationMessage(target, new Object[] {args}));
+                    hubMessages.add(new InvocationMessage(target, new Object[] {args}));
+
                     break;
                 case "2":
                     //Stream item
-                    //Don't care yet
-                    break;
+                    throw new UnsupportedOperationException("Support for streaming is not yet available");
                 case "3":
                     //Completion
                     //Don't care yet
@@ -59,14 +59,13 @@ public class JsonHubProtocol implements HubProtocol {
                 case "4":
                     //Stream invocation
                     //Don't care yet;
-                    break;
+                    throw new UnsupportedOperationException("Support for streaming is not yet available");
                 case "5":
                     //Cancel invocation
-                    //Don't care yet
                     break;
                 case "6":
                     //Ping
-                    //Don't care yet
+                    hubMessages.add(new PingMessage());
                     break;
                 case "7":
                     // Close message
@@ -74,7 +73,7 @@ public class JsonHubProtocol implements HubProtocol {
                     break;
             }
         }
-        return invocationMessages.toArray(new InvocationMessage[invocationMessages.size()]);
+        return hubMessages.toArray(new HubMessage[hubMessages.size()]);
     }
 
     @Override
