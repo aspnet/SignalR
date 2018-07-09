@@ -45,7 +45,7 @@ public class HubConnectionTest {
         Transport mockTransport = new MockEchoTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
 
-        Action1<Double>  action = (number) -> value.getAndUpdate((val) -> val + number);
+        Action1<Double> action = (number) -> value.getAndUpdate((val) -> val + number);
 
         hubConnection.on("add", action, Double.class);
         hubConnection.on("add", action, Double.class);

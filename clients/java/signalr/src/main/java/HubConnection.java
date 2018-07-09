@@ -31,7 +31,7 @@ public class HubConnection {
                 if (message != null && handlers.containsKey(message.target)) {
                     ArrayList<Object> args = gson.fromJson((JsonArray)message.arguments[0], (new ArrayList<Object>()).getClass());
                     List<ActionBase> actions = handlers.get(message.target);
-                    if (actions != null){
+                    if (actions != null) {
                         for (ActionBase action: actions) {
                             action.invoke(args.toArray());
                         }
