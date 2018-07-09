@@ -25,7 +25,7 @@ public class HubConnectionTest {
         AtomicReference<Double> value = new AtomicReference<>(0.0);
         Transport mockTransport = new MockEchoTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
-        Action action = () -> value.getAndSet(value.get() + 1);
+        Action action = () -> value.getAndUpdate((val) -> val + 1);
 
         hubConnection.on("inc", action);
         hubConnection.on("inc", action);
@@ -45,7 +45,7 @@ public class HubConnectionTest {
         Transport mockTransport = new MockEchoTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
 
-        Action1<Double>  action= (number) -> value.getAndSet(value.get() + number);
+        Action1<Double>  action = (number) -> value.getAndUpdate((val) -> val + number);
 
         hubConnection.on("add", action, Double.class);
         hubConnection.on("add", action, Double.class);
@@ -69,7 +69,7 @@ public class HubConnectionTest {
 
         hubConnection.on("inc", () ->{
             assertEquals(0.0, value.get(), 0);
-            value.getAndSet(value.get() + 1);
+            value.getAndUpdate((val) -> val + 1);
         });
 
         hubConnection.start();
