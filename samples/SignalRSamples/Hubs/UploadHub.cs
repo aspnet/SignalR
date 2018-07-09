@@ -11,12 +11,6 @@ namespace SignalRSamples.Hubs
 {
     public class UploadHub : Hub
     {
-        public int TraceMethod(int i)
-        {
-            Debug.WriteLine("Ope");
-            return i;
-        }
-
         public async Task<string> DoubleStreamUpload(ChannelReader<string> letters, ChannelReader<int> numbers)
         {
             var total = await Sum(numbers);

@@ -33,12 +33,6 @@ namespace Microsoft.AspNetCore.SignalR
 
         public void Complete(StreamCompleteMessage message)
         {
-            if (!Lookup.TryGetValue(message.StreamId, out var value))
-            {
-                // TODO
-                // LOG: DEBUG: "can't find invocationId <42>, ignoring message"
-                return;
-            }
             var ConverterToClose = Lookup[message.StreamId];
             Lookup.Remove(message.StreamId);
             ConverterToClose.TryComplete(message.HasError ? new Exception(message.Error) : null);

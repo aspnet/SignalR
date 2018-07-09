@@ -43,7 +43,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             new JsonProtocolTestData("InvocationMessage_HasHeaders", AddHeaders(TestHeaders, new InvocationMessage("123", "Target", new object[] { 1, "Foo", 2.0f })), true, NullValueHandling.Ignore, "{\"type\":1," + SerializedHeaders + ",\"invocationId\":\"123\",\"target\":\"Target\",\"arguments\":[1,\"Foo\",2.0]}"),
             new JsonProtocolTestData("InvocationMessage_StringIsoDateArgument", new InvocationMessage("Method", new object[] { "2016-05-10T13:51:20+12:34" }), true, NullValueHandling.Ignore, "{\"type\":1,\"target\":\"Method\",\"arguments\":[\"2016-05-10T13:51:20+12:34\"]}"),
             new JsonProtocolTestData("InvocationMessage_DateTimeOffsetArgument", new InvocationMessage("Method", new object[] { DateTimeOffset.Parse("2016-05-10T13:51:20+12:34") }), true, NullValueHandling.Ignore, "{\"type\":1,\"target\":\"Method\",\"arguments\":[\"2016-05-10T13:51:20+12:34\"]}"),
-            new JsonProtocolTestData("InvocationMessage_UploadStreamingFlag", new InvocationMessage("123", "Target", new object[] { }, true), true, NullValueHandling.Ignore, "{\"type\":1,\"invocationId\":\"123\",\"target\":\"Target\",\"arguments\":[],\"hasStream\":true}"),
+            new JsonProtocolTestData("InvocationMessage_UploadStreamingFlag", new InvocationMessage("123", "Target", new object[] { new StreamPlaceholder("stream_id") }, true), true, NullValueHandling.Ignore, "{\"type\":1,\"invocationId\":\"123\",\"target\":\"Target\",\"arguments\":[{\"streamId\":\"stream_id\"}],\"hasStream\":true}"),
 
             new JsonProtocolTestData("StreamItemMessage_HasIntegerItem", new StreamItemMessage("123", 1), true, NullValueHandling.Ignore, "{\"type\":2,\"invocationId\":\"123\",\"item\":1}"),
             new JsonProtocolTestData("StreamItemMessage_HasStringItem", new StreamItemMessage("123", "Foo"), true, NullValueHandling.Ignore, "{\"type\":2,\"invocationId\":\"123\",\"item\":\"Foo\"}"),
@@ -93,7 +93,6 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
 
             new JsonProtocolTestData("StreamCompleteMessage", new StreamCompleteMessage("123"), true, NullValueHandling.Ignore, "{\"type\":8,\"streamId\":\"123\"}"),
             new JsonProtocolTestData("StreamCompleteMessageWithError", new StreamCompleteMessage("123", "zoinks"), true, NullValueHandling.Ignore, "{\"type\":8,\"streamId\":\"123\",\"error\":\"zoinks\"}"),
-
         }.ToDictionary(t => t.Name);
 
         public static IEnumerable<object[]> ProtocolTestDataNames => ProtocolTestData.Keys.Select(name => new object[] { name });

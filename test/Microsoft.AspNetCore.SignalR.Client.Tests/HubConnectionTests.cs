@@ -147,165 +147,183 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         [Fact]
         public async Task StreamIntsToServer()
         {
-            var connection = new TestConnection();
-            var hubConnection = CreateHubConnection(connection);
-            await hubConnection.StartAsync().OrTimeout();
-
-            var channel = Channel.CreateUnbounded<int>();
-            var invokeTask = hubConnection.InvokeAsync<int>("SomeMethod", channel.Reader);
-
-            var invocation = await connection.ReadSentJsonAsync();
-            Assert.Equal(HubProtocolConstants.InvocationMessageType, invocation["type"]);
-            Assert.Equal("SomeMethod", invocation["target"]);
-            Assert.True((bool)invocation["hasStream"]);
-            var channelId = invocation["arguments"][0];
-
-            foreach (var number in new[] { 42, 43, 322, 3145, -1234 })
+            using (StartVerifiableLog(out var loggerFactory, LogLevel.Trace))
             {
-                await channel.Writer.WriteAsync(number);
+                var connection = new TestConnection();
+                var hubConnection = CreateHubConnection(connection);
+                await hubConnection.StartAsync().OrTimeout();
 
-                var item = await connection.ReadSentJsonAsync();
-                Assert.Equal(HubProtocolConstants.StreamItemMessageType, item["type"]);
-                Assert.Equal(number, item["item"]);
-                Assert.Equal(channelId, item["invocationId"]); // I realize this is poorly named, TODO change
+                var channel = Channel.CreateUnbounded<int>();
+                var invokeTask = hubConnection.InvokeAsync<int>("SomeMethod", channel.Reader);
+
+                var invocation = await connection.ReadSentJsonAsync();
+                Assert.Equal(HubProtocolConstants.InvocationMessageType, invocation["type"]);
+                Assert.Equal("SomeMethod", invocation["target"]);
+                Assert.True((bool)invocation["hasStream"]);
+                var streamId = invocation["arguments"][0]["streamId"];
+
+                foreach (var number in new[] { 42, 43, 322, 3145, -1234 })
+                {
+                    await channel.Writer.WriteAsync(number);
+
+                    var item = await connection.ReadSentJsonAsync();
+                    Assert.Equal(HubProtocolConstants.StreamItemMessageType, item["type"]);
+                    Assert.Equal(number, item["item"]);
+                    Assert.Equal(streamId, item["invocationId"]); // I realize this is poorly named, TODO change
+                }
+
+                channel.Writer.TryComplete();
+                var completion = await connection.ReadSentJsonAsync();
+                Assert.Equal(HubProtocolConstants.StreamCompleteMessageType, completion["type"]);
+
+                await connection.ReceiveJsonMessage(new { type = HubProtocolConstants.CompletionMessageType, invocationId = invocation["invocationId"], result = 42 });
+                var result = await invokeTask;
+                Assert.Equal(42, result);
             }
-
-            channel.Writer.TryComplete();
-            var completion = await connection.ReadSentJsonAsync();
-            Assert.Equal(HubProtocolConstants.StreamCompleteMessageType, completion["type"]);
-
-            await connection.ReceiveJsonMessage(new { type = HubProtocolConstants.CompletionMessageType, invocationId = invocation["invocationId"], result = 42 });
-            var result = await invokeTask;
-            Assert.Equal(42, result);
         }
 
         [Fact]
         public async Task StreamIntsToServerViaSend()
         {
-            var connection = new TestConnection();
-            var hubConnection = CreateHubConnection(connection);
-            await hubConnection.StartAsync().OrTimeout();
+            using (StartVerifiableLog(out var loggerFactory, LogLevel.Trace))
+            {
+                var connection = new TestConnection();
+                var hubConnection = CreateHubConnection(connection);
+                await hubConnection.StartAsync().OrTimeout();
 
-            var channel = Channel.CreateUnbounded<int>();
-            var sendTask = hubConnection.SendAsync("SomeMethod", channel.Reader);
+                var channel = Channel.CreateUnbounded<int>();
+                var sendTask = hubConnection.SendAsync("SomeMethod", channel.Reader);
 
-            var invocation = await connection.ReadSentJsonAsync();
-            Assert.Equal(HubProtocolConstants.InvocationMessageType, invocation["type"]);
-            Assert.Equal("SomeMethod", invocation["target"]);
-            Assert.True((bool)invocation["hasStream"]);
-            Assert.Null(invocation["invocationId"]);
+                var invocation = await connection.ReadSentJsonAsync();
+                Assert.Equal(HubProtocolConstants.InvocationMessageType, invocation["type"]);
+                Assert.Equal("SomeMethod", invocation["target"]);
+                Assert.True((bool)invocation["hasStream"]);
+                Assert.Null(invocation["invocationId"]);
+            }
         }
 
         [Fact]
         public async Task StreamsObjectsToServer()
         {
-            var connection = new TestConnection();
-            var hubConnection = CreateHubConnection(connection);
-            await hubConnection.StartAsync().OrTimeout();
-
-            var channel = Channel.CreateUnbounded<object>();
-            var invokeTask = hubConnection.InvokeAsync<SampleObject>("UploadMethod", channel.Reader);
-
-            var invocation = await connection.ReadSentJsonAsync();
-            Assert.Equal(HubProtocolConstants.InvocationMessageType, invocation["type"]);
-            Assert.Equal("UploadMethod", invocation["target"]);
-            Assert.True((bool)invocation["hasStream"]);
-            var id = invocation["invocationId"];
-
-            var items = new[] { new SampleObject("ab", 12), new SampleObject("ef", 23) };
-            foreach (var item in items)
+            using (StartVerifiableLog(out var loggerFactory, LogLevel.Trace))
             {
-                await channel.Writer.WriteAsync(item);
+                var connection = new TestConnection();
+                var hubConnection = CreateHubConnection(connection);
+                await hubConnection.StartAsync().OrTimeout();
 
-                var received = await connection.ReadSentJsonAsync();
-                Assert.Equal(HubProtocolConstants.StreamItemMessageType, received["type"]);
-                Assert.Equal(item.Foo, received["item"]["foo"]);
-                Assert.Equal(item.Bar, received["item"]["bar"]);
+                var channel = Channel.CreateUnbounded<object>();
+                var invokeTask = hubConnection.InvokeAsync<SampleObject>("UploadMethod", channel.Reader);
+
+                var invocation = await connection.ReadSentJsonAsync();
+                Assert.Equal(HubProtocolConstants.InvocationMessageType, invocation["type"]);
+                Assert.Equal("UploadMethod", invocation["target"]);
+                Assert.True((bool)invocation["hasStream"]);
+                var id = invocation["invocationId"];
+
+                var items = new[] { new SampleObject("ab", 12), new SampleObject("ef", 23) };
+                foreach (var item in items)
+                {
+                    await channel.Writer.WriteAsync(item);
+
+                    var received = await connection.ReadSentJsonAsync();
+                    Assert.Equal(HubProtocolConstants.StreamItemMessageType, received["type"]);
+                    Assert.Equal(item.Foo, received["item"]["foo"]);
+                    Assert.Equal(item.Bar, received["item"]["bar"]);
+                }
+
+                channel.Writer.TryComplete();
+                var completion = await connection.ReadSentJsonAsync();
+                Assert.Equal(HubProtocolConstants.StreamCompleteMessageType, completion["type"]);
+
+                var expected = new SampleObject("oof", 14);
+                await connection.ReceiveJsonMessage(new { type = HubProtocolConstants.CompletionMessageType, invocationId = id, result = expected });
+                var result = await invokeTask;
+
+                Assert.Equal(expected.Foo, result.Foo);
+                Assert.Equal(expected.Bar, result.Bar);
             }
-
-            channel.Writer.TryComplete();
-            var completion = await connection.ReadSentJsonAsync();
-            Assert.Equal(HubProtocolConstants.StreamCompleteMessageType, completion["type"]);
-
-            var expected = new SampleObject("oof", 14);
-            await connection.ReceiveJsonMessage(new { type = HubProtocolConstants.CompletionMessageType, invocationId = id, result = expected });
-            var result = await invokeTask;
-
-            Assert.Equal(expected.Foo, result.Foo);
-            Assert.Equal(expected.Bar, result.Bar);
         }
 
         [Fact]
         public async Task UploadStreamCancelled()
         {
-            var connection = new TestConnection();
-            var hubConnection = CreateHubConnection(connection);
-            await hubConnection.StartAsync().OrTimeout();
-
-            var cts = new CancellationTokenSource();
-            var channel = Channel.CreateUnbounded<int>();
-            var invokeTask = hubConnection.InvokeAsync<object>("UploadMethod", channel.Reader, cts.Token);
-
-            var invokeMessage = await connection.ReadSentJsonAsync();
-            Assert.Equal(HubProtocolConstants.InvocationMessageType, invokeMessage["type"]);
-
-            cts.Cancel();
-
-            // after cancellation, don't send from the pipe
-            foreach (var number in new[] { 42, 43, 322, 3145, -1234 })
+            using (StartVerifiableLog(out var loggerFactory, LogLevel.Trace))
             {
-                await channel.Writer.WriteAsync(number);
-            }
+                var connection = new TestConnection();
+                var hubConnection = CreateHubConnection(connection);
+                await hubConnection.StartAsync().OrTimeout();
 
-            // the next sent message should be a completion message
-            var complete = await connection.ReadSentJsonAsync();
-            Assert.Equal(HubProtocolConstants.StreamCompleteMessageType, complete["type"]);
-            Assert.NotNull(complete["error"]);
+                var cts = new CancellationTokenSource();
+                var channel = Channel.CreateUnbounded<int>();
+                var invokeTask = hubConnection.InvokeAsync<object>("UploadMethod", channel.Reader, cts.Token);
+
+                var invokeMessage = await connection.ReadSentJsonAsync();
+                Assert.Equal(HubProtocolConstants.InvocationMessageType, invokeMessage["type"]);
+
+                cts.Cancel();
+
+                // after cancellation, don't send from the pipe
+                foreach (var number in new[] { 42, 43, 322, 3145, -1234 })
+                {
+                    await channel.Writer.WriteAsync(number);
+                }
+
+                // the next sent message should be a completion message
+                var complete = await connection.ReadSentJsonAsync();
+                Assert.Equal(HubProtocolConstants.StreamCompleteMessageType, complete["type"]);
+                Assert.NotNull(complete["error"]);
+            } 
         }
 
         [Fact]
         public async Task PrematureInvocationResponse()
         {
-            var connection = new TestConnection();
-            var hubConnection = CreateHubConnection(connection);
-            await hubConnection.StartAsync().OrTimeout();
+            using (StartVerifiableLog(out var loggerFactory, LogLevel.Trace))
+            {
+                var connection = new TestConnection();
+                var hubConnection = CreateHubConnection(connection);
+                await hubConnection.StartAsync().OrTimeout();
 
-            var channel = Channel.CreateUnbounded<int>();
-            var invokeTask = hubConnection.InvokeAsync<object>("UploadMethod", channel.Reader);
-            var invocation = await connection.ReadSentJsonAsync();
-            Assert.Equal(HubProtocolConstants.InvocationMessageType, invocation["type"]);
-            var id = invocation["invocationId"];
+                var channel = Channel.CreateUnbounded<int>();
+                var invokeTask = hubConnection.InvokeAsync<object>("UploadMethod", channel.Reader);
+                var invocation = await connection.ReadSentJsonAsync();
+                Assert.Equal(HubProtocolConstants.InvocationMessageType, invocation["type"]);
+                var id = invocation["invocationId"];
 
-            await connection.ReceiveJsonMessage(new { type = HubProtocolConstants.CompletionMessageType, invocationId = id, result = 10 });
+                await connection.ReceiveJsonMessage(new { type = HubProtocolConstants.CompletionMessageType, invocationId = id, result = 10 });
 
-            var result = await invokeTask;
-            Assert.Equal(10L, result);
+                var result = await invokeTask;
+                Assert.Equal(10L, result);
 
-            // after the server returns, with whatever response
-            // the client's behavior is undefined, and the server is responsible for ignoring stray messages
+                // after the server returns, with whatever response
+                // the client's behavior is undefined, and the server is responsible for ignoring stray messages
+            }
         }
 
         [Fact]
         public async Task WrongTypeOnServerResponse()
         {
-            var connection = new TestConnection();
-            var hubConnection = CreateHubConnection(connection);
-            await hubConnection.StartAsync().OrTimeout();
+            using (StartVerifiableLog(out var loggerFactory, LogLevel.Trace))
+            {
+                var connection = new TestConnection();
+                var hubConnection = CreateHubConnection(connection);
+                await hubConnection.StartAsync().OrTimeout();
 
-            // we expect to get send ints, and receive an int back
-            var channel = Channel.CreateUnbounded<int>();
-            var invokeTask = hubConnection.InvokeAsync<int>("SumInts", channel.Reader);
+                // we expect to get send ints, and receive an int back
+                var channel = Channel.CreateUnbounded<int>();
+                var invokeTask = hubConnection.InvokeAsync<int>("SumInts", channel.Reader);
 
-            var invocation = await connection.ReadSentJsonAsync();
-            Assert.Equal(HubProtocolConstants.InvocationMessageType, invocation["type"]);
-            var id = invocation["invocationId"];
+                var invocation = await connection.ReadSentJsonAsync();
+                Assert.Equal(HubProtocolConstants.InvocationMessageType, invocation["type"]);
+                var id = invocation["invocationId"];
 
-            await channel.Writer.WriteAsync(5);
-            await channel.Writer.WriteAsync(10);
+                await channel.Writer.WriteAsync(5);
+                await channel.Writer.WriteAsync(10);
 
-            await connection.ReceiveJsonMessage(new { type = HubProtocolConstants.CompletionMessageType, invocationId = id, result = "humbug" });
+                await connection.ReceiveJsonMessage(new { type = HubProtocolConstants.CompletionMessageType, invocationId = id, result = "humbug" });
 
-            await Assert.ThrowsAsync<Newtonsoft.Json.JsonSerializationException>(async () => await invokeTask);
+                await Assert.ThrowsAsync<Newtonsoft.Json.JsonSerializationException>(async () => await invokeTask);
+            }
         }
 
         private class SampleObject

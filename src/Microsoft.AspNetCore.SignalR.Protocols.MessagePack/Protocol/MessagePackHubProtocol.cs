@@ -297,8 +297,8 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                 {
                     if (parameterTypes[i] == typeof(StreamPlaceholder))
                     {
-                        arguments[i] = new StreamPlaceholder(
-                            (string)DeserializeObject(input, ref offset, typeof(string), "argument", resolver));
+                        arguments[i] = new StreamPlaceholder(MessagePackBinary.ReadString(input, offset, out int readSize));
+                        offset += readSize;
                     }
                     else
                     {

@@ -49,7 +49,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
         private readonly IConnectionFactory _connectionFactory;
         private readonly ConcurrentDictionary<string, InvocationHandlerList> _handlers = new ConcurrentDictionary<string, InvocationHandlerList>(StringComparer.Ordinal);
 
-        private int _currentChannelId = 0;
         private long _nextActivationServerTimeout;
         private long _nextActivationSendPing;
         private bool _disposed;
@@ -441,11 +440,11 @@ namespace Microsoft.AspNetCore.SignalR.Client
             return channel;
         }
 
-        private Dictionary<string, object> PackageStreamingParams(object[] args, out bool isStreamingUpload)
+        private Dictionary<string, object> PackageStreamingParams(object[] args, out bool isParameterStream)
         {
             // lazy initialized, to avoid allocation unecessary dictionaries
             Dictionary<string, object> readers = null;
-            isStreamingUpload = false;
+            isParameterStream = false;
 
             for (int i = 0; i < args.Length; i++)
             {
@@ -454,13 +453,14 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     if (readers == null)
                     {
                         readers = new Dictionary<string, object>();
-                        isStreamingUpload = true;
+                        isParameterStream = true;
                     }
-                    _currentChannelId += 1;
-                    readers[_currentChannelId.ToString()] = args[i];
-                    args[i] = _currentChannelId.ToString();
 
-                    Log.StartingStream(_logger, (string)args[i]);
+                    var id = _connectionState.GetNextStreamId();
+                    readers[id] = args[i];
+                    args[i] = new StreamPlaceholder(id);
+
+                    Log.StartingStream(_logger, id);
                 }
             }
 
@@ -471,7 +471,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         {
             if (readers == null)
             {
-                // if there were no streaming parameters then this is never initialized
+                // if there were no streaming parameters then readers is never initialized
                 return;
             }
             foreach (var kvp in readers)
@@ -513,7 +513,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private async Task<object> InvokeCoreAsyncCore(string methodName, Type returnType, object[] args, CancellationToken cancellationToken)
         {
-            var readers = PackageStreamingParams(args, out var isStreamingUpload);
+            var readers = PackageStreamingParams(args, out var isParameterStream);
 
             CheckDisposed();
             await WaitConnectionLockAsync();
@@ -525,10 +525,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 CheckConnectionActive(nameof(InvokeCoreAsync));
 
                 InvocationRequest irq = InvocationRequest.Invoke(cancellationToken, returnType, _connectionState.GetNextId(), _loggerFactory, this, out invocationTask);
-
-                AssertConnectionValid();
-
-                await InvokeCore(methodName, irq, args, cancellationToken, isStreamingUpload);
+                await InvokeCore(methodName, irq, args, cancellationToken, isParameterStream);
             }
             finally
             {
@@ -541,13 +538,12 @@ namespace Microsoft.AspNetCore.SignalR.Client
             return await invocationTask;
         }
 
-
-        private async Task InvokeCore(string methodName, InvocationRequest irq, object[] args, CancellationToken cancellationToken, bool streamingUpload = false)
+        private async Task InvokeCore(string methodName, InvocationRequest irq, object[] args, CancellationToken cancellationToken, bool hasStream = false)
         {
             Log.PreparingBlockingInvocation(_logger, irq.InvocationId, methodName, irq.ResultType.FullName, args.Length);
 
             // Client invocations are always blocking
-            var invocationMessage = new InvocationMessage(irq.InvocationId, methodName, args, streamingUpload);
+            var invocationMessage = new InvocationMessage(irq.InvocationId, methodName, args, hasStream);
 
             Log.RegisteringInvocation(_logger, invocationMessage.InvocationId);
             _connectionState.AddInvocation(irq);
@@ -612,11 +608,11 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private async Task SendCoreAsyncCore(string methodName, object[] args, CancellationToken cancellationToken)
         {
-            var readers = PackageStreamingParams(args, out var isStreamingUpload);
+            var readers = PackageStreamingParams(args, out var isParameterStream);
 
             Log.PreparingNonBlockingInvocation(_logger, methodName, args.Length);
 
-            var invocationMessage = new InvocationMessage(null, methodName, args, isStreamingUpload);
+            var invocationMessage = new InvocationMessage(null, methodName, args, isParameterStream);
             await SendWithLock(invocationMessage, callerName: nameof(SendCoreAsync));
 
             LaunchStreams(readers, cancellationToken);
@@ -1186,7 +1182,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
             private TaskCompletionSource<object> _stopTcs;
             private readonly object _lock = new object();
             private readonly Dictionary<string, InvocationRequest> _pendingCalls = new Dictionary<string, InvocationRequest>(StringComparer.Ordinal);
-            private int _nextId;
+            private int _nextInvocationId;
+            private int _nextStreamId;
 
             public ConnectionContext Connection { get; }
             public Task ReceiveTask { get; set; }
@@ -1207,7 +1204,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 Connection = connection;
             }
 
-            public string GetNextId() => Interlocked.Increment(ref _nextId).ToString(CultureInfo.InvariantCulture);
+            public string GetNextId() => Interlocked.Increment(ref _nextInvocationId).ToString(CultureInfo.InvariantCulture);
+            public string GetNextStreamId() => Interlocked.Increment(ref _nextStreamId).ToString(CultureInfo.InvariantCulture);
 
             public void AddInvocation(InvocationRequest irq)
             {

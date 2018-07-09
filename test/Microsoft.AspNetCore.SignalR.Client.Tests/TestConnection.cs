@@ -144,6 +144,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 }
             }
         }
+
         public async Task<JObject> ReadSentJsonAsync()
         {
             return JObject.Parse(await ReadSentTextMessageAsync());

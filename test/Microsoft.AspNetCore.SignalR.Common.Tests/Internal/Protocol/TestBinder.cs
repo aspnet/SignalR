@@ -61,8 +61,8 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
 
         public Type GetStreamItemType(string streamId)
         {
-            // in v1, stream items were only sent from server -> client
-            // and so they had items typed based on what the hub method returned
+            // In v1, stream items were only sent from server -> client
+            // and so they had items typed based on what the hub method returned.
             // We just forward here for backwards compatibility.
             return GetReturnType(streamId);
         }

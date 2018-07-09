@@ -717,8 +717,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                         // To send a stream, the client sends a single string, and we "wrap" it here to label it as a `streamId`
                         if (paramTypes[paramIndex] == typeof(StreamPlaceholder))
                         {
-                            arguments[paramIndex] = new StreamPlaceholder(
-                                (string)PayloadSerializer.Deserialize(reader, typeof(string)));
+                            arguments[paramIndex] = (StreamPlaceholder)PayloadSerializer.Deserialize(reader, typeof(StreamPlaceholder));
                         }
                         else
                         {

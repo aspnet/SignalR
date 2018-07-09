@@ -28,15 +28,29 @@ namespace ClientSample
                 .Build();
             await connection.StartAsync();
 
+            //await BasicInvoke(connection);
             //await MultiParamInvoke(connection);
-            await BasicSend(connection);
-
-            //await BasicRun(connection);
+            //await BasicSend(connection);
             //await AdditionalArgs(connection);
-            //await InterleavedUploads(connection);
-            //await FileUploadDemo(connection);
+            await InterleavedUploads(connection);
 
             return 0;
+        }
+
+        public static async Task BasicInvoke(HubConnection connection)
+        {
+            var channel = Channel.CreateUnbounded<string>();
+            var invokeTask = connection.InvokeAsync<string>("UploadWord", channel.Reader);
+            var source = channel.Writer;
+
+            foreach (var c in "hello")
+            {
+                await channel.Writer.WriteAsync(c.ToString());
+            }
+            channel.Writer.TryComplete();
+
+            var result = await invokeTask;
+            Debug.WriteLine($"You message was: {result}");
         }
 
         private static async Task WriteStreamAsync<T>(IEnumerable<T> sequence, ChannelWriter<T> writer)
@@ -75,43 +89,6 @@ namespace ClientSample
 
             await Task.Delay(3000);
             // the server will "Debug.WriteLine"
-        }
-
-        public static async Task APITest(HubConnection connection)
-        {
-            var channel = Channel.CreateUnbounded<int>();
-            var uploadTask = connection.InvokeAsync<int>("Sum", channel.Reader);
-
-            foreach (int i in new[] { 1, 2, 3, 4, 5 })
-            {
-                await channel.Writer.WriteAsync(i);
-            }
-
-            var result = await uploadTask;
-            Debug.WriteLine(result);
-        }
-
-        public static async Task BasicRun(HubConnection connection)
-        {
-            var channel = Channel.CreateUnbounded<string>();
-            _ = WriteItemsAsync(channel.Writer);
-
-            var result = await connection.InvokeAsync<string>("UploadWord", channel.Reader);
-            Debug.WriteLine($"You message was: {result}");
-
-            async Task WriteItemsAsync(ChannelWriter<string> source)
-            {
-                await Task.Delay(3000);
-                foreach (char c in "hello")
-                {
-                    await source.WriteAsync(c.ToString());
-                    await Task.Delay(500);
-                }
-
-                // tryComplete triggers the end of this upload's relayLoop
-                // which sends a StreamComplete to the server
-                source.TryComplete();
-            }
         }
 
         public static async Task AdditionalArgs(HubConnection connection)
