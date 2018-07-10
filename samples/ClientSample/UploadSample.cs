@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -41,7 +44,6 @@ namespace ClientSample
         {
             var channel = Channel.CreateUnbounded<string>();
             var invokeTask = connection.InvokeAsync<string>("UploadWord", channel.Reader);
-            var source = channel.Writer;
 
             foreach (var c in "hello")
             {

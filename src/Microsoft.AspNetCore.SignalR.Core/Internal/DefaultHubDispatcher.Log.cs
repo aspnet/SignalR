@@ -66,8 +66,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             private static readonly Action<ILogger, string, Exception> _completingStream =
                 LoggerMessage.Define<string>(LogLevel.Trace, new EventId(18, "CompletingStream"), "Stream '{streamId}' has been completed by client.");
 
-            private static readonly Action<ILogger, string, string, Exception> _closingStreamWithError =
-                LoggerMessage.Define<string, string>(LogLevel.Debug, new EventId(19, "ClosingStreamWithError"), "Stream '{streamId}' closed with error '{error}.");
+            private static readonly Action<ILogger, string, string, Exception> _closingStreamWithBindingError =
+                LoggerMessage.Define<string, string>(LogLevel.Warning, new EventId(19, "ClosingStreamWithBindingError"), "Stream '{streamId}' closed with error '{error}'.");
 
             public static void ReceivedHubInvocation(ILogger logger, InvocationMessage invocationMessage)
             {
@@ -161,9 +161,9 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 _completingStream(logger, message.StreamId, null);
             }
 
-            public static void ClosingStreamWithError(ILogger logger, StreamCompleteMessage message)
+            public static void ClosingStreamWithBindingError(ILogger logger, StreamCompleteMessage message)
             {
-                _closingStreamWithError(logger, message.StreamId, message.Error, null);
+                _closingStreamWithBindingError(logger, message.StreamId, message.Error, null);
             }
         }
     }

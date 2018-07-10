@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -16,7 +19,7 @@ namespace SignalRSamples.Hubs
             var total = await Sum(numbers);
             var word = await UploadWord(letters);
 
-            return String.Format("You sent over <{0}> <{1}s>", total, word);
+            return Format("You sent over <{0}> <{1}s>", total, word);
         }
 
         public async Task<int> Sum(ChannelReader<int> source)

@@ -187,16 +187,16 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 LoggerMessage.Define(LogLevel.Trace, new EventId(62, "UnableToAcquireConnectionLockForPing"), "Skipping ping because a send is already in progress.");
 
             private static readonly Action<ILogger, string, Exception> _startingStream =
-                LoggerMessage.Define<string>(LogLevel.Trace, new EventId(63, "StartingStream"), "Initiating stream '{streamId}.'");
+                LoggerMessage.Define<string>(LogLevel.Trace, new EventId(63, "StartingStream"), "Initiating stream '{StreamId}'.");
 
             private static readonly Action<ILogger, string, Exception> _sendingStreamItem =
-                LoggerMessage.Define<string>(LogLevel.Trace, new EventId(64, "StreamItemSent"), "Sending item for stream '{streamId}'.");
+                LoggerMessage.Define<string>(LogLevel.Trace, new EventId(64, "StreamItemSent"), "Sending item for stream '{StreamId}'.");
 
             private static readonly Action<ILogger, string, Exception> _cancelingStream =
-                LoggerMessage.Define<string>(LogLevel.Trace, new EventId(65, "CancelingStream"), "Stream '{streamId}' has been canceled by client.");
+                LoggerMessage.Define<string>(LogLevel.Trace, new EventId(65, "CancelingStream"), "Stream '{StreamId}' has been canceled by client.");
 
             private static readonly Action<ILogger, string, Exception> _completingStream =
-                LoggerMessage.Define<string>(LogLevel.Trace, new EventId(66, "CompletingStream"), "Sending completion message for stream '{streamId}'.");
+                LoggerMessage.Define<string>(LogLevel.Trace, new EventId(66, "CompletingStream"), "Sending completion message for stream '{StreamId}'.");
 
             public static void PreparingNonBlockingInvocation(ILogger logger, string target, int count)
             {

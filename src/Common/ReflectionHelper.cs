@@ -14,7 +14,7 @@ namespace Microsoft.AspNetCore.SignalR
         {
             // IMPORTANT !!
             // All valid types must be generic
-            // because HubConnectionContext gets the generic arguement and uses it to determine the expected item type of the stream
+            // because HubConnectionContext gets the generic argument and uses it to determine the expected item type of the stream
             // The long-term solution is making a (streaming type => expected item type) method.
 
             if (!type.IsGenericType)
@@ -24,13 +24,8 @@ namespace Microsoft.AspNetCore.SignalR
 
             // walk up inheritance chain, until parent is either null or a ChannelReader<T>
             // TODO #2594 - add Streams here, to make sending files easy
-            while (true)
+            while (type != null)
             {
-                if (type == null)
-                {
-                    return false;
-                }
-
                 if (type.GetGenericTypeDefinition() == typeof(ChannelReader<>))
                 {
                     return true;
@@ -38,6 +33,7 @@ namespace Microsoft.AspNetCore.SignalR
 
                 type = type.BaseType;
             }
+            return false;
         }
     }
 }

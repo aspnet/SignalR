@@ -478,13 +478,16 @@ namespace Microsoft.AspNetCore.SignalR.Client
             {
                 var reader = kvp.Value;
 
+                // For each stream that needs to be sent, run a "send items" task in the background.
+                // This reads from the channel, attaches streamId, and sends to server.
+                // A single background thread here quickly gets messy.
                 _ = _sendStreamItemsMethod
                     .MakeGenericMethod(reader.GetType().GetGenericArguments())
                     .Invoke(this, new object[] { kvp.Key.ToString(), reader, cancellationToken });
             }
         }
 
-        // this is called via reflection using the `_relayLoopInfo` field 
+        // this is called via reflection using the `_sendStreamItems` field 
         private async Task SendStreamItems<T>(string streamId, ChannelReader<T> reader, CancellationToken token)
         {
             Log.StartingStream(_logger, streamId);
@@ -524,7 +527,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 CheckDisposed();
                 CheckConnectionActive(nameof(InvokeCoreAsync));
 
-                InvocationRequest irq = InvocationRequest.Invoke(cancellationToken, returnType, _connectionState.GetNextId(), _loggerFactory, this, out invocationTask);
+                var irq = InvocationRequest.Invoke(cancellationToken, returnType, _connectionState.GetNextId(), _loggerFactory, this, out invocationTask);
                 await InvokeCore(methodName, irq, args, cancellationToken, isParameterStream);
             }
             finally
@@ -1312,13 +1315,13 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 return irq.ResultType;
             }
 
-            Type IInvocationBinder.GetStreamItemType(string channelId)
+            Type IInvocationBinder.GetStreamItemType(string streamId)
             {
                 // previously, streaming was only server->client, and used GetReturnType for StreamItems
                 // literally the same code as the above method
-                if (!TryGetInvocation(channelId, out var irq))
+                if (!TryGetInvocation(streamId, out var irq))
                 {
-                    Log.ReceivedUnexpectedResponse(_hubConnection._logger, channelId);
+                    Log.ReceivedUnexpectedResponse(_hubConnection._logger, streamId);
                     return null;
                 }
                 return irq.ResultType;

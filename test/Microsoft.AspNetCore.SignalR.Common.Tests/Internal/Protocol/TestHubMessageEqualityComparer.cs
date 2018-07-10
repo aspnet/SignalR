@@ -99,12 +99,27 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
 
             for (var i = 0; i < left.Length; i++)
             {
-                if (!(Equals(left[i], right[i]) || SequenceEqual(left[i], right[i])))
+                if (!(Equals(left[i], right[i]) || SequenceEqual(left[i], right[i]) || PlaceholdersEqual(left[i], right[i])))
                 {
                     return false;
                 }
             }
             return true;
+        }
+
+        private bool PlaceholdersEqual(object left, object right)
+        {
+            if (left.GetType() != right.GetType())
+            {
+                return false;
+            }
+            switch(left)
+            {
+                case StreamPlaceholder leftPlaceholder:
+                    return leftPlaceholder.StreamId == (right as StreamPlaceholder).StreamId;
+                default:
+                    return false;
+            }
         }
 
         private bool SequenceEqual(object left, object right)

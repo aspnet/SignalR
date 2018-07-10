@@ -150,7 +150,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             using (StartVerifiableLog(out var loggerFactory, LogLevel.Trace))
             {
                 var connection = new TestConnection();
-                var hubConnection = CreateHubConnection(connection);
+                var hubConnection = CreateHubConnection(connection, loggerFactory: loggerFactory);
                 await hubConnection.StartAsync().OrTimeout();
 
                 var channel = Channel.CreateUnbounded<int>();
@@ -188,7 +188,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             using (StartVerifiableLog(out var loggerFactory, LogLevel.Trace))
             {
                 var connection = new TestConnection();
-                var hubConnection = CreateHubConnection(connection);
+                var hubConnection = CreateHubConnection(connection, loggerFactory: loggerFactory);
                 await hubConnection.StartAsync().OrTimeout();
 
                 var channel = Channel.CreateUnbounded<int>();
@@ -208,7 +208,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             using (StartVerifiableLog(out var loggerFactory, LogLevel.Trace))
             {
                 var connection = new TestConnection();
-                var hubConnection = CreateHubConnection(connection);
+                var hubConnection = CreateHubConnection(connection, loggerFactory: loggerFactory);
                 await hubConnection.StartAsync().OrTimeout();
 
                 var channel = Channel.CreateUnbounded<object>();
@@ -250,7 +250,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             using (StartVerifiableLog(out var loggerFactory, LogLevel.Trace))
             {
                 var connection = new TestConnection();
-                var hubConnection = CreateHubConnection(connection);
+                var hubConnection = CreateHubConnection(connection, loggerFactory: loggerFactory);
                 await hubConnection.StartAsync().OrTimeout();
 
                 var cts = new CancellationTokenSource();
@@ -281,7 +281,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             using (StartVerifiableLog(out var loggerFactory, LogLevel.Trace))
             {
                 var connection = new TestConnection();
-                var hubConnection = CreateHubConnection(connection);
+                var hubConnection = CreateHubConnection(connection, loggerFactory: loggerFactory);
                 await hubConnection.StartAsync().OrTimeout();
 
                 var channel = Channel.CreateUnbounded<int>();
@@ -306,7 +306,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             using (StartVerifiableLog(out var loggerFactory, LogLevel.Trace))
             {
                 var connection = new TestConnection();
-                var hubConnection = CreateHubConnection(connection);
+                var hubConnection = CreateHubConnection(connection, loggerFactory: loggerFactory);
                 await hubConnection.StartAsync().OrTimeout();
 
                 // we expect to get send ints, and receive an int back

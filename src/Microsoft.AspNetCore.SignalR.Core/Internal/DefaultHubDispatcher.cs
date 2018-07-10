@@ -141,8 +141,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                     bindingFailureMessage.BindingFailure.SourceException, _enableDetailedErrors);
 
                 var message = new StreamCompleteMessage(bindingFailureMessage.InvocationId, errorString);
-                Log.ClosingStreamWithError(_logger, message);
-                connection.StreamTracker.Complete(new StreamCompleteMessage(bindingFailureMessage.InvocationId, errorString));
+                Log.ClosingStreamWithBindingError(_logger, message);
+                connection.StreamTracker.Complete(message);
 
                 return Task.CompletedTask;
             }
@@ -153,9 +153,10 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 return SendInvocationError(bindingFailureMessage.InvocationId, connection, errorMessage);
             }
         }
+
         private Task ProcessStreamItem(HubConnectionContext connection, StreamItemMessage message)
         {
-            Debug.WriteLine($"item: id={message.InvocationId} data={message.Item}");
+            Log.ReceivedStreamItem(_logger, message);
             return connection.StreamTracker.ProcessItem(message);
         }
 
@@ -171,7 +172,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             }
             if (isStreamResponse && isStreamCall)
             {
-                throw new Exception("Currently, streaming responses for streaming uploads are not supported.");
+                throw new NotSupportedException("Streaming responses for streaming uploads are not supported.");
             }
             else
             {

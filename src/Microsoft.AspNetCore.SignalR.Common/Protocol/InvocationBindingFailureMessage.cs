@@ -21,7 +21,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         public string Target { get; }
 
         /// <summary>
-        /// Gets the whether the invocation had initiated an uploading method.
+        /// Gets whether the invocation has streaming parameters.
         /// In that case, the error needs to be routed to the user's hub method.
         /// </summary>
         public bool HasStream { get; }
