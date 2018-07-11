@@ -2,10 +2,11 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 public class PingMessage extends HubMessage {
-    HubMessageType type = HubMessageType.PING;
+
+    int type = HubMessageType.PING.value;
 
     @Override
     HubMessageType getMessageType() {
-        return this.type;
+        return HubMessageType.PING;
     }
 }
