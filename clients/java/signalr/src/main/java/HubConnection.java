@@ -23,15 +23,30 @@ public class HubConnection {
         this.protocol = new JsonHubProtocol();
         this.callback = (payload) -> {
 
-            InvocationMessage[] messages = protocol.parseMessages(payload);
+            HubMessage[] messages = protocol.parseMessages(payload);
 
             // message will be null if we receive any message other than an invocation.
             // Adding this to avoid getting error messages on pings for now.
-            for (InvocationMessage message : messages) {
-                if (message != null && handlers.containsKey(message.target)) {
-                    ArrayList<Object> types = gson.fromJson((JsonArray)message.arguments[0], (new ArrayList<Object>()).getClass());
-
-                    handlers.get(message.target).invoke(types.toArray());
+            for (HubMessage message : messages) {
+                switch (message.getMessageType()) {
+                    case INVOCATION:
+                        InvocationMessage invocationMessage = (InvocationMessage)message;
+                        if (message != null && handlers.containsKey(invocationMessage.target)) {
+                            ArrayList<Object> types = gson.fromJson((JsonArray)invocationMessage.arguments[0], (new ArrayList<Object>()).getClass());
+                            handlers.get(invocationMessage.target).invoke(types.toArray());
+                        }
+                        break;
+                    case CLOSE:
+                    case STREAM_INVOCATION:
+                    case STREAM_ITEM:
+                    case CANCEL_INVOCATION:
+                    case COMPLETION:
+                    case ERROR:
+                        throw  new UnsupportedOperationException("Received an unsupported message type.");
+                    case PING:
+                        //We don't need to do anything in the case of a ping message.
+                        //The other message types aren't supported
+                        break;
                 }
             }
         };

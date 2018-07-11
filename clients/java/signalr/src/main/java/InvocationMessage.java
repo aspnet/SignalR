@@ -37,7 +37,7 @@ public class InvocationMessage extends HubMessage {
     }
 
     @Override
-    int getMessageType() {
-        return this.type;
+    HubMessageType getMessageType() {
+        return HubMessageType.INVOCATION;
     }
 }
