@@ -40,7 +40,6 @@ public class JsonHubProtocolTest {
 
         //We know it's only one message
         assertEquals(1, messages.length);
-
         assertEquals(HubMessageType.PING, messages[0].getMessageType());
     }
 
