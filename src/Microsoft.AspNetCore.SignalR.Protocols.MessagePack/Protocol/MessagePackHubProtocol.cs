@@ -299,15 +299,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                 var arguments = new object[argumentCount];
                 for (var i = 0; i < argumentCount; i++)
                 {
-                    if (parameterTypes[i] == typeof(StreamPlaceholder))
-                    {
-                        arguments[i] = new StreamPlaceholder(MessagePackBinary.ReadString(input, offset, out int readSize));
-                        offset += readSize;
-                    }
-                    else
-                    {
-                        arguments[i] = DeserializeObject(input, ref offset, parameterTypes[i], "argument", resolver);
-                    }
+                    arguments[i] = DeserializeObject(input, ref offset, parameterTypes[i], "argument", resolver);
                 }
 
                 return arguments;
