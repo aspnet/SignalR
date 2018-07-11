@@ -34,6 +34,17 @@ public class JsonHubProtocolTest {
     }
 
     @Test
+    public void ParsePingMessage() {
+        String stringifiedMessage = "{\"type\":6}\u001E";
+        HubMessage[] messages = jsonHubProtocol.parseMessages(stringifiedMessage);
+
+        //We know it's only one message
+        assertEquals(1, messages.length);
+
+        assertEquals(HubMessageType.PING, messages[0].getMessageType());
+    }
+
+    @Test
     public void ParseSingleMessage() {
         String stringifiedMessage = "{\"type\":1,\"target\":\"test\",\"arguments\":[42]}\u001E";
         HubMessage[] messages = jsonHubProtocol.parseMessages(stringifiedMessage);
