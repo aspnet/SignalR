@@ -25,8 +25,6 @@ public class HubConnection {
 
             HubMessage[] messages = protocol.parseMessages(payload);
 
-            // message will be null if we receive any message other than an invocation.
-            // Adding this to avoid getting error messages on pings for now.
             for (HubMessage message : messages) {
                 switch (message.getMessageType()) {
                     case INVOCATION:
@@ -46,11 +44,9 @@ public class HubConnection {
                     case STREAM_ITEM:
                     case CANCEL_INVOCATION:
                     case COMPLETION:
-                    case ERROR:
-                        throw  new UnsupportedOperationException("Received an unsupported message type.");
                     case PING:
-                        //We don't need to do anything in the case of a ping message.
-                        //The other message types aren't supported
+                        // We don't need to do anything in the case of a ping message.
+                        // The other message types aren't supported
                         break;
                 }
             }
