@@ -56,7 +56,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             Application.Input.OnWriterCompleted((ex, _) =>
             {
                 Application.Output.Complete();
-            }, 
+            },
             null);
         }
 
@@ -78,7 +78,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             return this;
         }
 
-        public async Task<string> ReadHandshakeAndSendResponseAsync()
+        public async Task<string> ReadHandshakeAndSendResponseAsync(int minorVersion = 0)
         {
             var s = await ReadSentTextMessageAsync();
 
@@ -87,7 +87,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             var output = MemoryBufferWriter.Get();
             try
             {
-                HandshakeProtocol.WriteResponseMessage(HandshakeResponseMessage.Empty, output);
+                HandshakeProtocol.WriteResponseMessage(new HandshakeResponseMessage(minorVersion), output);
                 response = output.ToArray();
             }
             finally
@@ -117,9 +117,27 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         {
             return Application.Output.WriteAsync(bytes).AsTask();
         }
-        public async Task<string> ReadSentTextMessageAsync()
+
+        public async Task<string> ReadSentTextMessageAsync(bool ignorePings = true)
         {
             // Read a single text message from the Application Input pipe
+
+            while (true)
+            {
+                var result = await ReadSentTextMessageAsyncInner();
+
+                var receivedMessageType = (int?)JObject.Parse(result)["type"];
+
+                if (ignorePings && receivedMessageType == HubProtocolConstants.PingMessageType)
+                {
+                    continue;
+                }
+                return result;
+            }
+        }
+
+        private async Task<string> ReadSentTextMessageAsyncInner()
+        {
             while (true)
             {
                 var result = await Application.Input.ReadAsync();
@@ -150,7 +168,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
             return JObject.Parse(await ReadSentTextMessageAsync());
         }
 
-        public async Task<IList<string>> ReadAllSentMessagesAsync()
+        public async Task<IList<string>> ReadAllSentMessagesAsync(bool ignorePings = true)
         {
             if (!Disposed.IsCompleted)
             {
@@ -161,7 +179,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
             while (true)
             {
-                var message = await ReadSentTextMessageAsync();
+                var message = await ReadSentTextMessageAsync(ignorePings);
                 if (message == null)
                 {
                     break;

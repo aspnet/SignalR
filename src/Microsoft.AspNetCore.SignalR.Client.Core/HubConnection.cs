@@ -57,6 +57,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         // Transient state to a connection
         private ConnectionState _connectionState;
+        private int _serverProtocolMinorVersion;
 
         public event Func<Exception, Task> Closed;
 
@@ -639,6 +640,9 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private async Task<(bool close, Exception exception)> ProcessMessagesAsync(HubMessage message, ConnectionState connectionState)
         {
+            Log.ResettingKeepAliveTimer(_logger);
+            ResetTimeout();
+
             InvocationRequest irq;
             switch (message)
             {
@@ -684,7 +688,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     }
                 case PingMessage _:
                     Log.ReceivedPing(_logger);
-                    // Nothing to do on receipt of a ping.
+                    // timeout is reset above, on receiving any message
                     break;
                 default:
                     throw new InvalidOperationException($"Unexpected message type: {message.GetType().FullName}");
@@ -802,6 +806,8 @@ namespace Microsoft.AspNetCore.SignalR.Client
                                             $"Unable to complete handshake with the server due to an error: {message.Error}");
                                     }
 
+                                    _serverProtocolMinorVersion = message.MinorVersion;
+
                                     break;
                                 }
                             }
@@ -820,11 +826,12 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     }
                 }
             }
+            
+            // shutdown if we're unable to read handshake
             // Ignore HubException because we throw it when we receive a handshake response with an error
-            // And we don't need to log that the handshake failed
+            // And because we already have the error, we don't need to log that the handshake failed
             catch (Exception ex) when (!(ex is HubException))
             {
-                // shutdown if we're unable to read handshake
                 Log.ErrorReceivingHandshakeResponse(_logger, ex);
                 throw;
             }
@@ -860,9 +867,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
                         }
                         else if (!buffer.IsEmpty)
                         {
-                            Log.ResettingKeepAliveTimer(_logger);
-                            ResetTimeout();
-
                             Log.ProcessingMessage(_logger, buffer.Length);
 
                             var close = false;
@@ -900,7 +904,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     finally
                     {
                         // The buffer was sliced up to where it was consumed, so we can just advance to the start.
-                        // We mark examined as buffer.End so that if we didn't receive a full frame, we'll wait for more data
+                        // We mark examined as `buffer.End` so that if we didn't receive a full frame, we'll wait for more data
                         // before yielding the read again.
                         connectionState.Connection.Transport.Input.AdvanceTo(buffer.Start, buffer.End);
                     }
@@ -949,7 +953,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
             // There is no need to start a new task if there is no Closed event registered
             if (closed != null)
             {
-
                 // Fire-and-forget the closed event
                 _ = RunClosedEvent(closed, connectionState.CloseException);
             }
@@ -967,10 +970,15 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
         private async Task TimerLoop(TimerAwaitable timer)
         {
+            // Tell the server we intend to ping
+            // Old clients never ping, and shouldn't be timed out
+            // So ping to tell the server that we should be timed out if we stop
+            await SendHubMessage(PingMessage.Instance);
+
             // initialize the timers
             timer.Start();
-            ResetSendPing();
             ResetTimeout();
+            ResetSendPing();
 
             using (timer)
             {

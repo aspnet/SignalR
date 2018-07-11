@@ -542,6 +542,30 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Fact]
+        public async Task DetailedExceptionEvenWhenNotExplicitlySet()
+        {
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
+
+            var methodName = nameof(MethodHub.ThrowHubException);
+
+            var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
+
+            using (var client = new TestClient())
+            {
+                var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
+
+                var message = await client.InvokeAsync(methodName).OrTimeout();
+
+                Assert.Equal($"An unexpected error occurred invoking '{methodName}' on the server. HubException: This is a hub exception", message.Error);
+
+                // kill the connection
+                client.Dispose();
+
+                await connectionHandlerTask.OrTimeout();
+            }
+        }
+
+        [Fact]
         public async Task HubMethodDoesNotSendResultWhenInvocationIsNonBlocking()
         {
             var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
@@ -2021,6 +2045,78 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         }
 
         [Fact]
+        public async Task ConnectionNotTimedOutIfClientNeverPings()
+        {
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(services =>
+                services.Configure<HubOptions>(options =>
+                   options.ClientTimeoutInterval = TimeSpan.FromMilliseconds(100)));
+            var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
+
+            using (var client = new TestClient(new JsonHubProtocol()))
+            {
+                var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
+                await client.Connected.OrTimeout();
+                // This is a fake client -- it doesn't auto-ping to signal
+
+                // We go over the 100 ms timeout interval...
+                await Task.Delay(120);
+                client.TickHeartbeat();
+
+                // but client should still be open, since it never pinged to activate the timeout checking
+                Assert.False(connectionHandlerTask.IsCompleted);
+            }
+        }
+
+        [Fact]
+        public async Task ConnectionTimesOutIfInitialPingAndThenNoMessages()
+        {
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(services =>
+                services.Configure<HubOptions>(options =>
+                    options.ClientTimeoutInterval = TimeSpan.FromMilliseconds(100)));
+            var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
+
+            using (var client = new TestClient(new JsonHubProtocol()))
+            {
+                var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
+                await client.Connected.OrTimeout();
+                await client.SendHubMessageAsync(PingMessage.Instance);
+
+                await Task.Delay(300);
+                client.TickHeartbeat();
+
+                await Task.Delay(300);
+                client.TickHeartbeat();
+
+                await connectionHandlerTask.OrTimeout();
+            }
+        }
+
+        [Fact]
+        public async Task ReceivingMessagesPreventsConnectionTimeoutFromOccuring()
+        {
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(services =>
+                services.Configure<HubOptions>(options =>
+                     options.ClientTimeoutInterval = TimeSpan.FromMilliseconds(300)));
+            var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
+
+            using (var client = new TestClient(new JsonHubProtocol()))
+            {
+                var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
+                await client.Connected.OrTimeout();
+                await client.SendHubMessageAsync(PingMessage.Instance);
+
+                for (int i = 0; i < 10; i++)
+                {
+                    await Task.Delay(100);
+                    client.TickHeartbeat();
+                    await client.SendHubMessageAsync(PingMessage.Instance);
+                }
+
+                Assert.False(connectionHandlerTask.IsCompleted);
+            }
+        }
+
+        [Fact]
         public async Task EndingConnectionSendsCloseMessageWithNoError()
         {
             var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
@@ -2430,6 +2526,30 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 var response = (CompletionMessage)await client.ReadAsync();
                 Assert.True((bool)response.Result);
+            }
+        }
+
+        [Fact]
+        public async Task ServerReportsProtocolMinorVersion()
+        {
+            var testProtocol = new Mock<IHubProtocol>();
+            testProtocol.Setup(m => m.Name).Returns("CustomProtocol");
+            testProtocol.Setup(m => m.MinorVersion).Returns(112);
+            testProtocol.Setup(m => m.IsVersionSupported(It.IsAny<int>())).Returns(true);
+            testProtocol.Setup(m => m.TransferFormat).Returns(TransferFormat.Binary);
+            
+            var connectionHandler = HubConnectionHandlerTestUtils.GetHubConnectionHandler(typeof(HubT),
+                (services) => services.AddSingleton<IHubProtocol>(testProtocol.Object));
+
+            using (var client = new TestClient(protocol: testProtocol.Object))
+            {
+                var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
+
+                Assert.NotNull(client.HandshakeResponseMessage);
+                Assert.Equal(112, client.HandshakeResponseMessage.MinorVersion);
+
+                client.Dispose();
+                await connectionHandlerTask.OrTimeout();
             }
         }
 

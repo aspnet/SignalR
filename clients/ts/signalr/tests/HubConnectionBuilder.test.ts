@@ -10,17 +10,9 @@ import { ILogger, LogLevel } from "../src/ILogger";
 import { HttpTransportType, TransferFormat } from "../src/ITransport";
 import { NullLogger } from "../src/Loggers";
 
+import { VerifyLogger } from "./Common";
 import { TestHttpClient } from "./TestHttpClient";
 import { PromiseSource } from "./Utils";
-
-const allTransportsNegotiateResponse = {
-    availableTransports: [
-        { transport: "WebSockets", transferFormats: ["Text", "Binary"] },
-        { transport: "ServerSentEvents", transferFormats: ["Text"] },
-        { transport: "LongPolling", transferFormats: ["Text", "Binary"] },
-    ],
-    connectionId: "abc123",
-};
 
 const longPollingNegotiateResponse = {
     availableTransports: [
@@ -52,38 +44,36 @@ describe("HubConnectionBuilder", () => {
     });
 
     it("builds HubConnection with HttpConnection using provided URL", async () => {
-        const pollSent = new PromiseSource<HttpRequest>();
-        const pollCompleted = new PromiseSource<HttpResponse>();
-        const testClient = createTestClient(pollSent, pollCompleted.promise)
-            .on("POST", "http://example.com?id=abc123", (req) => {
-                // Respond from the poll with the handshake response
-                pollCompleted.resolve(new HttpResponse(204, "No Content", "{}"));
-                return new HttpResponse(202);
-            });
-        const connection = createConnectionBuilder()
-            .withUrl("http://example.com", {
-                ...commonHttpOptions,
-                httpClient: testClient,
-            })
-            .build();
+        await VerifyLogger.run(async (logger) => {
+            const pollSent = new PromiseSource<HttpRequest>();
+            const pollCompleted = new PromiseSource<HttpResponse>();
+            const testClient = createTestClient(pollSent, pollCompleted.promise)
+                .on("POST", "http://example.com?id=abc123", (req) => {
+                    // Respond from the poll with the handshake response
+                    pollCompleted.resolve(new HttpResponse(204, "No Content", "{}"));
+                    return new HttpResponse(202);
+                });
+            const connection = createConnectionBuilder()
+                .withUrl("http://example.com", {
+                    ...commonHttpOptions,
+                    httpClient: testClient,
+                    logger,
+                })
+                .build();
 
-        // Start the connection
-        const closed = makeClosedPromise(connection);
-        await connection.start();
+            // Start the connection
+            const closed = makeClosedPromise(connection);
+            await connection.start();
 
-        const pollRequest = await pollSent.promise;
-        expect(pollRequest.url).toMatch(/http:\/\/example.com\?id=abc123.*/);
+            const pollRequest = await pollSent.promise;
+            expect(pollRequest.url).toMatch(/http:\/\/example.com\?id=abc123.*/);
 
-        await closed;
+            await closed;
+        });
     });
 
     it("can configure transport type", async () => {
         const protocol = new TestProtocol();
-
-        const pollSent = new PromiseSource<HttpRequest>();
-        const pollCompleted = new PromiseSource<HttpResponse>();
-        const negotiateReceived = new PromiseSource<HttpRequest>();
-        const testClient = createTestClient(pollSent, pollCompleted.promise, allTransportsNegotiateResponse);
 
         const builder = createConnectionBuilder()
             .withUrl("http://example.com", HttpTransportType.WebSockets)
@@ -92,35 +82,38 @@ describe("HubConnectionBuilder", () => {
     });
 
     it("can configure hub protocol", async () => {
-        const protocol = new TestProtocol();
+        await VerifyLogger.run(async (logger) => {
+            const protocol = new TestProtocol();
 
-        const pollSent = new PromiseSource<HttpRequest>();
-        const pollCompleted = new PromiseSource<HttpResponse>();
-        const negotiateReceived = new PromiseSource<HttpRequest>();
-        const testClient = createTestClient(pollSent, pollCompleted.promise)
-            .on("POST", "http://example.com?id=abc123", (req) => {
-                // Respond from the poll with the handshake response
-                negotiateReceived.resolve(req);
-                pollCompleted.resolve(new HttpResponse(204, "No Content", "{}"));
-                return new HttpResponse(202);
-            });
+            const pollSent = new PromiseSource<HttpRequest>();
+            const pollCompleted = new PromiseSource<HttpResponse>();
+            const negotiateReceived = new PromiseSource<HttpRequest>();
+            const testClient = createTestClient(pollSent, pollCompleted.promise)
+                .on("POST", "http://example.com?id=abc123", (req) => {
+                    // Respond from the poll with the handshake response
+                    negotiateReceived.resolve(req);
+                    pollCompleted.resolve(new HttpResponse(204, "No Content", "{}"));
+                    return new HttpResponse(202);
+                });
 
-        const connection = createConnectionBuilder()
-            .withUrl("http://example.com", {
-                ...commonHttpOptions,
-                httpClient: testClient,
-            })
-            .withHubProtocol(protocol)
-            .build();
+            const connection = createConnectionBuilder()
+                .withUrl("http://example.com", {
+                    ...commonHttpOptions,
+                    httpClient: testClient,
+                    logger,
+                })
+                .withHubProtocol(protocol)
+                .build();
 
-        // Start the connection
-        const closed = makeClosedPromise(connection);
-        await connection.start();
+            // Start the connection
+            const closed = makeClosedPromise(connection);
+            await connection.start();
 
-        const negotiateRequest = await negotiateReceived.promise;
-        expect(negotiateRequest.content).toBe(`{"protocol":"${protocol.name}","version":1}\x1E`);
+            const negotiateRequest = await negotiateReceived.promise;
+            expect(negotiateRequest.content).toBe(`{"protocol":"${protocol.name}","version":1}\x1E`);
 
-        await closed;
+            await closed;
+        });
     });
 
     it("allows logger to be replaced", async () => {
