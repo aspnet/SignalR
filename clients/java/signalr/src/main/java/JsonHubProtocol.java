@@ -40,35 +40,30 @@ public class JsonHubProtocol implements HubProtocol {
             }
 
             JsonObject jsonMessage = jsonParser.parse(splitMessage).getAsJsonObject();
-            String messageType = jsonMessage.get("type").toString();
+            HubMessageType messageType = HubMessageType.values()[jsonMessage.get("type").getAsInt() -1];
             switch (messageType) {
-                case "1":
+                case INVOCATION:
                     //Invocation Message
                     String target = jsonMessage.get("target").getAsString();
                     JsonElement args = jsonMessage.get("arguments");
                     hubMessages.add(new InvocationMessage(target, new Object[] {args}));
-
                     break;
-                case "2":
-                    //Stream item
+                case STREAM_ITEM:
                     throw new UnsupportedOperationException("Support for streaming is not yet available");
-                case "3":
-                    //Completion
+                case COMPLETION:
                     //Don't care yet
                     break;
-                case "4":
-                    //Stream invocation
+                case STREAM_INVOCATION:
                     //Don't care yet;
                     throw new UnsupportedOperationException("Support for streaming is not yet available");
-                case "5":
-                    //Cancel invocation
+                case CANCEL_INVOCATION:
+                    // Not tracking invocations yet
                     break;
-                case "6":
+                case PING:
                     //Ping
                     hubMessages.add(new PingMessage());
                     break;
-                case "7":
-                    // Close message
+                case CLOSE:
                     //Don't care yet;
                     break;
             }
