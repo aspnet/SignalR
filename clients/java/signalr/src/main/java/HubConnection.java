@@ -16,7 +16,7 @@ public class HubConnection {
     private HubProtocol protocol;
     private Gson gson = new Gson();
 
-    public Boolean connected = false;
+    public HubConnectionState connectionState = HubConnectionState.DISCONNECTED;
 
     public HubConnection(String url, Transport transport){
         this.url = url;
@@ -71,12 +71,12 @@ public class HubConnection {
     public void start() throws InterruptedException {
         transport.setOnReceive(this.callback);
         transport.start();
-        connected = true;
+        connectionState = HubConnectionState.CONNECTED;
     }
 
     public void stop(){
         transport.stop();
-        connected = false;
+        connectionState = HubConnectionState.DISCONNECTED;
     }
 
     public void send(String method, Object... args) throws Exception {
