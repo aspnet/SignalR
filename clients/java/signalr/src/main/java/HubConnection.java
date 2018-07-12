@@ -39,9 +39,10 @@ public class HubConnection {
                             }
                         }
                         break;
-                    case CLOSE:
                     case STREAM_INVOCATION:
                     case STREAM_ITEM:
+                        throw new UnsupportedOperationException("Streaming is not yet supported");
+                    case CLOSE:
                     case CANCEL_INVOCATION:
                     case COMPLETION:
                     case PING:

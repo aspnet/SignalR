@@ -2,7 +2,9 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 import com.google.gson.JsonArray;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import static org.junit.Assert.*;
 
@@ -61,6 +63,25 @@ public class JsonHubProtocolTest {
 
         JsonArray messageResult = (JsonArray) invocationMessage.arguments[0];
         assertEquals(42, messageResult.getAsInt());
+    }
+
+    @Rule
+    public ExpectedException exceptionRule = ExpectedException.none();
+
+    @Test
+    public void ParseSingleUnsupportedStreamItemMessage() {
+        exceptionRule.expect(UnsupportedOperationException.class);
+        exceptionRule.expectMessage("Support for streaming is not yet available");
+        String stringifiedMessage = "{\"type\":2,\"Id\":1,\"Item\":42}\u001E";
+        HubMessage[] messages = jsonHubProtocol.parseMessages(stringifiedMessage);
+    }
+
+    @Test
+    public void ParseSingleUnsupportedStreamInvocationMessage() {
+        exceptionRule.expect(UnsupportedOperationException.class);
+        exceptionRule.expectMessage("Support for streaming is not yet available");
+        String stringifiedMessage = "{\"type\":4,\"Id\":1,\"target\":\"test\",\"arguments\":[42]}\u001E";
+        HubMessage[] messages = jsonHubProtocol.parseMessages(stringifiedMessage);
     }
 
     @Test
