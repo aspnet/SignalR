@@ -85,11 +85,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
                 case InvocationMessage invocationMessage:
                     Log.ReceivedHubInvocation(_logger, invocationMessage);
-                    return ProcessInvocation(connection, invocationMessage, isStreamResponse: false, isStreamCall: invocationMessage.HasStream);
+                    return ProcessInvocation(connection, invocationMessage, isStreamResponse: false);
 
                 case StreamInvocationMessage streamInvocationMessage:
                     Log.ReceivedStreamHubInvocation(_logger, streamInvocationMessage);
-                    return ProcessInvocation(connection, streamInvocationMessage, isStreamResponse: true, isStreamCall: false);
+                    return ProcessInvocation(connection, streamInvocationMessage, isStreamResponse: true);
 
                 case CancelInvocationMessage cancelInvocationMessage:
                     // Check if there is an associated active stream and cancel it if it exists.
@@ -161,7 +161,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         }
 
         private Task ProcessInvocation(HubConnectionContext connection,
-            HubMethodInvocationMessage hubMethodInvocationMessage, bool isStreamResponse, bool isStreamCall)
+            HubMethodInvocationMessage hubMethodInvocationMessage, bool isStreamResponse)
         {
             if (!_methods.TryGetValue(hubMethodInvocationMessage.Target, out var descriptor))
             {
@@ -170,12 +170,13 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 return connection.WriteAsync(CompletionMessage.WithError(
                     hubMethodInvocationMessage.InvocationId, $"Unknown hub method '{hubMethodInvocationMessage.Target}'")).AsTask();
             }
-            if (isStreamResponse && isStreamCall)
-            {
-                throw new NotSupportedException("Streaming responses for streaming uploads are not supported.");
-            }
             else
             {
+                bool isStreamCall = descriptor.HasStreamingParameters;
+                if (isStreamResponse && isStreamCall)
+                {
+                    throw new NotSupportedException("Streaming responses for streaming uploads are not supported.");
+                }
                 return Invoke(descriptor, connection, hubMethodInvocationMessage, isStreamResponse, isStreamCall);
             }
         }

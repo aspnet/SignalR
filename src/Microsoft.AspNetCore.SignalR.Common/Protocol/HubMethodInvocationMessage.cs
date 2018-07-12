@@ -45,8 +45,6 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
     /// </summary>
     public class InvocationMessage : HubMethodInvocationMessage
     {
-        public bool HasStream { get; }
-
         /// <summary>
         /// Initializes a new instance of the <see cref="InvocationMessage"/> class.
         /// </summary>
@@ -78,7 +76,6 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         public InvocationMessage(string invocationId, string target, object[] arguments, bool hasStream)
             : base(invocationId, target, arguments)
         {
-            HasStream = hasStream;
         }
 
         /// <inheritdoc />
@@ -93,7 +90,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             {
                 args = $"Error: {ex.Message}";
             }
-            return $"InvocationMessage {{ {nameof(InvocationId)}: \"{InvocationId}\", {nameof(Target)}: \"{Target}\", {nameof(Arguments)}: [ {args} ], {nameof(HasStream)}: {HasStream} }}";
+            return $"InvocationMessage {{ {nameof(InvocationId)}: \"{InvocationId}\", {nameof(Target)}: \"{Target}\", {nameof(Arguments)}: [ {args} ] }}";
         }
     }
 

@@ -404,7 +404,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
 
         private void WriteInvocationMessage(InvocationMessage message, Stream packer)
         {
-            MessagePackBinary.WriteArrayHeader(packer, 6);
+            MessagePackBinary.WriteArrayHeader(packer, 5);
             MessagePackBinary.WriteInt32(packer, HubProtocolConstants.InvocationMessageType);
             PackHeaders(packer, message.Headers);
             if (string.IsNullOrEmpty(message.InvocationId))
@@ -421,8 +421,6 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             {
                 WriteArgument(arg, packer);
             }
-
-            MessagePackBinary.WriteBoolean(packer, message.HasStream);
         }
 
         private void WriteStreamInvocationMessage(StreamInvocationMessage message, Stream packer)
@@ -497,7 +495,14 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             MessagePackBinary.WriteArrayHeader(packer, 3);
             MessagePackBinary.WriteInt16(packer, HubProtocolConstants.StreamCompleteMessageType);
             MessagePackBinary.WriteString(packer, message.StreamId);
-            MessagePackBinary.WriteString(packer, message.HasError ? message.Error : "");
+            if (message.HasError)
+            {
+                MessagePackBinary.WriteString(packer, message.Error);
+            }
+            else
+            {
+                MessagePackBinary.WriteNil(packer);
+            }
         }
 
         private void WriteCloseMessage(CloseMessage message, Stream packer)

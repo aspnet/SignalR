@@ -447,7 +447,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             Dictionary<string, object> readers = null;
             isParameterStream = false;
 
-            for (int i = 0; i < args.Length; i++)
+            for (var i = 0; i < args.Length; i++)
             {
                 if (ReflectionHelper.IsStreamingType(args[i].GetType()))
                 {
@@ -1323,13 +1323,13 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 return irq.ResultType;
             }
 
-            Type IInvocationBinder.GetStreamItemType(string streamId)
+            Type IInvocationBinder.GetStreamItemType(string invocationId)
             {
                 // previously, streaming was only server->client, and used GetReturnType for StreamItems
                 // literally the same code as the above method
-                if (!TryGetInvocation(streamId, out var irq))
+                if (!TryGetInvocation(invocationId, out var irq))
                 {
-                    Log.ReceivedUnexpectedResponse(_hubConnection._logger, streamId);
+                    Log.ReceivedUnexpectedResponse(_hubConnection._logger, invocationId);
                     return null;
                 }
                 return irq.ResultType;

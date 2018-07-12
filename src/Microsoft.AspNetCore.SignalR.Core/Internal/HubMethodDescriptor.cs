@@ -37,6 +37,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             }
         }
 
+        public bool HasStreamingParameters { get; private set; }
+
         private Func<object, CancellationToken, IAsyncEnumerator<object>> _convertToEnumerator;
 
         public ObjectMethodExecutor MethodExecutor { get; }
@@ -53,11 +55,12 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         public IList<IAuthorizeData> Policies { get; }
 
-        private static Type GetParameterType(ParameterInfo p)
+        private Type GetParameterType(ParameterInfo p)
         {
             var type = p.ParameterType;
             if (ReflectionHelper.IsStreamingType(type))
             {
+                HasStreamingParameters = true;
                 return typeof(StreamPlaceholder);
             }
             return type;

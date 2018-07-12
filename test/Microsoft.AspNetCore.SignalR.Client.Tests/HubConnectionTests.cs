@@ -160,28 +160,27 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 var channel = Channel.CreateUnbounded<int>();
                 var invokeTask = hubConnection.InvokeAsync<int>("SomeMethod", channel.Reader);
 
-                var invocation = await connection.ReadSentJsonAsync();
+                var invocation = await connection.ReadSentJsonAsync().OrTimeout();
                 Assert.Equal(HubProtocolConstants.InvocationMessageType, invocation["type"]);
                 Assert.Equal("SomeMethod", invocation["target"]);
-                Assert.True((bool)invocation["hasStream"]);
                 var streamId = invocation["arguments"][0]["streamId"];
 
                 foreach (var number in new[] { 42, 43, 322, 3145, -1234 })
                 {
                     await channel.Writer.WriteAsync(number);
 
-                    var item = await connection.ReadSentJsonAsync();
+                    var item = await connection.ReadSentJsonAsync().OrTimeout();
                     Assert.Equal(HubProtocolConstants.StreamItemMessageType, item["type"]);
                     Assert.Equal(number, item["item"]);
                     Assert.Equal(streamId, item["invocationId"]); // I realize this is poorly named, TODO change
                 }
 
                 channel.Writer.TryComplete();
-                var completion = await connection.ReadSentJsonAsync();
+                var completion = await connection.ReadSentJsonAsync().OrTimeout();
                 Assert.Equal(HubProtocolConstants.StreamCompleteMessageType, completion["type"]);
 
                 await connection.ReceiveJsonMessage(new { type = HubProtocolConstants.CompletionMessageType, invocationId = invocation["invocationId"], result = 42 });
-                var result = await invokeTask;
+                var result = await invokeTask.OrTimeout();
                 Assert.Equal(42, result);
             }
         }
@@ -198,10 +197,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 var channel = Channel.CreateUnbounded<int>();
                 var sendTask = hubConnection.SendAsync("SomeMethod", channel.Reader);
 
-                var invocation = await connection.ReadSentJsonAsync();
+                var invocation = await connection.ReadSentJsonAsync().OrTimeout();
                 Assert.Equal(HubProtocolConstants.InvocationMessageType, invocation["type"]);
                 Assert.Equal("SomeMethod", invocation["target"]);
-                Assert.True((bool)invocation["hasStream"]);
                 Assert.Null(invocation["invocationId"]);
             }
         }
@@ -218,10 +216,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 var channel = Channel.CreateUnbounded<object>();
                 var invokeTask = hubConnection.InvokeAsync<SampleObject>("UploadMethod", channel.Reader);
 
-                var invocation = await connection.ReadSentJsonAsync();
+                var invocation = await connection.ReadSentJsonAsync().OrTimeout();
                 Assert.Equal(HubProtocolConstants.InvocationMessageType, invocation["type"]);
                 Assert.Equal("UploadMethod", invocation["target"]);
-                Assert.True((bool)invocation["hasStream"]);
                 var id = invocation["invocationId"];
 
                 var items = new[] { new SampleObject("ab", 12), new SampleObject("ef", 23) };
@@ -229,19 +226,19 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 {
                     await channel.Writer.WriteAsync(item);
 
-                    var received = await connection.ReadSentJsonAsync();
+                    var received = await connection.ReadSentJsonAsync().OrTimeout();
                     Assert.Equal(HubProtocolConstants.StreamItemMessageType, received["type"]);
                     Assert.Equal(item.Foo, received["item"]["foo"]);
                     Assert.Equal(item.Bar, received["item"]["bar"]);
                 }
 
                 channel.Writer.TryComplete();
-                var completion = await connection.ReadSentJsonAsync();
+                var completion = await connection.ReadSentJsonAsync().OrTimeout();
                 Assert.Equal(HubProtocolConstants.StreamCompleteMessageType, completion["type"]);
 
                 var expected = new SampleObject("oof", 14);
                 await connection.ReceiveJsonMessage(new { type = HubProtocolConstants.CompletionMessageType, invocationId = id, result = expected });
-                var result = await invokeTask;
+                var result = await invokeTask.OrTimeout();
 
                 Assert.Equal(expected.Foo, result.Foo);
                 Assert.Equal(expected.Bar, result.Bar);
@@ -249,7 +246,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         }
 
         [Fact]
-        public async Task UploadStreamCancelled()
+        public async Task UploadStreamCanceled()
         {
             using (StartVerifiableLog(out var loggerFactory, LogLevel.Trace))
             {
@@ -261,7 +258,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 var channel = Channel.CreateUnbounded<int>();
                 var invokeTask = hubConnection.InvokeAsync<object>("UploadMethod", channel.Reader, cts.Token);
 
-                var invokeMessage = await connection.ReadSentJsonAsync();
+                var invokeMessage = await connection.ReadSentJsonAsync().OrTimeout();
                 Assert.Equal(HubProtocolConstants.InvocationMessageType, invokeMessage["type"]);
 
                 cts.Cancel();
@@ -273,7 +270,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 }
 
                 // the next sent message should be a completion message
-                var complete = await connection.ReadSentJsonAsync();
+                var complete = await connection.ReadSentJsonAsync().OrTimeout();
                 Assert.Equal(HubProtocolConstants.StreamCompleteMessageType, complete["type"]);
                 Assert.NotNull(complete["error"]);
             } 
@@ -290,13 +287,13 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
                 var channel = Channel.CreateUnbounded<int>();
                 var invokeTask = hubConnection.InvokeAsync<object>("UploadMethod", channel.Reader);
-                var invocation = await connection.ReadSentJsonAsync();
+                var invocation = await connection.ReadSentJsonAsync().OrTimeout();
                 Assert.Equal(HubProtocolConstants.InvocationMessageType, invocation["type"]);
                 var id = invocation["invocationId"];
 
                 await connection.ReceiveJsonMessage(new { type = HubProtocolConstants.CompletionMessageType, invocationId = id, result = 10 });
 
-                var result = await invokeTask;
+                var result = await invokeTask.OrTimeout();
                 Assert.Equal(10L, result);
 
                 // after the server returns, with whatever response
@@ -307,13 +304,19 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         [Fact]
         public async Task WrongTypeOnServerResponse()
         {
-            using (StartVerifiableLog(out var loggerFactory, LogLevel.Trace))
+            bool ExpectedErrors(WriteContext writeContext)
+            {
+                return writeContext.LoggerName == typeof(HubConnection).FullName &&
+                       (writeContext.EventId.Name == "ServerDisconnectedWithError"
+                        || writeContext.EventId.Name == "ShutdownWithError");
+            }
+            using (StartVerifiableLog(out var loggerFactory, LogLevel.Trace, expectedErrorsFilter: ExpectedErrors))
             {
                 var connection = new TestConnection();
                 var hubConnection = CreateHubConnection(connection, loggerFactory: loggerFactory);
                 await hubConnection.StartAsync().OrTimeout();
 
-                // we expect to get send ints, and receive an int back
+                // we expect to get sent ints, and receive an int back
                 var channel = Channel.CreateUnbounded<int>();
                 var invokeTask = hubConnection.InvokeAsync<int>("SumInts", channel.Reader);
 
@@ -326,7 +329,14 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
                 await connection.ReceiveJsonMessage(new { type = HubProtocolConstants.CompletionMessageType, invocationId = id, result = "humbug" });
 
-                await Assert.ThrowsAsync<Newtonsoft.Json.JsonSerializationException>(async () => await invokeTask);
+                try
+                {
+                    await invokeTask;
+                }
+                catch (Exception ex)
+                {
+                    Assert.Equal(typeof(Newtonsoft.Json.JsonSerializationException), ex.GetType());
+                }
             }
         }
 

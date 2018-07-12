@@ -58,16 +58,16 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 LoggerMessage.Define<string>(LogLevel.Error, new EventId(15, "InvalidReturnValueFromStreamingMethod"), "A streaming method returned a value that cannot be used to build enumerator {HubMethod}.");
 
             private static readonly Action<ILogger, string, Exception> _receivedStreamItem =
-                LoggerMessage.Define<string>(LogLevel.Trace, new EventId(16, "ReceivedStreamItem"), "Received item for stream '{streamId}'.");
+                LoggerMessage.Define<string>(LogLevel.Trace, new EventId(16, "ReceivedStreamItem"), "Received item for stream '{StreamId}'.");
 
             private static readonly Action<ILogger, string, Exception> _startingParameterStream =
-                LoggerMessage.Define<string>(LogLevel.Trace, new EventId(17, "StartingParameterStream"), "Creating streaming parameter channel '{streamId}'.");
+                LoggerMessage.Define<string>(LogLevel.Trace, new EventId(17, "StartingParameterStream"), "Creating streaming parameter channel '{StreamId}'.");
 
             private static readonly Action<ILogger, string, Exception> _completingStream =
-                LoggerMessage.Define<string>(LogLevel.Trace, new EventId(18, "CompletingStream"), "Stream '{streamId}' has been completed by client.");
+                LoggerMessage.Define<string>(LogLevel.Trace, new EventId(18, "CompletingStream"), "Stream '{StreamId}' has been completed by client.");
 
             private static readonly Action<ILogger, string, string, Exception> _closingStreamWithBindingError =
-                LoggerMessage.Define<string, string>(LogLevel.Warning, new EventId(19, "ClosingStreamWithBindingError"), "Stream '{streamId}' closed with error '{error}'.");
+                LoggerMessage.Define<string, string>(LogLevel.Warning, new EventId(19, "ClosingStreamWithBindingError"), "Stream '{StreamId}' closed with error '{Error}'.");
 
             public static void ReceivedHubInvocation(ILogger logger, InvocationMessage invocationMessage)
             {

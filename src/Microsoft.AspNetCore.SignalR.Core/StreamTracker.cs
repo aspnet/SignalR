@@ -14,21 +14,21 @@ namespace Microsoft.AspNetCore.SignalR
     internal class StreamTracker
     {
         private static readonly MethodInfo _buildConverterMethod = typeof(StreamTracker).GetMethods().Single(m => m.Name.Equals("BuildStream"));
-        public Dictionary<string, IChannelConverter> Lookup = new Dictionary<string, IChannelConverter>();
+        public Dictionary<string, IStreamConverter> Lookup = new Dictionary<string, IStreamConverter>();
 
         /// <summary>
         /// Creates a new stream and returns the ChannelReader for it as an object.
         /// </summary>
         public object NewStream(string streamId, Type itemType)
         {
-            var newConverter = (IChannelConverter)_buildConverterMethod.MakeGenericMethod(itemType).Invoke(null, Array.Empty<object>());
+            var newConverter = (IStreamConverter)_buildConverterMethod.MakeGenericMethod(itemType).Invoke(null, Array.Empty<object>());
             Lookup[streamId] = newConverter;
             return newConverter.GetReaderAsObject();
         }
 
         public Task ProcessItem(StreamItemMessage message)
         {
-            return Lookup[message.InvocationId].WriteToChannel(message.Item);
+            return Lookup[message.InvocationId].WriteToStream(message.Item);
         }
 
         public void Complete(StreamCompleteMessage message)
@@ -38,20 +38,20 @@ namespace Microsoft.AspNetCore.SignalR
             ConverterToClose.TryComplete(message.HasError ? new Exception(message.Error) : null);
         }
 
-        public static IChannelConverter BuildStream<T>()
+        public static IStreamConverter BuildStream<T>()
         {
             return new ChannelConverter<T>();
         }
 
-        public interface IChannelConverter
+        public interface IStreamConverter
         {
             Type GetReturnType();
             object GetReaderAsObject();
-            Task WriteToChannel(object item);
+            Task WriteToStream(object item);
             void TryComplete(Exception ex);
         }
 
-        internal class ChannelConverter<T> : IChannelConverter
+        internal class ChannelConverter<T> : IStreamConverter
         {
             private Channel<T> _channel;
 
@@ -70,7 +70,7 @@ namespace Microsoft.AspNetCore.SignalR
                 return _channel.Reader;
             }
 
-            public Task WriteToChannel(object o)
+            public Task WriteToStream(object o)
             {
                 return _channel.Writer.WriteAsync((T)o).AsTask();
             }

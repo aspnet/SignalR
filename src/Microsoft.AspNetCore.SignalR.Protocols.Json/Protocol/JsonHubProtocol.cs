@@ -534,12 +534,6 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             writer.WriteValue(message.Target);
 
             WriteArguments(message.Arguments, writer);
-
-            if (message.HasStream)
-            {
-                writer.WritePropertyName(HasStreamName);
-                writer.WriteValue(message.HasStream);
-            }
         }
 
         private void WriteStreamInvocationMessage(StreamInvocationMessage message, JsonTextWriter writer)

@@ -67,8 +67,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
             return SequenceEqual(x.Headers, y.Headers)
                 && string.Equals(x.InvocationId, y.InvocationId, StringComparison.Ordinal)
                 && string.Equals(x.Target, y.Target, StringComparison.Ordinal)
-                && ArgumentListsEqual(x.Arguments, y.Arguments)
-                && x.HasStream == y.HasStream;
+                && ArgumentListsEqual(x.Arguments, y.Arguments);
         }
 
         private bool StreamInvocationMessagesEqual(StreamInvocationMessage x, StreamInvocationMessage y)

@@ -19,7 +19,7 @@ namespace SignalRSamples.Hubs
             var total = await Sum(numbers);
             var word = await UploadWord(letters);
 
-            return Format("You sent over <{0}> <{1}s>", total, word);
+            return string.Format("You sent over <{0}> <{1}s>", total, word);
         }
 
         public async Task<int> Sum(ChannelReader<int> source)
