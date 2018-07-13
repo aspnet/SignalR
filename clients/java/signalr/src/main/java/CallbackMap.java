@@ -24,5 +24,8 @@ public class CallbackMap {
     public List<ActionBase> get(String key){
         return handlers.get(key);
     }
+
+    public void remove(String key) { handlers.remove(key); }
+
 }
 

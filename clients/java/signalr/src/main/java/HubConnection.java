@@ -126,4 +126,8 @@ public class HubConnection {
         };
         handlers.put(target, action);
     }
+
+    public void remove(String name){
+        handlers.remove(name);
+    }
 }
