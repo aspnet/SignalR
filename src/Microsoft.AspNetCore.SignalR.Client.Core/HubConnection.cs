@@ -742,7 +742,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     }
                 }
             }
-            
+
             // shutdown if we're unable to read handshake
             // Ignore HubException because we throw it when we receive a handshake response with an error
             // And because we already have the error, we don't need to log that the handshake failed
@@ -1129,43 +1129,27 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             public void AddInvocation(InvocationRequest irq)
             {
-                 
-                    
                 if (!_pendingCalls.TryAdd(irq.InvocationId, irq))
                 {
                     Log.InvocationAlreadyInUse(_hubConnection._logger, irq.InvocationId);
                     throw new InvalidOperationException($"Invocation ID '{irq.InvocationId}' is already in use.");
                 }
-                     
-                 
             }
 
-            public bool TryGetInvocation(string invocationId, out InvocationRequest irq)
-            {
-                 
-                    return _pendingCalls.TryGetValue(invocationId, out irq);
-                 
-            }
+            public bool TryGetInvocation(string invocationId, out InvocationRequest irq) => _pendingCalls.TryGetValue(invocationId, out irq);
 
-            public bool TryRemoveInvocation(string invocationId, out InvocationRequest irq)
-            {
-                
+            public bool TryRemoveInvocation(string invocationId, out InvocationRequest irq) => _pendingCalls.TryRemove(invocationId, out irq);
 
-                    return  _pendingCalls.TryRemove(invocationId, out irq);
-                     
-                
-            }
 
             public void CancelOutstandingInvocations(Exception exception)
             {
                 Log.CancelingOutstandingInvocations(_hubConnection._logger);
 
-
-                //https://msdn.microsoft.com/en-us/library/dd287131.aspx
+                // https://msdn.microsoft.com/en-us/library/dd287131.aspx
                 // From the documentation:
-                //The enumerator returned from the dictionary is safe to use concurrently with reads and writes to the dictionary,
-                //however it does not represent a moment-in-time snapshot of the dictionary.
-                //The contents exposed through the enumerator may contain modifications made to the dictionary after GetEnumerator was called.
+                // The enumerator returned from the dictionary is safe to use concurrently with reads and writes to the dictionary,
+                // however it does not represent a moment-in-time snapshot of the dictionary.
+                // The contents exposed through the enumerator may contain modifications made to the dictionary after GetEnumerator was called.
                 foreach (var outstandingCallKeyPair in _pendingCalls)
                 {
                     Log.RemovingInvocation(_hubConnection._logger, outstandingCallKeyPair.Value.InvocationId);
@@ -1176,7 +1160,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     outstandingCallKeyPair.Value.Dispose();
                 }
                 _pendingCalls.Clear();
-                
+
             }
 
             public Task StopAsync()
