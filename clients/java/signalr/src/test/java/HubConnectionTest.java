@@ -41,7 +41,6 @@ public class HubConnectionTest {
 
     @Test
     public void RemoveHandlerByName() throws Exception {
-
         AtomicReference<Double> value = new AtomicReference<>(0.0);
         Transport mockTransport = new MockEchoTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
