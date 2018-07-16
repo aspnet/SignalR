@@ -17,11 +17,11 @@ public class CallbackMap {
         handlers.computeIfAbsent(target, (ac) -> new ArrayList<>(Arrays.asList(action)));
     }
 
-    public Boolean containsKey(String key){
+    public Boolean containsKey(String key) {
         return handlers.containsKey(key);
     }
 
-    public List<ActionBase> get(String key){
+    public List<ActionBase> get(String key) {
         return handlers.get(key);
     }
 
