@@ -13,10 +13,10 @@ public class HubConnectionTest {
         Transport mockTransport = new MockEchoTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
         hubConnection.start();
-        assertEquals(HubConnectionState.CONNECTED, hubConnection.connectionState);
+        assertEquals(HubConnectionState.CONNECTED, hubConnection.getConnectionState());
 
         hubConnection.stop();
-        assertEquals(HubConnectionState.DISCONNECTED, hubConnection.connectionState);
+        assertEquals(HubConnectionState.DISCONNECTED, hubConnection.getConnectionState());
     }
 
     @Test

@@ -15,8 +15,7 @@ public class HubConnection {
     private CallbackMap handlers = new CallbackMap();
     private HubProtocol protocol;
     private Gson gson = new Gson();
-
-    public HubConnectionState connectionState = HubConnectionState.DISCONNECTED;
+    private HubConnectionState connectionState = HubConnectionState.DISCONNECTED;
 
     public HubConnection(String url, Transport transport){
         this.url = url;
@@ -66,6 +65,10 @@ public class HubConnection {
 
     public HubConnection(String url) {
         this(url, null);
+    }
+
+    public HubConnectionState getConnectionState() {
+        return connectionState;
     }
 
     public void start() throws InterruptedException {
