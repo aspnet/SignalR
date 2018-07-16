@@ -25,7 +25,8 @@ public class CallbackMap {
         return handlers.get(key);
     }
 
-    public void remove(String key) { handlers.remove(key); }
-
+    public void remove(String key) {
+        handlers.remove(key);
+    }
 }
 
