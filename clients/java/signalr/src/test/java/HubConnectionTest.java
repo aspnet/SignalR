@@ -94,7 +94,6 @@ public class HubConnectionTest {
         hubConnection.on("inc", action);
         hubConnection.on("inc", secondAction);
 
-
         assertEquals(0.0, value.get(), 0);
 
         hubConnection.start();
@@ -127,7 +126,6 @@ public class HubConnectionTest {
         // Confirming that our handler was called and the correct message was passed in.
         assertEquals(24, value.get(), 0);
     }
-
 
     // We're using AtomicReference<Double> in the send tests instead of int here because Gson has trouble deserializing to Integer
     @Test
