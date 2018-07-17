@@ -108,6 +108,74 @@ public class HubConnectionTest {
     }
 
     @Test
+    public void RemoveHandlerWithUnsubscribe() throws Exception {
+        AtomicReference<Double> value = new AtomicReference<>(0.0);
+        Transport mockTransport = new MockEchoTransport();
+        HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
+        Action action = () -> value.getAndUpdate((val) -> val + 1);
+
+        Subscription subscription = hubConnection.on("inc", action);
+
+        assertEquals(0.0, value.get(), 0);
+
+        hubConnection.start();
+        hubConnection.send("inc");
+
+        // Confirming that our handler was called and that the counter property was incremented.
+        assertEquals(1, value.get(), 0);
+
+        subscription.unsubscribe();
+        hubConnection.send("inc");
+        assertEquals(1, value.get(), 0);
+    }
+
+    @Test
+    public void RemoveSingleHandlerWithUnsubscribe() throws Exception {
+        AtomicReference<Double> value = new AtomicReference<>(0.0);
+        Transport mockTransport = new MockEchoTransport();
+        HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
+        Action action = () -> value.getAndUpdate((val) -> val + 1);
+        Action secondAction = () -> value.getAndUpdate((val) -> val + 2);
+
+        Subscription subscription = hubConnection.on("inc", action);
+        Subscription secondSubscription = hubConnection.on("inc", secondAction);
+
+
+        assertEquals(0.0, value.get(), 0);
+
+        hubConnection.start();
+        hubConnection.send("inc");
+
+        // Confirming that our handler was called and that the counter property was incremented.
+        assertEquals(3, value.get(), 0);
+
+        // This removes the first handler so when "inc" is invoked secondAction should still run.
+        subscription.unsubscribe();
+        hubConnection.send("inc");
+        assertEquals(5, value.get(), 0);
+    }
+
+    @Test
+    public void AddAndRemoveHandlerImmediatelyWithSubscribe() throws Exception {
+
+        AtomicReference<Double> value = new AtomicReference<>(0.0);
+        Transport mockTransport = new MockEchoTransport();
+        HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
+        Action action = () -> value.getAndUpdate((val) -> val + 1);
+
+        Subscription sub = hubConnection.on("inc", action);
+        sub.unsubscribe();
+
+        assertEquals(0.0, value.get(), 0);
+
+        hubConnection.start();
+        hubConnection.send("inc");
+
+        // Confirming that the handler was removed.
+        assertEquals(0, value.get(), 0);
+    }
+
+    @Test
     public void RegisteringMultipleHandlersThatTakeParamsAndBothGetTriggered() throws Exception {
         AtomicReference<Double> value = new AtomicReference<>(0.0);
         Transport mockTransport = new MockEchoTransport();
