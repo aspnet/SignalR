@@ -1145,11 +1145,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
             {
                 Log.CancelingOutstandingInvocations(_hubConnection._logger);
 
-                // https://msdn.microsoft.com/en-us/library/dd287131.aspx
-                // From the documentation:
-                // The enumerator returned from the dictionary is safe to use concurrently with reads and writes to the dictionary,
-                // however it does not represent a moment-in-time snapshot of the dictionary.
-                // The contents exposed through the enumerator may contain modifications made to the dictionary after GetEnumerator was called.
+               
                 foreach (var outstandingCallKeyPair in _pendingCalls)
                 {
                     Log.RemovingInvocation(_hubConnection._logger, outstandingCallKeyPair.Value.InvocationId);
