@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.IO;
 using System.IO.Pipelines;
 using System.Linq;
 using System.Net.WebSockets;
@@ -14,9 +15,12 @@ using Microsoft.AspNetCore.Http.Connections.Internal;
 using Microsoft.AspNetCore.Http.Connections.Internal.Transports;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.SignalR.Tests;
+using Microsoft.AspNetCore.WebSockets.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
+using Microsoft.Extensions.Primitives;
 using Microsoft.Net.Http.Headers;
+using Moq;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -356,7 +360,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
         public async Task SubProtocolSelectorIsUsedToSelectSubProtocol()
         {
             const string ExpectedSubProtocol = "expected";
-            var providedSubProtocols = new[] {"provided1", "provided2"};
+            var providedSubProtocols = new[] { "provided1", "provided2" };
 
             using (StartVerifiableLog(out var loggerFactory, LogLevel.Debug))
             {
@@ -369,7 +373,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                     {
                         // We want to verify behavior without timeout affecting it
                         CloseTimeout = TimeSpan.FromSeconds(20),
-                        SubProtocolSelector = protocols => {
+                        SubProtocolSelector = protocols =>
+                        {
                             Assert.Equal(providedSubProtocols, protocols.ToArray());
                             return ExpectedSubProtocol;
                         },
@@ -401,6 +406,87 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
 
                     await transport.OrTimeout();
                 }
+            }
+        }
+
+        [Fact]
+        public async Task HttpUpgradeTransportSetsWebSocketHeaders()
+        {
+            const string ExpectedSubProtocol = "expected";
+            var providedSubProtocols = new[] { "provided1", "provided2" };
+
+            using (StartVerifiableLog(out var loggerFactory, LogLevel.Debug))
+            using (var wsFeature = new TestWebSocketConnectionFeature())
+            {
+                var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
+                var connection = new HttpConnectionContext("foo", pair.Transport, pair.Application);
+
+                var options = new WebSocketOptions
+                {
+                    SubProtocolSelector = protocols =>
+                    {
+                        Assert.Equal(providedSubProtocols, protocols.ToArray());
+                        return ExpectedSubProtocol;
+                    },
+                };
+                var context = new DefaultHttpContext();
+                context.Request.Headers.Add(HeaderNames.WebSocketSubProtocols, providedSubProtocols.ToArray());
+                var mock = new Mock<IHttpUpgradeFeature>();
+                mock.Setup(m => m.IsUpgradableRequest).Returns(true);
+                mock.Setup(m => m.UpgradeAsync()).ReturnsAsync(Stream.Null);
+                context.Features.Set<IHttpWebSocketFeature>(wsFeature);
+                context.Features.Set<IHttpUpgradeFeature>(mock.Object);
+                var upgradeTransport = new HttpUpgradeTransport(options, connection.Application, connection, loggerFactory);
+
+                await upgradeTransport.ProcessRequestAsync(context, default);
+
+                Assert.Equal("Upgrade", context.Response.Headers[Constants.Headers.Connection]);
+                Assert.Equal("websocket", context.Response.Headers[Constants.Headers.Upgrade]);
+                Assert.False(StringValues.IsNullOrEmpty(context.Response.Headers[Constants.Headers.SecWebSocketAccept]));
+                Assert.Equal(ExpectedSubProtocol, context.Response.Headers[Constants.Headers.SecWebSocketProtocol]);
+            }
+        }
+
+        [Fact]
+        public async Task HttpUpgradeTransportThrowsIfRequestIsNotUpgradable()
+        {
+            using (StartVerifiableLog(out var loggerFactory, LogLevel.Debug))
+            using (var wsFeature = new TestWebSocketConnectionFeature())
+            {
+                var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
+                var connection = new HttpConnectionContext("foo", pair.Transport, pair.Application);
+
+                var options = new WebSocketOptions();
+                var context = new DefaultHttpContext();
+                var mock = new Mock<IHttpUpgradeFeature>();
+                mock.Setup(m => m.IsUpgradableRequest).Returns(false);
+                context.Features.Set<IHttpWebSocketFeature>(wsFeature);
+                context.Features.Set<IHttpUpgradeFeature>(mock.Object);
+                var upgradeTransport = new HttpUpgradeTransport(options, connection.Application, connection, loggerFactory);
+
+                var exception = await Assert.ThrowsAsync<NotSupportedException>(() => upgradeTransport.ProcessRequestAsync(context, default));
+
+                Assert.Equal("The current request doesn't support upgraded connections.", exception.Message);
+            }
+        }
+
+        [Fact]
+        public async Task HttpUpgradeTransportThrowsIfUpgradeFeatureNotPresent()
+        {
+            using (StartVerifiableLog(out var loggerFactory, LogLevel.Debug))
+            using (var wsFeature = new TestWebSocketConnectionFeature())
+            {
+                var pair = DuplexPipe.CreateConnectionPair(PipeOptions.Default, PipeOptions.Default);
+                var connection = new HttpConnectionContext("foo", pair.Transport, pair.Application);
+
+                var options = new WebSocketOptions();
+                var context = new DefaultHttpContext();
+                context.Features.Set<IHttpWebSocketFeature>(wsFeature);
+                var upgradeTransport = new HttpUpgradeTransport(options, connection.Application, connection, loggerFactory);
+
+                var exception = await Assert.ThrowsAsync<NotSupportedException>(() => upgradeTransport.ProcessRequestAsync(context, default));
+
+                Assert.Equal("The current request doesn't support upgraded connections.", exception.Message);
             }
         }
     }

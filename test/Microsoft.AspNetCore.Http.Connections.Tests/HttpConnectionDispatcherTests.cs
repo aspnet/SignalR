@@ -979,6 +979,43 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             }
         }
 
+        [Fact]
+        public async Task WebSocketTransportWithPreserveWebSocketFramesForwardsRawBytesToApplication()
+        {
+            using (StartVerifiableLog(out var loggerFactory, LogLevel.Trace))
+            {
+                var manager = CreateConnectionManager(loggerFactory);
+                var connection = manager.CreateConnection();
+                connection.TransportType = HttpTransportType.WebSockets;
+
+                var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
+
+                var context = MakeRequest("/foo", connection);
+                SetTransport(context, HttpTransportType.WebSockets);
+                var upgradeStream = new MemoryStream();
+                var data = Encoding.UTF8.GetBytes("Hello World");
+                upgradeStream.Write(data, 0, data.Length);
+                upgradeStream.Position = 0;
+                var mock = new Mock<IHttpUpgradeFeature>();
+                mock.Setup(m => m.IsUpgradableRequest).Returns(true);
+                mock.Setup(m => m.UpgradeAsync()).ReturnsAsync(upgradeStream);
+                context.Features.Set<IHttpUpgradeFeature>(mock.Object);
+
+                var services = new ServiceCollection();
+                var builder = new ConnectionBuilder(services.BuildServiceProvider());
+                builder.Run(async conn =>
+                {
+                    var raw = await conn.Transport.Input.ReadAllAsync();
+                    Assert.Equal("Hello World", Encoding.UTF8.GetString(raw));
+                });
+                var app = builder.Build();
+                var options = new HttpConnectionDispatcherOptions();
+                options.WebSockets.PreserveWebSocketFrames = true;
+
+                await dispatcher.ExecuteAsync(context, options, app).OrTimeout();
+            }
+        }
+
         [Theory]
         [InlineData(HttpTransportType.WebSockets)]
         [InlineData(HttpTransportType.ServerSentEvents)]

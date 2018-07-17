@@ -56,6 +56,11 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
 
             var upgradeFeature = context.Features.Get<IHttpUpgradeFeature>();
 
+            if (upgradeFeature == null || !upgradeFeature.IsUpgradableRequest)
+            {
+                throw new NotSupportedException("The current request doesn't support upgraded connections.");
+            }
+
             // A bit allocatey but copied from the websocket middleware
             string key = string.Join(", ", context.Request.Headers[Constants.Headers.SecWebSocketKey]);
 
