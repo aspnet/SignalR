@@ -21,7 +21,6 @@ public class HubConnectionTest {
 
     @Test
     public void RegisteringMultipleHandlersAndBothGetTriggered() throws Exception {
-
         AtomicReference<Double> value = new AtomicReference<>(0.0);
         Transport mockTransport = new MockEchoTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
@@ -63,7 +62,6 @@ public class HubConnectionTest {
 
     @Test
     public void AddAndRemoveHandlerImmediately() throws Exception {
-
         AtomicReference<Double> value = new AtomicReference<>(0.0);
         Transport mockTransport = new MockEchoTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
@@ -83,7 +81,6 @@ public class HubConnectionTest {
 
     @Test
     public void RemovingMultipleHandlersWithOneCallToRemove() throws Exception {
-
         AtomicReference<Double> value = new AtomicReference<>(0.0);
         Transport mockTransport = new MockEchoTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
@@ -130,6 +127,29 @@ public class HubConnectionTest {
     }
 
     @Test
+    public void UnsubscribeTwice() throws Exception {
+        AtomicReference<Double> value = new AtomicReference<>(0.0);
+        Transport mockTransport = new MockEchoTransport();
+        HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
+        Action action = () -> value.getAndUpdate((val) -> val + 1);
+
+        Subscription subscription = hubConnection.on("inc", action);
+
+        assertEquals(0.0, value.get(), 0);
+
+        hubConnection.start();
+        hubConnection.send("inc");
+
+        // Confirming that our handler was called and that the counter property was incremented.
+        assertEquals(1, value.get(), 0);
+
+        subscription.unsubscribe();
+        subscription.unsubscribe();
+        hubConnection.send("inc");
+        assertEquals(1, value.get(), 0);
+    }
+
+    @Test
     public void RemoveSingleHandlerWithUnsubscribe() throws Exception {
         AtomicReference<Double> value = new AtomicReference<>(0.0);
         Transport mockTransport = new MockEchoTransport();
@@ -139,7 +159,6 @@ public class HubConnectionTest {
 
         Subscription subscription = hubConnection.on("inc", action);
         Subscription secondSubscription = hubConnection.on("inc", secondAction);
-
 
         assertEquals(0.0, value.get(), 0);
 
@@ -157,7 +176,6 @@ public class HubConnectionTest {
 
     @Test
     public void AddAndRemoveHandlerImmediatelyWithSubscribe() throws Exception {
-
         AtomicReference<Double> value = new AtomicReference<>(0.0);
         Transport mockTransport = new MockEchoTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
@@ -197,7 +215,6 @@ public class HubConnectionTest {
     // We're using AtomicReference<Double> in the send tests instead of int here because Gson has trouble deserializing to Integer
     @Test
     public void SendWithNoParamsTriggersOnHandler() throws Exception {
-
         AtomicReference<Double> value = new AtomicReference<Double>(0.0);
         Transport mockTransport = new MockEchoTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);

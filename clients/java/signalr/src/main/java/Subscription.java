@@ -7,13 +7,13 @@ public class Subscription {
     private CallbackMap handlers;
     private ActionBase action;
     private String target;
-    public Subscription(CallbackMap handlers, ActionBase action, String target){
+    public Subscription(CallbackMap handlers, ActionBase action, String target) {
         this.handlers = handlers;
         this.action = action;
         this.target = target;
     }
 
-    public void unsubscribe(){
+    public void unsubscribe() {
         List<ActionBase> actions = this.handlers.get(target);
         if (actions != null){
             actions.remove(action);

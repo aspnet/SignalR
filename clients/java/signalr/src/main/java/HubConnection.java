@@ -100,7 +100,7 @@ public class HubConnection {
         return new Subscription(handlers, action, target);
     }
 
-    public <T1, T2> Subscription on(String target, Action2<T1,T2> callback, Class<T1> param1, Class<T2> param2) {
+    public <T1, T2> Subscription on(String target, Action2<T1, T2> callback, Class<T1> param1, Class<T2> param2) {
         ActionBase action = params -> {
             callback.invoke(param1.cast(params[0]), param2.cast(params[1]));
         };
@@ -108,7 +108,7 @@ public class HubConnection {
         return new Subscription(handlers, action, target);
     }
 
-    public <T1, T2, T3> Subscription on(String target, Action3<T1,T2, T3> callback, Class<T1> param1, Class<T2> param2, Class<T3> param3) {
+    public <T1, T2, T3> Subscription on(String target, Action3<T1, T2, T3> callback, Class<T1> param1, Class<T2> param2, Class<T3> param3) {
         ActionBase action = params -> {
             callback.invoke(param1.cast(params[0]), param2.cast(params[1]), param3.cast(params[2]));
         };
@@ -116,7 +116,7 @@ public class HubConnection {
         return new Subscription(handlers, action, target);
     }
 
-    public <T1, T2, T3, T4> Subscription on(String target, Action4<T1,T2, T3, T4> callback, Class<T1> param1, Class<T2> param2, Class<T3> param3, Class<T4> param4) {
+    public <T1, T2, T3, T4> Subscription on(String target, Action4<T1, T2, T3, T4> callback, Class<T1> param1, Class<T2> param2, Class<T3> param3, Class<T4> param4) {
         ActionBase action = params -> {
             callback.invoke(param1.cast(params[0]), param2.cast(params[1]), param3.cast(params[2]), param4.cast(params[3]));
         };
@@ -124,7 +124,7 @@ public class HubConnection {
         return new Subscription(handlers, action, target);
     }
 
-    public <T1, T2, T3, T4,T5> Subscription on(String target, Action5<T1,T2, T3, T4, T5> callback, Class<T1> param1, Class<T2> param2, Class<T3> param3, Class<T4> param4, Class<T5> param5) {
+    public <T1, T2, T3, T4, T5> Subscription on(String target, Action5<T1, T2, T3, T4, T5> callback, Class<T1> param1, Class<T2> param2, Class<T3> param3, Class<T4> param4, Class<T5> param5) {
         ActionBase action = params -> {
             callback.invoke(param1.cast(params[0]), param2.cast(params[1]), param3.cast(params[2]), param4.cast(params[3]),
                     param5.cast(params[4]));
