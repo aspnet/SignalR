@@ -34,6 +34,10 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 routes.MapConnectionHandler<WriteThenCloseConnectionHandler>("/echoAndClose");
                 routes.MapConnectionHandler<HttpHeaderConnectionHandler>("/httpheader");
                 routes.MapConnectionHandler<AuthConnectionHandler>("/auth");
+                routes.MapConnectionHandler<WebSocketConnectionHandler>("/ws-echo", options =>
+                {
+                    options.WebSockets.PreserveWebSocketFrames = true;
+                });
             });
 
             app.UseSignalR(routes =>
