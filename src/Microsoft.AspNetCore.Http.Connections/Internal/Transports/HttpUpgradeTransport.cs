@@ -172,12 +172,12 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
                     var read = await stream.ReadAsync(arraySegment.Array, arraySegment.Offset, arraySegment.Count, CancellationToken.None);
 #endif
                     // Need to check again for NetCoreApp2.2 because a close can happen between a 0-byte read and the actual read
+
+                    Log.MessageReceived(_logger, read);
                     if (read == 0)
                     {
                         return;
                     }
-
-                    Log.MessageReceived(_logger, read);
 
                     _application.Output.Advance(read);
 

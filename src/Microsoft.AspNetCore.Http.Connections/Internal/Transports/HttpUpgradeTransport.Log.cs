@@ -36,13 +36,13 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
                 LoggerMessage.Define(LogLevel.Debug, new EventId(8, "CloseTimedOut"), "Timed out waiting for client to send the close frame, aborting the connection.");
 
             private static readonly Action<ILogger, int, Exception> _messageReceived =
-                LoggerMessage.Define<int>(LogLevel.Trace, new EventId(9, "MessageReceived"), "Message received. size: {Size}");
+                LoggerMessage.Define<int>(LogLevel.Debug, new EventId(9, "MessageReceived"), "Message received. size: {Size}");
 
             private static readonly Action<ILogger, int, Exception> _messageToApplication =
-                LoggerMessage.Define<int>(LogLevel.Trace, new EventId(10, "MessageToApplication"), "Passing message to application. Payload size: {Size}.");
+                LoggerMessage.Define<int>(LogLevel.Debug, new EventId(10, "MessageToApplication"), "Passing message to application. Payload size: {Size}.");
 
             private static readonly Action<ILogger, long, Exception> _sendPayload =
-                LoggerMessage.Define<long>(LogLevel.Trace, new EventId(11, "SendPayload"), "Sending payload: {Size} bytes.");
+                LoggerMessage.Define<long>(LogLevel.Debug, new EventId(11, "SendPayload"), "Sending payload: {Size} bytes.");
 
             private static readonly Action<ILogger, Exception> _errorWritingFrame =
                 LoggerMessage.Define(LogLevel.Error, new EventId(12, "ErrorWritingFrame"), "Error writing frame.");
