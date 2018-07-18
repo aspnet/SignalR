@@ -36,6 +36,7 @@ namespace Microsoft.AspNetCore.SignalR
         private bool _receivedMessageThisInterval = false;
         private ReadOnlyMemory<byte> _cachedPingMessage;
         private bool _clientTimeoutActive;
+        private bool _connectedAborted = true;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HubConnectionContext"/> class.
@@ -103,11 +104,9 @@ namespace Microsoft.AspNetCore.SignalR
         // Currently used only for streaming methods
         internal ConcurrentDictionary<string, CancellationTokenSource> ActiveRequestCancellationSources { get; } = new ConcurrentDictionary<string, CancellationTokenSource>(StringComparer.Ordinal);
 
-        private bool _allowWrite = true;
-
         public virtual ValueTask WriteAsync(HubMessage message, CancellationToken cancellationToken = default)
         {
-            if (!_allowWrite)
+            if (!_connectedAborted)
             {
                 return default;
             }
@@ -142,7 +141,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <returns></returns>
         public virtual ValueTask WriteAsync(SerializedHubMessage message, CancellationToken cancellationToken = default)
         {
-            if (!_allowWrite)
+            if (!_connectedAborted)
             {
                 return default;
             }
@@ -332,7 +331,7 @@ namespace Microsoft.AspNetCore.SignalR
                 return;
             }
 
-            _allowWrite = false;
+            _connectedAborted = false;
 
             Input.CancelPendingRead();
 
