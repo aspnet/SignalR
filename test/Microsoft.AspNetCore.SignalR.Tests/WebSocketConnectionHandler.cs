@@ -21,7 +21,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 while (true)
                 {
-                    // This should always be synchronous
                     var result = await websocket.ReceiveAsync(memory, default);
 
                     if (result.MessageType == WebSocketMessageType.Close)

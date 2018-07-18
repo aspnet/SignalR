@@ -96,7 +96,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [InlineData("/ws-echo")]
         public async Task WebSocketsTest(string path)
         {
-            using (StartVerifiableLog(out var loggerFactory))
+            using (StartVerifiableLog(out var loggerFactory, LogLevel.Trace))
             {
                 var logger = loggerFactory.CreateLogger<EndToEndTests>();
 
@@ -135,7 +135,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [InlineData("/ws-echo")]
         public async Task WebSocketsReceivesAndSendsPartialFramesTest(string path)
         {
-            using (StartVerifiableLog(out var loggerFactory))
+            using (StartVerifiableLog(out var loggerFactory, LogLevel.Trace))
             {
                 var logger = loggerFactory.CreateLogger<EndToEndTests>();
 
