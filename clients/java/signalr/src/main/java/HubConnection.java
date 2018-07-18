@@ -55,6 +55,7 @@ public class HubConnection {
                     case HANDSHAKE_RESPONSE:
                         // This is empty for 2.2.
                         connectionState = HubConnectionState.CONNECTED;
+                        break;
                 }
             }
         };

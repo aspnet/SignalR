@@ -14,5 +14,4 @@ public class HandshakeRequestMessage extends HubMessage{
     HubMessageType getMessageType() {
         return null;
     }
-
 }
