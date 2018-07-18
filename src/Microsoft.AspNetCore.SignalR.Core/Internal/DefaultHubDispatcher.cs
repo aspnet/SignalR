@@ -190,12 +190,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
                     var result = await ExecuteHubMethod(methodExecutor, hub, hubMethodInvocationMessage.Arguments);
 
-                    if (connection.ConnectionAborted.IsCancellationRequested)
-                    {
-                        // Connection has been aborted, no reason to handle the method result
-                        return;
-                    }
-
                     if (isStreamedInvocation)
                     {
                         if (!TryGetStreamingEnumerator(connection, hubMethodInvocationMessage.InvocationId, descriptor, result, out var enumerator, out var streamCts))

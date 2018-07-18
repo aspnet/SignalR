@@ -103,8 +103,15 @@ namespace Microsoft.AspNetCore.SignalR
         // Currently used only for streaming methods
         internal ConcurrentDictionary<string, CancellationTokenSource> ActiveRequestCancellationSources { get; } = new ConcurrentDictionary<string, CancellationTokenSource>(StringComparer.Ordinal);
 
+        private bool _allowWrite = true;
+
         public virtual ValueTask WriteAsync(HubMessage message, CancellationToken cancellationToken = default)
         {
+            if (!_allowWrite)
+            {
+                return default;
+            }
+
             // Try to grab the lock synchronously, if we fail, go to the slower path
             if (!_writeLock.Wait(0))
             {
@@ -135,6 +142,11 @@ namespace Microsoft.AspNetCore.SignalR
         /// <returns></returns>
         public virtual ValueTask WriteAsync(SerializedHubMessage message, CancellationToken cancellationToken = default)
         {
+            if (!_allowWrite)
+            {
+                return default;
+            }
+
             // Try to grab the lock synchronously, if we fail, go to the slower path
             if (!_writeLock.Wait(0))
             {
@@ -319,6 +331,8 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 return;
             }
+
+            _allowWrite = false;
 
             Input.CancelPendingRead();
 

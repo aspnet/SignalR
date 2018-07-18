@@ -103,9 +103,11 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             {
                 var connectionHandlerTask = await client.ConnectAsync(connectionHandler);
 
-                await client.InvokeAsync(nameof(AbortHub.Kill));
+                await client.SendInvocationAsync(nameof(AbortHub.Kill)).OrTimeout();
 
                 await connectionHandlerTask.OrTimeout();
+
+                Assert.Null(client.TryRead());
             }
         }
 
