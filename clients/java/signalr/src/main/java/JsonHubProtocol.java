@@ -13,6 +13,7 @@ public class JsonHubProtocol implements HubProtocol {
     private final JsonParser jsonParser = new JsonParser();
     private final Gson gson = new Gson();
     private static final String RECORD_SEPARATOR = "\u001e";
+    private HandshakeResponseMessage handshakeResponse;
 
     @Override
     public String getName() {
@@ -34,12 +35,20 @@ public class JsonHubProtocol implements HubProtocol {
         String[] messages = payload.split(RECORD_SEPARATOR);
         List<HubMessage> hubMessages = new ArrayList<>();
         for (String splitMessage : messages) {
-            // Empty handshake response "{}". We can ignore it
-            if (splitMessage.equals("{}")) {
+
+            JsonObject jsonMessage = jsonParser.parse(splitMessage).getAsJsonObject();
+
+            // If the message type isn't present, it's a HandshakeResponse.
+            if(!jsonMessage.has("type")){
+                if (jsonMessage.has("error")) {
+                    handshakeResponse = new HandshakeResponseMessage(jsonMessage.get("error").getAsString());
+                } else {
+                    handshakeResponse = new HandshakeResponseMessage();
+                }
+                hubMessages.add(handshakeResponse);
                 continue;
             }
 
-            JsonObject jsonMessage = jsonParser.parse(splitMessage).getAsJsonObject();
             HubMessageType messageType = HubMessageType.values()[jsonMessage.get("type").getAsInt() -1];
             switch (messageType) {
                 case INVOCATION:
@@ -72,7 +81,7 @@ public class JsonHubProtocol implements HubProtocol {
     }
 
     @Override
-    public String writeMessage(InvocationMessage invocationMessage) {
-        return gson.toJson(invocationMessage) + RECORD_SEPARATOR;
+    public String writeMessage(HubMessage hubMessage) {
+        return gson.toJson(hubMessage) + RECORD_SEPARATOR;
     }
 }

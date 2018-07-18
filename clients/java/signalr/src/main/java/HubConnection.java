@@ -17,6 +17,10 @@ public class HubConnection {
     private Gson gson = new Gson();
     private HubConnectionState connectionState = HubConnectionState.DISCONNECTED;
 
+    // Only json is supported currently
+    private String protocolName = "json";
+    private int protocolVersion = 1;
+
     public HubConnection(String url, Transport transport) {
         this.url = url;
         this.protocol = new JsonHubProtocol();
@@ -29,7 +33,7 @@ public class HubConnection {
                     case INVOCATION:
                         InvocationMessage invocationMessage = (InvocationMessage)message;
                         if (message != null && handlers.containsKey(invocationMessage.target)) {
-                            ArrayList<Object> args = gson.fromJson((JsonArray)invocationMessage.arguments[0], (new ArrayList<Object>()).getClass());
+                            ArrayList<Object> args = gson.fromJson((JsonArray)invocationMessage.arguments[0], (new ArrayList<>()).getClass());
                             List<ActionBase> actions = handlers.get(invocationMessage.target);
                             if (actions != null) {
                                 for (ActionBase action: actions) {
@@ -40,14 +44,17 @@ public class HubConnection {
                         break;
                     case STREAM_INVOCATION:
                     case STREAM_ITEM:
-                        throw new UnsupportedOperationException("Streaming is not yet supported");
                     case CLOSE:
                     case CANCEL_INVOCATION:
                     case COMPLETION:
+                        throw new UnsupportedOperationException("The message type" + message.getMessageType() + " is not supported yet.");
                     case PING:
                         // We don't need to do anything in the case of a ping message.
                         // The other message types aren't supported
                         break;
+                    case HANDSHAKE_RESPONSE:
+                        // This is empty for 2.2.
+                        connectionState = HubConnectionState.CONNECTED;
                 }
             }
         };
@@ -71,10 +78,12 @@ public class HubConnection {
         return connectionState;
     }
 
-    public void start() throws InterruptedException {
+    public void start() throws Exception {
         transport.setOnReceive(this.callback);
         transport.start();
-        connectionState = HubConnectionState.CONNECTED;
+        HandshakeRequestMessage handshakeRequest = new HandshakeRequestMessage(protocolName, protocolVersion);
+        String handshakeMessage = protocol.writeMessage(handshakeRequest);
+        transport.send(handshakeMessage);
     }
 
     public void stop(){

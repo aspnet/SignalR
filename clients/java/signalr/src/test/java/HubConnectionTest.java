@@ -9,7 +9,7 @@ import static org.junit.Assert.*;
 
 public class HubConnectionTest {
     @Test
-    public void checkHubConnectionState() throws InterruptedException {
+    public void checkHubConnectionState() throws Exception {
         Transport mockTransport = new MockEchoTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
         hubConnection.start();
