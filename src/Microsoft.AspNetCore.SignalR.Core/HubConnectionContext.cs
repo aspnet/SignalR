@@ -331,7 +331,7 @@ namespace Microsoft.AspNetCore.SignalR
                 return;
             }
 
-            _connectedAborted = false;
+            _connectedAborted = true;
 
             Input.CancelPendingRead();
 
