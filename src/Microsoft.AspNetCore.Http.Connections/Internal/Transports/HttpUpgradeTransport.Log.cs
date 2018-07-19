@@ -63,11 +63,6 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
                 _socketClosed(logger, null);
             }
 
-            public static void ClientClosed(ILogger logger, WebSocketCloseStatus? closeStatus, string closeDescription)
-            {
-                _clientClosed(logger, closeStatus, closeDescription, null);
-            }
-
             public static void WaitingForSend(ILogger logger)
             {
                 _waitingForSend(logger, null);

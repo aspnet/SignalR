@@ -174,6 +174,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
                     // Need to check again for NetCoreApp2.2 because a close can happen between a 0-byte read and the actual read
 
                     Log.MessageReceived(_logger, read);
+
                     if (read == 0)
                     {
                         return;
@@ -265,6 +266,11 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
                         _application.Input.AdvanceTo(buffer.End);
                     }
                 }
+            }
+            catch (WebSocketException ex) when (ex.WebSocketErrorCode == WebSocketError.ConnectionClosedPrematurely)
+            {
+                // Client has closed the WebSocket connection without completing the close handshake
+                Log.ClosedPrematurely(_logger, ex);
             }
             catch (Exception ex)
             {
