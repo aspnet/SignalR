@@ -29,7 +29,14 @@ public class HubConnection {
         this.callback = (payload) -> {
 
             if (!handshakeReceived) {
-                int handshakeLength = payload.indexOf(RECORD_SEPARATOR);
+                int handshakeLength = payload.indexOf(RECORD_SEPARATOR) + 1;
+                payload = payload.substring(handshakeLength);
+                handshakeReceived = true;
+
+                // We only received the handshake response ,so we can return.
+                if (payload.length() == 0){
+                    return;
+                }
             }
 
             HubMessage[] messages = protocol.parseMessages(payload);

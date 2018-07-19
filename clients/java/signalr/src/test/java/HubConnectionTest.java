@@ -1,6 +1,7 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+import com.google.gson.Gson;
 import org.junit.Test;
 
 import java.util.concurrent.atomic.AtomicReference;
@@ -371,6 +372,8 @@ public class HubConnectionTest {
 
     private class MockEchoTransport implements Transport {
         private OnReceiveCallBack onReceiveCallBack;
+        private Gson gson = new Gson();
+        private static final String RECORD_SEPARATOR = "\u001e";
 
         @Override
         public void start() {}
@@ -379,6 +382,7 @@ public class HubConnectionTest {
         public void send(String message) throws Exception {
             // We don't need to handle the handshake request
             if(message.startsWith("{\"protocol")){
+                this.onReceive(gson.toJson(new HandshakeResponseMessage()) + RECORD_SEPARATOR);
                 return;
             }
             this.onReceive(message);
