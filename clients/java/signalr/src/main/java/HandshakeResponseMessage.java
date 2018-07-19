@@ -1,7 +1,7 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-public class HandshakeResponseMessage extends HubMessage{
+public class HandshakeResponseMessage {
     public String error;
 
     public HandshakeResponseMessage(){
@@ -12,8 +12,4 @@ public class HandshakeResponseMessage extends HubMessage{
         this.error = error;
     }
 
-    @Override
-    HubMessageType getMessageType() {
-        return HubMessageType.HANDSHAKE_RESPONSE;
-    }
 }

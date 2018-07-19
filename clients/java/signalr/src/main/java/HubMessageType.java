@@ -8,8 +8,8 @@ public enum HubMessageType {
     STREAM_INVOCATION(4),
     CANCEL_INVOCATION(5),
     PING(6),
-    CLOSE(7),
-    HANDSHAKE_RESPONSE(0);
+    CLOSE(7);
+
     public int value;
     HubMessageType(int id) { this.value = id; }
 }

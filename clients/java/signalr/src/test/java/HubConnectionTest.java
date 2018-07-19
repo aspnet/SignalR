@@ -377,6 +377,10 @@ public class HubConnectionTest {
 
         @Override
         public void send(String message) throws Exception {
+            // We don't need to handle the handshake request
+            if(message.startsWith("{\"protocol")){
+                return;
+            }
             this.onReceive(message);
         }
 

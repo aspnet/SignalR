@@ -15,6 +15,8 @@ public class HubConnection {
     private CallbackMap handlers = new CallbackMap();
     private HubProtocol protocol;
     private Gson gson = new Gson();
+    private Boolean handshakeReceived = false;
+    private static final String RECORD_SEPARATOR = "\u001e";
     private HubConnectionState connectionState = HubConnectionState.DISCONNECTED;
 
     // Only json is supported currently
@@ -25,6 +27,10 @@ public class HubConnection {
         this.url = url;
         this.protocol = new JsonHubProtocol();
         this.callback = (payload) -> {
+
+            if (!handshakeReceived) {
+                int handshakeLength = payload.indexOf(RECORD_SEPARATOR);
+            }
 
             HubMessage[] messages = protocol.parseMessages(payload);
 
@@ -52,10 +58,6 @@ public class HubConnection {
                         // We don't need to do anything in the case of a ping message.
                         // The other message types aren't supported
                         break;
-                    case HANDSHAKE_RESPONSE:
-                        // This is empty for 2.2.
-                        connectionState = HubConnectionState.CONNECTED;
-                        break;
                 }
             }
         };
@@ -82,9 +84,9 @@ public class HubConnection {
     public void start() throws Exception {
         transport.setOnReceive(this.callback);
         transport.start();
-        HandshakeRequestMessage handshakeRequest = new HandshakeRequestMessage(protocolName, protocolVersion);
-        String handshakeMessage = protocol.writeMessage(handshakeRequest);
-        transport.send(handshakeMessage);
+        String handshake = HandshakeProtocol.createHandshakeRequestMessage(new HandshakeRequestMessage(protocolName, protocolVersion));
+        transport.send(handshake);
+        connectionState = HubConnectionState.CONNECTED;
     }
 
     public void stop(){

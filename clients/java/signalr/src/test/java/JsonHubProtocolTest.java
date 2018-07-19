@@ -85,20 +85,6 @@ public class JsonHubProtocolTest {
     }
 
     @Test
-    public void ParseHandshakeResponsePlusMessage() {
-        String twoMessages = "{}\u001E{\"type\":1,\"target\":\"test\",\"arguments\":[42]}\u001E";
-        HubMessage[] messages = jsonHubProtocol.parseMessages(twoMessages);
-        assertEquals(HubMessageType.HANDSHAKE_RESPONSE, messages[0].getMessageType());
-        assertEquals(HubMessageType.INVOCATION, messages[1].getMessageType());
-
-        //We ignore the Handshake response for now and we can cast because we know we have in invocation message.
-        InvocationMessage message = (InvocationMessage) messages[1];
-        assertEquals("test", message.target);
-        JsonArray messageResult = (JsonArray) message.arguments[0];
-        assertEquals(42, messageResult.getAsInt());
-    }
-
-    @Test
     public void ParseTwoMessages() {
         String twoMessages = "{\"type\":1,\"target\":\"one\",\"arguments\":[42]}\u001E{\"type\":1,\"target\":\"two\",\"arguments\":[43]}\u001E";
         HubMessage[] messages = jsonHubProtocol.parseMessages(twoMessages);
