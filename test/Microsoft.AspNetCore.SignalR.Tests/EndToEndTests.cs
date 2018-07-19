@@ -120,7 +120,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     Assert.Equal(bytes, buffer.Array.AsSpan(0, result.Count).ToArray());
 
                     logger.LogInformation("Closing socket");
-                    await ws.CloseOutputAsync(WebSocketCloseStatus.Empty, "", CancellationToken.None).OrTimeout();
+                    await ws.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None).OrTimeout();
                     logger.LogInformation("Waiting for close");
                     result = await ws.ReceiveAsync(buffer, CancellationToken.None).OrTimeout();
                     Assert.Equal(WebSocketMessageType.Close, result.MessageType);
@@ -160,7 +160,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                     Assert.Equal(bytes, buffer.Array.AsSpan(0, result.Count).ToArray());
 
                     logger.LogInformation("Closing socket");
-                    await ws.CloseOutputAsync(WebSocketCloseStatus.Empty, "", CancellationToken.None).OrTimeout();
+                    await ws.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None).OrTimeout();
                     logger.LogInformation("Waiting for close");
                     result = await ws.ReceiveAsync(buffer, CancellationToken.None).OrTimeout();
                     Assert.Equal(WebSocketMessageType.Close, result.MessageType);
