@@ -19,10 +19,6 @@ public class HubConnection {
     private static final String RECORD_SEPARATOR = "\u001e";
     private HubConnectionState connectionState = HubConnectionState.DISCONNECTED;
 
-    // Only json is supported currently
-    private String protocolName = "json";
-    private int protocolVersion = 1;
-
     public HubConnection(String url, Transport transport) {
         this.url = url;
         this.protocol = new JsonHubProtocol();
@@ -65,7 +61,7 @@ public class HubConnection {
                     case CLOSE:
                     case CANCEL_INVOCATION:
                     case COMPLETION:
-                        throw new UnsupportedOperationException("The message type" + message.getMessageType() + " is not supported yet.");
+                        throw new UnsupportedOperationException("The message type " + message.getMessageType() + " is not supported yet.");
                     case PING:
                         // We don't need to do anything in the case of a ping message.
                         // The other message types aren't supported
@@ -96,7 +92,7 @@ public class HubConnection {
     public void start() throws Exception {
         transport.setOnReceive(this.callback);
         transport.start();
-        String handshake = HandshakeProtocol.createHandshakeRequestMessage(new HandshakeRequestMessage(protocolName, protocolVersion));
+        String handshake = HandshakeProtocol.createHandshakeRequestMessage(new HandshakeRequestMessage(protocol.getName(), protocol.getVersion()));
         transport.send(handshake);
         connectionState = HubConnectionState.CONNECTED;
     }

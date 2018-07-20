@@ -370,6 +370,24 @@ public class HubConnectionTest {
         assertEquals(12, value5.get(), 0);
     }
 
+    @Test
+    public void ReceiveHandshakeResponseAndMessage() throws Exception {
+        AtomicReference<Double> value = new AtomicReference<Double>(0.0);
+        Transport transport = new HandshakeTransport();
+        HubConnection hubConnection = new HubConnection("http://example.com", transport);
+
+        hubConnection.on("inc", () ->{
+            assertEquals(0.0, value.get(), 0);
+            value.getAndUpdate((val) -> val + 1);
+        });
+
+        // On start we're going to receive the handshake response and also an invocation in the same payload.
+        hubConnection.start();
+
+        // Confirming that our handler was called and that the counter property was incremented.
+        assertEquals(1, value.get(), 0);
+    }
+
     private class MockEchoTransport implements Transport {
         private OnReceiveCallBack onReceiveCallBack;
         private Gson gson = new Gson();
@@ -400,5 +418,36 @@ public class HubConnectionTest {
 
         @Override
         public void stop() {return;}
+    }
+
+    private class HandshakeTransport implements Transport {
+        private OnReceiveCallBack onReceiveCallBack;
+        private static final String RECORD_SEPARATOR = "\u001e";
+        private Gson gson = new Gson();
+        @Override
+        public void start() {}
+
+        @Override
+        public void send(String message) throws Exception {
+            // To simulate receiving the handshake response and an invocation in the same payload.
+            this.onReceive(gson.toJson(new HandshakeResponseMessage()) + RECORD_SEPARATOR);
+        }
+
+        @Override
+        public void setOnReceive(OnReceiveCallBack callback) {
+            this.onReceiveCallBack = callback;
+        }
+
+        @Override
+        public void onReceive(String message) throws Exception {
+            // After starting the connection and the handshake request is sent, we'll respond withe the
+            // Handshake response combined with another message
+            this.onReceiveCallBack.invoke(message + "{\"type\":1,\"target\":\"inc\",\"arguments\":[]}\u001E");
+        }
+
+        @Override
+        public void stop() {
+
+        }
     }
 }
