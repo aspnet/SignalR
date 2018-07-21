@@ -1,7 +1,6 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-import com.google.gson.Gson;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -10,9 +9,11 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.Assert.*;
 
 public class HubConnectionTest {
+    private static final String RECORD_SEPARATOR = "\u001e";
+
     @Test
     public void checkHubConnectionState() throws Exception {
-        Transport mockTransport = new MockEchoTransport();
+        Transport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
         hubConnection.start();
         assertEquals(HubConnectionState.CONNECTED, hubConnection.getConnectionState());
@@ -24,7 +25,7 @@ public class HubConnectionTest {
     @Test
     public void RegisteringMultipleHandlersAndBothGetTriggered() throws Exception {
         AtomicReference<Double> value = new AtomicReference<>(0.0);
-        Transport mockTransport = new MockEchoTransport();
+        MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
         Action action = () -> value.getAndUpdate((val) -> val + 1);
 
@@ -34,7 +35,9 @@ public class HubConnectionTest {
         assertEquals(0.0, value.get(), 0);
 
         hubConnection.start();
-        hubConnection.send("inc");
+
+        mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
+        mockTransport.receiveMessage("{\"type\":1,\"target\":\"inc\",\"arguments\":[]}" + RECORD_SEPARATOR);
 
         // Confirming that our handler was called and that the counter property was incremented.
         assertEquals(2, value.get(), 0);
@@ -43,7 +46,7 @@ public class HubConnectionTest {
     @Test
     public void RemoveHandlerByName() throws Exception {
         AtomicReference<Double> value = new AtomicReference<>(0.0);
-        Transport mockTransport = new MockEchoTransport();
+        MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
         Action action = () -> value.getAndUpdate((val) -> val + 1);
 
@@ -52,7 +55,9 @@ public class HubConnectionTest {
         assertEquals(0.0, value.get(), 0);
 
         hubConnection.start();
-        hubConnection.send("inc");
+
+        mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
+        mockTransport.receiveMessage("{\"type\":1,\"target\":\"inc\",\"arguments\":[]}" + RECORD_SEPARATOR);
 
         // Confirming that our handler was called and that the counter property was incremented.
         assertEquals(1, value.get(), 0);
@@ -65,7 +70,7 @@ public class HubConnectionTest {
     @Test
     public void AddAndRemoveHandlerImmediately() throws Exception {
         AtomicReference<Double> value = new AtomicReference<>(0.0);
-        Transport mockTransport = new MockEchoTransport();
+        MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
         Action action = () -> value.getAndUpdate((val) -> val + 1);
 
@@ -75,7 +80,9 @@ public class HubConnectionTest {
         assertEquals(0.0, value.get(), 0);
 
         hubConnection.start();
-        hubConnection.send("inc");
+
+        mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
+        mockTransport.receiveMessage("{\"type\":1,\"target\":\"inc\",\"arguments\":[]}" + RECORD_SEPARATOR);
 
         // Confirming that the handler was removed.
         assertEquals(0, value.get(), 0);
@@ -84,7 +91,7 @@ public class HubConnectionTest {
     @Test
     public void RemovingMultipleHandlersWithOneCallToRemove() throws Exception {
         AtomicReference<Double> value = new AtomicReference<>(0.0);
-        Transport mockTransport = new MockEchoTransport();
+        MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
         Action action = () -> value.getAndUpdate((val) -> val + 1);
         Action secondAction = () -> value.getAndUpdate((val) -> val + 2);
@@ -95,12 +102,15 @@ public class HubConnectionTest {
         assertEquals(0.0, value.get(), 0);
 
         hubConnection.start();
-        hubConnection.send("inc");
+
+        mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
+        mockTransport.receiveMessage("{\"type\":1,\"target\":\"inc\",\"arguments\":[]}" + RECORD_SEPARATOR);
 
         assertEquals(3, value.get(), 0);
 
         hubConnection.remove("inc");
-        hubConnection.send("inc");
+
+        mockTransport.receiveMessage("{\"type\":1,\"target\":\"inc\",\"arguments\":[]}" + RECORD_SEPARATOR);
 
         // Confirm that another invocation doesn't change anything because the handlers have been removed.
         assertEquals(3, value.get(), 0);
@@ -109,7 +119,7 @@ public class HubConnectionTest {
     @Test
     public void RemoveHandlerWithUnsubscribe() throws Exception {
         AtomicReference<Double> value = new AtomicReference<>(0.0);
-        Transport mockTransport = new MockEchoTransport();
+        MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
         Action action = () -> value.getAndUpdate((val) -> val + 1);
 
@@ -118,20 +128,22 @@ public class HubConnectionTest {
         assertEquals(0.0, value.get(), 0);
 
         hubConnection.start();
-        hubConnection.send("inc");
+
+        mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
+        mockTransport.receiveMessage("{\"type\":1,\"target\":\"inc\",\"arguments\":[]}" + RECORD_SEPARATOR);
 
         // Confirming that our handler was called and that the counter property was incremented.
         assertEquals(1, value.get(), 0);
 
         subscription.unsubscribe();
-        hubConnection.send("inc");
+        mockTransport.receiveMessage("{\"type\":1,\"target\":\"inc\",\"arguments\":[]}" + RECORD_SEPARATOR);
         assertEquals(1, value.get(), 0);
     }
 
     @Test
     public void UnsubscribeTwice() throws Exception {
         AtomicReference<Double> value = new AtomicReference<>(0.0);
-        Transport mockTransport = new MockEchoTransport();
+        MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
         Action action = () -> value.getAndUpdate((val) -> val + 1);
 
@@ -140,21 +152,22 @@ public class HubConnectionTest {
         assertEquals(0.0, value.get(), 0);
 
         hubConnection.start();
-        hubConnection.send("inc");
+        mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
+        mockTransport.receiveMessage("{\"type\":1,\"target\":\"inc\",\"arguments\":[]}" + RECORD_SEPARATOR);
 
         // Confirming that our handler was called and that the counter property was incremented.
         assertEquals(1, value.get(), 0);
 
         subscription.unsubscribe();
         subscription.unsubscribe();
-        hubConnection.send("inc");
+        mockTransport.receiveMessage("{\"type\":1,\"target\":\"inc\",\"arguments\":[]}" + RECORD_SEPARATOR);
         assertEquals(1, value.get(), 0);
     }
 
     @Test
     public void RemoveSingleHandlerWithUnsubscribe() throws Exception {
         AtomicReference<Double> value = new AtomicReference<>(0.0);
-        Transport mockTransport = new MockEchoTransport();
+        MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
         Action action = () -> value.getAndUpdate((val) -> val + 1);
         Action secondAction = () -> value.getAndUpdate((val) -> val + 2);
@@ -165,21 +178,21 @@ public class HubConnectionTest {
         assertEquals(0.0, value.get(), 0);
 
         hubConnection.start();
-        hubConnection.send("inc");
-
+        mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
+        mockTransport.receiveMessage("{\"type\":1,\"target\":\"inc\",\"arguments\":[]}" + RECORD_SEPARATOR);
         // Confirming that our handler was called and that the counter property was incremented.
         assertEquals(3, value.get(), 0);
 
         // This removes the first handler so when "inc" is invoked secondAction should still run.
         subscription.unsubscribe();
-        hubConnection.send("inc");
+        mockTransport.receiveMessage("{\"type\":1,\"target\":\"inc\",\"arguments\":[]}" + RECORD_SEPARATOR);
         assertEquals(5, value.get(), 0);
     }
 
     @Test
     public void AddAndRemoveHandlerImmediatelyWithSubscribe() throws Exception {
         AtomicReference<Double> value = new AtomicReference<>(0.0);
-        Transport mockTransport = new MockEchoTransport();
+        MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
         Action action = () -> value.getAndUpdate((val) -> val + 1);
 
@@ -189,8 +202,8 @@ public class HubConnectionTest {
         assertEquals(0.0, value.get(), 0);
 
         hubConnection.start();
-        hubConnection.send("inc");
-
+        mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
+        mockTransport.receiveMessage("{\"type\":1,\"target\":\"inc\",\"arguments\":[]}" + RECORD_SEPARATOR);
         // Confirming that the handler was removed.
         assertEquals(0, value.get(), 0);
     }
@@ -198,7 +211,7 @@ public class HubConnectionTest {
     @Test
     public void RegisteringMultipleHandlersThatTakeParamsAndBothGetTriggered() throws Exception {
         AtomicReference<Double> value = new AtomicReference<>(0.0);
-        Transport mockTransport = new MockEchoTransport();
+        MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
 
         Action1<Double> action = (number) -> value.getAndUpdate((val) -> val + number);
@@ -208,6 +221,8 @@ public class HubConnectionTest {
 
         assertEquals(0, value.get(), 0);
         hubConnection.start();
+        mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
+        mockTransport.receiveMessage("{\"type\":1,\"target\":\"add\",\"arguments\":[12]}" + RECORD_SEPARATOR);
         hubConnection.send("add", 12);
 
         // Confirming that our handler was called and the correct message was passed in.
@@ -218,7 +233,7 @@ public class HubConnectionTest {
     @Test
     public void SendWithNoParamsTriggersOnHandler() throws Exception {
         AtomicReference<Double> value = new AtomicReference<Double>(0.0);
-        Transport mockTransport = new MockEchoTransport();
+        MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
 
         hubConnection.on("inc", () ->{
@@ -227,7 +242,8 @@ public class HubConnectionTest {
         });
 
         hubConnection.start();
-        hubConnection.send("inc");
+        mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
+        mockTransport.receiveMessage("{\"type\":1,\"target\":\"inc\",\"arguments\":[]}" + RECORD_SEPARATOR);
 
         // Confirming that our handler was called and that the counter property was incremented.
         assertEquals(1, value.get(), 0);
@@ -236,7 +252,7 @@ public class HubConnectionTest {
     @Test
     public void SendWithParamTriggersOnHandler() throws Exception {
         AtomicReference<String> value = new AtomicReference<>();
-        Transport mockTransport = new MockEchoTransport();
+        MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
 
         hubConnection.on("inc", (param) ->{
@@ -245,6 +261,8 @@ public class HubConnectionTest {
         }, String.class);
 
         hubConnection.start();
+        mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
+        mockTransport.receiveMessage("{\"type\":1,\"target\":\"inc\",\"arguments\":[\"Hello World\"]}" + RECORD_SEPARATOR);
         hubConnection.send("inc", "Hello World");
 
         // Confirming that our handler was called and the correct message was passed in.
@@ -256,7 +274,7 @@ public class HubConnectionTest {
         AtomicReference<String> value1 = new AtomicReference<>();
         AtomicReference<Double> value2 = new AtomicReference<>();
 
-        Transport mockTransport = new MockEchoTransport();
+        MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
 
         hubConnection.on("inc", (param1, param2) ->{
@@ -268,6 +286,8 @@ public class HubConnectionTest {
         }, String.class, Double.class);
 
         hubConnection.start();
+        mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
+        mockTransport.receiveMessage("{\"type\":1,\"target\":\"inc\",\"arguments\":[\"Hello World\", 12]}" + RECORD_SEPARATOR);
         hubConnection.send("inc", "Hello World", 12);
 
         // Confirming that our handler was called and the correct message was passed in.
@@ -281,7 +301,7 @@ public class HubConnectionTest {
         AtomicReference<String> value2 = new AtomicReference<>();
         AtomicReference<String> value3 = new AtomicReference<>();
 
-        Transport mockTransport = new MockEchoTransport();
+        MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
 
         hubConnection.on("inc", (param1, param2, param3) ->{
@@ -295,6 +315,8 @@ public class HubConnectionTest {
         }, String.class, String.class, String.class);
 
         hubConnection.start();
+        mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
+        mockTransport.receiveMessage("{\"type\":1,\"target\":\"inc\",\"arguments\":[\"A\", \"B\", \"C\"]}" + RECORD_SEPARATOR);
         hubConnection.send("inc", "A", "B", "C");
 
         // Confirming that our handler was called and the correct message was passed in.
@@ -310,7 +332,7 @@ public class HubConnectionTest {
         AtomicReference<String> value3 = new AtomicReference<>();
         AtomicReference<String> value4 = new AtomicReference<>();
 
-        Transport mockTransport = new MockEchoTransport();
+        MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
 
         hubConnection.on("inc", (param1, param2, param3, param4) ->{
@@ -326,7 +348,8 @@ public class HubConnectionTest {
         }, String.class, String.class, String.class, String.class);
 
         hubConnection.start();
-        hubConnection.send("inc", "A", "B", "C", "D");
+        mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
+        mockTransport.receiveMessage("{\"type\":1,\"target\":\"inc\",\"arguments\":[\"A\", \"B\", \"C\", \"D\"]}" + RECORD_SEPARATOR);
 
         // Confirming that our handler was called and the correct message was passed in.
         assertEquals("A", value1.get());
@@ -343,7 +366,7 @@ public class HubConnectionTest {
         AtomicReference<Boolean> value4 = new AtomicReference<>();
         AtomicReference<Double> value5 = new AtomicReference<>();
 
-        Transport mockTransport = new MockEchoTransport();
+        MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
 
         hubConnection.on("inc", (param1, param2, param3, param4, param5) ->{
@@ -361,7 +384,8 @@ public class HubConnectionTest {
         }, String.class, String.class, String.class, Boolean.class, Double.class);
 
         hubConnection.start();
-        hubConnection.send("inc", "A", "B", "C", true, 12.0);
+        mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
+        mockTransport.receiveMessage("{\"type\":1,\"target\":\"inc\",\"arguments\":[\"A\", \"B\", \"C\",true,12 ]}" + RECORD_SEPARATOR);
 
         // Confirming that our handler was called and the correct message was passed in.
         assertEquals("A", value1.get());
@@ -371,13 +395,10 @@ public class HubConnectionTest {
         assertEquals(12, value5.get(), 0);
     }
 
-    // Need to refactor the MockTransport so this test can be added back
-    // Issue: https://github.com/aspnet/SignalR/issues/2665
-    /*
     @Test
     public void ReceiveHandshakeResponseAndMessage() throws Exception {
         AtomicReference<Double> value = new AtomicReference<Double>(0.0);
-        MockEchoTransport transport = new MockEchoTransport();
+        MockTransport transport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", transport);
 
         hubConnection.on("inc", () ->{
@@ -388,33 +409,25 @@ public class HubConnectionTest {
         // On start we're going to receive the handshake response and also an invocation in the same payload.
         hubConnection.start();
 
-        String expectedSentMessage  = "{\"protocol\":\"json\",\"version\":1}\u001E";
+        String expectedSentMessage  = "{\"protocol\":\"json\",\"version\":1}" + RECORD_SEPARATOR;
         assertEquals(expectedSentMessage, transport.getSentMessages()[0]);
 
-        transport.receiveMessage("{}\u001E{\"type\":1,\"target\":\"inc\",\"arguments\":[]}\u001E");
+        transport.receiveMessage("{}" + RECORD_SEPARATOR +"{\"type\":1,\"target\":\"inc\",\"arguments\":[]}" + RECORD_SEPARATOR);
 
         // Confirming that our handler was called and that the counter property was incremented.
         assertEquals(1, value.get(), 0);
     }
-    */
-    private class MockEchoTransport implements Transport {
+
+    private class MockTransport implements Transport {
         private OnReceiveCallBack onReceiveCallBack;
-        private Gson gson = new Gson();
         private ArrayList<String> sentMessages = new ArrayList<>();
-        private static final String RECORD_SEPARATOR = "\u001e";
 
         @Override
         public void start() {}
 
         @Override
-        public void send(String message) throws Exception {
+        public void send(String message) {
             sentMessages.add(message);
-            // We don't need to handle the handshake request
-            if(message.startsWith("{\"protocol")){
-                this.onReceive(gson.toJson(new HandshakeResponseMessage()) + RECORD_SEPARATOR);
-                return;
-            }
-            this.onReceive(message);
         }
 
         @Override
@@ -428,7 +441,7 @@ public class HubConnectionTest {
         }
 
         @Override
-        public void stop() {return;}
+        public void stop() {}
 
         public void receiveMessage(String message) throws Exception {
             this.onReceive(message);
