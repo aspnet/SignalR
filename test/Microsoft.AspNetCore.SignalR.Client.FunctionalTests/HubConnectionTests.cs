@@ -861,6 +861,31 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
         [ConditionalFact]
         [WebSocketsSupportedCondition]
+        public async Task CookiesSetByNegotiateArePreservedDuringWebSocketConnection()
+        {
+            using (StartVerifiableLog(out var loggerFactory))
+            {
+                var hubConnection = new HubConnectionBuilder()
+                    .WithLoggerFactory(loggerFactory)
+                    .WithUrl(ServerFixture.Url + "/default", HttpTransportType.WebSockets)
+                    .Build();
+
+                // Start the connection, which should negotiate and set the cookie
+                try
+                {
+                    await hubConnection.StartAsync();
+                    var cookieValue = await hubConnection.InvokeAsync<string>(nameof(TestHub.GetCookieValue), ".Test.Sticky").OrTimeout();
+                    Assert.Equal("true", cookieValue);
+                }
+                finally
+                {
+                    await hubConnection.DisposeAsync();
+                }
+            }
+        }
+
+        [ConditionalFact]
+        [WebSocketsSupportedCondition]
         public async Task WebSocketOptionsAreApplied()
         {
             using (StartVerifiableLog(out var loggerFactory, $"{nameof(WebSocketOptionsAreApplied)}"))
