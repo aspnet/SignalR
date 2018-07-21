@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -13,11 +14,12 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
         private readonly HttpClient _httpClient;
         private readonly HttpConnectionOptions _httpConnectionOptions;
         private readonly Func<Task<string>> _accessTokenProvider;
+        private readonly CookieContainer _cookies;
         private readonly HttpTransportType _requestedTransportType;
         private readonly ILoggerFactory _loggerFactory;
         private static volatile bool _websocketsSupported = true;
 
-        public DefaultTransportFactory(HttpTransportType requestedTransportType, ILoggerFactory loggerFactory, HttpClient httpClient, HttpConnectionOptions httpConnectionOptions, Func<Task<string>> accessTokenProvider)
+        public DefaultTransportFactory(HttpTransportType requestedTransportType, ILoggerFactory loggerFactory, HttpClient httpClient, HttpConnectionOptions httpConnectionOptions, Func<Task<string>> accessTokenProvider, CookieContainer cookies)
         {
             if (httpClient == null && requestedTransportType != HttpTransportType.WebSockets)
             {
@@ -29,6 +31,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
             _httpClient = httpClient;
             _httpConnectionOptions = httpConnectionOptions;
             _accessTokenProvider = accessTokenProvider;
+            _cookies = cookies;
         }
 
         public ITransport CreateTransport(HttpTransportType availableServerTransports)
@@ -37,7 +40,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
             {
                 try
                 {
-                    return new WebSocketsTransport(_httpConnectionOptions, _loggerFactory, _accessTokenProvider);
+                    return new WebSocketsTransport(_httpConnectionOptions, _cookies, _loggerFactory, _accessTokenProvider);
                 }
                 catch (PlatformNotSupportedException)
                 {

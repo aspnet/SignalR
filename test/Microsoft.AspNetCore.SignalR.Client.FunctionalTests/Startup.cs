@@ -54,6 +54,17 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         {
             app.UseAuthentication();
 
+            // Emulate sticky session cookies by setting a cookie, but only for negotiate requests
+            app.Use((context, next) =>
+            {
+                if (context.Request.Path.Value.EndsWith("negotiate"))
+                {
+                    context.Response.Cookies.Append(".Test.Sticky", "true");
+                }
+
+                return next();
+            });
+
             app.UseSignalR(routes =>
             {
                 routes.MapHub<TestHub>("/default");
