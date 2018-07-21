@@ -10,7 +10,6 @@ import static org.junit.Assert.*;
 
 public class JsonHubProtocolTest {
     private JsonHubProtocol jsonHubProtocol = new JsonHubProtocol();
-    private static final String RECORD_SEPARATOR = "\u001e";
 
     @Test
     public void checkProtocolName() {

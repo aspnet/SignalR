@@ -11,5 +11,4 @@ public class HandshakeResponseMessage {
     public HandshakeResponseMessage(String error){
         this.error = error;
     }
-
 }

@@ -29,12 +29,12 @@ public class HubConnection {
                 String handshakeResponseString = payload.substring(0, handshakeLength - 1);
                 HandshakeResponseMessage handshakeResponse = HandshakeProtocol.parseHandshakeResponse(handshakeResponseString);
                 if (handshakeResponse.error != null){
-                    throw new Exception("Error in handshake" + handshakeResponse.error);
+                    throw new Exception("Error in handshake " + handshakeResponse.error);
                 }
                 handshakeReceived = true;
 
-                // We only received the handshake response ,so we can return.
                 payload = payload.substring(handshakeLength);
+                // The payload only contained the handshake response so we can return.
                 if (payload.length() == 0){
                     return;
                 }
