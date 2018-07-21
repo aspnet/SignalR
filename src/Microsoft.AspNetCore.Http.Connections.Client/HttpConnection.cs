@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.IO.Pipelines;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -143,15 +142,12 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
             _logger = _loggerFactory.CreateLogger<HttpConnection>();
             _httpConnectionOptions = httpConnectionOptions;
 
-            // Create a cookie container, or use the one from the options
-            var cookies = _httpConnectionOptions.Cookies ?? new CookieContainer();
-
             if (!httpConnectionOptions.SkipNegotiation || httpConnectionOptions.Transports != HttpTransportType.WebSockets)
             {
-                _httpClient = CreateHttpClient(cookies);
+                _httpClient = CreateHttpClient();
             }
 
-            _transportFactory = new DefaultTransportFactory(httpConnectionOptions.Transports, _loggerFactory, _httpClient, httpConnectionOptions, GetAccessTokenAsync, cookies);
+            _transportFactory = new DefaultTransportFactory(httpConnectionOptions.Transports, _loggerFactory, _httpClient, httpConnectionOptions, GetAccessTokenAsync);
             _logScope = new ConnectionLogScope();
 
             Features.Set<IConnectionInherentKeepAliveFeature>(this);
@@ -481,7 +477,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
             Log.TransportStarted(_logger, transportType);
         }
 
-        private HttpClient CreateHttpClient(CookieContainer cookies)
+        private HttpClient CreateHttpClient()
         {
             var httpClientHandler = new HttpClientHandler();
             HttpMessageHandler httpMessageHandler = httpClientHandler;
@@ -492,8 +488,10 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
                 {
                     httpClientHandler.Proxy = _httpConnectionOptions.Proxy;
                 }
-
-                httpClientHandler.CookieContainer = cookies;
+                if (_httpConnectionOptions.Cookies != null)
+                {
+                    httpClientHandler.CookieContainer = _httpConnectionOptions.Cookies;
+                }
 
                 // Only access HttpClientHandler.ClientCertificates if the user has configured client certs
                 // Mono does not support client certs and will throw NotImplementedException

@@ -4,7 +4,6 @@
 using System;
 using System.Diagnostics;
 using System.IO.Pipelines;
-using System.Net;
 using System.Net.WebSockets;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -33,7 +32,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
 
         public PipeWriter Output => _transport.Output;
 
-        public WebSocketsTransport(HttpConnectionOptions httpConnectionOptions, CookieContainer cookies, ILoggerFactory loggerFactory, Func<Task<string>> accessTokenProvider)
+        public WebSocketsTransport(HttpConnectionOptions httpConnectionOptions, ILoggerFactory loggerFactory, Func<Task<string>> accessTokenProvider)
         {
             _webSocket = new ClientWebSocket();
 
@@ -50,7 +49,10 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
                     }
                 }
 
-                _webSocket.Options.Cookies = cookies;
+                if (httpConnectionOptions.Cookies != null)
+                {
+                    _webSocket.Options.Cookies = httpConnectionOptions.Cookies;
+                }
 
                 if (httpConnectionOptions.ClientCertificates != null)
                 {
