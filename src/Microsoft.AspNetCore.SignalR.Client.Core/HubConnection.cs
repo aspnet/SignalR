@@ -742,7 +742,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
                     }
                 }
             }
-            
+
             // shutdown if we're unable to read handshake
             // Ignore HubException because we throw it when we receive a handshake response with an error
             // And because we already have the error, we don't need to log that the handshake failed
@@ -1103,7 +1103,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             private TaskCompletionSource<object> _stopTcs;
             private readonly object _lock = new object();
-            private readonly Dictionary<string, InvocationRequest> _pendingCalls = new Dictionary<string, InvocationRequest>(StringComparer.Ordinal);
+            private readonly ConcurrentDictionary<string, InvocationRequest> _pendingCalls = new ConcurrentDictionary<string, InvocationRequest>(StringComparer.Ordinal);
             private int _nextId;
 
             public ConnectionContext Connection { get; }
@@ -1129,61 +1129,34 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             public void AddInvocation(InvocationRequest irq)
             {
-                lock (_lock)
+                if (!_pendingCalls.TryAdd(irq.InvocationId, irq))
                 {
-                    if (_pendingCalls.ContainsKey(irq.InvocationId))
-                    {
-                        Log.InvocationAlreadyInUse(_hubConnection._logger, irq.InvocationId);
-                        throw new InvalidOperationException($"Invocation ID '{irq.InvocationId}' is already in use.");
-                    }
-                    else
-                    {
-                        _pendingCalls.Add(irq.InvocationId, irq);
-                    }
+                    Log.InvocationAlreadyInUse(_hubConnection._logger, irq.InvocationId);
+                    throw new InvalidOperationException($"Invocation ID '{irq.InvocationId}' is already in use.");
                 }
             }
 
-            public bool TryGetInvocation(string invocationId, out InvocationRequest irq)
-            {
-                lock (_lock)
-                {
-                    return _pendingCalls.TryGetValue(invocationId, out irq);
-                }
-            }
+            public bool TryGetInvocation(string invocationId, out InvocationRequest irq) => _pendingCalls.TryGetValue(invocationId, out irq);
 
-            public bool TryRemoveInvocation(string invocationId, out InvocationRequest irq)
-            {
-                lock (_lock)
-                {
-                    if (_pendingCalls.TryGetValue(invocationId, out irq))
-                    {
-                        _pendingCalls.Remove(invocationId);
-                        return true;
-                    }
-                    else
-                    {
-                        return false;
-                    }
-                }
-            }
+            public bool TryRemoveInvocation(string invocationId, out InvocationRequest irq) => _pendingCalls.TryRemove(invocationId, out irq);
+
 
             public void CancelOutstandingInvocations(Exception exception)
             {
                 Log.CancelingOutstandingInvocations(_hubConnection._logger);
 
-                lock (_lock)
+               
+                foreach (var outstandingCallKeyPair in _pendingCalls)
                 {
-                    foreach (var outstandingCall in _pendingCalls.Values)
+                    Log.RemovingInvocation(_hubConnection._logger, outstandingCallKeyPair.Value.InvocationId);
+                    if (exception != null)
                     {
-                        Log.RemovingInvocation(_hubConnection._logger, outstandingCall.InvocationId);
-                        if (exception != null)
-                        {
-                            outstandingCall.Fail(exception);
-                        }
-                        outstandingCall.Dispose();
+                        outstandingCallKeyPair.Value.Fail(exception);
                     }
-                    _pendingCalls.Clear();
+                    outstandingCallKeyPair.Value.Dispose();
                 }
+                _pendingCalls.Clear();
+
             }
 
             public Task StopAsync()
