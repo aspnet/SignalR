@@ -75,7 +75,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         public override int Read(char[] buffer, int index, int count)
         {
-            if (_offset >= _end)
+            var source = _buffer;
+            var offset = _offset;
+            var end = _end;
+
+            if ((uint)offset >= (uint)end)
             {
                 return 0;
             }
@@ -86,17 +90,21 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             unsafe
             {
                 fixed (char* destinationChars = &buffer[index])
-                fixed (byte* sourceBytes = &_buffer[_offset])
+                fixed (byte* sourceBytes = &source[offset])
                 {
-                    _decoder.Convert(sourceBytes, _end - _offset, destinationChars, count, false, out bytesUsed, out charsUsed, out var completed);
+                    _decoder.Convert(sourceBytes, end - offset, destinationChars, count, false, out bytesUsed, out charsUsed, out var completed);
                 }
             }
             
-            _offset += bytesUsed;
+            offset += bytesUsed;
 
-            if (_offset >= _end)
+            if ((uint)offset >= (uint)end)
             {
                 GetNextSegment();
+            }
+            else
+            {
+                _offset = offset;
             }
 
             return charsUsed;
