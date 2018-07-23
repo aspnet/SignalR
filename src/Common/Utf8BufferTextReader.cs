@@ -13,6 +13,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal
     {
         private readonly Decoder _decoder;
         private ReadOnlySequence<byte> _utf8Buffer;
+        private SequencePosition _position;
+        private bool _empty;
+        private byte[] _buffer;
+        private int _offset;
+        private int _end;
 
         [ThreadStatic]
         private static Utf8BufferTextReader _cachedInstance;
@@ -59,35 +64,45 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         public void SetBuffer(in ReadOnlySequence<byte> utf8Buffer)
         {
             _utf8Buffer = utf8Buffer;
+            _position = utf8Buffer.Start;
+            
+            GetNextSegment();
+
             _decoder.Reset();
         }
 
         public override int Read(char[] buffer, int index, int count)
         {
-            if (_utf8Buffer.IsEmpty)
+            if (_empty)
             {
                 return 0;
             }
 
-            var source = _utf8Buffer.First.Span;
-            var bytesUsed = 0;
-            var charsUsed = 0;
-#if NETCOREAPP2_2
-            var destination = new Span<char>(buffer, index, count);
-            _decoder.Convert(source, destination, false, out bytesUsed, out charsUsed, out var completed);
-#else
-            unsafe
+            _decoder.Convert(_buffer, _offset, _end - _offset, buffer, index, count, false, out var bytesUsed, out var charsUsed, out var completed);
+
+            _offset += bytesUsed;
+
+            if (_offset >= _end)
             {
-                fixed (char* destinationChars = &buffer[index])
-                fixed (byte* sourceBytes = &MemoryMarshal.GetReference(source))
-                {
-                    _decoder.Convert(sourceBytes, source.Length, destinationChars, count, false, out bytesUsed, out charsUsed, out var completed);
-                }
+                GetNextSegment();
             }
-#endif
-            _utf8Buffer = _utf8Buffer.Slice(bytesUsed);
 
             return charsUsed;
+        }
+
+        private void GetNextSegment()
+        {
+            if (_utf8Buffer.TryGet(ref _position, out var memory))
+            {
+                MemoryMarshal.TryGetArray(memory, out var segment);
+                _buffer = segment.Array;
+                _offset = segment.Offset;
+                _end = _offset + segment.Count;
+            }
+            else
+            {
+                _empty = true;
+            }
         }
     }
 }
