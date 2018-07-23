@@ -14,7 +14,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         private readonly Decoder _decoder;
         private ReadOnlySequence<byte> _utf8Buffer;
         private SequencePosition _position;
-        private bool _empty;
         private byte[] _buffer;
         private int _offset;
         private int _end;
@@ -59,13 +58,16 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 #if DEBUG
             reader._inUse = false;
 #endif
+            reader._end = -1;
+            reader._offset = -1;
+            reader._buffer = null;
         }
 
         public void SetBuffer(in ReadOnlySequence<byte> utf8Buffer)
         {
             _utf8Buffer = utf8Buffer;
             _position = utf8Buffer.Start;
-            
+
             GetNextSegment();
 
             _decoder.Reset();
@@ -73,13 +75,23 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         public override int Read(char[] buffer, int index, int count)
         {
-            if (_empty)
+            if (_offset >= _end)
             {
                 return 0;
             }
 
-            _decoder.Convert(_buffer, _offset, _end - _offset, buffer, index, count, false, out var bytesUsed, out var charsUsed, out var completed);
+            var bytesUsed = 0;
+            var charsUsed = 0;
 
+            unsafe
+            {
+                fixed (char* destinationChars = &buffer[index])
+                fixed (byte* sourceBytes = &_buffer[_offset])
+                {
+                    _decoder.Convert(sourceBytes, _end - _offset, destinationChars, count, false, out bytesUsed, out charsUsed, out var completed);
+                }
+            }
+            
             _offset += bytesUsed;
 
             if (_offset >= _end)
@@ -98,10 +110,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 _buffer = segment.Array;
                 _offset = segment.Offset;
                 _end = _offset + segment.Count;
-            }
-            else
-            {
-                _empty = true;
             }
         }
     }
