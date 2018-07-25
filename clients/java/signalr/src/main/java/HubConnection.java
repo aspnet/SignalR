@@ -28,14 +28,14 @@ public class HubConnection {
                 int handshakeLength = payload.indexOf(RECORD_SEPARATOR) + 1;
                 String handshakeResponseString = payload.substring(0, handshakeLength - 1);
                 HandshakeResponseMessage handshakeResponse = HandshakeProtocol.parseHandshakeResponse(handshakeResponseString);
-                if (handshakeResponse.error != null){
+                if (handshakeResponse.error != null) {
                     throw new Exception("Error in handshake " + handshakeResponse.error);
                 }
                 handshakeReceived = true;
 
                 payload = payload.substring(handshakeLength);
                 // The payload only contained the handshake response so we can return.
-                if (payload.length() == 0){
+                if (payload.length() == 0) {
                     return;
                 }
             }

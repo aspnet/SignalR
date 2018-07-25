@@ -36,6 +36,11 @@ public class HubConnectionTest {
 
         hubConnection.start();
 
+        String message = mockTransport.getSentMessages()[0];
+        String expectedHanshakeRequest = "{\"protocol\":\"json\",\"version\":1}" + RECORD_SEPARATOR;
+
+        assertEquals(expectedHanshakeRequest, message);
+
         mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
         mockTransport.receiveMessage("{\"type\":1,\"target\":\"inc\",\"arguments\":[]}" + RECORD_SEPARATOR);
 
@@ -55,6 +60,10 @@ public class HubConnectionTest {
         assertEquals(0.0, value.get(), 0);
 
         hubConnection.start();
+        String message = mockTransport.getSentMessages()[0];
+        String expectedHanshakeRequest = "{\"protocol\":\"json\",\"version\":1}" + RECORD_SEPARATOR;
+
+        assertEquals(expectedHanshakeRequest, message);
 
         mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
         mockTransport.receiveMessage("{\"type\":1,\"target\":\"inc\",\"arguments\":[]}" + RECORD_SEPARATOR);
@@ -80,6 +89,10 @@ public class HubConnectionTest {
         assertEquals(0.0, value.get(), 0);
 
         hubConnection.start();
+        String message = mockTransport.getSentMessages()[0];
+        String expectedHanshakeRequest = "{\"protocol\":\"json\",\"version\":1}" + RECORD_SEPARATOR;
+
+        assertEquals(expectedHanshakeRequest, message);
 
         mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
         mockTransport.receiveMessage("{\"type\":1,\"target\":\"inc\",\"arguments\":[]}" + RECORD_SEPARATOR);
@@ -102,6 +115,10 @@ public class HubConnectionTest {
         assertEquals(0.0, value.get(), 0);
 
         hubConnection.start();
+        String message = mockTransport.getSentMessages()[0];
+        String expectedHanshakeRequest = "{\"protocol\":\"json\",\"version\":1}" + RECORD_SEPARATOR;
+
+        assertEquals(expectedHanshakeRequest, message);
 
         mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
         mockTransport.receiveMessage("{\"type\":1,\"target\":\"inc\",\"arguments\":[]}" + RECORD_SEPARATOR);
@@ -128,6 +145,10 @@ public class HubConnectionTest {
         assertEquals(0.0, value.get(), 0);
 
         hubConnection.start();
+        String message = mockTransport.getSentMessages()[0];
+        String expectedHanshakeRequest = "{\"protocol\":\"json\",\"version\":1}" + RECORD_SEPARATOR;
+
+        assertEquals(expectedHanshakeRequest, message);
 
         mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
         mockTransport.receiveMessage("{\"type\":1,\"target\":\"inc\",\"arguments\":[]}" + RECORD_SEPARATOR);
@@ -152,6 +173,11 @@ public class HubConnectionTest {
         assertEquals(0.0, value.get(), 0);
 
         hubConnection.start();
+        String message = mockTransport.getSentMessages()[0];
+        String expectedHanshakeRequest = "{\"protocol\":\"json\",\"version\":1}" + RECORD_SEPARATOR;
+
+        assertEquals(expectedHanshakeRequest, message);
+
         mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
         mockTransport.receiveMessage("{\"type\":1,\"target\":\"inc\",\"arguments\":[]}" + RECORD_SEPARATOR);
 
@@ -178,6 +204,11 @@ public class HubConnectionTest {
         assertEquals(0.0, value.get(), 0);
 
         hubConnection.start();
+        String message = mockTransport.getSentMessages()[0];
+        String expectedHanshakeRequest = "{\"protocol\":\"json\",\"version\":1}" + RECORD_SEPARATOR;
+
+        assertEquals(expectedHanshakeRequest, message);
+
         mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
         mockTransport.receiveMessage("{\"type\":1,\"target\":\"inc\",\"arguments\":[]}" + RECORD_SEPARATOR);
         // Confirming that our handler was called and that the counter property was incremented.
@@ -408,11 +439,10 @@ public class HubConnectionTest {
 
         // On start we're going to receive the handshake response and also an invocation in the same payload.
         hubConnection.start();
-
         String expectedSentMessage  = "{\"protocol\":\"json\",\"version\":1}" + RECORD_SEPARATOR;
         assertEquals(expectedSentMessage, transport.getSentMessages()[0]);
 
-        transport.receiveMessage("{}" + RECORD_SEPARATOR +"{\"type\":1,\"target\":\"inc\",\"arguments\":[]}" + RECORD_SEPARATOR);
+        transport.receiveMessage("{}" + RECORD_SEPARATOR + "{\"type\":1,\"target\":\"inc\",\"arguments\":[]}" + RECORD_SEPARATOR);
 
         // Confirming that our handler was called and that the counter property was incremented.
         assertEquals(1, value.get(), 0);

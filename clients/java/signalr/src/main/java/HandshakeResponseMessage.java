@@ -4,11 +4,11 @@
 public class HandshakeResponseMessage {
     public String error;
 
-    public HandshakeResponseMessage(){
+    public HandshakeResponseMessage() {
         this(null);
     }
 
-    public HandshakeResponseMessage(String error){
+    public HandshakeResponseMessage(String error) {
         this.error = error;
     }
 }
