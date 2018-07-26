@@ -22,7 +22,7 @@
   </Target>
 
   <PropertyGroup>
-    <TestDependsOn>$(TestDependsOn);RunTSClientNodeTests;RunBrowserTests</TestDependsOn>
+    <TestDependsOn>$(TestDependsOn);RunTSClientNodeTests;RunBrowserTests;RunJavaTests</TestDependsOn>
   </PropertyGroup>
 
   <Target Name="RunTSClientNodeTests">
@@ -34,6 +34,11 @@
     <Message Text="Running JavaScript client Browser tests" Importance="high" />
     <Exec Command="npm run test:inner -- --no-color --configuration $(Configuration)" WorkingDirectory="$(RepositoryRoot)clients/ts/FunctionalTests" IgnoreStandardErrorWarningFormat="true" />
   </Target>
+
+  <Target Name="RunJavaTests">
+    <Message Text="Running Java client tests" Importance="high" />
+    <Exec Command="gradle test" WorkingDirectory="$(RepositoryRoot)clients/java/signalr" IgnoreStandardErrorWarningFormat="true" />
+  </Target> 
 
   <PropertyGroup>
     <GetArtifactInfoDependsOn>$(GetArtifactInfoDependsOn);GetNpmArtifactInfo</GetArtifactInfoDependsOn>
@@ -62,7 +67,7 @@
   </Target>
 
   <PropertyGroup>
-    <CompileDependsOn>Restore;BuildNPMPackages;$(CompileDependsOn)</CompileDependsOn>
+    <CompileDependsOn>Restore;BuildNPMPackages;$(CompileDependsOn);BuildJavaClient</CompileDependsOn>
   </PropertyGroup>
   <Target Name="BuildNPMPackages" DependsOnTargets="RestoreNpm;GetNpmArtifactInfo">
     <Message Text="Building %(NPMPackage.PackageId)..." Importance="high" />
@@ -70,6 +75,11 @@
     <Message Text="Building Browser Functional Tests..." Importance="high" />
     <Exec Command="npm run build" WorkingDirectory="$(RepositoryRoot)clients/ts/FunctionalTests" IgnoreStandardErrorWarningFormat="true" />
   </Target>
+
+<Target Name="BuildJavaClient">
+   <Message Text="Building Java client" />
+  <Exec Command="gradle compileJava" WorkingDirectory="$(RepositoryRoot)clients/java/signalr" />
+</Target>
 
   <PropertyGroup>
     <PackageDependsOn>Compile;PackNPMPackages;$(PackageDependsOn)</PackageDependsOn>
