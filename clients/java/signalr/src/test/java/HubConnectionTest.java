@@ -438,7 +438,7 @@ public class HubConnectionTest {
         MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
 
-        hubConnection.on("inc", (param1, param2, param3, param4, param5, param6) ->{
+        hubConnection.on("inc", (param1, param2, param3, param4, param5, param6) -> {
             assertNull(value1.get());
             assertNull(value2.get());
             assertNull(value3.get());
@@ -480,7 +480,7 @@ public class HubConnectionTest {
         MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
 
-        hubConnection.on("inc", (param1, param2, param3, param4, param5, param6, param7) ->{
+        hubConnection.on("inc", (param1, param2, param3, param4, param5, param6, param7) -> {
             assertNull(value1.get());
             assertNull(value2.get());
             assertNull(value3.get());
@@ -526,7 +526,7 @@ public class HubConnectionTest {
         MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
 
-        hubConnection.on("inc", (param1, param2, param3, param4, param5, param6, param7, param8) ->{
+        hubConnection.on("inc", (param1, param2, param3, param4, param5, param6, param7, param8) -> {
             assertNull(value1.get());
             assertNull(value2.get());
             assertNull(value3.get());
