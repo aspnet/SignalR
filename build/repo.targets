@@ -37,7 +37,7 @@
 
   <Target Name="RunJavaTests">
     <Message Text="Running Java client tests" Importance="high" />
-    <Exec Command="gradle test" WorkingDirectory="$(RepositoryRoot)clients/java/signalr" IgnoreStandardErrorWarningFormat="true" />
+    <Exec Command="gradlew test" WorkingDirectory="$(RepositoryRoot)clients/java/signalr" IgnoreStandardErrorWarningFormat="true" />
   </Target> 
 
   <PropertyGroup>
@@ -78,7 +78,7 @@
 
 <Target Name="BuildJavaClient">
    <Message Text="Building Java client" />
-  <Exec Command="gradle compileJava" WorkingDirectory="$(RepositoryRoot)clients/java/signalr" />
+  <Exec Command="gradlew compileJava" WorkingDirectory="$(RepositoryRoot)clients/java/signalr" />
 </Target>
 
   <PropertyGroup>
