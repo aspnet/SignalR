@@ -77,7 +77,7 @@
   </Target>
 
 <Target Name="BuildJavaClient">
-   <Message Text="Building Java client" />
+   <Message Text="Building Java client" Importance="high" />
   <Exec Command="gradlew compileJava" WorkingDirectory="$(RepositoryRoot)clients/java/signalr" />
 </Target>
 
