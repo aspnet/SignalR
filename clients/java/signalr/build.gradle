@@ -33,7 +33,7 @@ task generatePOM {
         project {
             groupId 'com.microsoft.aspnetcore'
             artifactId 'signalr'
-            version '0.1.0'
+            version '0.1.0-preview1'
 
             inceptionYear '2018'
             licenses {
