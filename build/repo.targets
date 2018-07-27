@@ -82,7 +82,7 @@
 </Target>
 
   <PropertyGroup>
-    <PackageDependsOn>Compile;PackNPMPackages;$(PackageDependsOn)</PackageDependsOn>
+    <PackageDependsOn>Compile;PackNPMPackages;$(PackageDependsOn);PackJavaClient</PackageDependsOn>
   </PropertyGroup>
   <Target Name="PackNPMPackages" DependsOnTargets="BuildNPMPackages">
     <Message Text="Packing %(NPMPackage.PackageId)..." Importance="high" />
@@ -93,4 +93,11 @@
     <Move SourceFiles="%(NPMPackage.OutputTar)" DestinationFiles="%(NPMPackage.ArtifactPath)" />
     <Move SourceFiles="%(NPMPackage.PackageJson).bak" DestinationFiles="%(NPMPackage.PackageJson)" />
   </Target>
+
+<Target Name="PackJavaClient">
+  <Message Text="Packing Java client" Importance="high" />
+  <Exec Command="gradlew sourceJar" WorkingDirectory="$(RepositoryRoot)clients/java/signalr" />
+  <Exec Command="gradlew javadocJar" WorkingDirectory="$(RepositoryRoot)clients/java/signalr" />
+  <Exec Command="gradlew generatePOM" WorkingDirectory="$(RepositoryRoot)clients/java/signalr" />
+</Target>
 </Project>
