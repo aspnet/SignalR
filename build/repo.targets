@@ -96,6 +96,7 @@
 
 <Target Name="PackJavaClient">
   <Message Text="Packing Java client" Importance="high" />
+  <Exec Command="gradlew jar" WorkingDirectory="$(RepositoryRoot)clients/java/signalr" />
   <Exec Command="gradlew sourceJar" WorkingDirectory="$(RepositoryRoot)clients/java/signalr" />
   <Exec Command="gradlew javadocJar" WorkingDirectory="$(RepositoryRoot)clients/java/signalr" />
   <Exec Command="gradlew generatePOM" WorkingDirectory="$(RepositoryRoot)clients/java/signalr" />
