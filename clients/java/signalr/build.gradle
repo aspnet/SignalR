@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'com.microsoft.aspnetcore'
-version '0.1.0'
+version '0.1.0-preview1'
 
 sourceCompatibility = 1.8
 
@@ -44,5 +44,5 @@ task generatePOM {
                 }
             }
         }
-    }.writeTo("pom.xml")
+    }.writeTo("signalr-client-0.1.0-preview1.pom")
 }
