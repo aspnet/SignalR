@@ -1,3 +1,6 @@
+### If you think this may be a potential security concern do not file an issue on GitHub. Please send an email to <?>. 
+  * You may be eligible to receive a reward via the ASP.NET Core Bug Bounty as well.
+
 ### Please consider the following before filing an issue
 
 * If you are using NuGet Packages that start with `Microsoft.AspNet.SignalR`, use the issue tracker at https://github.com/SignalR/SignalR to report the issue. This 
