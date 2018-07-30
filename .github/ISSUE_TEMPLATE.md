@@ -1,5 +1,5 @@
-### If you think this may be a potential security concern do not file an issue on GitHub. Please send an email to <?>. 
-  * You may be eligible to receive a reward via the ASP.NET Core Bug Bounty as well.
+### If you believe you have an issue that affects the security of the platform please do NOT create an issue and instead email your issue details to secure@microsoft.com. Your report may be eligible for our [bug bounty](https://technet.microsoft.com/en-us/mt764065.aspx).
+
 
 ### Please consider the following before filing an issue
 
