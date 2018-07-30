@@ -35,7 +35,7 @@
     <Exec Command="npm run test:inner -- --no-color --configuration $(Configuration)" WorkingDirectory="$(RepositoryRoot)clients/ts/FunctionalTests" IgnoreStandardErrorWarningFormat="true" />
   </Target>
 
-  <Target Name="RunJavaTests">
+  <Target Name="RunJavaTests" Condition="'$(JAVA_HOME)' != ''">
     <Message Text="Running Java client tests" Importance="high" />
     <Exec Command="gradlew test" WorkingDirectory="$(RepositoryRoot)clients/java/signalr" IgnoreStandardErrorWarningFormat="true" />
   </Target> 
@@ -66,7 +66,7 @@
     </ItemGroup>
   </Target>
 
-  <Target Name="GetJavaArtifactInfo">
+  <Target Name="GetJavaArtifactInfo" Condition="'$(JAVA_HOME)' != ''">
     <ItemGroup>
       <ArtifactInfo Include="$(BuildDir)\%(Jars.Identity)">
         <ArtifactType>JavaJar</ArtifactType>
@@ -96,7 +96,7 @@
     <Exec Command="npm run build" WorkingDirectory="$(RepositoryRoot)clients/ts/FunctionalTests" IgnoreStandardErrorWarningFormat="true" />
   </Target>
 
-  <Target Name="BuildJavaClient" DependsOnTargets="GetJavaArtifactInfo">
+  <Target Name="BuildJavaClient" Condition="'$(JAVA_HOME)' != ''" DependsOnTargets="GetJavaArtifactInfo">
     <Message Text="Building Java client" Importance="high" />
     <Exec Command="gradlew compileJava" WorkingDirectory="$(RepositoryRoot)clients/java/signalr" />
   </Target>
