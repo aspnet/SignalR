@@ -217,6 +217,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
 
                         // Always wait for the previous request to drain
                         await connection.PreviousPollTask;
+                        connection.PreviousPollTask = currentRequestTcs.Task;
                     }
 
                     // Mark the connection as active
@@ -256,8 +257,6 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
 
                         // Start the transport
                         connection.TransportTask = longPolling.ProcessRequestAsync(context, tokenSource.Token);
-
-                        connection.PreviousPollTask = currentRequestTcs.Task;
 
                         // Start the timeout after we return from creating the transport task
                         timeoutSource.CancelAfter(options.LongPolling.PollTimeout);
