@@ -2052,7 +2052,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                 var pollTask = dispatcher.ExecuteAsync(pollContext, options, app);
                 // fail LongPollingTransport ReadAsync
                 connection.Transport.Output.Complete(new InvalidOperationException());
-                await sendTask.OrTimeout();
+                await pollTask.OrTimeout();
 
                 Assert.Equal(StatusCodes.Status500InternalServerError, pollContext.Response.StatusCode);
                 Assert.False(manager.TryGetConnection(connection.ConnectionId, out var _));
