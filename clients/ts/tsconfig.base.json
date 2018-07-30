@@ -6,7 +6,6 @@
         "sourceMap": true,
         "moduleResolution": "node",
         "inlineSources": true,
-        "importHelpers": true,
         "emitDecoratorMetadata": true,
         "experimentalDecorators": true,
         "removeComments": false,

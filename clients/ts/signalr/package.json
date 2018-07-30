@@ -37,8 +37,5 @@
   ],
   "devDependencies": {
     "es6-promise": "^4.2.2"
-  },
-  "dependencies": {
-    "tslib": "^1.9.3"
   }
 }
