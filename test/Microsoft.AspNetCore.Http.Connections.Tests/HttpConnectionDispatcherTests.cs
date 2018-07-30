@@ -2049,7 +2049,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
                 await dispatcher.ExecuteAsync(context, options, app).OrTimeout();
 
                 var pollContext = MakeRequest("/foo", connection);
-                var sendTask = dispatcher.ExecuteAsync(pollContext, options, app);
+                var pollTask = dispatcher.ExecuteAsync(pollContext, options, app);
                 // fail LongPollingTransport ReadAsync
                 connection.Transport.Output.Complete(new InvalidOperationException());
                 await sendTask.OrTimeout();
