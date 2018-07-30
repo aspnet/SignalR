@@ -2031,8 +2031,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             using (StartVerifiableLog(out var loggerFactory, LogLevel.Debug, expectedErrorsFilter: ExpectedErrors))
             {
                 var manager = CreateConnectionManager(loggerFactory);
-                var pipeOptions = new PipeOptions(pauseWriterThreshold: 13, resumeWriterThreshold: 10);
-                var connection = manager.CreateConnection(pipeOptions, pipeOptions);
+                var connection = manager.CreateConnection();
                 connection.TransportType = HttpTransportType.LongPolling;
 
                 var dispatcher = new HttpConnectionDispatcher(manager, loggerFactory);
