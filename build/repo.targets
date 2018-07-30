@@ -35,7 +35,7 @@
     <Exec Command="npm run test:inner -- --no-color --configuration $(Configuration)" WorkingDirectory="$(RepositoryRoot)clients/ts/FunctionalTests" IgnoreStandardErrorWarningFormat="true" />
   </Target>
 
-  <Target Name="RunJavaTests" Condition="'$(JAVA_HOME)' != ''">
+  <Target Name="RunJavaTests" Condition="'$(JAVA_HOME)' != '' And Exists('$(JAVA_HOME)/lib/tools.jar')">
     <Message Text="Running Java client tests" Importance="high" />
     <Exec Command="./gradlew test" WorkingDirectory="$(RepositoryRoot)clients/java/signalr" IgnoreStandardErrorWarningFormat="true" />
   </Target> 
@@ -66,7 +66,7 @@
     </ItemGroup>
   </Target>
 
-  <Target Name="GetJavaArtifactInfo" Condition="'$(JAVA_HOME)' != ''">
+  <Target Name="GetJavaArtifactInfo" Condition="'$(JAVA_HOME)' != '' And Exists('$(JAVA_HOME)/lib/tools.jar')">
     <ItemGroup>
       <ArtifactInfo Include="$(BuildDir)\%(Jars.Identity)">
         <ArtifactType>JavaJar</ArtifactType>
@@ -96,7 +96,7 @@
     <Exec Command="npm run build" WorkingDirectory="$(RepositoryRoot)clients/ts/FunctionalTests" IgnoreStandardErrorWarningFormat="true" />
   </Target>
 
-  <Target Name="BuildJavaClient" Condition="'$(JAVA_HOME)' != ''" DependsOnTargets="GetJavaArtifactInfo">
+  <Target Name="BuildJavaClient" Condition="'$(JAVA_HOME)' != '' And Exists('$(JAVA_HOME)/lib/tools.jar')" DependsOnTargets="GetJavaArtifactInfo">
     <Message Text="Building Java client" Importance="high" />
     <Exec Command="./gradlew compileJava" WorkingDirectory="$(RepositoryRoot)clients/java/signalr" />
   </Target>
@@ -126,7 +126,7 @@
     <PomFile Include="signalr-client-$(JavaClientVersion)-preview1.pom" />
   </ItemGroup>
 
-  <Target Name="PackJavaClient">
+  <Target Name="PackJavaClient" Condition="'$(JAVA_HOME)' != '' And Exists('$(JAVA_HOME)/lib/tools.jar')">
     <Message Text="Packing Java client" Importance="high" />
     <Exec Command="./gradlew jar sourceJar javadocJar generatePOM" WorkingDirectory="$(RepositoryRoot)clients/java/signalr" />
     <Move SourceFiles="$(RepositoryRoot)clients/java/signalr/signalr-client-$(JavaClientVersion)-preview1.pom" DestinationFolder="$(RepositoryRoot)clients/java/signalr\build\libs" />
