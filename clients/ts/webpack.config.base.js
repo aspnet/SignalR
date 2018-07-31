@@ -19,7 +19,7 @@ module.exports = function (modulePath, browserBaseName, options) {
         },
         resolveLoader: {
             // Special resolution rules for loaders (which are in the 'common' directory)
-            modules: [ path.join(__dirname, "common", "node_modules") ],
+            modules: [ path.resolve(__dirname, "common", "node_modules") ],
         },
         module: {
             rules: [
