@@ -9,6 +9,7 @@ simpleNode('OSX.1012.Amd64.Open') {
     stage ('Build') {
         def logFolder = getLogFolder()
         def environment = "export ASPNETCORE_TEST_LOG_DIR=${WORKSPACE}/${logFolder}"
+        sh "open --background -a Docker && while ! docker system info > /dev/null 2>&1; do sleep 1; done"
         sh "${environment}&./build.sh -ci"
     }
 }

@@ -20,11 +20,9 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
                 .AddMessagePackProtocol()
                 .AddRedis(options =>
                 {
-                    // We start the servers before starting redis so we want to time them out ASAP
-                    options.Configuration.ConnectTimeout = 1;
                     options.Configuration.EndPoints.Add(Environment.GetEnvironmentVariable("REDIS_CONNECTION"));
                 });
-
+            Console.WriteLine($"REDIS_CONNECTION env set to: {Environment.GetEnvironmentVariable("REDIS_CONNECTION")}");
             services.AddSingleton<IUserIdProvider, UserNameIdProvider>();
         }
 

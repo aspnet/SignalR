@@ -153,6 +153,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 
             output = string.Join(Environment.NewLine, lines);
 
+            Console.WriteLine($"docker output: {output}");
+
             return exitCode;
         }
 
