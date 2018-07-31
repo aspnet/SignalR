@@ -217,6 +217,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
 
                         // Always wait for the previous request to drain
                         await connection.PreviousPollTask;
+
                         connection.PreviousPollTask = currentRequestTcs.Task;
                     }
 
