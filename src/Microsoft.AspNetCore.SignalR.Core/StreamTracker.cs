@@ -27,14 +27,26 @@ namespace Microsoft.AspNetCore.SignalR
             return newConverter.GetReaderAsObject();
         }
 
+        private IStreamConverter TryGetConverter(string streamId)
+        {
+            if (_lookup.TryGetValue(streamId, out var converter))
+            {
+                return converter;
+            }
+            else
+            {
+                throw new KeyNotFoundException($"No stream with id '{streamId}' could be found.");
+            }
+        }
+
         public Task ProcessItem(StreamDataMessage message)
         {
-            return _lookup[message.StreamId].WriteToStream(message.Item);
+            return TryGetConverter(message.StreamId).WriteToStream(message.Item);
         }
         
         public Type GetStreamItemType(string streamId)
         {
-            return _lookup[streamId].GetItemType();
+            return TryGetConverter(streamId).GetItemType();
         }
 
         public void Complete(StreamCompleteMessage message)

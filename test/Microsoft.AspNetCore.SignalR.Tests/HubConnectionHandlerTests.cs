@@ -2555,7 +2555,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 // Client is breaking protocol by sending an invalid id, and should be closed.
                 var message = client.TryRead();
                 Assert.IsType<CloseMessage>(message);
-                Assert.Equal("Connection closed with an error. KeyNotFoundException: The given key 'fake_id' was not present in the dictionary.", ((CloseMessage)message).Error);
+                Assert.Equal("Connection closed with an error. KeyNotFoundException: No stream with id 'fake_id' could be found.", ((CloseMessage)message).Error);
             }
         }
 
