@@ -30,7 +30,7 @@ export class HubConnection {
      */
     public serverTimeoutInMilliseconds: number;
 
-    /** @private */
+    /** @internal */
     // Using a public static factory method means we can have a private constructor and an _internal_
     // create method that can be used by HubConnectionBuilder. An "internal" constructor would just
     // be stripped away and the '.d.ts' file would have no constructor, which is interpreted as a
