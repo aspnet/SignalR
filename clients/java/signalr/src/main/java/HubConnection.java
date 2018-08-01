@@ -18,10 +18,12 @@ public class HubConnection {
     private Boolean handshakeReceived = false;
     private static final String RECORD_SEPARATOR = "\u001e";
     private HubConnectionState connectionState = HubConnectionState.DISCONNECTED;
+    private Logger logger;
 
-    public HubConnection(String url, Transport transport) {
+    public HubConnection(String url, Transport transport, Logger logger){
         this.url = url;
         this.protocol = new JsonHubProtocol();
+        this.logger = logger;
         this.callback = (payload) -> {
 
             if (!handshakeReceived) {
@@ -45,6 +47,7 @@ public class HubConnection {
             for (HubMessage message : messages) {
                 switch (message.getMessageType()) {
                     case INVOCATION:
+                        logger.log("Recevied message of type INVOCATION");
                         InvocationMessage invocationMessage = (InvocationMessage)message;
                         if (message != null && handlers.containsKey(invocationMessage.target)) {
                             ArrayList<Object> args = gson.fromJson((JsonArray)invocationMessage.arguments[0], (new ArrayList<>()).getClass());
@@ -61,10 +64,12 @@ public class HubConnection {
                     case CLOSE:
                     case CANCEL_INVOCATION:
                     case COMPLETION:
+                        logger.log("Recevied an unsupported message type");
                         throw new UnsupportedOperationException("The message type " + message.getMessageType() + " is not supported yet.");
                     case PING:
                         // We don't need to do anything in the case of a ping message.
                         // The other message types aren't supported
+                        logger.log("Recevied message of type PING");
                         break;
                 }
             }
@@ -79,6 +84,10 @@ public class HubConnection {
         } else {
             this.transport = transport;
         }
+    }
+
+    public HubConnection(String url, Transport transport) {
+        this(url, transport, new NullLogger());
     }
 
     public HubConnection(String url) {
