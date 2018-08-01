@@ -7,6 +7,5 @@ bin/
 out/
 *.class
 *.jar
-*.pom
 # We need the gradle-wrapper.jar file so that others can use the gradle wrapper
 !gradle/wrapper/gradle-wrapper.jar
