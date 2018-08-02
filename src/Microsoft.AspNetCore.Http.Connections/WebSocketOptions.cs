@@ -11,6 +11,11 @@ namespace Microsoft.AspNetCore.Http.Connections
         public TimeSpan CloseTimeout { get; set; } = TimeSpan.FromSeconds(5);
 
         /// <summary>
+        /// Gets or sets a value that determines if websocket frames should be be preserved.
+        /// </summary>
+        public bool PreserveWebSocketFrames { get; set; }
+
+        /// <summary>
         /// Gets or sets a delegate that will be called when a new WebSocket is established to select the value
         /// for the 'Sec-WebSocket-Protocol' response header. The delegate will be called with a list of the protocols provided
         /// by the client in the 'Sec-WebSocket-Protocol' request header.

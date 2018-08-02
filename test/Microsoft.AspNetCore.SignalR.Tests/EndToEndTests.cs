@@ -90,18 +90,20 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
-        [ConditionalFact]
+        [ConditionalTheory]
         [WebSocketsSupportedCondition]
-        public async Task WebSocketsTest()
+        [InlineData("/echo")]
+        [InlineData("/ws-echo")]
+        public async Task WebSocketsTest(string path)
         {
-            using (StartVerifiableLog(out var loggerFactory))
+            using (StartVerifiableLog(out var loggerFactory, LogLevel.Trace))
             {
                 var logger = loggerFactory.CreateLogger<EndToEndTests>();
 
                 const string message = "Hello, World!";
                 using (var ws = new ClientWebSocket())
                 {
-                    var socketUrl = ServerFixture.WebSocketsUrl + "/echo";
+                    var socketUrl = ServerFixture.WebSocketsUrl + path;
 
                     logger.LogInformation("Connecting WebSocket to {socketUrl}", socketUrl);
                     await ws.ConnectAsync(new Uri(socketUrl), CancellationToken.None).OrTimeout();
@@ -128,18 +130,20 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
-        [ConditionalFact]
+        [ConditionalTheory]
         [WebSocketsSupportedCondition]
-        public async Task WebSocketsReceivesAndSendsPartialFramesTest()
+        [InlineData("/echo")]
+        [InlineData("/ws-echo")]
+        public async Task WebSocketsReceivesAndSendsPartialFramesTest(string path)
         {
-            using (StartVerifiableLog(out var loggerFactory))
+            using (StartVerifiableLog(out var loggerFactory, LogLevel.Trace))
             {
                 var logger = loggerFactory.CreateLogger<EndToEndTests>();
 
                 const string message = "Hello, World!";
                 using (var ws = new ClientWebSocket())
                 {
-                    var socketUrl = ServerFixture.WebSocketsUrl + "/echo";
+                    var socketUrl = ServerFixture.WebSocketsUrl + path;
 
                     logger.LogInformation("Connecting WebSocket to {socketUrl}", socketUrl);
                     await ws.ConnectAsync(new Uri(socketUrl), CancellationToken.None).OrTimeout();
