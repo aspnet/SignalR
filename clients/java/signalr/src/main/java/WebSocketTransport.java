@@ -39,7 +39,7 @@ public class WebSocketTransport implements Transport {
 
     @Override
     public void start() throws InterruptedException {
-        logger.log(LogLevel.Information, "Starting Websockets Connection");
+        logger.log(LogLevel.Debug, "Starting Websocket connection");
         webSocketClient = createWebSocket();
         webSocketClient.connectBlocking();
         logger.log(LogLevel.Information, "WebSocket transport connected to: " + webSocketClient.getURI().toString());
@@ -53,7 +53,7 @@ public class WebSocketTransport implements Transport {
     @Override
     public void setOnReceive(OnReceiveCallBack callback) {
         this.onReceiveCallBack = callback;
-        logger.log(LogLevel.Information.Information, "OnReceived callback has been set");
+        logger.log(LogLevel.Debug, "OnReceived callback has been set");
     }
 
     @Override
@@ -63,8 +63,8 @@ public class WebSocketTransport implements Transport {
 
     @Override
     public void stop() {
-        logger.log(LogLevel.Information, "Stopping Websocket connection");
         webSocketClient.closeConnection(0, "HubConnection Stopped");
+        logger.log(LogLevel.Information, "WebSocket connection stopped");
     }
 
     private WebSocketClient createWebSocket() {

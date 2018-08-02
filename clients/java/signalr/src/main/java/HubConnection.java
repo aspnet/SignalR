@@ -48,7 +48,7 @@ public class HubConnection {
             for (HubMessage message : messages) {
                 switch (message.getMessageType()) {
                     case INVOCATION:
-                        logger.log(LogLevel.Information,"Recevied message of type INVOCATION");
+                        logger.log(LogLevel.Debug,"Recevied message of type INVOCATION");
                         InvocationMessage invocationMessage = (InvocationMessage)message;
                         if (message != null && handlers.containsKey(invocationMessage.target)) {
                             ArrayList<Object> args = gson.fromJson((JsonArray)invocationMessage.arguments[0], (new ArrayList<>()).getClass());
@@ -70,7 +70,7 @@ public class HubConnection {
                     case PING:
                         // We don't need to do anything in the case of a ping message.
                         // The other message types aren't supported
-                        logger.log(LogLevel.Information, "Recevied message of type PING");
+                        logger.log(LogLevel.Debug, "Recevied message of type PING");
                         break;
                 }
             }
@@ -104,7 +104,7 @@ public class HubConnection {
     }
 
     public void start() throws Exception {
-        logger.log(LogLevel.Information, "Starting connection");
+        logger.log(LogLevel.Debug, "Starting connection");
         transport.setOnReceive(this.callback);
         transport.start();
         String handshake = HandshakeProtocol.createHandshakeRequestMessage(new HandshakeRequestMessage(protocol.getName(), protocol.getVersion()));
@@ -114,6 +114,7 @@ public class HubConnection {
     }
 
     public void stop(){
+        logger.log(LogLevel.Debug, "Stopping connection");
         transport.stop();
         connectionState = HubConnectionState.DISCONNECTED;
         logger.log(LogLevel.Information, "HubConnection stopped");
@@ -122,7 +123,7 @@ public class HubConnection {
     public void send(String method, Object... args) throws Exception {
         InvocationMessage invocationMessage = new InvocationMessage(method, args);
         String message = protocol.writeMessage(invocationMessage);
-        logger.log(LogLevel.Information, "Sending message");
+        logger.log(LogLevel.Debug, "Sending message");
         transport.send(message);
     }
 
@@ -205,7 +206,7 @@ public class HubConnection {
     }
 
     public void remove(String name) {
-        logger.log(LogLevel.Information, "Removing handlers for method " + name);
+        logger.log(LogLevel.Debug, "Removing handlers for method " + name);
         handlers.remove(name);
     }
 }

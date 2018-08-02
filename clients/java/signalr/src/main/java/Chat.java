@@ -9,7 +9,7 @@ public class Chat {
             Scanner reader = new Scanner(System.in);  // Reading from System.in
             String input;
             input = reader.nextLine();
-            HubConnection hubConnection = new HubConnection(input, LogLevel.Information);
+            HubConnection hubConnection = new HubConnection(input, LogLevel.Debug);
 
             hubConnection.on("Send", (message) -> {
                 System.out.println("REGISTERED HANDLER: " + message);
