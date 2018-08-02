@@ -3,7 +3,5 @@
 
 public class NullLogger implements Logger {
     @Override
-    public void log(String message) {
-
-    }
+    public void log(LogLevel logLevel, String message) { }
 }

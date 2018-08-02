@@ -31,6 +31,7 @@ public class HubConnection {
                 String handshakeResponseString = payload.substring(0, handshakeLength - 1);
                 HandshakeResponseMessage handshakeResponse = HandshakeProtocol.parseHandshakeResponse(handshakeResponseString);
                 if (handshakeResponse.error != null) {
+                    logger.log(LogLevel.Error, "There was an error in the handshake responsed");
                     throw new Exception("Error in handshake " + handshakeResponse.error);
                 }
                 handshakeReceived = true;
@@ -47,7 +48,7 @@ public class HubConnection {
             for (HubMessage message : messages) {
                 switch (message.getMessageType()) {
                     case INVOCATION:
-                        logger.log("Recevied message of type INVOCATION");
+                        logger.log(LogLevel.Information,"Recevied message of type INVOCATION");
                         InvocationMessage invocationMessage = (InvocationMessage)message;
                         if (message != null && handlers.containsKey(invocationMessage.target)) {
                             ArrayList<Object> args = gson.fromJson((JsonArray)invocationMessage.arguments[0], (new ArrayList<>()).getClass());
@@ -64,12 +65,12 @@ public class HubConnection {
                     case CLOSE:
                     case CANCEL_INVOCATION:
                     case COMPLETION:
-                        logger.log("Recevied an unsupported message type");
+                        logger.log(LogLevel.Error, "Recevied an unsupported message type");
                         throw new UnsupportedOperationException("The message type " + message.getMessageType() + " is not supported yet.");
                     case PING:
                         // We don't need to do anything in the case of a ping message.
                         // The other message types aren't supported
-                        logger.log("Recevied message of type PING");
+                        logger.log(LogLevel.Information, "Recevied message of type PING");
                         break;
                 }
             }
@@ -77,7 +78,7 @@ public class HubConnection {
 
         if (transport == null){
             try {
-                this.transport = new WebSocketTransport(this.url);
+                this.transport = new WebSocketTransport(this.url, this.logger);
             } catch (URISyntaxException e) {
                 e.printStackTrace();
             }
@@ -91,7 +92,11 @@ public class HubConnection {
     }
 
     public HubConnection(String url) {
-        this(url, null);
+        this(url, null, new NullLogger());
+    }
+
+    public HubConnection(String url, LogLevel logLevel){
+        this(url, null, new ConsoleLogger(logLevel));
     }
 
     public HubConnectionState getConnectionState() {
@@ -99,21 +104,25 @@ public class HubConnection {
     }
 
     public void start() throws Exception {
+        logger.log(LogLevel.Information, "Starting connection");
         transport.setOnReceive(this.callback);
         transport.start();
         String handshake = HandshakeProtocol.createHandshakeRequestMessage(new HandshakeRequestMessage(protocol.getName(), protocol.getVersion()));
         transport.send(handshake);
         connectionState = HubConnectionState.CONNECTED;
+        logger.log(LogLevel.Information, "Connected started");
     }
 
     public void stop(){
         transport.stop();
         connectionState = HubConnectionState.DISCONNECTED;
+        logger.log(LogLevel.Information, "HubConnection stopped");
     }
 
     public void send(String method, Object... args) throws Exception {
         InvocationMessage invocationMessage = new InvocationMessage(method, args);
         String message = protocol.writeMessage(invocationMessage);
+        logger.log(LogLevel.Information, "Sending message");
         transport.send(message);
     }
 
@@ -196,6 +205,7 @@ public class HubConnection {
     }
 
     public void remove(String name) {
+        logger.log(LogLevel.Information, "Removing handlers for method " + name);
         handlers.remove(name);
     }
 }
