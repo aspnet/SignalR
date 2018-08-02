@@ -130,6 +130,7 @@ public class HubConnection {
     public Subscription on(String target, Action callback) {
         ActionBase action = args -> callback.invoke();
         handlers.put(target, action);
+        logger.log(LogLevel.Trace, "Handler added to target: " + target);
         return new Subscription(handlers, action, target);
     }
 
@@ -144,6 +145,7 @@ public class HubConnection {
             callback.invoke(param1.cast(params[0]), param2.cast(params[1]));
         };
         handlers.put(target, action);
+        logger.log(LogLevel.Trace, "Handler added to target: " + target);
         return new Subscription(handlers, action, target);
     }
 
@@ -153,6 +155,7 @@ public class HubConnection {
             callback.invoke(param1.cast(params[0]), param2.cast(params[1]), param3.cast(params[2]));
         };
         handlers.put(target, action);
+        logger.log(LogLevel.Trace, "Handler added to target: " + target);
         return new Subscription(handlers, action, target);
     }
 
@@ -172,6 +175,7 @@ public class HubConnection {
                     param5.cast(params[4]));
         };
         handlers.put(target, action);
+        logger.log(LogLevel.Trace, "Handler added to target: " + target);
         return new Subscription(handlers, action, target);
     }
 
@@ -182,6 +186,7 @@ public class HubConnection {
                     param5.cast(params[4]) ,param6.cast(params[5]));
         };
         handlers.put(target, action);
+        logger.log(LogLevel.Trace, "Handler added to target: " + target);
         return new Subscription(handlers, action, target);
     }
 
@@ -192,6 +197,7 @@ public class HubConnection {
                     param5.cast(params[4]) ,param6.cast(params[5]), param7.cast(params[6]));
         };
         handlers.put(target, action);
+        logger.log(LogLevel.Trace, "Handler added to target: " + target);
         return new Subscription(handlers, action, target);
     }
 
@@ -202,11 +208,12 @@ public class HubConnection {
                     param5.cast(params[4]) ,param6.cast(params[5]), param7.cast(params[6]), param8.cast(params[7]));
         };
         handlers.put(target, action);
+        logger.log(LogLevel.Trace, "Handler added to target: " + target);
         return new Subscription(handlers, action, target);
     }
 
     public void remove(String name) {
-        logger.log(LogLevel.Debug, "Removing handlers for method " + name);
         handlers.remove(name);
+        logger.log(LogLevel.Trace, "Handlers removed for method: " + name);
     }
 }
