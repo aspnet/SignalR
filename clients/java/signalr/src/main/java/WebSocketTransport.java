@@ -42,7 +42,7 @@ public class WebSocketTransport implements Transport {
         logger.log(LogLevel.Debug, "Starting Websocket connection");
         webSocketClient = createWebSocket();
         webSocketClient.connectBlocking();
-        logger.log(LogLevel.Information, "WebSocket transport connected to: " + webSocketClient.getURI().toString());
+        logger.log(LogLevel.Information, "WebSocket transport connected to: %s%n", webSocketClient.getURI());
     }
 
     @Override

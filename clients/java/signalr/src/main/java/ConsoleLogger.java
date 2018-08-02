@@ -13,12 +13,29 @@ public class ConsoleLogger implements Logger {
             switch (logLevel) {
                 case Debug:
                 case Information:
-                case Warning:
                     System.out.println(message);
                     break;
+                case Warning:
                 case Error:
                 case Critical:
                     System.err.println(message);
+                    break;
+            }
+        }
+    }
+
+    @Override
+    public void log(LogLevel logLevel, String formattedMessage, Object... args) {
+        if (logLevel.value >= this.logLevel.value) {
+            switch (logLevel) {
+                case Debug:
+                case Information:
+                    System.out.printf(formattedMessage, args);
+                    break;
+                case Warning:
+                case Error:
+                case Critical:
+                    System.err.printf(formattedMessage, args);
                     break;
             }
         }

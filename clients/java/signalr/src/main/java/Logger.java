@@ -3,4 +3,5 @@
 
 public interface Logger {
     void log(LogLevel logLevel, String message);
+    void log(LogLevel logLevel, String formattedMessage, Object ... args);
 }

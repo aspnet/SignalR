@@ -4,4 +4,7 @@
 public class NullLogger implements Logger {
     @Override
     public void log(LogLevel logLevel, String message) { }
+
+    @Override
+    public void log(LogLevel logLevel, String formattedMessage, Object... args) { }
 }
