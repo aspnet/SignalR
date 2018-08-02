@@ -562,7 +562,7 @@ namespace Microsoft.AspNetCore.SignalR
                 LoggerMessage.Define(LogLevel.Trace, new EventId(8, "AbortFailed"), "Abort callback failed.");
 
             private static readonly Action<ILogger, Exception> _clientTimeout =
-                LoggerMessage.Define(LogLevel.Debug, new EventId(9, "ClientTimeout"), "Client has not sent a message in too long. Closing connection.");
+                LoggerMessage.Define(LogLevel.Debug, new EventId(9, "ClientTimeout"), "Client has not sent a message within the timeout period. Closing connection.");
 
             public static void HandshakeComplete(ILogger logger, string hubProtocol)
             {
