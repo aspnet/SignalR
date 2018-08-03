@@ -12,6 +12,7 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
+using Microsoft.AspNetCore.Connections.Features;
 using Microsoft.AspNetCore.Internal;
 using Microsoft.AspNetCore.SignalR.Client.Internal;
 using Microsoft.AspNetCore.SignalR.Protocol;
@@ -893,12 +894,14 @@ namespace Microsoft.AspNetCore.SignalR.Client
             ResetTimeout();
             ResetSendPing();
 
+            var inherentKeepAlive = _connectionState.Connection.Features.Get<IConnectionInherentKeepAliveFeature>()?.HasInherentKeepAlive ?? false;
+
             using (timer)
             {
                 // await returns True until `timer.Stop()` is called in the `finally` block of `ReceiveLoop`
                 while (await timer)
                 {
-                    if (DateTime.UtcNow.Ticks > Volatile.Read(ref _nextActivationServerTimeout))
+                    if (!inherentKeepAlive && DateTime.UtcNow.Ticks > Volatile.Read(ref _nextActivationServerTimeout))
                     {
                         OnServerTimeout();
                     }
