@@ -109,9 +109,6 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
 
             var reader = new Utf8JsonReader(payload);
 
-            byte[] temp = payload.ToArray();
-            string payStr = Encoding.UTF8.GetString(temp);
-
             JsonUtils.CheckRead(ref reader);
             JsonUtils.EnsureObjectStart(ref reader);
 
@@ -128,7 +125,6 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
 
                         if (memberName.SequenceEqual(TypePropertyNameUtf8))
                         {
-
                             // a handshake response does not have a type
                             // check the incoming message was not any other type of message
                             throw new InvalidDataException("Handshake response should not have a 'type' value.");
