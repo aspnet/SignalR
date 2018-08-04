@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using Microsoft.AspNetCore.Internal;
 using Newtonsoft.Json;
+using System.Text.JsonLab;
 
 namespace Microsoft.AspNetCore.Http.Connections
 {
@@ -21,67 +22,52 @@ namespace Microsoft.AspNetCore.Http.Connections
 
         public static void WriteResponse(NegotiationResponse response, IBufferWriter<byte> output)
         {
-            var textWriter = Utf8BufferTextWriter.Get(output);
-            try
+            Utf8JsonWriter<IBufferWriter<byte>> jsonWriter = Utf8JsonWriter.Create(output);
+
+            jsonWriter.WriteObjectStart();
+
+            if (!string.IsNullOrEmpty(response.Url))
             {
-                using (var jsonWriter = JsonUtils.CreateJsonTextWriter(textWriter))
+                jsonWriter.WriteAttribute(UrlPropertyName, response.Url);
+            }
+
+            if (!string.IsNullOrEmpty(response.AccessToken))
+            {
+                jsonWriter.WriteAttribute(AccessTokenPropertyName, response.AccessToken);
+            }
+
+            if (!string.IsNullOrEmpty(response.ConnectionId))
+            {
+                jsonWriter.WriteAttribute(ConnectionIdPropertyName, response.ConnectionId);
+            }
+
+            jsonWriter.WriteArrayStart(AvailableTransportsPropertyName);
+
+            if (response.AvailableTransports != null)
+            {
+                foreach (var availableTransport in response.AvailableTransports)
                 {
-                    jsonWriter.WriteStartObject();
+                    jsonWriter.WriteObjectStart();
+                    jsonWriter.WriteAttribute(TransportPropertyName, availableTransport.Transport);
+                    jsonWriter.WriteArrayStart(TransferFormatsPropertyName);
 
-                    if (!string.IsNullOrEmpty(response.Url))
+                    if (availableTransport.TransferFormats != null)
                     {
-                        jsonWriter.WritePropertyName(UrlPropertyName);
-                        jsonWriter.WriteValue(response.Url);
-                    }
-
-                    if (!string.IsNullOrEmpty(response.AccessToken))
-                    {
-                        jsonWriter.WritePropertyName(AccessTokenPropertyName);
-                        jsonWriter.WriteValue(response.AccessToken);
-                    }
-
-                    if (!string.IsNullOrEmpty(response.ConnectionId))
-                    {
-                        jsonWriter.WritePropertyName(ConnectionIdPropertyName);
-                        jsonWriter.WriteValue(response.ConnectionId);
-                    }
-
-                    jsonWriter.WritePropertyName(AvailableTransportsPropertyName);
-                    jsonWriter.WriteStartArray();
-
-                    if (response.AvailableTransports != null)
-                    {
-                        foreach (var availableTransport in response.AvailableTransports)
+                        foreach (var transferFormat in availableTransport.TransferFormats)
                         {
-                            jsonWriter.WriteStartObject();
-                            jsonWriter.WritePropertyName(TransportPropertyName);
-                            jsonWriter.WriteValue(availableTransport.Transport);
-                            jsonWriter.WritePropertyName(TransferFormatsPropertyName);
-                            jsonWriter.WriteStartArray();
-
-                            if (availableTransport.TransferFormats != null)
-                            {
-                                foreach (var transferFormat in availableTransport.TransferFormats)
-                                {
-                                    jsonWriter.WriteValue(transferFormat);
-                                }
-                            }
-
-                            jsonWriter.WriteEndArray();
-                            jsonWriter.WriteEndObject();
+                            jsonWriter.WriteValue(transferFormat);
                         }
                     }
 
-                    jsonWriter.WriteEndArray();
-                    jsonWriter.WriteEndObject();
-
-                    jsonWriter.Flush();
+                    jsonWriter.WriteArrayEnd();
+                    jsonWriter.WriteObjectEnd();
                 }
             }
-            finally
-            {
-                Utf8BufferTextWriter.Return(textWriter);
-            }
+
+            jsonWriter.WriteArrayEnd();
+            jsonWriter.WriteObjectEnd();
+
+            jsonWriter.Flush();
         }
 
         public static NegotiationResponse ParseResponse(Stream content)
