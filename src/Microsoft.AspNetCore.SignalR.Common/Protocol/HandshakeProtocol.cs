@@ -24,11 +24,11 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         private const string ErrorPropertyName = "error";
         private const string TypePropertyName = "type";
 
-        private static readonly byte[] ProtocolPropertyNameUtf8 = Encoding.UTF8.GetBytes("protocol");
-        private static readonly byte[] ProtocolVersionPropertyNameUtf8 = Encoding.UTF8.GetBytes("version");
-        private static readonly byte[] MinorVersionPropertyNameUtf8 = Encoding.UTF8.GetBytes("minorVersion");
-        private static readonly byte[] ErrorPropertyNameUtf8 = Encoding.UTF8.GetBytes("error");
-        private static readonly byte[] TypePropertyNameUtf8 = Encoding.UTF8.GetBytes("type");
+        private static readonly byte[] ProtocolPropertyNameUtf8 = Encoding.UTF8.GetBytes(ProtocolPropertyName);
+        private static readonly byte[] ProtocolVersionPropertyNameUtf8 = Encoding.UTF8.GetBytes(ProtocolVersionPropertyName);
+        private static readonly byte[] MinorVersionPropertyNameUtf8 = Encoding.UTF8.GetBytes(MinorVersionPropertyName);
+        private static readonly byte[] ErrorPropertyNameUtf8 = Encoding.UTF8.GetBytes(ErrorPropertyName);
+        private static readonly byte[] TypePropertyNameUtf8 = Encoding.UTF8.GetBytes(TypePropertyName);
 
         private static ConcurrentDictionary<IHubProtocol, ReadOnlyMemory<byte>> _messageCache = new ConcurrentDictionary<IHubProtocol, ReadOnlyMemory<byte>>();
 
@@ -101,13 +101,36 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         /// <returns>A value that is <c>true</c> if the <see cref="HandshakeResponseMessage"/> was successfully parsed; otherwise, <c>false</c>.</returns>
         public static bool TryParseResponseMessage(ref ReadOnlySequence<byte> buffer, out HandshakeResponseMessage responseMessage)
         {
-            if (!TextMessageParser.TryParseMessage(ref buffer, out var payload))
+            Utf8JsonReader reader;
+            if (buffer.IsSingleSegment)
             {
-                responseMessage = null;
-                return false;
-            }
+                ReadOnlySpan<byte> payloadSpan = buffer.First.Span;
+                int index = payloadSpan.IndexOf(TextMessageFormatter.RecordSeparator);
+                if (index == -1)
+                {
+                    responseMessage = null;
+                    return false;
+                }
 
-            var reader = new Utf8JsonReader(payload);
+                reader = new Utf8JsonReader(payloadSpan.Slice(0, index));
+
+                // Skip record separator
+                buffer = buffer.Slice(index + 1);
+            }
+            else
+            {
+                SequencePosition? position = buffer.PositionOf(TextMessageFormatter.RecordSeparator);
+                if (position == null)
+                {
+                    responseMessage = null;
+                    return false;
+                }
+
+                reader = new Utf8JsonReader(buffer.Slice(0, position.Value));
+
+                // Skip record separator
+                buffer = buffer.Slice(buffer.GetPosition(1, position.Value));
+            }
 
             JsonUtils.CheckRead(ref reader);
             JsonUtils.EnsureObjectStart(ref reader);
@@ -115,40 +138,36 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             int? minorVersion = null;
             string error = null;
 
-            var completed = false;
-            while (!completed && JsonUtils.CheckRead(ref reader))
+            while (JsonUtils.CheckRead(ref reader))
             {
-                switch (reader.TokenType)
+                if (reader.TokenType == JsonTokenType.PropertyName)
                 {
-                    case JsonTokenType.PropertyName:
-                        ReadOnlySpan<byte> memberName = reader.Value;
+                    ReadOnlySpan<byte> memberName = reader.Value;
 
-                        if (memberName.SequenceEqual(TypePropertyNameUtf8))
-                        {
-                            // a handshake response does not have a type
-                            // check the incoming message was not any other type of message
-                            throw new InvalidDataException("Handshake response should not have a 'type' value.");
-                        }
-                        else if (memberName.SequenceEqual(ErrorPropertyNameUtf8))
-                        {
-                            error = JsonUtils.ReadAsString(ref reader, ErrorPropertyName);
-                        }
-                        else if (memberName.SequenceEqual(MinorVersionPropertyNameUtf8))
-                        {
-                            minorVersion = JsonUtils.ReadAsInt32(ref reader, MinorVersionPropertyName);
-                        }
-                        else
-                        {
-                            reader.Skip();
-                        }
-                        break;
-                    case JsonTokenType.EndObject:
-                        completed = true;
-                        break;
-                    default:
-                        throw new InvalidDataException($"Unexpected token '{reader.TokenType}' when reading handshake response JSON.");
+                    if (memberName.SequenceEqual(TypePropertyNameUtf8))
+                    {
+                        // a handshake response does not have a type
+                        // check the incoming message was not any other type of message
+                        throw new InvalidDataException("Handshake response should not have a 'type' value.");
+                    }
+                    else if (memberName.SequenceEqual(ErrorPropertyNameUtf8))
+                    {
+                        error = JsonUtils.ReadAsString(ref reader, ErrorPropertyName);
+                    }
+                    else if (memberName.SequenceEqual(MinorVersionPropertyNameUtf8))
+                    {
+                        minorVersion = JsonUtils.ReadAsInt32(ref reader, MinorVersionPropertyName);
+                    }
+                    else
+                    {
+                        reader.Skip();
+                    }
                 }
-            };
+                else if (reader.TokenType == JsonTokenType.EndObject)
+                    break;
+                else
+                    throw new InvalidDataException($"Unexpected token '{reader.TokenType}' when reading handshake response JSON.");
+            }
 
             responseMessage = new HandshakeResponseMessage(minorVersion, error);
             return true;
@@ -162,46 +181,66 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
         /// <returns>A value that is <c>true</c> if the <see cref="HandshakeRequestMessage"/> was successfully parsed; otherwise, <c>false</c>.</returns>
         public static bool TryParseRequestMessage(ref ReadOnlySequence<byte> buffer, out HandshakeRequestMessage requestMessage)
         {
-            if (!TextMessageParser.TryParseMessage(ref buffer, out var payload))
+            Utf8JsonReader reader;
+            if (buffer.IsSingleSegment)
             {
-                requestMessage = null;
-                return false;
+                ReadOnlySpan<byte> payloadSpan = buffer.First.Span;
+                int index = payloadSpan.IndexOf(TextMessageFormatter.RecordSeparator);
+                if (index == -1)
+                {
+                    requestMessage = null;
+                    return false;
+                }
+
+                reader = new Utf8JsonReader(payloadSpan.Slice(0, index));
+
+                // Skip record separator
+                buffer = buffer.Slice(index + 1);
+            }
+            else
+            {
+                SequencePosition? position = buffer.PositionOf(TextMessageFormatter.RecordSeparator);
+                if (position == null)
+                {
+                    requestMessage = null;
+                    return false;
+                }
+
+                reader = new Utf8JsonReader(buffer.Slice(0, position.Value));
+
+                // Skip record separator
+                buffer = buffer.Slice(buffer.GetPosition(1, position.Value));
             }
 
-            var reader = new Utf8JsonReader(payload);
             JsonUtils.CheckRead(ref reader);
             JsonUtils.EnsureObjectStart(ref reader);
 
             string protocol = null;
             int? protocolVersion = null;
 
-            var completed = false;
-            while (!completed && JsonUtils.CheckRead(ref reader))
+            while (JsonUtils.CheckRead(ref reader))
             {
-                switch (reader.TokenType)
+                if (reader.TokenType == JsonTokenType.PropertyName)
                 {
-                    case JsonTokenType.PropertyName:
-                        ReadOnlySpan<byte> memberName = reader.Value;
+                    ReadOnlySpan<byte> memberName = reader.Value;
 
-                        if (memberName.SequenceEqual(ProtocolPropertyNameUtf8))
-                        {
-                            protocol = JsonUtils.ReadAsString(ref reader, ProtocolPropertyName);
-                        }
-                        else if (memberName.SequenceEqual(ProtocolVersionPropertyNameUtf8))
-                        {
-                            protocolVersion = JsonUtils.ReadAsInt32(ref reader, ProtocolVersionPropertyName);
-                        }
-                        else
-                        {
-                            reader.Skip();
-                        }
-                        break;
-                    case JsonTokenType.EndObject:
-                        completed = true;
-                        break;
-                    default:
-                        throw new InvalidDataException($"Unexpected token '{reader.TokenType}' when reading handshake request JSON.");
+                    if (memberName.SequenceEqual(ProtocolPropertyNameUtf8))
+                    {
+                        protocol = JsonUtils.ReadAsString(ref reader, ProtocolPropertyName);
+                    }
+                    else if (memberName.SequenceEqual(ProtocolVersionPropertyNameUtf8))
+                    {
+                        protocolVersion = JsonUtils.ReadAsInt32(ref reader, ProtocolVersionPropertyName);
+                    }
+                    else
+                    {
+                        reader.Skip();
+                    }
                 }
+                else if (reader.TokenType == JsonTokenType.EndObject)
+                    break;
+                else
+                    throw new InvalidDataException($"Unexpected token '{reader.TokenType}' when reading handshake request JSON.");
             }
 
             if (protocol == null)
