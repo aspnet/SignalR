@@ -40,7 +40,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             _responseMessage6 = new ReadOnlySequence<byte>(Encoding.UTF8.GetBytes("{\"error\":\"flump flump flump\",\"minorVersion\":112}\u001e"));
         }
 
-        //[Benchmark]
+        [Benchmark]
         public void HandShakeWriteResponseEmpty_MemoryBufferWriter()
         {
             var writer = MemoryBufferWriter.Get();
@@ -54,7 +54,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             }
         }
 
-        //[Benchmark]
+        [Benchmark]
         public void HandShakeWriteResponse_MemoryBufferWriter()
         {
             ReadOnlyMemory<byte> result;
@@ -70,7 +70,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             }
         }
 
-        //[Benchmark]
+        [Benchmark]
         public void HandShakeWriteRequest_MemoryBufferWriter()
         {
             var memoryBufferWriter = MemoryBufferWriter.Get();
