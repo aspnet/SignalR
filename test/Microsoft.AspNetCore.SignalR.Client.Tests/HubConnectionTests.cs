@@ -121,7 +121,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
         }
 
         [Fact]
-        public async Task InherentKeepAliveFeatureCanPreventServerTimeout()
+        public async Task ServerTimeoutIsDisabledWhenUsingTransportWithInherentKeepAlive()
         {
             using (StartVerifiableLog(out var loggerFactory))
             {
@@ -139,7 +139,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     return Task.CompletedTask;
                 };
 
-                await Task.Delay(1000);
+                await hubConnection.RunTimerActions().OrTimeout();
 
                 Assert.False(closeTcs.Task.IsCompleted);
 
