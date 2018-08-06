@@ -194,8 +194,6 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
         {
             try
             {
-                connection.Cancellation?.Dispose();
-
                 await connection.DisposeAsync(closeGracefully);
             }
             catch (IOException ex)
