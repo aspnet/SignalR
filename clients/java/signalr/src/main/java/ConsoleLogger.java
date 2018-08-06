@@ -27,6 +27,7 @@ public class ConsoleLogger implements Logger {
     @Override
     public void log(LogLevel logLevel, String formattedMessage, Object... args) {
         if (logLevel.value >= this.logLevel.value) {
+            formattedMessage = formattedMessage + "%n";
             switch (logLevel) {
                 case Debug:
                 case Information:
