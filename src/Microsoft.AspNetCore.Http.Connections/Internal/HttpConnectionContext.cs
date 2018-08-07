@@ -222,6 +222,8 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
                 // If the transport finishes, that means it's done with the application pipe
                 if (!closeGracefully)
                 {
+                    Application?.Output.CancelPendingFlush();
+
                     if (TransportType == HttpTransportType.WebSockets)
                     {
                         // The websocket transport will close the application output automatically when reading is cancelled
