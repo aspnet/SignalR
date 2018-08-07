@@ -126,7 +126,7 @@ public class HubConnection {
 
     /**
      * Starts a connection to the server.
-     * @throws @Exception An error occurred while connecting.
+     * @throws Exception An error occurred while connecting.
      */
     public void start() throws Exception {
         logger.log(LogLevel.Debug, "Starting HubConnection");
