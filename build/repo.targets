@@ -43,7 +43,7 @@
     <Exec Command="npm run test:inner -- --no-color --configuration $(Configuration)" WorkingDirectory="$(RepositoryRoot)clients/ts/FunctionalTests" IgnoreStandardErrorWarningFormat="true" />
   </Target>
 
-  <Target Name="RunJavaTests" Condition="'$(JAVA_HOME)' != '' And Exists('$(JAVA_HOME)/lib/tools.jar')">
+  <Target Name="RunJavaTests" Condition="'$(HaveJava)' == 'true'">
     <Message Text="Running Java client tests" Importance="high" />
     <Exec Command="./gradlew test" WorkingDirectory="$(RepositoryRoot)clients/java/signalr" IgnoreStandardErrorWarningFormat="true" />
   </Target> 
