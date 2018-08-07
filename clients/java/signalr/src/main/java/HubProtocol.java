@@ -10,14 +10,14 @@ public interface HubProtocol {
     TransferFormat getTransferFormat();
 
     /**
-     * Creates a new list of {@link HubMessage}s
-     * @param message A string representation of one or more {@link HubMessage}s
-     * @return
+     * Creates a new list of {@link HubMessage}s.
+     * @param message A string representation of one or more {@link HubMessage}s.
+     * @return A list of {@link HubMessage}s.
      */
     HubMessage[] parseMessages(String message);
 
     /**
-     * Writes the specified {@link HubMessage}to a String.
+     * Writes the specified {@link HubMessage} to a String.
      * @param message The message to write.
      * @return A string representation of the message.
      */

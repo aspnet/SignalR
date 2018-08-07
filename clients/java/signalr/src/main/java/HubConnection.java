@@ -91,8 +91,8 @@ public class HubConnection {
     }
 
     /**
-     * Initializes a new instance of the HubConnection class.
-     * @param url The url of the signalr server to connect to.
+     * Initializes a new instance of the {@link HubConnection} class.
+     * @param url The url of the SignalR server to connect to.
      * @param transport The {@link Transport} that the client will use to communicate with the server.
      */
     public HubConnection(String url, Transport transport) {
@@ -100,16 +100,16 @@ public class HubConnection {
     }
 
     /**
-     * Initializes a new instance of the HubConnection class.
-     * @param url The url of the signalr server to connect to.
+     * Initializes a new instance of the {@link HubConnection} class.
+     * @param url The url of the SignalR server to connect to.
      */
     public HubConnection(String url) {
         this(url, null, new NullLogger());
     }
 
     /**
-     * Initializes a new instance of the HubConnection class.
-     * @param url The url of the signalr server to connect to.
+     * Initializes a new instance of the {@link HubConnection} class.
+     * @param url The url of the SignalR server to connect to.
      * @param logLevel The minimum level of messages to log.
      */
     public HubConnection(String url, LogLevel logLevel){
@@ -126,7 +126,7 @@ public class HubConnection {
 
     /**
      * Starts a connection to the server.
-     * @throws Exception If there was an error while connecting.
+     * @throws @Exception An error occurred while connecting.
      */
     public void start() throws Exception {
         logger.log(LogLevel.Debug, "Starting HubConnection");
@@ -377,7 +377,7 @@ public class HubConnection {
 
     /**
      * Removes all handlers associated with the method with the specified method name.
-     * @param name The name of the hub method from which handlers are being removed
+     * @param name The name of the hub method from which handlers are being removed.
      */
     public void remove(String name) {
         handlers.remove(name);
