@@ -205,7 +205,7 @@ namespace Microsoft.AspNetCore.Internal
             return reader.Value?.ToString();
         }
 
-        public static unsafe string ReadAsString(ref Utf8JsonReader reader, string propertyName)
+        public static string ReadAsString(ref Utf8JsonReader reader, string propertyName)
         {
             reader.Read();
 
@@ -214,14 +214,22 @@ namespace Microsoft.AspNetCore.Internal
                 throw new InvalidDataException($"Expected '{propertyName}' to be of type {JTokenType.String}.");
             }
 
-            if (reader.Value.IsEmpty) return "";
+            return ConvertToString(reader.Value);
+        }
+
+        public static string ConvertToString(ReadOnlySpan<byte> utf8Value)
+        {
+            if (utf8Value.IsEmpty) return "";
 
 #if NETCOREAPP2_2
-            return Encoding.UTF8.GetString(reader.Value);
+            return Encoding.UTF8.GetString(utf8Value);
 #else
-            fixed (byte* bytes = &MemoryMarshal.GetReference(reader.Value))
+            unsafe
             {
-                return Encoding.UTF8.GetString(bytes, reader.Value.Length);
+                fixed (byte* bytes = &MemoryMarshal.GetReference(utf8Value))
+                {
+                    return Encoding.UTF8.GetString(bytes, utf8Value.Length);
+                }
             }
 #endif
         }

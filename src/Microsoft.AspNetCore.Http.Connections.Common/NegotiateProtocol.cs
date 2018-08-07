@@ -6,8 +6,9 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using Microsoft.AspNetCore.Internal;
-using Newtonsoft.Json;
 using System.Text.JsonLab;
+using System.Threading.Tasks;
+using System.Text;
 
 namespace Microsoft.AspNetCore.Http.Connections
 {
@@ -19,6 +20,13 @@ namespace Microsoft.AspNetCore.Http.Connections
         private const string AvailableTransportsPropertyName = "availableTransports";
         private const string TransportPropertyName = "transport";
         private const string TransferFormatsPropertyName = "transferFormats";
+
+        private static readonly byte[] ConnectionIdPropertyNameUtf8 = Encoding.UTF8.GetBytes("connectionId");
+        private static readonly byte[] UrlPropertyNameUtf8 = Encoding.UTF8.GetBytes("url");
+        private static readonly byte[] AccessTokenPropertyNameUtf8 = Encoding.UTF8.GetBytes("accessToken");
+        private static readonly byte[] AvailableTransportsPropertyNameUtf8 = Encoding.UTF8.GetBytes("availableTransports");
+        private static readonly byte[] TransportPropertyNameUtf8 = Encoding.UTF8.GetBytes("transport");
+        private static readonly byte[] TransferFormatsPropertyNameUtf8 = Encoding.UTF8.GetBytes("transferFormats");
 
         public static void WriteResponse(NegotiationResponse response, IBufferWriter<byte> output)
         {
@@ -70,91 +78,101 @@ namespace Microsoft.AspNetCore.Http.Connections
             jsonWriter.Flush();
         }
 
+        private static async Task<byte[]> ReadFromStreamAsync(Stream stream)
+        {
+            //TODO: Add a max size to limit how much data gets read.
+            var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            return memoryStream.ToArray();
+        }
+
         public static NegotiationResponse ParseResponse(Stream content)
         {
+            byte[] data = ReadFromStreamAsync(content).GetAwaiter().GetResult();
             try
             {
-                using (var reader = JsonUtils.CreateJsonTextReader(new StreamReader(content)))
+                var reader = new Utf8JsonReader(data);
+
+                JsonUtils.CheckRead(ref reader);
+                JsonUtils.EnsureObjectStart(ref reader);
+
+                string connectionId = null;
+                string url = null;
+                string accessToken = null;
+                List<AvailableTransport> availableTransports = null;
+
+                while (JsonUtils.CheckRead(ref reader))
                 {
-                    JsonUtils.CheckRead(reader);
-                    JsonUtils.EnsureObjectStart(reader);
-
-                    string connectionId = null;
-                    string url = null;
-                    string accessToken = null;
-                    List<AvailableTransport> availableTransports = null;
-
-                    var completed = false;
-                    while (!completed && JsonUtils.CheckRead(reader))
+                    if (reader.TokenType == JsonTokenType.PropertyName)
                     {
-                        switch (reader.TokenType)
-                        {
-                            case JsonToken.PropertyName:
-                                var memberName = reader.Value.ToString();
+                        ReadOnlySpan<byte> memberName = reader.Value;
 
-                                switch (memberName)
+                        if (memberName.SequenceEqual(UrlPropertyNameUtf8))
+                        {
+                            url = JsonUtils.ReadAsString(ref reader, UrlPropertyName);
+                        }
+                        else if (memberName.SequenceEqual(AccessTokenPropertyNameUtf8))
+                        {
+                            accessToken = JsonUtils.ReadAsString(ref reader, AccessTokenPropertyName);
+                        }
+                        else if (memberName.SequenceEqual(ConnectionIdPropertyNameUtf8))
+                        {
+                            connectionId = JsonUtils.ReadAsString(ref reader, ConnectionIdPropertyName);
+                        }
+                        else if (memberName.SequenceEqual(AvailableTransportsPropertyNameUtf8))
+                        {
+                            JsonUtils.CheckRead(ref reader);
+                            JsonUtils.EnsureArrayStart(ref reader);
+
+                            availableTransports = new List<AvailableTransport>();
+                            while (JsonUtils.CheckRead(ref reader))
+                            {
+                                if (reader.TokenType == JsonTokenType.StartObject)
                                 {
-                                    case UrlPropertyName:
-                                        url = JsonUtils.ReadAsString(reader, UrlPropertyName);
-                                        break;
-                                    case AccessTokenPropertyName:
-                                        accessToken = JsonUtils.ReadAsString(reader, AccessTokenPropertyName);
-                                        break;
-                                    case ConnectionIdPropertyName:
-                                        connectionId = JsonUtils.ReadAsString(reader, ConnectionIdPropertyName);
-                                        break;
-                                    case AvailableTransportsPropertyName:
-                                        JsonUtils.CheckRead(reader);
-                                        JsonUtils.EnsureArrayStart(reader);
-
-                                        availableTransports = new List<AvailableTransport>();
-                                        while (JsonUtils.CheckRead(reader))
-                                        {
-                                            if (reader.TokenType == JsonToken.StartObject)
-                                            {
-                                                availableTransports.Add(ParseAvailableTransport(reader));
-                                            }
-                                            else if (reader.TokenType == JsonToken.EndArray)
-                                            {
-                                                break;
-                                            }
-                                        }
-                                        break;
-                                    default:
-                                        reader.Skip();
-                                        break;
+                                    availableTransports.Add(ParseAvailableTransport(ref reader));
                                 }
-                                break;
-                            case JsonToken.EndObject:
-                                completed = true;
-                                break;
-                            default:
-                                throw new InvalidDataException($"Unexpected token '{reader.TokenType}' when reading negotiation response JSON.");
+                                else if (reader.TokenType == JsonTokenType.EndArray)
+                                {
+                                    break;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            reader.Skip();
                         }
                     }
-
-                    if (url == null)
+                    else if (reader.TokenType == JsonTokenType.EndObject)
                     {
-                        // if url isn't specified, connectionId and available transports are required
-                        if (connectionId == null)
-                        {
-                            throw new InvalidDataException($"Missing required property '{ConnectionIdPropertyName}'.");
-                        }
-
-                        if (availableTransports == null)
-                        {
-                            throw new InvalidDataException($"Missing required property '{AvailableTransportsPropertyName}'.");
-                        }
+                        break;
                     }
-
-                    return new NegotiationResponse
+                    else
                     {
-                        ConnectionId = connectionId,
-                        Url = url,
-                        AccessToken = accessToken,
-                        AvailableTransports = availableTransports
-                    };
+                        throw new InvalidDataException($"Unexpected token '{reader.TokenType}' when reading negotiation response JSON.");
+                    }
                 }
+
+                if (url == null)
+                {
+                    // if url isn't specified, connectionId and available transports are required
+                    if (connectionId == null)
+                    {
+                        throw new InvalidDataException($"Missing required property '{ConnectionIdPropertyName}'.");
+                    }
+
+                    if (availableTransports == null)
+                    {
+                        throw new InvalidDataException($"Missing required property '{AvailableTransportsPropertyName}'.");
+                    }
+                }
+
+                return new NegotiationResponse
+                {
+                    ConnectionId = connectionId,
+                    Url = url,
+                    AccessToken = accessToken,
+                    AvailableTransports = availableTransports
+                };
             }
             catch (Exception ex)
             {
@@ -162,62 +180,64 @@ namespace Microsoft.AspNetCore.Http.Connections
             }
         }
 
-        private static AvailableTransport ParseAvailableTransport(JsonTextReader reader)
+        private static AvailableTransport ParseAvailableTransport(ref Utf8JsonReader reader)
         {
             var availableTransport = new AvailableTransport();
 
-            while (JsonUtils.CheckRead(reader))
+            while (JsonUtils.CheckRead(ref reader))
             {
-                switch (reader.TokenType)
+                if (reader.TokenType == JsonTokenType.PropertyName)
                 {
-                    case JsonToken.PropertyName:
-                        var memberName = reader.Value.ToString();
+                    ReadOnlySpan<byte> memberName = reader.Value;
 
-                        switch (memberName)
+                    if (memberName.SequenceEqual(TransportPropertyNameUtf8))
+                    {
+                        availableTransport.Transport = JsonUtils.ReadAsString(ref reader, TransportPropertyName);
+                    }
+                    else if (memberName.SequenceEqual(TransferFormatsPropertyNameUtf8))
+                    {
+                        JsonUtils.CheckRead(ref reader);
+                        JsonUtils.EnsureArrayStart(ref reader);
+
+                        availableTransport.TransferFormats = new List<string>();
+                        while (JsonUtils.CheckRead(ref reader))
                         {
-                            case TransportPropertyName:
-                                availableTransport.Transport = JsonUtils.ReadAsString(reader, TransportPropertyName);
+                            if (reader.TokenType == JsonTokenType.Value && reader.ValueType == JsonValueType.String)
+                            {
+                                availableTransport.TransferFormats.Add(JsonUtils.ConvertToString(reader.Value));
+                            }
+                            else if (reader.TokenType == JsonTokenType.EndArray)
+                            {
                                 break;
-                            case TransferFormatsPropertyName:
-                                JsonUtils.CheckRead(reader);
-                                JsonUtils.EnsureArrayStart(reader);
-
-                                var completed = false;
-                                availableTransport.TransferFormats = new List<string>();
-                                while (!completed && JsonUtils.CheckRead(reader))
-                                {
-                                    switch (reader.TokenType)
-                                    {
-                                        case JsonToken.String:
-                                            availableTransport.TransferFormats.Add(reader.Value.ToString());
-                                            break;
-                                        case JsonToken.EndArray:
-                                            completed = true;
-                                            break;
-                                        default:
-                                            throw new InvalidDataException($"Unexpected token '{reader.TokenType}' when reading transfer formats JSON.");
-                                    }
-                                }
-                                break;
-                            default:
-                                reader.Skip();
-                                break;
+                            }
+                            else
+                            {
+                                throw new InvalidDataException($"Unexpected token '{reader.TokenType}' when reading transfer formats JSON.");
+                            }
                         }
-                        break;
-                    case JsonToken.EndObject:
-                        if (availableTransport.Transport == null)
-                        {
-                            throw new InvalidDataException($"Missing required property '{TransportPropertyName}'.");
-                        }
+                    }
+                    else
+                    {
+                        reader.Skip();
+                    }
+                }
+                else if (reader.TokenType == JsonTokenType.EndObject)
+                {
+                    if (availableTransport.Transport == null)
+                    {
+                        throw new InvalidDataException($"Missing required property '{TransportPropertyName}'.");
+                    }
 
-                        if (availableTransport.TransferFormats == null)
-                        {
-                            throw new InvalidDataException($"Missing required property '{TransferFormatsPropertyName}'.");
-                        }
+                    if (availableTransport.TransferFormats == null)
+                    {
+                        throw new InvalidDataException($"Missing required property '{TransferFormatsPropertyName}'.");
+                    }
 
-                        return availableTransport;
-                    default:
-                        throw new InvalidDataException($"Unexpected token '{reader.TokenType}' when reading available transport JSON.");
+                    return availableTransport;
+                }
+                else
+                {
+                    throw new InvalidDataException($"Unexpected token '{reader.TokenType}' when reading available transport JSON.");
                 }
             }
 
