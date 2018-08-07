@@ -3,6 +3,7 @@
 
 /** Error thrown when an HTTP request fails. */
 export class HttpError extends Error {
+    // @ts-ignore: Intentionally unused.
     // tslint:disable-next-line:variable-name
     private __proto__: Error;
 
@@ -27,6 +28,7 @@ export class HttpError extends Error {
 
 /** Error thrown when a timeout elapses. */
 export class TimeoutError extends Error {
+    // @ts-ignore: Intentionally unused.
     // tslint:disable-next-line:variable-name
     private __proto__: Error;
 
@@ -35,6 +37,26 @@ export class TimeoutError extends Error {
      * @param {string} errorMessage A descriptive error message.
      */
     constructor(errorMessage: string = "A timeout occurred.") {
+        const trueProto = new.target.prototype;
+        super(errorMessage);
+
+        // Workaround issue in Typescript compiler
+        // https://github.com/Microsoft/TypeScript/issues/13965#issuecomment-278570200
+        this.__proto__ = trueProto;
+    }
+}
+
+/** Error thrown when an action is aborted. */
+export class AbortError extends Error {
+    // @ts-ignore: Intentionally unused.
+    // tslint:disable-next-line:variable-name
+    private __proto__: Error;
+
+    /** Constructs a new instance of {@link AbortError}.
+     *
+     * @param {string} errorMessage A descriptive error message.
+     */
+    constructor(errorMessage: string = "An abort occurred.") {
         const trueProto = new.target.prototype;
         super(errorMessage);
 
