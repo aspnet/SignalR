@@ -2,10 +2,9 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 import com.microsoft.aspnet.signalr.*;
-import org.junit.Test;
-
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicReference;
+import org.junit.Test;
 
 import static org.junit.Assert.*;
 

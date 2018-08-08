@@ -3,13 +3,12 @@
 
 import com.microsoft.aspnet.signalr.NullLogger;
 import com.microsoft.aspnet.signalr.WebSocketTransport;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
 import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Collection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import static org.junit.Assert.*;
 
