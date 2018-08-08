@@ -78,17 +78,25 @@ namespace Microsoft.AspNetCore.Http.Connections
             jsonWriter.Flush();
         }
 
-        private static async Task<byte[]> ReadFromStreamAsync(Stream stream)
+        private static ReadOnlySpan<byte> ReadFromStream(Stream stream)
         {
             //TODO: Add a max size to limit how much data gets read.
+            if (stream is MemoryStream ms && ms.TryGetBuffer(out ArraySegment<byte> data))
+            {
+                return data;
+            }
+
             var memoryStream = new MemoryStream();
-            await stream.CopyToAsync(memoryStream);
-            return memoryStream.ToArray();
+            stream.CopyTo(memoryStream);
+            if (memoryStream.TryGetBuffer(out ArraySegment<byte> segment))
+                return segment;
+            else
+                return memoryStream.ToArray();
         }
 
         public static NegotiationResponse ParseResponse(Stream content)
         {
-            byte[] data = ReadFromStreamAsync(content).GetAwaiter().GetResult();
+            ReadOnlySpan<byte> data = ReadFromStream(content);
             try
             {
                 var reader = new Utf8JsonReader(data);
