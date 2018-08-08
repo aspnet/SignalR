@@ -502,6 +502,39 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
         [Theory]
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
+        public async Task ServerThrowsHubExceptionIfHubMethodCannotBeResolvedAndArgumentsPassedIn(string hubProtocolName, HttpTransportType transportType, string hubPath)
+        {
+            bool ExpectedErrors(WriteContext writeContext)
+            {
+                return writeContext.LoggerName == DefaultHubDispatcherLoggerName &&
+                       writeContext.EventId.Name == "FailedInvokingHubMethod";
+            }
+
+            var hubProtocol = HubProtocols[hubProtocolName];
+            using (StartVerifiableLog(out var loggerFactory, $"{nameof(ServerThrowsHubExceptionIfHubMethodCannotBeResolvedAndArgumentsPassedIn)}_{hubProtocol.Name}_{transportType}_{hubPath.TrimStart('/')}", expectedErrorsFilter: ExpectedErrors))
+            {
+                var connection = CreateHubConnection(hubPath, transportType, hubProtocol, loggerFactory);
+                try
+                {
+                    await connection.StartAsync().OrTimeout();
+
+                    var ex = await Assert.ThrowsAsync<HubException>(() => connection.InvokeAsync("!@#$%", 10, "test")).OrTimeout();
+                    Assert.Equal("Failed to invoke '!@#$%' due to an error on the server. HubException: Method doesn't exist.", ex.Message);
+                }
+                catch (Exception ex)
+                {
+                    loggerFactory.CreateLogger<HubConnectionTests>().LogError(ex, "{ExceptionType} from test", ex.GetType().FullName);
+                    throw;
+                }
+                finally
+                {
+                    await connection.DisposeAsync().OrTimeout();
+                }
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
         public async Task ServerThrowsHubExceptionOnHubMethodArgumentCountMismatch(string hubProtocolName, HttpTransportType transportType, string hubPath)
         {
             bool ExpectedErrors(WriteContext writeContext)
