@@ -474,7 +474,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             bool ExpectedErrors(WriteContext writeContext)
             {
                 return writeContext.LoggerName == DefaultHubDispatcherLoggerName &&
-                       writeContext.EventId.Name == "UnknownHubMethod";
+                       writeContext.EventId.Name == "FailedInvokingHubMethod";
             }
 
             var hubProtocol = HubProtocols[hubProtocolName];
@@ -486,7 +486,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                     await connection.StartAsync().OrTimeout();
 
                     var ex = await Assert.ThrowsAsync<HubException>(() => connection.InvokeAsync("!@#$%")).OrTimeout();
-                    Assert.Equal("Unknown hub method '!@#$%'", ex.Message);
+                    Assert.Equal("Failed to invoke '!@#$%' due to an error on the server. HubException: Method doesn't exist.", ex.Message);
                 }
                 catch (Exception ex)
                 {
@@ -573,7 +573,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             bool ExpectedErrors(WriteContext writeContext)
             {
                 return writeContext.LoggerName == DefaultHubDispatcherLoggerName &&
-                       writeContext.EventId.Name == "UnknownHubMethod";
+                       writeContext.EventId.Name == "FailedInvokingHubMethod";
             }
 
             var hubProtocol = HubProtocols[hubProtocolName];
@@ -586,7 +586,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
                     var channel = await connection.StreamAsChannelAsync<int>("!@#$%");
                     var ex = await Assert.ThrowsAsync<HubException>(() => channel.ReadAllAsync().OrTimeout());
-                    Assert.Equal("Unknown hub method '!@#$%'", ex.Message);
+                    Assert.Equal("Failed to invoke '!@#$%' due to an error on the server. HubException: Method doesn't exist.", ex.Message);
                 }
                 catch (Exception ex)
                 {
