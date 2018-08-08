@@ -31,10 +31,6 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
 task generatePOM {
     pom {
         project {
-            groupId 'com.microsoft.aspnetcore'
-            artifactId 'signalr'
-            version '0.1.0-preview1'
-
             inceptionYear '2018'
             description 'ASP.NET Core SignalR Client for Java applications'
             url 'https://github.com/aspnet/SignalR'
