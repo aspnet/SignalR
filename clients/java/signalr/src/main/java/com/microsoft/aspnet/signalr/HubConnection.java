@@ -5,11 +5,9 @@ package com.microsoft.aspnet.signalr;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
-
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
-
 
 public class HubConnection {
     private String url;

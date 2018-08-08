@@ -3,11 +3,10 @@
 
 package com.microsoft.aspnet.signalr;
 
-import org.java_websocket.client.WebSocketClient;
-import org.java_websocket.handshake.ServerHandshake;
-
 import java.net.URI;
 import java.net.URISyntaxException;
+import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.handshake.ServerHandshake;
 
 public class WebSocketTransport implements Transport {
     private WebSocketClient webSocketClient;
