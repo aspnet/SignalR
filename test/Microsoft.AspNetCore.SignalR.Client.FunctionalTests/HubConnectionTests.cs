@@ -486,7 +486,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                     await connection.StartAsync().OrTimeout();
 
                     var ex = await Assert.ThrowsAsync<HubException>(() => connection.InvokeAsync("!@#$%")).OrTimeout();
-                    Assert.Equal("Failed to invoke '!@#$%' due to an error on the server. HubException: Method doesn't exist.", ex.Message);
+                    Assert.Equal("Failed to invoke '!@#$%' due to an error on the server. HubException: Method does not exist.", ex.Message);
                 }
                 catch (Exception ex)
                 {
@@ -519,7 +519,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
                     await connection.StartAsync().OrTimeout();
 
                     var ex = await Assert.ThrowsAsync<HubException>(() => connection.InvokeAsync("!@#$%", 10, "test")).OrTimeout();
-                    Assert.Equal("Failed to invoke '!@#$%' due to an error on the server. HubException: Method doesn't exist.", ex.Message);
+                    Assert.Equal("Failed to invoke '!@#$%' due to an error on the server. HubException: Method does not exist.", ex.Message);
                 }
                 catch (Exception ex)
                 {
@@ -619,7 +619,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 
                     var channel = await connection.StreamAsChannelAsync<int>("!@#$%");
                     var ex = await Assert.ThrowsAsync<HubException>(() => channel.ReadAllAsync().OrTimeout());
-                    Assert.Equal("Failed to invoke '!@#$%' due to an error on the server. HubException: Method doesn't exist.", ex.Message);
+                    Assert.Equal("Failed to invoke '!@#$%' due to an error on the server. HubException: Method does not exist.", ex.Message);
                 }
                 catch (Exception ex)
                 {

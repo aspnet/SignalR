@@ -136,7 +136,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         {
             if (!_methods.TryGetValue(methodName, out var descriptor))
             {
-                throw new HubException("Method doesn't exist.");
+                throw new HubException("Method does not exist.");
             }
             return descriptor.ParameterTypes;
         }
