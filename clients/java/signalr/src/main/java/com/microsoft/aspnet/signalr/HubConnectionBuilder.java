@@ -14,7 +14,8 @@ public class HubConnectionBuilder {
         return this;
     }
 
-    public HubConnectionBuilder withTransport(Transport transport) {
+    public HubConnectionBuilder withUrl(String url, Transport transport){
+        this.url = url;
         this.transport = transport;
         return this;
     }
