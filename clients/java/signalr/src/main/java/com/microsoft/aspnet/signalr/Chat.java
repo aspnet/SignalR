@@ -13,8 +13,8 @@ public class Chat {
             input = reader.nextLine();
 
             HubConnection hubConnection = new HubConnectionBuilder()
-                    .setUrl(input)
-                    .setLogLevel(LogLevel.Information).build();
+                    .withUrl(input)
+                    .configureLogging(LogLevel.Information).build();
 
             hubConnection.on("Send", (message) -> {
                 System.out.println("REGISTERED HANDLER: " + message);

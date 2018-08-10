@@ -9,22 +9,22 @@ public class HubConnectionBuilder {
     private Transport transport;
     private Logger logger;
 
-    public HubConnectionBuilder setUrl(String url){
+    public HubConnectionBuilder withUrl(String url){
         this.url = url;
         return this;
     }
 
-    public HubConnectionBuilder setTransport(Transport transport) {
+    public HubConnectionBuilder withTransport(Transport transport) {
         this.transport = transport;
         return this;
     }
 
-    public HubConnectionBuilder setLogLevel(LogLevel logLevel) {
+    public HubConnectionBuilder configureLogging(LogLevel logLevel) {
         this.logger = new ConsoleLogger(logLevel);
         return this;
     }
 
-    public HubConnectionBuilder setLogger(Logger logger){
+    public HubConnectionBuilder configureLogging(Logger logger){
         this.logger = logger;
         return this;
     }
