@@ -9,7 +9,7 @@ import java.util.Date;
 
 public class ConsoleLogger implements Logger {
     private LogLevel logLevel;
-    private DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
+    private DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mmZ");
 
     public ConsoleLogger(LogLevel logLevel) {
             this.logLevel = logLevel;
