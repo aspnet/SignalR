@@ -32,7 +32,7 @@ public class HubConnectionBuilder {
     public HubConnection build() throws Exception {
         if(!built){
             built = true;
-            return new HubConnection(url , transport, logger);
+            return new HubConnection(url, transport, logger);
         }
         throw new Exception("HubConnectionBuilder allows creation only of a single instance of HubConnection.");
     }
