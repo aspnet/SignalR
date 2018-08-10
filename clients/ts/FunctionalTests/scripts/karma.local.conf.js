@@ -40,7 +40,7 @@ try {
     }
 
     // We use the launchers themselves to figure out if the browser exists. It's a bit sneaky, but it works.
-    tryAddBrowser("ChromeHeadless", new ChromeHeadlessBrowser(() => { }, {}));
+    tryAddBrowser("ChromeHeadless", new ChromeHeadlessBrowser(() => { flags: ['--no-sandbox'] }, {}));
     tryAddBrowser("ChromiumHeadless", new ChromiumHeadlessBrowser(() => { }, {}));
     tryAddBrowser("FirefoxHeadless", new FirefoxHeadlessBrowser(0, () => { }, {}));
 
