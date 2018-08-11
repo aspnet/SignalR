@@ -9,8 +9,6 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.microsoft.aspnet.signalr.HubConnectionState.DISCONNECTED;
-
 public class HubConnection {
     private String url;
     private Transport transport;
@@ -20,7 +18,7 @@ public class HubConnection {
     private Gson gson = new Gson();
     private Boolean handshakeReceived = false;
     private static final String RECORD_SEPARATOR = "\u001e";
-    private HubConnectionState connectionState = DISCONNECTED;
+    private HubConnectionState connectionState = HubConnectionState.DISCONNECTED;
     private Logger logger;
 
     public HubConnection(String url, Transport transport, Logger logger){
@@ -163,7 +161,7 @@ public class HubConnection {
         }
 
         transport.stop();
-        connectionState = DISCONNECTED;
+        connectionState = HubConnectionState.DISCONNECTED;
         logger.log(LogLevel.Information, "HubConnection stopped");
     }
 
