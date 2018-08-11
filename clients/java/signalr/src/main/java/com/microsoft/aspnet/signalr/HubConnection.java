@@ -9,6 +9,8 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.microsoft.aspnet.signalr.HubConnectionState.DISCONNECTED;
+
 public class HubConnection {
     private String url;
     private Transport transport;
@@ -18,7 +20,7 @@ public class HubConnection {
     private Gson gson = new Gson();
     private Boolean handshakeReceived = false;
     private static final String RECORD_SEPARATOR = "\u001e";
-    private HubConnectionState connectionState = HubConnectionState.DISCONNECTED;
+    private HubConnectionState connectionState = DISCONNECTED;
     private Logger logger;
 
     public HubConnection(String url, Transport transport, Logger logger){
@@ -74,6 +76,10 @@ public class HubConnection {
                     case STREAM_INVOCATION:
                     case STREAM_ITEM:
                     case CLOSE:
+                        logger.log(LogLevel.Information, "Close message received from server.");
+                        CloseMessage closeMessage = (CloseMessage)message;
+                        stop(closeMessage.getError());
+                        break;
                     case CANCEL_INVOCATION:
                     case COMPLETION:
                         logger.log(LogLevel.Error, "This client does not support %s messages", message.getMessageType());
@@ -145,14 +151,27 @@ public class HubConnection {
         logger.log(LogLevel.Information, "HubConnected started");
     }
 
+
+    /**
+     * Stops a connection to the server.
+     */
+    public void stop(String errorMessage){
+        if(errorMessage != null){
+            logger.log(LogLevel.Error , "HubConnection disconnected with an error %s", errorMessage);
+        } else {
+            logger.log(LogLevel.Debug, "Stopping HubConnection");
+        }
+
+        transport.stop();
+        connectionState = DISCONNECTED;
+        logger.log(LogLevel.Information, "HubConnection stopped");
+    }
+
     /**
      * Stops a connection to the server.
      */
     public void stop(){
-        logger.log(LogLevel.Debug, "Stopping HubConnection");
-        transport.stop();
-        connectionState = HubConnectionState.DISCONNECTED;
-        logger.log(LogLevel.Information, "HubConnection stopped");
+        stop(null);
     }
 
     /**
