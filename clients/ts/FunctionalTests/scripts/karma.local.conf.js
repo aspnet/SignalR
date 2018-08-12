@@ -10,9 +10,7 @@ try {
     const FirefoxHeadlessBrowser = require("karma-firefox-launcher")["launcher:FirefoxHeadless"][1];
     const EdgeBrowser = require("karma-edge-launcher")["launcher:Edge"][1];
     const SafariBrowser = require("karma-safari-launcher")["launcher:Safari"][1];
-    const IEBrowser = require("karma-ie-launcher")["launcher:IE"][1];
-
-    let browsers = [];
+    const IEBrowser = require("karma-ie-launcher")["launcher:IE"][1];  
 
     function browserExists(path) {
       // On linux, the browsers just return the command, not a path, so we need to check if it exists.
@@ -40,7 +38,7 @@ try {
     }
 
     // We use the launchers themselves to figure out if the browser exists. It's a bit sneaky, but it works.
-    tryAddBrowser("ChromeHeadless", new ChromeHeadlessBrowser(() => { }, {}));
+    //tryAddBrowser("ChromeHeadless", new ChromeHeadlessBrowser(() => {}, {}));
     tryAddBrowser("ChromiumHeadless", new ChromiumHeadlessBrowser(() => { }, {}));
     tryAddBrowser("FirefoxHeadless", new FirefoxHeadlessBrowser(0, () => { }, {}));
 
@@ -51,8 +49,15 @@ try {
       tryAddBrowser("Safari", new SafariBrowser(() => { }, {}));
     }
 
+
     module.exports = createKarmaConfig({
-      browsers,
+      browsers: ['ChromeHeadlessNoSandbox'],
+      customLaunchers: {
+        ChromeHeadlessNoSandbox: {
+          base: 'ChromeHeadless',
+          flags: ['--no-sandbox']
+        }
+      }
     });
 } catch (e) {
     console.error(e);
