@@ -3,8 +3,12 @@
 
 using System;
 using System.Buffers;
+using System.Buffers.Text;
 using System.Globalization;
 using System.IO;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Text.JsonLab;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -80,6 +84,28 @@ namespace Microsoft.AspNetCore.Internal
             return prop.Value<T>();
         }
 
+        public static string GetTokenString(JsonValueType valueType, JsonTokenType tokenType)
+        {
+            switch (valueType)
+            {
+                case JsonValueType.Number:
+                    return "Integer";
+                case JsonValueType.Unknown:
+                    if (tokenType == JsonTokenType.StartArray)
+                    {
+                        return JsonValueType.Array.ToString();
+                    }
+                    if (tokenType == JsonTokenType.StartObject)
+                    {
+                        return JsonValueType.Object.ToString();
+                    }
+                    return tokenType.ToString();
+                default:
+                    break;
+            }
+            return valueType.ToString();
+        }
+
         public static string GetTokenString(JsonToken tokenType)
         {
             switch (tokenType)
@@ -96,6 +122,22 @@ namespace Microsoft.AspNetCore.Internal
                     break;
             }
             return tokenType.ToString();
+        }
+
+        public static void EnsureObjectStart(ref Utf8JsonReader reader)
+        {
+            if (reader.TokenType != JsonTokenType.StartObject)
+            {
+                throw new InvalidDataException($"Unexpected JSON Token Type '{GetTokenString(reader.ValueType, reader.TokenType)}'. Expected a JSON Object.");
+            }
+        }
+
+        public static void EnsureArrayStart(ref Utf8JsonReader reader)
+        {
+            if (reader.TokenType != JsonTokenType.StartArray)
+            {
+                throw new InvalidDataException($"Unexpected JSON Token Type '{GetTokenString(reader.ValueType, reader.TokenType)}'. Expected a JSON Array.");
+            }
         }
 
         public static void EnsureObjectStart(JsonTextReader reader)
@@ -131,6 +173,26 @@ namespace Microsoft.AspNetCore.Internal
             return Convert.ToInt32(reader.Value, CultureInfo.InvariantCulture);
         }
 
+        public static int? ReadAsInt32(ref Utf8JsonReader reader, string propertyName)
+        {
+            reader.Read();
+
+            if (reader.TokenType != JsonTokenType.Value || reader.ValueType != JsonValueType.Number)
+            {
+                throw new InvalidDataException($"Expected '{propertyName}' to be of type {JTokenType.Integer}.");
+            }
+
+            if (reader.Value.IsEmpty)
+            {
+                return null;
+            }
+            if (!Utf8Parser.TryParse(reader.Value, out int value, out _))
+            {
+                throw new InvalidDataException($"Expected '{propertyName}' to be of type {JTokenType.Integer}.");
+            }
+            return value;
+        }
+
         public static string ReadAsString(JsonTextReader reader, string propertyName)
         {
             reader.Read();
@@ -143,7 +205,46 @@ namespace Microsoft.AspNetCore.Internal
             return reader.Value?.ToString();
         }
 
+        public static string ReadAsString(ref Utf8JsonReader reader, string propertyName)
+        {
+            reader.Read();
+
+            if (reader.TokenType != JsonTokenType.Value || reader.ValueType != JsonValueType.String)
+            {
+                throw new InvalidDataException($"Expected '{propertyName}' to be of type {JTokenType.String}.");
+            }
+
+            return ConvertToString(reader.Value);
+        }
+
+        public static string ConvertToString(ReadOnlySpan<byte> utf8Value)
+        {
+            if (utf8Value.IsEmpty) return "";
+
+#if NETCOREAPP2_2
+            return Encoding.UTF8.GetString(utf8Value);
+#else
+            unsafe
+            {
+                fixed (byte* bytes = &MemoryMarshal.GetReference(utf8Value))
+                {
+                    return Encoding.UTF8.GetString(bytes, utf8Value.Length);
+                }
+            }
+#endif
+        }
+
         public static bool CheckRead(JsonTextReader reader)
+        {
+            if (!reader.Read())
+            {
+                throw new InvalidDataException("Unexpected end when reading JSON.");
+            }
+
+            return true;
+        }
+
+        public static bool CheckRead(ref Utf8JsonReader reader)
         {
             if (!reader.Read())
             {

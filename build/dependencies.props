@@ -69,6 +69,7 @@
     <SystemReactiveLinqPackageVersion>3.1.1</SystemReactiveLinqPackageVersion>
     <SystemReflectionEmitPackageVersion>4.3.0</SystemReflectionEmitPackageVersion>
     <SystemRuntimeCompilerServicesUnsafePackageVersion>4.6.0-preview1-26727-04</SystemRuntimeCompilerServicesUnsafePackageVersion>
+    <SystemTextJsonLabPackageVersion>0.1.0-preview2-180804-5</SystemTextJsonLabPackageVersion>
     <SystemThreadingChannelsPackageVersion>4.6.0-preview1-26727-04</SystemThreadingChannelsPackageVersion>
     <SystemThreadingTasksExtensionsPackageVersion>4.6.0-preview1-26727-04</SystemThreadingTasksExtensionsPackageVersion>
     <XunitAssertPackageVersion>2.3.1</XunitAssertPackageVersion>
