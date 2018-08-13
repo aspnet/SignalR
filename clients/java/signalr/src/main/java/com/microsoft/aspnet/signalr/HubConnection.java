@@ -25,7 +25,7 @@ public class HubConnection {
         this.url = url;
         this.protocol = new JsonHubProtocol();
 
-        if(logger != null) {
+        if (logger != null) {
             this.logger = logger;
         } else {
             this.logger = new NullLogger();

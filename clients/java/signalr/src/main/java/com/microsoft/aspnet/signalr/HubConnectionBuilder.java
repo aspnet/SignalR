@@ -4,17 +4,17 @@
 package com.microsoft.aspnet.signalr;
 
 public class HubConnectionBuilder {
-    private boolean built = false;
+    private boolean built;
     private String url;
     private Transport transport;
     private Logger logger;
 
-    public HubConnectionBuilder withUrl(String url){
+    public HubConnectionBuilder withUrl(String url) {
         this.url = url;
         return this;
     }
 
-    public HubConnectionBuilder withUrl(String url, Transport transport){
+    public HubConnectionBuilder withUrl(String url, Transport transport) {
         this.url = url;
         this.transport = transport;
         return this;
@@ -25,13 +25,13 @@ public class HubConnectionBuilder {
         return this;
     }
 
-    public HubConnectionBuilder configureLogging(Logger logger){
+    public HubConnectionBuilder configureLogging(Logger logger) {
         this.logger = logger;
         return this;
     }
 
     public HubConnection build() throws Exception {
-        if(!built){
+        if (!built) {
             built = true;
             return new HubConnection(url, transport, logger);
         }
