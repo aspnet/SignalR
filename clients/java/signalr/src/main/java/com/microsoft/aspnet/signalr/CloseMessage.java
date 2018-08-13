@@ -11,13 +11,14 @@ public class CloseMessage extends HubMessage {
         return HubMessageType.CLOSE;
     }
 
-    public CloseMessage(){}
+    public CloseMessage() {
+    }
 
-    public CloseMessage(String error){
+    public CloseMessage(String error) {
         this.error = error;
     }
 
-    public String getError(){
+    public String getError() {
         return this.error;
     }
 }

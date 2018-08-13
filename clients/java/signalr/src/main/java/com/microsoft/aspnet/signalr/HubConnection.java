@@ -71,21 +71,21 @@ public class HubConnection {
                             logger.log(LogLevel.Warning, "Failed to find handler for %s method", invocationMessage.target);
                         }
                         break;
-                    case STREAM_INVOCATION:
-                    case STREAM_ITEM:
                     case CLOSE:
                         logger.log(LogLevel.Information, "Close message received from server.");
                         CloseMessage closeMessage = (CloseMessage)message;
                         stop(closeMessage.getError());
                         break;
+                    case PING:
+                        // We don't need to do anything in the case of a ping message.
+                        break;
+                    case STREAM_INVOCATION:
+                    case STREAM_ITEM:
                     case CANCEL_INVOCATION:
                     case COMPLETION:
                         logger.log(LogLevel.Error, "This client does not support %s messages", message.getMessageType());
 
                         throw new UnsupportedOperationException(String.format("The message type %s is not supported yet.", message.getMessageType()));
-                    case PING:
-                        // We don't need to do anything in the case of a ping message.
-                        break;
                 }
             }
         };
@@ -153,7 +153,7 @@ public class HubConnection {
     /**
      * Stops a connection to the server.
      */
-    public void stop(String errorMessage){
+    public void stop(String errorMessage) {
         if(errorMessage != null){
             logger.log(LogLevel.Error , "HubConnection disconnected with an error %s", errorMessage);
         } else {
@@ -168,7 +168,7 @@ public class HubConnection {
     /**
      * Stops a connection to the server.
      */
-    public void stop(){
+    public void stop() {
         stop(null);
     }
 
