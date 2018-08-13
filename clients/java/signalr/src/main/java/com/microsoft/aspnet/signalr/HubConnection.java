@@ -153,7 +153,7 @@ public class HubConnection {
     /**
      * Stops a connection to the server.
      */
-    public void stop(String errorMessage) {
+    private void stop(String errorMessage) {
         if(errorMessage != null){
             logger.log(LogLevel.Error , "HubConnection disconnected with an error %s", errorMessage);
         } else {

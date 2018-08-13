@@ -55,7 +55,7 @@ public class JsonHubProtocolTest {
 
         assertEquals(HubMessageType.CLOSE, messages[0].getMessageType());
 
-        //We can safely cast here because we know that it's an invocation message.
+        //We can safely cast here because we know that it's a close message.
         CloseMessage closeMessage = (CloseMessage) messages[0];
 
         assertEquals(null, closeMessage.getError());
@@ -71,7 +71,7 @@ public class JsonHubProtocolTest {
 
         assertEquals(HubMessageType.CLOSE, messages[0].getMessageType());
 
-        //We can safely cast here because we know that it's an invocation message.
+        //We can safely cast here because we know that it's a close message.
         CloseMessage closeMessage = (CloseMessage) messages[0];
 
         assertEquals("There was an error", closeMessage.getError());

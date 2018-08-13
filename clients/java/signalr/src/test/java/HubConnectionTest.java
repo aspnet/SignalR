@@ -23,7 +23,7 @@ public class HubConnectionTest {
     }
 
     @Test
-    public void HubConnectionClosesafterCloseMessage() throws Exception {
+    public void HubConnectionClosesAfterCloseMessage() throws Exception {
         MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
 
