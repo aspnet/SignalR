@@ -2381,6 +2381,117 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
+        [Theory]
+        [InlineData(nameof(LongRunningHub.CancelableStream))]
+        [InlineData(nameof(LongRunningHub.CancelableStream2), 1, 2)]
+        [InlineData(nameof(LongRunningHub.CancelableStreamMiddle), 1, 2)]
+        public async Task StreamHubMethodCanAcceptCancellationTokenAsArgumentAndBeTriggeredOnCancellation(string methodName, params object[] args)
+        {
+            var tcsService = new TcsService();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(builder =>
+            {
+                builder.AddSingleton(tcsService);
+            });
+            var connectionHandler = serviceProvider.GetService<HubConnectionHandler<LongRunningHub>>();
+
+            using (var client = new TestClient())
+            {
+                var connectionHandlerTask = await client.ConnectAsync(connectionHandler).OrTimeout();
+
+                var streamInvocationId = await client.SendStreamInvocationAsync(methodName, args).OrTimeout();
+                // Wait for the stream method to start
+                await tcsService.StartedMethod.Task.OrTimeout();
+
+                // Cancel the stream which should trigger the CancellationToken in the hub method
+                await client.SendHubMessageAsync(new CancelInvocationMessage(streamInvocationId)).OrTimeout();
+
+                var result = await client.ReadAsync().OrTimeout();
+
+                var simpleCompletion = Assert.IsType<CompletionMessage>(result);
+                Assert.Null(simpleCompletion.Result);
+
+                // CancellationToken passed to hub method will allow EndMethod to be triggered if it is canceled.
+                await tcsService.EndMethod.Task.OrTimeout();
+
+                // Shut down
+                client.Dispose();
+
+                await connectionHandlerTask.OrTimeout();
+            }
+        }
+
+        [Fact]
+        public async Task StreamHubMethodCanAcceptCancellationTokenAsArgumentAndBeTriggeredOnConnectionAborted()
+        {
+            var tcsService = new TcsService();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(builder =>
+            {
+                builder.AddSingleton(tcsService);
+            });
+            var connectionHandler = serviceProvider.GetService<HubConnectionHandler<LongRunningHub>>();
+
+            using (var client = new TestClient())
+            {
+                var connectionHandlerTask = await client.ConnectAsync(connectionHandler).OrTimeout();
+
+                var streamInvocationId = await client.SendStreamInvocationAsync(nameof(LongRunningHub.CancelableStream)).OrTimeout();
+                // Wait for the stream method to start
+                await tcsService.StartedMethod.Task.OrTimeout();
+
+                // Shut down the client which should trigger the CancellationToken in the hub method
+                client.Dispose();
+
+                // CancellationToken passed to hub method will allow EndMethod to be triggered if it is canceled.
+                await tcsService.EndMethod.Task.OrTimeout();
+
+                await connectionHandlerTask.OrTimeout();
+            }
+        }
+
+        [Theory]
+        [InlineData(nameof(LongRunningHub.CancelableInvoke))]
+        [InlineData(nameof(LongRunningHub.CancelableInvoke2), 1, 2)]
+        [InlineData(nameof(LongRunningHub.CancelableInvokeMiddle), 1, 2)]
+        public async Task InvokeHubMethodCanAcceptCancellationTokenAsArgumentAndBeTriggeredOnCancellation(string methodName, params object[] args)
+        {
+            while (!System.Diagnostics.Debugger.IsAttached) ;
+            var tcsService = new TcsService();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(builder =>
+            {
+                builder.AddSingleton(tcsService);
+                builder.AddSignalR(o =>
+                {
+                    o.ClientTimeoutInterval = TimeSpan.FromMilliseconds(100);
+                });
+            });
+            var connectionHandler = serviceProvider.GetService<HubConnectionHandler<LongRunningHub>>();
+
+            using (var client = new TestClient())
+            {
+                var connectionHandlerTask = await client.ConnectAsync(connectionHandler).OrTimeout();
+
+                var invocationId = await client.SendInvocationAsync(methodName, args).OrTimeout();
+                // Wait for the method to start
+                await tcsService.StartedMethod.Task.OrTimeout();
+
+                // Cancel the invocation which should trigger the CancellationToken in the hub method
+                await client.SendHubMessageAsync(new CancelInvocationMessage(invocationId)).OrTimeout();
+
+                var result = await client.ReadAsync().OrTimeout();
+
+                var simpleCompletion = Assert.IsType<CompletionMessage>(result);
+                Assert.Null(simpleCompletion.Result);
+
+                // CancellationToken passed to hub method will allow EndMethod to be triggered if it is canceled.
+                await tcsService.EndMethod.Task.OrTimeout();
+
+                // Shut down
+                client.Dispose();
+
+                await connectionHandlerTask.OrTimeout();
+            }
+        }
+
         private class CustomHubActivator<THub> : IHubActivator<THub> where THub : Hub
         {
             public int ReleaseCount;

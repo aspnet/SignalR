@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -545,6 +546,81 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             await _tcsService.EndMethod.Task;
             // Never ending stream
             return Channel.CreateUnbounded<string>().Reader;
+        }
+
+        public ChannelReader<int> CancelableStream(CancellationToken token)
+        {
+            var channel = Channel.CreateBounded<int>(10);
+
+            Task.Run(() =>
+            {
+                _tcsService.StartedMethod.SetResult(null);
+                token.WaitHandle.WaitOne();
+                channel.Writer.TryComplete();
+                _tcsService.EndMethod.SetResult(null);
+            });
+
+            return channel.Reader;
+        }
+
+        public ChannelReader<int> CancelableStream2(int ignore, int ignore2, CancellationToken token)
+        {
+            var channel = Channel.CreateBounded<int>(10);
+
+            Task.Run(() =>
+            {
+                _tcsService.StartedMethod.SetResult(null);
+                token.WaitHandle.WaitOne();
+                channel.Writer.TryComplete();
+                _tcsService.EndMethod.SetResult(null);
+            });
+
+            return channel.Reader;
+        }
+
+        public ChannelReader<int> CancelableStreamMiddle(int ignore, CancellationToken token, int ignore2)
+        {
+            var channel = Channel.CreateBounded<int>(10);
+
+            Task.Run(() =>
+            {
+                _tcsService.StartedMethod.SetResult(null);
+                token.WaitHandle.WaitOne();
+                channel.Writer.TryComplete();
+                _tcsService.EndMethod.SetResult(null);
+            });
+
+            return channel.Reader;
+        }
+
+        public async Task<int> CancelableInvoke(CancellationToken token)
+        {
+            _tcsService.StartedMethod.SetResult(null);
+            await Task.Yield();
+            token.WaitHandle.WaitOne();
+            _tcsService.EndMethod.SetResult(null);
+
+            return 1;
+        }
+
+        public async Task<int> CancelableInvoke2(int ignore, int ignore2, CancellationToken token)
+        {
+            _tcsService.StartedMethod.SetResult(null);
+            await Task.Yield();
+            token.WaitHandle.WaitOne();
+            _tcsService.EndMethod.SetResult(null);
+
+            return 1;
+        }
+
+        public async Task<int> CancelableInvokeMiddle(int ignore, CancellationToken token, int ignore2)
+        {
+            _tcsService.StartedMethod.SetResult(null);
+            await Task.Yield();
+            token.WaitHandle.WaitOne();
+            _tcsService.EndMethod.SetResult(null);
+
+            return 1;
         }
 
         public int SimpleMethod()

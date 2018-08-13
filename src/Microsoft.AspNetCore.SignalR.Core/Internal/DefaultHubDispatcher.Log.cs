@@ -57,6 +57,9 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             private static readonly Action<ILogger, string, Exception> _invalidReturnValueFromStreamingMethod =
                 LoggerMessage.Define<string>(LogLevel.Error, new EventId(15, "InvalidReturnValueFromStreamingMethod"), "A streaming method returned a value that cannot be used to build enumerator {HubMethod}.");
 
+            private static readonly Action<ILogger, string, Exception> _cancelInvocation =
+                LoggerMessage.Define<string>(LogLevel.Debug, new EventId(16, "CancelInvocation"), "Canceling invocation {InvocationId}.");
+
             public static void ReceivedHubInvocation(ILogger logger, InvocationMessage invocationMessage)
             {
                 _receivedHubInvocation(logger, invocationMessage, null);
@@ -132,6 +135,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             public static void InvalidReturnValueFromStreamingMethod(ILogger logger, string hubMethod)
             {
                 _invalidReturnValueFromStreamingMethod(logger, hubMethod, null);
+            }
+
+            public static void CancelInvocation(ILogger logger, string invocationId)
+            {
+                _cancelInvocation(logger, invocationId, null);
             }
         }
     }
