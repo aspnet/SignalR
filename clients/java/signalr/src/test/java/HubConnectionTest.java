@@ -27,7 +27,6 @@ public class HubConnectionTest {
         MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
 
-
         hubConnection.start();
         mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
 
