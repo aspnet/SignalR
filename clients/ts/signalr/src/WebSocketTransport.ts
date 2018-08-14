@@ -68,17 +68,7 @@ export class WebSocketTransport implements ITransport {
                 }
             };
 
-            webSocket.onclose = (event: CloseEvent) => {
-                // webSocket will be null if the transport did not start successfully
-                this.logger.log(LogLevel.Trace, "(WebSockets transport) socket closed.");
-                if (this.onclose) {
-                    if (event && (event.wasClean === false || event.code !== 1000)) {
-                        this.onclose(new Error(`Websocket closed with status code: ${event.code} (${event.reason})`));
-                    } else {
-                        this.onclose();
-                    }
-                }
-            };
+            webSocket.onclose = (event: CloseEvent) => this.close(event);
         });
     }
 
@@ -94,8 +84,6 @@ export class WebSocketTransport implements ITransport {
 
     public stop(): Promise<void> {
         if (this.webSocket) {
-            // Capture close callback and invoke it manually after clearing it
-            const close = this.webSocket.onclose;
             // Clear websocket handlers because we are considering the socket closed now
             this.webSocket.onclose = () => {};
             this.webSocket.onmessage = () => {};
@@ -105,9 +93,21 @@ export class WebSocketTransport implements ITransport {
 
             // Manually invoke onclose callback inline so we know the HttpConnection was closed properly before returning
             // This also solves an issue where websocket.onclose could take 18+ seconds to trigger during network disconnects
-            close!.call(this.webSocket, undefined);
+            this.close(undefined);
         }
 
         return Promise.resolve();
+    }
+
+    private close(event?: CloseEvent): void {
+        // webSocket will be null if the transport did not start successfully
+        this.logger.log(LogLevel.Trace, "(WebSockets transport) socket closed.");
+        if (this.onclose) {
+            if (event && (event.wasClean === false || event.code !== 1000)) {
+                this.onclose(new Error(`Websocket closed with status code: ${event.code} (${event.reason})`));
+            } else {
+                this.onclose();
+            }
+        }
     }
 }
