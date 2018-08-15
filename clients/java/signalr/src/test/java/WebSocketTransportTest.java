@@ -14,7 +14,7 @@ public class WebSocketTransportTest {
     public ExpectedException expectedEx = ExpectedException.none();
 
     @Test
-    public void WebsocketThrowsIIfItCantConnect() throws Exception {
+    public void WebsocketThrowsIfItCantConnect() throws Exception {
         expectedEx.expect(Exception.class);
         expectedEx.expectMessage("There was an error starting the Websockets transport");
         Transport transport = new WebSocketTransport("www.notarealurl12345.fake", new NullLogger());

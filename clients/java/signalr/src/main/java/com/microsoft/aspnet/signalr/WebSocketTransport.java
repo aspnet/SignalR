@@ -40,10 +40,10 @@ public class WebSocketTransport implements Transport {
 
     @Override
     public void start() throws Exception {
-        logger.log(LogLevel.Debug, "Starting Websocket connection");
+        logger.log(LogLevel.Debug, "Starting Websocket connection.");
         webSocketClient = createWebSocket();
         if (!webSocketClient.connectBlocking()) {
-            String errorMessage = "There was an error starting the Websockets transport";
+            String errorMessage = "There was an error starting the Websockets transport.";
             logger.log(LogLevel.Debug, errorMessage);
             throw new Exception(errorMessage);
         }
