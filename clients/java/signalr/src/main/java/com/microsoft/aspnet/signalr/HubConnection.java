@@ -146,23 +146,22 @@ public class HubConnection {
         String handshake = HandshakeProtocol.createHandshakeRequestMessage(new HandshakeRequestMessage(protocol.getName(), protocol.getVersion()));
         transport.send(handshake);
         connectionState = HubConnectionState.CONNECTED;
-        logger.log(LogLevel.Information, "HubConnected started");
+        logger.log(LogLevel.Information, "HubConnected started.");
     }
-
 
     /**
      * Stops a connection to the server.
      */
     private void stop(String errorMessage) {
         if(errorMessage != null){
-            logger.log(LogLevel.Error , "HubConnection disconnected with an error %s", errorMessage);
+            logger.log(LogLevel.Error , "HubConnection disconnected with an error %s.", errorMessage);
         } else {
-            logger.log(LogLevel.Debug, "Stopping HubConnection");
+            logger.log(LogLevel.Debug, "Stopping HubConnection.");
         }
 
         transport.stop();
         connectionState = HubConnectionState.DISCONNECTED;
-        logger.log(LogLevel.Information, "HubConnection stopped");
+        logger.log(LogLevel.Information, "HubConnection stopped.");
     }
 
     /**
