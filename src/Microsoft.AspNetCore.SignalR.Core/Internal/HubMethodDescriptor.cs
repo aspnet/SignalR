@@ -33,8 +33,10 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 StreamReturnType = channelItemType;
             }
 
+            // Take out synthetic arguments that will be provided by the server, this list will be given to the protocol parsers
             ParameterTypes = methodExecutor.MethodParameters.Where(p =>
             {
+                // Only streams can take CancellationTokens currently
                 if (IsStreamable && p.ParameterType == typeof(CancellationToken))
                 {
                     HasSyntheticArguments = true;

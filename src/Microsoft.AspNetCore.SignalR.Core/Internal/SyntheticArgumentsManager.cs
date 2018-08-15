@@ -32,6 +32,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             return false;
         }
 
+        // May be used for canceling hub invocations, so we need to expose the cts
         public bool TryGetCancellationTokenSource(out CancellationTokenSource cts)
         {
             cts = _cts;
