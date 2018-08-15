@@ -2464,7 +2464,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 Assert.Equal("Failed to invoke 'InvalidArgument' due to an error on the server.", completion.Error);
 
-                // Shut down the client which should trigger the CancellationToken in the hub method
                 client.Dispose();
 
                 await connectionHandlerTask.OrTimeout();
