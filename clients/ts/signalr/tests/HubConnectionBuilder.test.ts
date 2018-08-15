@@ -12,7 +12,7 @@ import { NullLogger } from "../src/Loggers";
 
 import { VerifyLogger } from "./Common";
 import { TestHttpClient } from "./TestHttpClient";
-import { PromiseSource } from "./Utils";
+import { PromiseSource, unhandledRejectionHandler } from "./Utils";
 
 const longPollingNegotiateResponse = {
     availableTransports: [
@@ -24,6 +24,8 @@ const longPollingNegotiateResponse = {
 const commonHttpOptions: IHttpConnectionOptions = {
     logMessageContent: true,
 };
+
+unhandledRejectionHandler();
 
 describe("HubConnectionBuilder", () => {
     eachMissingValue((val, name) => {
