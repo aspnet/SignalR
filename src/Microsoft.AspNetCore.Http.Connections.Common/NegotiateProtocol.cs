@@ -18,6 +18,8 @@ namespace Microsoft.AspNetCore.Http.Connections
         private const string AvailableTransportsPropertyName = "availableTransports";
         private const string TransportPropertyName = "transport";
         private const string TransferFormatsPropertyName = "transferFormats";
+        // Used to detect ASP.NET SignalR Server connection attempt
+        private const string TryWebSocketsPropertyName = "TryWebSockets";
 
         public static void WriteResponse(NegotiationResponse response, IBufferWriter<byte> output)
         {
@@ -134,6 +136,8 @@ namespace Microsoft.AspNetCore.Http.Connections
                                             }
                                         }
                                         break;
+                                    case TryWebSocketsPropertyName:
+                                        throw new InvalidOperationException($"It seems like you are trying to connect to an ASP.NET SignalR Server. This client only supports connecting to an ASP.NET Core SignalR Server.");
                                     default:
                                         reader.Skip();
                                         break;
