@@ -22,9 +22,20 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         public HubMethodDescriptor(ObjectMethodExecutor methodExecutor, IEnumerable<IAuthorizeData> policies)
         {
             MethodExecutor = methodExecutor;
+
+            NonAsyncReturnType = (MethodExecutor.IsMethodAsync)
+                ? MethodExecutor.AsyncResultType
+                : MethodExecutor.MethodReturnType;
+
+            if (IsChannelType(NonAsyncReturnType, out var channelItemType))
+            {
+                IsChannel = true;
+                StreamReturnType = channelItemType;
+            }
+
             ParameterTypes = methodExecutor.MethodParameters.Where(p =>
             {
-                if (p.ParameterType == typeof(CancellationToken))
+                if (IsStreamable && p.ParameterType == typeof(CancellationToken))
                 {
                     HasSyntheticArguments = true;
                     return false;
@@ -38,16 +49,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             }
 
             Policies = policies.ToArray();
-
-            NonAsyncReturnType = (MethodExecutor.IsMethodAsync)
-                ? MethodExecutor.AsyncResultType
-                : MethodExecutor.MethodReturnType;
-
-            if (IsChannelType(NonAsyncReturnType, out var channelItemType))
-            {
-                IsChannel = true;
-                StreamReturnType = channelItemType;
-            }
         }
 
         private Func<object, CancellationToken, IAsyncEnumerator<object>> _convertToEnumerator;

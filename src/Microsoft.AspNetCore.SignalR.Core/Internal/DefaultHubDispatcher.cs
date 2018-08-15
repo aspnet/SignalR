@@ -92,11 +92,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                     return ProcessInvocation(connection, streamInvocationMessage, isStreamedInvocation: true);
 
                 case CancelInvocationMessage cancelInvocationMessage:
-                    // Check if there is an associated active invocation and cancel it if it exists.
-                    // The cts will be removed when the invoked method completes executing
+                    // Check if there is an associated active stream and cancel it if it exists.
+                    // The cts will be removed when the streaming method completes executing
                     if (connection.ActiveRequestCancellationSources.TryGetValue(cancelInvocationMessage.InvocationId, out var cts))
                     {
-                        Log.CancelInvocation(_logger, cancelInvocationMessage.InvocationId);
+                        Log.CancelStream(_logger, cancelInvocationMessage.InvocationId);
                         cts.Cancel();
                     }
                     else
@@ -193,6 +193,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                     if (descriptor.HasSyntheticArguments)
                     {
                         arguments = new object[descriptor.OriginalParameterTypes.Count];
+                        var argumentsManager = new SyntheticArgumentsManager(connection);
 
                         var hubInvocationArgumentPointer = 0;
                         for (var parameterPointer = 0; parameterPointer < arguments.Length; parameterPointer++)
@@ -205,21 +206,19 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                             }
                             else
                             {
-                                if (descriptor.OriginalParameterTypes[parameterPointer] == typeof(CancellationToken))
+                                if (argumentsManager.TryGetSyntheticArgument(descriptor.OriginalParameterTypes[parameterPointer], out var argument))
                                 {
-                                    if (cts == null)
-                                    {
-                                        cts = CancellationTokenSource.CreateLinkedTokenSource(hub.Context.ConnectionAborted);
-                                    }
-                                    arguments[parameterPointer] = cts.Token;
-                                    connection.ActiveRequestCancellationSources.TryAdd(hubMethodInvocationMessage.InvocationId, cts);
+                                    arguments[parameterPointer] = argument;
                                 }
                                 else
                                 {
-                                    // Unknown type TODO
+                                    // This should never happen
+                                    Debug.Assert(false, $"Failed to bind argument of type '{descriptor.OriginalParameterTypes[parameterPointer].Name}' for hub method '{methodExecutor.MethodInfo.Name}'.");
                                 }
                             }
                         }
+
+                        argumentsManager.TryGetCancellationTokenSource(out cts);
                     }
 
                     var result = await ExecuteHubMethod(methodExecutor, hub, arguments);
@@ -245,10 +244,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                     {
                         Log.SendingResult(_logger, hubMethodInvocationMessage.InvocationId, methodExecutor);
                         await connection.WriteAsync(CompletionMessage.WithResult(hubMethodInvocationMessage.InvocationId, result));
-                        if (connection.ActiveRequestCancellationSources.TryRemove(hubMethodInvocationMessage.InvocationId, out var invocationCts))
-                        {
-                            invocationCts.Dispose();
-                        }
                     }
                 }
                 catch (TargetInvocationException ex)
@@ -421,8 +416,9 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                 {
                     if (streamCts == null)
                     {
-                        streamCts = CreateCancellation();
+                        streamCts = CancellationTokenSource.CreateLinkedTokenSource(connection.ConnectionAborted);
                     }
+                    connection.ActiveRequestCancellationSources.TryAdd(invocationId, streamCts);
                     enumerator = hubMethodDescriptor.FromChannel(result, streamCts.Token);
                     return true;
                 }
@@ -430,14 +426,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
             enumerator = null;
             return false;
-
-            CancellationTokenSource CreateCancellation()
-            {
-                var userCts = new CancellationTokenSource();
-                connection.ActiveRequestCancellationSources.TryAdd(invocationId, userCts);
-
-                return CancellationTokenSource.CreateLinkedTokenSource(connection.ConnectionAborted, userCts.Token);
-            }
         }
 
         private void DiscoverHubMethods()

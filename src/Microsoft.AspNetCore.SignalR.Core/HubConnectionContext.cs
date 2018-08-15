@@ -101,6 +101,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// </summary>
         public virtual IHubProtocol Protocol { get; set; }
 
+        // Currently used only for streaming methods
         internal ConcurrentDictionary<string, CancellationTokenSource> ActiveRequestCancellationSources { get; } = new ConcurrentDictionary<string, CancellationTokenSource>(StringComparer.Ordinal);
 
         public virtual ValueTask WriteAsync(HubMessage message, CancellationToken cancellationToken = default)

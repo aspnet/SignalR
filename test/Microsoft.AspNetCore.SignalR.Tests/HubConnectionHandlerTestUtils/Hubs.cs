@@ -166,6 +166,10 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             return Clients.Caller.SendAsync("Send", new string('x', 3000), new SelfRef());
         }
 
+        public void InvalidArgument(CancellationToken token)
+        {
+        }
+
         private class SelfRef
         {
             public SelfRef()
@@ -591,36 +595,6 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             });
 
             return channel.Reader;
-        }
-
-        public async Task<int> CancelableInvoke(CancellationToken token)
-        {
-            _tcsService.StartedMethod.SetResult(null);
-            await Task.Yield();
-            token.WaitHandle.WaitOne();
-            _tcsService.EndMethod.SetResult(null);
-
-            return 1;
-        }
-
-        public async Task<int> CancelableInvoke2(int ignore, int ignore2, CancellationToken token)
-        {
-            _tcsService.StartedMethod.SetResult(null);
-            await Task.Yield();
-            token.WaitHandle.WaitOne();
-            _tcsService.EndMethod.SetResult(null);
-
-            return 1;
-        }
-
-        public async Task<int> CancelableInvokeMiddle(int ignore, CancellationToken token, int ignore2)
-        {
-            _tcsService.StartedMethod.SetResult(null);
-            await Task.Yield();
-            token.WaitHandle.WaitOne();
-            _tcsService.EndMethod.SetResult(null);
-
-            return 1;
         }
 
         public int SimpleMethod()

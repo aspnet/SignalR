@@ -2448,44 +2448,23 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             }
         }
 
-        [Theory]
-        [InlineData(nameof(LongRunningHub.CancelableInvoke))]
-        [InlineData(nameof(LongRunningHub.CancelableInvoke2), 1, 2)]
-        [InlineData(nameof(LongRunningHub.CancelableInvokeMiddle), 1, 2)]
-        public async Task InvokeHubMethodCanAcceptCancellationTokenAsArgumentAndBeTriggeredOnCancellation(string methodName, params object[] args)
+        [Fact]
+        public async Task InvokeHubMethodCannotAcceptCancellationTokenAsArgument()
         {
-            while (!System.Diagnostics.Debugger.IsAttached) ;
-            var tcsService = new TcsService();
-            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(builder =>
-            {
-                builder.AddSingleton(tcsService);
-                builder.AddSignalR(o =>
-                {
-                    o.ClientTimeoutInterval = TimeSpan.FromMilliseconds(100);
-                });
-            });
-            var connectionHandler = serviceProvider.GetService<HubConnectionHandler<LongRunningHub>>();
+            var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider();
+            var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
 
             using (var client = new TestClient())
             {
                 var connectionHandlerTask = await client.ConnectAsync(connectionHandler).OrTimeout();
 
-                var invocationId = await client.SendInvocationAsync(methodName, args).OrTimeout();
-                // Wait for the method to start
-                await tcsService.StartedMethod.Task.OrTimeout();
+                var invocationId = await client.SendInvocationAsync(nameof(MethodHub.InvalidArgument)).OrTimeout();
 
-                // Cancel the invocation which should trigger the CancellationToken in the hub method
-                await client.SendHubMessageAsync(new CancelInvocationMessage(invocationId)).OrTimeout();
+                var completion = Assert.IsType<CompletionMessage>(await client.ReadAsync().OrTimeout());
 
-                var result = await client.ReadAsync().OrTimeout();
+                Assert.Equal("Failed to invoke 'InvalidArgument' due to an error on the server.", completion.Error);
 
-                var simpleCompletion = Assert.IsType<CompletionMessage>(result);
-                Assert.Null(simpleCompletion.Result);
-
-                // CancellationToken passed to hub method will allow EndMethod to be triggered if it is canceled.
-                await tcsService.EndMethod.Task.OrTimeout();
-
-                // Shut down
+                // Shut down the client which should trigger the CancellationToken in the hub method
                 client.Dispose();
 
                 await connectionHandlerTask.OrTimeout();
