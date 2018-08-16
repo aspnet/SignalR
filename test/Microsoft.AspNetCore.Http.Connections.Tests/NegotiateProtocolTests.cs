@@ -73,7 +73,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
 
             var exception = Assert.Throws<InvalidDataException>(() => NegotiateProtocol.ParseResponse(ms));
 
-            Assert.Equal("Detected a connection attempt to a ASP.NET SignalR Server. This client only supports connecting to an ASP.NET Core SignalR Server.", exception.InnerException.Message);
+            Assert.Equal("Detected a connection attempt to an ASP.NET SignalR Server. This client only supports connecting to an ASP.NET Core SignalR Server.", exception.InnerException.Message);
         }
 
         [Fact]
