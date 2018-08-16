@@ -8,6 +8,7 @@ import com.google.gson.JsonArray;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class HubConnection {
     private String url;
@@ -20,7 +21,7 @@ public class HubConnection {
     private static final String RECORD_SEPARATOR = "\u001e";
     private HubConnectionState connectionState = HubConnectionState.DISCONNECTED;
     private Logger logger;
-    private Action1<Exception> onClosedCallback;
+    private List<Consumer<Exception>> onClosedCallbackList;
 
     public HubConnection(String url, Transport transport, Logger logger){
         this.url = url;
@@ -163,8 +164,10 @@ public class HubConnection {
         transport.stop();
         connectionState = HubConnectionState.DISCONNECTED;
         logger.log(LogLevel.Information, "HubConnection stopped.");
-        if (onClosedCallback != null){
-            onClosedCallback.invoke(new Exception(errorMessage));
+        if (onClosedCallbackList != null){
+            for (Consumer<Exception> callback: onClosedCallbackList) {
+                callback.accept(new HubException(errorMessage));
+            }
         }
     }
 
@@ -411,7 +414,11 @@ public class HubConnection {
         logger.log(LogLevel.Trace, "Removing handlers for client method %s" , name);
     }
 
-    public void onClosed(Action1<Exception> callback) {
-        this.onClosedCallback = callback;
+    public void onClosed(Consumer<Exception> callback) {
+        if (onClosedCallbackList == null){
+            onClosedCallbackList = new ArrayList<>();
+        }
+
+        onClosedCallbackList.add(callback);
     }
 }
