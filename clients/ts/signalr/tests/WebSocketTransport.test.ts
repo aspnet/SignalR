@@ -7,9 +7,9 @@ import { WebSocketTransport } from "../src/WebSocketTransport";
 import { VerifyLogger } from "./Common";
 import { TestMessageEvent } from "./TestEventSource";
 import { TestCloseEvent, TestErrorEvent, TestEvent, TestWebSocket } from "./TestWebSocket";
-import { unhandledRejectionHandler } from "./Utils";
+import { registerUnhandledRejectionHandler } from "./Utils";
 
-unhandledRejectionHandler();
+registerUnhandledRejectionHandler();
 
 describe("WebSocketTransport", () => {
     it("sets websocket binarytype to arraybuffer on Binary transferformat", async () => {

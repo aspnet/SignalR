@@ -12,7 +12,7 @@ import { EventSourceConstructor, WebSocketConstructor } from "../src/Polyfills";
 
 import { eachEndpointUrl, eachTransport, VerifyLogger } from "./Common";
 import { TestHttpClient } from "./TestHttpClient";
-import { PromiseSource, unhandledRejectionHandler } from "./Utils";
+import { PromiseSource, registerUnhandledRejectionHandler } from "./Utils";
 
 const commonOptions: IHttpConnectionOptions = {
     logger: NullLogger.instance,
@@ -28,7 +28,7 @@ const defaultNegotiateResponse: INegotiateResponse = {
     connectionId: defaultConnectionId,
 };
 
-unhandledRejectionHandler();
+registerUnhandledRejectionHandler();
 
 describe("HttpConnection", () => {
     it("cannot be created with relative url if document object is not present", () => {

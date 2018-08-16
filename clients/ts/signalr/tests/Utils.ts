@@ -3,7 +3,7 @@
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 20000;
 
-export function unhandledRejectionHandler(): void {
+export function registerUnhandledRejectionHandler(): void {
     process.on("unhandledRejection", (error) => {
         if (error && error.stack) {
             console.error(error.stack);
