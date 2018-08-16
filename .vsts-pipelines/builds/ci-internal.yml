@@ -17,4 +17,3 @@ phases:
       displayName: Use Node >=10.7.0
       inputs:
         versionSpec: '>=10.7.0'
-        checkLatest: true
