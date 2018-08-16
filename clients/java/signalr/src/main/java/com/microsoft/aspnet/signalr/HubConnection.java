@@ -165,8 +165,9 @@ public class HubConnection {
         connectionState = HubConnectionState.DISCONNECTED;
         logger.log(LogLevel.Information, "HubConnection stopped.");
         if (onClosedCallbackList != null){
+            HubException hubException = new HubException(errorMessage);
             for (Consumer<Exception> callback: onClosedCallbackList) {
-                callback.accept(new HubException(errorMessage));
+                callback.accept(hubException);
             }
         }
     }
