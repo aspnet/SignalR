@@ -614,6 +614,33 @@ public class HubConnectionTest {
     }
 
     @Test
+    public void multipleOnClosedCallbacksRunWhenStopIsCalled() throws Exception {
+        AtomicReference<String> value1 = new AtomicReference<>();
+        AtomicReference<String> value2 = new AtomicReference<>();
+        Transport mockTransport = new MockTransport();
+        HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
+        hubConnection.start();
+
+        hubConnection.onClosed((ex) -> {
+            assertNull(value1.get());
+            value1.set("Closed callback ran.");
+        });
+
+        hubConnection.onClosed((ex) -> {
+            assertNull(value2.get());
+            value2.set("The second onClosed callback ran");
+        });
+
+        assertNull(value1.get());
+        assertNull(value2.get());
+        hubConnection.stop();
+
+        assertEquals(HubConnectionState.DISCONNECTED, hubConnection.getConnectionState());
+        assertEquals("Closed callback ran.",value1.get());
+        assertEquals("The second onClosed callback ran", value2.get());
+    }
+
+    @Test
     public void HubConnectionClosesAndRunsOnClosedCallbackAfterCloseMessageWithError() throws Exception {
         MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
