@@ -8,9 +8,9 @@ phases:
       name: Hosted VS2017
     steps:
     - task: NodeTool@0
-      displayName: Use Node >=10.9.0
+      displayName: Use Node >=10.7.0
       inputs:
-        versionSpec: '>=10.9.0'
+        versionSpec: '>=10.7.0'
         checkLatest: true
 
     - task: BatchScript@1
