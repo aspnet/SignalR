@@ -137,7 +137,7 @@ namespace Microsoft.AspNetCore.Http.Connections
                                         }
                                         break;
                                     case ProtocolVersionPropertyName:
-                                        throw new InvalidOperationException($"Detected a connection attempt to an ASP.NET SignalR Server. This client only supports connecting to an ASP.NET Core SignalR Server.");
+                                        throw new InvalidOperationException($"Detected a connection attempt to an ASP.NET SignalR Server. This client only supports connecting to an ASP.NET *Core* SignalR Server.");
                                     default:
                                         reader.Skip();
                                         break;

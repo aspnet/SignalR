@@ -147,7 +147,7 @@ export class HttpConnection implements IConnection {
                     }
 
                     if ((negotiateResponse as any).ProtocolVersion) {
-                        throw Error("Detected a connection attempt to an ASP.NET SignalR Server. This client only supports connecting to an ASP.NET Core SignalR Server.");
+                        throw Error("Detected a connection attempt to an ASP.NET SignalR Server. This client only supports connecting to an ASP.NET *Core* SignalR Server.");
                     }
 
                     if (negotiateResponse.url) {
