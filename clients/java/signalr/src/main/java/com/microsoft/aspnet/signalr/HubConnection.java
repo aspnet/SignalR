@@ -20,6 +20,7 @@ public class HubConnection {
     private static final String RECORD_SEPARATOR = "\u001e";
     private HubConnectionState connectionState = HubConnectionState.DISCONNECTED;
     private Logger logger;
+    private Action1<Exception> onClosedCallback;
 
     public HubConnection(String url, Transport transport, Logger logger){
         this.url = url;
@@ -162,6 +163,9 @@ public class HubConnection {
         transport.stop();
         connectionState = HubConnectionState.DISCONNECTED;
         logger.log(LogLevel.Information, "HubConnection stopped.");
+        if (onClosedCallback != null){
+            onClosedCallback.invoke(new Exception(errorMessage));
+        }
     }
 
     /**
@@ -405,5 +409,9 @@ public class HubConnection {
     public void remove(String name) {
         handlers.remove(name);
         logger.log(LogLevel.Trace, "Removing handlers for client method %s" , name);
+    }
+
+    public void onClosed(Action1<Exception> callback) {
+        this.onClosedCallback = callback;
     }
 }
