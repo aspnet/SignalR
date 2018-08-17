@@ -816,14 +816,14 @@ describe("HttpConnection", () => {
                 try {
                     await connection.start(TransferFormat.Text);
                 } catch (error) {
-                    expect(error).toEqual(new Error("Detected a connection attempt to an ASP.NET SignalR Server. This client only supports connecting to an ASP.NET *Core* SignalR Server."));
+                    expect(error).toEqual(new Error("Detected a connection attempt to an ASP.NET SignalR Server. This client only supports connecting to an ASP.NET Core SignalR Server. See https://aka.ms/signalr-core-differences for details."));
                     receivedError = true;
                 } finally {
                     await connection.stop();
                 }
                 expect(receivedError).toBe(true);
             },
-            "Failed to start the connection: Error: Detected a connection attempt to an ASP.NET SignalR Server. This client only supports connecting to an ASP.NET *Core* SignalR Server.");
+            "Failed to start the connection: Error: Detected a connection attempt to an ASP.NET SignalR Server. This client only supports connecting to an ASP.NET Core SignalR Server. See https://aka.ms/signalr-core-differences for details.");
         });
     });
 });
