@@ -657,7 +657,6 @@ public class HubConnectionTest {
         assertEquals(HubConnectionState.DISCONNECTED, hubConnection.getConnectionState());
     }
 
-
     private class MockTransport implements Transport {
         private OnReceiveCallBack onReceiveCallBack;
         private ArrayList<String> sentMessages = new ArrayList<>();
