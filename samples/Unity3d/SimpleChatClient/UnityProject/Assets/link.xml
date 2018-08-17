@@ -1,0 +1,15 @@
+<linker>
+    <assembly fullname="Microsoft.AspNetCore.SignalR.Client.Core" preserve="all" />
+    <assembly fullname="Microsoft.AspNetCore.Connections.Abstractions" preserve="all" />
+    <assembly fullname="Microsoft.AspNetCore.Http.Connections.Client" preserve="all" />
+    <assembly fullname="Microsoft.AspNetCore.Http.Connections.Common" preserve="all" />
+    <assembly fullname="Microsoft.AspNetCore.Http.Features" preserve="all" />
+    <assembly fullname="Microsoft.AspNetCore.SignalR.Client" preserve="all" />
+    <assembly fullname="Microsoft.AspNetCore.SignalR.Common" preserve="all" />
+    <assembly fullname="Microsoft.AspNetCore.SignalR.Protocols.Json" preserve="all" />
+    <assembly fullname="Microsoft.Extensions.DependencyInjection.Abstractions" preserve="all" />
+    <assembly fullname="Microsoft.Extensions.DependencyInjection" preserve="all" />
+    <assembly fullname="Microsoft.Extensions.Logging.Abstractions" preserve="all" />
+    <assembly fullname="Microsoft.Extensions.Logging" preserve="all" />
+    <assembly fullname="Microsoft.Extensions.Options" preserve="all" />
+</linker>

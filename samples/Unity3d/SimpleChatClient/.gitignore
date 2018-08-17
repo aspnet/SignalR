@@ -1,0 +1,23 @@
+UnityProject/[Ll]ibrary/
+UnityProject/[Tt]emp/
+UnityProject/[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+UnityProject/Assets/AssetStoreTools*
+
+Utilities/Package
+Utilities/SignalRPlugin
+Utilities/nuget.exe
+
+# Unity3D generated meta files
+*.pidb.meta
+
+# Unity3D Generated File On Crash Reports
+sysinfo.txt
+
+# Builds
+*.apk
+*.unitypackage
+*.lock
+
+
