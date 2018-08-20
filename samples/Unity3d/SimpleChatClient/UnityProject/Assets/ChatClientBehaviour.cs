@@ -42,7 +42,7 @@ public class ChatClientBehaviour : MonoBehaviour
         }
     }
 
-    [UsedImplicitly]
+    // ReSharper disable once UnusedMember.Local
     void Update()
     {
 
