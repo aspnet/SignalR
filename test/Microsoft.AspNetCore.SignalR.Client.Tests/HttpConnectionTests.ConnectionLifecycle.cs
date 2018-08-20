@@ -341,7 +341,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                         return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.InternalServerError));
                     });
 
-                    var sse = new ServerSentEventsTransport(new HttpClient(httpHandler));
+                    var sse = new ServerSentEventsTransport(new HttpClient(httpHandler), loggerFactory);
 
                     await WithConnectionAsync(
                         CreateConnection(httpHandler, loggerFactory: loggerFactory, transport: sse),
@@ -367,7 +367,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                         return ResponseUtils.CreateResponse(HttpStatusCode.Accepted);
                     });
 
-                    var sse = new ServerSentEventsTransport(new HttpClient(httpHandler));
+                    var sse = new ServerSentEventsTransport(new HttpClient(httpHandler), loggerFactory);
 
                     await WithConnectionAsync(
                         CreateConnection(httpHandler, loggerFactory: loggerFactory, transport: sse),
