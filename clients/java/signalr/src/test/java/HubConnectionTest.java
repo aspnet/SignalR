@@ -678,8 +678,8 @@ public class HubConnectionTest {
 
     @Test
     public void CannotSendBeforeStart() throws Exception {
-        exceptionRule.expect(Exception.class);
-        exceptionRule.expectMessage("Cannot send data if the connection is not in the 'Connected' State.");
+        exceptionRule.expect(HubException.class);
+        exceptionRule.expectMessage("The 'send' method cannot be called if the connection is not active");
 
         Transport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);

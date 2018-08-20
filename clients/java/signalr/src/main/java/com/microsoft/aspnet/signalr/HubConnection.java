@@ -196,7 +196,7 @@ public class HubConnection {
      */
     public void send(String method, Object... args) throws Exception {
         if (connectionState != HubConnectionState.CONNECTED) {
-            throw new Exception("The 'send' method cannot be called if the connection is not active");
+            throw new HubException("The 'send' method cannot be called if the connection is not active");
         }
 
         InvocationMessage invocationMessage = new InvocationMessage(method, args);
