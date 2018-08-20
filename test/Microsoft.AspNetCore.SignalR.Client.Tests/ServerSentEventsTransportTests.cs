@@ -198,7 +198,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                 });
 
             using (var httpClient = new HttpClient(mockHttpHandler.Object))
-            using (StartVerifiableLog(out var loggerFactory, expectedErrorsFilter: ExpectedErrors))
+            using (StartVerifiableLog(out var loggerFactory, Extensions.Logging.LogLevel.Trace, expectedErrorsFilter: ExpectedErrors))
             {
                 var sseTransport = new ServerSentEventsTransport(httpClient, loggerFactory);
 
