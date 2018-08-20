@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.Http.Connections.Client;
 using Microsoft.AspNetCore.Http.Connections.Client.Internal;
 using Microsoft.AspNetCore.SignalR.Tests;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Xunit;
 using Xunit.Abstractions;
@@ -331,25 +332,27 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     return writeContext.LoggerName == typeof(HttpConnection).FullName &&
                            writeContext.EventId.Name == "ErrorStartingTransport";
                 }
-
-                using (StartVerifiableLog(out var loggerFactory, expectedErrorsFilter: ExpectedErrors))
+                for (var i = 0; i < 10000; ++i)
                 {
-                    var httpHandler = new TestHttpMessageHandler();
-
-                    httpHandler.OnGet("/?id=00000000-0000-0000-0000-000000000000", (_, __) =>
+                    using (StartVerifiableLog(out var loggerFactory, LogLevel.Trace, expectedErrorsFilter: ExpectedErrors))
                     {
-                        return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.InternalServerError));
-                    });
+                        var httpHandler = new TestHttpMessageHandler();
 
-                    var sse = new ServerSentEventsTransport(new HttpClient(httpHandler), loggerFactory);
-
-                    await WithConnectionAsync(
-                        CreateConnection(httpHandler, loggerFactory: loggerFactory, transport: sse),
-                        async (connection) =>
+                        httpHandler.OnGet("/?id=00000000-0000-0000-0000-000000000000", (_, __) =>
                         {
-                            await Assert.ThrowsAsync<InvalidOperationException>(
-                                () => connection.StartAsync(TransferFormat.Text).OrTimeout());
+                            return Task.FromResult(ResponseUtils.CreateResponse(HttpStatusCode.InternalServerError));
                         });
+
+                        var sse = new ServerSentEventsTransport(new HttpClient(httpHandler), loggerFactory);
+
+                        await WithConnectionAsync(
+                            CreateConnection(httpHandler, loggerFactory: loggerFactory, transport: sse),
+                            async (connection) =>
+                            {
+                                await Assert.ThrowsAsync<InvalidOperationException>(
+                                    () => connection.StartAsync(TransferFormat.Text).OrTimeout());
+                            });
+                    }
                 }
             }
 
