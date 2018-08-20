@@ -335,7 +335,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
 
                 using (StartVerifiableLog(out var loggerFactory, LogLevel.Trace, expectedErrorsFilter: ExpectedErrors))
                 {
-                    var httpHandler = new TestHttpMessageHandler();
+                    var httpHandler = new TestHttpMessageHandler(loggerFactory);
 
                     httpHandler.OnGet("/?id=00000000-0000-0000-0000-000000000000", (_, __) =>
                     {
