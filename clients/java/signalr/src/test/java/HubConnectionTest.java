@@ -677,7 +677,7 @@ public class HubConnectionTest {
     public ExpectedException exceptionRule = ExpectedException.none();
 
     @Test
-    public void CantSendBeforeStart() throws Exception {
+    public void CannotSendBeforeStart() throws Exception {
         exceptionRule.expect(Exception.class);
         exceptionRule.expectMessage("Cannot send data if the connection is not in the 'Connected' State.");
 

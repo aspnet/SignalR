@@ -145,7 +145,7 @@ public class HubConnection {
         if (connectionState != HubConnectionState.DISCONNECTED) {
             return;
         }
-        
+
         logger.log(LogLevel.Debug, "Starting HubConnection");
         transport.setOnReceive(this.callback);
         transport.start();
@@ -196,7 +196,7 @@ public class HubConnection {
      */
     public void send(String method, Object... args) throws Exception {
         if (connectionState != HubConnectionState.CONNECTED) {
-            throw new Exception("Cannot send data if the connection is not in the 'Connected' State.");
+            throw new Exception("The 'send' method cannot be called if the connection is not active");
         }
 
         InvocationMessage invocationMessage = new InvocationMessage(method, args);
