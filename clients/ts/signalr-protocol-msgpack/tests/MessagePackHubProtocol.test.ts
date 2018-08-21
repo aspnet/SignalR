@@ -194,8 +194,8 @@ describe("MessagePackHubProtocol", () => {
             0x02, // length prefix
             0x91, // message array length = 1 (fixarray)
             0x06, // type = 6 = Ping (fixnum)
-        ]).buffer;
+        ]);
         const buffer = new MessagePackHubProtocol().writeMessage({ type: MessageType.Ping });
-        expect(buffer).toEqual(payload);
+        expect(new Uint8Array(buffer)).toEqual(payload);
     });
 });
