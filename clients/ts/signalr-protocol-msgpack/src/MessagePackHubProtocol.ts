@@ -12,7 +12,8 @@ import { BinaryMessageFormat } from "./BinaryMessageFormat";
 
 // constant encoding of the ping message
 // see: https://github.com/aspnet/SignalR/blob/dev/specs/HubProtocol.md#ping-message-encoding-1
-const SERIALIZED_PING_MESSAGE: ArrayBuffer = Uint8Array.from([0x91, MessageType.Ping]).buffer;
+// Don't use Uint8Array.from as IE does not support it
+const SERIALIZED_PING_MESSAGE: ArrayBuffer = new Uint8Array([0x91, MessageType.Ping]).buffer;
 
 /** Implements the MessagePack Hub Protocol */
 export class MessagePackHubProtocol implements IHubProtocol {
