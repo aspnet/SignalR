@@ -48,7 +48,7 @@ try {
 
                 junitReporter: {
                     outputDir: "../../../artifacts/logs",
-                    outputFile: "functionaltest.junit.xml",
+                    outputFile: `${process.platform}` + ".functionaltest.junit.xml",
                 },
             });
         }
