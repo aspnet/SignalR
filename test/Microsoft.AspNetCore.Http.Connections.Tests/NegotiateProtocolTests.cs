@@ -56,7 +56,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
         }
 
         [Fact]
-        public void ParsingClassicSignalRResponseThrowsError()
+        public void ParsingAspNetSignalRResponseThrowsError()
         {
             var payload = "{\"Url\":\"/signalr\"," +
                 "\"ConnectionToken\":\"X97dw3uxW4NPPggQsYVcNcyQcuz4w2\"," +
