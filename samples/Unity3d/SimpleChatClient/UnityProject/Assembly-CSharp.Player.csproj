@@ -320,6 +320,9 @@
     <Reference Include="System.Threading.Tasks.Extensions">
       <HintPath>Assets/Plugins/SignalR/System.Threading.Tasks.Extensions.dll</HintPath>
     </Reference>
+    <Reference Include="UnityEngine.StandardEvents">
+      <HintPath>C:/Users/hannesne/AppData/Local/Unity/cache/packages/packages.unity.com/com.unity.standardevents@1.0.13/UnityEngine.StandardEvents.dll</HintPath>
+    </Reference>
     <Reference Include="netstandard">
       <HintPath>C:\Program Files\Unity\Hub\Editor\2018.2.3f1\Editor\Data\NetStandard\ref\2.0.0\netstandard.dll</HintPath>
     </Reference>

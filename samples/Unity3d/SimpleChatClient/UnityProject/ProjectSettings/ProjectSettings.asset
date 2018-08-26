@@ -608,7 +608,26 @@ PlayerSettings:
     2031640: Assets/AppIcons/SignalRSimpleChatClient_AppIcon_24x24.png
     2031648: Assets/AppIcons/SignalRSimpleChatClient_AppIcon_32x32.png
     2031664: Assets/AppIcons/SignalRSimpleChatClient_AppIcon_48x48.png
+    2031716: Assets/AppIcons/SignalRSimpleChatClient_AppIcon_44x44.png
+    2031741: Assets/AppIcons/SignalRSimpleChatClient_AppIcon_55x55.png
+    2031766: Assets/AppIcons/SignalRSimpleChatClient_AppIcon_66x66.png
+    2031816: Assets/AppIcons/SignalRSimpleChatClient_AppIcon_88x88.png
     2031872: Assets/AppIcons/SignalRSimpleChatClient_AppIcon_256x256.png
+    2032016: Assets/AppIcons/SignalRSimpleChatClient_AppIcon_176x176.png
+    2097252: Assets/AppIcons/SignalRSimpleChatClient_AppIcon_71x71.png
+    2097277: Assets/AppIcons/SignalRSimpleChatClient_AppIcon_89x89.png
+    2097302: Assets/AppIcons/SignalRSimpleChatClient_AppIcon_107x107.png
+    2097352: Assets/AppIcons/SignalRSimpleChatClient_AppIcon_142x142.png
+    2097552: Assets/AppIcons/SignalRSimpleChatClient_AppIcon_284x284.png
+    2162788: Assets/AppIcons/SignalRSimpleChatClient_AppIcon_150x150.png
+    2162813: Assets/AppIcons/SignalRSimpleChatClient_AppIcon_188x188.png
+    2162838: Assets/AppIcons/SignalRSimpleChatClient_AppIcon_225x225.png
+    2162888: Assets/AppIcons/SignalRSimpleChatClient_AppIcon_300x300.png
+    2163088: Assets/AppIcons/SignalRSimpleChatClient_AppIcon_600x600.png
+    2228324: Assets/AppIcons/SignalRSimpleChatClient_AppIcon_310x310.png
+    2228349: Assets/AppIcons/SignalRSimpleChatClient_AppIcon_388x388.png
+    2228374: Assets/AppIcons/SignalRSimpleChatClient_AppIcon_465x465.png
+    2228424: Assets/AppIcons/SignalRSimpleChatClient_AppIcon_620x620.png
     2228624: Assets/AppIcons/BaseIcon_1240x1240.png
   metroTileShortName: SimpleChatClient
   metroTileShowName: 0
