@@ -8,6 +8,7 @@ import com.google.gson.JsonArray;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class HubConnection {
     private String url;
@@ -20,6 +21,7 @@ public class HubConnection {
     private static final String RECORD_SEPARATOR = "\u001e";
     private HubConnectionState connectionState = HubConnectionState.DISCONNECTED;
     private Logger logger;
+    private List<Consumer<Exception>> onClosedCallbackList;
 
     public HubConnection(String url, Transport transport, Logger logger){
         this.url = url;
@@ -71,17 +73,21 @@ public class HubConnection {
                             logger.log(LogLevel.Warning, "Failed to find handler for %s method", invocationMessage.target);
                         }
                         break;
+                    case CLOSE:
+                        logger.log(LogLevel.Information, "Close message received from server.");
+                        CloseMessage closeMessage = (CloseMessage)message;
+                        stop(closeMessage.getError());
+                        break;
+                    case PING:
+                        // We don't need to do anything in the case of a ping message.
+                        break;
                     case STREAM_INVOCATION:
                     case STREAM_ITEM:
-                    case CLOSE:
                     case CANCEL_INVOCATION:
                     case COMPLETION:
                         logger.log(LogLevel.Error, "This client does not support %s messages", message.getMessageType());
 
                         throw new UnsupportedOperationException(String.format("The message type %s is not supported yet.", message.getMessageType()));
-                    case PING:
-                        // We don't need to do anything in the case of a ping message.
-                        break;
                 }
             }
         };
@@ -136,23 +142,49 @@ public class HubConnection {
      * @throws Exception An error occurred while connecting.
      */
     public void start() throws Exception {
+        if (connectionState != HubConnectionState.DISCONNECTED) {
+            return;
+        }
+
         logger.log(LogLevel.Debug, "Starting HubConnection");
         transport.setOnReceive(this.callback);
         transport.start();
         String handshake = HandshakeProtocol.createHandshakeRequestMessage(new HandshakeRequestMessage(protocol.getName(), protocol.getVersion()));
         transport.send(handshake);
         connectionState = HubConnectionState.CONNECTED;
-        logger.log(LogLevel.Information, "HubConnected started");
+        logger.log(LogLevel.Information, "HubConnected started.");
     }
 
     /**
      * Stops a connection to the server.
      */
-    public void stop(){
-        logger.log(LogLevel.Debug, "Stopping HubConnection");
+    private void stop(String errorMessage) {
+        if (connectionState == HubConnectionState.DISCONNECTED) {
+            return;
+        }
+
+        if(errorMessage != null) {
+            logger.log(LogLevel.Error , "HubConnection disconnected with an error %s.", errorMessage);
+        } else {
+            logger.log(LogLevel.Debug, "Stopping HubConnection.");
+        }
+
         transport.stop();
         connectionState = HubConnectionState.DISCONNECTED;
-        logger.log(LogLevel.Information, "HubConnection stopped");
+        logger.log(LogLevel.Information, "HubConnection stopped.");
+        if (onClosedCallbackList != null){
+            HubException hubException = new HubException(errorMessage);
+            for (Consumer<Exception> callback: onClosedCallbackList) {
+                callback.accept(hubException);
+            }
+        }
+    }
+
+    /**
+     * Stops a connection to the server.
+     */
+    public void stop() {
+        stop(null);
     }
 
     /**
@@ -163,6 +195,10 @@ public class HubConnection {
      * @throws Exception If there was an error while sending.
      */
     public void send(String method, Object... args) throws Exception {
+        if (connectionState != HubConnectionState.CONNECTED) {
+            throw new HubException("The 'send' method cannot be called if the connection is not active");
+        }
+
         InvocationMessage invocationMessage = new InvocationMessage(method, args);
         String message = protocol.writeMessage(invocationMessage);
         logger.log(LogLevel.Debug, "Sending message");
@@ -389,5 +425,13 @@ public class HubConnection {
     public void remove(String name) {
         handlers.remove(name);
         logger.log(LogLevel.Trace, "Removing handlers for client method %s" , name);
+    }
+
+    public void onClosed(Consumer<Exception> callback) {
+        if (onClosedCallbackList == null){
+            onClosedCallbackList = new ArrayList<>();
+        }
+
+        onClosedCallbackList.add(callback);
     }
 }
