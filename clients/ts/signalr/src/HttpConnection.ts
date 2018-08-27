@@ -1,6 +1,7 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+import * as EventSourcePolyfill from "eventsource";
 import { w3cwebsocket } from "websocket";
 import { DefaultHttpClient, HttpClient } from "./HttpClient";
 import { IConnection } from "./IConnection";
@@ -68,6 +69,8 @@ export class HttpConnection implements IConnection {
         }
         if (typeof EventSource !== "undefined" && !options.EventSource) {
             options.EventSource = EventSource;
+        } else if (!options.EventSource && typeof EventSourcePolyfill !== "undefined") {
+            options.EventSource = EventSourcePolyfill;
         }
 
         this.httpClient = options.httpClient || new DefaultHttpClient(this.logger);
