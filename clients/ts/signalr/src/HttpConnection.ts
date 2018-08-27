@@ -1,12 +1,14 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+import { w3cwebsocket } from "websocket";
 import { DefaultHttpClient, HttpClient } from "./HttpClient";
 import { IConnection } from "./IConnection";
 import { IHttpConnectionOptions } from "./IHttpConnectionOptions";
 import { ILogger, LogLevel } from "./ILogger";
 import { HttpTransportType, ITransport, TransferFormat } from "./ITransport";
 import { LongPollingTransport } from "./LongPollingTransport";
+import { WebSocketWrapper } from "./Polyfills";
 import { ServerSentEventsTransport } from "./ServerSentEventsTransport";
 import { Arg, createLogger } from "./Utils";
 import { WebSocketTransport } from "./WebSocketTransport";
@@ -61,6 +63,8 @@ export class HttpConnection implements IConnection {
 
         if (typeof WebSocket !== "undefined" && !options.WebSocket) {
             options.WebSocket = WebSocket;
+        } else if (!options.WebSocket && typeof w3cwebsocket !== "undefined") {
+            options.WebSocket = WebSocketWrapper;
         }
         if (typeof EventSource !== "undefined" && !options.EventSource) {
             options.EventSource = EventSource;
