@@ -7,18 +7,18 @@ import java.util.Scanner;
 
 public class Chat {
     public static void main(String[] args) throws Exception {
-            System.out.println("Enter the URL of the SignalR Chat you want to join");
+            System.out.print("Enter your name:");
             Scanner reader = new Scanner(System.in);  // Reading from System.in
-            String input;
-            input = reader.nextLine();
+            String enteredName = "";
+            enteredName = reader.nextLine();
 
             HubConnection hubConnection = new HubConnectionBuilder()
-                    .withUrl(input)
+                    .withUrl("https://signalrservice-chatsample.azurewebsites.net/chat")
                     .configureLogging(LogLevel.Information).build();
 
-            hubConnection.on("Send", (message) -> {
-                System.out.println("REGISTERED HANDLER: " + message);
-            }, String.class);
+            hubConnection.on("Send", (name, message) -> {
+                System.out.println(name + ":" + message);
+            }, String.class, String.class);
 
             hubConnection.onClosed((ex) -> {
                 if(ex.getMessage() != null){
@@ -29,10 +29,11 @@ public class Chat {
             //This is a blocking call
             hubConnection.start();
 
-            while (!input.equals("leave")){
+            String message = "";
+            while (!message.equals("leave")){
                 // Scans the next token of the input as an int.
-                input = reader.nextLine();
-                hubConnection.send("Send", input);
+                message = reader.nextLine();
+                hubConnection.send("Send", enteredName, message);
             }
 
             hubConnection.stop();

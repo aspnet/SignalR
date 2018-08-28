@@ -5,6 +5,7 @@ package com.microsoft.aspnet.signalr;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
+
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +23,11 @@ public class HubConnection {
     private HubConnectionState connectionState = HubConnectionState.DISCONNECTED;
     private Logger logger;
     private List<Consumer<Exception>> onClosedCallbackList;
+    private boolean skipNegotiate;
+    private NegotiateResponse negotiateResponse;
+    private String accessToken;
+
+    private static int MAX_NEGOTIATE_ATTEMPTS = 5;
 
     public HubConnection(String url, Transport transport, Logger logger){
         this.url = url;
@@ -92,13 +98,7 @@ public class HubConnection {
             }
         };
 
-        if (transport == null){
-            try {
-                this.transport = new WebSocketTransport(this.url, this.logger);
-            } catch (URISyntaxException e) {
-                e.printStackTrace();
-            }
-        } else {
+        if (transport != null){
             this.transport = transport;
         }
     }
@@ -145,8 +145,28 @@ public class HubConnection {
         if (connectionState != HubConnectionState.DISCONNECTED) {
             return;
         }
+        if (!skipNegotiate) {
+            int negotiateAttempts = 0;
+            do {
+                if(negotiateAttempts > 0 && this.negotiateResponse.accessToken != null){
+                    this.accessToken = negotiateResponse.accessToken;
+                    this.negotiateResponse = Negotiate.processNegotiate(url, this.negotiateResponse.accessToken);
+                    this.url = this.url + "&id=" + negotiateResponse.connectionId + "&access_token=" + this.accessToken;
+
+                }
+                else {
+                    this.negotiateResponse = Negotiate.processNegotiate(url);
+                    this.url = this.negotiateResponse.redirectUrl;
+                }
+                negotiateAttempts++;
+            } while (this.negotiateResponse.shouldRedirect && negotiateAttempts < MAX_NEGOTIATE_ATTEMPTS);
+            if(!negotiateResponse.availableTransports.contains("WebSockets")){
+                throw new HubException("There were no compatible transports on the server.");
+            }
+        }
 
         logger.log(LogLevel.Debug, "Starting HubConnection");
+        transport = new WebSocketTransport(this.url, this.logger);
         transport.setOnReceive(this.callback);
         transport.start();
         String handshake = HandshakeProtocol.createHandshakeRequestMessage(new HandshakeRequestMessage(protocol.getName(), protocol.getVersion()));

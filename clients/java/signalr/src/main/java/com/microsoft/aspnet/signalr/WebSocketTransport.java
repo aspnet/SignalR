@@ -5,6 +5,9 @@ package com.microsoft.aspnet.signalr;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 
@@ -13,6 +16,7 @@ public class WebSocketTransport implements Transport {
     private OnReceiveCallBack onReceiveCallBack;
     private URI url;
     private Logger logger;
+    private String acceessToken;
 
     private static final String HTTP = "http";
     private static final String HTTPS = "https";
@@ -22,6 +26,7 @@ public class WebSocketTransport implements Transport {
     public WebSocketTransport(String url, Logger logger) throws URISyntaxException {
         this.url = formatUrl(url);
         this.logger = logger;
+        this.acceessToken = url.substring(url.indexOf("access_token=") + "access_token=".length());
     }
 
     public URI getUrl(){
@@ -73,7 +78,9 @@ public class WebSocketTransport implements Transport {
     }
 
     private WebSocketClient createWebSocket() {
-        return new WebSocketClient(url) {
+        Map<String, String> headers = new HashMap<>();
+        headers.put("access_token", this.acceessToken);
+        WebSocketClient ws = new WebSocketClient(url, headers) {
              @Override
              public void onOpen(ServerHandshake handshakedata) {
                  System.out.println("Connected to " + url);
@@ -98,5 +105,8 @@ public class WebSocketTransport implements Transport {
                 System.out.println("Error: " + ex.getMessage());
              }
          };
+
+        //ws.
+        return ws;
     }
 }
