@@ -1,6 +1,7 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+import * as HTTP from "http";
 import { AbortSignal } from "./AbortController";
 import { AbortError, HttpError, TimeoutError } from "./Errors";
 import { ILogger, LogLevel } from "./ILogger";
@@ -148,34 +149,42 @@ export abstract class HttpClient {
 /** Default implementation of {@link @aspnet/signalr.HttpClient}. */
 export class DefaultHttpClient extends HttpClient {
     private readonly logger: ILogger;
+    private readonly sendFunction: (request: HttpRequest) => Promise<HttpResponse>;
 
     /** Creates a new instance of the {@link @aspnet/signalr.DefaultHttpClient}, using the provided {@link @aspnet/signalr.ILogger} to log messages. */
     public constructor(logger: ILogger) {
         super();
         this.logger = logger;
+
+        if (typeof XMLHttpRequest !== "undefined") {
+            this.sendFunction = this.sendXhr;
+        } else {
+            this.sendFunction = this.sendNode;
+        }
     }
 
     /** @inheritDoc */
     public send(request: HttpRequest): Promise<HttpResponse> {
-        return new Promise<HttpResponse>((resolve, reject) => {
-            // Check that abort was not signaled before calling send
-            if (request.abortSignal && request.abortSignal.aborted) {
-                reject(new AbortError());
-                return;
-            }
+        // Check that abort was not signaled before calling send
+        if (request.abortSignal && request.abortSignal.aborted) {
+            return Promise.reject(new AbortError());
+        }
 
+        if (!request.method) {
+            return Promise.reject(new Error("No method defined."));
+        }
+        if (!request.url) {
+            return Promise.reject(new Error("No url defined."));
+        }
+
+        return this.sendFunction(request);
+    }
+
+    private sendXhr(request: HttpRequest): Promise<HttpResponse> {
+        return new Promise<HttpResponse>((resolve, reject) => {
             const xhr = new XMLHttpRequest();
 
-            if (!request.method) {
-                reject(new Error("No method defined."));
-                return;
-            }
-            if (!request.url) {
-                reject(new Error("No url defined."));
-                return;
-            }
-
-            xhr.open(request.method, request.url, true);
+            xhr.open(request.method!, request.url!, true);
             xhr.withCredentials = true;
             xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
             // Explicitly setting the Content-Type header for React Native on Android platform.
@@ -227,6 +236,67 @@ export class DefaultHttpClient extends HttpClient {
             };
 
             xhr.send(request.content || "");
+        });
+    }
+
+    private sendNode(request: HttpRequest): Promise<HttpResponse> {
+        return new Promise<HttpResponse>((resolve, reject) => {
+            const url = new URL(request.url!);
+            const options: HTTP.RequestOptions = {
+                headers: {
+                    // Tell auth middleware to 401 instead of redirecting
+                    "X-Requested-With": "XMLHttpRequest",
+                    ...request.headers,
+                },
+                hostname: url.hostname,
+                method: request.method,
+                // /abc/xyz + ?id=12ssa_30
+                path: url.pathname + url.search,
+                port: url.port,
+            };
+
+            let data: string = "";
+
+            const req = HTTP.request(options, (res: HTTP.IncomingMessage) => {
+                res.on("data", (chunk: any) => {
+                    data += chunk;
+                    this.logger.log(LogLevel.Information, `got a chunk: ${chunk}`);
+                });
+
+                res.on("end", () => {
+                    if (request.abortSignal) {
+                        request.abortSignal.onabort = null;
+                    }
+
+                    if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+                        resolve(new HttpResponse(res.statusCode, res.statusMessage || "", data));
+                    } else {
+                        reject(new HttpError(res.statusMessage || "", res.statusCode || 0));
+                    }
+                });
+            });
+
+            if (request.abortSignal) {
+                request.abortSignal.onabort = () => {
+                    req.abort();
+                    reject(new AbortError());
+                };
+            }
+
+            if (request.timeout) {
+                req.setTimeout(request.timeout, () => {
+                    this.logger.log(LogLevel.Warning, `Timeout from HTTP request.`);
+                    reject(new TimeoutError());
+                });
+            }
+
+            req.on("error", (e) => {
+                this.logger.log(LogLevel.Warning, `Error from HTTP request. ${e}`);
+                reject(e);
+            });
+
+            req.write(request.content || "");
+            req.end();
         });
     }
 }
