@@ -22,16 +22,16 @@ export class WebSocketWrapper implements WebSocket {
     private _websocket: w3cwebsocket;
 
     constructor(url: string, protocols?: string | string[]) {
-        this._websocket = new w3cwebsocket(url, protocols);
+        this._websocket = new w3cwebsocket(url, protocols as any);
     }
 
     public get binaryType(): BinaryType {
-        return this._websocket.binaryType;
+        return (this._websocket as any).binaryType;
     }
 
     public set binaryType(type: BinaryType) {
         if (type === "arraybuffer") {
-            this._websocket.binaryType = type;
+            (this._websocket as any).binaryType = type;
         }
         // "blob" not supported by w3cwebsocket
     }
@@ -45,7 +45,7 @@ export class WebSocketWrapper implements WebSocket {
     }
 
     public get extensions(): string {
-        return this._websocket.extensions.join(",");
+        return (this._websocket as any).extensions.join(",");
     }
 
     // tslint:disable-next-line:variable-name
