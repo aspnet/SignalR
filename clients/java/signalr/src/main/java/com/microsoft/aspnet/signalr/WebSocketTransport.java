@@ -16,17 +16,20 @@ public class WebSocketTransport implements Transport {
     private OnReceiveCallBack onReceiveCallBack;
     private URI url;
     private Logger logger;
-    private String acceessToken;
+    private String accessToken;
 
     private static final String HTTP = "http";
     private static final String HTTPS = "https";
     private static final String WS = "ws";
     private static final String WSS = "wss";
+    private static final String ACCESS_TOKEN_PREFIX = "access_token=";
 
     public WebSocketTransport(String url, Logger logger) throws URISyntaxException {
         this.url = formatUrl(url);
         this.logger = logger;
-        this.acceessToken = url.substring(url.indexOf("access_token=") + "access_token=".length());
+        if (url.indexOf(ACCESS_TOKEN_PREFIX) > 0){
+            this.accessToken = url.substring(url.indexOf(ACCESS_TOKEN_PREFIX) + ACCESS_TOKEN_PREFIX.length());
+        }
     }
 
     public URI getUrl(){
@@ -78,9 +81,7 @@ public class WebSocketTransport implements Transport {
     }
 
     private WebSocketClient createWebSocket() {
-        Map<String, String> headers = new HashMap<>();
-        headers.put("access_token", this.acceessToken);
-        WebSocketClient ws = new WebSocketClient(url, headers) {
+        return new WebSocketClient(url) {
              @Override
              public void onOpen(ServerHandshake handshakedata) {
                  System.out.println("Connected to " + url);
@@ -105,8 +106,5 @@ public class WebSocketTransport implements Transport {
                 System.out.println("Error: " + ex.getMessage());
              }
          };
-
-        //ws.
-        return ws;
     }
 }

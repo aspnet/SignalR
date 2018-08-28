@@ -6,7 +6,6 @@ package com.microsoft.aspnet.signalr;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -23,13 +22,13 @@ public class HubConnection {
     private HubConnectionState connectionState = HubConnectionState.DISCONNECTED;
     private Logger logger;
     private List<Consumer<Exception>> onClosedCallbackList;
-    private boolean skipNegotiate;
+    private boolean skipNegotiate = true;
     private NegotiateResponse negotiateResponse;
     private String accessToken;
 
     private static int MAX_NEGOTIATE_ATTEMPTS = 5;
 
-    public HubConnection(String url, Transport transport, Logger logger){
+    public HubConnection(String url, Transport transport, Logger logger, boolean skipNegotiate){
         this.url = url;
         this.protocol = new JsonHubProtocol();
 
@@ -38,7 +37,7 @@ public class HubConnection {
         } else {
             this.logger = new NullLogger();
         }
-
+        this.skipNegotiate = skipNegotiate;
         this.callback = (payload) -> {
 
             if (!handshakeReceived) {
@@ -102,6 +101,10 @@ public class HubConnection {
             this.transport = transport;
         }
     }
+    
+    public HubConnection(String url, Transport transport, Logger logger){
+        this(url, transport, logger, true);
+    }
 
     /**
      * Initializes a new instance of the {@link HubConnection} class.
@@ -156,7 +159,9 @@ public class HubConnection {
                 }
                 else {
                     this.negotiateResponse = Negotiate.processNegotiate(url);
-                    this.url = this.negotiateResponse.redirectUrl;
+                    if (this.negotiateResponse.shouldRedirect){
+                        this.url = this.negotiateResponse.redirectUrl;
+                    }
                 }
                 negotiateAttempts++;
             } while (this.negotiateResponse.shouldRedirect && negotiateAttempts < MAX_NEGOTIATE_ATTEMPTS);
@@ -166,7 +171,9 @@ public class HubConnection {
         }
 
         logger.log(LogLevel.Debug, "Starting HubConnection");
-        transport = new WebSocketTransport(this.url, this.logger);
+        if (transport == null){
+            transport = new WebSocketTransport(this.url, this.logger);
+        }
         transport.setOnReceive(this.callback);
         transport.start();
         String handshake = HandshakeProtocol.createHandshakeRequestMessage(new HandshakeRequestMessage(protocol.getName(), protocol.getVersion()));
