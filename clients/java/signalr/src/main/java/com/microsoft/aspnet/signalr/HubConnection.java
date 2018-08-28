@@ -101,7 +101,7 @@ public class HubConnection {
             this.transport = transport;
         }
     }
-    
+
     public HubConnection(String url, Transport transport, Logger logger){
         this(url, transport, logger, true);
     }
