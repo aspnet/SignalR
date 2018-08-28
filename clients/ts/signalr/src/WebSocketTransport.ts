@@ -57,7 +57,10 @@ export class WebSocketTransport implements ITransport {
             };
 
             webSocket.onerror = (event: Event) => {
-                const error = (event instanceof ErrorEvent) ? event.error : null;
+                let error: any = null;
+                if (typeof ErrorEvent !== "undefined" && event instanceof ErrorEvent) {
+                    error = event.error;
+                }
                 reject(error);
             };
 
