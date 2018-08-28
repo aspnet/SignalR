@@ -14,15 +14,12 @@ public class NegotiateResponse {
     public String connectionId;
     public JsonParser jsonParser = new JsonParser();
     public Set<String> availableTransports = new HashSet<>();
-    public boolean shouldRedirect;
     public String redirectUrl;
     public String accessToken;
-
 
     public NegotiateResponse(String negotiatePayload) {
         JsonObject negotiateResponse= jsonParser.parse(negotiatePayload).getAsJsonObject();
         if (negotiateResponse.has("url")) {
-            this.shouldRedirect = true;
             this.redirectUrl = negotiateResponse.get("url").getAsString();
             if (negotiateResponse.has("accessToken")) {
                 this.accessToken = negotiateResponse.get("accessToken").getAsString();
@@ -30,7 +27,6 @@ public class NegotiateResponse {
             return;
         }
         this.connectionId = negotiateResponse.get("connectionId").getAsString();
-        negotiateResponse.get("availableTransports");
         JsonArray transports = ((JsonArray)negotiateResponse.get("availableTransports"));
         for (int i = 0; i < transports.size(); i++) {
             availableTransports.add(transports.get(i).getAsJsonObject().get("transport").getAsString());

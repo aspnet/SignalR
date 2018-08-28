@@ -155,16 +155,15 @@ public class HubConnection {
                     this.accessToken = negotiateResponse.accessToken;
                     this.negotiateResponse = Negotiate.processNegotiate(url, this.negotiateResponse.accessToken);
                     this.url = this.url + "&id=" + negotiateResponse.connectionId + "&access_token=" + this.accessToken;
-
                 }
                 else {
                     this.negotiateResponse = Negotiate.processNegotiate(url);
-                    if (this.negotiateResponse.shouldRedirect){
+                    if (this.negotiateResponse.redirectUrl != null){
                         this.url = this.negotiateResponse.redirectUrl;
                     }
                 }
                 negotiateAttempts++;
-            } while (this.negotiateResponse.shouldRedirect && negotiateAttempts < MAX_NEGOTIATE_ATTEMPTS);
+            } while (this.negotiateResponse.redirectUrl != null && negotiateAttempts < MAX_NEGOTIATE_ATTEMPTS);
             if(!negotiateResponse.availableTransports.contains("WebSockets")){
                 throw new HubException("There were no compatible transports on the server.");
             }
