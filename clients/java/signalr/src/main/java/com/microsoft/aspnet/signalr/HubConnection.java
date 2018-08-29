@@ -22,11 +22,11 @@ public class HubConnection {
     private HubConnectionState connectionState = HubConnectionState.DISCONNECTED;
     private Logger logger;
     private List<Consumer<Exception>> onClosedCallbackList;
-    private boolean skipNegotiate = true;
+    private boolean skipNegotiate = false;
     private NegotiateResponse negotiateResponse;
     private String accessToken;
 
-    private static int MAX_NEGOTIATE_ATTEMPTS = 5;
+    private static int MAX_NEGOTIATE_ATTEMPTS = 100;
 
     public HubConnection(String url, Transport transport, Logger logger, boolean skipNegotiate){
         this.url = url;
@@ -103,7 +103,11 @@ public class HubConnection {
     }
 
     public HubConnection(String url, Transport transport, Logger logger){
-        this(url, transport, logger, true);
+        this(url, transport, logger, false);
+    }
+
+    public HubConnection(String url, Transport transport, boolean skipNegotiate){
+        this(url, transport, new NullLogger(), skipNegotiate);
     }
 
     /**
@@ -164,7 +168,7 @@ public class HubConnection {
                 }
                 negotiateAttempts++;
             } while (this.negotiateResponse.redirectUrl != null && negotiateAttempts < MAX_NEGOTIATE_ATTEMPTS);
-            if(!negotiateResponse.availableTransports.contains("WebSockets")){
+            if (!negotiateResponse.availableTransports.contains("WebSockets")) {
                 throw new HubException("There were no compatible transports on the server.");
             }
         }
@@ -459,5 +463,9 @@ public class HubConnection {
         }
 
         onClosedCallbackList.add(callback);
+    }
+
+    public void setSkipNegotiate(boolean skipNegotiate){
+        this.skipNegotiate = skipNegotiate;
     }
 }

@@ -16,7 +16,6 @@ public class Chat {
 
         HubConnection hubConnection = new HubConnectionBuilder()
                 .withUrl(input)
-                .skipNeotiate(false)
                 .configureLogging(LogLevel.Information).build();
 
         hubConnection.on("Send", (name, message) -> {

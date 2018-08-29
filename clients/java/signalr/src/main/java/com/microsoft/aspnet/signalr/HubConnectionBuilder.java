@@ -8,7 +8,6 @@ public class HubConnectionBuilder {
     private String url;
     private Transport transport;
     private Logger logger;
-    private boolean skipNeotiate;
 
     public HubConnectionBuilder withUrl(String url) {
         this.url = url;
@@ -31,15 +30,10 @@ public class HubConnectionBuilder {
         return this;
     }
 
-    public HubConnectionBuilder skipNeotiate(boolean skip) {
-        this.skipNeotiate = skip;
-        return this;
-    }
-
     public HubConnection build() throws Exception {
         if (!built) {
             built = true;
-            return new HubConnection(url, transport, logger, skipNeotiate);
+            return new HubConnection(url, transport, logger);
         }
         throw new Exception("HubConnectionBuilder allows creation only of a single instance of HubConnection.");
     }
