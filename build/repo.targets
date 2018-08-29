@@ -97,7 +97,7 @@
     <PrepareDependsOn>DetectJava;$(PrepareDependsOn)</PrepareDependsOn>
   </PropertyGroup>
   <Target Name="DetectJava">
-    <Exec Command="./gradlew $(GradleOptions)" WorkingDirectory="$(RepositoryRoot)clients/java/signalr" IgnoreExitCode="true">
+    <Exec Command="./gradlew $(GradleOptions)" WorkingDirectory="$(RepositoryRoot)clients/java/signalr" IgnoreExitCode="true" IgnoreStandardErrorWarningFormat="true">
       <Output TaskParameter="ExitCode" PropertyName="JavaDetectExitCode" />
     </Exec>
 
