@@ -1,8 +1,6 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-import * as EventSourcePolyfill from "eventsource";
-import { w3cwebsocket } from "websocket";
 import { DefaultHttpClient, HttpClient } from "./HttpClient";
 import { IConnection } from "./IConnection";
 import { IHttpConnectionOptions } from "./IHttpConnectionOptions";
@@ -62,15 +60,21 @@ export class HttpConnection implements IConnection {
         options = options || {};
         options.logMessageContent = options.logMessageContent || false;
 
+        // Access module with require to allow browser builds to remove websocket dependency
+        const websocketModule = require("websocket");
+        const websocket = websocketModule && websocketModule.w3cwebsocket;
         if (typeof WebSocket !== "undefined" && !options.WebSocket) {
             options.WebSocket = WebSocket;
-        } else if (!options.WebSocket && typeof w3cwebsocket !== "undefined") {
+        } else if (!options.WebSocket && typeof websocket !== "undefined") {
             options.WebSocket = WebSocketWrapper;
         }
+
+        // Access module with require to allow browser builds to remove eventsource dependency
+        const eventsourceModule = require("eventsource");
         if (typeof EventSource !== "undefined" && !options.EventSource) {
             options.EventSource = EventSource;
-        } else if (!options.EventSource && typeof EventSourcePolyfill !== "undefined") {
-            options.EventSource = EventSourcePolyfill;
+        } else if (!options.EventSource && typeof eventsourceModule !== "undefined") {
+            options.EventSource = eventsourceModule;
         }
 
         this.httpClient = options.httpClient || new DefaultHttpClient(this.logger);

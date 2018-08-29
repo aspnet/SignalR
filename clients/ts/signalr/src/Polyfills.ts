@@ -1,7 +1,11 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-import { w3cwebsocket } from "websocket";
+// tslint:disable-next-line:no-var-requires
+const websocketModule = require("websocket");
+// If the module is not loaded we are in the browser environment
+// Set to empty object so w3cwebsocket.CLOSED can be accessed for the WebSocketWrapper statics
+const w3cwebsocket = (websocketModule && websocketModule.w3cwebsocket) || {};
 
 // Not exported from index
 
@@ -19,10 +23,10 @@ export interface WebSocketConstructor {
 
 export class WebSocketWrapper implements WebSocket {
     // tslint:disable-next-line:variable-name
-    private _websocket: w3cwebsocket;
+    private _websocket: WebSocket;
 
     constructor(url: string, protocols?: string | string[]) {
-        this._websocket = new w3cwebsocket(url, protocols as any);
+        this._websocket = new w3cwebsocket(url, protocols);
     }
 
     public get binaryType(): BinaryType {
@@ -40,10 +44,6 @@ export class WebSocketWrapper implements WebSocket {
         return this._websocket.bufferedAmount;
     }
 
-    public set bufferedAmount(num: number) {
-        this._websocket.bufferedAmount = num;
-    }
-
     public get extensions(): string {
         return (this._websocket as any).extensions.join(",");
     }
@@ -57,49 +57,40 @@ export class WebSocketWrapper implements WebSocket {
         return this._websocket.onclose;
     }
     public set onclose(close: ((this: WebSocket, ev: CloseEvent) => any) | null) {
-        this._websocket.onclose = close as any;
+        this._websocket.onclose = close;
     }
 
     public get onerror(): ((this: WebSocket, ev: Event) => any) | null {
-        return this._websocket.onerror as any;
+        return this._websocket.onerror;
     }
     public set onerror(error: ((this: WebSocket, ev: Event) => any) | null) {
-        this._websocket.onerror = error as any;
+        this._websocket.onerror = error;
     }
 
     public get onmessage(): ((this: WebSocket, ev: MessageEvent) => any) | null {
         return this._websocket.onmessage;
     }
     public set onmessage(message: ((this: WebSocket, ev: MessageEvent) => any) | null) {
-        this._websocket.onmessage = message as any;
+        this._websocket.onmessage = message;
     }
 
     public get onopen(): ((this: WebSocket, ev: Event) => any) | null {
         return this._websocket.onopen;
     }
     public set onopen(open: ((this: WebSocket, ev: Event) => any) | null) {
-        this._websocket.onopen = open as any;
+        this._websocket.onopen = open;
     }
 
     public get protocol(): string {
         return this._websocket.protocol || "";
     }
-    public set protocol(protocol: string) {
-        this._websocket.protocol = protocol;
-    }
 
     public get readyState(): number {
         return this._websocket.readyState;
     }
-    public set readyState(readyState: number) {
-        this._websocket.readyState = readyState;
-    }
 
     public get url(): string {
         return this._websocket.url;
-    }
-    public set url(url: string) {
-        this._websocket.url = url;
     }
 
     public close(code?: number | undefined, reason?: string | undefined): void {
