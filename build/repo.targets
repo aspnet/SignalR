@@ -52,7 +52,6 @@
 
   <PropertyGroup>
     <GetArtifactInfoDependsOn>$(GetArtifactInfoDependsOn);GetNpmArtifactInfo;GetJavaArtifactInfo</GetArtifactInfoDependsOn>
-    <PrepareDependsOn>$(PrepareDependsOn);DetectJava;GetNpmArtifactInfo;GetJavaArtifactInfo</PrepareDependsOn>
   </PropertyGroup>
 
   <Target Name="GetNpmArtifactInfo">
@@ -94,6 +93,9 @@
     </ItemGroup>
   </Target>
 
+  <PropertyGroup>
+    <PrepareDependsOn>DetectJava;$(PrepareDependsOn)</PrepareDependsOn>
+  </PropertyGroup>
   <Target Name="DetectJava">
     <Exec Command="./gradlew $(GradleOptions)" WorkingDirectory="$(RepositoryRoot)clients/java/signalr" IgnoreExitCode="true">
       <Output TaskParameter="ExitCode" PropertyName="JavaDetectExitCode" />
