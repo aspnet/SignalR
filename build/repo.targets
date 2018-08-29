@@ -52,7 +52,7 @@
 
   <PropertyGroup>
     <GetArtifactInfoDependsOn>$(GetArtifactInfoDependsOn);GetNpmArtifactInfo;GetJavaArtifactInfo</GetArtifactInfoDependsOn>
-    <PrepareDependsOn>$(PrepareDependsOn);GetNpmArtifactInfo;GetJavaArtifactInfo;DetectJava</PrepareDependsOn>
+    <PrepareDependsOn>$(PrepareDependsOn);DetectJava;GetNpmArtifactInfo;GetJavaArtifactInfo</PrepareDependsOn>
   </PropertyGroup>
 
   <Target Name="GetNpmArtifactInfo">
@@ -77,7 +77,7 @@
   </Target>
 
   <Target Name="GetJavaArtifactInfo">
-    <ItemGroup Condition=" '$(SkipJavaClient)' != 'true' ">
+    <ItemGroup Condition="'$(SkipJavaClient)' != 'true'">
       <ArtifactInfo Include="$(BuildDir)\%(Jars.Identity)">
         <ArtifactType>JavaJar</ArtifactType>
         <Version>$(JavaClientVersion)</Version>
