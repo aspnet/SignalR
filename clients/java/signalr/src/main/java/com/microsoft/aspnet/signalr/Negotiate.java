@@ -11,20 +11,14 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.URI;
 import java.net.URISyntaxException;
 
 public class Negotiate {
 
     public static NegotiateResponse processNegotiate(String url) throws IOException {
         HttpClient client = HttpClientBuilder.create().build();
-        HttpPost post;
-        if (url.indexOf("?") > 0){
-            post = new HttpPost(url.substring(0, url.indexOf('?')) + "negotiate" + url.substring(url.indexOf('?')));
-        }
-        else {
-            post = new HttpPost(url + "/negotiate");
-        }
+        url = resolveNegotiateUrl(url);
+        HttpPost post = new HttpPost(url);
         HttpResponse response = client.execute(post);
         String result = getResponseResult(response);
         return new NegotiateResponse(result);
@@ -32,9 +26,8 @@ public class Negotiate {
 
     public static NegotiateResponse processNegotiate(String url, String accessTokenHeader) throws IOException, URISyntaxException {
         HttpClient client = HttpClientBuilder.create().build();
-        URI uri = new URI(url);
-        //uri.get
-        url = url.substring(0, url.indexOf('?')) + "negotiate" + url.substring(url.indexOf('?'));
+
+        url = resolveNegotiateUrl(url);
         HttpPost post = new HttpPost(url);
         post.setHeader("Authorization", "Bearer " + accessTokenHeader);
         HttpResponse response = client.execute(post);
@@ -53,5 +46,32 @@ public class Negotiate {
         }
 
         return result.toString();
+    }
+
+    private static String resolveNegotiateUrl(String url){
+        String negotiateUrl = "";
+
+        // Check if we have a query string. If we do then we ignore it for now.
+        int queryStringIndex = url.indexOf('?');
+        if(queryStringIndex > 0){
+            negotiateUrl = url.substring(0, url.indexOf('?'));
+        }
+        else {
+            negotiateUrl = url;
+        }
+
+        //Check if the url ends in a /
+        if(negotiateUrl.charAt(negotiateUrl.length() -1) != '/'){
+            negotiateUrl += "/";
+        }
+
+        negotiateUrl += "negotiate";
+
+        // Add the query string back if it existed.
+        if(queryStringIndex > 0){
+            negotiateUrl += url.substring(url.indexOf('?'));
+        }
+
+        return negotiateUrl;
     }
 }
