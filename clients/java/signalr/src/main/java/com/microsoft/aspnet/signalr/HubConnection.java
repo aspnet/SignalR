@@ -160,16 +160,17 @@ public class HubConnection {
         if (!skipNegotiate) {
             int negotiateAttempts = 0;
             do {
-                if (negotiateAttempts > 0 && this.negotiateResponse.getAccessToken() != null) {
-                    this.accessToken = negotiateResponse.getAccessToken();
-                    this.negotiateResponse = Negotiate.processNegotiate(url, this.negotiateResponse.getAccessToken());
+                this.accessToken = (this.negotiateResponse == null) ? null : this.negotiateResponse.getAccessToken();
+                this.negotiateResponse = Negotiate.processNegotiate(url, this.accessToken);
+
+                if (this.accessToken != null) {
                     this.url = this.url + "&id=" + negotiateResponse.getConnectionId() + "&access_token=" + this.accessToken;
-                } else {
-                    this.negotiateResponse = Negotiate.processNegotiate(url);
-                    if (this.negotiateResponse.getRedirectUrl() != null) {
-                        this.url = this.negotiateResponse.getRedirectUrl();
-                    }
                 }
+
+                if (this.negotiateResponse.getRedirectUrl() != null) {
+                        this.url = this.negotiateResponse.getRedirectUrl();
+                }
+
                 negotiateAttempts++;
             } while (this.negotiateResponse.getRedirectUrl() != null && negotiateAttempts < MAX_NEGOTIATE_ATTEMPTS);
             if (!negotiateResponse.getAvailableTransports().contains("WebSockets")) {
