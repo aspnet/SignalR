@@ -20,11 +20,11 @@ public class Negotiate {
         url = resolveNegotiateUrl(url);
         OkHttpClient client = new OkHttpClient();
         RequestBody body = RequestBody.create(null, new byte[]{});
-        Request.Builder requestBuilder =  new Request.Builder()
+        Request.Builder requestBuilder = new Request.Builder()
                 .url(url)
                 .post(body);
 
-        if(accessTokenHeader != null) {
+        if (accessTokenHeader != null) {
             requestBuilder.addHeader("Authorization", "Bearer " + accessTokenHeader);
         }
 
@@ -35,27 +35,26 @@ public class Negotiate {
         return new NegotiateResponse(result);
     }
 
-    private static String resolveNegotiateUrl(String url){
+    private static String resolveNegotiateUrl(String url) {
         String negotiateUrl = "";
 
         // Check if we have a query string. If we do then we ignore it for now.
         int queryStringIndex = url.indexOf('?');
-        if(queryStringIndex > 0){
+        if (queryStringIndex > 0) {
             negotiateUrl = url.substring(0, url.indexOf('?'));
-        }
-        else {
+        } else {
             negotiateUrl = url;
         }
 
         //Check if the url ends in a /
-        if(negotiateUrl.charAt(negotiateUrl.length() -1) != '/'){
+        if (negotiateUrl.charAt(negotiateUrl.length() - 1) != '/') {
             negotiateUrl += "/";
         }
 
         negotiateUrl += "negotiate";
 
         // Add the query string back if it existed.
-        if(queryStringIndex > 0){
+        if (queryStringIndex > 0) {
             negotiateUrl += url.substring(url.indexOf('?'));
         }
 

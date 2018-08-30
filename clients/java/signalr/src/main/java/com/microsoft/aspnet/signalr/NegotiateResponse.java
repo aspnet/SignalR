@@ -18,7 +18,7 @@ public class NegotiateResponse {
     public String accessToken;
 
     public NegotiateResponse(String negotiatePayload) {
-        JsonObject negotiateResponse= jsonParser.parse(negotiatePayload).getAsJsonObject();
+        JsonObject negotiateResponse = jsonParser.parse(negotiatePayload).getAsJsonObject();
         if (negotiateResponse.has("url")) {
             this.redirectUrl = negotiateResponse.get("url").getAsString();
             if (negotiateResponse.has("accessToken")) {
@@ -27,7 +27,7 @@ public class NegotiateResponse {
             return;
         }
         this.connectionId = negotiateResponse.get("connectionId").getAsString();
-        JsonArray transports = ((JsonArray)negotiateResponse.get("availableTransports"));
+        JsonArray transports = ((JsonArray) negotiateResponse.get("availableTransports"));
         for (int i = 0; i < transports.size(); i++) {
             availableTransports.add(transports.get(i).getAsJsonObject().get("transport").getAsString());
         }
