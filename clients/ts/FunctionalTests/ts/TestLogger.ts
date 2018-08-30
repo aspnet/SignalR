@@ -2,7 +2,7 @@ import { ILogger, LogLevel } from "@aspnet/signalr";
 
 // Since JavaScript modules are file-based, we can just pull in utilities from the
 // main library directly even if they aren't exported.
-import { ConsoleLogger } from "@aspnet/signalr/dist/esm/Utils";
+// import { ConsoleLogger } from "@aspnet/signalr/dist/esm/Utils";
 
 export class TestLog {
     public messages: Array<[Date, LogLevel, string]> = [];
@@ -33,7 +33,7 @@ export class TestLog {
 
 export class TestLogger implements ILogger {
     public static instance: TestLogger = new TestLogger();
-    private static consoleLogger: ConsoleLogger = new ConsoleLogger(LogLevel.Trace);
+    // private static consoleLogger: ConsoleLogger = new ConsoleLogger(LogLevel.Trace);
 
     public currentLog: TestLog = new TestLog();
 
@@ -41,7 +41,7 @@ export class TestLogger implements ILogger {
         this.currentLog.addMessage(new Date(), logLevel, message);
 
         // Also write to browser console
-        TestLogger.consoleLogger.log(logLevel, message);
+        // TestLogger.consoleLogger.log(logLevel, message);
     }
 
     public static saveLogsAndReset(): TestLog {

@@ -4,10 +4,10 @@
 // This code uses a lot of `.then` instead of `await` and TSLint doesn't like it.
 // tslint:disable:no-floating-promises
 
-import { AbortError, DefaultHttpClient, HttpClient, HttpRequest, HttpResponse, HttpTransportType, HubConnectionBuilder, IHttpConnectionOptions, JsonHubProtocol } from "@aspnet/signalr";
+import { AbortError, DefaultHttpClient, HttpClient, HttpRequest, HttpResponse, HttpTransportType, HubConnectionBuilder, IHttpConnectionOptions, JsonHubProtocol, NullLogger } from "@aspnet/signalr";
 import { MessagePackHubProtocol } from "@aspnet/signalr-protocol-msgpack";
 
-import { eachTransport, eachTransportAndProtocol, ENDPOINT_BASE_URL } from "./Common";
+import { eachTransport, eachTransportAndProtocol, ENDPOINT_BASE_URL, windowOrglobal } from "./Common";
 import { TestLogger } from "./TestLogger";
 
 const TESTHUBENDPOINT_URL = ENDPOINT_BASE_URL + "/testhub";
@@ -606,8 +606,8 @@ describe("hubConnection", () => {
     it("transport falls back from WebSockets to SSE or LongPolling", async (done) => {
         // Replace Websockets with a function that just
         // throws to force fallback.
-        const oldWebSocket = (window as any).WebSocket;
-        (window as any).WebSocket = () => {
+        const oldWebSocket = windowOrglobal().WebSocket;
+        windowOrglobal().WebSocket = () => {
             throw new Error("Kick rocks");
         };
 
@@ -625,7 +625,7 @@ describe("hubConnection", () => {
         } catch (e) {
             fail(e);
         } finally {
-            (window as any).WebSocket = oldWebSocket;
+            windowOrglobal().WebSocket = oldWebSocket;
             done();
         }
     });
@@ -683,6 +683,11 @@ describe("hubConnection", () => {
     });
 
     it("populates the Content-Type header when sending XMLHttpRequest", async (done) => {
+        // Skip test on Node as this header isn't important (it was added for React-Native)
+        if (typeof window === "undefined") {
+            done();
+            return;
+        }
         const hubConnection = getConnectionBuilder(HttpTransportType.LongPolling, TESTHUB_NOWEBSOCKETS_ENDPOINT_URL)
             .withHubProtocol(new JsonHubProtocol())
             .build();
@@ -704,22 +709,14 @@ describe("hubConnection", () => {
 
     function getJwtToken(url: string): Promise<string> {
         return new Promise((resolve, reject) => {
-            const xhr = new XMLHttpRequest();
-
-            xhr.open("GET", url, true);
-            xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
-            xhr.send();
-            xhr.onload = () => {
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    resolve(xhr.response || xhr.responseText);
+            const httpClient = new DefaultHttpClient(NullLogger.instance);
+            httpClient.get(url).then((response) => {
+                if (response.statusCode >= 200 && response.statusCode < 300) {
+                    resolve(response.content as string);
                 } else {
-                    reject(new Error(xhr.statusText));
+                    reject(new Error(response.statusText));
                 }
-            };
-
-            xhr.onerror = () => {
-                reject(new Error(xhr.statusText));
-            };
+            });
         });
     }
 });

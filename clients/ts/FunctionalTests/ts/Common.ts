@@ -6,7 +6,7 @@ import { MessagePackHubProtocol } from "@aspnet/signalr-protocol-msgpack";
 
 export let ENDPOINT_BASE_URL: string;
 
-if ((window as any).__karma__) {
+if (typeof window !== "undefined" && (window as any).__karma__) {
     const args = (window as any).__karma__.config.args as string[];
     let server = "";
 
@@ -22,8 +22,12 @@ if ((window as any).__karma__) {
     // Running in Karma? Need to use an absolute URL
     ENDPOINT_BASE_URL = server;
     console.log(`Using SignalR Server: ${ENDPOINT_BASE_URL}`);
-} else {
+} else if (typeof document !== "undefined") {
     ENDPOINT_BASE_URL = `${document.location.protocol}//${document.location.host}`;
+} else if (process.env.SERVER_URL) {
+    ENDPOINT_BASE_URL = process.env.SERVER_URL;
+} else {
+    ENDPOINT_BASE_URL = "http://localhost:32675";
 }
 
 export const ECHOENDPOINT_URL = ENDPOINT_BASE_URL + "/echo";
@@ -51,7 +55,7 @@ export function eachTransportAndProtocol(action: (transport: HttpTransportType, 
     const protocols: IHubProtocol[] = [new JsonHubProtocol()];
     // IE9 does not support XmlHttpRequest advanced features so disable for now
     // This can be enabled if we fix: https://github.com/aspnet/SignalR/issues/742
-    if (typeof new XMLHttpRequest().responseType === "string") {
+    if (typeof XMLHttpRequest === "undefined" || typeof new XMLHttpRequest().responseType === "string") {
         // Because of TypeScript stuff, we can't get "ambient" or "global" declarations to work with the MessagePackHubProtocol module
         // This is only a limitation of the .d.ts file.
         // Everything works fine in the module
@@ -64,4 +68,8 @@ export function eachTransportAndProtocol(action: (transport: HttpTransportType, 
             }
         });
     });
+}
+
+export function windowOrglobal(): any {
+    return typeof window !== "undefined" ? window : global;
 }

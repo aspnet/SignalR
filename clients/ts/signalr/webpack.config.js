@@ -9,5 +9,6 @@ module.exports = baseConfig(__dirname, "signalr", {
         "websocket",
         "eventsource",
         "http",
+        "url",
     ]
 });

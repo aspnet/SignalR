@@ -385,10 +385,17 @@ describe("HttpConnection", () => {
     });
 
     it("does not send negotiate request if WebSockets transport requested explicitly and skipNegotiation is true", async () => {
+        (global as any).WebSocket = class WebSocket {
+            constructor() {
+                throw new Error("WebSocket constructor called.");
+            }
+        };
         await VerifyLogger.run(async (logger) => {
             const options: IHttpConnectionOptions = {
                 ...commonOptions,
-                httpClient: new TestHttpClient(),
+                httpClient: new TestHttpClient()
+                    .on("POST", () => { throw new Error("Should not be called"); })
+                    .on("GET", () => { throw new Error("Should not be called"); }),
                 logger,
                 skipNegotiation: true,
                 transport: HttpTransportType.WebSockets,
@@ -397,9 +404,11 @@ describe("HttpConnection", () => {
             const connection = new HttpConnection("http://tempuri.org", options);
             await expect(connection.start(TransferFormat.Text))
                 .rejects
-                .toThrow("'WebSocket' is not supported in your environment.");
+                .toThrow("WebSocket constructor called.");
         },
-        "Failed to start the connection: Error: 'WebSocket' is not supported in your environment.");
+        "Failed to start the connection: Error: WebSocket constructor called.");
+
+        delete (global as any).WebSocket;
     });
 
     it("does not start non WebSockets transport if requested explicitly and skipNegotiation is true", async () => {

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 import * as HTTP from "http";
+import { URL } from "url";
 import { AbortSignal } from "./AbortController";
 import { AbortError, HttpError, TimeoutError } from "./Errors";
 import { ILogger, LogLevel } from "./ILogger";
@@ -255,12 +256,15 @@ export class DefaultHttpClient extends HttpClient {
                 port: url.port,
             };
 
-            let data: string = "";
+            const data: Buffer[] = [];
 
             const req = HTTP.request(options, (res: HTTP.IncomingMessage) => {
+
+                let dataLength = 0;
                 res.on("data", (chunk: any) => {
-                    data += chunk;
-                    this.logger.log(LogLevel.Information, `got a chunk: ${chunk}`);
+                    data.push(chunk);
+                    // Buffer.concat will be slightly faster if we keep track of the length
+                    dataLength += chunk.length;
                 });
 
                 res.on("end", () => {
@@ -269,7 +273,14 @@ export class DefaultHttpClient extends HttpClient {
                     }
 
                     if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-                        resolve(new HttpResponse(res.statusCode, res.statusMessage || "", data));
+                        let resp: string | ArrayBuffer;
+                        if (request.responseType === "arraybuffer") {
+                            const buf = Buffer.concat(data, dataLength);
+                            resolve(new HttpResponse(res.statusCode, res.statusMessage || "", buf));
+                        } else {
+                            resp = Buffer.concat(data, dataLength).toString();
+                            resolve(new HttpResponse(res.statusCode, res.statusMessage || "", resp));
+                        }
                     } else {
                         reject(new HttpError(res.statusMessage || "", res.statusCode || 0));
                     }
@@ -295,7 +306,11 @@ export class DefaultHttpClient extends HttpClient {
                 reject(e);
             });
 
-            req.write(request.content || "");
+            if (request.content instanceof ArrayBuffer) {
+                req.write(Buffer.from(request.content));
+            } else {
+                req.write(request.content || "");
+            }
             req.end();
         });
     }
