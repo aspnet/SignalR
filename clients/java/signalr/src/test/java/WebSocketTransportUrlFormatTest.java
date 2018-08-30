@@ -29,8 +29,10 @@ public class WebSocketTransportUrlFormatTest {
         return Arrays.asList(new String[][]{
                 {"http://example.com", "ws://example.com"},
                 {"https://example.com", "wss://example.com"},
+                {"https://example.com?access_token=A_LONG_STRING", "wss://example.com"},
                 {"ws://example.com", "ws://example.com"},
-                {"wss://example.com", "wss://example.com"}});
+                {"wss://example.com", "wss://example.com"},
+                {"wss://example.com?access_token=A_LONG_STRING", "wss://example.com"},});
     }
 
     @Test

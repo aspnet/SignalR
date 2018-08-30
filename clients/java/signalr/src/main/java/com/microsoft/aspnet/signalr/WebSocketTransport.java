@@ -27,21 +27,21 @@ public class WebSocketTransport implements Transport {
     public WebSocketTransport(String url, Logger logger) throws URISyntaxException {
         this.url = formatUrl(url);
         this.logger = logger;
-        if (url.indexOf(ACCESS_TOKEN_PREFIX) > 0){
-            this.accessToken = url.substring(url.indexOf(ACCESS_TOKEN_PREFIX) + ACCESS_TOKEN_PREFIX.length());
-        }
     }
 
-    public URI getUrl(){
+    public URI getUrl() {
         return url;
     }
 
     private URI formatUrl(String url) throws URISyntaxException {
-        if(url.startsWith(HTTPS)){
+        if (url.startsWith(HTTPS)) {
             url = WSS + url.substring(HTTPS.length());
-        }
-        else if(url.startsWith(HTTP)){
+        } else if (url.startsWith(HTTP)) {
             url = WS + url.substring(HTTP.length());
+        }
+        if (url.indexOf(ACCESS_TOKEN_PREFIX) > 0) {
+            this.accessToken = url.substring(url.indexOf(ACCESS_TOKEN_PREFIX) + ACCESS_TOKEN_PREFIX.length());
+            url = url.substring(0, url.indexOf(ACCESS_TOKEN_PREFIX) - 1);
         }
         return new URI(url);
     }
@@ -49,7 +49,14 @@ public class WebSocketTransport implements Transport {
     @Override
     public void start() throws Exception {
         logger.log(LogLevel.Debug, "Starting Websocket connection.");
-        webSocketClient = createWebSocket();
+        if (this.accessToken != null) {
+            Map<String, String> headers = new HashMap<>();
+            headers.put("Authorization", "Bearer " + this.accessToken);
+            this.webSocketClient = createWebSocket(headers);
+        } else {
+            this.webSocketClient = createWebSocket();
+        }
+
         if (!webSocketClient.connectBlocking()) {
             String errorMessage = "There was an error starting the Websockets transport.";
             logger.log(LogLevel.Debug, errorMessage);
@@ -80,31 +87,36 @@ public class WebSocketTransport implements Transport {
         logger.log(LogLevel.Information, "WebSocket connection stopped");
     }
 
-    private WebSocketClient createWebSocket() {
-        return new WebSocketClient(url) {
-             @Override
-             public void onOpen(ServerHandshake handshakedata) {
-                 System.out.println("Connected to " + url);
-             }
+    private WebSocketClient createWebSocket(Map<String, String> headers) {
+        return new WebSocketClient(this.url, headers) {
+            @Override
+            public void onOpen(ServerHandshake handshakedata) {
+                System.out.println("Connected to " + url);
+            }
 
-             @Override
-             public void onMessage(String message) {
-                 try {
-                     onReceive(message);
-                 } catch (Exception e) {
-                     e.printStackTrace();
-                 }
-             }
+            @Override
+            public void onMessage(String message) {
+                try {
+                    onReceive(message);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
 
-             @Override
-             public void onClose(int code, String reason, boolean remote) {
+            @Override
+            public void onClose(int code, String reason, boolean remote) {
                 System.out.println("Connection Closed");
-             }
+            }
 
-             @Override
-             public void onError(Exception ex) {
+            @Override
+            public void onError(Exception ex) {
                 System.out.println("Error: " + ex.getMessage());
-             }
-         };
+            }
+        };
+    }
+
+    private WebSocketClient createWebSocket() {
+        Map<String, String> emptyHeaderMap = new HashMap<>();
+        return createWebSocket(emptyHeaderMap);
     }
 }

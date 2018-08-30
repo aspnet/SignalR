@@ -27,7 +27,7 @@ public class NegotiateResponse {
             return;
         }
         this.connectionId = negotiateResponse.get("connectionId").getAsString();
-        JsonArray transports = ((JsonArray) negotiateResponse.get("availableTransports"));
+        JsonArray transports = (JsonArray) negotiateResponse.get("availableTransports");
         for (int i = 0; i < transports.size(); i++) {
             availableTransports.add(transports.get(i).getAsJsonObject().get("transport").getAsString());
         }
