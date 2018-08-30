@@ -3,10 +3,11 @@
 
 package com.microsoft.aspnet.signalr;
 
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.HttpClientBuilder;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -16,22 +17,29 @@ import java.net.URISyntaxException;
 public class Negotiate {
 
     public static NegotiateResponse processNegotiate(String url) throws IOException {
-        HttpClient client = HttpClientBuilder.create().build();
         url = resolveNegotiateUrl(url);
-        HttpPost post = new HttpPost(url);
-        HttpResponse response = client.execute(post);
-        String result = getResponseResult(response);
+        OkHttpClient client = new OkHttpClient();
+        RequestBody body = RequestBody.create(null, new byte[]{});
+        Request request =  new Request.Builder()
+                .url(url)
+                .post(body)
+                .build();
+        Response response = client.newCall(request).execute();
+        String result = response.body().string();
         return new NegotiateResponse(result);
     }
 
     public static NegotiateResponse processNegotiate(String url, String accessTokenHeader) throws IOException, URISyntaxException {
-        HttpClient client = HttpClientBuilder.create().build();
-
         url = resolveNegotiateUrl(url);
-        HttpPost post = new HttpPost(url);
-        post.setHeader("Authorization", "Bearer " + accessTokenHeader);
-        HttpResponse response = client.execute(post);
-        String result = getResponseResult(response);
+        OkHttpClient client = new OkHttpClient();
+        RequestBody body = RequestBody.create(null, new byte[]{});
+        Request request =  new Request.Builder()
+                .url(url)
+                .addHeader("Authorization", "Bearer " + accessTokenHeader)
+                .post(body)
+                .build();
+        Response response = client.newCall(request).execute();
+        String result = response.body().string();
         return new NegotiateResponse(result);
     }
 
