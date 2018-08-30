@@ -25,7 +25,7 @@ public class Negotiate {
                 .post(body);
 
         if(accessTokenHeader != null) {
-            requestBuilder.addHeader("Authorization", "Bearer " + accessTokenHeader)
+            requestBuilder.addHeader("Authorization", "Bearer " + accessTokenHeader);
         }
 
         Request request = requestBuilder.build();
