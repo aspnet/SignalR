@@ -160,19 +160,19 @@ public class HubConnection {
         if (!skipNegotiate) {
             int negotiateAttempts = 0;
             do {
-                if (negotiateAttempts > 0 && this.negotiateResponse.accessToken != null) {
-                    this.accessToken = negotiateResponse.accessToken;
-                    this.negotiateResponse = Negotiate.processNegotiate(url, this.negotiateResponse.accessToken);
-                    this.url = this.url + "&id=" + negotiateResponse.connectionId + "&access_token=" + this.accessToken;
+                if (negotiateAttempts > 0 && this.negotiateResponse.getAccessToken() != null) {
+                    this.accessToken = negotiateResponse.getAccessToken();
+                    this.negotiateResponse = Negotiate.processNegotiate(url, this.negotiateResponse.getAccessToken());
+                    this.url = this.url + "&id=" + negotiateResponse.getConnectionId() + "&access_token=" + this.accessToken;
                 } else {
                     this.negotiateResponse = Negotiate.processNegotiate(url);
-                    if (this.negotiateResponse.redirectUrl != null) {
-                        this.url = this.negotiateResponse.redirectUrl;
+                    if (this.negotiateResponse.getRedirectUrl() != null) {
+                        this.url = this.negotiateResponse.getRedirectUrl();
                     }
                 }
                 negotiateAttempts++;
-            } while (this.negotiateResponse.redirectUrl != null && negotiateAttempts < MAX_NEGOTIATE_ATTEMPTS);
-            if (!negotiateResponse.availableTransports.contains("WebSockets")) {
+            } while (this.negotiateResponse.getRedirectUrl() != null && negotiateAttempts < MAX_NEGOTIATE_ATTEMPTS);
+            if (!negotiateResponse.getAvailableTransports().contains("WebSockets")) {
                 throw new HubException("There were no compatible transports on the server.");
             }
         }

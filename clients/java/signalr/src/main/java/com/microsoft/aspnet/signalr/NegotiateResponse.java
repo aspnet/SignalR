@@ -11,11 +11,11 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class NegotiateResponse {
-    public String connectionId;
-    public JsonParser jsonParser = new JsonParser();
-    public Set<String> availableTransports = new HashSet<>();
-    public String redirectUrl;
-    public String accessToken;
+    private String connectionId;
+    private Set<String> availableTransports = new HashSet<>();
+    private String redirectUrl;
+    private String accessToken;
+    private JsonParser jsonParser = new JsonParser();
 
     public NegotiateResponse(String negotiatePayload) {
         JsonObject negotiateResponse = jsonParser.parse(negotiatePayload).getAsJsonObject();
@@ -32,4 +32,21 @@ public class NegotiateResponse {
             availableTransports.add(transports.get(i).getAsJsonObject().get("transport").getAsString());
         }
     }
+
+    public String getConnectionId() {
+        return connectionId;
+    }
+
+    public Set<String> getAvailableTransports() {
+        return availableTransports;
+    }
+
+    public String getRedirectUrl() {
+        return redirectUrl;
+    }
+
+    public String getAccessToken() {
+        return accessToken;
+    }
 }
+
