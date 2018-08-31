@@ -1,28 +1,29 @@
 // Copyright (c) .NET Foundation. All rights reserved.
-// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
-
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license
+// information.
 package com.microsoft.aspnet.signalr;
 
-/**
- * A protocol abstraction for communicating with SignalR hubs.
- */
+/** A protocol abstraction for communicating with SignalR hubs. */
 public interface HubProtocol {
-    String getName();
-    int getVersion();
-    TransferFormat getTransferFormat();
+  String getName();
 
-    /**
-     * Creates a new list of {@link HubMessage}s.
-     * @param message A string representation of one or more {@link HubMessage}s.
-     * @return A list of {@link HubMessage}s.
-     */
-    HubMessage[] parseMessages(String message);
+  int getVersion();
 
-    /**
-     * Writes the specified {@link HubMessage} to a String.
-     * @param message The message to write.
-     * @return A string representation of the message.
-     */
-    String writeMessage(HubMessage message);
+  TransferFormat getTransferFormat();
+
+  /**
+   * Creates a new list of {@link HubMessage}s.
+   *
+   * @param message A string representation of one or more {@link HubMessage}s.
+   * @return A list of {@link HubMessage}s.
+   */
+  HubMessage[] parseMessages(String message);
+
+  /**
+   * Writes the specified {@link HubMessage} to a String.
+   *
+   * @param message The message to write.
+   * @return A string representation of the message.
+   */
+  String writeMessage(HubMessage message);
 }
-
