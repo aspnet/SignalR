@@ -16,17 +16,21 @@ public class WebSocketTransport implements Transport {
     private OnReceiveCallBack onReceiveCallBack;
     private URI url;
     private Logger logger;
-    private String accessToken;
+    private Map<String, String> headers;
 
     private static final String HTTP = "http";
     private static final String HTTPS = "https";
     private static final String WS = "ws";
     private static final String WSS = "wss";
-    private static final String ACCESS_TOKEN_PREFIX = "access_token=";
 
-    public WebSocketTransport(String url, Logger logger) throws URISyntaxException {
+    public WebSocketTransport(String url, Logger logger, Map<String, String> headers) throws URISyntaxException {
         this.url = formatUrl(url);
         this.logger = logger;
+        this.headers = headers;
+    }
+
+    public WebSocketTransport(String url, Logger logger) throws URISyntaxException {
+        this(url, logger, null);
     }
 
     public URI getUrl() {
@@ -39,23 +43,14 @@ public class WebSocketTransport implements Transport {
         } else if (url.startsWith(HTTP)) {
             url = WS + url.substring(HTTP.length());
         }
-        if (url.indexOf(ACCESS_TOKEN_PREFIX) > 0) {
-            this.accessToken = url.substring(url.indexOf(ACCESS_TOKEN_PREFIX) + ACCESS_TOKEN_PREFIX.length());
-            url = url.substring(0, url.indexOf(ACCESS_TOKEN_PREFIX) - 1);
-        }
+
         return new URI(url);
     }
 
     @Override
     public void start() throws Exception {
         logger.log(LogLevel.Debug, "Starting Websocket connection.");
-        if (this.accessToken != null) {
-            Map<String, String> headers = new HashMap<>();
-            headers.put("Authorization", "Bearer " + this.accessToken);
-            this.webSocketClient = createWebSocket(headers);
-        } else {
-            this.webSocketClient = createWebSocket();
-        }
+        this.webSocketClient = createWebSocket(this.headers);
 
         if (!webSocketClient.connectBlocking()) {
             String errorMessage = "There was an error starting the Websockets transport.";
@@ -113,10 +108,5 @@ public class WebSocketTransport implements Transport {
                 System.out.println("Error: " + ex.getMessage());
             }
         };
-    }
-
-    private WebSocketClient createWebSocket() {
-        Map<String, String> emptyHeaderMap = new HashMap<>();
-        return createWebSocket(emptyHeaderMap);
     }
 }

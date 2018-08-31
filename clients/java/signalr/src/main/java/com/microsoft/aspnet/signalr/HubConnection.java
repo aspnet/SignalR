@@ -7,7 +7,9 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 public class HubConnection {
@@ -25,6 +27,7 @@ public class HubConnection {
     private boolean skipNegotiate = false;
     private NegotiateResponse negotiateResponse;
     private String accessToken;
+    private Map<String, String> headers = new HashMap<>();
 
     private static int MAX_NEGOTIATE_ATTEMPTS = 100;
 
@@ -163,12 +166,20 @@ public class HubConnection {
                 this.accessToken = (this.negotiateResponse == null) ? null : this.negotiateResponse.getAccessToken();
                 this.negotiateResponse = Negotiate.processNegotiate(url, this.accessToken);
 
-                if (this.accessToken != null) {
-                    this.url = this.url + "&id=" + negotiateResponse.getConnectionId() + "&access_token=" + this.accessToken;
+                if (this.negotiateResponse.getConnectionId() != null) {
+                    if (this.url.contains("?")) {
+                        this.url = this.url + "&id=" + negotiateResponse.getConnectionId();
+                    } else {
+                        this.url = this.url + "?id=" + negotiateResponse.getConnectionId();
+                    }
+                }
+
+                if (negotiateResponse.getAccessToken() != null) {
+                    this.headers.put("Authorization", "Bearer " + negotiateResponse.getAccessToken());
                 }
 
                 if (this.negotiateResponse.getRedirectUrl() != null) {
-                        this.url = this.negotiateResponse.getRedirectUrl();
+                    this.url = this.negotiateResponse.getRedirectUrl();
                 }
 
                 negotiateAttempts++;
@@ -180,8 +191,9 @@ public class HubConnection {
 
         logger.log(LogLevel.Debug, "Starting HubConnection");
         if (transport == null) {
-            transport = new WebSocketTransport(this.url, this.logger);
+            transport = new WebSocketTransport(this.url, this.logger, this.headers);
         }
+
         transport.setOnReceive(this.callback);
         transport.start();
         String handshake = HandshakeProtocol.createHandshakeRequestMessage(new HandshakeRequestMessage(protocol.getName(), protocol.getVersion()));
