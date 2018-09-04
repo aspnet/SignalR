@@ -259,7 +259,6 @@ export class DefaultHttpClient extends HttpClient {
             const data: Buffer[] = [];
 
             const req = HTTP.request(options, (res: HTTP.IncomingMessage) => {
-
                 let dataLength = 0;
                 res.on("data", (chunk: any) => {
                     data.push(chunk);
@@ -275,8 +274,8 @@ export class DefaultHttpClient extends HttpClient {
                     if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
                         let resp: string | ArrayBuffer;
                         if (request.responseType === "arraybuffer") {
-                            const buf = Buffer.concat(data, dataLength);
-                            resolve(new HttpResponse(res.statusCode, res.statusMessage || "", buf));
+                            resp = Buffer.concat(data, dataLength);
+                            resolve(new HttpResponse(res.statusCode, res.statusMessage || "", resp));
                         } else {
                             resp = Buffer.concat(data, dataLength).toString();
                             resolve(new HttpResponse(res.statusCode, res.statusMessage || "", resp));

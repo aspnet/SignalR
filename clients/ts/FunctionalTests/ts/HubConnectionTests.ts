@@ -683,7 +683,7 @@ describe("hubConnection", () => {
     });
 
     it("populates the Content-Type header when sending XMLHttpRequest", async (done) => {
-        // Skip test on Node as this header isn't important (it was added for React-Native)
+        // Skip test on Node as this header isn't set (it was added for React-Native)
         if (typeof window === "undefined") {
             done();
             return;

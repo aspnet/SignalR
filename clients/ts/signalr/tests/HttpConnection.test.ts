@@ -638,46 +638,6 @@ describe("HttpConnection", () => {
         });
     });
 
-    // it("does not select ServerSentEvents transport when not available in environment", async () => {
-    //     await VerifyLogger.run(async (logger) => {
-    //         const serverSentEventsTransport = { transport: "ServerSentEvents", transferFormats: ["Text"] };
-
-    //         const options: IHttpConnectionOptions = {
-    //             ...commonOptions,
-    //             httpClient: new TestHttpClient()
-    //                 .on("POST", () => ({ connectionId: "42", availableTransports: [serverSentEventsTransport] })),
-    //             logger,
-    //         } as IHttpConnectionOptions;
-
-    //         const connection = new HttpConnection("http://tempuri.org", options);
-
-    //         await expect(connection.start(TransferFormat.Text))
-    //             .rejects
-    //             .toThrow("Unable to initialize any of the available transports.");
-    //     },
-    //     "Failed to start the connection: Error: Unable to initialize any of the available transports.");
-    // });
-
-    // it("does not select WebSockets transport when not available in environment", async () => {
-    //     await VerifyLogger.run(async (logger) => {
-    //         const webSocketsTransport = { transport: "WebSockets", transferFormats: ["Text"] };
-
-    //         const options: IHttpConnectionOptions = {
-    //             ...commonOptions,
-    //             httpClient: new TestHttpClient()
-    //                 .on("POST", () => ({ connectionId: "42", availableTransports: [webSocketsTransport] })),
-    //             logger,
-    //         } as IHttpConnectionOptions;
-
-    //         const connection = new HttpConnection("http://tempuri.org", options);
-
-    //         await expect(connection.start(TransferFormat.Text))
-    //             .rejects
-    //             .toThrow("Unable to initialize any of the available transports.");
-    //     },
-    //     "Failed to start the connection: Error: Unable to initialize any of the available transports.");
-    // });
-
     describe(".constructor", () => {
         it("throws if no Url is provided", async () => {
             // Force TypeScript to let us call the constructor incorrectly :)
