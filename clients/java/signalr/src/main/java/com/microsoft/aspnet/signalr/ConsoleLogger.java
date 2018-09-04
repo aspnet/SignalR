@@ -1,6 +1,5 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
-
 package com.microsoft.aspnet.signalr;
 
 import java.text.DateFormat;
@@ -17,7 +16,7 @@ public class ConsoleLogger implements Logger {
 
     @Override
     public void log(LogLevel logLevel, String message) {
-        if(logLevel.value >= this.logLevel.value){
+        if (logLevel.value >= this.logLevel.value) {
             String timeStamp = dateFormat.format(new Date());
             message = String.format("[%s] [%s] %s", timeStamp, logLevel, message);
             switch (logLevel) {

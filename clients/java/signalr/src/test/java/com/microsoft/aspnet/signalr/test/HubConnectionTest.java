@@ -1,9 +1,9 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
-
 package com.microsoft.aspnet.signalr.test;
 
-import com.microsoft.aspnet.signalr.*;
+import static org.junit.Assert.*;
+
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -11,7 +11,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import static org.junit.Assert.*;
+import com.microsoft.aspnet.signalr.*;
 
 public class HubConnectionTest {
     private static final String RECORD_SEPARATOR = "\u001e";
@@ -660,7 +660,7 @@ public class HubConnectionTest {
 
         assertEquals(HubConnectionState.DISCONNECTED, hubConnection.getConnectionState());
     }
-    
+
     @Test
     public void CallingStartOnStartedHubConnectionNoOps() throws Exception {
         Transport mockTransport = new MockTransport();
@@ -719,7 +719,7 @@ public class HubConnectionTest {
             this.onReceive(message);
         }
 
-        public String[] getSentMessages(){
+        public String[] getSentMessages() {
             return sentMessages.toArray(new String[sentMessages.size()]);
         }
     }

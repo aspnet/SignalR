@@ -1,6 +1,5 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
-
 package com.microsoft.aspnet.signalr;
 
 import java.util.Scanner;
@@ -21,7 +20,7 @@ public class Chat {
             }, String.class);
 
             hubConnection.onClosed((ex) -> {
-                if(ex.getMessage() != null){
+                if (ex.getMessage() != null) {
                     System.out.printf("There was an error: %s", ex.getMessage());
                 }
             });
@@ -29,7 +28,7 @@ public class Chat {
             //This is a blocking call
             hubConnection.start();
 
-            while (!input.equals("leave")){
+            while (!input.equals("leave")) {
                 // Scans the next token of the input as an int.
                 input = reader.nextLine();
                 hubConnection.send("Send", input);

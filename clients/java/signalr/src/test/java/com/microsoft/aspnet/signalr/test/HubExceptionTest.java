@@ -1,12 +1,12 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
-
 package com.microsoft.aspnet.signalr.test;
 
-import com.microsoft.aspnet.signalr.HubException;
+import static org.junit.Assert.assertEquals;
+
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
+import com.microsoft.aspnet.signalr.HubException;
 
 public class HubExceptionTest {
     @Test
