@@ -9,7 +9,7 @@ import static org.junit.Assert.*;
 public class NegotiateResponseTest {
 
     @Test
-    public void VerifyNegoitateResponse() {
+    public void VerifyNegotiateResponse() {
         String stringNegotiateResponse = "{\"connectionId\":\"bVOiRPG8-6YiJ6d7ZcTOVQ\",\"" +
                 "availableTransports\":[{\"transport\":\"WebSockets\",\"transferFormats\":[\"Text\",\"Binary\"]}," +
                 "{\"transport\":\"ServerSentEvents\",\"transferFormats\":[\"Text\"]}," +
@@ -24,7 +24,7 @@ public class NegotiateResponseTest {
     }
 
     @Test
-    public void VerifyRedirectNegoitateResponse() {
+    public void VerifyRedirectNegotiateResponse() {
         String stringNegotiateResponse = "{\"url\":\"www.example.com\"," +
                 "\"accessToken\":\"some_access_token\"," +
                 "\"availableTransports\":[]}";

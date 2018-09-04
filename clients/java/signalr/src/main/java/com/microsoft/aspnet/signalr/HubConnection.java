@@ -492,8 +492,4 @@ public class HubConnection {
 
         onClosedCallbackList.add(callback);
     }
-
-    public void setSkipNegotiate(boolean skipNegotiate) {
-        this.skipNegotiate = skipNegotiate;
-    }
 }
