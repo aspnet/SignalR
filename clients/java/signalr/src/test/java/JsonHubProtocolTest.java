@@ -133,7 +133,6 @@ public class JsonHubProtocolTest {
         HubMessage[] messages = jsonHubProtocol.parseMessages(stringifiedMessage);
     }
 
-
     @Test
     public void ParseTwoMessages() {
         String twoMessages = "{\"type\":1,\"target\":\"one\",\"arguments\":[42]}\u001E{\"type\":1,\"target\":\"two\",\"arguments\":[43]}\u001E";
