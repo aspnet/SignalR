@@ -114,6 +114,7 @@ export class HttpConnection implements IConnection {
 
     public async stop(error?: Error): Promise<void> {
         this.connectionState = ConnectionState.Disconnected;
+        this.stopError = error;
 
         try {
             await this.startPromise;
@@ -123,7 +124,6 @@ export class HttpConnection implements IConnection {
 
         // The transport's onclose will trigger stopConnection which will run our onclose event.
         if (this.transport) {
-            this.stopError = error;
             await this.transport.stop();
             this.transport = undefined;
         }

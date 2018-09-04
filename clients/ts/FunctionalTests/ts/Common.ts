@@ -34,11 +34,16 @@ export const ECHOENDPOINT_URL = ENDPOINT_BASE_URL + "/echo";
 
 export function getHttpTransportTypes(): HttpTransportType[] {
     const transportTypes = [];
-    if (typeof WebSocket !== "undefined") {
+    if (typeof window === "undefined") {
         transportTypes.push(HttpTransportType.WebSockets);
-    }
-    if (typeof EventSource !== "undefined") {
         transportTypes.push(HttpTransportType.ServerSentEvents);
+    } else {
+        if (typeof WebSocket !== "undefined") {
+            transportTypes.push(HttpTransportType.WebSockets);
+        }
+        if (typeof EventSource !== "undefined") {
+            transportTypes.push(HttpTransportType.ServerSentEvents);
+        }
     }
     transportTypes.push(HttpTransportType.LongPolling);
 
