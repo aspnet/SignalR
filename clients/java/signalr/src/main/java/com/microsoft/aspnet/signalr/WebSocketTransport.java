@@ -5,6 +5,7 @@ package com.microsoft.aspnet.signalr;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 
@@ -24,15 +25,15 @@ public class WebSocketTransport implements Transport {
         this.logger = logger;
     }
 
-    public URI getUrl(){
+    public URI getUrl() {
         return url;
     }
 
     private URI formatUrl(String url) throws URISyntaxException {
-        if(url.startsWith(HTTPS)){
+        if (url.startsWith(HTTPS)) {
             url = WSS + url.substring(HTTPS.length());
         }
-        else if(url.startsWith(HTTP)){
+        else if (url.startsWith(HTTP)) {
             url = WS + url.substring(HTTP.length());
         }
         return new URI(url);

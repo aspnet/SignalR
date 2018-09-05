@@ -3,12 +3,13 @@
 
 package com.microsoft.aspnet.signalr;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 
 public class HubConnection {
     private String url;
@@ -23,7 +24,7 @@ public class HubConnection {
     private Logger logger;
     private List<Consumer<Exception>> onClosedCallbackList;
 
-    public HubConnection(String url, Transport transport, Logger logger){
+    public HubConnection(String url, Transport transport, Logger logger) {
         this.url = url;
         this.protocol = new JsonHubProtocol();
 
@@ -92,7 +93,7 @@ public class HubConnection {
             }
         };
 
-        if (transport == null){
+        if (transport == null) {
             try {
                 this.transport = new WebSocketTransport(this.url, this.logger);
             } catch (URISyntaxException e) {
@@ -125,7 +126,7 @@ public class HubConnection {
      * @param url The url of the SignalR server to connect to.
      * @param logLevel The minimum level of messages to log.
      */
-    public HubConnection(String url, LogLevel logLevel){
+    public HubConnection(String url, LogLevel logLevel) {
         this(url, null, new ConsoleLogger(logLevel));
     }
 
@@ -163,7 +164,7 @@ public class HubConnection {
             return;
         }
 
-        if(errorMessage != null) {
+        if (errorMessage != null) {
             logger.log(LogLevel.Error , "HubConnection disconnected with an error %s.", errorMessage);
         } else {
             logger.log(LogLevel.Debug, "Stopping HubConnection.");
@@ -172,7 +173,7 @@ public class HubConnection {
         transport.stop();
         connectionState = HubConnectionState.DISCONNECTED;
         logger.log(LogLevel.Information, "HubConnection stopped.");
-        if (onClosedCallbackList != null){
+        if (onClosedCallbackList != null) {
             HubException hubException = new HubException(errorMessage);
             for (Consumer<Exception> callback: onClosedCallbackList) {
                 callback.accept(hubException);
@@ -428,7 +429,7 @@ public class HubConnection {
     }
 
     public void onClosed(Consumer<Exception> callback) {
-        if (onClosedCallbackList == null){
+        if (onClosedCallbackList == null) {
             onClosedCallbackList = new ArrayList<>();
         }
 
