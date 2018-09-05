@@ -1,24 +1,23 @@
 // Copyright (c) .NET Foundation. All rights reserved.
-// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
-
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license
+// information.
 package com.microsoft.aspnet.signalr;
 
 public class CloseMessage extends HubMessage {
-    String error;
+  String error;
 
-    @Override
-    public HubMessageType getMessageType() {
-        return HubMessageType.CLOSE;
-    }
+  @Override
+  public HubMessageType getMessageType() {
+    return HubMessageType.CLOSE;
+  }
 
-    public CloseMessage() {
-    }
+  public CloseMessage() {}
 
-    public CloseMessage(String error) {
-        this.error = error;
-    }
+  public CloseMessage(String error) {
+    this.error = error;
+  }
 
-    public String getError() {
-        return this.error;
-    }
+  public String getError() {
+    return this.error;
+  }
 }
