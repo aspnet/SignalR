@@ -8,6 +8,7 @@ import com.google.gson.JsonArray;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 public class HubConnection {
@@ -156,6 +157,33 @@ public class HubConnection {
     }
 
     /**
+     * Starts a connection to the server asynchronously.
+     * @throws Exception An error occurred while connecting.
+     */
+    public CompletableFuture startAsync() throws Exception {
+        if (connectionState != HubConnectionState.DISCONNECTED) {
+            return CompletableFuture.completedFuture(null);
+        }
+
+        logger.log(LogLevel.Debug, "Starting HubConnection");
+        transport.setOnReceive(this.callback);
+        CompletableFuture transportStartFuture = transport.startAsync();
+        String handshake = HandshakeProtocol.createHandshakeRequestMessage(new HandshakeRequestMessage(protocol.getName(), protocol.getVersion()));
+        CompletableFuture startFuture = transportStartFuture.thenApply((future) -> {
+            CompletableFuture sendFuture = null;
+            try {
+                sendFuture = transport.sendAsync(handshake);
+                connectionState = HubConnectionState.CONNECTED;
+                logger.log(LogLevel.Information, "HubConnected started.");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return  sendFuture;
+        });
+        return startFuture;
+    }
+
+    /**
      * Stops a connection to the server.
      */
     private void stop(String errorMessage) {
@@ -203,6 +231,24 @@ public class HubConnection {
         String message = protocol.writeMessage(invocationMessage);
         logger.log(LogLevel.Debug, "Sending message");
         transport.send(message);
+    }
+
+    /**
+     * Invokes a hub method on the server using the specified method name.
+     * Does not wait for a response from the receiver.
+     * @param method The name of the server method to invoke.
+     * @param args The arguments to be passed to the method.
+     * @throws Exception If there was an error while sending.
+     */
+    public CompletableFuture sendAsync(String method, Object... args) throws Exception {
+        if (connectionState != HubConnectionState.CONNECTED) {
+            throw new HubException("The 'send' method cannot be called if the connection is not active");
+        }
+
+        InvocationMessage invocationMessage = new InvocationMessage(method, args);
+        String message = protocol.writeMessage(invocationMessage);
+        logger.log(LogLevel.Debug, "Sending message");
+        return transport.sendAsync(message);
     }
 
     /**

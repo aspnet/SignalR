@@ -5,6 +5,9 @@ package com.microsoft.aspnet.signalr;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 
@@ -51,8 +54,26 @@ public class WebSocketTransport implements Transport {
     }
 
     @Override
+    public CompletableFuture startAsync() throws Exception {
+        return CompletableFuture.runAsync(() -> {
+            webSocketClient = createWebSocket();
+            try {
+                webSocketClient.connectBlocking();
+            } catch (InterruptedException e) {
+                logger.log(LogLevel.Information, "WebSocket transport connected to: %s", webSocketClient.getURI());
+                e.printStackTrace();
+            }
+        });
+    }
+
+    @Override
     public void send(String message) {
         webSocketClient.send(message);
+    }
+
+    @Override
+    public CompletableFuture sendAsync(String message) throws Exception {
+        return CompletableFuture.runAsync(() -> webSocketClient.send(message));
     }
 
     @Override
