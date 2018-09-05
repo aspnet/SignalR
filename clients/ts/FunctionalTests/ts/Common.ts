@@ -24,7 +24,7 @@ if (typeof window !== "undefined" && (window as any).__karma__) {
     console.log(`Using SignalR Server: ${ENDPOINT_BASE_URL}`);
 } else if (typeof document !== "undefined") {
     ENDPOINT_BASE_URL = `${document.location.protocol}//${document.location.host}`;
-} else if (process.env.SERVER_URL) {
+} else if (process && process.env && process.env.SERVER_URL) {
     ENDPOINT_BASE_URL = process.env.SERVER_URL;
 } else {
     ENDPOINT_BASE_URL = "http://localhost:32675";
@@ -58,8 +58,7 @@ export function eachTransport(action: (transport: HttpTransportType) => void) {
 
 export function eachTransportAndProtocol(action: (transport: HttpTransportType, protocol: IHubProtocol) => void) {
     const protocols: IHubProtocol[] = [new JsonHubProtocol()];
-    // IE9 does not support XmlHttpRequest advanced features so disable for now
-    // This can be enabled if we fix: https://github.com/aspnet/SignalR/issues/742
+    // Run messagepack tests in Node and Browsers that support binary content (indicated by the presence of responseType property)
     if (typeof XMLHttpRequest === "undefined" || typeof new XMLHttpRequest().responseType === "string") {
         // Because of TypeScript stuff, we can't get "ambient" or "global" declarations to work with the MessagePackHubProtocol module
         // This is only a limitation of the .d.ts file.
@@ -75,6 +74,6 @@ export function eachTransportAndProtocol(action: (transport: HttpTransportType, 
     });
 }
 
-export function windowOrglobal(): any {
+export function getGlobalObject(): any {
     return typeof window !== "undefined" ? window : global;
 }

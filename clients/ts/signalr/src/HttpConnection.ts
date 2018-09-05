@@ -7,7 +7,7 @@ import { IHttpConnectionOptions } from "./IHttpConnectionOptions";
 import { ILogger, LogLevel } from "./ILogger";
 import { HttpTransportType, ITransport, TransferFormat } from "./ITransport";
 import { LongPollingTransport } from "./LongPollingTransport";
-import { WebSocketWrapper } from "./Polyfills";
+// import { WebSocketWrapper } from "./Polyfills";
 import { ServerSentEventsTransport } from "./ServerSentEventsTransport";
 import { Arg, createLogger } from "./Utils";
 import { WebSocketTransport } from "./WebSocketTransport";
@@ -35,6 +35,15 @@ export interface IAvailableTransport {
 
 const MAX_REDIRECTS = 100;
 
+let WebSocketModule: any = null;
+let EventSourceModule: any = null;
+if (typeof window === "undefined" && typeof require !== "undefined") {
+    // tslint:disable-next-line:no-var-requires
+    WebSocketModule = require("websocket");
+    // tslint:disable-next-line:no-var-requires
+    EventSourceModule = require("eventsource");
+}
+
 /** @private */
 export class HttpConnection implements IConnection {
     private connectionState: ConnectionState;
@@ -60,21 +69,22 @@ export class HttpConnection implements IConnection {
         options = options || {};
         options.logMessageContent = options.logMessageContent || false;
 
-        // Access module with require to allow browser builds to remove websocket dependency
-        const websocketModule = require("websocket");
-        const websocket = websocketModule && websocketModule.w3cwebsocket;
-        if (typeof WebSocket !== "undefined" && !options.WebSocket) {
+        const isNode = typeof window === "undefined";
+        if (!isNode && typeof WebSocket !== "undefined" && !options.WebSocket) {
             options.WebSocket = WebSocket;
-        } else if (!options.WebSocket && typeof websocket !== "undefined") {
-            options.WebSocket = WebSocketWrapper;
+        } else if (isNode && !options.WebSocket) {
+            const websocket = WebSocketModule && WebSocketModule.w3cwebsocket;
+            if (websocket) {
+                options.WebSocket = WebSocketModule.w3cwebsocket;
+            }
         }
 
-        // Access module with require to allow browser builds to remove eventsource dependency
-        const eventsourceModule = require("eventsource");
-        if (typeof EventSource !== "undefined" && !options.EventSource) {
+        if (!isNode && typeof EventSource !== "undefined" && !options.EventSource) {
             options.EventSource = EventSource;
-        } else if (!options.EventSource && typeof eventsourceModule !== "undefined") {
-            options.EventSource = eventsourceModule;
+        } else if (isNode && !options.EventSource) {
+            if (typeof EventSourceModule !== "undefined") {
+                options.EventSource = EventSourceModule;
+            }
         }
 
         this.httpClient = options.httpClient || new DefaultHttpClient(this.logger);
@@ -114,6 +124,9 @@ export class HttpConnection implements IConnection {
 
     public async stop(error?: Error): Promise<void> {
         this.connectionState = ConnectionState.Disconnected;
+        // Set error as soon as possible otherwise there is a race between
+        // the transport closing and providing an error and the error from a close message
+        // We would prefer the close message error.
         this.stopError = error;
 
         try {

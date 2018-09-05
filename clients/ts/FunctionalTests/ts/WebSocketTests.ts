@@ -1,7 +1,7 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-import { WebSocketWrapper } from "@aspnet/signalr/dist/esm/Polyfills";
+// import { WebSocketWrapper } from "@aspnet/signalr/dist/esm/Polyfills";
 import { ECHOENDPOINT_URL } from "./Common";
 
 // On slower CI machines, these tests sometimes take longer than 5s
@@ -12,10 +12,24 @@ describe("WebSockets", () => {
         const message = "message";
 
         let webSocket: WebSocket;
-        if (typeof WebSocket !== "undefined") {
-            webSocket = new WebSocket(ECHOENDPOINT_URL.replace(/^http/, "ws"));
+        if (typeof window !== "undefined") {
+            if (typeof WebSocket !== "undefined") {
+                webSocket = new WebSocket(ECHOENDPOINT_URL.replace(/^http/, "ws"));
+            } else {
+                // Running in a browser that doesn't support WebSockets
+                done();
+                return;
+            }
         } else {
-            webSocket = new WebSocketWrapper(ECHOENDPOINT_URL.replace(/^http/, "ws"));
+            const websocketModule = require("websocket");
+            const hasWebsocket = websocketModule && websocketModule.w3cwebsocket;
+            if (hasWebsocket) {
+                webSocket = new websocketModule.w3cwebsocket(ECHOENDPOINT_URL.replace(/^http/, "ws"));
+            } else {
+                // No WebSockets implementations in current environment, skip test
+                done();
+                return;
+            }
         }
 
         webSocket.onopen = () => {

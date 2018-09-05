@@ -3,6 +3,7 @@
 
 module.exports = {
     transformIgnorePatterns: [
+        // We reference the ESM output from tests and don't want to run them through jest as it won't understand the syntax
         ".*/node_modules/(?!@aspnet)"
     ],
     globals: {

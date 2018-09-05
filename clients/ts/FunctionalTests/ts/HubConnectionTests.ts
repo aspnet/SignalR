@@ -7,7 +7,7 @@
 import { AbortError, DefaultHttpClient, HttpClient, HttpRequest, HttpResponse, HttpTransportType, HubConnectionBuilder, IHttpConnectionOptions, JsonHubProtocol, NullLogger } from "@aspnet/signalr";
 import { MessagePackHubProtocol } from "@aspnet/signalr-protocol-msgpack";
 
-import { eachTransport, eachTransportAndProtocol, ENDPOINT_BASE_URL, windowOrglobal } from "./Common";
+import { eachTransport, eachTransportAndProtocol, ENDPOINT_BASE_URL } from "./Common";
 import { TestLogger } from "./TestLogger";
 
 const TESTHUBENDPOINT_URL = ENDPOINT_BASE_URL + "/testhub";
@@ -604,10 +604,16 @@ describe("hubConnection", () => {
     });
 
     it("transport falls back from WebSockets to SSE or LongPolling", async (done) => {
+        // Skip test on Node as there will always be a WebSockets implementation on Node
+        if (typeof window === "undefined") {
+            done();
+            return;
+        }
+
         // Replace Websockets with a function that just
         // throws to force fallback.
-        const oldWebSocket = windowOrglobal().WebSocket;
-        windowOrglobal().WebSocket = () => {
+        const oldWebSocket = (window as any).WebSocket;
+        (window as any).WebSocket = () => {
             throw new Error("Kick rocks");
         };
 
@@ -625,7 +631,7 @@ describe("hubConnection", () => {
         } catch (e) {
             fail(e);
         } finally {
-            windowOrglobal().WebSocket = oldWebSocket;
+            (window as any).WebSocket = oldWebSocket;
             done();
         }
     });
