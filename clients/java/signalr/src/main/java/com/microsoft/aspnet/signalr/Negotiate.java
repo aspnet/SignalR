@@ -35,7 +35,7 @@ public class Negotiate {
         return new NegotiateResponse(result);
     }
 
-    private static String resolveNegotiateUrl(String url) {
+    public static String resolveNegotiateUrl(String url) {
         String negotiateUrl = "";
 
         // Check if we have a query string. If we do then we ignore it for now.
