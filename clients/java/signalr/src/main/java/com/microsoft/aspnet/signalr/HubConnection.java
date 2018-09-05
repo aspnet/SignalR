@@ -163,14 +163,14 @@ public class HubConnection {
         if (!skipNegotiate) {
             int negotiateAttempts = 0;
             do {
-                this.accessToken = (this.negotiateResponse == null) ? null : this.negotiateResponse.getAccessToken();
-                this.negotiateResponse = Negotiate.processNegotiate(url, this.accessToken);
+                accessToken = (negotiateResponse == null) ? null : negotiateResponse.getAccessToken();
+                negotiateResponse = Negotiate.processNegotiate(url, accessToken);
 
-                if (this.negotiateResponse.getConnectionId() != null) {
-                    if (this.url.contains("?")) {
-                        this.url = this.url + "&id=" + negotiateResponse.getConnectionId();
+                if (negotiateResponse.getConnectionId() != null) {
+                    if (url.contains("?")) {
+                        url = url + "&id=" + negotiateResponse.getConnectionId();
                     } else {
-                        this.url = this.url + "?id=" + negotiateResponse.getConnectionId();
+                        url = url + "?id=" + negotiateResponse.getConnectionId();
                     }
                 }
 
@@ -178,12 +178,12 @@ public class HubConnection {
                     this.headers.put("Authorization", "Bearer " + negotiateResponse.getAccessToken());
                 }
 
-                if (this.negotiateResponse.getRedirectUrl() != null) {
-                    this.url = this.negotiateResponse.getRedirectUrl();
+                if (negotiateResponse.getRedirectUrl() != null) {
+                    url = this.negotiateResponse.getRedirectUrl();
                 }
 
                 negotiateAttempts++;
-            } while (this.negotiateResponse.getRedirectUrl() != null && negotiateAttempts < MAX_NEGOTIATE_ATTEMPTS);
+            } while (negotiateResponse.getRedirectUrl() != null && negotiateAttempts < MAX_NEGOTIATE_ATTEMPTS);
             if (!negotiateResponse.getAvailableTransports().contains("WebSockets")) {
                 throw new HubException("There were no compatible transports on the server.");
             }
@@ -191,7 +191,7 @@ public class HubConnection {
 
         logger.log(LogLevel.Debug, "Starting HubConnection");
         if (transport == null) {
-            transport = new WebSocketTransport(this.url, this.logger, this.headers);
+            transport = new WebSocketTransport(url, logger, headers);
         }
 
         transport.setOnReceive(this.callback);

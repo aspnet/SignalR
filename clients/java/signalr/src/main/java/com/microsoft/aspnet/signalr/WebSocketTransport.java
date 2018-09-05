@@ -50,7 +50,7 @@ public class WebSocketTransport implements Transport {
     @Override
     public void start() throws Exception {
         logger.log(LogLevel.Debug, "Starting Websocket connection.");
-        this.webSocketClient = createWebSocket(this.headers);
+        webSocketClient = createWebSocket(headers);
 
         if (!webSocketClient.connectBlocking()) {
             String errorMessage = "There was an error starting the Websockets transport.";
@@ -83,7 +83,7 @@ public class WebSocketTransport implements Transport {
     }
 
     private WebSocketClient createWebSocket(Map<String, String> headers) {
-        return new WebSocketClient(this.url, headers) {
+        return new WebSocketClient(url, headers) {
             @Override
             public void onOpen(ServerHandshake handshakedata) {
                 System.out.println("Connected to " + url);
