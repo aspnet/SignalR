@@ -1,13 +1,13 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-import { DefaultHttpClient, HttpClient } from "./HttpClient";
+import { DefaultHttpClient } from "./DefaultHttpClient";
+import { HttpClient } from "./HttpClient";
 import { IConnection } from "./IConnection";
 import { IHttpConnectionOptions } from "./IHttpConnectionOptions";
 import { ILogger, LogLevel } from "./ILogger";
 import { HttpTransportType, ITransport, TransferFormat } from "./ITransport";
 import { LongPollingTransport } from "./LongPollingTransport";
-// import { WebSocketWrapper } from "./Polyfills";
 import { ServerSentEventsTransport } from "./ServerSentEventsTransport";
 import { Arg, createLogger } from "./Utils";
 import { WebSocketTransport } from "./WebSocketTransport";

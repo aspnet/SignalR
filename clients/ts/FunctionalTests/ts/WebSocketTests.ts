@@ -1,7 +1,6 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-// import { WebSocketWrapper } from "@aspnet/signalr/dist/esm/Polyfills";
 import { ECHOENDPOINT_URL } from "./Common";
 
 // On slower CI machines, these tests sometimes take longer than 5s
