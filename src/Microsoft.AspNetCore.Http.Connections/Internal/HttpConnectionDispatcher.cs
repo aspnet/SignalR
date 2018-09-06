@@ -215,8 +215,18 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
                         // Cancel the previous request
                         connection.Cancellation?.Cancel();
 
-                        // Wait for the previous request to drain
-                        await connection.PreviousPollTask;
+                        try
+                        {
+                            // Wait for the previous request to drain
+                            await connection.PreviousPollTask;
+                        }
+                        catch
+                        {
+                            // Previous poll canceled due to connection closing, close this poll too
+                            context.Response.ContentType = "text/plain";
+                            context.Response.StatusCode = StatusCodes.Status204NoContent;
+                            return;
+                        }
 
                         connection.PreviousPollTask = currentRequestTcs.Task;
                     }
