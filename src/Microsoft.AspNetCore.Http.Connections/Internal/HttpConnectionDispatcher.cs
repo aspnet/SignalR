@@ -286,6 +286,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
                         // If the status code is a 204 it means the connection is done
                         if (context.Response.StatusCode == StatusCodes.Status204NoContent)
                         {
+                            // Cancel current request to release any waiting poll and let dispose aquire the lock
+                            currentRequestTcs.TrySetCanceled();
+
                             // We should be able to safely dispose because there's no more data being written
                             // We don't need to wait for close here since we've already waited for both sides
                             await _manager.DisposeAndRemoveAsync(connection, closeGracefully: false);
