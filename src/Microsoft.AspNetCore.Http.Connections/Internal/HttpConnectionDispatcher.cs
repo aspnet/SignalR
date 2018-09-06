@@ -220,7 +220,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
                             // Wait for the previous request to drain
                             await connection.PreviousPollTask;
                         }
-                        catch
+                        catch (OperationCanceledException)
                         {
                             // Previous poll canceled due to connection closing, close this poll too
                             context.Response.ContentType = "text/plain";
