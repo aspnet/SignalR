@@ -3,8 +3,7 @@
 
 package com.microsoft.aspnet.signalr.test;
 
-import com.microsoft.aspnet.signalr.NullLogger;
-import com.microsoft.aspnet.signalr.WebSocketTransport;
+import static org.junit.Assert.*;
 
 import java.net.URISyntaxException;
 import java.util.Arrays;
@@ -14,7 +13,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import static org.junit.Assert.*;
+import com.microsoft.aspnet.signalr.NullLogger;
+import com.microsoft.aspnet.signalr.WebSocketTransport;
 
 @RunWith(Parameterized.class)
 public class WebSocketTransportUrlFormatTest {

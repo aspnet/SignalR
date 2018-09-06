@@ -3,15 +3,16 @@
 
 package com.microsoft.aspnet.signalr.test;
 
-import com.microsoft.aspnet.signalr.Negotiate;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
 import java.util.Collection;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+
+import com.microsoft.aspnet.signalr.Negotiate;
 
 @RunWith(Parameterized.class)
 public class ResolveNegotiateUrlTest {

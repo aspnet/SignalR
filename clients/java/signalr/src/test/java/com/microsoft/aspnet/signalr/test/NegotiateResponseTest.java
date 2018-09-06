@@ -3,10 +3,11 @@
 
 package com.microsoft.aspnet.signalr.test;
 
-import com.microsoft.aspnet.signalr.NegotiateResponse;
+import static org.junit.Assert.*;
+
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import com.microsoft.aspnet.signalr.NegotiateResponse;
 
 public class NegotiateResponseTest {
 

@@ -3,12 +3,13 @@
 
 package com.microsoft.aspnet.signalr.test;
 
+import static org.junit.Assert.*;
+
+import org.junit.Test;
+
 import com.microsoft.aspnet.signalr.HandshakeProtocol;
 import com.microsoft.aspnet.signalr.HandshakeRequestMessage;
 import com.microsoft.aspnet.signalr.HandshakeResponseMessage;
-import org.junit.Test;
-
-import static org.junit.Assert.*;
 
 public class HandshakeProtocolTest {
 

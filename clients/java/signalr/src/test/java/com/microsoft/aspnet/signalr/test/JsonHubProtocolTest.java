@@ -3,13 +3,14 @@
 
 package com.microsoft.aspnet.signalr.test;
 
-import com.google.gson.JsonArray;
-import com.microsoft.aspnet.signalr.*;
+import static org.junit.Assert.*;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import static org.junit.Assert.*;
+import com.google.gson.JsonArray;
+import com.microsoft.aspnet.signalr.*;
 
 public class JsonHubProtocolTest {
     private JsonHubProtocol jsonHubProtocol = new JsonHubProtocol();

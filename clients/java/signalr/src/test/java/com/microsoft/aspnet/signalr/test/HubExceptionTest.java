@@ -3,10 +3,11 @@
 
 package com.microsoft.aspnet.signalr.test;
 
-import com.microsoft.aspnet.signalr.HubException;
+import static org.junit.Assert.assertEquals;
+
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
+import com.microsoft.aspnet.signalr.HubException;
 
 public class HubExceptionTest {
     @Test
