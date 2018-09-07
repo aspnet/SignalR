@@ -9,21 +9,23 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 class CallbackMap {
-    private ConcurrentHashMap<String, List<ActionBase>> handlers = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<String, List<Binder>> handlers = new ConcurrentHashMap<>();
 
-    public void put(String target, ActionBase action) {
+    public Binder put(String target, ActionBase action, ArrayList<Class<?>> classes) {
+        Binder binder = new Binder(action, classes);
         handlers.computeIfPresent(target, (methodName, handlerList) -> {
-            handlerList.add(action);
+            handlerList.add(binder);
             return handlerList;
         });
-        handlers.computeIfAbsent(target, (ac) -> new ArrayList<>(Arrays.asList(action)));
+        handlers.computeIfAbsent(target, (ac) -> new ArrayList<>(Arrays.asList(binder)));
+        return binder;
     }
 
     public Boolean containsKey(String key) {
         return handlers.containsKey(key);
     }
 
-    public List<ActionBase> get(String key) {
+    public List<Binder> get(String key) {
         return handlers.get(key);
     }
 

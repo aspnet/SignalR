@@ -7,19 +7,19 @@ import java.util.List;
 
 public class Subscription {
     private CallbackMap handlers;
-    private ActionBase action;
+    private Binder binder;
     private String target;
 
-    public Subscription(CallbackMap handlers, ActionBase action, String target) {
+    public Subscription(CallbackMap handlers, Binder binder, String target) {
         this.handlers = handlers;
-        this.action = action;
+        this.binder = binder;
         this.target = target;
     }
 
     public void unsubscribe() {
-        List<ActionBase> actions = this.handlers.get(target);
-        if (actions != null) {
-            actions.remove(action);
+        List<Binder> Binders = this.handlers.get(target);
+        if (Binders != null) {
+            Binders.remove(binder);
         }
     }
 }

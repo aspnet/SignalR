@@ -69,12 +69,21 @@ public class HubConnection {
                     case INVOCATION:
                         InvocationMessage invocationMessage = (InvocationMessage) message;
                         if (handlers.containsKey(invocationMessage.target)) {
-                            ArrayList<Object> args = gson.fromJson((JsonArray) invocationMessage.arguments[0], (new ArrayList<>()).getClass());
-                            List<ActionBase> actions = handlers.get(invocationMessage.target);
-                            if (actions != null) {
+                            List<Binder> binders = handlers.get(invocationMessage.target);
+                            if (binders != null) {
+                                ArrayList<Object> args = new ArrayList<>();
+                                if (binders.size() > 0)
+                                {
+                                    JsonArray arr = (JsonArray)invocationMessage.arguments[0];
+                                    for (int i = 0; i < binders.get(0).classes.size(); i++) {
+                                        args.add(i, gson.fromJson(arr.get(i), binders.get(0).classes.get(i)));
+                                    }
+                                }
+                                // = gson.fromJson((JsonArray) invocationMessage.arguments[0], binders.get(0).classes);
+                                // ArrayList<Object> args = gson.fromJson((JsonArray) invocationMessage.arguments[0], (new ArrayList<>()).getClass());
                                 logger.log(LogLevel.Debug, "Invoking handlers for target %s", invocationMessage.target);
-                                for (ActionBase action : actions) {
-                                    action.invoke(args.toArray());
+                                for (Binder binder : binders) {
+                                    binder.action.invoke(args.toArray());
                                 }
                             }
                         } else {
@@ -262,9 +271,9 @@ public class HubConnection {
      */
     public Subscription on(String target, Action callback) {
         ActionBase action = args -> callback.invoke();
-        handlers.put(target, action);
+        Binder binder = handlers.put(target, action, new ArrayList<>());
         logger.log(LogLevel.Trace, "Registering handler for client method: %s", target);
-        return new Subscription(handlers, action, target);
+        return new Subscription(handlers, binder, target);
     }
 
     /**
@@ -278,9 +287,11 @@ public class HubConnection {
      */
     public <T1> Subscription on(String target, Action1<T1> callback, Class<T1> param1) {
         ActionBase action = params -> callback.invoke(param1.cast(params[0]));
-        handlers.put(target, action);
+        ArrayList<Class<?>> classes = new ArrayList<>();
+        classes.add(param1);
+        Binder binder = handlers.put(target, action, classes);
         logger.log(LogLevel.Trace, "Registering handler for client method: %s", target);
-        return new Subscription(handlers, action, target);
+        return new Subscription(handlers, binder, target);
     }
 
     /**
@@ -298,9 +309,12 @@ public class HubConnection {
         ActionBase action = params -> {
             callback.invoke(param1.cast(params[0]), param2.cast(params[1]));
         };
-        handlers.put(target, action);
+        ArrayList<Class<?>> classes = new ArrayList<>();
+        classes.add(param1);
+        classes.add(param2);
+        Binder binder = handlers.put(target, action, classes);
         logger.log(LogLevel.Trace, "Registering handler for client method: %s", target);
-        return new Subscription(handlers, action, target);
+        return new Subscription(handlers, binder, target);
     }
 
     /**
@@ -321,9 +335,13 @@ public class HubConnection {
         ActionBase action = params -> {
             callback.invoke(param1.cast(params[0]), param2.cast(params[1]), param3.cast(params[2]));
         };
-        handlers.put(target, action);
+        ArrayList<Class<?>> classes = new ArrayList<>();
+        classes.add(param1);
+        classes.add(param2);
+        classes.add(param3);
+        Binder binder = handlers.put(target, action, classes);
         logger.log(LogLevel.Trace, "Registering handler for client method: %s", target);
-        return new Subscription(handlers, action, target);
+        return new Subscription(handlers, binder, target);
     }
 
     /**
@@ -346,9 +364,14 @@ public class HubConnection {
         ActionBase action = params -> {
             callback.invoke(param1.cast(params[0]), param2.cast(params[1]), param3.cast(params[2]), param4.cast(params[3]));
         };
-        handlers.put(target, action);
+        ArrayList<Class<?>> classes = new ArrayList<>();
+        classes.add(param1);
+        classes.add(param2);
+        classes.add(param3);
+        classes.add(param4);
+        Binder binder = handlers.put(target, action, classes);
         logger.log(LogLevel.Trace, "Registering handler for client method: %s", target);
-        return new Subscription(handlers, action, target);
+        return new Subscription(handlers, binder, target);
     }
 
     /**
@@ -374,9 +397,15 @@ public class HubConnection {
             callback.invoke(param1.cast(params[0]), param2.cast(params[1]), param3.cast(params[2]), param4.cast(params[3]),
                     param5.cast(params[4]));
         };
-        handlers.put(target, action);
+        ArrayList<Class<?>> classes = new ArrayList<>();
+        classes.add(param1);
+        classes.add(param2);
+        classes.add(param3);
+        classes.add(param4);
+        classes.add(param5);
+        Binder binder = handlers.put(target, action, classes);
         logger.log(LogLevel.Trace, "Registering handler for client method: %s", target);
-        return new Subscription(handlers, action, target);
+        return new Subscription(handlers, binder, target);
     }
 
     /**
@@ -404,9 +433,16 @@ public class HubConnection {
             callback.invoke(param1.cast(params[0]), param2.cast(params[1]), param3.cast(params[2]), param4.cast(params[3]),
                     param5.cast(params[4]), param6.cast(params[5]));
         };
-        handlers.put(target, action);
+        ArrayList<Class<?>> classes = new ArrayList<>();
+        classes.add(param1);
+        classes.add(param2);
+        classes.add(param3);
+        classes.add(param4);
+        classes.add(param5);
+        classes.add(param6);
+        Binder binder = handlers.put(target, action, classes);
         logger.log(LogLevel.Trace, "Registering handler for client method: %s", target);
-        return new Subscription(handlers, action, target);
+        return new Subscription(handlers, binder, target);
     }
 
     /**
@@ -436,9 +472,17 @@ public class HubConnection {
             callback.invoke(param1.cast(params[0]), param2.cast(params[1]), param3.cast(params[2]), param4.cast(params[3]),
                     param5.cast(params[4]), param6.cast(params[5]), param7.cast(params[6]));
         };
-        handlers.put(target, action);
+        ArrayList<Class<?>> classes = new ArrayList<>();
+        classes.add(param1);
+        classes.add(param2);
+        classes.add(param3);
+        classes.add(param4);
+        classes.add(param5);
+        classes.add(param6);
+        classes.add(param7);
+        Binder binder = handlers.put(target, action, classes);
         logger.log(LogLevel.Trace, "Registering handler for client method: %s", target);
-        return new Subscription(handlers, action, target);
+        return new Subscription(handlers, binder, target);
     }
 
     /**
@@ -470,9 +514,18 @@ public class HubConnection {
             callback.invoke(param1.cast(params[0]), param2.cast(params[1]), param3.cast(params[2]), param4.cast(params[3]),
                     param5.cast(params[4]), param6.cast(params[5]), param7.cast(params[6]), param8.cast(params[7]));
         };
-        handlers.put(target, action);
+        ArrayList<Class<?>> classes = new ArrayList<>();
+        classes.add(param1);
+        classes.add(param2);
+        classes.add(param3);
+        classes.add(param4);
+        classes.add(param5);
+        classes.add(param6);
+        classes.add(param7);
+        classes.add(param8);
+        Binder binder = handlers.put(target, action, classes);
         logger.log(LogLevel.Trace, "Registering handler for client method: %s", target);
-        return new Subscription(handlers, action, target);
+        return new Subscription(handlers, binder, target);
     }
 
     /**

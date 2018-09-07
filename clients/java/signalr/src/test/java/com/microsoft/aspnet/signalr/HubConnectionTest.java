@@ -594,6 +594,38 @@ public class HubConnectionTest {
         assertEquals("F", value8.get());
     }
 
+    private class Custom {
+        public int number;
+        public String str;
+        public boolean[] bools;
+    }
+
+    @Test
+    public void SendWithCustomObjectTriggersOnHandler() throws Exception {
+        AtomicReference<Custom> value1 = new AtomicReference<>();
+
+        MockTransport mockTransport = new MockTransport();
+        HubConnection hubConnection = new HubConnection("http://example.com", mockTransport, true);
+
+        hubConnection.on("inc", (param1) -> {
+            assertNull(value1.get());
+
+            value1.set(param1);
+        }, Custom.class);
+
+        hubConnection.start();
+        mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
+        mockTransport.receiveMessage("{\"type\":1,\"target\":\"inc\",\"arguments\":[{\"number\":1,\"str\":\"A\",\"bools\":[true,false]}]}" + RECORD_SEPARATOR);
+
+        // Confirming that our handler was called and the correct message was passed in.
+        Custom custom = value1.get();
+        assertEquals(1, custom.number);
+        assertEquals("A", custom.str);
+        assertEquals(2, custom.bools.length);
+        assertEquals(true, custom.bools[0]);
+        assertEquals(false, custom.bools[1]);
+    }
+
     @Test
     public void ReceiveHandshakeResponseAndMessage() throws Exception {
         AtomicReference<Double> value = new AtomicReference<Double>(0.0);
