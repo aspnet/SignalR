@@ -27,7 +27,7 @@ if (typeof window !== "undefined" && (window as any).__karma__) {
 } else if (process && process.env && process.env.SERVER_URL) {
     ENDPOINT_BASE_URL = process.env.SERVER_URL;
 } else {
-    ENDPOINT_BASE_URL = "http://localhost:32675";
+    throw new Error("The server could not be found.");
 }
 
 export const ECHOENDPOINT_URL = ENDPOINT_BASE_URL + "/echo";

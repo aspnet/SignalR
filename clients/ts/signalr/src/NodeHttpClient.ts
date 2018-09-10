@@ -32,9 +32,8 @@ export class NodeHttpClient extends HttpClient {
                 port: url.port,
             };
 
-            const data: Buffer[] = [];
-
             const req = http.request(options, (res: http.IncomingMessage) => {
+                const data: Buffer[] = [];
                 let dataLength = 0;
                 res.on("data", (chunk: any) => {
                     data.push(chunk);
