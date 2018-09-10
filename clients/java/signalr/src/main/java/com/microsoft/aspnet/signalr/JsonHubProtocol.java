@@ -9,8 +9,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
 
 class JsonHubProtocol implements HubProtocol {
     private final JsonParser jsonParser = new JsonParser();
@@ -42,6 +44,7 @@ class JsonHubProtocol implements HubProtocol {
             String target = null;
             String error = null;
             ArrayList<Object> arguments = null;
+            JsonArray argumentsToken = null;
 
             JsonReader reader = new JsonReader(new StringReader(str));
             reader.beginObject();
@@ -69,8 +72,8 @@ class JsonHubProtocol implements HubProtocol {
                         reader.skipValue();
                         break;
                     case "arguments":
-                        reader.beginArray();
                         if (target != null) {
+                            reader.beginArray();
                             List<Class<?>> types = binder.GetParameterTypes(target);
                             if (types != null && types.size() >= 1) {
                                 arguments = new ArrayList<>();
@@ -78,8 +81,10 @@ class JsonHubProtocol implements HubProtocol {
                                     arguments.add(gson.fromJson(reader, types.get(i)));
                                 }
                             }
+                            reader.endArray();
+                        } else {
+                            argumentsToken = (JsonArray)jsonParser.parse(reader);
                         }
-                        reader.endArray();
                         break;
                     case "headers":
                         throw new HubException("Headers not implemented yet.");
@@ -95,6 +100,15 @@ class JsonHubProtocol implements HubProtocol {
 
             switch (messageType) {
                 case INVOCATION:
+                    if (argumentsToken != null) {
+                        List<Class<?>> types = binder.GetParameterTypes(target);
+                        if (types != null && types.size() >= 1) {
+                            arguments = new ArrayList<>();
+                            for (int i = 0; i < types.size(); i++) {
+                                arguments.add(gson.fromJson(argumentsToken.get(i), types.get(i)));
+                            }
+                        }
+                    }
                     if (arguments == null) {
                         hubMessages.add(new InvocationMessage(target, new Object[0]));
                     } else {

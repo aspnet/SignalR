@@ -12,13 +12,13 @@ class CallbackMap {
     private ConcurrentHashMap<String, List<InvocationHandler>> handlers = new ConcurrentHashMap<>();
 
     public InvocationHandler put(String target, ActionBase action, ArrayList<Class<?>> classes) {
-        InvocationHandler binder = new InvocationHandler(action, classes);
+        InvocationHandler handler = new InvocationHandler(action, classes);
         handlers.computeIfPresent(target, (methodName, handlerList) -> {
-            handlerList.add(binder);
+            handlerList.add(handler);
             return handlerList;
         });
-        handlers.computeIfAbsent(target, (ac) -> new ArrayList<>(Arrays.asList(binder)));
-        return binder;
+        handlers.computeIfAbsent(target, (ac) -> new ArrayList<>(Arrays.asList(handler)));
+        return handler;
     }
 
     public Boolean containsKey(String key) {

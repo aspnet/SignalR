@@ -205,6 +205,25 @@ public class JsonHubProtocolTest {
         assertEquals(24, messageResult2);
     }
 
+    @Test
+    public void ParseMessageWithOutOfOrderProperties() throws Exception {
+        String stringifiedMessage = "{\"arguments\":[42, 24],\"type\":1,\"target\":\"test\"}\u001E";
+        TestBinder binder = new TestBinder(new InvocationMessage("test", new Object[] { 42, 24 }));
+
+        HubMessage[] messages = jsonHubProtocol.parseMessages(stringifiedMessage, binder);
+
+        // We know it's only one message
+        assertEquals(HubMessageType.INVOCATION, messages[0].getMessageType());
+
+        InvocationMessage message = (InvocationMessage) messages[0];
+        assertEquals("test", message.getTarget());
+        assertEquals(null, message.getInvocationId());
+        int messageResult = (int) message.getArguments()[0];
+        int messageResult2 = (int) message.getArguments()[1];
+        assertEquals(42, messageResult);
+        assertEquals(24, messageResult2);
+    }
+
     private class TestBinder implements InvocationBinder {
         private Class<?>[] paramTypes = null;
 
