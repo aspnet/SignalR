@@ -3,15 +3,22 @@
 
 package com.microsoft.aspnet.signalr;
 
-class InvocationMessage extends HubMessage {
-    int type = HubMessageType.INVOCATION.value;
+public class StreamInvocationMessage extends HubMessage {
+
+    int type = HubMessageType.STREAM_INVOCATION.value;
     String invocationId;
     String target;
     Object[] arguments;
 
-    public InvocationMessage(String target, Object[] args) {
+    public StreamInvocationMessage(String invocationId, String target, Object[] arguments) {
+        this.invocationId = invocationId;
         this.target = target;
-        this.arguments = args;
+        this.arguments = arguments;
+    }
+
+    @Override
+    public HubMessageType getMessageType() {
+        return HubMessageType.STREAM_INVOCATION;
     }
 
     public String getInvocationId() {
@@ -36,10 +43,5 @@ class InvocationMessage extends HubMessage {
 
     public void setArguments(Object[] arguments) {
         this.arguments = arguments;
-    }
-
-    @Override
-    public HubMessageType getMessageType() {
-        return HubMessageType.INVOCATION;
     }
 }

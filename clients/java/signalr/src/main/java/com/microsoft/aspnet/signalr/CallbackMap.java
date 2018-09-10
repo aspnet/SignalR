@@ -9,10 +9,10 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 class CallbackMap {
-    private ConcurrentHashMap<String, List<Binder>> handlers = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<String, List<InvocationHandler>> handlers = new ConcurrentHashMap<>();
 
-    public Binder put(String target, ActionBase action, ArrayList<Class<?>> classes) {
-        Binder binder = new Binder(action, classes);
+    public InvocationHandler put(String target, ActionBase action, ArrayList<Class<?>> classes) {
+        InvocationHandler binder = new InvocationHandler(action, classes);
         handlers.computeIfPresent(target, (methodName, handlerList) -> {
             handlerList.add(binder);
             return handlerList;
@@ -25,7 +25,7 @@ class CallbackMap {
         return handlers.containsKey(key);
     }
 
-    public List<Binder> get(String key) {
+    public List<InvocationHandler> get(String key) {
         return handlers.get(key);
     }
 
