@@ -49,8 +49,7 @@ class JsonHubProtocol implements HubProtocol {
             JsonReader reader = new JsonReader(new StringReader(str));
             reader.beginObject();
 
-            do
-            {
+            do {
                 String name = reader.nextName();
                 switch (name) {
                     case "type":
