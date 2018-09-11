@@ -75,8 +75,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             logger.LogInformation("Starting docker container");
 
             // stop container if there is one, could be from a previous test run, ignore failures
-            RunProcessAndWait(_path, $"stop {_dockerMonitorContainerName}", logger, TimeSpan.FromSeconds(5), out var _);
-            RunProcessAndWait(_path, $"stop {_dockerContainerName}", logger, TimeSpan.FromSeconds(5), out var output);
+            RunProcessAndWait(_path, $"stop {_dockerMonitorContainerName}", logger, TimeSpan.FromSeconds(15), out var _);
+            RunProcessAndWait(_path, $"stop {_dockerContainerName}", logger, TimeSpan.FromSeconds(15), out var output);
 
             // create and run docker container, remove automatically when stopped, map 6379 from the container to 6379 localhost
             // use static name 'redisTestContainer' so if the container doesn't get removed we don't keep adding more
@@ -103,8 +103,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             RunProcessAndThrowIfFailed(_path, $"logs {_dockerContainerName}", logger, TimeSpan.FromSeconds(5));
 
             logger.LogInformation("Stopping docker container");
-            RunProcessAndWait(_path, $"stop {_dockerMonitorContainerName}", logger, TimeSpan.FromSeconds(5), out var _);
-            RunProcessAndWait(_path, $"stop {_dockerContainerName}", logger, TimeSpan.FromSeconds(5), out var _);
+            RunProcessAndWait(_path, $"stop {_dockerMonitorContainerName}", logger, TimeSpan.FromSeconds(15), out var _);
+            RunProcessAndWait(_path, $"stop {_dockerContainerName}", logger, TimeSpan.FromSeconds(15), out var _);
         }
 
         public int RunCommand(string commandAndArguments, out string output) =>
