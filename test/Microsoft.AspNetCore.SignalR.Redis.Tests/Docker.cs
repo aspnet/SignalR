@@ -16,6 +16,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
         private static readonly string _exeSuffix = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".exe" : string.Empty;
 
         private static readonly string _dockerContainerName = "redisTestContainer";
+        private static readonly string _dockerMonitorContainerName = _dockerContainerName + "Monitor";
         private static readonly Lazy<Docker> _instance = new Lazy<Docker>(Create);
 
         public static Docker Default => _instance.Value;
@@ -74,6 +75,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             logger.LogInformation("Starting docker container");
 
             // stop container if there is one, could be from a previous test run, ignore failures
+            RunProcessAndWait(_path, $"stop {_dockerMonitorContainerName}", logger, TimeSpan.FromSeconds(5), out var _);
             RunProcessAndWait(_path, $"stop {_dockerContainerName}", logger, TimeSpan.FromSeconds(5), out var output);
 
             // create and run docker container, remove automatically when stopped, map 6379 from the container to 6379 localhost
@@ -90,7 +92,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             // variable used by Startup.cs
             Environment.SetEnvironmentVariable("REDIS_CONNECTION", $"{output}:6379");
 
-            var (monitorProcess, monitorOutput) = RunProcess(_path, $"run -it --name {_dockerContainerName}{"Monitor"} --link {_dockerContainerName}:redis --rm redis redis-cli -h redis -p 6379", logger);
+            var (monitorProcess, monitorOutput) = RunProcess(_path, $"run -i --name {_dockerMonitorContainerName} --link {_dockerContainerName}:redis --rm redis redis-cli -h redis -p 6379", logger);
             monitorProcess.StandardInput.WriteLine("MONITOR");
             monitorProcess.StandardInput.Flush();
         }
@@ -101,8 +103,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             RunProcessAndThrowIfFailed(_path, $"logs {_dockerContainerName}", logger, TimeSpan.FromSeconds(5));
 
             logger.LogInformation("Stopping docker container");
-            RunProcessAndThrowIfFailed(_path, $"stop {_dockerContainerName}", logger, TimeSpan.FromSeconds(5));
-            RunProcessAndThrowIfFailed(_path, $"stop {_dockerContainerName}{"Monitor"}", logger, TimeSpan.FromSeconds(5));
+            RunProcessAndWait(_path, $"stop {_dockerMonitorContainerName}", logger, TimeSpan.FromSeconds(5), out var _);
+            RunProcessAndWait(_path, $"stop {_dockerContainerName}", logger, TimeSpan.FromSeconds(5), out var _);
         }
 
         public int RunCommand(string commandAndArguments, out string output) =>
