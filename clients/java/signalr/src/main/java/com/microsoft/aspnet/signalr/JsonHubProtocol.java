@@ -73,7 +73,7 @@ class JsonHubProtocol implements HubProtocol {
                     case "arguments":
                         if (target != null) {
                             reader.beginArray();
-                            List<Class<?>> types = binder.GetParameterTypes(target);
+                            List<Class<?>> types = binder.getParameterTypes(target);
                             if (types != null && types.size() >= 1) {
                                 arguments = new ArrayList<>();
                                 for (int i = 0; i < types.size(); i++) {
@@ -100,7 +100,7 @@ class JsonHubProtocol implements HubProtocol {
             switch (messageType) {
                 case INVOCATION:
                     if (argumentsToken != null) {
-                        List<Class<?>> types = binder.GetParameterTypes(target);
+                        List<Class<?>> types = binder.getParameterTypes(target);
                         if (types != null && types.size() >= 1) {
                             arguments = new ArrayList<>();
                             for (int i = 0; i < types.size(); i++) {

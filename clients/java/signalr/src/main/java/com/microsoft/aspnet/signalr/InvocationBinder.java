@@ -6,6 +6,6 @@ package com.microsoft.aspnet.signalr;
 import java.util.List;
 
 public interface InvocationBinder {
-    Class<?> GetReturnType(String invocationId);
-    List<Class<?>> GetParameterTypes(String methodName) throws Exception;
+    Class<?> getReturnType(String invocationId);
+    List<Class<?>> getParameterTypes(String methodName) throws Exception;
 }

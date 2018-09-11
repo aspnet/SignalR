@@ -7,12 +7,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.Collections;
 
 class CallbackMap {
     private ConcurrentHashMap<String, List<InvocationHandler>> handlers = new ConcurrentHashMap<>();
 
     public InvocationHandler put(String target, ActionBase action, ArrayList<Class<?>> classes) {
-        InvocationHandler handler = new InvocationHandler(action, classes);
+        InvocationHandler handler = new InvocationHandler(action, Collections.unmodifiableList(classes));
+
         handlers.computeIfPresent(target, (methodName, handlerList) -> {
             handlerList.add(handler);
             return handlerList;

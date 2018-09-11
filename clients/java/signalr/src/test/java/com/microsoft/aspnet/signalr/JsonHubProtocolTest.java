@@ -255,12 +255,12 @@ public class JsonHubProtocolTest {
         }
 
         @Override
-        public Class<?> GetReturnType(String invocationId) {
+        public Class<?> getReturnType(String invocationId) {
             return null;
         }
 
         @Override
-        public List<Class<?>> GetParameterTypes(String methodName) {
+        public List<Class<?>> getParameterTypes(String methodName) {
             if (paramTypes == null) {
                 return new ArrayList<>();
             }
