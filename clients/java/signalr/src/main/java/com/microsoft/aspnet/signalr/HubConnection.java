@@ -3,10 +3,12 @@
 
 package com.microsoft.aspnet.signalr;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 import com.google.gson.Gson;
@@ -151,6 +153,45 @@ public class HubConnection {
         return connectionState;
     }
 
+
+    public CompletableFuture startAsync() throws Exception {
+        if (connectionState != HubConnectionState.DISCONNECTED) {
+            return CompletableFuture.completedFuture(null);
+        }
+        if (!skipNegotiate) {
+            int negotiateAttempts = 0;
+            do {
+                accessToken = (negotiateResponse == null) ? null : negotiateResponse.getAccessToken();
+                negotiateResponse = handleNegotiate();
+                negotiateAttempts++;
+            } while (negotiateResponse.getRedirectUrl() != null && negotiateAttempts < MAX_NEGOTIATE_ATTEMPTS);
+            if (!negotiateResponse.getAvailableTransports().contains("WebSockets")) {
+                throw new HubException("There were no compatible transports on the server.");
+            }
+        }
+
+        logger.log(LogLevel.Debug, "Starting HubConnection");
+        if (transport == null) {
+            transport = new WebSocketTransport(url, logger, headers);
+        }
+
+        transport.setOnReceive(this.callback);
+
+        return transport.startAsync().thenCompose((future) -> {
+            String handshake = HandshakeProtocol.createHandshakeRequestMessage(new HandshakeRequestMessage(protocol.getName(), protocol.getVersion()));
+            CompletableFuture handshakeFuture = null;
+            try {
+                 handshakeFuture = transport.sendAsync(handshake);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return handshakeFuture.thenRun(() -> {
+                connectionState = HubConnectionState.CONNECTED;
+                logger.log(LogLevel.Information, "HubConnected started.");
+            });
+        });
+    }
+
     /**
      * Starts a connection to the server.
      *
@@ -164,24 +205,7 @@ public class HubConnection {
             int negotiateAttempts = 0;
             do {
                 accessToken = (negotiateResponse == null) ? null : negotiateResponse.getAccessToken();
-                negotiateResponse = Negotiate.processNegotiate(url, accessToken);
-
-                if (negotiateResponse.getConnectionId() != null) {
-                    if (url.contains("?")) {
-                        url = url + "&id=" + negotiateResponse.getConnectionId();
-                    } else {
-                        url = url + "?id=" + negotiateResponse.getConnectionId();
-                    }
-                }
-
-                if (negotiateResponse.getAccessToken() != null) {
-                    this.headers.put("Authorization", "Bearer " + negotiateResponse.getAccessToken());
-                }
-
-                if (negotiateResponse.getRedirectUrl() != null) {
-                    url = this.negotiateResponse.getRedirectUrl();
-                }
-
+                negotiateResponse = handleNegotiate();
                 negotiateAttempts++;
             } while (negotiateResponse.getRedirectUrl() != null && negotiateAttempts < MAX_NEGOTIATE_ATTEMPTS);
             if (!negotiateResponse.getAvailableTransports().contains("WebSockets")) {
@@ -200,6 +224,29 @@ public class HubConnection {
         transport.send(handshake);
         connectionState = HubConnectionState.CONNECTED;
         logger.log(LogLevel.Information, "HubConnected started.");
+    }
+
+    private NegotiateResponse handleNegotiate() throws IOException {
+        accessToken = (negotiateResponse == null) ? null : negotiateResponse.getAccessToken();
+        negotiateResponse = Negotiate.processNegotiate(url, accessToken);
+
+        if (negotiateResponse.getConnectionId() != null) {
+            if (url.contains("?")) {
+                url = url + "&id=" + negotiateResponse.getConnectionId();
+            } else {
+                url = url + "?id=" + negotiateResponse.getConnectionId();
+            }
+        }
+
+        if (negotiateResponse.getAccessToken() != null) {
+            this.headers.put("Authorization", "Bearer " + negotiateResponse.getAccessToken());
+        }
+
+        if (negotiateResponse.getRedirectUrl() != null) {
+            url = this.negotiateResponse.getRedirectUrl();
+        }
+
+        return negotiateResponse;
     }
 
     /**

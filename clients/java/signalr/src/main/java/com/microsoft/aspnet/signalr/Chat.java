@@ -4,6 +4,7 @@
 package com.microsoft.aspnet.signalr;
 
 import java.util.Scanner;
+import java.util.concurrent.CompletableFuture;
 
 public class Chat {
     public static void main(String[] args) throws Exception {
@@ -28,8 +29,8 @@ public class Chat {
             }
         });
 
-        //This is a blocking call
-        hubConnection.start();
+        //This returns a CompletableFuture.
+        hubConnection.startAsync().get();
 
         String message = "";
         while (!message.equals("leave")) {
