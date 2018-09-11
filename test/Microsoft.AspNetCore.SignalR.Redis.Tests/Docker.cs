@@ -91,7 +91,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             Environment.SetEnvironmentVariable("REDIS_CONNECTION", $"{output}:6379");
 
             var (monitorProcess, monitorOutput) = RunProcess(_path, $"run -it --link {_dockerContainerName}:redis --rm redis redis-cli -h redis -p 6379", logger);
-            monitorProcess.StandardInput.Write("MONITOR");
+            monitorProcess.StandardInput.WriteLine("MONITOR");
+            monitorProcess.StandardInput.Flush();
         }
 
         public void Stop(ILogger logger)
@@ -149,7 +150,8 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
                     Arguments = arguments,
                     UseShellExecute = false,
                     RedirectStandardError = true,
-                    RedirectStandardOutput = true
+                    RedirectStandardOutput = true,
+                    RedirectStandardInput = true
                 },
                 EnableRaisingEvents = true
             };
