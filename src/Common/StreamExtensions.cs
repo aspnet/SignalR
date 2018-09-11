@@ -1,4 +1,4 @@
-﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Buffers;
@@ -20,7 +20,7 @@ namespace System.IO
 #else
                 var isArray = MemoryMarshal.TryGetArray(buffer.First, out var arraySegment);
                 // We're using the managed memory pool which is backed by managed buffers
-                Debug.Assert(isArray);
+                Debug.Assert(isArray, "Expected a managed buffer.");
                 return new ValueTask(stream.WriteAsync(arraySegment.Array, arraySegment.Offset, arraySegment.Count, cancellationToken));
 #endif
             }
@@ -38,7 +38,7 @@ namespace System.IO
 #else
                 var isArray = MemoryMarshal.TryGetArray(segment, out var arraySegment);
                 // We're using the managed memory pool which is backed by managed buffers
-                Debug.Assert(isArray);
+                Debug.Assert(isArray, "Expected a managed buffer.");
                 await stream.WriteAsync(arraySegment.Array, arraySegment.Offset, arraySegment.Count, cancellationToken);
 #endif
             }

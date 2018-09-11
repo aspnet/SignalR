@@ -19,8 +19,9 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <remarks>
         /// This has no effect if the MessagePack protocol has already been enabled.
         /// </remarks>
+        /// <typeparam name="TBuilder">The type of the class implementing <see cref="ISignalRBuilder"/>. Used to preserve the concrete type when chaining.</typeparam>
         /// <param name="builder">The <see cref="ISignalRBuilder"/> representing the SignalR server to add MessagePack protocol support to.</param>
-        /// <returns>The value of <paramref name="builder"/></returns>
+        /// <returns>The value of <paramref name="builder"/>.</returns>
         public static TBuilder AddMessagePackProtocol<TBuilder>(this TBuilder builder) where TBuilder : ISignalRBuilder
             => AddMessagePackProtocol(builder, _ => { });
 
@@ -30,9 +31,10 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <remarks>
         /// Any options configured here will be applied, even if the MessagePack protocol has already been registered.
         /// </remarks>
+        /// <typeparam name="TBuilder">The type of the class implementing <see cref="ISignalRBuilder"/>. Used to preserve the concrete type when chaining.</typeparam>
         /// <param name="builder">The <see cref="ISignalRBuilder"/> representing the SignalR server to add MessagePack protocol support to.</param>
-        /// <param name="configure">A delegate that can be used to configure the <see cref="MessagePackHubProtocolOptions"/></param>
-        /// <returns>The value of <paramref name="builder"/></returns>
+        /// <param name="configure">A delegate that can be used to configure the <see cref="MessagePackHubProtocolOptions"/>.</param>
+        /// <returns>The value of <paramref name="builder"/>.</returns>
         public static TBuilder AddMessagePackProtocol<TBuilder>(this TBuilder builder, Action<MessagePackHubProtocolOptions> configure) where TBuilder : ISignalRBuilder
         {
             builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IHubProtocol, MessagePackHubProtocol>());

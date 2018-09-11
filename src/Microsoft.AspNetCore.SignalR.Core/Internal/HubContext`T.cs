@@ -3,7 +3,7 @@
 
 namespace Microsoft.AspNetCore.SignalR.Internal
 {
-	internal class HubContext<THub, T> : IHubContext<THub, T>
+    internal class HubContext<THub, T> : IHubContext<THub, T>
         where THub : Hub<T>
         where T : class
     {

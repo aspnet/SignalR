@@ -16,7 +16,7 @@ namespace WebSocketSample
             if (args.Length < 1)
             {
                 Console.Error.WriteLine("Usage: WebSocketSample <URL>");
-                Console.Error.WriteLine("");
+                Console.Error.WriteLine(string.Empty);
                 Console.Error.WriteLine("To connect to an ASP.NET Connection Handler, use 'ws://example.com/path/to/hub' or 'wss://example.com/path/to/hub' (for HTTPS)");
                 return 1;
             }
@@ -41,7 +41,7 @@ namespace WebSocketSample
                     await ws.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, endOfMessage: true, cancellationToken: CancellationToken.None);
                 }
 
-                await ws.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+                await ws.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
             });
 
             var receiving = Receiving(ws);
@@ -66,10 +66,9 @@ namespace WebSocketSample
                 }
                 else if (result.MessageType == WebSocketMessageType.Close)
                 {
-                    await ws.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+                    await ws.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
                     break;
                 }
-
             }
         }
     }

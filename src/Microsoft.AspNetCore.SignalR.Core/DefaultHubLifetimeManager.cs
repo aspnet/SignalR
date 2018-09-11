@@ -16,6 +16,7 @@ namespace Microsoft.AspNetCore.SignalR
     /// <summary>
     /// A default in-memory lifetime manager abstraction for <see cref="Hub"/> instances.
     /// </summary>
+    /// <typeparam name="THub">The type of the Hub associated with this component. Automatically provided by the Dependency Injection system.</typeparam>
     public class DefaultHubLifetimeManager<THub> : HubLifetimeManager<THub> where THub : Hub
     {
         private readonly HubConnectionStore _connections = new HubConnectionStore();

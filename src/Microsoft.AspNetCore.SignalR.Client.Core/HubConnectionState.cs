@@ -15,6 +15,6 @@ namespace Microsoft.AspNetCore.SignalR.Client
         /// <summary>
         /// The hub connection is connected.
         /// </summary>
-        Connected
+        Connected,
     }
 }

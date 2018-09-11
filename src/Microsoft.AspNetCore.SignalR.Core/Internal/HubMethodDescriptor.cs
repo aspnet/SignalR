@@ -1,4 +1,4 @@
-﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
@@ -25,7 +25,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             ParameterTypes = methodExecutor.MethodParameters.Select(p => p.ParameterType).ToArray();
             Policies = policies.ToArray();
 
-            NonAsyncReturnType = (MethodExecutor.IsMethodAsync)
+            NonAsyncReturnType = MethodExecutor.IsMethodAsync
                 ? MethodExecutor.AsyncResultType
                 : MethodExecutor.MethodReturnType;
 
@@ -95,7 +95,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             var parameters = new List<Expression>
             {
                 Expression.Convert(targetParameter, methodParameters[0].ParameterType),
-                parametersParameter
+                parametersParameter,
             };
 
             var methodCall = Expression.Call(null, genericMethodInfo, parameters);

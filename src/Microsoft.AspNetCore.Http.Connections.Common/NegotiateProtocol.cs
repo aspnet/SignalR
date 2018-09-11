@@ -18,6 +18,7 @@ namespace Microsoft.AspNetCore.Http.Connections
         private const string AvailableTransportsPropertyName = "availableTransports";
         private const string TransportPropertyName = "transport";
         private const string TransferFormatsPropertyName = "transferFormats";
+
         // Used to detect ASP.NET SignalR Server connection attempt
         private const string ProtocolVersionPropertyName = "ProtocolVersion";
 
@@ -135,6 +136,7 @@ namespace Microsoft.AspNetCore.Http.Connections
                                                 break;
                                             }
                                         }
+
                                         break;
                                     case ProtocolVersionPropertyName:
                                         throw new InvalidOperationException("Detected a connection attempt to an ASP.NET SignalR Server. This client only supports connecting to an ASP.NET Core SignalR Server. See https://aka.ms/signalr-core-differences for details.");
@@ -142,6 +144,7 @@ namespace Microsoft.AspNetCore.Http.Connections
                                         reader.Skip();
                                         break;
                                 }
+
                                 break;
                             case JsonToken.EndObject:
                                 completed = true;
@@ -170,7 +173,7 @@ namespace Microsoft.AspNetCore.Http.Connections
                         ConnectionId = connectionId,
                         Url = url,
                         AccessToken = accessToken,
-                        AvailableTransports = availableTransports
+                        AvailableTransports = availableTransports,
                     };
                 }
             }
@@ -216,11 +219,13 @@ namespace Microsoft.AspNetCore.Http.Connections
                                             throw new InvalidDataException($"Unexpected token '{reader.TokenType}' when reading transfer formats JSON.");
                                     }
                                 }
+
                                 break;
                             default:
                                 reader.Skip();
                                 break;
                         }
+
                         break;
                     case JsonToken.EndObject:
                         if (availableTransport.Transport == null)

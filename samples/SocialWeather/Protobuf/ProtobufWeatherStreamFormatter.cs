@@ -1,7 +1,6 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-using System;
 using System.IO;
 using System.Threading.Tasks;
 using Google.Protobuf;
@@ -20,7 +19,7 @@ namespace SocialWeather.Protobuf
                 Temperature = protoWeatherReport.Temperature,
                 ReportTime = protoWeatherReport.ReportTime,
                 Weather = (Weather)(int)protoWeatherReport.Weather,
-                ZipCode = protoWeatherReport.ZipCode
+                ZipCode = protoWeatherReport.ZipCode,
             });
         }
 
@@ -32,7 +31,7 @@ namespace SocialWeather.Protobuf
                 Temperature = weatherReport.Temperature,
                 ReportTime = weatherReport.ReportTime,
                 Weather = (Protobuf.WeatherReport.Types.WeatherKind)(int)weatherReport.Weather,
-                ZipCode = weatherReport.ZipCode
+                ZipCode = weatherReport.ZipCode,
             };
 
             outputStream.WriteMessage(protoWeatherReport);

@@ -10,8 +10,6 @@ using System.IO.Pipelines;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Connections;
-using Microsoft.AspNetCore.Connections.Features;
-using Microsoft.AspNetCore.Http.Connections.Features;
 using Microsoft.AspNetCore.Http.Connections.Internal.Transports;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Internal;
@@ -26,21 +24,21 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
             new AvailableTransport
             {
                 Transport = nameof(HttpTransportType.WebSockets),
-                TransferFormats = new List<string> { nameof(TransferFormat.Text), nameof(TransferFormat.Binary) }
+                TransferFormats = new List<string> { nameof(TransferFormat.Text), nameof(TransferFormat.Binary) },
             };
 
         private static readonly AvailableTransport _serverSentEventsAvailableTransport =
             new AvailableTransport
             {
                 Transport = nameof(HttpTransportType.ServerSentEvents),
-                TransferFormats = new List<string> { nameof(TransferFormat.Text) }
+                TransferFormats = new List<string> { nameof(TransferFormat.Text) },
             };
 
         private static readonly AvailableTransport _longPollingAvailableTransport =
             new AvailableTransport
             {
                 Transport = nameof(HttpTransportType.LongPolling),
-                TransferFormats = new List<string> { nameof(TransferFormat.Text), nameof(TransferFormat.Binary) }
+                TransferFormats = new List<string> { nameof(TransferFormat.Text), nameof(TransferFormat.Binary) },
             };
 
         private readonly HttpConnectionManager _manager;
@@ -327,10 +325,11 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
             }
         }
 
-        private async Task DoPersistentConnection(ConnectionDelegate connectionDelegate,
-                                                  IHttpTransport transport,
-                                                  HttpContext context,
-                                                  HttpConnectionContext connection)
+        private async Task DoPersistentConnection(
+            ConnectionDelegate connectionDelegate,
+            IHttpTransport transport,
+            HttpContext context,
+            HttpConnectionContext connection)
         {
             await connection.StateLock.WaitAsync();
             try

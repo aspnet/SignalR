@@ -107,7 +107,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
             {
                 var isArray = MemoryMarshal.TryGetArray(input.First, out var arraySegment);
                 // This will never be false unless we started using un-managed buffers
-                Debug.Assert(isArray);
+                Debug.Assert(isArray, "Expected a managed buffer.");
                 return arraySegment;
             }
 
@@ -336,7 +336,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
 
                 // Write length then message to output
                 var written = BinaryMessageFormatter.WriteLengthPrefix(writer.Length, span);
-                Debug.Assert(written == prefixLength);
+                Debug.Assert(written == prefixLength, "Expected that the prefix length would match the previously-calculated length.");
                 writer.CopyTo(span.Slice(prefixLength));
 
                 return array;

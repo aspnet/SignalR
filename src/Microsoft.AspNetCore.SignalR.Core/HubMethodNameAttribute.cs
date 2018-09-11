@@ -12,7 +12,7 @@ namespace Microsoft.AspNetCore.SignalR
     public class HubMethodNameAttribute : Attribute
     {
         /// <summary>
-        /// The customized name of the hub method.
+        /// Gets the customized name of the hub method.
         /// </summary>
         public string Name { get; }
 

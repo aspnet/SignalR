@@ -19,7 +19,7 @@ namespace Microsoft.AspNetCore.Internal
         private readonly TimeSpan _dueTime;
         private bool _disposed;
         private bool _running = true;
-        private object _lockObj = new object();
+        private readonly object _lockObj = new object();
 
         public TimerAwaitable(TimeSpan dueTime, TimeSpan period)
         {

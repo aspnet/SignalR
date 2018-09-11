@@ -48,7 +48,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             var type = moduleBuilder.DefineType(
                 ClientModuleName + "." + typeof(T).Name + "Impl",
                 TypeAttributes.Public,
-                typeof(Object),
+                typeof(object),
                 new[] { typeof(T) });
 
             var proxyField = type.DefineField("_proxy", typeof(IClientProxy), FieldAttributes.Private);

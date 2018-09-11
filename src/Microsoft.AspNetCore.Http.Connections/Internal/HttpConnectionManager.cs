@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
-using System.Buffers.Text;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -68,9 +67,11 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
         }
 
         /// <summary>
-        /// Creates a connection without Pipes setup to allow saving allocations until Pipes are needed.
+        /// Creates a connection with the specified <see cref="PipeOptions"/>.
         /// </summary>
-        /// <returns></returns>
+        /// <param name="transportPipeOptions">Options for the pipe used by the transport.</param>
+        /// <param name="appPipeOptions">Options for the pipe used by the application.</param>
+        /// <returns>The created connection.</returns>
         public HttpConnectionContext CreateConnection(PipeOptions transportPipeOptions, PipeOptions appPipeOptions)
         {
             var id = MakeNewConnectionId();
@@ -161,7 +162,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
                     HttpConnectionsEventSource.Log.ConnectionTimedOut(connection.ConnectionId);
 
                     // This is most likely a long polling connection. The transport here ends because
-                    // a poll completed and has been inactive for > 5 seconds so we wait for the 
+                    // a poll completed and has been inactive for > 5 seconds so we wait for the
                     // application to finish gracefully
                     _ = DisposeAndRemoveAsync(connection, closeGracefully: true);
                 }

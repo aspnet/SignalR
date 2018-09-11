@@ -103,6 +103,31 @@ namespace Microsoft.AspNetCore.Internal
             }
         }
 
+        public override void Write(string value)
+        {
+            WriteInternal(value.AsSpan());
+        }
+
+        public override void Flush()
+        {
+            if (_memoryUsed > 0)
+            {
+                _bufferWriter.Advance(_memoryUsed);
+                _memory = _memory.Slice(_memoryUsed, _memory.Length - _memoryUsed);
+                _memoryUsed = 0;
+            }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+
+            if (disposing)
+            {
+                Flush();
+            }
+        }
+
         private unsafe void WriteMultiByteChar(char value)
         {
             var destination = GetBuffer();
@@ -120,14 +145,9 @@ namespace Microsoft.AspNetCore.Internal
             }
 #endif
 
-            Debug.Assert(charsUsed == 1);
+            Debug.Assert(charsUsed == 1, "Expected only 1 char would be written.");
 
             _memoryUsed += bytesUsed;
-        }
-
-        public override void Write(string value)
-        {
-            WriteInternal(value.AsSpan());
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -182,26 +202,6 @@ namespace Microsoft.AspNetCore.Internal
 
                 buffer = buffer.Slice(charsUsed);
                 _memoryUsed += bytesUsed;
-            }
-        }
-
-        public override void Flush()
-        {
-            if (_memoryUsed > 0)
-            {
-                _bufferWriter.Advance(_memoryUsed);
-                _memory = _memory.Slice(_memoryUsed, _memory.Length - _memoryUsed);
-                _memoryUsed = 0;
-            }
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            base.Dispose(disposing);
-
-            if (disposing)
-            {
-                Flush();
             }
         }
     }

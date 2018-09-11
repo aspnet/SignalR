@@ -8,7 +8,6 @@ using System.Net.WebSockets;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.Extensions.Logging;
 
@@ -159,7 +158,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
                     var receiveResult = await socket.ReceiveAsync(memory, token);
 #else
                     var isArray = MemoryMarshal.TryGetArray<byte>(memory, out var arraySegment);
-                    Debug.Assert(isArray);
+                    Debug.Assert(isArray, "Expected that the pipe would provide managed memory.");
 
                     // Exceptions are handled above where the send and receive tasks are being run.
                     var receiveResult = await socket.ReceiveAsync(arraySegment, token);
@@ -237,9 +236,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
                             {
                                 Log.SendPayload(_logger, buffer.Length);
 
-                                var webSocketMessageType = (_connection.ActiveFormat == TransferFormat.Binary
+                                var webSocketMessageType = _connection.ActiveFormat == TransferFormat.Binary
                                     ? WebSocketMessageType.Binary
-                                    : WebSocketMessageType.Text);
+                                    : WebSocketMessageType.Text;
 
                                 if (WebSocketCanSend(socket))
                                 {
@@ -280,12 +279,11 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
                 if (WebSocketCanSend(socket))
                 {
                     // We're done sending, send the close frame to the client if the websocket is still open
-                    await socket.CloseOutputAsync(error != null ? WebSocketCloseStatus.InternalServerError : WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+                    await socket.CloseOutputAsync(error != null ? WebSocketCloseStatus.InternalServerError : WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
                 }
 
                 _application.Input.Complete();
             }
-
         }
 
         private static bool WebSocketCanSend(WebSocket ws)

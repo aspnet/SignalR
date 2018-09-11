@@ -15,15 +15,18 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
     /// </summary>
     public static class HandshakeProtocol
     {
-        private const string ProtocolPropertyName = "protocol";
-        private const string ProtocolVersionPropertyName = "version";
-        private const string ErrorPropertyName = "error";
-        private const string TypePropertyName = "type";
-
+        // REVIEW: This should have been made readonly... technically a breaking change now...
+#pragma warning disable SA1401 // Fields should be private
         /// <summary>
         /// The serialized representation of a success handshake.
         /// </summary>
         public static ReadOnlyMemory<byte> SuccessHandshakeData;
+#pragma warning restore SA1401 // Fields should be private
+
+        private const string ProtocolPropertyName = "protocol";
+        private const string ProtocolVersionPropertyName = "version";
+        private const string ErrorPropertyName = "error";
+        private const string TypePropertyName = "type";
 
         static HandshakeProtocol()
         {
@@ -145,6 +148,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                                         reader.Skip();
                                         break;
                                 }
+
                                 break;
                             case JsonToken.EndObject:
                                 completed = true;
@@ -152,7 +156,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                             default:
                                 throw new InvalidDataException($"Unexpected token '{reader.TokenType}' when reading handshake response JSON.");
                         }
-                    };
+                    }
 
                     responseMessage = (error != null) ? new HandshakeResponseMessage(error) : HandshakeResponseMessage.Empty;
                     return true;
@@ -209,6 +213,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                                         reader.Skip();
                                         break;
                                 }
+
                                 break;
                             case JsonToken.EndObject:
                                 completed = true;
@@ -222,6 +227,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                     {
                         throw new InvalidDataException($"Missing required property '{ProtocolPropertyName}'.");
                     }
+
                     if (protocolVersion == null)
                     {
                         throw new InvalidDataException($"Missing required property '{ProtocolVersionPropertyName}'.");

@@ -1,4 +1,4 @@
-﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
@@ -40,7 +40,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                     // Why this way? Because ICollection.Remove implementation of dictionary checks for key and value. When we remove empty group,
                     // it checks if no connection added from another thread.
                     var groupToRemove = new KeyValuePair<string, GroupConnectionList>(groupName, EmptyGroupConnectionList);
-                    ((ICollection<KeyValuePair<string, GroupConnectionList>>)(_groups)).Remove(groupToRemove);
+                    ((ICollection<KeyValuePair<string, GroupConnectionList>>)_groups).Remove(groupToRemove);
                 }
             }
         }

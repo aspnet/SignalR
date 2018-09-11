@@ -17,6 +17,7 @@ namespace Microsoft.AspNetCore.SignalR
     /// <summary>
     /// Handles incoming connections and implements the SignalR Hub Protocol.
     /// </summary>
+    /// <typeparam name="THub">The type of the Hub associated with this component. Automatically provided by the Dependency Injection system.</typeparam>
     public class HubConnectionHandler<THub> : ConnectionHandler where THub : Hub
     {
         private readonly HubLifetimeManager<THub> _lifetimeManager;
@@ -69,7 +70,7 @@ namespace Microsoft.AspNetCore.SignalR
             // We check to see if HubOptions<THub> are set because those take precedence over global hub options.
             // Then set the keepAlive and handshakeTimeout values to the defaults in HubOptionsSetup incase they were explicitly set to null.
             var keepAlive = _hubOptions.KeepAliveInterval ?? _globalHubOptions.KeepAliveInterval ?? HubOptionsSetup.DefaultKeepAliveInterval;
-            var clientTimeout = _hubOptions.ClientTimeoutInterval ?? _globalHubOptions.ClientTimeoutInterval ?? HubOptionsSetup.DefaultClientTimeoutInterval; 
+            var clientTimeout = _hubOptions.ClientTimeoutInterval ?? _globalHubOptions.ClientTimeoutInterval ?? HubOptionsSetup.DefaultClientTimeoutInterval;
             var handshakeTimeout = _hubOptions.HandshakeTimeout ?? _globalHubOptions.HandshakeTimeout ?? HubOptionsSetup.DefaultHandshakeTimeout;
             var supportedProtocols = _hubOptions.SupportedProtocols ?? _globalHubOptions.SupportedProtocols;
 

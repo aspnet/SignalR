@@ -82,7 +82,7 @@ namespace Microsoft.AspNetCore.SignalR.Client
         public TimeSpan HandshakeTimeout { get; set; } = DefaultHandshakeTimeout;
 
         /// <summary>
-        /// Indicates the state of the <see cref="HubConnection"/> to the server.
+        /// Gets the state of the <see cref="HubConnection"/> to the server.
         /// </summary>
         public HubConnectionState State
         {

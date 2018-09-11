@@ -184,7 +184,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
         {
             ReadMessagePayload,
             ReadEndOfMessage,
-            Error
+            Error,
         }
     }
 }

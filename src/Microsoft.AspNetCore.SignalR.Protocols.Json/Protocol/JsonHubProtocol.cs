@@ -235,7 +235,7 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
 
                                                 // Could be at any point in argument array JSON when an error is thrown
                                                 // Read until the end of the argument JSON array
-                                                while (reader.Depth == initialDepth && reader.TokenType == JsonToken.StartArray ||
+                                                while ((reader.Depth == initialDepth && reader.TokenType == JsonToken.StartArray) ||
                                                        reader.Depth > initialDepth)
                                                 {
                                                     JsonUtils.CheckRead(reader);

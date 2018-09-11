@@ -143,60 +143,6 @@ namespace Microsoft.AspNetCore.Internal
             return CopyToSlowAsync(destination);
         }
 
-        private void EnsureCapacity(int sizeHint)
-        {
-            // This does the Right Thing. It only subtracts _position from the current segment length if it's non-null.
-            // If _currentSegment is null, it returns 0.
-            var remainingSize = _currentSegment?.Length - _position ?? 0;
-
-            // If the sizeHint is 0, any capacity will do
-            // Otherwise, the buffer must have enough space for the entire size hint, or we need to add a segment.
-            if ((sizeHint == 0 && remainingSize > 0) || (sizeHint > 0 && remainingSize >= sizeHint))
-            {
-                // We have capacity in the current segment
-                return;
-            }
-
-            AddSegment(sizeHint);
-        }
-
-        private void AddSegment(int sizeHint = 0)
-        {
-            if (_currentSegment != null)
-            {
-                // We're adding a segment to the list
-                if (_completedSegments == null)
-                {
-                    _completedSegments = new List<CompletedBuffer>();
-                }
-
-                // Position might be less than the segment length if there wasn't enough space to satisfy the sizeHint when
-                // GetMemory was called. In that case we'll take the current segment and call it "completed", but need to
-                // ignore any empty space in it.
-                _completedSegments.Add(new CompletedBuffer(_currentSegment, _position));
-            }
-
-            // Get a new buffer using the minimum segment size, unless the size hint is larger than a single segment.
-            _currentSegment = ArrayPool<byte>.Shared.Rent(Math.Max(_minimumSegmentSize, sizeHint));
-            _position = 0;
-        }
-
-        private async Task CopyToSlowAsync(Stream destination)
-        {
-            if (_completedSegments != null)
-            {
-                // Copy full segments
-                var count = _completedSegments.Count;
-                for (var i = 0; i < count; i++)
-                {
-                    var segment = _completedSegments[i];
-                    await destination.WriteAsync(segment.Buffer, 0, segment.Length);
-                }
-            }
-
-            await destination.WriteAsync(_currentSegment, 0, _position);
-        }
-
         public byte[] ToArray()
         {
             if (_currentSegment == null)
@@ -228,7 +174,7 @@ namespace Microsoft.AspNetCore.Internal
 
         public void CopyTo(Span<byte> span)
         {
-            Debug.Assert(span.Length >= _bytesWritten);
+            Debug.Assert(span.Length >= _bytesWritten, "The provided buffer does not have enough space to receive the copied data.");
 
             if (_currentSegment == null)
             {
@@ -252,10 +198,13 @@ namespace Microsoft.AspNetCore.Internal
             // Copy current incomplete segment
             _currentSegment.AsSpan(0, _position).CopyTo(span.Slice(totalWritten));
 
-            Debug.Assert(_bytesWritten == totalWritten + _position);
+            Debug.Assert(_bytesWritten == totalWritten + _position, "The copy process did not copy all the data.");
         }
 
-        public override void Flush() { }
+        public override void Flush()
+        {
+        }
+
         public override Task FlushAsync(CancellationToken cancellationToken) => Task.CompletedTask;
         public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
@@ -314,6 +263,60 @@ namespace Microsoft.AspNetCore.Internal
             {
                 Reset();
             }
+        }
+
+        private void EnsureCapacity(int sizeHint)
+        {
+            // This does the Right Thing. It only subtracts _position from the current segment length if it's non-null.
+            // If _currentSegment is null, it returns 0.
+            var remainingSize = _currentSegment?.Length - _position ?? 0;
+
+            // If the sizeHint is 0, any capacity will do
+            // Otherwise, the buffer must have enough space for the entire size hint, or we need to add a segment.
+            if ((sizeHint == 0 && remainingSize > 0) || (sizeHint > 0 && remainingSize >= sizeHint))
+            {
+                // We have capacity in the current segment
+                return;
+            }
+
+            AddSegment(sizeHint);
+        }
+
+        private void AddSegment(int sizeHint = 0)
+        {
+            if (_currentSegment != null)
+            {
+                // We're adding a segment to the list
+                if (_completedSegments == null)
+                {
+                    _completedSegments = new List<CompletedBuffer>();
+                }
+
+                // Position might be less than the segment length if there wasn't enough space to satisfy the sizeHint when
+                // GetMemory was called. In that case we'll take the current segment and call it "completed", but need to
+                // ignore any empty space in it.
+                _completedSegments.Add(new CompletedBuffer(_currentSegment, _position));
+            }
+
+            // Get a new buffer using the minimum segment size, unless the size hint is larger than a single segment.
+            _currentSegment = ArrayPool<byte>.Shared.Rent(Math.Max(_minimumSegmentSize, sizeHint));
+            _position = 0;
+        }
+
+        private async Task CopyToSlowAsync(Stream destination)
+        {
+            if (_completedSegments != null)
+            {
+                // Copy full segments
+                var count = _completedSegments.Count;
+                for (var i = 0; i < count; i++)
+                {
+                    var segment = _completedSegments[i];
+                    await destination.WriteAsync(segment.Buffer, 0, segment.Length);
+                }
+            }
+
+            await destination.WriteAsync(_currentSegment, 0, _position);
         }
 
         /// <summary>

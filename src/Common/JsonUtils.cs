@@ -12,31 +12,6 @@ namespace Microsoft.AspNetCore.Internal
 {
     internal static class JsonUtils
     {
-        internal static JsonTextReader CreateJsonTextReader(TextReader textReader)
-        {
-            var reader = new JsonTextReader(textReader);
-            reader.ArrayPool = JsonArrayPool<char>.Shared;
-
-            // Don't close the input, leave closing to the caller
-            reader.CloseInput = false;
-
-            return reader;
-        }
-
-        internal static JsonTextWriter CreateJsonTextWriter(TextWriter textWriter)
-        {
-            var writer = new JsonTextWriter(textWriter);
-            writer.ArrayPool = JsonArrayPool<char>.Shared;
-            // Don't close the output, leave closing to the caller
-            writer.CloseOutput = false;
-
-            // SignalR will always write a complete JSON response
-            // This setting will prevent an error during writing be hidden by another error writing on dispose
-            writer.AutoCompleteOnClose = false;
-
-            return writer;
-        }
-
         public static JObject GetObject(JToken token)
         {
             if (token == null || token.Type != JTokenType.Object)
@@ -77,6 +52,7 @@ namespace Microsoft.AspNetCore.Internal
             {
                 throw new InvalidDataException($"Expected '{property}' to be of type {expectedType}.");
             }
+
             return prop.Value<T>();
         }
 
@@ -95,6 +71,7 @@ namespace Microsoft.AspNetCore.Internal
                 default:
                     break;
             }
+
             return tokenType.ToString();
         }
 
@@ -176,11 +153,37 @@ namespace Microsoft.AspNetCore.Internal
             return reader.TokenType != JsonToken.None;
         }
 
+        internal static JsonTextReader CreateJsonTextReader(TextReader textReader)
+        {
+            var reader = new JsonTextReader(textReader);
+            reader.ArrayPool = JsonArrayPool<char>.Shared;
+
+            // Don't close the input, leave closing to the caller
+            reader.CloseInput = false;
+
+            return reader;
+        }
+
+        internal static JsonTextWriter CreateJsonTextWriter(TextWriter textWriter)
+        {
+            var writer = new JsonTextWriter(textWriter);
+            writer.ArrayPool = JsonArrayPool<char>.Shared;
+
+            // Don't close the output, leave closing to the caller
+            writer.CloseOutput = false;
+
+            // SignalR will always write a complete JSON response
+            // This setting will prevent an error during writing be hidden by another error writing on dispose
+            writer.AutoCompleteOnClose = false;
+
+            return writer;
+        }
+
         private class JsonArrayPool<T> : IArrayPool<T>
         {
-            private readonly ArrayPool<T> _inner;
-
             internal static readonly JsonArrayPool<T> Shared = new JsonArrayPool<T>(ArrayPool<T>.Shared);
+
+            private readonly ArrayPool<T> _inner;
 
             public JsonArrayPool(ArrayPool<T> inner)
             {

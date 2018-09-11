@@ -97,7 +97,7 @@ namespace Microsoft.AspNetCore.SignalR
         public string UserIdentifier { get; set; }
 
         /// <summary>
-        /// Gets the protocol used by this connection.
+        /// Gets or sets the protocol used by this connection.
         /// </summary>
         public virtual IHubProtocol Protocol { get; set; }
 

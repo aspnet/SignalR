@@ -6,6 +6,8 @@ namespace Microsoft.AspNetCore.SignalR
     /// <summary>
     /// A context abstraction for a hub.
     /// </summary>
+    /// <typeparam name="THub">The type of the Hub associated with this component. Automatically provided by the Dependency Injection system.</typeparam>
+    /// <typeparam name="T">An interface type defining the methods expected to be defined by clients of this hub.</typeparam>
     public interface IHubContext<THub, T>
         where THub : Hub<T>
         where T : class

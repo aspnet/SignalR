@@ -10,10 +10,10 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
 {
     public static class ServerSentEventsMessageFormatter
     {
+        private const byte LineFeed = (byte)'\n';
+
         private static readonly byte[] DataPrefix = { (byte)'d', (byte)'a', (byte)'t', (byte)'a', (byte)':', (byte)' ' };
         private static readonly byte[] Newline = { (byte)'\r', (byte)'\n' };
-
-        private const byte LineFeed = (byte)'\n';
 
         public static async Task WriteMessageAsync(ReadOnlySequence<byte> payload, Stream output)
         {

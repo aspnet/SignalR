@@ -217,7 +217,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
                     var receiveResult = await socket.ReceiveAsync(memory, CancellationToken.None);
 #else
                     var isArray = MemoryMarshal.TryGetArray<byte>(memory, out var arraySegment);
-                    Debug.Assert(isArray);
+                    Debug.Assert(isArray, "Expected a managed buffer.");
 
                     // Exceptions are handled above where the send and receive tasks are being run.
                     var receiveResult = await socket.ReceiveAsync(arraySegment, CancellationToken.None);
@@ -337,7 +337,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
                 if (WebSocketCanSend(socket))
                 {
                     // We're done sending, send the close frame to the client if the websocket is still open
-                    await socket.CloseOutputAsync(error != null ? WebSocketCloseStatus.InternalServerError : WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+                    await socket.CloseOutputAsync(error != null ? WebSocketCloseStatus.InternalServerError : WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
                 }
 
                 _application.Input.Complete();

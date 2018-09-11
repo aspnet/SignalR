@@ -79,6 +79,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Called when a connection with the hub is terminated.
         /// </summary>
+        /// <param name="exception">An optional <see cref="Exception"/> indicating the error that caused the disconnect. This value is <c>null</c> if the disconnect was not due to an error.</param>
         /// <returns>A <see cref="Task"/> that represents the asynchronous disconnect.</returns>
         public virtual Task OnDisconnectedAsync(Exception exception)
         {

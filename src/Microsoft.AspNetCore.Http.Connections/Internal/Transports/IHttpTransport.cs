@@ -3,18 +3,17 @@
 
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 
 namespace Microsoft.AspNetCore.Http.Connections.Internal.Transports
 {
     public interface IHttpTransport
     {
         /// <summary>
-        /// Executes the transport
+        /// Executes a request on behalf of the transport.
         /// </summary>
-        /// <param name="context"></param>
-        /// <param name="token"></param>
-        /// <returns>A <see cref="Task"/> that completes when the transport has finished processing</returns>
+        /// <param name="context">An <see cref="HttpContext"/> representing the request.</param>
+        /// <param name="token">A <see cref="CancellationToken"/> used to indicate the operation should be canceled.</param>
+        /// <returns>A <see cref="Task"/> that completes when the transport has finished processing.</returns>
         Task ProcessRequestAsync(HttpContext context, CancellationToken token);
     }
 }

@@ -5,8 +5,19 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
 {
     public enum HttpConnectionStatus
     {
+        /// <summary>
+        /// Indicates the connection is idle, and can be disposed if the timeout period has elapsed.
+        /// </summary>
         Inactive,
+
+        /// <summary>
+        /// Indicates that the connection is active, and should not be disposed.
+        /// </summary>
         Active,
-        Disposed
+
+        /// <summary>
+        /// Indicates that the connection has been disposed.
+        /// </summary>
+        Disposed,
     }
 }

@@ -20,4 +20,10 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 	  <LangVersion>latest</LangVersion>
   </PropertyGroup>
+
+  <ItemGroup Condition="'$(RunStyleCop)' != 'false'">
+    <PackageReference Include="StyleCop.Analyzers" PrivateAssets="All" Version="$(StyleCopAnalyzersPackageVersion)" />
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)/stylecop.json" Link="Properties/stylecop.json" />
+    <Compile Include="$(MSBuildThisFileDirectory)/build/StyleCopSuppressions.cs" Link="Properties/StyleCopSuppressions.cs" />
+  </ItemGroup>
 </Project>

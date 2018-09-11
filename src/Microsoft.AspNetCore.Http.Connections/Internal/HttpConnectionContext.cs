@@ -40,11 +40,11 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
         private readonly TaskCompletionSource<object> _disposeTcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         /// <summary>
-        /// Creates the DefaultConnectionContext without Pipes to avoid upfront allocations.
+        /// Initializes a new instance of the <see cref="HttpConnectionContext"/> class.
         /// The caller is expected to set the <see cref="Transport"/> and <see cref="Application"/> pipes manually.
         /// </summary>
-        /// <param name="id"></param>
-        /// <param name="logger"></param>
+        /// <param name="id">The ID of the connection represented by this object.</param>
+        /// <param name="logger">A logger to use to write log messages to.</param>
         public HttpConnectionContext(string id, ILogger logger)
         {
             ConnectionId = id;

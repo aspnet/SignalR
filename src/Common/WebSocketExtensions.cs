@@ -1,4 +1,4 @@
-﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Buffers;
@@ -26,7 +26,7 @@ namespace System.Net.WebSockets
             if (buffer.IsSingleSegment)
             {
                 var isArray = MemoryMarshal.TryGetArray(buffer.First, out var segment);
-                Debug.Assert(isArray);
+                Debug.Assert(isArray, "Expected a managed buffer.");
                 return new ValueTask(webSocket.SendAsync(segment, webSocketMessageType, endOfMessage: true, cancellationToken));
             }
             else
@@ -45,7 +45,7 @@ namespace System.Net.WebSockets
                 await webSocket.SendAsync(segment, webSocketMessageType, endOfMessage: false, cancellationToken);
 #else
                 var isArray = MemoryMarshal.TryGetArray(segment, out var arraySegment);
-                Debug.Assert(isArray);
+                Debug.Assert(isArray, "Expected a managed buffer.");
                 await webSocket.SendAsync(arraySegment, webSocketMessageType, endOfMessage: false, cancellationToken);
 #endif
             }

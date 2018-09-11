@@ -1,7 +1,9 @@
+// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
 using System;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Protocol;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Microsoft.Extensions.DependencyInjection
@@ -17,8 +19,9 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <remarks>
         /// This has no effect if the JSON protocol has already been enabled.
         /// </remarks>
+        /// <typeparam name="TBuilder">The type of the class implementing <see cref="ISignalRBuilder"/> on which this extension method is placed. Used to preserve the concrete type when chaining.</typeparam>
         /// <param name="builder">The <see cref="ISignalRBuilder"/> representing the SignalR server to add JSON protocol support to.</param>
-        /// <returns>The value of <paramref name="builder"/></returns>
+        /// <returns>The value of <paramref name="builder"/>.</returns>
         public static TBuilder AddJsonProtocol<TBuilder>(this TBuilder builder) where TBuilder : ISignalRBuilder
             => AddJsonProtocol(builder, _ => { });
 
@@ -28,9 +31,10 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <remarks>
         /// Any options configured here will be applied, even if the JSON protocol has already been registered with the server.
         /// </remarks>
+        /// <typeparam name="TBuilder">The type of the class implementing <see cref="ISignalRBuilder"/> on which this extension method is placed. Used to preserve the concrete type when chaining.</typeparam>
         /// <param name="builder">The <see cref="ISignalRBuilder"/> representing the SignalR server to add JSON protocol support to.</param>
-        /// <param name="configure">A delegate that can be used to configure the <see cref="JsonHubProtocolOptions"/></param>
-        /// <returns>The value of <paramref name="builder"/></returns>
+        /// <param name="configure">A delegate that can be used to configure the <see cref="JsonHubProtocolOptions"/>.</param>
+        /// <returns>The value of <paramref name="builder"/>.</returns>
         public static TBuilder AddJsonProtocol<TBuilder>(this TBuilder builder, Action<JsonHubProtocolOptions> configure) where TBuilder : ISignalRBuilder
         {
             builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IHubProtocol, JsonHubProtocol>());

@@ -21,7 +21,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
                 .GetCustomAttributes<AssemblyInformationalVersionAttribute>()
                 .FirstOrDefault();
 
-            Debug.Assert(assemblyVersion != null);
+            Debug.Assert(assemblyVersion != null, "Expected assembly to have an AssemblyInformationalVersionAttribute.");
 
             // assembly version attribute should always be present
             // but in case it isn't then don't include version in user-agent

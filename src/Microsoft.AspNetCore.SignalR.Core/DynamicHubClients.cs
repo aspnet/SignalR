@@ -1,4 +1,4 @@
-﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System.Collections.Generic;
@@ -79,6 +79,7 @@ namespace Microsoft.AspNetCore.SignalR
         /// <summary>
         /// Gets an object that can be used to invoke methods on connections in a group other than the caller.
         /// </summary>
+        /// <param name="groupName">The group name.</param>
         /// <returns>An object that can be used to invoke methods.</returns>
         public dynamic OthersInGroup(string groupName) => new DynamicClientProxy(_clients.OthersInGroup(groupName));
 
