@@ -38,7 +38,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 
             var docker = new Docker(location);
 
-            docker.RunCommand("info --format '{{.OSType}}'", out var output);
+            docker.RunCommand("info --format '{{.OSType}}'", "docker info", out var output);
 
             if (!string.Equals(output.Trim('\'', '"', '\r', '\n', ' '), "linux"))
             {
