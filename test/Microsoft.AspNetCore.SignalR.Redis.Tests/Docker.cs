@@ -90,7 +90,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             // variable used by Startup.cs
             Environment.SetEnvironmentVariable("REDIS_CONNECTION", $"{output}:6379");
 
-            var (monitorProcess, monitorOutput) = RunProcess(_path, $"run -it --link {_dockerContainerName}:redis --rm redis redis-cli -h redis -p 6379", logger);
+            var (monitorProcess, monitorOutput) = RunProcess(_path, $"run -it --link {_dockerContainerName}:redis --rm redis redis-cli -h redis -p 6379 --name {_dockerContainerName}{"Monitor"}", logger);
             monitorProcess.StandardInput.WriteLine("MONITOR");
             monitorProcess.StandardInput.Flush();
         }
@@ -102,6 +102,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 
             logger.LogInformation("Stopping docker container");
             RunProcessAndThrowIfFailed(_path, $"stop {_dockerContainerName}", logger, TimeSpan.FromSeconds(5));
+            RunProcessAndThrowIfFailed(_path, $"stop {_dockerContainerName}{"Monitor"}", logger, TimeSpan.FromSeconds(5));
         }
 
         public int RunCommand(string commandAndArguments, out string output) =>
