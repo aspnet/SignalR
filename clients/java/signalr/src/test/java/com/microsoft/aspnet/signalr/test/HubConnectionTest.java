@@ -6,6 +6,7 @@ package com.microsoft.aspnet.signalr.test;
 import static org.junit.Assert.*;
 
 import java.util.ArrayList;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Rule;
@@ -711,8 +712,18 @@ public class HubConnectionTest {
         public void start() {}
 
         @Override
+        public CompletableFuture startAsync() throws Exception {
+            return null;
+        }
+
+        @Override
         public void send(String message) {
             sentMessages.add(message);
+        }
+
+        @Override
+        public CompletableFuture sendAsync(String message) throws Exception {
+            return null;
         }
 
         @Override
