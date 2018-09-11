@@ -35,7 +35,7 @@ public class JsonHubProtocolTest {
     }
 
     @Test
-    public void VerifyWriteMessage() {
+    public void verifyWriteMessage() {
         InvocationMessage invocationMessage = new InvocationMessage("test", new Object[] {"42"});
         String result = jsonHubProtocol.writeMessage(invocationMessage);
         String expectedResult = "{\"type\":1,\"target\":\"test\",\"arguments\":[\"42\"]}\u001E";
@@ -43,7 +43,7 @@ public class JsonHubProtocolTest {
     }
 
     @Test
-    public void ParsePingMessage() throws Exception {
+    public void parsePingMessage() throws Exception {
         String stringifiedMessage = "{\"type\":6}\u001E";
         TestBinder binder = new TestBinder(new PingMessage());
 
@@ -55,7 +55,7 @@ public class JsonHubProtocolTest {
     }
 
     @Test
-    public void ParseCloseMessage() throws Exception {
+    public void parseCloseMessage() throws Exception {
         String stringifiedMessage = "{\"type\":7}\u001E";
         TestBinder binder = new TestBinder(new CloseMessage());
 
@@ -73,7 +73,7 @@ public class JsonHubProtocolTest {
     }
 
     @Test
-    public void ParseCloseMessageWithError() throws Exception {
+    public void parseCloseMessageWithError() throws Exception {
         String stringifiedMessage = "{\"type\":7,\"error\": \"There was an error\"}\u001E";
         TestBinder binder = new TestBinder(new CloseMessage("There was an error"));
 
@@ -91,7 +91,7 @@ public class JsonHubProtocolTest {
     }
 
     @Test
-    public void ParseSingleMessage() throws Exception {
+    public void parseSingleMessage() throws Exception {
         String stringifiedMessage = "{\"type\":1,\"target\":\"test\",\"arguments\":[42]}\u001E";
         TestBinder binder = new TestBinder(new InvocationMessage("test", new Object[] { 42 }));
 
@@ -116,7 +116,7 @@ public class JsonHubProtocolTest {
     public ExpectedException exceptionRule = ExpectedException.none();
 
     @Test
-    public void ParseSingleUnsupportedStreamItemMessage() throws Exception {
+    public void parseSingleUnsupportedStreamItemMessage() throws Exception {
         exceptionRule.expect(UnsupportedOperationException.class);
         exceptionRule.expectMessage("The message type STREAM_ITEM is not supported yet.");
         String stringifiedMessage = "{\"type\":2,\"Id\":1,\"Item\":42}\u001E";
@@ -126,7 +126,7 @@ public class JsonHubProtocolTest {
     }
 
     @Test
-    public void ParseSingleUnsupportedStreamInvocationMessage() throws Exception {
+    public void parseSingleUnsupportedStreamInvocationMessage() throws Exception {
         exceptionRule.expect(UnsupportedOperationException.class);
         exceptionRule.expectMessage("The message type STREAM_INVOCATION is not supported yet.");
         String stringifiedMessage = "{\"type\":4,\"Id\":1,\"target\":\"test\",\"arguments\":[42]}\u001E";
@@ -136,7 +136,7 @@ public class JsonHubProtocolTest {
     }
 
     @Test
-    public void ParseSingleUnsupportedCancelInvocationMessage() throws Exception {
+    public void parseSingleUnsupportedCancelInvocationMessage() throws Exception {
         exceptionRule.expect(UnsupportedOperationException.class);
         exceptionRule.expectMessage("The message type CANCEL_INVOCATION is not supported yet.");
         String stringifiedMessage = "{\"type\":5,\"invocationId\":123}\u001E";
@@ -146,7 +146,7 @@ public class JsonHubProtocolTest {
     }
 
     @Test
-    public void ParseSingleUnsupportedCompletionMessage() throws Exception {
+    public void parseSingleUnsupportedCompletionMessage() throws Exception {
         exceptionRule.expect(UnsupportedOperationException.class);
         exceptionRule.expectMessage("The message type COMPLETION is not supported yet.");
         String stringifiedMessage = "{\"type\":3,\"invocationId\":123}\u001E";
@@ -156,7 +156,7 @@ public class JsonHubProtocolTest {
     }
 
     @Test
-    public void ParseTwoMessages() throws Exception {
+    public void parseTwoMessages() throws Exception {
         String twoMessages = "{\"type\":1,\"target\":\"one\",\"arguments\":[42]}\u001E{\"type\":1,\"target\":\"two\",\"arguments\":[43]}\u001E";
         TestBinder binder = new TestBinder(new InvocationMessage("one", new Object[] { 42 }));
 
@@ -187,7 +187,7 @@ public class JsonHubProtocolTest {
     }
 
     @Test
-    public void ParseSingleMessageMutipleArgs() throws Exception {
+    public void parseSingleMessageMutipleArgs() throws Exception {
         String stringifiedMessage = "{\"type\":1,\"target\":\"test\",\"arguments\":[42, 24]}\u001E";
         TestBinder binder = new TestBinder(new InvocationMessage("test", new Object[] { 42, 24 }));
 
@@ -206,7 +206,7 @@ public class JsonHubProtocolTest {
     }
 
     @Test
-    public void ParseMessageWithOutOfOrderProperties() throws Exception {
+    public void parseMessageWithOutOfOrderProperties() throws Exception {
         String stringifiedMessage = "{\"arguments\":[42, 24],\"type\":1,\"target\":\"test\"}\u001E";
         TestBinder binder = new TestBinder(new InvocationMessage("test", new Object[] { 42, 24 }));
 
