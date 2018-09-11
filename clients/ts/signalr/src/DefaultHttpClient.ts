@@ -4,8 +4,13 @@
 import { AbortError } from "./Errors";
 import { HttpClient, HttpRequest, HttpResponse } from "./HttpClient";
 import { ILogger } from "./ILogger";
-import { NodeHttpClient } from "./NodeHttpClient";
 import { XhrHttpClient } from "./XhrHttpClient";
+
+let nodeHttpClientModule: any;
+if (typeof XMLHttpRequest === "undefined") {
+    // tslint:disable-next-line:no-var-requires
+    nodeHttpClientModule = require("./NodeHttpClient");
+}
 
 /** Default implementation of {@link @aspnet/signalr.HttpClient}. */
 export class DefaultHttpClient extends HttpClient {
@@ -17,8 +22,10 @@ export class DefaultHttpClient extends HttpClient {
 
         if (typeof XMLHttpRequest !== "undefined") {
             this.httpClient = new XhrHttpClient(logger);
+        } else if (typeof nodeHttpClientModule !== "undefined") {
+            this.httpClient = new nodeHttpClientModule.NodeHttpClient(logger);
         } else {
-            this.httpClient = new NodeHttpClient(logger);
+            throw new Error("No HttpClient could be created.");
         }
     }
 
