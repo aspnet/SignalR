@@ -30,12 +30,13 @@ public class Chat {
         });
 
         //This returns a CompletableFuture.
-        hubConnection.startAsync().get();
+        hubConnection.startAsync();
 
         String message = "";
         while (!message.equals("leave")) {
             // Scans the next token of the input as an int.
             message = reader.nextLine();
+
             hubConnection.send("Send", enteredName, message);
         }
 
