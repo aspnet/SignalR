@@ -3,7 +3,7 @@
 
 package com.microsoft.aspnet.signalr;
 
- class InvocationMessage extends HubMessage {
+class InvocationMessage extends HubMessage {
     int type = HubMessageType.INVOCATION.value;
     String invocationId;
     String target;

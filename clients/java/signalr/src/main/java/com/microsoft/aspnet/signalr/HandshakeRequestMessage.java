@@ -3,7 +3,7 @@
 
 package com.microsoft.aspnet.signalr;
 
- class HandshakeRequestMessage {
+class HandshakeRequestMessage {
     String protocol;
     int version;
 

@@ -3,6 +3,6 @@
 
 package com.microsoft.aspnet.signalr;
 
- interface OnReceiveCallBack {
+interface OnReceiveCallBack {
     void invoke(String message) throws Exception;
 }

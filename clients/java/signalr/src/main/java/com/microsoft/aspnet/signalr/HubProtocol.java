@@ -6,7 +6,7 @@ package com.microsoft.aspnet.signalr;
 /**
  * A protocol abstraction for communicating with SignalR hubs.
  */
- interface HubProtocol {
+interface HubProtocol {
     String getName();
     int getVersion();
     TransferFormat getTransferFormat();

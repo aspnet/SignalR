@@ -3,7 +3,7 @@
 
 package com.microsoft.aspnet.signalr;
 
- class HandshakeResponseMessage {
+class HandshakeResponseMessage {
     public String error;
 
     public HandshakeResponseMessage() {
