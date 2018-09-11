@@ -74,7 +74,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             logger.LogInformation("Starting docker container");
 
             // stop container if there is one, could be from a previous test run, ignore failures
-            RunProcess(_path, $"stop {_dockerContainerName}", logger, TimeSpan.FromSeconds(5), out var output);
+            RunProcessAndWait(_path, $"stop {_dockerContainerName}", logger, TimeSpan.FromSeconds(5), out var output);
 
             // create and run docker container, remove automatically when stopped, map 6379 from the container to 6379 localhost
             // use static name 'redisTestContainer' so if the container doesn't get removed we don't keep adding more
@@ -84,11 +84,14 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 
             // inspect the redis docker image and extract the IPAddress. Necessary when running tests from inside a docker container, spinning up a new docker container for redis
             // outside the current container requires linking the networks (difficult to automate) or using the IP:Port combo
-            RunProcess(_path, "inspect --format=\"{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}\" " + _dockerContainerName, logger, TimeSpan.FromSeconds(5), out output);
+            RunProcessAndWait(_path, "inspect --format=\"{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}\" " + _dockerContainerName, logger, TimeSpan.FromSeconds(5), out output);
             output = output.Trim().Replace(Environment.NewLine, "");
 
             // variable used by Startup.cs
             Environment.SetEnvironmentVariable("REDIS_CONNECTION", $"{output}:6379");
+
+            var (monitorProcess, monitorOutput) = RunProcess(_path, $"run -it --link {_dockerContainerName}:redis --rm redis redis-cli -h redis -p 6379", logger);
+            monitorProcess.StandardInput.Write("MONITOR");
         }
 
         public void Stop(ILogger logger)
@@ -105,12 +108,12 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 
         public int RunCommand(string commandAndArguments, ILogger logger, out string output)
         {
-            return RunProcess(_path, commandAndArguments, logger, TimeSpan.FromSeconds(5), out output);
+            return RunProcessAndWait(_path, commandAndArguments, logger, TimeSpan.FromSeconds(5), out output);
         }
 
         private static void RunProcessAndThrowIfFailed(string fileName, string arguments, ILogger logger, TimeSpan timeout)
         {
-            var exitCode = RunProcess(fileName, arguments, logger, timeout, out var output);
+            var exitCode = RunProcessAndWait(fileName, arguments, logger, timeout, out var output);
 
             if (exitCode != 0)
             {
@@ -118,7 +121,25 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             }
         }
 
-        private static int RunProcess(string fileName, string arguments, ILogger logger, TimeSpan timeout, out string output)
+        private static int RunProcessAndWait(string fileName, string arguments, ILogger logger, TimeSpan timeout, out string output)
+        {
+            var (process, lines) = RunProcess(fileName, arguments, logger);
+
+            if (!process.WaitForExit((int)timeout.TotalMilliseconds))
+            {
+                process.Close();
+                logger.LogError("Closing process '{processName}' because it is running longer than the configured timeout.", fileName);
+            }
+
+            // Need to WaitForExit without a timeout to guarantee the output stream has written everything
+            process.WaitForExit();
+
+            output = string.Join(Environment.NewLine, lines);
+
+            return process.ExitCode;
+        }
+
+        private static (Process, ConcurrentQueue<string>) RunProcess(string fileName, string arguments, ILogger logger)
         {
             var process = new Process
             {
@@ -152,18 +173,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             process.BeginErrorReadLine();
             process.BeginOutputReadLine();
 
-            if (!process.WaitForExit((int)timeout.TotalMilliseconds))
-            {
-                process.Close();
-                logger.LogError("Closing process '{processName}' because it is running longer than the configured timeout.", fileName);
-            }
-
-            // Need to WaitForExit without a timeout to guarantee the output stream has written everything
-            process.WaitForExit();
-
-            output = string.Join(Environment.NewLine, lines);
-
-            return exitCode;
+            return (process, lines);
         }
 
         private static void LogIfNotNull(Action<string, object[]> logger, string message, string data)
