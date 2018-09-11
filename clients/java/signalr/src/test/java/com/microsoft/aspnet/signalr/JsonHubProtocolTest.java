@@ -10,7 +10,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import com.google.gson.JsonArray;
-import com.microsoft.aspnet.signalr.*;
 
 public class JsonHubProtocolTest {
     private JsonHubProtocol jsonHubProtocol = new JsonHubProtocol();

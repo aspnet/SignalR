@@ -12,7 +12,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import com.microsoft.aspnet.signalr.Negotiate;
 
 @RunWith(Parameterized.class)
 public class ResolveNegotiateUrlTest {

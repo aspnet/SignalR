@@ -7,7 +7,6 @@ import static org.junit.Assert.*;
 
 import org.junit.Test;
 
-import com.microsoft.aspnet.signalr.NegotiateResponse;
 
 public class NegotiateResponseTest {
 

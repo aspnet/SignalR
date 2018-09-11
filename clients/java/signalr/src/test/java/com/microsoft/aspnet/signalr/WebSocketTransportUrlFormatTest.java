@@ -13,8 +13,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import com.microsoft.aspnet.signalr.NullLogger;
-import com.microsoft.aspnet.signalr.WebSocketTransport;
 
 @RunWith(Parameterized.class)
 public class WebSocketTransportUrlFormatTest {

@@ -12,7 +12,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import com.microsoft.aspnet.signalr.*;
 
 public class HubConnectionTest {
     private static final String RECORD_SEPARATOR = "\u001e";
