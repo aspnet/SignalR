@@ -3,7 +3,7 @@
 
 package com.microsoft.aspnet.signalr;
 
-public class StreamInvocationMessage extends InvocationMessage {
+class StreamInvocationMessage extends InvocationMessage {
 
     int type = HubMessageType.STREAM_INVOCATION.value;
 

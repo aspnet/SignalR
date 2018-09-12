@@ -5,7 +5,7 @@ package com.microsoft.aspnet.signalr;
 
 import java.util.List;
 
-public class InvocationHandler {
+class InvocationHandler {
     private List<Class<?>> classes;
     private ActionBase action;
 
