@@ -9,6 +9,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 import com.google.gson.Gson;
@@ -30,6 +32,7 @@ public class HubConnection {
     private NegotiateResponse negotiateResponse;
     private String accessToken;
     private Map<String, String> headers = new HashMap<>();
+    private Lock hubConnectionStateLock = new ReentrantLock();
 
     private static int MAX_NEGOTIATE_ATTEMPTS = 100;
 
@@ -154,76 +157,42 @@ public class HubConnection {
     }
 
 
-    public CompletableFuture startAsync() throws Exception {
-        if (connectionState != HubConnectionState.DISCONNECTED) {
-            return CompletableFuture.completedFuture(null);
-        }
-        if (!skipNegotiate) {
-            int negotiateAttempts = 0;
-            do {
-                accessToken = (negotiateResponse == null) ? null : negotiateResponse.getAccessToken();
-                negotiateResponse = handleNegotiate();
-                negotiateAttempts++;
-            } while (negotiateResponse.getRedirectUrl() != null && negotiateAttempts < MAX_NEGOTIATE_ATTEMPTS);
-            if (!negotiateResponse.getAvailableTransports().contains("WebSockets")) {
-                throw new HubException("There were no compatible transports on the server.");
+    public CompletableFuture start() throws Exception {
+        hubConnectionStateLock.lock();
+        try {
+            if (connectionState != HubConnectionState.DISCONNECTED) {
+                return CompletableFuture.completedFuture(null);
             }
-        }
-
-        logger.log(LogLevel.Debug, "Starting HubConnection");
-        if (transport == null) {
-            transport = new WebSocketTransport(url, logger, headers);
-        }
-
-        transport.setOnReceive(this.callback);
-
-        return transport.startAsync().thenCompose((future) -> {
-            String handshake = HandshakeProtocol.createHandshakeRequestMessage(new HandshakeRequestMessage(protocol.getName(), protocol.getVersion()));
-            CompletableFuture handshakeFuture = null;
-            try {
-                 handshakeFuture = transport.sendAsync(handshake);
-            } catch (Exception e) {
-                e.printStackTrace();
+            if (!skipNegotiate) {
+                int negotiateAttempts = 0;
+                do {
+                    accessToken = (negotiateResponse == null) ? null : negotiateResponse.getAccessToken();
+                    negotiateResponse = handleNegotiate();
+                    negotiateAttempts++;
+                } while (negotiateResponse.getRedirectUrl() != null && negotiateAttempts < MAX_NEGOTIATE_ATTEMPTS);
+                if (!negotiateResponse.getAvailableTransports().contains("WebSockets")) {
+                    throw new HubException("There were no compatible transports on the server.");
+                }
             }
-            return handshakeFuture.thenRun(() -> {
-                connectionState = HubConnectionState.CONNECTED;
-                logger.log(LogLevel.Information, "HubConnected started.");
+
+            logger.log(LogLevel.Debug, "Starting HubConnection");
+            if (transport == null) {
+                transport = new WebSocketTransport(url, logger, headers);
+            }
+
+            transport.setOnReceive(this.callback);
+
+            return transport.start().thenCompose((future) -> {
+                String handshake = HandshakeProtocol.createHandshakeRequestMessage(new HandshakeRequestMessage(protocol.getName(), protocol.getVersion()));
+                CompletableFuture handshakeFuture= transport.send(handshake);
+                return handshakeFuture.thenRun(() -> {
+                    connectionState = HubConnectionState.CONNECTED;
+                    logger.log(LogLevel.Information, "HubConnected started.");
+                });
             });
-        });
-    }
-
-    /**
-     * Starts a connection to the server.
-     *
-     * @throws Exception An error occurred while connecting.
-     */
-    public void start() throws Exception {
-        if (connectionState != HubConnectionState.DISCONNECTED) {
-            return;
+        } finally {
+            hubConnectionStateLock.unlock();
         }
-        if (!skipNegotiate) {
-            int negotiateAttempts = 0;
-            do {
-                accessToken = (negotiateResponse == null) ? null : negotiateResponse.getAccessToken();
-                negotiateResponse = handleNegotiate();
-                negotiateAttempts++;
-            } while (negotiateResponse.getRedirectUrl() != null && negotiateAttempts < MAX_NEGOTIATE_ATTEMPTS);
-            if (!negotiateResponse.getAvailableTransports().contains("WebSockets")) {
-                throw new HubException("There were no compatible transports on the server.");
-            }
-        }
-
-        logger.log(LogLevel.Debug, "Starting HubConnection");
-        if (transport == null) {
-            transport = new WebSocketTransport(url, logger, headers);
-        }
-
-        transport.setOnReceive(this.callback);
-        transport.start();
-        String handshake = HandshakeProtocol.createHandshakeRequestMessage(new HandshakeRequestMessage(protocol.getName(), protocol.getVersion()));
-        transport.send(handshake);
-        connectionState = HubConnectionState.CONNECTED;
-        logger.log(LogLevel.Information, "HubConnected started.");
     }
 
     private NegotiateResponse handleNegotiate() throws IOException {
@@ -253,24 +222,31 @@ public class HubConnection {
      * Stops a connection to the server.
      */
     private void stop(String errorMessage) {
-        if (connectionState == HubConnectionState.DISCONNECTED) {
-            return;
-        }
+        hubConnectionStateLock.lock();
+        try {
 
-        if (errorMessage != null) {
-            logger.log(LogLevel.Error, "HubConnection disconnected with an error %s.", errorMessage);
-        } else {
-            logger.log(LogLevel.Debug, "Stopping HubConnection.");
-        }
 
-        transport.stop();
-        connectionState = HubConnectionState.DISCONNECTED;
-        logger.log(LogLevel.Information, "HubConnection stopped.");
-        if (onClosedCallbackList != null) {
-            HubException hubException = new HubException(errorMessage);
-            for (Consumer<Exception> callback : onClosedCallbackList) {
-                callback.accept(hubException);
+            if (connectionState == HubConnectionState.DISCONNECTED) {
+                return;
             }
+
+            if (errorMessage != null) {
+                logger.log(LogLevel.Error, "HubConnection disconnected with an error %s.", errorMessage);
+            } else {
+                logger.log(LogLevel.Debug, "Stopping HubConnection.");
+            }
+
+            transport.stop();
+            connectionState = HubConnectionState.DISCONNECTED;
+            logger.log(LogLevel.Information, "HubConnection stopped.");
+            if (onClosedCallbackList != null) {
+                HubException hubException = new HubException(errorMessage);
+                for (Consumer<Exception> callback : onClosedCallbackList) {
+                    callback.accept(hubException);
+                }
+            }
+        } finally {
+            hubConnectionStateLock.unlock();
         }
     }
 

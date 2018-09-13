@@ -11,6 +11,8 @@ import com.microsoft.aspnet.signalr.NullLogger;
 import com.microsoft.aspnet.signalr.Transport;
 import com.microsoft.aspnet.signalr.WebSocketTransport;
 
+import java.util.concurrent.CompletableFuture;
+
 public class WebSocketTransportTest {
 
     @Rule
@@ -21,6 +23,8 @@ public class WebSocketTransportTest {
         expectedEx.expect(Exception.class);
         expectedEx.expectMessage("There was an error starting the Websockets transport");
         Transport transport = new WebSocketTransport("www.notarealurl12345.fake", new NullLogger());
-        transport.start();
+        CompletableFuture future = transport.start();
+        future.get();
+
     }
 }

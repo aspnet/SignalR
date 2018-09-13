@@ -30,7 +30,7 @@ public class Chat {
         });
 
         //This returns a CompletableFuture.
-        hubConnection.startAsync();
+        hubConnection.start().get();
 
         String message = "";
         while (!message.equals("leave")) {

@@ -48,20 +48,7 @@ public class WebSocketTransport implements Transport {
     }
 
     @Override
-    public void start() throws Exception {
-        logger.log(LogLevel.Debug, "Starting Websocket connection.");
-        webSocketClient = createWebSocket(headers);
-
-        if (!webSocketClient.connectBlocking()) {
-            String errorMessage = "There was an error starting the Websockets transport.";
-            logger.log(LogLevel.Debug, errorMessage);
-            throw new Exception(errorMessage);
-        }
-        logger.log(LogLevel.Information, "WebSocket transport connected to: %s", webSocketClient.getURI());
-    }
-
-    @Override
-    public CompletableFuture startAsync() {
+    public CompletableFuture start() throws InterruptedException{
         return CompletableFuture.runAsync(() -> {
             webSocketClient = createWebSocket(headers);
             try {
@@ -70,16 +57,15 @@ public class WebSocketTransport implements Transport {
                 e.printStackTrace();
             }
             logger.log(LogLevel.Information, "WebSocket transport connected to: %s", webSocketClient.getURI());
+
+        }).exceptionally(e -> {
+            // How should we actually handle this?
+            return null;
         });
     }
 
     @Override
-    public void send(String message) {
-        webSocketClient.send(message);
-    }
-
-    @Override
-    public CompletableFuture sendAsync(String message) throws Exception {
+    public CompletableFuture send(String message) {
         return CompletableFuture.runAsync(() -> webSocketClient.send(message));
     }
 
@@ -95,9 +81,11 @@ public class WebSocketTransport implements Transport {
     }
 
     @Override
-    public void stop() {
-        webSocketClient.closeConnection(0, "HubConnection Stopped");
-        logger.log(LogLevel.Information, "WebSocket connection stopped");
+    public CompletableFuture stop() {
+        return CompletableFuture.runAsync(() -> {
+            webSocketClient.closeConnection(0, "HubConnection Stopped");
+            logger.log(LogLevel.Information, "WebSocket connection stopped");
+        });
     }
 
     private WebSocketClient createWebSocket(Map<String, String> headers) {

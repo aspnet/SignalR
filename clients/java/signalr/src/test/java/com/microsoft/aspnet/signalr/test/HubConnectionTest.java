@@ -709,21 +709,13 @@ public class HubConnectionTest {
         private ArrayList<String> sentMessages = new ArrayList<>();
 
         @Override
-        public void start() {}
+        public CompletableFuture start() {return CompletableFuture.completedFuture(null);}
 
         @Override
-        public CompletableFuture startAsync() throws Exception {
-            return null;
-        }
+        public CompletableFuture send(String message) {
 
-        @Override
-        public void send(String message) {
             sentMessages.add(message);
-        }
-
-        @Override
-        public CompletableFuture sendAsync(String message) throws Exception {
-            return null;
+            return CompletableFuture.completedFuture(null);
         }
 
         @Override
@@ -737,7 +729,7 @@ public class HubConnectionTest {
         }
 
         @Override
-        public void stop() {}
+        public CompletableFuture stop() {return  CompletableFuture.completedFuture(null);}
 
         public void receiveMessage(String message) throws Exception {
             this.onReceive(message);
