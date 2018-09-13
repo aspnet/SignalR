@@ -11,7 +11,7 @@ class PingMessage extends HubMessage
     {
     }
 
-    public static PingMessage getInstance(){
+    public static PingMessage getInstance() {
         if (instance == null) {
             instance = new PingMessage();
         }
