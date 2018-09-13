@@ -215,17 +215,17 @@ namespace Microsoft.AspNetCore.SignalR.Protocol
                                 completed = true;
                                 break;
                             default:
-                                throw new InvalidDataException($"Unexpected token '{reader.TokenType}' when reading handshake request JSON. {GetPayloadAsString()}");
+                                throw new InvalidDataException($"Unexpected token '{reader.TokenType}' when reading handshake request JSON. Message content: {GetPayloadAsString()}");
                         }
                     }
 
                     if (protocol == null)
                     {
-                        throw new InvalidDataException($"Missing required property '{ProtocolPropertyName}'. {GetPayloadAsString()}");
+                        throw new InvalidDataException($"Missing required property '{ProtocolPropertyName}'. Message content: {GetPayloadAsString()}");
                     }
                     if (protocolVersion == null)
                     {
-                        throw new InvalidDataException($"Missing required property '{ProtocolVersionPropertyName}'. {GetPayloadAsString()}");
+                        throw new InvalidDataException($"Missing required property '{ProtocolVersionPropertyName}'. Message content: {GetPayloadAsString()}");
                     }
 
                     requestMessage = new HandshakeRequestMessage(protocol, protocolVersion.Value);
