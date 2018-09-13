@@ -54,6 +54,7 @@ namespace Microsoft.AspNetCore.SignalR.Common.Tests.Internal.Protocol
         [InlineData("[]\u001e", "Unexpected JSON Token Type 'Array'. Expected a JSON Object.")]
         [InlineData("{\"protocol\":\"json\"}\u001e", "Missing required property 'version'. {\"protocol\":\"json\"}")]
         [InlineData("{\"version\":1}\u001e", "Missing required property 'protocol'. {\"version\":1}")]
+        [InlineData("{\"type\":4,\"invocationId\":\"42\",\"target\":\"foo\",\"arguments\":{}}\u001e", "Missing required property 'protocol'. {\"type\":4,\"invocationId\":\"42\",\"target\":\"foo\",\"arguments\":{}}")]
         [InlineData("{\"version\":\"123\"}\u001e", "Expected 'version' to be of type Integer.")]
         [InlineData("{\"protocol\":null,\"version\":123}\u001e", "Expected 'protocol' to be of type String.")]
         public void ParsingHandshakeRequestMessageThrowsForInvalidMessages(string payload, string expectedMessage)
