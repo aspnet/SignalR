@@ -31,7 +31,7 @@ class JsonHubProtocol implements HubProtocol {
 
     @Override
     public TransferFormat getTransferFormat() {
-        return TransferFormat.Text;
+        return TransferFormat.TEXT;
     }
 
     @Override
@@ -120,7 +120,7 @@ class JsonHubProtocol implements HubProtocol {
                 case CANCEL_INVOCATION:
                     throw new UnsupportedOperationException(String.format("The message type %s is not supported yet.", messageType));
                 case PING:
-                    hubMessages.add(new PingMessage());
+                    hubMessages.add(PingMessage.getInstance());
                     break;
                 case CLOSE:
                     if (error != null) {

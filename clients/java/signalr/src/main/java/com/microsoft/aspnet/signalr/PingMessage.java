@@ -3,9 +3,20 @@
 
 package com.microsoft.aspnet.signalr;
 
-class PingMessage extends HubMessage {
+class PingMessage extends HubMessage
+{
+    private static PingMessage instance;
 
-    int type = HubMessageType.PING.value;
+    private PingMessage()
+    {
+    }
+
+    public static PingMessage getInstance(){
+        if (instance == null) {
+            instance = new PingMessage();
+        }
+        return instance;
+    }
 
     @Override
     public HubMessageType getMessageType() {

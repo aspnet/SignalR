@@ -31,7 +31,7 @@ public class JsonHubProtocolTest {
 
     @Test
     public void checkTransferFormat() {
-        assertEquals(TransferFormat.Text, jsonHubProtocol.getTransferFormat());
+        assertEquals(TransferFormat.TEXT, jsonHubProtocol.getTransferFormat());
     }
 
     @Test
@@ -45,7 +45,7 @@ public class JsonHubProtocolTest {
     @Test
     public void parsePingMessage() throws Exception {
         String stringifiedMessage = "{\"type\":6}\u001E";
-        TestBinder binder = new TestBinder(new PingMessage());
+        TestBinder binder = new TestBinder(PingMessage.getInstance());
 
         HubMessage[] messages = jsonHubProtocol.parseMessages(stringifiedMessage, binder);
 
