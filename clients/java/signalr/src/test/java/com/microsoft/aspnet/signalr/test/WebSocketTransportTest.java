@@ -3,12 +3,13 @@
 
 package com.microsoft.aspnet.signalr.test;
 
-import com.microsoft.aspnet.signalr.*;
+import java.util.concurrent.CompletableFuture;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.util.concurrent.CompletableFuture;
+import com.microsoft.aspnet.signalr.*;
 
 public class WebSocketTransportTest {
 

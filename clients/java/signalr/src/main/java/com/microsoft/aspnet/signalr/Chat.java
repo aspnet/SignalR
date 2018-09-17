@@ -4,7 +4,6 @@
 package com.microsoft.aspnet.signalr;
 
 import java.util.Scanner;
-import java.util.concurrent.CompletableFuture;
 
 public class Chat {
     public static void main(String[] args) throws Exception {
