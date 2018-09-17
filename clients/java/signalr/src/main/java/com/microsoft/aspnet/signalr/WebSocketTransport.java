@@ -48,19 +48,18 @@ public class WebSocketTransport implements Transport {
     }
 
     @Override
-    public CompletableFuture start() throws InterruptedException{
+    public CompletableFuture start() {
         return CompletableFuture.runAsync(() -> {
             webSocketClient = createWebSocket(headers);
             try {
-                webSocketClient.connectBlocking();
+                if (!webSocketClient.connectBlocking()) {
+                    throw new RuntimeException("There was an error starting the Websockets transport");
+                }
+
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                throw new RuntimeException("Connecting the websocket transport was interrupted.");
             }
             logger.log(LogLevel.Information, "WebSocket transport connected to: %s", webSocketClient.getURI());
-
-        }).exceptionally(e -> {
-            // How should we actually handle this?
-            return null;
         });
     }
 

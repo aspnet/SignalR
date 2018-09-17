@@ -3,13 +3,10 @@
 
 package com.microsoft.aspnet.signalr.test;
 
+import com.microsoft.aspnet.signalr.*;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-
-import com.microsoft.aspnet.signalr.NullLogger;
-import com.microsoft.aspnet.signalr.Transport;
-import com.microsoft.aspnet.signalr.WebSocketTransport;
 
 import java.util.concurrent.CompletableFuture;
 
