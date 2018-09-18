@@ -179,40 +179,41 @@ public class HubConnection {
      * @throws Exception An error occurred while connecting.
      */
     public CompletableFuture start() throws Exception {
-        try {
-            hubConnectionStateLock.lock();
-            if (hubConnectionState != HubConnectionState.DISCONNECTED) {
-                return CompletableFuture.completedFuture(null);
+        if (hubConnectionState != HubConnectionState.DISCONNECTED) {
+            return CompletableFuture.completedFuture(null);
+        }
+        if (!skipNegotiate) {
+            int negotiateAttempts = 0;
+            do {
+                accessToken = (negotiateResponse == null) ? null : negotiateResponse.getAccessToken();
+                negotiateResponse = handleNegotiate();
+                negotiateAttempts++;
+            } while (negotiateResponse.getRedirectUrl() != null && negotiateAttempts < MAX_NEGOTIATE_ATTEMPTS);
+            if (!negotiateResponse.getAvailableTransports().contains("WebSockets")) {
+                throw new HubException("There were no compatible transports on the server.");
             }
-            if (!skipNegotiate) {
-                int negotiateAttempts = 0;
-                do {
-                    accessToken = (negotiateResponse == null) ? null : negotiateResponse.getAccessToken();
-                    negotiateResponse = handleNegotiate();
-                    negotiateAttempts++;
-                } while (negotiateResponse.getRedirectUrl() != null && negotiateAttempts < MAX_NEGOTIATE_ATTEMPTS);
-                if (!negotiateResponse.getAvailableTransports().contains("WebSockets")) {
-                    throw new HubException("There were no compatible transports on the server.");
-                }
-            }
+        }
 
-            logger.log(LogLevel.Debug, "Starting HubConnection");
-            if (transport == null) {
-                transport = new WebSocketTransport(url, logger, headers);
-            }
+        logger.log(LogLevel.Debug, "Starting HubConnection");
+        if (transport == null) {
+            transport = new WebSocketTransport(url, logger, headers);
+        }
 
-            transport.setOnReceive(this.callback);
-            return transport.start().thenCompose((future) -> {
-                String handshake = HandshakeProtocol.createHandshakeRequestMessage(new HandshakeRequestMessage(protocol.getName(), protocol.getVersion()));
-                return transport.send(handshake).thenRun(() -> {
+        transport.setOnReceive(this.callback);
+        return transport.start().thenCompose((future) -> {
+            String handshake = HandshakeProtocol.createHandshakeRequestMessage(new HandshakeRequestMessage(protocol.getName(), protocol.getVersion()));
+            return transport.send(handshake).thenRun(() -> {
+                hubConnectionStateLock.lock();
+                try {
                     hubConnectionState = HubConnectionState.CONNECTED;
                     connectionState = new ConnectionState(this);
                     logger.log(LogLevel.Information, "HubConnected started.");
-                });
+                } finally {
+                    hubConnectionStateLock.unlock();
+                }
             });
-        } finally {
-            hubConnectionStateLock.unlock();
-        }
+        });
+
     }
 
     /**
@@ -228,8 +229,9 @@ public class HubConnection {
         } else {
             logger.log(LogLevel.Debug, "Stopping HubConnection.");
         }
+
+        hubConnectionStateLock.lock();
         try {
-            hubConnectionStateLock.lock();
             transport.stop();
             hubConnectionState = HubConnectionState.DISCONNECTED;
             connectionState = null;

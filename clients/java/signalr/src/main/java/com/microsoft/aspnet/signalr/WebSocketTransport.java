@@ -54,10 +54,14 @@ class WebSocketTransport implements Transport {
             webSocketClient = createWebSocket(headers);
             try {
                 if (!webSocketClient.connectBlocking()) {
-                    throw new RuntimeException("There was an error starting the Websockets transport.");
+                    String errorMessage = "There was an error starting the Websockets transport.";
+                    logger.log(LogLevel.Debug, errorMessage);
+                    throw new RuntimeException(errorMessage);
                 }
             } catch (InterruptedException e) {
-                throw new RuntimeException("Connecting the websocket transport was interrupted.");
+                String interruptedExMessage = "Connecting the Websockets transport was interrupted.";
+                logger.log(LogLevel.Debug, interruptedExMessage);
+                throw new RuntimeException(interruptedExMessage);
             }
             logger.log(LogLevel.Information, "WebSocket transport connected to: %s", webSocketClient.getURI());
         });
