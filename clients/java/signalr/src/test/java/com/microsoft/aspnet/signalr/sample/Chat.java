@@ -1,7 +1,11 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
-package com.microsoft.aspnet.signalr;
+package com.microsoft.aspnet.signalr.sample;
+
+import com.microsoft.aspnet.signalr.HubConnection;
+import com.microsoft.aspnet.signalr.HubConnectionBuilder;
+import com.microsoft.aspnet.signalr.LogLevel;
 
 import java.util.Scanner;
 
