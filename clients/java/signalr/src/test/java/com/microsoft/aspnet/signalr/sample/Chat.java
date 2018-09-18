@@ -3,11 +3,11 @@
 
 package com.microsoft.aspnet.signalr.sample;
 
+import java.util.Scanner;
+
 import com.microsoft.aspnet.signalr.HubConnection;
 import com.microsoft.aspnet.signalr.HubConnectionBuilder;
 import com.microsoft.aspnet.signalr.LogLevel;
-
-import java.util.Scanner;
 
 public class Chat {
     public static void main(String[] args) throws Exception {
