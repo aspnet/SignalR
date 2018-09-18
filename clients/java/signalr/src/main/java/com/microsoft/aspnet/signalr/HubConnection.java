@@ -3,10 +3,14 @@
 
 package com.microsoft.aspnet.signalr;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 public class HubConnection {
@@ -18,6 +22,7 @@ public class HubConnection {
     private Boolean handshakeReceived = false;
     private static final String RECORD_SEPARATOR = "\u001e";
     private HubConnectionState hubConnectionState = HubConnectionState.DISCONNECTED;
+    private Lock hubConnectionStateLock = new ReentrantLock();
     private Logger logger;
     private List<Consumer<Exception>> onClosedCallbackList;
     private boolean skipNegotiate = false;
@@ -99,6 +104,29 @@ public class HubConnection {
         }
     }
 
+    private NegotiateResponse handleNegotiate() throws IOException {
+        accessToken = (negotiateResponse == null) ? null : negotiateResponse.getAccessToken();
+        negotiateResponse = Negotiate.processNegotiate(url, accessToken);
+
+        if (negotiateResponse.getConnectionId() != null) {
+            if (url.contains("?")) {
+                url = url + "&id=" + negotiateResponse.getConnectionId();
+            } else {
+                url = url + "?id=" + negotiateResponse.getConnectionId();
+            }
+        }
+
+        if (negotiateResponse.getAccessToken() != null) {
+            this.headers.put("Authorization", "Bearer " + negotiateResponse.getAccessToken());
+        }
+
+        if (negotiateResponse.getRedirectUrl() != null) {
+            url = this.negotiateResponse.getRedirectUrl();
+        }
+
+        return negotiateResponse;
+    }
+
     public HubConnection(String url, Transport transport, Logger logger) {
         this(url, transport, logger, false);
     }
@@ -150,51 +178,42 @@ public class HubConnection {
      *
      * @throws Exception An error occurred while connecting.
      */
-    public void start() throws Exception {
-        if (hubConnectionState != HubConnectionState.DISCONNECTED) {
-            return;
-        }
-        if (!skipNegotiate) {
-            int negotiateAttempts = 0;
-            do {
-                accessToken = (negotiateResponse == null) ? null : negotiateResponse.getAccessToken();
-                negotiateResponse = Negotiate.processNegotiate(url, accessToken);
-
-                if (negotiateResponse.getConnectionId() != null) {
-                    if (url.contains("?")) {
-                        url = url + "&id=" + negotiateResponse.getConnectionId();
-                    } else {
-                        url = url + "?id=" + negotiateResponse.getConnectionId();
-                    }
-                }
-
-                if (negotiateResponse.getAccessToken() != null) {
-                    this.headers.put("Authorization", "Bearer " + negotiateResponse.getAccessToken());
-                }
-
-                if (negotiateResponse.getRedirectUrl() != null) {
-                    url = this.negotiateResponse.getRedirectUrl();
-                }
-
-                negotiateAttempts++;
-            } while (negotiateResponse.getRedirectUrl() != null && negotiateAttempts < MAX_NEGOTIATE_ATTEMPTS);
-            if (!negotiateResponse.getAvailableTransports().contains("WebSockets")) {
-                throw new HubException("There were no compatible transports on the server.");
+    public CompletableFuture start() throws Exception {
+        try {
+            hubConnectionStateLock.lock();
+            if (hubConnectionState != HubConnectionState.DISCONNECTED) {
+                return CompletableFuture.completedFuture(null);
             }
-        }
+            if (!skipNegotiate) {
+                int negotiateAttempts = 0;
+                do {
+                    accessToken = (negotiateResponse == null) ? null : negotiateResponse.getAccessToken();
+                    negotiateResponse = handleNegotiate();
+                    negotiateAttempts++;
+                } while (negotiateResponse.getRedirectUrl() != null && negotiateAttempts < MAX_NEGOTIATE_ATTEMPTS);
+                if (!negotiateResponse.getAvailableTransports().contains("WebSockets")) {
+                    throw new HubException("There were no compatible transports on the server.");
+                }
+            }
 
-        logger.log(LogLevel.Debug, "Starting HubConnection");
-        if (transport == null) {
-            transport = new WebSocketTransport(url, logger, headers);
-        }
+            logger.log(LogLevel.Debug, "Starting HubConnection");
+            if (transport == null) {
+                transport = new WebSocketTransport(url, logger, headers);
+            }
 
-        transport.setOnReceive(this.callback);
-        transport.start();
-        String handshake = HandshakeProtocol.createHandshakeRequestMessage(new HandshakeRequestMessage(protocol.getName(), protocol.getVersion()));
-        transport.send(handshake);
-        hubConnectionState = HubConnectionState.CONNECTED;
-        connectionState = new ConnectionState(this);
-        logger.log(LogLevel.Information, "HubConnected started.");
+            transport.setOnReceive(this.callback);
+            return transport.start().thenCompose((future) -> {
+                String handshake = HandshakeProtocol.createHandshakeRequestMessage(new HandshakeRequestMessage(protocol.getName(), protocol.getVersion()));
+                CompletableFuture handshakeFuture= transport.send(handshake);
+                return handshakeFuture.thenRun(() -> {
+                    hubConnectionState = HubConnectionState.CONNECTED;
+                    connectionState = new ConnectionState(this);
+                    logger.log(LogLevel.Information, "HubConnected started.");
+                });
+            });
+        } finally {
+            hubConnectionStateLock.unlock();
+        }
     }
 
     /**
