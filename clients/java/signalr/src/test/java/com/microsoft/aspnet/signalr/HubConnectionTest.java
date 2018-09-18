@@ -60,7 +60,7 @@ public class HubConnectionTest {
         hubConnection.on("inc", action);
         hubConnection.on("inc", action);
 
-        assertEquals(Double.valueOf(0.0), value.get());
+        assertEquals(Double.valueOf(0), value.get());
 
         hubConnection.start();
 
@@ -85,7 +85,7 @@ public class HubConnectionTest {
 
         hubConnection.on("inc", action);
 
-        assertEquals(Double.valueOf(0.0), value.get());
+        assertEquals(Double.valueOf(0), value.get());
 
         hubConnection.start();
         String message = mockTransport.getSentMessages()[0];
@@ -113,7 +113,7 @@ public class HubConnectionTest {
         hubConnection.on("inc", action);
         hubConnection.remove("inc");
 
-        assertEquals(Double.valueOf(0.0), value.get());
+        assertEquals(Double.valueOf(0), value.get());
 
         hubConnection.start();
         String message = mockTransport.getSentMessages()[0];
@@ -125,7 +125,7 @@ public class HubConnectionTest {
         mockTransport.receiveMessage("{\"type\":1,\"target\":\"inc\",\"arguments\":[]}" + RECORD_SEPARATOR);
 
         // Confirming that the handler was removed.
-        assertEquals(Double.valueOf(0.0), value.get());
+        assertEquals(Double.valueOf(0), value.get());
     }
 
     @Test
@@ -139,7 +139,7 @@ public class HubConnectionTest {
         hubConnection.on("inc", action);
         hubConnection.on("inc", secondAction);
 
-        assertEquals(Double.valueOf(0.0), value.get());
+        assertEquals(Double.valueOf(0), value.get());
 
         hubConnection.start();
         String message = mockTransport.getSentMessages()[0];
@@ -169,7 +169,7 @@ public class HubConnectionTest {
 
         Subscription subscription = hubConnection.on("inc", action);
 
-        assertEquals(Double.valueOf(0.0), value.get());
+        assertEquals(Double.valueOf(0), value.get());
 
         hubConnection.start();
         String message = mockTransport.getSentMessages()[0];
@@ -202,7 +202,7 @@ public class HubConnectionTest {
 
         Subscription subscription = hubConnection.on("inc", action);
 
-        assertEquals(Double.valueOf(0.0), value.get());
+        assertEquals(Double.valueOf(0), value.get());
 
         hubConnection.start();
         String message = mockTransport.getSentMessages()[0];
@@ -238,7 +238,7 @@ public class HubConnectionTest {
         Subscription subscription = hubConnection.on("inc", action);
         Subscription secondSubscription = hubConnection.on("inc", secondAction);
 
-        assertEquals(Double.valueOf(0.0), value.get());
+        assertEquals(Double.valueOf(0), value.get());
 
         hubConnection.start();
         String message = mockTransport.getSentMessages()[0];
@@ -267,7 +267,7 @@ public class HubConnectionTest {
         Subscription sub = hubConnection.on("inc", action);
         sub.unsubscribe();
 
-        assertEquals(Double.valueOf(0.0), value.get());
+        assertEquals(Double.valueOf(0), value.get());
 
         hubConnection.start();
         mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
@@ -641,7 +641,7 @@ public class HubConnectionTest {
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport, true);
 
         hubConnection.on("inc", () ->{
-            assertEquals(Double.valueOf(0.0), value.get());
+            assertEquals(Double.valueOf(0), value.get());
             value.getAndUpdate((val) -> val + 1);
         });
 
