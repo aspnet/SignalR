@@ -121,7 +121,7 @@ public class HubConnection {
         }
 
         if (negotiateResponse.getRedirectUrl() != null) {
-            url = this.negotiateResponse.getRedirectUrl();
+            this.url = this.negotiateResponse.getRedirectUrl();
         }
 
         return negotiateResponse;
@@ -204,8 +204,7 @@ public class HubConnection {
             transport.setOnReceive(this.callback);
             return transport.start().thenCompose((future) -> {
                 String handshake = HandshakeProtocol.createHandshakeRequestMessage(new HandshakeRequestMessage(protocol.getName(), protocol.getVersion()));
-                CompletableFuture handshakeFuture= transport.send(handshake);
-                return handshakeFuture.thenRun(() -> {
+                return transport.send(handshake).thenRun(() -> {
                     hubConnectionState = HubConnectionState.CONNECTED;
                     connectionState = new ConnectionState(this);
                     logger.log(LogLevel.Information, "HubConnected started.");
@@ -229,11 +228,16 @@ public class HubConnection {
         } else {
             logger.log(LogLevel.Debug, "Stopping HubConnection.");
         }
+        try {
+            hubConnectionStateLock.lock();
+            transport.stop();
+            hubConnectionState = HubConnectionState.DISCONNECTED;
+            connectionState = null;
+            logger.log(LogLevel.Information, "HubConnection stopped.");
+        } finally {
+            hubConnectionStateLock.unlock();
+        }
 
-        transport.stop();
-        hubConnectionState = HubConnectionState.DISCONNECTED;
-        connectionState = null;
-        logger.log(LogLevel.Information, "HubConnection stopped.");
         if (onClosedCallbackList != null) {
             HubException hubException = new HubException(errorMessage);
             for (Consumer<Exception> callback : onClosedCallbackList) {

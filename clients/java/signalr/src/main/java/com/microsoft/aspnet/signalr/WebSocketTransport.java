@@ -50,6 +50,7 @@ class WebSocketTransport implements Transport {
     @Override
     public CompletableFuture start() {
         return CompletableFuture.runAsync(() -> {
+            logger.log(LogLevel.Debug, "Starting Websocket connection.");
             webSocketClient = createWebSocket(headers);
             try {
                 if (!webSocketClient.connectBlocking()) {
