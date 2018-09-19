@@ -220,18 +220,18 @@ public class HubConnection {
      * Stops a connection to the server.
      */
     private void stop(String errorMessage) {
-        if (hubConnectionState == HubConnectionState.DISCONNECTED) {
-            return;
-        }
-
-        if (errorMessage != null) {
-            logger.log(LogLevel.Error, "HubConnection disconnected with an error %s.", errorMessage);
-        } else {
-            logger.log(LogLevel.Debug, "Stopping HubConnection.");
-        }
-
         hubConnectionStateLock.lock();
         try {
+            if (hubConnectionState == HubConnectionState.DISCONNECTED) {
+                return;
+            }
+
+            if (errorMessage != null) {
+                logger.log(LogLevel.Error, "HubConnection disconnected with an error %s.", errorMessage);
+            } else {
+                logger.log(LogLevel.Debug, "Stopping HubConnection.");
+            }
+
             transport.stop();
             hubConnectionState = HubConnectionState.DISCONNECTED;
             connectionState = null;
