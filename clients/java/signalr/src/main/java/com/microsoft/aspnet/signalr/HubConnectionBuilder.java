@@ -4,17 +4,24 @@
 package com.microsoft.aspnet.signalr;
 
 public class HubConnectionBuilder {
-    private boolean built;
     private String url;
     private Transport transport;
     private Logger logger;
+    private boolean skipNegotiate;
 
     public HubConnectionBuilder withUrl(String url) {
+        if (url == null || url.isEmpty()) {
+            throw new IllegalArgumentException("A valid url is required");
+        }
+
         this.url = url;
         return this;
     }
 
     public HubConnectionBuilder withUrl(String url, Transport transport) {
+        if (url == null || url.isEmpty()) {
+            throw new IllegalArgumentException("A valid url is required");
+        }
         this.url = url;
         this.transport = transport;
         return this;
@@ -30,11 +37,15 @@ public class HubConnectionBuilder {
         return this;
     }
 
-    public HubConnection build() throws Exception {
-        if (!built) {
-            built = true;
-            return new HubConnection(url, transport, logger);
+    public HubConnectionBuilder shouldSkipNegotiate(boolean skipNegotiate) {
+        this.skipNegotiate = skipNegotiate;
+        return this;
+    }
+
+    public HubConnection build() {
+        if (this.url == null) {
+            throw new RuntimeException("The 'HubConnectionBuilder.withUrl' method must be called before building the connection.");
         }
-        throw new Exception("HubConnectionBuilder allows creation only of a single instance of HubConnection.");
+        return new HubConnection(url, transport, logger, skipNegotiate);
     }
 }

@@ -29,6 +29,18 @@ class HubConnectionTest {
     }
 
     @Test
+    public void contructHubConnectionWithHttpConnectionOptions() throws Exception {
+        Transport mockTransport = new MockTransport();
+        HttpConnectionOptions options = new HttpConnectionOptions("http://example.com", mockTransport, LogLevel.Information, true);
+        HubConnection hubConnection = new HubConnection(options);
+        hubConnection.start();
+        assertEquals(HubConnectionState.CONNECTED, hubConnection.getConnectionState());
+
+        hubConnection.stop();
+        assertEquals(HubConnectionState.DISCONNECTED, hubConnection.getConnectionState());
+    }
+
+    @Test
     public void hubConnectionClosesAfterCloseMessage() throws Exception {
         MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport, true);
@@ -841,7 +853,7 @@ class HubConnectionTest {
     @Test
     public void cannotSendBeforeStart() throws Exception {
         Transport mockTransport = new MockTransport();
-        HubConnection hubConnection = new HubConnection("http://example.com", mockTransport);
+        HubConnection hubConnection = new HubConnection("http://example.com", mockTransport, true);
         assertEquals(HubConnectionState.DISCONNECTED, hubConnection.getConnectionState());
 
         Throwable exception = assertThrows(HubException.class, () -> hubConnection.send("inc"));

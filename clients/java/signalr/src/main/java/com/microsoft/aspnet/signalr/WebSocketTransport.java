@@ -33,6 +33,10 @@ class WebSocketTransport implements Transport {
         this(url, logger, null);
     }
 
+    public WebSocketTransport(String url) throws URISyntaxException {
+        this(url, new NullLogger(), null);
+    }
+
     public URI getUrl() {
         return url;
     }
