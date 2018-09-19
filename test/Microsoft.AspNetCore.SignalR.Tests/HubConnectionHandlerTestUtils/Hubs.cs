@@ -556,10 +556,10 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             var channel = Channel.CreateBounded<int>(10);
 
-            Task.Run(() =>
+            Task.Run(async () =>
             {
                 _tcsService.StartedMethod.SetResult(null);
-                token.WaitHandle.WaitOne();
+                await token.WaitForCancellationAsync();
                 channel.Writer.TryComplete();
                 _tcsService.EndMethod.SetResult(null);
             });
@@ -571,10 +571,10 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             var channel = Channel.CreateBounded<int>(10);
 
-            Task.Run(() =>
+            Task.Run(async () =>
             {
                 _tcsService.StartedMethod.SetResult(null);
-                token.WaitHandle.WaitOne();
+                await token.WaitForCancellationAsync();
                 channel.Writer.TryComplete();
                 _tcsService.EndMethod.SetResult(null);
             });
@@ -586,10 +586,10 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         {
             var channel = Channel.CreateBounded<int>(10);
 
-            Task.Run(() =>
+            Task.Run(async () =>
             {
                 _tcsService.StartedMethod.SetResult(null);
-                token.WaitHandle.WaitOne();
+                await token.WaitForCancellationAsync();
                 channel.Writer.TryComplete();
                 _tcsService.EndMethod.SetResult(null);
             });
