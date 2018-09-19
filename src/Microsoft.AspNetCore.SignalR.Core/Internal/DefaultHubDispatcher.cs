@@ -192,8 +192,8 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                     var arguments = hubMethodInvocationMessage.Arguments;
                     if (descriptor.HasSyntheticArguments)
                     {
+                        // In order to add the synthetic arguments we need a new array because the invocation array is too small (it doesn't know about synthetic arguments)
                         arguments = new object[descriptor.OriginalParameterTypes.Count];
-                        var argumentsManager = new SyntheticArgumentsManager(connection);
 
                         var hubInvocationArgumentPointer = 0;
                         for (var parameterPointer = 0; parameterPointer < arguments.Length; parameterPointer++)
@@ -201,14 +201,17 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                             if (hubMethodInvocationMessage.Arguments.Length > hubInvocationArgumentPointer &&
                                 hubMethodInvocationMessage.Arguments[hubInvocationArgumentPointer].GetType() == descriptor.OriginalParameterTypes[parameterPointer])
                             {
+                                // The types match so it isn't a synthetic argument, just copy it into the arguments array
                                 arguments[parameterPointer] = hubMethodInvocationMessage.Arguments[hubInvocationArgumentPointer];
                                 hubInvocationArgumentPointer++;
                             }
                             else
                             {
-                                if (argumentsManager.TryGetSyntheticArgument(descriptor.OriginalParameterTypes[parameterPointer], out var argument))
+                                // This is the only synthetic argument type we currently support
+                                if (descriptor.OriginalParameterTypes[parameterPointer] == typeof(CancellationToken))
                                 {
-                                    arguments[parameterPointer] = argument;
+                                    cts = CancellationTokenSource.CreateLinkedTokenSource(connection.ConnectionAborted);
+                                    arguments[parameterPointer] = cts.Token;
                                 }
                                 else
                                 {
@@ -217,8 +220,6 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                                 }
                             }
                         }
-
-                        argumentsManager.TryGetCancellationTokenSource(out cts);
                     }
 
                     var result = await ExecuteHubMethod(methodExecutor, hub, arguments);
