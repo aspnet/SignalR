@@ -46,24 +46,28 @@ public class HubConnection {
         }
         this.skipNegotiate = skipNegotiate;
         this.callback = (payload) -> {
+            hubConnectionStateLock.lock();
+            try {
+                if (!handshakeReceived) {
+                    int handshakeLength = payload.indexOf(RECORD_SEPARATOR) + 1;
+                    String handshakeResponseString = payload.substring(0, handshakeLength - 1);
+                    HandshakeResponseMessage handshakeResponse = HandshakeProtocol.parseHandshakeResponse(handshakeResponseString);
+                    if (handshakeResponse.error != null) {
+                        String errorMessage = "Error in handshake " + handshakeResponse.error;
+                        logger.log(LogLevel.Error, errorMessage);
+                        throw new HubException(errorMessage);
+                    }
+                    handshakeReceived = true;
+                    hubConnectionState = HubConnectionState.CONNECTED;
 
-            if (!handshakeReceived) {
-                int handshakeLength = payload.indexOf(RECORD_SEPARATOR) + 1;
-                String handshakeResponseString = payload.substring(0, handshakeLength - 1);
-                HandshakeResponseMessage handshakeResponse = HandshakeProtocol.parseHandshakeResponse(handshakeResponseString);
-                if (handshakeResponse.error != null) {
-                    String errorMessage = "Error in handshake " + handshakeResponse.error;
-                    logger.log(LogLevel.Error, errorMessage);
-                    throw new HubException(errorMessage);
+                    payload = payload.substring(handshakeLength);
+                    // The payload only contained the handshake response so we can return.
+                    if (payload.length() == 0) {
+                        return;
+                    }
                 }
-                handshakeReceived = true;
-                hubConnectionState = HubConnectionState.CONNECTED;
-
-                payload = payload.substring(handshakeLength);
-                // The payload only contained the handshake response so we can return.
-                if (payload.length() == 0) {
-                    return;
-                }
+            } finally {
+                hubConnectionStateLock.unlock();
             }
 
             HubMessage[] messages = protocol.parseMessages(payload, connectionState);
