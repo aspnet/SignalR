@@ -57,6 +57,7 @@ public class HubConnection {
                     throw new HubException(errorMessage);
                 }
                 handshakeReceived = true;
+                hubConnectionState = HubConnectionState.CONNECTED;
 
                 payload = payload.substring(handshakeLength);
                 // The payload only contained the handshake response so we can return.
@@ -214,7 +215,7 @@ public class HubConnection {
             return transport.send(handshake).thenRun(() -> {
                 hubConnectionStateLock.lock();
                 try {
-                    hubConnectionState = HubConnectionState.CONNECTED;
+                    hubConnectionState = HubConnectionState.CONNECTING;
                     connectionState = new ConnectionState(this);
                     logger.log(LogLevel.Information, "HubConnected started.");
                 } finally {

@@ -19,9 +19,12 @@ class HubConnectionTest {
 
     @Test
     public void checkHubConnectionState() throws Exception {
-        Transport mockTransport = new MockTransport();
+        MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport, true);
         hubConnection.start();
+        assertEquals(HubConnectionState.CONNECTING, hubConnection.getConnectionState());
+
+        mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
         assertEquals(HubConnectionState.CONNECTED, hubConnection.getConnectionState());
 
         hubConnection.stop();
@@ -826,9 +829,12 @@ class HubConnectionTest {
 
     @Test
     public void callingStartOnStartedHubConnectionNoOps() throws Exception {
-        Transport mockTransport = new MockTransport();
+        MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport, true);
         hubConnection.start();
+        assertEquals(HubConnectionState.CONNECTING, hubConnection.getConnectionState());
+
+        mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
         assertEquals(HubConnectionState.CONNECTED, hubConnection.getConnectionState());
 
         hubConnection.start();
