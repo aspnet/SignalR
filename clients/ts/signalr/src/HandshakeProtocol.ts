@@ -26,7 +26,19 @@ export class HandshakeProtocol {
         let messageData: string;
         let remainingData: any;
 
-        if (data instanceof ArrayBuffer || (typeof Buffer !== "undefined" && data instanceof Buffer)) {
+        if (typeof data === "string") {
+            const textData: string = data;
+            const separatorIndex = textData.indexOf(TextMessageFormat.RecordSeparator);
+            if (separatorIndex === -1) {
+                throw new Error("Message is incomplete.");
+            }
+
+            // content before separator is handshake response
+            // optional content after is additional messages
+            const responseLength = separatorIndex + 1;
+            messageData = textData.substring(0, responseLength);
+            remainingData = (textData.length > responseLength) ? textData.substring(responseLength) : null;
+        } else {
             // Format is binary but still need to read JSON text from handshake response
             const binaryData = new Uint8Array(data);
             const separatorIndex = binaryData.indexOf(TextMessageFormat.RecordSeparatorCode);
@@ -39,18 +51,6 @@ export class HandshakeProtocol {
             const responseLength = separatorIndex + 1;
             messageData = String.fromCharCode.apply(null, binaryData.slice(0, responseLength));
             remainingData = (binaryData.byteLength > responseLength) ? binaryData.slice(responseLength).buffer : null;
-        } else {
-            const textData: string = data;
-            const separatorIndex = textData.indexOf(TextMessageFormat.RecordSeparator);
-            if (separatorIndex === -1) {
-                throw new Error("Message is incomplete.");
-            }
-
-            // content before separator is handshake response
-            // optional content after is additional messages
-            const responseLength = separatorIndex + 1;
-            messageData = textData.substring(0, responseLength);
-            remainingData = (textData.length > responseLength) ? textData.substring(responseLength) : null;
         }
 
         // At this point we should have just the single handshake message

@@ -31,7 +31,7 @@ export class MessagePackHubProtocol implements IHubProtocol {
      */
     public parseMessages(input: ArrayBuffer | Buffer, logger: ILogger): HubMessage[] {
         // The interface does allow "string" to be passed in, but this implementation does not. So let's throw a useful error.
-        if (!(input instanceof ArrayBuffer) && !(input instanceof Buffer)) {
+        if (typeof input === "string") {
             throw new Error("Invalid input for MessagePack hub protocol. Expected an ArrayBuffer or Buffer.");
         }
 
