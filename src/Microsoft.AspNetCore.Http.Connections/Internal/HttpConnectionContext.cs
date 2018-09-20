@@ -210,7 +210,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
 
                 Cancellation = null;
 
-                if (User != null && User.Identity.GetType() == typeof(WindowsIdentity))
+                if (User != null && User.Identity is WindowsIdentity)
                 {
                     foreach (var identity in User.Identities)
                     {

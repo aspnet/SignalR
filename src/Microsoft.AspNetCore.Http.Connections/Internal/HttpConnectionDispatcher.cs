@@ -630,8 +630,9 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
 
                     // Don't copy the identity if it's a windows identity
                     // We specifically clone the identity on first poll if it's a windows identity
-                    // There would be a race here if we swapped the new User and the application tried to access the User
-                    if (context.User.Identity.GetType() != typeof(WindowsIdentity))
+                    // If we swapped the new User here we'd have to dispose the old identities which could race with the application
+                    // trying to access the identity.
+                    if (context.User.Identity is WindowsIdentity)
                     {
                         existing.User = context.User;
                     }
@@ -654,7 +655,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
 
         private static void CloneUser(HttpContext newContext, HttpContext oldContext)
         {
-            if (oldContext.User.Identity.GetType() == typeof(WindowsIdentity))
+            if (oldContext.User.Identity is WindowsIdentity)
             {
                 newContext.User = new ClaimsPrincipal();
 
@@ -668,7 +669,6 @@ namespace Microsoft.AspNetCore.Http.Connections.Internal
                 newContext.User = oldContext.User;
             }
         }
-
 
         private static HttpContext CloneHttpContext(HttpContext context)
         {
