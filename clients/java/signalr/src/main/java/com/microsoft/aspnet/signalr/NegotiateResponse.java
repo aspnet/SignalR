@@ -15,10 +15,15 @@ class NegotiateResponse {
     private Set<String> availableTransports = new HashSet<>();
     private String redirectUrl;
     private String accessToken;
+    private String error;
     private JsonParser jsonParser = new JsonParser();
 
     public NegotiateResponse(String negotiatePayload) {
         JsonObject negotiateResponse = jsonParser.parse(negotiatePayload).getAsJsonObject();
+        if (negotiateResponse.has("error")) {
+            this.error = negotiateResponse.get("url").getAsString();
+            return;
+        }
         if (negotiateResponse.has("url")) {
             this.redirectUrl = negotiateResponse.get("url").getAsString();
             if (negotiateResponse.has("accessToken")) {
@@ -47,5 +52,9 @@ class NegotiateResponse {
 
     public String getAccessToken() {
         return accessToken;
+    }
+
+    public String getError() {
+        return error;
     }
 }
