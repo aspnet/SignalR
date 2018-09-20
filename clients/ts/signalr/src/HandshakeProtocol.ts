@@ -57,7 +57,7 @@ export class HandshakeProtocol {
         const messages = TextMessageFormat.parse(messageData);
         const response = JSON.parse(messages[0]);
         if (response.type) {
-            throw new Error("Handshake response should not have a 'type' value.");
+            throw new Error("Expected a handshake response from the server.");
         }
         responseMessage = response;
 

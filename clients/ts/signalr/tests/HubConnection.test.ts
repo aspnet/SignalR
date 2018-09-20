@@ -166,8 +166,10 @@ describe("HubConnection", () => {
                 const connection = new TestConnection(false);
                 const hubConnection = createHubConnection(connection, logger, mockProtocol);
                 try {
-                    const startPromise = hubConnection.start();
+                    let startCompleted = false;
+                    const startPromise = hubConnection.start().then(() => startCompleted = true);
                     const data = "{}" + TextMessageFormat.RecordSeparator;
+                    expect(startCompleted).toBe(false);
 
                     connection.receiveText(data);
                     await startPromise;
@@ -192,7 +194,9 @@ describe("HubConnection", () => {
                 const connection = new TestConnection(false);
                 const hubConnection = createHubConnection(connection, logger, mockProtocol);
                 try {
-                    const startPromise = hubConnection.start();
+                    let startCompleted = false;
+                    const startPromise = hubConnection.start().then(() => startCompleted = true);
+                    expect(startCompleted).toBe(false);
 
                     // handshake response + message separator
                     const data = [0x7b, 0x7d, 0x1e];
@@ -218,7 +222,10 @@ describe("HubConnection", () => {
                 const connection = new TestConnection(false);
                 const hubConnection = createHubConnection(connection, logger, mockProtocol);
                 try {
-                    const startPromise = hubConnection.start();
+                    let startCompleted = false;
+                    const startPromise = hubConnection.start().then(() => startCompleted = true);
+                    expect(startCompleted).toBe(false);
+
                     // handshake response + message separator + message pack message
                     const data = [
                         0x7b, 0x7d, 0x1e, 0x65, 0x95, 0x03, 0x80, 0xa1, 0x30, 0x01, 0xd9, 0x5d, 0x54, 0x68, 0x65, 0x20, 0x63, 0x6c,
@@ -250,7 +257,10 @@ describe("HubConnection", () => {
                 const connection = new TestConnection(false);
                 const hubConnection = createHubConnection(connection, logger, mockProtocol);
                 try {
-                    const startPromise = hubConnection.start();
+                    let startCompleted = false;
+                    const startPromise = hubConnection.start().then(() => startCompleted = true);
+                    expect(startCompleted).toBe(false);
+
                     const data = "{}" + TextMessageFormat.RecordSeparator + "{\"type\":6}" + TextMessageFormat.RecordSeparator;
 
                     connection.receiveText(data);
@@ -530,7 +540,9 @@ describe("HubConnection", () => {
                     let closeError: Error | undefined;
                     hubConnection.onclose((e) => closeError = e);
 
-                    const startPromise = hubConnection.start();
+                    let startCompleted = false;
+                    const startPromise = hubConnection.start().then(() => startCompleted = true);
+                    expect(startCompleted).toBe(false);
                     try {
                         connection.receiveHandshakeResponse("Error!");
                     } catch {
@@ -1086,14 +1098,14 @@ class TestConnection implements IConnection {
     public sentData: any[];
     public lastInvocationId: string | null;
 
-    private sendHandshake: boolean | null;
+    private autoHandshake: boolean | null;
 
-    constructor(sendHandshake: boolean | null = true) {
+    constructor(autoHandshake: boolean = true) {
         this.onreceive = null;
         this.onclose = null;
         this.sentData = [];
         this.lastInvocationId = null;
-        this.sendHandshake = sendHandshake;
+        this.autoHandshake = autoHandshake;
     }
 
     public start(): Promise<void> {
@@ -1104,7 +1116,7 @@ class TestConnection implements IConnection {
         const invocation = TextMessageFormat.parse(data)[0];
         const parsedInvocation = JSON.parse(invocation);
         const invocationId = parsedInvocation.invocationId;
-        if (parsedInvocation.protocol && parsedInvocation.version && this.sendHandshake) {
+        if (parsedInvocation.protocol && parsedInvocation.version && this.autoHandshake) {
             this.receiveHandshakeResponse();
         }
         if (invocationId) {

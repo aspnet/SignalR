@@ -339,7 +339,6 @@ export class HubConnection {
         if (!this.receivedHandshakeResponse) {
             data = this.processHandshakeResponse(data);
             this.receivedHandshakeResponse = true;
-            this.handshakeResolver();
         }
 
         // Data may have all been read when processing handshake response
@@ -414,6 +413,7 @@ export class HubConnection {
             this.logger.log(LogLevel.Debug, "Server handshake complete.");
         }
 
+        this.handshakeResolver();
         return remainingData;
     }
 
