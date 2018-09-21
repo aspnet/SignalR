@@ -407,7 +407,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                         CreateConnection(testHttpHandler, loggerFactory: noErrorScope.LoggerFactory),
                         async (connection) =>
                         {
-                            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => connection.StartAsync(TransferFormat.Text).OrTimeout());
+                            var exception = await Assert.ThrowsAsync<Exception>(() => connection.StartAsync(TransferFormat.Text).OrTimeout());
                             Assert.Equal("Negotiate failed.", exception.Message);
                         });
                 }

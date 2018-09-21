@@ -3,12 +3,12 @@
 
 package com.microsoft.aspnet.signalr;
 
+import java.io.IOException;
+import java.io.StringReader;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.stream.JsonReader;
 
 class NegotiateResponse {
     private String connectionId;
@@ -16,26 +16,61 @@ class NegotiateResponse {
     private String redirectUrl;
     private String accessToken;
     private String error;
-    private JsonParser jsonParser = new JsonParser();
 
-    public NegotiateResponse(String negotiatePayload) {
-        JsonObject negotiateResponse = jsonParser.parse(negotiatePayload).getAsJsonObject();
-        if (negotiateResponse.has("error")) {
-            this.error = negotiateResponse.get("url").getAsString();
-            return;
-        }
-        if (negotiateResponse.has("url")) {
-            this.redirectUrl = negotiateResponse.get("url").getAsString();
-            if (negotiateResponse.has("accessToken")) {
-                this.accessToken = negotiateResponse.get("accessToken").getAsString();
+    public NegotiateResponse(String negotiatePayload) throws IOException {
+        JsonReader reader = new JsonReader(new StringReader(negotiatePayload));
+        reader.beginObject();
+
+        do {
+            String name = reader.nextName();
+            switch (name) {
+                case "error":
+                    this.error = reader.nextString();
+                    break;
+                case "url":
+                    this.redirectUrl = reader.nextString();
+                    break;
+                case "accessToken":
+                    this.accessToken = reader.nextString();
+                    break;
+                case "availableTransports":
+                    reader.beginArray();
+                    while (reader.hasNext()) {
+                        reader.beginObject();
+                        while (reader.hasNext()) {
+                            String transport = null;
+                            String property = reader.nextName();
+                            switch (property) {
+                                case "transport":
+                                    transport = reader.nextString();
+                                    break;
+                                case "transferFormats":
+                                    // transfer formats aren't supported currently
+                                    reader.skipValue();
+                                    break;
+                                default:
+                                    // Skip unknown property, allows new clients to still work with old protocols
+                                    reader.skipValue();
+                                    break;
+                            }
+                            this.availableTransports.add(transport);
+                        }
+                        reader.endObject();
+                    }
+                    reader.endArray();
+                    break;
+                case "connectionId":
+                    this.connectionId = reader.nextString();
+                    break;
+                default:
+                    // Skip unknown property, allows new clients to still work with old protocols
+                    reader.skipValue();
+                    break;
             }
-            return;
-        }
-        this.connectionId = negotiateResponse.get("connectionId").getAsString();
-        JsonArray transports = (JsonArray) negotiateResponse.get("availableTransports");
-        for (int i = 0; i < transports.size(); i++) {
-            availableTransports.add(transports.get(i).getAsJsonObject().get("transport").getAsString());
-        }
+        } while (reader.hasNext());
+
+        reader.endObject();
+        reader.close();
     }
 
     public String getConnectionId() {

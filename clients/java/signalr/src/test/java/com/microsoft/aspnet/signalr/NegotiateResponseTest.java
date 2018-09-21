@@ -5,13 +5,15 @@ package com.microsoft.aspnet.signalr;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.io.IOException;
+
 import org.junit.jupiter.api.Test;
 
 
 class NegotiateResponseTest {
 
     @Test
-    public void VerifyNegotiateResponse() {
+    public void VerifyNegotiateResponse() throws IOException {
         String stringNegotiateResponse = "{\"connectionId\":\"bVOiRPG8-6YiJ6d7ZcTOVQ\",\"" +
                 "availableTransports\":[{\"transport\":\"WebSockets\",\"transferFormats\":[\"Text\",\"Binary\"]}," +
                 "{\"transport\":\"ServerSentEvents\",\"transferFormats\":[\"Text\"]}," +
@@ -26,7 +28,7 @@ class NegotiateResponseTest {
     }
 
     @Test
-    public void VerifyRedirectNegotiateResponse() {
+    public void VerifyRedirectNegotiateResponse() throws IOException {
         String stringNegotiateResponse = "{\"url\":\"www.example.com\"," +
                 "\"accessToken\":\"some_access_token\"," +
                 "\"availableTransports\":[]}";
