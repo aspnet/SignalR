@@ -22,7 +22,7 @@ class HubConnectionTest {
         MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport, true);
         hubConnection.start();
-        assertEquals(HubConnectionState.CONNECTING, hubConnection.getConnectionState());
+        assertEquals(HubConnectionState.DISCONNECTED, hubConnection.getConnectionState());
 
         mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
         assertEquals(HubConnectionState.CONNECTED, hubConnection.getConnectionState());
@@ -770,9 +770,11 @@ class HubConnectionTest {
     @Test
     public void onClosedCallbackRunsWhenStopIsCalled() throws Exception {
         AtomicReference<String> value1 = new AtomicReference<>();
-        Transport mockTransport = new MockTransport();
+        MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport, true);
         hubConnection.start();
+        mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
+
         hubConnection.onClosed((ex) -> {
             assertNull(value1.get());
             value1.set("Closed callback ran.");
@@ -787,9 +789,11 @@ class HubConnectionTest {
     public void multipleOnClosedCallbacksRunWhenStopIsCalled() throws Exception {
         AtomicReference<String> value1 = new AtomicReference<>();
         AtomicReference<String> value2 = new AtomicReference<>();
-        Transport mockTransport = new MockTransport();
+        MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport, true);
         hubConnection.start();
+        mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
+
 
         hubConnection.onClosed((ex) -> {
             assertNull(value1.get());
@@ -832,8 +836,6 @@ class HubConnectionTest {
         MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport, true);
         hubConnection.start();
-        assertEquals(HubConnectionState.CONNECTING, hubConnection.getConnectionState());
-
         mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
         assertEquals(HubConnectionState.CONNECTED, hubConnection.getConnectionState());
 

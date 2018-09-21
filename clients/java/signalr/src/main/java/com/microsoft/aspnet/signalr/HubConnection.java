@@ -31,6 +31,7 @@ public class HubConnection {
     private String accessToken;
     private Map<String, String> headers = new HashMap<>();
     private ConnectionState connectionState = null;
+    private CompletableFuture handshakeResposeFuture = new CompletableFuture();
 
     private static ArrayList<Class<?>> emptyArray = new ArrayList<>();
     private static int MAX_NEGOTIATE_ATTEMPTS = 100;
@@ -58,7 +59,7 @@ public class HubConnection {
                         throw new HubException(errorMessage);
                     }
                     handshakeReceived = true;
-                    hubConnectionState = HubConnectionState.CONNECTED;
+                    handshakeResposeFuture.complete(null);
 
                     payload = payload.substring(handshakeLength);
                     // The payload only contained the handshake response so we can return.
@@ -214,20 +215,19 @@ public class HubConnection {
         }
 
         transport.setOnReceive(this.callback);
-        return transport.start().thenCompose((future) -> {
+        return CompletableFuture.allOf(handshakeResposeFuture, transport.start().thenCompose((future) -> {
             String handshake = HandshakeProtocol.createHandshakeRequestMessage(new HandshakeRequestMessage(protocol.getName(), protocol.getVersion()));
-            return transport.send(handshake).thenRun(() -> {
-                hubConnectionStateLock.lock();
-                try {
-                    hubConnectionState = HubConnectionState.CONNECTING;
-                    connectionState = new ConnectionState(this);
-                    logger.log(LogLevel.Information, "HubConnected started.");
-                } finally {
-                    hubConnectionStateLock.unlock();
-                }
-            });
+            return transport.send(handshake);
+        })).thenRun(() -> {
+            hubConnectionStateLock.lock();
+            try {
+                hubConnectionState = HubConnectionState.CONNECTED;
+                connectionState = new ConnectionState(this);
+                logger.log(LogLevel.Information, "HubConnected started.");
+            } finally {
+                hubConnectionStateLock.unlock();
+            }
         });
-
     }
 
     /**

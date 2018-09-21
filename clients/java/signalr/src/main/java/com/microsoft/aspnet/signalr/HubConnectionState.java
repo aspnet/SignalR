@@ -5,6 +5,5 @@ package com.microsoft.aspnet.signalr;
 
 public enum HubConnectionState {
     CONNECTED,
-    CONNECTING,
     DISCONNECTED,
 }
