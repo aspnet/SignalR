@@ -6,6 +6,6 @@
 export function isArrayBuffer(val: any): val is ArrayBuffer {
     return val && typeof ArrayBuffer !== "undefined" &&
         (val instanceof ArrayBuffer ||
-        // Sometimes we get an ArrayBuffer that comes from a polyfill
+        // Sometimes we get an ArrayBuffer that doesn't satisfy instanceof
         (val.constructor && val.constructor.name === "ArrayBuffer"));
 }
