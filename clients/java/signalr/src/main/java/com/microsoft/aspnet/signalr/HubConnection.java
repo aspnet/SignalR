@@ -145,21 +145,6 @@ public class HubConnection {
         this(options.getUrl(), options.getTransport(), new ConsoleLogger(options.getLoglevel()), options.getSkipNegotiate());
     }
 
-    HubConnection(String url, Transport transport, boolean skipNegotiate) {
-        this(url, transport, new NullLogger(), skipNegotiate);
-    }
-
-
-    /**
-     * Initializes a new instance of the {@link HubConnection} class.
-     *
-     * @param url The url of the SignalR server to connect to.
-     */
-    public HubConnection(String url) {
-        this(url, null, new NullLogger(), false);
-    }
-
-
     /**
      * Indicates the state of the {@link HubConnection} to the server.
      *

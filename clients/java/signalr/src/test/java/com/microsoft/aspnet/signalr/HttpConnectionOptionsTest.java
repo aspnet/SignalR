@@ -11,7 +11,7 @@ import java.util.concurrent.CompletableFuture;
 
 import org.junit.jupiter.api.Test;
 
-public class HttpConnectionOptionsTest {
+class HttpConnectionOptionsTest {
     @Test
     public void contructHubConnectionWithHttpConnectionOptions() {
         Transport mockTransport = new MockTransport();

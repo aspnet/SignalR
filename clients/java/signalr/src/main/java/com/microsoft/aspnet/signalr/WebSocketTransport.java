@@ -29,14 +29,6 @@ class WebSocketTransport implements Transport {
         this.headers = headers;
     }
 
-    public WebSocketTransport(String url, Logger logger) throws URISyntaxException {
-        this(url, logger, null);
-    }
-
-    public WebSocketTransport(String url) throws URISyntaxException {
-        this(url, new NullLogger(), null);
-    }
-
     public URI getUrl() {
         return url;
     }
