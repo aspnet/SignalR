@@ -14,10 +14,10 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 class DefaultHttpClient extends HttpClient {
+    private OkHttpClient client = new OkHttpClient();
 
     @Override
     public CompletableFuture<HttpResponse> send(HttpRequest httpRequest) {
-		OkHttpClient client = new OkHttpClient();
         RequestBody body = RequestBody.create(null, new byte[] {});
         Request.Builder requestBuilder = new Request.Builder().url(httpRequest.url);
         if (httpRequest.method == "GET") {

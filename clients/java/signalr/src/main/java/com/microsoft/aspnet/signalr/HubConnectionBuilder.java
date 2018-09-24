@@ -8,6 +8,7 @@ public class HubConnectionBuilder {
     private Transport transport;
     private Logger logger;
     private boolean skipNegotiate;
+    private HttpClient client;
 
     public HubConnectionBuilder withUrl(String url) {
         if (url == null || url.isEmpty()) {
@@ -46,6 +47,12 @@ public class HubConnectionBuilder {
 
     public HubConnectionBuilder configureLogging(Logger logger) {
         this.logger = logger;
+        return this;
+    }
+
+    // For testing purposes only
+    HubConnectionBuilder configureHttpClient(HttpClient client) {
+        this.client = client;
         return this;
     }
 

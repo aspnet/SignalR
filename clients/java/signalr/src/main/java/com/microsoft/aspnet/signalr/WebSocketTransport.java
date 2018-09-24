@@ -54,7 +54,7 @@ class WebSocketTransport implements Transport {
     }
 
     @Override
-    public CompletableFuture start() {
+    public CompletableFuture<Void> start() {
             logger.log(LogLevel.Debug, "Starting Websocket connection.");
             webSocketListener = new SignalRWebSocketListener();
             websocketClient = createUpdatedWebSocket(webSocketListener);
@@ -62,7 +62,7 @@ class WebSocketTransport implements Transport {
     }
 
     @Override
-    public CompletableFuture send(String message) {
+    public CompletableFuture<Void> send(String message) {
         return CompletableFuture.runAsync(() -> websocketClient.send(message));
     }
 
@@ -78,7 +78,7 @@ class WebSocketTransport implements Transport {
     }
 
     @Override
-    public CompletableFuture stop() {
+    public CompletableFuture<Void> stop() {
         return CompletableFuture.runAsync(() -> {
             websocketClient.close(1000, "HubConnection stopped.");
             logger.log(LogLevel.Information, "WebSocket connection stopped");

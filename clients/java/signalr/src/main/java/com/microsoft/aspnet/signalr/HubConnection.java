@@ -4,7 +4,11 @@
 package com.microsoft.aspnet.signalr;
 
 import java.io.IOException;
-import java.util.*;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -33,12 +37,16 @@ public class HubConnection {
     private String accessToken;
     private Map<String, String> headers = new HashMap<>();
     private ConnectionState connectionState = null;
-    private OkHttpClient httpClient;
+    private HttpClient httpClient;
 
     private static ArrayList<Class<?>> emptyArray = new ArrayList<>();
     private static int MAX_NEGOTIATE_ATTEMPTS = 100;
 
-    public HubConnection(String url, Transport transport, Logger logger, boolean skipNegotiate) {
+    public HubConnection(String url, Transport transport, boolean skipNegotiate) {
+        this(url, transport, new NullLogger(), skipNegotiate, new DefaultHttpClient());
+    }
+
+    public HubConnection(String url, Transport transport, Logger logger, boolean skipNegotiate, HttpClient client) {
         if (url == null || url.isEmpty()) {
             throw new IllegalArgumentException("A valid url is required.");
         }
@@ -50,6 +58,10 @@ public class HubConnection {
             this.logger = logger;
         } else {
             this.logger = new NullLogger();
+        }
+        this.httpClient = client;
+        if (client == null) {
+            this.httpClient = new DefaultHttpClient();
         }
 
         if (transport != null) {
@@ -175,7 +187,6 @@ public class HubConnection {
     }
 
     private CompletableFuture<NegotiateResponse> handleNegotiate() throws IOException, InterruptedException, ExecutionException {
-        HttpClient httpClient = new DefaultHttpClient();
         HttpRequest request = new HttpRequest();
         request.headers = this.headers;
 
@@ -220,44 +231,82 @@ public class HubConnection {
      *
      * @throws Exception An error occurred while connecting.
      */
-    public CompletableFuture start() throws Exception {
+    public CompletableFuture<Void> start() throws Exception {
         if (hubConnectionState != HubConnectionState.DISCONNECTED) {
             return CompletableFuture.completedFuture(null);
         }
+
+        CompletableFuture<NegotiateResponse> negotiate = null;
         if (!skipNegotiate) {
-            NegotiateResponse negotiateResponse = null;
-            int negotiateAttempts = 0;
-            do {
-                accessToken = (negotiateResponse == null) ? accessToken : negotiateResponse.getAccessToken();
-                this.headers.put("Authorization", "Bearer " + accessToken);
-                negotiateResponse = handleNegotiate().get();
-                negotiateAttempts++;
-            } while (negotiateResponse.getRedirectUrl() != null && negotiateAttempts < MAX_NEGOTIATE_ATTEMPTS);
-            if (!negotiateResponse.getAvailableTransports().contains("WebSockets")) {
-                throw new HubException("There were no compatible transports on the server.");
+            negotiate = startNegotiate(0);
+        } else {
+            negotiate = CompletableFuture.completedFuture(null);
+        }
+
+        return negotiate.thenCompose((response) -> {
+            if (response == null && !skipNegotiate) {
+                return CompletableFuture.completedFuture(null);
             }
-        }
 
-        logger.log(LogLevel.Debug, "Starting HubConnection");
-        if (transport == null) {
-            transport = new WebSocketTransport(url, logger, headers, httpClient);
-        }
-
-        transport.setOnReceive(this.callback);
-        return transport.start().thenCompose((future) -> {
-            String handshake = HandshakeProtocol.createHandshakeRequestMessage(new HandshakeRequestMessage(protocol.getName(), protocol.getVersion()));
-            return transport.send(handshake).thenRun(() -> {
-                hubConnectionStateLock.lock();
-                try {
-                    hubConnectionState = HubConnectionState.CONNECTED;
-                    connectionState = new ConnectionState(this);
-                    logger.log(LogLevel.Information, "HubConnected started.");
-                } finally {
-                    hubConnectionStateLock.unlock();
+            logger.log(LogLevel.Debug, "Starting HubConnection");
+            if (transport == null) {
+                    try {
+                        transport = new WebSocketTransport(url, logger, headers);
+                    } catch (URISyntaxException e) {
+                        throw new RuntimeException(e);
                 }
-            });
-        });
+            }
 
+            transport.setOnReceive(this.callback);
+
+            try {
+                return transport.start().thenCompose((future) -> {
+                    String handshake = HandshakeProtocol.createHandshakeRequestMessage(
+                            new HandshakeRequestMessage(protocol.getName(), protocol.getVersion()));
+                    return transport.send(handshake).thenRun(() -> {
+                        hubConnectionStateLock.lock();
+                        try {
+                            hubConnectionState = HubConnectionState.CONNECTED;
+                            connectionState = new ConnectionState(this);
+                            logger.log(LogLevel.Information, "HubConnection started.");
+                        } finally {
+                            hubConnectionStateLock.unlock();
+                        }
+                    });
+                });
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    private CompletableFuture<NegotiateResponse> startNegotiate(int negotiateAttempts) throws IOException, InterruptedException, ExecutionException {
+        if (hubConnectionState != HubConnectionState.DISCONNECTED) {
+            return CompletableFuture.completedFuture(null);
+        }
+
+        return handleNegotiate().thenCompose((response) -> {
+            if (response.getRedirectUrl() != null && negotiateAttempts >= MAX_NEGOTIATE_ATTEMPTS) {
+                throw new RuntimeException("todo");
+            }
+
+            if (response.getRedirectUrl() == null) {
+                if (!response.getAvailableTransports().contains("WebSockets")) {
+                    try {
+                        throw new HubException("There were no compatible transports on the server.");
+                    } catch (HubException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                return CompletableFuture.completedFuture(response);
+            }
+
+            try {
+                return startNegotiate(negotiateAttempts + 1);
+            } catch (IOException | InterruptedException | ExecutionException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     /**

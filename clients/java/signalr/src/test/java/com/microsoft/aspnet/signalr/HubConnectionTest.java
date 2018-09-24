@@ -5,6 +5,7 @@ package com.microsoft.aspnet.signalr;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -876,5 +877,24 @@ class HubConnectionTest {
         startFuture.get(1000, TimeUnit.MILLISECONDS);
         RuntimeException exception = assertThrows(RuntimeException.class, () -> mockTransport.receiveMessage("{\"type\":1,\"target\":\"Send\",\"arguments\":[]}" + RECORD_SEPARATOR));
         assertEquals("Invocation provides 0 argument(s) but target expects 1.", exception.getMessage());
+    }
+
+    @Test
+    public void negotiateSentOnStart() throws Exception {
+        TestHttpClient client = new TestHttpClient()
+        .on("POST", (req) -> CompletableFuture.completedFuture(new HttpResponse(404, "", "")));
+
+        HubConnection hubConnection = new HubConnectionBuilder()
+            .withUrl("http://example.com")
+            .configureHttpClient(client)
+            .build();
+
+        try {
+            hubConnection.start().get();
+        } catch(Exception ex) {}
+
+        List<HttpRequest> sentRequests = client.getSentRequests();
+        assertEquals(1, sentRequests.size());
+        assertEquals("http://example.com/negotiate", sentRequests.get(0).url);
     }
 }
