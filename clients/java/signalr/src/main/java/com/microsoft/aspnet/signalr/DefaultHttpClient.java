@@ -40,7 +40,7 @@ class DefaultHttpClient extends HttpClient {
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-
+                // TODO: Look at response.body().string() what if it's binary data?
                 HttpResponse httpResponse = new HttpResponse(response.code(), response.message(), response.body().string());
                 responseFuture.complete(httpResponse);
             }
@@ -48,6 +48,5 @@ class DefaultHttpClient extends HttpClient {
         });
 
         return responseFuture;
-	}
-
+    }
 }
