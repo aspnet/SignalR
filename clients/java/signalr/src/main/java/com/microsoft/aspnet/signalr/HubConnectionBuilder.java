@@ -30,7 +30,9 @@ public class HubConnectionBuilder {
     public HubConnectionBuilder withUrl(String url, HttpConnectionOptions options) {
         this.url = url;
         this.transport =  options.getTransport();
-        this.logger =  new ConsoleLogger(options.getLoglevel());
+        if(options.getLoglevel() != null) {
+            this.logger =  new ConsoleLogger(options.getLoglevel());
+        }
         this.skipNegotiate = options.getSkipNegotiate();
         return this;
     }

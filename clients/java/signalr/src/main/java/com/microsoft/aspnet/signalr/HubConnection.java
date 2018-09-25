@@ -37,7 +37,7 @@ public class HubConnection {
 
     public HubConnection(String url, Transport transport, Logger logger, boolean skipNegotiate) {
         if (url == null || url.isEmpty()) {
-            throw new IllegalArgumentException("A valid url is required");
+            throw new IllegalArgumentException("A valid url is required.");
         }
 
         this.url = url;
@@ -139,10 +139,6 @@ public class HubConnection {
         }
 
         return negotiateResponse;
-    }
-
-    public HubConnection(HttpConnectionOptions options) {
-        this(options.getUrl(), options.getTransport(), new ConsoleLogger(options.getLoglevel()), options.getSkipNegotiate());
     }
 
     /**

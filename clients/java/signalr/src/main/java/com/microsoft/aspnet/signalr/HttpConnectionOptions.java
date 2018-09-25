@@ -9,6 +9,8 @@ public class HttpConnectionOptions {
     private LogLevel loglevel;
     private boolean skipNegotiate;
 
+    public HttpConnectionOptions() {}
+
     public HttpConnectionOptions(String url, Transport transport, LogLevel logLevel, boolean skipNegotiate) {
         this.url = url;
         this.transport = transport;

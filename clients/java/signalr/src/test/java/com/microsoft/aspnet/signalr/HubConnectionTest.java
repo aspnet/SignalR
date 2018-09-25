@@ -29,10 +29,13 @@ class HubConnectionTest {
     }
 
     @Test
-    public void contructHubConnectionWithHttpConnectionOptions() throws Exception {
+    public void constructHubConnectionWithHttpConnectionOptions() throws Exception {
         Transport mockTransport = new MockTransport();
-        HttpConnectionOptions options = new HttpConnectionOptions("http://example.com", mockTransport, LogLevel.Information, true);
-        HubConnection hubConnection = new HubConnection(options);
+        HttpConnectionOptions options = new HttpConnectionOptions();
+        options.setTransport(mockTransport);
+        options.setLoglevel(LogLevel.Information);
+        options.setSkipNegotiate(true);
+        HubConnection hubConnection = new HubConnectionBuilder().withUrl("http://www.example.com", options).build();
         hubConnection.start();
         assertEquals(HubConnectionState.CONNECTED, hubConnection.getConnectionState());
 
@@ -326,7 +329,7 @@ class HubConnectionTest {
         mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
 
         CompletableFuture<Integer> result = hubConnection.invoke(Integer.class, "echo", "message");
-        assertEquals("{\"type\":1,\"invocationId\":\"1\",\"target\":\"echo\",\"arguments\":[\"message\"]}" + RECORD_SEPARATOR, mockTransport.sentMessages.get(1));
+        assertEquals("{\"type\":1,\"invocationId\":\"1\",\"target\":\"echo\",\"arguments\":[\"message\"]}" + RECORD_SEPARATOR, mockTransport.getSentMessages()[1]);
         assertFalse(result.isDone());
 
         mockTransport.receiveMessage("{\"type\":3,\"invocationId\":\"1\",\"result\":42}" + RECORD_SEPARATOR);
@@ -344,8 +347,8 @@ class HubConnectionTest {
 
         CompletableFuture<Integer> result = hubConnection.invoke(Integer.class, "echo", "message");
         CompletableFuture<String> result2 = hubConnection.invoke(String.class, "echo", "message");
-        assertEquals("{\"type\":1,\"invocationId\":\"1\",\"target\":\"echo\",\"arguments\":[\"message\"]}" + RECORD_SEPARATOR, mockTransport.sentMessages.get(1));
-        assertEquals("{\"type\":1,\"invocationId\":\"2\",\"target\":\"echo\",\"arguments\":[\"message\"]}" + RECORD_SEPARATOR, mockTransport.sentMessages.get(2));
+        assertEquals("{\"type\":1,\"invocationId\":\"1\",\"target\":\"echo\",\"arguments\":[\"message\"]}" + RECORD_SEPARATOR, mockTransport.getSentMessages()[1]);
+        assertEquals("{\"type\":1,\"invocationId\":\"2\",\"target\":\"echo\",\"arguments\":[\"message\"]}" + RECORD_SEPARATOR, mockTransport.getSentMessages()[2]);
         assertFalse(result.isDone());
         assertFalse(result2.isDone());
 
@@ -858,44 +861,5 @@ class HubConnectionTest {
 
         Throwable exception = assertThrows(HubException.class, () -> hubConnection.send("inc"));
         assertEquals("The 'send' method cannot be called if the connection is not active", exception.getMessage());
-    }
-
-    private class MockTransport implements Transport {
-        private OnReceiveCallBack onReceiveCallBack;
-        private ArrayList<String> sentMessages = new ArrayList<>();
-
-        @Override
-        public CompletableFuture start() {
-            return CompletableFuture.completedFuture(null);
-        }
-
-        @Override
-        public CompletableFuture send(String message) {
-            sentMessages.add(message);
-            return CompletableFuture.completedFuture(null);
-        }
-
-        @Override
-        public void setOnReceive(OnReceiveCallBack callback) {
-            this.onReceiveCallBack = callback;
-        }
-
-        @Override
-        public void onReceive(String message) throws Exception {
-            this.onReceiveCallBack.invoke(message);
-        }
-
-        @Override
-        public CompletableFuture stop() {
-            return CompletableFuture.completedFuture(null);
-        }
-
-        public void receiveMessage(String message) throws Exception {
-            this.onReceive(message);
-        }
-
-        public String[] getSentMessages() {
-            return sentMessages.toArray(new String[sentMessages.size()]);
-        }
     }
 }

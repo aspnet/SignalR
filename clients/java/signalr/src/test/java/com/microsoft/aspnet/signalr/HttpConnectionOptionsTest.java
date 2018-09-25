@@ -21,27 +21,4 @@ class HttpConnectionOptionsTest {
         assertTrue(options.getSkipNegotiate());
         assertNotNull(options.getTransport());
     }
-
-    private class MockTransport implements Transport {
-        @Override
-        public CompletableFuture start() {
-            return CompletableFuture.completedFuture(null);
-        }
-
-        @Override
-        public CompletableFuture send(String message) {
-            return CompletableFuture.completedFuture(null);
-        }
-
-        @Override
-        public void setOnReceive(OnReceiveCallBack callback) {}
-
-        @Override
-        public void onReceive(String message) throws Exception {}
-
-        @Override
-        public CompletableFuture stop() {
-            return CompletableFuture.completedFuture(null);
-        }
-    }
 }
