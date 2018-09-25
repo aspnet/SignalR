@@ -148,7 +148,7 @@ class JsonHubProtocol implements HubProtocol {
         }
 
         ArrayList<Object> arguments = null;
-        if (paramTypes != null && paramTypes.size() >= 1) {
+        if (paramTypes.size() >= 1) {
             arguments = new ArrayList<>();
             for (int i = 0; i < paramTypes.size(); i++) {
                 arguments.add(gson.fromJson(argumentsToken.get(i), paramTypes.get(i)));
@@ -169,7 +169,7 @@ class JsonHubProtocol implements HubProtocol {
             } else {
                 reader.skipValue();
             }
-            ++argCount;
+            argCount++;
         }
 
         if (paramCount != argCount) {
