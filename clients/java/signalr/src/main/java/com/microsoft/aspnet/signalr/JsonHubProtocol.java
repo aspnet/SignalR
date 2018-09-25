@@ -163,15 +163,17 @@ class JsonHubProtocol implements HubProtocol {
         int paramCount = paramTypes.size();
         int argCount = 0;
         ArrayList<Object> arguments = new ArrayList<>();
-        while (reader.hasNext()) {
-            if (reader.peek() == JsonToken.END_ARRAY) {
-                if (paramCount != argCount) {
-                    throw new RuntimeException(String.format("Invocation provides %d argument(s) but target expects %d.", argCount, paramCount));
-                }
+        while (reader.peek() != JsonToken.END_ARRAY) {
+            if (argCount < paramCount) {
+                arguments.add(gson.fromJson(reader, paramTypes.get(argCount)));
+            } else {
+                reader.skipValue();
             }
-
-            arguments.add(gson.fromJson(reader, paramTypes.get(argCount)));
             ++argCount;
+        }
+
+        if (paramCount != argCount) {
+            throw new RuntimeException(String.format("Invocation provides %d argument(s) but target expects %d.", argCount, paramCount));
         }
 
         reader.endArray();
