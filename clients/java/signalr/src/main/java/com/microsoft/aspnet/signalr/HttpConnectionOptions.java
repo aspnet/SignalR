@@ -7,6 +7,8 @@ public class HttpConnectionOptions {
     private String url;
     private Transport transport;
     private LogLevel loglevel;
+
+    private Logger logger;
     private boolean skipNegotiate;
 
     public HttpConnectionOptions() {}
@@ -18,6 +20,12 @@ public class HttpConnectionOptions {
         this.loglevel = logLevel;
     }
 
+    public HttpConnectionOptions(String url, Transport transport, Logger logger, boolean skipNegotiate) {
+        this.url = url;
+        this.transport = transport;
+        this.skipNegotiate = skipNegotiate;
+        this.logger = logger;
+    }
     public void setUrl(String url) {
         this.url = url;
     }
@@ -48,5 +56,13 @@ public class HttpConnectionOptions {
 
     public boolean getSkipNegotiate() {
         return skipNegotiate;
+    }
+
+    public Logger getLogger() {
+        return logger;
+    }
+
+    public void setLogger(Logger logger) {
+        this.logger = logger;
     }
 }

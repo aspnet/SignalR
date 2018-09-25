@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 
 class HttpConnectionOptionsTest {
     @Test
-    public void contructHubConnectionWithHttpConnectionOptions() {
+    public void CheckHttpConnectionOptionsFields() {
         Transport mockTransport = new MockTransport();
         HttpConnectionOptions options = new HttpConnectionOptions("http://example.com", mockTransport, LogLevel.Information, true);
         assertEquals("http://example.com",options.getUrl());
