@@ -12,20 +12,21 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 
 class DefaultHttpClient extends HttpClient {
     private OkHttpClient client = new OkHttpClient();
 
     @Override
     public CompletableFuture<HttpResponse> send(HttpRequest httpRequest) {
-        RequestBody body = RequestBody.create(null, new byte[] {});
         Request.Builder requestBuilder = new Request.Builder().url(httpRequest.url);
         if (httpRequest.method == "GET") {
             requestBuilder.get();
         } else if (httpRequest.method == "POST") {
+            RequestBody body = RequestBody.create(null, new byte[] {});
             requestBuilder.post(body);
         } else if (httpRequest.method == "DELETE") {
-            requestBuilder.delete(body);
+            requestBuilder.delete();
         }
 
         Request request = requestBuilder.build();
@@ -40,9 +41,10 @@ class DefaultHttpClient extends HttpClient {
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-                // TODO: Look at response.body().string() what if it's binary data?
-                HttpResponse httpResponse = new HttpResponse(response.code(), response.message(), response.body().string());
-                responseFuture.complete(httpResponse);
+                try (ResponseBody body = response.body()) {
+                    HttpResponse httpResponse = new HttpResponse(response.code(), response.message(), body.string());
+                    responseFuture.complete(httpResponse);
+                }
             }
 
         });

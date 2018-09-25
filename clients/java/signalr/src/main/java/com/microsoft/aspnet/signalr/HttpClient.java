@@ -12,28 +12,21 @@ class HttpRequest {
 
     String url;
 
-    Class<?> content;
+    //byte[] | String content;
 
     Map<String, String> headers = new HashMap<>();
 
-    /** The XMLHttpRequestResponseType to apply to the request. */
-    //responseType?:XMLHttpRequestResponseType;
+    //responseType?:??;
 
-    /** An AbortSignal that can be monitored for cancellation. */
     //abortSignal?:AbortSignal;
 
-    /**
-     * The time to wait for the request to complete before throwing a TimeoutError.
-     * Measured in milliseconds.
-     */
     //timeout?:number;
 }
 
 class HttpResponse {
     private Integer statusCode;
     private String statusText;
-    private String stringContent = null;
-    private Byte[] byteContent = null;
+    private String content = null;
 
     public HttpResponse(Integer statusCode) {
         this.statusCode = statusCode;
@@ -47,17 +40,11 @@ class HttpResponse {
     public HttpResponse(Integer statusCode, String statusText, String content) {
         this.statusCode = statusCode;
         this.statusText = statusText;
-        this.stringContent = content;
-    }
-
-    public HttpResponse(Integer statusCode, String statusText, Byte[] content) {
-        this.statusCode = statusCode;
-        this.statusText = statusText;
-        this.byteContent = content;
+        this.content = content;
     }
 
     public String getContent() {
-        return stringContent;
+        return content;
     }
 }
 
