@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -31,6 +31,7 @@ public class HubConnection {
     private String accessToken;
     private Map<String, String> headers = new HashMap<>();
     private ConnectionState connectionState = null;
+    private CompletableFuture handshakeResposeFuture = new CompletableFuture();
 
     private static ArrayList<Class<?>> emptyArray = new ArrayList<>();
     private static int MAX_NEGOTIATE_ATTEMPTS = 100;
@@ -46,7 +47,6 @@ public class HubConnection {
         }
         this.skipNegotiate = skipNegotiate;
         this.callback = (payload) -> {
-
             if (!handshakeReceived) {
                 int handshakeLength = payload.indexOf(RECORD_SEPARATOR) + 1;
                 String handshakeResponseString = payload.substring(0, handshakeLength - 1);
@@ -57,6 +57,7 @@ public class HubConnection {
                     throw new HubException(errorMessage);
                 }
                 handshakeReceived = true;
+                handshakeResposeFuture.complete(null);
 
                 payload = payload.substring(handshakeLength);
                 // The payload only contained the handshake response so we can return.
@@ -209,20 +210,27 @@ public class HubConnection {
         }
 
         transport.setOnReceive(this.callback);
-        return transport.start().thenCompose((future) -> {
+        return CompletableFuture.allOf(handshakeResposeFuture, transport.start().thenCompose((future) -> {
             String handshake = HandshakeProtocol.createHandshakeRequestMessage(new HandshakeRequestMessage(protocol.getName(), protocol.getVersion()));
-            return transport.send(handshake).thenRun(() -> {
-                hubConnectionStateLock.lock();
-                try {
-                    hubConnectionState = HubConnectionState.CONNECTED;
-                    connectionState = new ConnectionState(this);
-                    logger.log(LogLevel.Information, "HubConnected started.");
-                } finally {
-                    hubConnectionStateLock.unlock();
-                }
-            });
-        });
+            return transport.send(handshake);
+        })).thenRun(() -> {
+            hubConnectionStateLock.lock();
+            try {
+                hubConnectionState = HubConnectionState.CONNECTED;
+                connectionState = new ConnectionState(this);
+                logger.log(LogLevel.Information, "HubConnected started.");
+            } finally {
+                hubConnectionStateLock.unlock();
+            }
+        }).acceptEither(timeoutAfter(5, TimeUnit.SECONDS), startFuture -> {});
+    }
 
+    private <T> CompletableFuture<T> timeoutAfter(long timeout, TimeUnit unit) {
+        CompletableFuture<T> result = new CompletableFuture<T>();
+        ScheduledExecutorService scheduledThreadPool = Executors.newScheduledThreadPool(5);
+        scheduledThreadPool.schedule(() -> result.completeExceptionally(
+                new TimeoutException("No HandshakeResponse was recieved from the server")), timeout, unit);
+        return result;
     }
 
     /**

@@ -6,9 +6,7 @@ package com.microsoft.aspnet.signalr;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.ArrayList;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Test;
@@ -19,14 +17,30 @@ class HubConnectionTest {
 
     @Test
     public void checkHubConnectionState() throws Exception {
-        Transport mockTransport = new MockTransport();
+        MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport, true);
         hubConnection.start();
+        assertEquals(HubConnectionState.DISCONNECTED, hubConnection.getConnectionState());
+
+        mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
         assertEquals(HubConnectionState.CONNECTED, hubConnection.getConnectionState());
 
         hubConnection.stop();
         assertEquals(HubConnectionState.DISCONNECTED, hubConnection.getConnectionState());
     }
+
+    @Test
+    public void checkHubConnectionStateNoHandShakeResponse() throws Exception {
+        MockTransport mockTransport = new MockTransport();
+        HubConnection hubConnection = new HubConnection("http://example.com", mockTransport, true);
+        Throwable exception = assertThrows(ExecutionException.class, () -> hubConnection.start().get());
+
+        assertEquals(exception.getCause().getClass(), TimeoutException.class);
+        assertEquals(exception.getCause().getMessage(), "No HandshakeResponse was recieved from the server");
+
+        assertEquals(HubConnectionState.DISCONNECTED, hubConnection.getConnectionState());
+    }
+
 
     @Test
     public void hubConnectionClosesAfterCloseMessage() throws Exception {
@@ -767,9 +781,11 @@ class HubConnectionTest {
     @Test
     public void onClosedCallbackRunsWhenStopIsCalled() throws Exception {
         AtomicReference<String> value1 = new AtomicReference<>();
-        Transport mockTransport = new MockTransport();
+        MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport, true);
         hubConnection.start();
+        mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
+
         hubConnection.onClosed((ex) -> {
             assertNull(value1.get());
             value1.set("Closed callback ran.");
@@ -784,9 +800,11 @@ class HubConnectionTest {
     public void multipleOnClosedCallbacksRunWhenStopIsCalled() throws Exception {
         AtomicReference<String> value1 = new AtomicReference<>();
         AtomicReference<String> value2 = new AtomicReference<>();
-        Transport mockTransport = new MockTransport();
+        MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport, true);
         hubConnection.start();
+        mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
+
 
         hubConnection.onClosed((ex) -> {
             assertNull(value1.get());
@@ -826,9 +844,10 @@ class HubConnectionTest {
 
     @Test
     public void callingStartOnStartedHubConnectionNoOps() throws Exception {
-        Transport mockTransport = new MockTransport();
+        MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport, true);
         hubConnection.start();
+        mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
         assertEquals(HubConnectionState.CONNECTED, hubConnection.getConnectionState());
 
         hubConnection.start();
