@@ -36,6 +36,7 @@ spotless {
         replace      'Not enough space after for', 'for(', 'for ('
         replace      'Not enough space after while', 'while (', 'while ('
         replace      'Not enough space after switch', 'switch(', 'switch ('
+        replace      'Not enough space after do', 'do{', 'do ('
         replaceRegex 'Too much space after if', 'if +\\(', 'if ('
         trimTrailingWhitespace()
         indentWithSpaces(4)
