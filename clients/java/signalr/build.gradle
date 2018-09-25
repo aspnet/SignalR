@@ -32,7 +32,7 @@ spotless {
         importOrder 'java', 'javax', 'org', 'com', 'com.diffplug', ''	// A sequence of package names
 
         replace      'Not enough space after if', 'if(', 'if ('
-        replace      'Not enough space after else', 'else {', 'else {'
+        replace      'Not enough space after else', 'else{', 'else {'
         replace      'Not enough space before else', '}else', '} else '
         replace      'Not enough space after try', 'try{', 'try {'
         replace      'Not enough space before finally', '}finally', '} finally'
