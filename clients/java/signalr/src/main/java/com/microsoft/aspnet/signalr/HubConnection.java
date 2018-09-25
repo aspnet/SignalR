@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -227,7 +227,15 @@ public class HubConnection {
             } finally {
                 hubConnectionStateLock.unlock();
             }
-        });
+        }).acceptEither(timeoutAfter(5, TimeUnit.SECONDS), startFuture -> {});
+    }
+
+    private <T> CompletableFuture<T> timeoutAfter(long timeout, TimeUnit unit) {
+        CompletableFuture<T> result = new CompletableFuture<T>();
+        ScheduledExecutorService scheduledThreadPool = Executors.newScheduledThreadPool(5);
+        scheduledThreadPool.schedule(() -> result.completeExceptionally(
+                new TimeoutException("No HandshakeResponse was recieved from the server")), timeout, unit);
+        return result;
     }
 
     /**
