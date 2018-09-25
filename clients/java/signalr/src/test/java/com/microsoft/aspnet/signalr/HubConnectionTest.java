@@ -895,6 +895,6 @@ class HubConnectionTest {
 
         List<HttpRequest> sentRequests = client.getSentRequests();
         assertEquals(1, sentRequests.size());
-        assertEquals("http://example.com/negotiate", sentRequests.get(0).url);
+        assertEquals("http://example.com/negotiate", sentRequests.get(0).getUrl());
     }
 }

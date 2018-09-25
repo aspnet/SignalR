@@ -188,7 +188,7 @@ public class HubConnection {
 
     private CompletableFuture<NegotiateResponse> handleNegotiate() throws IOException, InterruptedException, ExecutionException {
         HttpRequest request = new HttpRequest();
-        request.headers = this.headers;
+        request.setHeaders(this.headers);
 
         return httpClient.post(Negotiate.resolveNegotiateUrl(url), request).thenCompose((response) -> {
             NegotiateResponse negotiateResponse = new NegotiateResponse(response.getContent());

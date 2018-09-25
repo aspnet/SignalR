@@ -8,36 +8,56 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 class HttpRequest {
-    String method;
+    private String method;
+    private String url;
+    private Map<String, String> headers = new HashMap<>();
 
-    String url;
+    public void setMethod(String method) {
+        this.method = method;
+    }
 
-    //byte[] | String content;
+    public void setUrl(String url) {
+        this.url = url;
+    }
 
-    Map<String, String> headers = new HashMap<>();
+    public void setHeader(String key, String value) {
+        this.headers.put(key, value);
+    }
 
-    //responseType?:??;
+    public void setHeaders(Map<String, String> headers) {
+        headers.forEach((key, value) -> {
+            this.headers.put(key, value);
+        });
+    }
 
-    //abortSignal?:AbortSignal;
+    public String getMethod() {
+        return method;
+    }
 
-    //timeout?:number;
+    public String getUrl() {
+        return url;
+    }
+
+    public Map<String, String> getHeaders() {
+        return headers;
+    }
 }
 
 class HttpResponse {
-    private Integer statusCode;
+    private int statusCode;
     private String statusText;
     private String content = null;
 
-    public HttpResponse(Integer statusCode) {
+    public HttpResponse(int statusCode) {
         this.statusCode = statusCode;
     }
 
-    public HttpResponse(Integer statusCode, String statusText) {
+    public HttpResponse(int statusCode, String statusText) {
         this.statusCode = statusCode;
         this.statusText = statusText;
     }
 
-    public HttpResponse(Integer statusCode, String statusText, String content) {
+    public HttpResponse(int statusCode, String statusText, String content) {
         this.statusCode = statusCode;
         this.statusText = statusText;
         this.content = content;
@@ -46,45 +66,53 @@ class HttpResponse {
     public String getContent() {
         return content;
     }
+
+    public int getStatusCode() {
+        return statusCode;
+    }
+
+    public String getStatusText() {
+        return statusText;
+    }
 }
 
 abstract class HttpClient {
     public CompletableFuture<HttpResponse> get(String url) {
         HttpRequest request = new HttpRequest();
-        request.url = url;
-        request.method = "GET";
+        request.setUrl(url);
+        request.setMethod("GET");
         return this.send(request);
     }
 
     public CompletableFuture<HttpResponse> get(String url, HttpRequest options) {
-        options.url = url;
-        options.method = "GET";
+        options.setUrl(url);
+        options.setMethod("GET");
         return this.send(options);
     }
 
     public CompletableFuture<HttpResponse> post(String url) {
         HttpRequest request = new HttpRequest();
-        request.url = url;
-        request.method = "POST";
+        request.setUrl(url);
+        request.setMethod("POST");
         return this.send(request);
     }
 
     public CompletableFuture<HttpResponse> post(String url, HttpRequest options) {
-        options.url = url;
-        options.method = "POST";
+        options.setUrl(url);
+        options.setMethod("POST");
         return this.send(options);
     }
 
     public CompletableFuture<HttpResponse> delete(String url) {
         HttpRequest request = new HttpRequest();
-        request.url = url;
-        request.method = "DELETE";
+        request.setUrl(url);
+        request.setMethod("DELETE");
         return this.send(request);
     }
     
     public CompletableFuture<HttpResponse> delete(String url, HttpRequest options) {
-        options.url = url;
-        options.method = "DELETE";
+        options.setUrl(url);
+        options.setMethod("DELETE");
         return this.send(options);
     }
 

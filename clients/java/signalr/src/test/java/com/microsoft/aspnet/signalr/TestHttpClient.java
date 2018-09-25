@@ -16,7 +16,7 @@ class TestHttpClient extends HttpClient {
         this.sentRequests = new ArrayList<>();
         this.handler = (req) -> {
             CompletableFuture<HttpResponse> future = new CompletableFuture<>();
-            future.completeExceptionally(new RuntimeException(String.format("Request has no handler: %s %s", req.method, req.url)));
+            future.completeExceptionally(new RuntimeException(String.format("Request has no handler: %s %s", req.getMethod(), req.getUrl())));
             return future;
         };
     }
@@ -30,11 +30,7 @@ class TestHttpClient extends HttpClient {
     public List<HttpRequest> getSentRequests() {
         return sentRequests;
     }
-    /*
-     * public on(method: string | RegExp, url: string, handler: TestHttpHandler): TestHttpClient;
-     * public on(method: string | RegExp, url: RegExp, handler: TestHttpHandler): TestHttpClient;
-     * public on(methodOrHandler: string | RegExp | TestHttpHandler, urlOrHandler?: string | RegExp | TestHttpHandler, handler?: TestHttpHandler):
-     */
+
     public TestHttpClient on(Function<HttpRequest, CompletableFuture<HttpResponse>> handler) {
         this.handler = (req) -> handler.apply(req);
         return this;
@@ -43,12 +39,26 @@ class TestHttpClient extends HttpClient {
     public TestHttpClient on(String method, Function<HttpRequest, CompletableFuture<HttpResponse>> handler) {
         Function<HttpRequest, CompletableFuture<HttpResponse>> oldHandler = this.handler;
         this.handler = (req) -> {
-            if (req.method == method) {
+            if (req.getMethod() == method) {
                 return handler.apply(req);
             }
 
             return oldHandler.apply(req);
         };
+
+        return this;
+    }
+
+    public TestHttpClient on(String method, String url, Function<HttpRequest, CompletableFuture<HttpResponse>> handler) {
+        Function<HttpRequest, CompletableFuture<HttpResponse>> oldHandler = this.handler;
+        this.handler = (req) -> {
+            if (req.getMethod() == method && req.getUrl() == url) {
+                return handler.apply(req);
+            }
+
+            return oldHandler.apply(req);
+        };
+
         return this;
     }
 }

@@ -19,14 +19,20 @@ class DefaultHttpClient extends HttpClient {
 
     @Override
     public CompletableFuture<HttpResponse> send(HttpRequest httpRequest) {
-        Request.Builder requestBuilder = new Request.Builder().url(httpRequest.url);
-        if (httpRequest.method == "GET") {
+        Request.Builder requestBuilder = new Request.Builder().url(httpRequest.getUrl());
+        if (httpRequest.getMethod() == "GET") {
             requestBuilder.get();
-        } else if (httpRequest.method == "POST") {
+        } else if (httpRequest.getMethod() == "POST") {
             RequestBody body = RequestBody.create(null, new byte[] {});
             requestBuilder.post(body);
-        } else if (httpRequest.method == "DELETE") {
+        } else if (httpRequest.getMethod() == "DELETE") {
             requestBuilder.delete();
+        }
+
+        if (httpRequest.getHeaders() != null) {
+            httpRequest.getHeaders().forEach((key, value) -> {
+                requestBuilder.addHeader(key, value);
+            });
         }
 
         Request request = requestBuilder.build();
@@ -46,7 +52,6 @@ class DefaultHttpClient extends HttpClient {
                     responseFuture.complete(httpResponse);
                 }
             }
-
         });
 
         return responseFuture;
