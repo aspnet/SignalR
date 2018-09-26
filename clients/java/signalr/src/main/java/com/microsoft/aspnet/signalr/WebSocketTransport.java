@@ -8,15 +8,19 @@ import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+import okhttp3.*;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 
 class WebSocketTransport implements Transport {
-    private WebSocketClient webSocketClient;
+    //private WebSocketClient webSocketClient;
+    private WebSocket newWebSocketClient;
+    private SignalRWebSocketListener  webSocketListener = new SignalRWebSocketListener();
     private OnReceiveCallBack onReceiveCallBack;
     private URI url;
     private Logger logger;
     private Map<String, String> headers;
+    private OkHttpClient httpClient;
 
     private static final String HTTP = "http";
     private static final String HTTPS = "https";
@@ -27,6 +31,17 @@ class WebSocketTransport implements Transport {
         this.url = formatUrl(url);
         this.logger = logger;
         this.headers = headers;
+    }
+
+    public WebSocketTransport(String url, Logger logger, Map<String, String> headers, OkHttpClient httpClient) throws URISyntaxException {
+        this.url = formatUrl(url);
+        this.logger = logger;
+        this.headers = headers;
+        this.httpClient = httpClient;
+    }
+
+    public WebSocketTransport(String url, Logger logger) throws URISyntaxException {
+        this(url, logger, null);
     }
 
     public URI getUrl() {
@@ -47,25 +62,25 @@ class WebSocketTransport implements Transport {
     public CompletableFuture start() {
         return CompletableFuture.runAsync(() -> {
             logger.log(LogLevel.Debug, "Starting Websocket connection.");
-            webSocketClient = createWebSocket(headers);
-            try {
-                if (!webSocketClient.connectBlocking()) {
-                    String errorMessage = "There was an error starting the Websockets transport.";
-                    logger.log(LogLevel.Debug, errorMessage);
-                    throw new RuntimeException(errorMessage);
-                }
-            } catch (InterruptedException e) {
-                String interruptedExMessage = "Connecting the Websockets transport was interrupted.";
-                logger.log(LogLevel.Debug, interruptedExMessage);
-                throw new RuntimeException(interruptedExMessage);
-            }
-            logger.log(LogLevel.Information, "WebSocket transport connected to: %s", webSocketClient.getURI());
+            newWebSocketClient = createUpdatedWebSocket(webSocketListener);
+//            try {
+//                if (!webSocketClient.connectBlocking()) {
+//                    String errorMessage = "There was an error starting the Websockets transport.";
+//                    logger.log(LogLevel.Debug, errorMessage);
+//                    throw new RuntimeException(errorMessage);
+//                }
+//            } catch (InterruptedException e) {
+//                String interruptedExMessage = "Connecting the Websockets transport was interrupted.";
+//                logger.log(LogLevel.Debug, interruptedExMessage);
+//                throw new RuntimeException(interruptedExMessage);
+//            }
+            logger.log(LogLevel.Information, "WebSocket transport connected to: %s", newWebSocketClient.request().url());
         });
     }
 
     @Override
     public CompletableFuture send(String message) {
-        return CompletableFuture.runAsync(() -> webSocketClient.send(message));
+        return CompletableFuture.runAsync(() -> newWebSocketClient.send(message));
     }
 
     @Override
@@ -82,36 +97,76 @@ class WebSocketTransport implements Transport {
     @Override
     public CompletableFuture stop() {
         return CompletableFuture.runAsync(() -> {
-            webSocketClient.closeConnection(0, "HubConnection Stopped");
+            newWebSocketClient.close(0, "HubConnection stopped.");
             logger.log(LogLevel.Information, "WebSocket connection stopped");
         });
     }
 
-    private WebSocketClient createWebSocket(Map<String, String> headers) {
-        return new WebSocketClient(url, headers) {
-            @Override
-            public void onOpen(ServerHandshake handshakedata) {
-                System.out.println("Connected to " + url);
-            }
+//    private WebSocketClient createWebSocket(Map<String, String> headers) {
+//        return new WebSocketClient(url, headers) {
+//            @Override
+//            public void onOpen(ServerHandshake handshakedata) {
+//                System.out.println("Connected to " + url);
+//            }
+//
+//            @Override
+//            public void onMessage(String message) {
+//                try {
+//                    onReceive(message);
+//                } catch (Exception e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//
+//            @Override
+//            public void onClose(int code, String reason, boolean remote) {
+//                System.out.println("Connection Closed");
+//            }
+//
+//            @Override
+//            public void onError(Exception ex) {
+//                System.out.println("Error: " + ex.getMessage());
+//            }
+//        };
+//    }
 
-            @Override
-            public void onMessage(String message) {
-                try {
-                    onReceive(message);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
+    private WebSocket createUpdatedWebSocket(WebSocketListener webSocketListener) {
+        Headers.Builder headerBuilder = new Headers.Builder();
+        for(String key: headers.keySet()){
+            headerBuilder.add(key, headers.get(key));
+        }
+        Request request = new Request.Builder().url(url.toString())
+                .headers(headerBuilder.build())
+                .build();
 
-            @Override
-            public void onClose(int code, String reason, boolean remote) {
-                System.out.println("Connection Closed");
-            }
+        return this.httpClient.newWebSocket(request, webSocketListener);
+    }
 
-            @Override
-            public void onError(Exception ex) {
-                System.out.println("Error: " + ex.getMessage());
+
+    private class SignalRWebSocketListener extends WebSocketListener {
+        @Override
+        public void onOpen(WebSocket webSocket, Response response) {
+            logger.log(LogLevel.Information, "WebSocket connection opened");
+
+        }
+        @Override
+        public void onMessage(WebSocket webSocket, String message) {
+            try {
+                onReceive(message);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        };
+        }
+
+        @Override
+        public void onClosing(WebSocket webSocket, int code, String reason) {
+            logger.log(LogLevel.Information, "WebSocket connection stopping with " +
+                    "code %d and reason %d", code, reason);
+        }
+
+        @Override
+        public void onFailure(WebSocket webSocket, Throwable t, Response response) {
+            logger.log(LogLevel.Error, "Error : " + t.getMessage());
+        }
     }
 }

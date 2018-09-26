@@ -3,6 +3,8 @@
 
 package com.microsoft.aspnet.signalr;
 
+import okhttp3.OkHttpClient;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,6 +33,7 @@ public class HubConnection {
     private String accessToken;
     private Map<String, String> headers = new HashMap<>();
     private ConnectionState connectionState = null;
+    private OkHttpClient httpClient = new OkHttpClient();
 
     private static ArrayList<Class<?>> emptyArray = new ArrayList<>();
     private static int MAX_NEGOTIATE_ATTEMPTS = 100;
@@ -120,7 +123,7 @@ public class HubConnection {
 
     private NegotiateResponse handleNegotiate() throws IOException {
         accessToken = (negotiateResponse == null) ? null : negotiateResponse.getAccessToken();
-        negotiateResponse = Negotiate.processNegotiate(url, accessToken);
+        negotiateResponse = Negotiate.processNegotiate(url, httpClient, accessToken);
 
         if (negotiateResponse.getConnectionId() != null) {
             if (url.contains("?")) {
@@ -173,7 +176,7 @@ public class HubConnection {
 
         logger.log(LogLevel.Debug, "Starting HubConnection");
         if (transport == null) {
-            transport = new WebSocketTransport(url, logger, headers);
+            transport = new WebSocketTransport(url, logger, headers, httpClient);
         }
 
         transport.setOnReceive(this.callback);
