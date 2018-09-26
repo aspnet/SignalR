@@ -60,6 +60,6 @@ public class HubConnectionBuilder {
         if (this.url == null) {
             throw new RuntimeException("The 'HubConnectionBuilder.withUrl' method must be called before building the connection.");
         }
-        return new HubConnection(url, transport, logger, skipNegotiate);
+        return new HubConnection(url, transport, logger, skipNegotiate, client);
     }
 }

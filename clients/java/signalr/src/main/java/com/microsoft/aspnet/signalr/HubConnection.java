@@ -42,10 +42,6 @@ public class HubConnection {
     private static ArrayList<Class<?>> emptyArray = new ArrayList<>();
     private static int MAX_NEGOTIATE_ATTEMPTS = 100;
 
-    public HubConnection(String url, Transport transport, boolean skipNegotiate) {
-        this(url, transport, new NullLogger(), skipNegotiate, new DefaultHttpClient());
-    }
-
     public HubConnection(String url, Transport transport, Logger logger, boolean skipNegotiate, HttpClient client) {
         if (url == null || url.isEmpty()) {
             throw new IllegalArgumentException("A valid url is required.");
