@@ -31,6 +31,7 @@ class Negotiate {
 
         Response response = httpClient.newCall(request).execute();
         String result = response.body().string();
+        System.out.println(httpClient.cookieJar().loadForRequest(request.url()));
         return new NegotiateResponse(result);
     }
 

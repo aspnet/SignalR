@@ -14,6 +14,9 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
+import okhttp3.Cookie;
+import okhttp3.CookieJar;
+import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 
 public class HubConnection {
@@ -33,7 +36,7 @@ public class HubConnection {
     private String accessToken;
     private Map<String, String> headers = new HashMap<>();
     private ConnectionState connectionState = null;
-    private OkHttpClient httpClient = new OkHttpClient();
+    private OkHttpClient httpClient;
 
     private static ArrayList<Class<?>> emptyArray = new ArrayList<>();
     private static int MAX_NEGOTIATE_ATTEMPTS = 100;
@@ -57,6 +60,26 @@ public class HubConnection {
         }
 
         this.skipNegotiate = skipNegotiate;
+        this.httpClient = new OkHttpClient.Builder()
+                .cookieJar(new CookieJar() {
+                    private final HashMap<String, List<Cookie>> cookieStore = new HashMap<>();
+
+                    @Override
+                    public void saveFromResponse(HttpUrl url, List<Cookie> cookies) {
+                        if(cookieStore.containsKey(url.host())) {
+                            cookieStore.get(url.host()).addAll(cookies);
+                        } else {
+                            cookieStore.put(url.host(), cookies);
+                        }
+                    }
+
+                    @Override
+                    public List<Cookie> loadForRequest(HttpUrl url) {
+                        List<Cookie> cookies = cookieStore.get(url.host());
+                        return cookies != null ? cookies : new ArrayList<>();
+                    }
+                })
+                .build();
         this.callback = (payload) -> {
 
             if (!handshakeReceived) {
