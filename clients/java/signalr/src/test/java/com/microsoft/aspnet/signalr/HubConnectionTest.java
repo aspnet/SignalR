@@ -8,7 +8,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Test;
@@ -880,7 +882,7 @@ class HubConnectionTest {
     }
 
     @Test
-    public void negotiateSentOnStart() throws Exception {
+    public void negotiateSentOnStart() {
         TestHttpClient client = new TestHttpClient()
         .on("POST", (req) -> CompletableFuture.completedFuture(new HttpResponse(404, "", "")));
 
@@ -890,11 +892,30 @@ class HubConnectionTest {
             .build();
 
         try {
-            hubConnection.start().get();
+            hubConnection.start().get(1000, TimeUnit.MILLISECONDS);
         } catch(Exception ex) {}
 
         List<HttpRequest> sentRequests = client.getSentRequests();
         assertEquals(1, sentRequests.size());
         assertEquals("http://example.com/negotiate", sentRequests.get(0).getUrl());
+    }
+
+    @Test
+    public void negotiateThatRedirectsForeverFailsAfter100Tries() throws InterruptedException, TimeoutException, Exception {
+        TestHttpClient client = new TestHttpClient().on("POST", "http://example.com/negotiate",
+                (req) -> CompletableFuture.completedFuture(new HttpResponse(200, "", "{\"url\":\"http://example.com\"}")));
+
+        HubConnection hubConnection = new HubConnectionBuilder().withUrl("http://example.com")
+                .configureHttpClient(client).build();
+
+        Exception exception = null;
+        try {
+            hubConnection.start().get(1000, TimeUnit.MILLISECONDS);
+        } catch (ExecutionException ex) {
+            exception = ex;
+        }
+
+        assertNotNull(exception);
+        assertEquals("Negotiate redirection limit exceeded.", exception.getCause().getMessage());
     }
 }

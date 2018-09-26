@@ -39,7 +39,7 @@ class TestHttpClient extends HttpClient {
     public TestHttpClient on(String method, Function<HttpRequest, CompletableFuture<HttpResponse>> handler) {
         Function<HttpRequest, CompletableFuture<HttpResponse>> oldHandler = this.handler;
         this.handler = (req) -> {
-            if (req.getMethod() == method) {
+            if (req.getMethod().equals(method)) {
                 return handler.apply(req);
             }
 
@@ -52,7 +52,7 @@ class TestHttpClient extends HttpClient {
     public TestHttpClient on(String method, String url, Function<HttpRequest, CompletableFuture<HttpResponse>> handler) {
         Function<HttpRequest, CompletableFuture<HttpResponse>> oldHandler = this.handler;
         this.handler = (req) -> {
-            if (req.getMethod() == method && req.getUrl() == url) {
+            if (req.getMethod().equals(method) && req.getUrl().equals(url)) {
                 return handler.apply(req);
             }
 
