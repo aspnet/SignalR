@@ -866,7 +866,7 @@ class HubConnectionTest {
     @Test
     public void errorWhenReceivingInvokeWithIncorrectArgumentLength() throws Exception {
         MockTransport mockTransport = new MockTransport();
-        HubConnection hubConnection = new HubConnection("http://example.com", mockTransport, new NullLogger(), true);
+        HubConnection hubConnection = new HubConnection("http://example.com", mockTransport, new NullLogger(), true, new TestHttpClient());
         hubConnection.on("Send", (s) -> {
             assertTrue(false);
         }, String.class);
