@@ -3,8 +3,6 @@
 
 package com.microsoft.aspnet.signalr;
 
-import okhttp3.OkHttpClient;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -15,6 +13,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
+
+import okhttp3.OkHttpClient;
 
 public class HubConnection {
     private String url;

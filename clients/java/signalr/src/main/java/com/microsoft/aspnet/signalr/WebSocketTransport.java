@@ -9,8 +9,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import okhttp3.*;
-import org.java_websocket.client.WebSocketClient;
-import org.java_websocket.handshake.ServerHandshake;
 
 class WebSocketTransport implements Transport {
     //private WebSocketClient webSocketClient;
@@ -132,7 +130,7 @@ class WebSocketTransport implements Transport {
 
     private WebSocket createUpdatedWebSocket(WebSocketListener webSocketListener) {
         Headers.Builder headerBuilder = new Headers.Builder();
-        for(String key: headers.keySet()){
+        for (String key: headers.keySet()) {
             headerBuilder.add(key, headers.get(key));
         }
         Request request = new Request.Builder().url(url.toString())
