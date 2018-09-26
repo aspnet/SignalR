@@ -841,7 +841,7 @@ class HubConnectionTest {
     @Test
     public void callingStartOnStartedHubConnectionNoOps() throws Exception {
         Transport mockTransport = new MockTransport();
-        HubConnection hubConnection = new HubConnection("http://example.com", mockTransport ,new NullLogger() ,true);
+        HubConnection hubConnection = new HubConnection("http://example.com", mockTransport, new NullLogger() ,true);
         hubConnection.start();
         assertEquals(HubConnectionState.CONNECTED, hubConnection.getConnectionState());
 
@@ -865,7 +865,7 @@ class HubConnectionTest {
     @Test
     public void errorWhenReceivingInvokeWithIncorrectArgumentLength() throws Exception {
         MockTransport mockTransport = new MockTransport();
-        HubConnection hubConnection = new HubConnection("http://example.com", mockTransport, true);
+        HubConnection hubConnection = new HubConnection("http://example.com", mockTransport, new NullLogger(), true);
         hubConnection.on("Send", (s) -> {
             assertTrue(false);
         }, String.class);
