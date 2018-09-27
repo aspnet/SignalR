@@ -11,7 +11,7 @@ import java.util.concurrent.CompletableFuture;
 import okhttp3.*;
 
 class WebSocketTransport implements Transport {
-    private WebSocket newWebSocketClient;
+    private WebSocket websocketClient;
     private SignalRWebSocketListener  webSocketListener = new SignalRWebSocketListener();
     private OnReceiveCallBack onReceiveCallBack;
     private URI url;
@@ -56,13 +56,13 @@ class WebSocketTransport implements Transport {
     @Override
     public CompletableFuture start() {
             logger.log(LogLevel.Debug, "Starting Websocket connection.");
-            newWebSocketClient = createUpdatedWebSocket(webSocketListener);
+            websocketClient = createUpdatedWebSocket(webSocketListener);
             return startFuture;
     }
 
     @Override
     public CompletableFuture send(String message) {
-        return CompletableFuture.runAsync(() -> newWebSocketClient.send(message));
+        return CompletableFuture.runAsync(() -> websocketClient.send(message));
     }
 
     @Override
@@ -79,7 +79,7 @@ class WebSocketTransport implements Transport {
     @Override
     public CompletableFuture stop() {
         return CompletableFuture.runAsync(() -> {
-            newWebSocketClient.close(0, "HubConnection stopped.");
+            websocketClient.close(1000, "HubConnection stopped.");
             logger.log(LogLevel.Information, "WebSocket connection stopped");
         });
     }
@@ -101,7 +101,7 @@ class WebSocketTransport implements Transport {
         @Override
         public void onOpen(WebSocket webSocket, Response response) {
             startFuture.complete(null);
-            logger.log(LogLevel.Information, "WebSocket transport connected to: %s", newWebSocketClient.request().url());
+            logger.log(LogLevel.Information, "WebSocket transport connected to: %s", websocketClient.request().url());
         }
 
         @Override
@@ -117,17 +117,24 @@ class WebSocketTransport implements Transport {
         public void onClosing(WebSocket webSocket, int code, String reason) {
             logger.log(LogLevel.Information, "WebSocket connection stopping with " +
                     "code %d and reason %d", code, reason);
+            // If the start future hasn't completed yet, then we need to complete it exceptionally.
+            checkStartFailure();
         }
 
         @Override
         public void onFailure(WebSocket webSocket, Throwable t, Response response) {
             logger.log(LogLevel.Error, "Error : %d", t.getMessage());
             // If the start future hasn't completed yet, then we need to complete it exceptionally.
-            if (!startFuture.isDone()) {
-                String errorMessage = "There was an error starting the Websockets transport.";
-                logger.log(LogLevel.Debug, errorMessage);
-                startFuture.completeExceptionally(new RuntimeException(errorMessage));
-            }
+            checkStartFailure();
+        }
+    }
+
+    private void checkStartFailure() {
+        // If the start future hasn't completed yet, then we need to complete it exceptionally.
+        if (!startFuture.isDone()) {
+            String errorMessage = "There was an error starting the Websockets transport.";
+            logger.log(LogLevel.Debug, errorMessage);
+            startFuture.completeExceptionally(new RuntimeException(errorMessage));
         }
     }
 }
