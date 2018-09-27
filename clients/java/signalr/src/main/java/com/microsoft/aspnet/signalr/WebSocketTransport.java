@@ -29,6 +29,7 @@ class WebSocketTransport implements Transport {
         this.url = formatUrl(url);
         this.logger = logger;
         this.headers = headers;
+        this.httpClient = new OkHttpClient();
     }
 
     public WebSocketTransport(String url, Logger logger, Map<String, String> headers, OkHttpClient httpClient) throws URISyntaxException {
@@ -36,10 +37,6 @@ class WebSocketTransport implements Transport {
         this.logger = logger;
         this.headers = headers;
         this.httpClient = httpClient;
-    }
-
-    public WebSocketTransport(String url, Logger logger) throws URISyntaxException {
-        this(url, logger, null);
     }
 
     public URI getUrl() {
@@ -58,12 +55,9 @@ class WebSocketTransport implements Transport {
 
     @Override
     public CompletableFuture start() {
-        return CompletableFuture.runAsync(() -> {
-            System.out.println(headers);
             logger.log(LogLevel.Debug, "Starting Websocket connection.");
             newWebSocketClient = createUpdatedWebSocket(webSocketListener);
-            System.out.println(newWebSocketClient.request().headers().names());
-        });
+            return startFuture;
     }
 
     @Override
@@ -98,7 +92,7 @@ class WebSocketTransport implements Transport {
         Request request = new Request.Builder().url(url.toString())
                 .headers(headerBuilder.build())
                 .build();
-        System.out.println("Cookies: " + httpClient.cookieJar().loadForRequest(request.url()));
+
         return this.httpClient.newWebSocket(request, webSocketListener);
     }
 
@@ -106,7 +100,7 @@ class WebSocketTransport implements Transport {
     private class SignalRWebSocketListener extends WebSocketListener {
         @Override
         public void onOpen(WebSocket webSocket, Response response) {
-            //startFuture = CompletableFuture.completedFuture(null);
+            startFuture.complete(null);
             logger.log(LogLevel.Information, "WebSocket transport connected to: %s", newWebSocketClient.request().url());
         }
 
@@ -127,12 +121,13 @@ class WebSocketTransport implements Transport {
 
         @Override
         public void onFailure(WebSocket webSocket, Throwable t, Response response) {
-            logger.log(LogLevel.Error, "Error : " + t.getMessage());
-//            if (!startFuture.isDone()) {
-//                String errorMessage = "There was an error starting the Websockets transport.";
-//                logger.log(LogLevel.Debug, errorMessage);
-//                startFuture.completeExceptionally(new RuntimeException(errorMessage));
-//            }
+            logger.log(LogLevel.Error, "Error : %d", t.getMessage());
+            // If the start future hasn't completed yet, then we need to complete it exceptionally.
+            if (!startFuture.isDone()) {
+                String errorMessage = "There was an error starting the Websockets transport.";
+                logger.log(LogLevel.Debug, errorMessage);
+                startFuture.completeExceptionally(new RuntimeException(errorMessage));
+            }
         }
     }
 }
