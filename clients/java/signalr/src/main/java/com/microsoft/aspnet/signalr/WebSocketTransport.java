@@ -11,7 +11,6 @@ import java.util.concurrent.CompletableFuture;
 import okhttp3.*;
 
 class WebSocketTransport implements Transport {
-    //private WebSocketClient webSocketClient;
     private WebSocket newWebSocketClient;
     private SignalRWebSocketListener  webSocketListener = new SignalRWebSocketListener();
     private OnReceiveCallBack onReceiveCallBack;
@@ -19,6 +18,7 @@ class WebSocketTransport implements Transport {
     private Logger logger;
     private Map<String, String> headers;
     private OkHttpClient httpClient;
+    private CompletableFuture<Void> startFuture = new CompletableFuture<>();
 
     private static final String HTTP = "http";
     private static final String HTTPS = "https";
@@ -62,18 +62,7 @@ class WebSocketTransport implements Transport {
             System.out.println(headers);
             logger.log(LogLevel.Debug, "Starting Websocket connection.");
             newWebSocketClient = createUpdatedWebSocket(webSocketListener);
-//            try {
-//                if (!webSocketClient.connectBlocking()) {
-//                    String errorMessage = "There was an error starting the Websockets transport.";
-//                    logger.log(LogLevel.Debug, errorMessage);
-//                    throw new RuntimeException(errorMessage);
-//                }
-//            } catch (InterruptedException e) {
-//                String interruptedExMessage = "Connecting the Websockets transport was interrupted.";
-//                logger.log(LogLevel.Debug, interruptedExMessage);
-//                throw new RuntimeException(interruptedExMessage);
-//            }
-            logger.log(LogLevel.Information, "WebSocket transport connected to: %s", newWebSocketClient.request().url());
+            System.out.println(newWebSocketClient.request().headers().names());
         });
     }
 
@@ -101,34 +90,6 @@ class WebSocketTransport implements Transport {
         });
     }
 
-//    private WebSocketClient createWebSocket(Map<String, String> headers) {
-//        return new WebSocketClient(url, headers) {
-//            @Override
-//            public void onOpen(ServerHandshake handshakedata) {
-//                System.out.println("Connected to " + url);
-//            }
-//
-//            @Override
-//            public void onMessage(String message) {
-//                try {
-//                    onReceive(message);
-//                } catch (Exception e) {
-//                    e.printStackTrace();
-//                }
-//            }
-//
-//            @Override
-//            public void onClose(int code, String reason, boolean remote) {
-//                System.out.println("Connection Closed");
-//            }
-//
-//            @Override
-//            public void onError(Exception ex) {
-//                System.out.println("Error: " + ex.getMessage());
-//            }
-//        };
-//    }
-
     private WebSocket createUpdatedWebSocket(WebSocketListener webSocketListener) {
         Headers.Builder headerBuilder = new Headers.Builder();
         for (String key: headers.keySet()) {
@@ -137,7 +98,7 @@ class WebSocketTransport implements Transport {
         Request request = new Request.Builder().url(url.toString())
                 .headers(headerBuilder.build())
                 .build();
-
+        System.out.println("Cookies: " + httpClient.cookieJar());
         return this.httpClient.newWebSocket(request, webSocketListener);
     }
 
@@ -145,9 +106,10 @@ class WebSocketTransport implements Transport {
     private class SignalRWebSocketListener extends WebSocketListener {
         @Override
         public void onOpen(WebSocket webSocket, Response response) {
-            logger.log(LogLevel.Information, "WebSocket connection opened");
-
+            //startFuture = CompletableFuture.completedFuture(null);
+            logger.log(LogLevel.Information, "WebSocket transport connected to: %s", newWebSocketClient.request().url());
         }
+
         @Override
         public void onMessage(WebSocket webSocket, String message) {
             try {
@@ -166,6 +128,11 @@ class WebSocketTransport implements Transport {
         @Override
         public void onFailure(WebSocket webSocket, Throwable t, Response response) {
             logger.log(LogLevel.Error, "Error : " + t.getMessage());
+//            if(!startFuture.isDone()){
+//                String errorMessage = "There was an error starting the Websockets transport.";
+//                logger.log(LogLevel.Debug, errorMessage);
+//                startFuture.completeExceptionally(new RuntimeException(errorMessage));
+//            }
         }
     }
 }
