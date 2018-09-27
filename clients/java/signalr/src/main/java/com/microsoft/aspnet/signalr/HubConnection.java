@@ -4,10 +4,7 @@
 package com.microsoft.aspnet.signalr;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
@@ -60,26 +57,42 @@ public class HubConnection {
         }
 
         this.skipNegotiate = skipNegotiate;
+
         this.httpClient = new OkHttpClient.Builder()
                 .cookieJar(new CookieJar() {
-                    private final HashMap<String, List<Cookie>> cookieStore = new HashMap<>();
+                    private List<Cookie> cookieList = new ArrayList<>();
 
                     @Override
                     public void saveFromResponse(HttpUrl url, List<Cookie> cookies) {
-                        if(cookieStore.containsKey(url.host())) {
-                            cookieStore.get(url.host()).addAll(cookies);
-                        } else {
-                            cookieStore.put(url.host(), cookies);
+                        for (Cookie cookie : cookies) {
+                            for (Cookie innerCookie : cookieList) {
+                                if (cookie.name().equals(innerCookie.name()) && innerCookie.matches(url)) {
+                                    // We have a new cookie that matches an older one so we replace the older one.
+                                    cookieList.remove(innerCookie);
+                                }
+                            }
+                            cookieList.add(cookie);
                         }
                     }
 
                     @Override
                     public List<Cookie> loadForRequest(HttpUrl url) {
-                        List<Cookie> cookies = cookieStore.get(url.host());
-                        return cookies != null ? cookies : new ArrayList<>();
+                        List<Cookie> matchedCookies = new ArrayList<>();
+                        List<Cookie> expiredCookies = new ArrayList<>();
+                        for(Cookie cookie: cookieList) {
+                            if (cookie.expiresAt() < System.currentTimeMillis()) {
+                                expiredCookies.add(cookie);
+                            } else if (cookie.matches(url)) {
+                                matchedCookies.add(cookie);
+                            }
+                        }
+
+                        cookieList.removeAll(expiredCookies);
+                        return matchedCookies;
                     }
                 })
                 .build();
+
         this.callback = (payload) -> {
 
             if (!handshakeReceived) {

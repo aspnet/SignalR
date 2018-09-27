@@ -98,7 +98,7 @@ class WebSocketTransport implements Transport {
         Request request = new Request.Builder().url(url.toString())
                 .headers(headerBuilder.build())
                 .build();
-        System.out.println("Cookies: " + httpClient.cookieJar());
+        System.out.println("Cookies: " + httpClient.cookieJar().loadForRequest(request.url()));
         return this.httpClient.newWebSocket(request, webSocketListener);
     }
 
