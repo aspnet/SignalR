@@ -128,7 +128,7 @@ class WebSocketTransport implements Transport {
         @Override
         public void onFailure(WebSocket webSocket, Throwable t, Response response) {
             logger.log(LogLevel.Error, "Error : " + t.getMessage());
-//            if(!startFuture.isDone()){
+//            if (!startFuture.isDone()) {
 //                String errorMessage = "There was an error starting the Websockets transport.";
 //                logger.log(LogLevel.Debug, errorMessage);
 //                startFuture.completeExceptionally(new RuntimeException(errorMessage));
