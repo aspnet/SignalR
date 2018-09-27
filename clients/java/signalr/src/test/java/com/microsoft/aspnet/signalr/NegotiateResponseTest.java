@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test;
 
 
 class NegotiateResponseTest {
-
     @Test
     public void VerifyNegotiateResponse() throws IOException {
         String stringNegotiateResponse = "{\"connectionId\":\"bVOiRPG8-6YiJ6d7ZcTOVQ\",\"" +
@@ -38,5 +37,21 @@ class NegotiateResponseTest {
         assertEquals("some_access_token", negotiateResponse.getAccessToken());
         assertEquals("www.example.com", negotiateResponse.getRedirectUrl());
         assertNull(negotiateResponse.getConnectionId());
+    }
+
+    @Test
+    public void NegotiateResponseIgnoresExtraProperties() throws IOException {
+        String stringNegotiateResponse = "{\"connectionId\":\"bVOiRPG8-6YiJ6d7ZcTOVQ\"," +
+                "\"extra\":\"something\"}";
+        NegotiateResponse negotiateResponse = new NegotiateResponse(stringNegotiateResponse);
+        assertEquals("bVOiRPG8-6YiJ6d7ZcTOVQ", negotiateResponse.getConnectionId());
+    }
+
+    @Test
+    public void NegotiateResponseIgnoresExtraComplexProperties() throws IOException {
+        String stringNegotiateResponse = "{\"connectionId\":\"bVOiRPG8-6YiJ6d7ZcTOVQ\"," +
+                "\"extra\":[\"something\"]}";
+        NegotiateResponse negotiateResponse = new NegotiateResponse(stringNegotiateResponse);
+        assertEquals("bVOiRPG8-6YiJ6d7ZcTOVQ", negotiateResponse.getConnectionId());
     }
 }

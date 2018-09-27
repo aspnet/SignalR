@@ -397,7 +397,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                     return ResponseUtils.CreateResponse(HttpStatusCode.OK,
                             JsonConvert.SerializeObject(new
                             {
-                                error = "Negotiate failed."
+                                error = "Test error."
                             }));
                 });
 
@@ -408,7 +408,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.Tests
                         async (connection) =>
                         {
                             var exception = await Assert.ThrowsAsync<Exception>(() => connection.StartAsync(TransferFormat.Text).OrTimeout());
-                            Assert.Equal("Negotiate failed.", exception.Message);
+                            Assert.Equal("Test error.", exception.Message);
                         });
                 }
             }
