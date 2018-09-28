@@ -8,10 +8,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 class MockTransport implements Transport {
+    private static final String RECORD_SEPARATOR = "\u001e";
+
     private OnReceiveCallBack onReceiveCallBack;
     private ArrayList<String> sentMessages = new ArrayList<>();
     private String url;
     private Consumer<String> onClose;
+    private boolean ignorePings;
     private boolean autoHandshake;
 
     private static final String RECORD_SEPARATOR = "\u001e";
@@ -19,8 +22,9 @@ class MockTransport implements Transport {
     public MockTransport() {
     }
 
-    public MockTransport(boolean autoHandshake) {
+    public MockTransport(boolean autoHandshake, boolean ignorePings) {
         this.autoHandshake = autoHandshake;
+        this.ignorePings = ignorePings;
     }
 
     @Override
@@ -38,7 +42,9 @@ class MockTransport implements Transport {
 
     @Override
     public CompletableFuture send(String message) {
-        sentMessages.add(message);
+        if (!(ignorePings && message.equals("{\"type\":6}" + RECORD_SEPARATOR))) {
+            sentMessages.add(message);
+        }
         return CompletableFuture.completedFuture(null);
     }
 

@@ -380,7 +380,7 @@ class HubConnectionTest {
 
     @Test
     public void invokeWaitsForCompletionMessage() throws Exception {
-        MockTransport mockTransport = new MockTransport();
+        MockTransport mockTransport = new MockTransport(true);
         HubConnection hubConnection = TestUtils.createHubConnection("http://example.com", mockTransport);
 
         hubConnection.start();
@@ -399,7 +399,7 @@ class HubConnectionTest {
 
     @Test
     public void multipleInvokesWaitForOwnCompletionMessage() throws Exception {
-        MockTransport mockTransport = new MockTransport();
+        MockTransport mockTransport = new MockTransport(true);
         HubConnection hubConnection = TestUtils.createHubConnection("http://example.com", mockTransport);
 
         hubConnection.start();
@@ -1089,6 +1089,41 @@ class HubConnectionTest {
         assertEquals("http://testexample.com/?id=bVOiRPG8-6YiJ6d7ZcTOVQ", transport.getUrl());
         hubConnection.stop();
         assertEquals("Bearer newToken", token.get());
+    }
+
+    @Test
+    public void connectionTimesOutIfServerDoesNotSendMessage() throws InterruptedException, ExecutionException, TimeoutException, Exception {
+        MockTransport mockTransport = new MockTransport();
+        HubConnection hubConnection = new HubConnection("http://example.com", mockTransport, new NullLogger(), true);
+        hubConnection.setServerTimeoutInMilliseconds(1);
+        hubConnection.setTickRate(1);
+        CompletableFuture<Exception> closedFuture = new CompletableFuture<>();
+        hubConnection.onClosed((e) -> {
+            closedFuture.complete(e);
+        });
+
+        hubConnection.start().get(1000, TimeUnit.MILLISECONDS);
+
+        assertEquals("Server timeout elapsed without receiving a message from the server.", closedFuture.get(1000, TimeUnit.MILLISECONDS).getMessage());
+    }
+
+    @Test
+    public void connectionSendsPingsRegularly() throws InterruptedException, ExecutionException, TimeoutException, Exception {
+        MockTransport mockTransport = new MockTransport();
+        HubConnection hubConnection = new HubConnection("http://example.com", mockTransport, new NullLogger(), true);
+        hubConnection.setKeepAliveIntervalInMilliseconds(1);
+        hubConnection.setTickRate(1);
+
+        hubConnection.start().get(1000, TimeUnit.MILLISECONDS);
+
+        TimeUnit.MILLISECONDS.sleep(100);
+        hubConnection.stop();
+
+        String[] sentMessages = mockTransport.getSentMessages();
+        assertTrue(sentMessages.length > 1);
+        for (int i = 1; i < sentMessages.length; i++) {
+            assertEquals("{\"type\":6}" + RECORD_SEPARATOR, sentMessages[i]);
+        }
     }
 
     @Test
