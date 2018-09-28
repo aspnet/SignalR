@@ -65,13 +65,19 @@ public class HubConnection {
                     @Override
                     public void saveFromResponse(HttpUrl url, List<Cookie> cookies) {
                         for (Cookie cookie : cookies) {
-                            for (Cookie innerCookie : cookieList) {
+                            boolean replacedCookie = false;
+                            for (int i = 0; i < cookieList.size(); i++) {
+                                Cookie innerCookie = cookieList.get(i);
                                 if (cookie.name().equals(innerCookie.name()) && innerCookie.matches(url)) {
                                     // We have a new cookie that matches an older one so we replace the older one.
-                                    cookieList.remove(innerCookie);
+                                    cookieList.set(i, innerCookie);
+                                    replacedCookie = true;
+                                    break;
                                 }
                             }
-                            cookieList.add(cookie);
+                            if(!replacedCookie) {
+                                cookieList.add(cookie);
+                            }
                         }
                     }
 

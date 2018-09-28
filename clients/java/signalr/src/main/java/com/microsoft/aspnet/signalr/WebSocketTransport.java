@@ -12,7 +12,7 @@ import okhttp3.*;
 
 class WebSocketTransport implements Transport {
     private WebSocket websocketClient;
-    private SignalRWebSocketListener  webSocketListener = new SignalRWebSocketListener();
+    private SignalRWebSocketListener webSocketListener = new SignalRWebSocketListener();
     private OnReceiveCallBack onReceiveCallBack;
     private URI url;
     private Logger logger;
