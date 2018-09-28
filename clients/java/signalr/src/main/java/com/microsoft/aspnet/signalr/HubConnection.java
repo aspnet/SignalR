@@ -85,7 +85,6 @@ public class HubConnection {
                         } finally {
                             cookieLock.unlock();
                         }
-
                     }
 
                     @Override
@@ -104,7 +103,6 @@ public class HubConnection {
 
                             cookieList.removeAll(expiredCookies);
                             return matchedCookies;
-
                         } finally {
                             cookieLock.unlock();
                         }
