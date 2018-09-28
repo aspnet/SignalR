@@ -66,7 +66,7 @@ public class HubConnection {
                     @Override
                     public void saveFromResponse(HttpUrl url, List<Cookie> cookies) {
                         cookieLock.lock();
-                        try{
+                        try {
                             for (Cookie cookie : cookies) {
                                 boolean replacedCookie = false;
                                 for (int i = 0; i < cookieList.size(); i++) {
