@@ -75,7 +75,7 @@ public class HubConnection {
                                     break;
                                 }
                             }
-                            if(!replacedCookie) {
+                            if (!replacedCookie) {
                                 cookieList.add(cookie);
                             }
                         }
