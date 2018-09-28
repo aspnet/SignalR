@@ -61,40 +61,53 @@ public class HubConnection {
         this.httpClient = new OkHttpClient.Builder()
                 .cookieJar(new CookieJar() {
                     private List<Cookie> cookieList = new ArrayList<>();
+                    private Lock cookieLock = new ReentrantLock();
 
                     @Override
                     public void saveFromResponse(HttpUrl url, List<Cookie> cookies) {
-                        for (Cookie cookie : cookies) {
-                            boolean replacedCookie = false;
-                            for (int i = 0; i < cookieList.size(); i++) {
-                                Cookie innerCookie = cookieList.get(i);
-                                if (cookie.name().equals(innerCookie.name()) && innerCookie.matches(url)) {
-                                    // We have a new cookie that matches an older one so we replace the older one.
-                                    cookieList.set(i, innerCookie);
-                                    replacedCookie = true;
-                                    break;
+                        cookieLock.lock();
+                        try{
+                            for (Cookie cookie : cookies) {
+                                boolean replacedCookie = false;
+                                for (int i = 0; i < cookieList.size(); i++) {
+                                    Cookie innerCookie = cookieList.get(i);
+                                    if (cookie.name().equals(innerCookie.name()) && innerCookie.matches(url)) {
+                                        // We have a new cookie that matches an older one so we replace the older one.
+                                        cookieList.set(i, innerCookie);
+                                        replacedCookie = true;
+                                        break;
+                                    }
+                                }
+                                if (!replacedCookie) {
+                                    cookieList.add(cookie);
                                 }
                             }
-                            if (!replacedCookie) {
-                                cookieList.add(cookie);
-                            }
+                        } finally {
+                            cookieLock.unlock();
                         }
+
                     }
 
                     @Override
                     public List<Cookie> loadForRequest(HttpUrl url) {
-                        List<Cookie> matchedCookies = new ArrayList<>();
-                        List<Cookie> expiredCookies = new ArrayList<>();
-                        for (Cookie cookie : cookieList) {
-                            if (cookie.expiresAt() < System.currentTimeMillis()) {
-                                expiredCookies.add(cookie);
-                            } else if (cookie.matches(url)) {
-                                matchedCookies.add(cookie);
+                        cookieLock.lock();
+                        try {
+                            List<Cookie> matchedCookies = new ArrayList<>();
+                            List<Cookie> expiredCookies = new ArrayList<>();
+                            for (Cookie cookie : cookieList) {
+                                if (cookie.expiresAt() < System.currentTimeMillis()) {
+                                    expiredCookies.add(cookie);
+                                } else if (cookie.matches(url)) {
+                                    matchedCookies.add(cookie);
+                                }
                             }
-                        }
 
-                        cookieList.removeAll(expiredCookies);
-                        return matchedCookies;
+                            cookieList.removeAll(expiredCookies);
+                            return matchedCookies;
+
+                        } finally {
+                            cookieLock.unlock();
+                        }
                     }
                 })
                 .build();
