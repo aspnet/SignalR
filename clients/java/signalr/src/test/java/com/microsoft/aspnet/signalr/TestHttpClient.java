@@ -5,6 +5,7 @@ package com.microsoft.aspnet.signalr;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -61,4 +62,9 @@ class TestHttpClient extends HttpClient {
 
         return this;
     }
+
+    @Override
+    public WebSocketWrapper createWebSocket(String url, Map<String, String> headers) {
+        throw new RuntimeException("WebSockets isn't supported in testing currently.");
+	}
 }

@@ -4,6 +4,7 @@
 package com.microsoft.aspnet.signalr;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import okhttp3.Call;
@@ -55,5 +56,10 @@ class DefaultHttpClient extends HttpClient {
         });
 
         return responseFuture;
+    }
+
+    @Override
+    public WebSocketWrapper createWebSocket(String url, Map<String, String> headers) {
+        return new OkHttpWebSocketWrapper(url, headers, client);
     }
 }

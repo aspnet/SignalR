@@ -247,7 +247,7 @@ public class HubConnection {
             logger.log(LogLevel.Debug, "Starting HubConnection");
             if (transport == null) {
                 try {
-                    transport = new WebSocketTransport(url, logger, headers);
+                    transport = new WebSocketTransport(url, headers, httpClient, logger);
                 } catch (URISyntaxException e) {
                     throw new RuntimeException(e);
                 }
@@ -270,6 +270,8 @@ public class HubConnection {
                         }
                     });
                 });
+            } catch (RuntimeException e) {
+                throw e;
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -308,12 +310,11 @@ public class HubConnection {
     /**
      * Stops a connection to the server.
      */
-    private void stop(String errorMessage) {
-        HubException hubException = null;
+    private CompletableFuture<Void> stop(String errorMessage) {
         hubConnectionStateLock.lock();
         try {
             if (hubConnectionState == HubConnectionState.DISCONNECTED) {
-                return;
+                return CompletableFuture.completedFuture(null);
             }
 
             if (errorMessage != null) {
@@ -321,32 +322,40 @@ public class HubConnection {
             } else {
                 logger.log(LogLevel.Debug, "Stopping HubConnection.");
             }
-
-            transport.stop();
-            hubConnectionState = HubConnectionState.DISCONNECTED;
-
-            if (errorMessage != null) {
-                hubException = new HubException(errorMessage);
-            }
-            connectionState.cancelOutstandingInvocations(hubException);
-            connectionState = null;
-            logger.log(LogLevel.Information, "HubConnection stopped.");
         } finally {
             hubConnectionStateLock.unlock();
         }
 
-        if (onClosedCallbackList != null) {
-            for (Consumer<Exception> callback : onClosedCallbackList) {
-                callback.accept(hubException);
+        return transport.stop().whenComplete((i, j) -> {
+            HubException hubException = null;
+            hubConnectionStateLock.lock();
+            try {
+                hubConnectionState = HubConnectionState.DISCONNECTED;
+
+                if (errorMessage != null) {
+                    hubException = new HubException(errorMessage);
+                }
+                connectionState.cancelOutstandingInvocations(hubException);
+                connectionState = null;
+                logger.log(LogLevel.Information, "HubConnection stopped.");
+            } finally {
+                hubConnectionStateLock.unlock();
             }
-        }
+
+            // Do not run these callbacks inside the hubConnectionStateLock
+            if (onClosedCallbackList != null) {
+                for (Consumer<Exception> callback : onClosedCallbackList) {
+                    callback.accept(hubException);
+                }
+            }
+        });
     }
 
     /**
      * Stops a connection to the server.
      */
-    public void stop() {
-        stop(null);
+    public CompletableFuture<Void> stop() {
+        return stop(null);
     }
 
     /**

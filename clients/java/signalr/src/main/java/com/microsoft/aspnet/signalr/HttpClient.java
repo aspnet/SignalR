@@ -117,4 +117,6 @@ abstract class HttpClient {
     }
 
     public abstract CompletableFuture<HttpResponse> send(HttpRequest request);
+
+    public abstract WebSocketWrapper createWebSocket(String url, Map<String, String> headers);
 }

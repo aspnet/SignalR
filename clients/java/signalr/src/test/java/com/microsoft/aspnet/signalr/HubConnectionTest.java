@@ -918,4 +918,24 @@ class HubConnectionTest {
         assertNotNull(exception);
         assertEquals("Negotiate redirection limit exceeded.", exception.getCause().getMessage());
     }
+
+    @Test
+    public void afterSuccessfulNegotiateConnectsWithTransport() throws InterruptedException, TimeoutException, Exception {
+        TestHttpClient client = new TestHttpClient().on("POST", "http://example.com/negotiate",
+                (req) -> CompletableFuture.completedFuture(new HttpResponse(200, "",
+                        "{\"connectionId\":\"bVOiRPG8-6YiJ6d7ZcTOVQ\",\""
+                                + "availableTransports\":[{\"transport\":\"WebSockets\",\"transferFormats\":[\"Text\",\"Binary\"]}]}")));
+
+        MockTransport transport = new MockTransport();
+        HttpConnectionOptions options = new HttpConnectionOptions();
+        options.setTransport(transport);
+        HubConnection hubConnection = new HubConnectionBuilder().withUrl("http://example.com", options)
+                .configureHttpClient(client).build();
+
+        hubConnection.start().get(1000, TimeUnit.MILLISECONDS);
+
+        String[] sentMessages = transport.getSentMessages();
+        assertEquals(1, sentMessages.length);
+        assertEquals("{\"protocol\":\"json\",\"version\":1}" + RECORD_SEPARATOR, sentMessages[0]);
+    }
 }
