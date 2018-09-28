@@ -938,4 +938,26 @@ class HubConnectionTest {
         assertEquals(1, sentMessages.length);
         assertEquals("{\"protocol\":\"json\",\"version\":1}" + RECORD_SEPARATOR, sentMessages[0]);
     }
+
+    @Test
+    public void ngeotiateThatReturnsErrorThrowsFromStart() {
+        TestHttpClient client = new TestHttpClient().on("POST", "http://example.com/negotiate",
+                (req) -> CompletableFuture.completedFuture(new HttpResponse(200, "", "{\"error\":\"Test error.\"}")));
+
+        MockTransport transport = new MockTransport();
+        HttpConnectionOptions options = new HttpConnectionOptions();
+        options.setTransport(transport);
+        HubConnection hubConnection = new HubConnectionBuilder().withUrl("http://example.com", options)
+                .configureHttpClient(client).build();
+
+        Exception exception = null;
+        try {
+            hubConnection.start().get(1000, TimeUnit.MILLISECONDS);
+        } catch (Exception ex) {
+            exception = ex;
+        }
+
+        assertNotNull(exception);
+        assertEquals("Test error.", exception.getCause().getCause().getMessage());
+    }
 }

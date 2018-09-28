@@ -187,10 +187,19 @@ public class HubConnection {
         request.setHeaders(this.headers);
 
         return httpClient.post(Negotiate.resolveNegotiateUrl(url), request).thenCompose((response) -> {
-            NegotiateResponse negotiateResponse = new NegotiateResponse(response.getContent());
+            NegotiateResponse negotiateResponse;
+            try {
+                negotiateResponse = new NegotiateResponse(response.getContent());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
 
             if (negotiateResponse.getError() != null) {
-                throw new HubException(negotiateResponse.getError());
+                try {
+                    throw new HubException(negotiateResponse.getError());
+                } catch (HubException e) {
+                    throw new RuntimeException(e);
+                }
             }
 
             if (negotiateResponse.getConnectionId() != null) {
