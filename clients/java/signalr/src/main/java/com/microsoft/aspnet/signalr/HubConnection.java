@@ -278,7 +278,7 @@ public class HubConnection {
             hubConnectionStateLock.unlock();
         }
 
-        return transport.stop().whenComplete((i, j) -> {
+        return transport.stop().whenComplete((i, t) -> {
             HubException hubException = null;
             hubConnectionStateLock.lock();
             try {
@@ -286,6 +286,8 @@ public class HubConnection {
 
                 if (errorMessage != null) {
                     hubException = new HubException(errorMessage);
+                } else if (t != null) {
+                    hubException = new HubException(t.getMessage());
                 }
                 connectionState.cancelOutstandingInvocations(hubException);
                 connectionState = null;

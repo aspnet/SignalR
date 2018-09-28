@@ -73,7 +73,6 @@ class OkHttpWebSocketWrapper extends WebSocketWrapper {
         @Override
         public void onOpen(WebSocket webSocket, Response response) {
             startFuture.complete(null);
-            logger.log(LogLevel.Information, "WebSocket transport connected to: %s", websocketClient.request().url());
         }
 
         @Override
@@ -95,7 +94,7 @@ class OkHttpWebSocketWrapper extends WebSocketWrapper {
 
         @Override
         public void onFailure(WebSocket webSocket, Throwable t, Response response) {
-            logger.log(LogLevel.Error, "Error : %s", t.getMessage());
+            logger.log(LogLevel.Error, "Error: %s.", t.getMessage());
             closeFuture.completeExceptionally(new RuntimeException());
             checkStartFailure();
         }

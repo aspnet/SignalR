@@ -47,7 +47,7 @@ class WebSocketTransport implements Transport {
         this.webSocketClient = client.createWebSocket(this.url.toString(), this.headers);
         this.webSocketClient.setOnReceive((message) -> onReceive(message));
         this.webSocketClient.setOnClose((code, reason) -> onClose(code, reason));
-        return webSocketClient.start().thenRun(() -> logger.log(LogLevel.Information, "WebSocket transport connected to: %s", this.url));
+        return webSocketClient.start().thenRun(() -> logger.log(LogLevel.Information, "WebSocket transport connected to: %s.", this.url));
     }
 
     @Override
@@ -68,11 +68,11 @@ class WebSocketTransport implements Transport {
 
     @Override
     public CompletableFuture<Void> stop() {
-        return webSocketClient.stop().whenComplete((i, j) -> logger.log(LogLevel.Information, "WebSocket connection stopped"));
+        return webSocketClient.stop().whenComplete((i, j) -> logger.log(LogLevel.Information, "WebSocket connection stopped."));
     }
 
     void onClose(int code, String reason) {
         logger.log(LogLevel.Information, "WebSocket connection stopping with " +
-                "code %d and reason '%s'", code, reason);
+                "code %d and reason '%s'.", code, reason);
     }
 }
