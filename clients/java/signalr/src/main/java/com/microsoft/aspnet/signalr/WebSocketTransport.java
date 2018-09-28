@@ -14,8 +14,6 @@ class WebSocketTransport implements Transport {
     private Logger logger;
     private HttpClient client;
     private Map<String, String> headers;
-    private OkHttpClient httpClient;
-    private CompletableFuture<Void> startFuture = new CompletableFuture<>();
 
     private static final String HTTP = "http";
     private static final String HTTPS = "https";
@@ -27,7 +25,6 @@ class WebSocketTransport implements Transport {
         this.logger = logger;
         this.client = client;
         this.headers = headers;
-        this.httpClient = new OkHttpClient();
     }
 
     String getUrl() {
@@ -75,15 +72,7 @@ class WebSocketTransport implements Transport {
     }
 
     void onClose(int code, String reason) {
-        logger.log(LogLevel.Debug, String.format("Websocket connection closed %d %s", code, reason));
-    }
-
-    private void checkStartFailure() {
-        // If the start future hasn't completed yet, then we need to complete it exceptionally.
-        if (!startFuture.isDone()) {
-            String errorMessage = "There was an error starting the Websockets transport.";
-            logger.log(LogLevel.Debug, errorMessage);
-            startFuture.completeExceptionally(new RuntimeException(errorMessage));
-        }
+        logger.log(LogLevel.Information, "WebSocket connection stopping with " +
+                "code %d and reason '%s'", code, reason);
     }
 }

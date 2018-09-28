@@ -6,8 +6,6 @@ package com.microsoft.aspnet.signalr;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
 
 import okhttp3.Headers;
 import okhttp3.OkHttpClient;
@@ -17,19 +15,21 @@ import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
 
 class OkHttpWebSocketWrapper extends WebSocketWrapper {
-    private WebSocket websocket;
+    private WebSocket websocketClient;
     private String url;
     private Map<String, String> headers;
     private OkHttpClient client;
+    private Logger logger;
     private OnReceiveCallBack onReceive;
     private BiConsumer<Integer, String> onClose;
     private CompletableFuture<Void> startFuture = new CompletableFuture<>();
     private CompletableFuture<Void> closeFuture = new CompletableFuture<>();
 
-    public OkHttpWebSocketWrapper(String url, Map<String, String> headers, OkHttpClient client) {
+    public OkHttpWebSocketWrapper(String url, Map<String, String> headers, OkHttpClient client, Logger logger) {
         this.url = url;
         this.headers = headers;
         this.client = client;
+        this.logger = logger;
     }
 
     @Override
@@ -44,19 +44,19 @@ class OkHttpWebSocketWrapper extends WebSocketWrapper {
             .headers(headerBuilder.build())
             .build();
 
-        this.websocket = client.newWebSocket(request, new SignalRWebSocketListener());
+        this.websocketClient = client.newWebSocket(request, new SignalRWebSocketListener());
         return startFuture;
     }
 
     @Override
     public CompletableFuture<Void> stop() {
-        websocket.close(1000, "");
+        websocketClient.close(1000, "HubConnection stopped.");
         return closeFuture;
     }
 
     @Override
     public CompletableFuture<Void> send(String message) {
-        return CompletableFuture.runAsync(() -> websocket.send(message));
+        return CompletableFuture.runAsync(() -> websocketClient.send(message));
     }
 
     @Override
@@ -73,6 +73,7 @@ class OkHttpWebSocketWrapper extends WebSocketWrapper {
         @Override
         public void onOpen(WebSocket webSocket, Response response) {
             startFuture.complete(null);
+            logger.log(LogLevel.Information, "WebSocket transport connected to: %s", websocketClient.request().url());
         }
 
         @Override
@@ -88,14 +89,25 @@ class OkHttpWebSocketWrapper extends WebSocketWrapper {
         @Override
         public void onClosing(WebSocket webSocket, int code, String reason) {
             onClose.accept(code, reason);
-            startFuture.completeExceptionally(new RuntimeException());
             closeFuture.complete(null);
+            checkStartFailure();
         }
 
         @Override
         public void onFailure(WebSocket webSocket, Throwable t, Response response) {
-            startFuture.completeExceptionally(new RuntimeException());
+            logger.log(LogLevel.Error, "Error : %s", t.getMessage());
             closeFuture.completeExceptionally(new RuntimeException());
+            checkStartFailure();
+        }
+
+        private void checkStartFailure() {
+            // If the start future hasn't completed yet, then we need to complete it
+            // exceptionally.
+            if (!startFuture.isDone()) {
+                String errorMessage = "There was an error starting the Websockets transport.";
+                logger.log(LogLevel.Debug, errorMessage);
+                startFuture.completeExceptionally(new RuntimeException(errorMessage));
+            }
         }
     }
 }
