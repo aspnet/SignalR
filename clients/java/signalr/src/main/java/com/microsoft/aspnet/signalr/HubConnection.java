@@ -17,7 +17,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 public class HubConnection {
-    private String url;
+    private String baseUrl;
     private Transport transport;
     private OnReceiveCallBack callback;
     private CallbackMap handlers = new CallbackMap();
@@ -42,7 +42,7 @@ public class HubConnection {
             throw new IllegalArgumentException("A valid url is required.");
         }
 
-        this.url = url;
+        this.baseUrl = url;
         this.protocol = new JsonHubProtocol();
 
         if (logger != null) {
@@ -127,7 +127,7 @@ public class HubConnection {
         };
     }
 
-    private CompletableFuture<NegotiateResponse> handleNegotiate() throws IOException, InterruptedException, ExecutionException {
+    private CompletableFuture<NegotiateResponse> handleNegotiate(String url) throws IOException, InterruptedException, ExecutionException {
         HttpRequest request = new HttpRequest();
         request.setHeaders(this.headers);
 
@@ -156,7 +156,7 @@ public class HubConnection {
             }
 
             if (negotiateResponse.getRedirectUrl() != null) {
-                this.url = negotiateResponse.getRedirectUrl();
+                url = negotiateResponse.getRedirectUrl();
             }
 
             return CompletableFuture.completedFuture(negotiateResponse);
@@ -181,6 +181,7 @@ public class HubConnection {
         if (hubConnectionState != HubConnectionState.DISCONNECTED) {
             return CompletableFuture.completedFuture(null);
         }
+        String url = baseUrl;
 
         CompletableFuture<NegotiateResponse> negotiate = null;
         if (!skipNegotiate) {
@@ -263,6 +264,7 @@ public class HubConnection {
      * Stops a connection to the server.
      */
     private CompletableFuture<Void> stop(String errorMessage) {
+        HubException hubException = null;
         hubConnectionStateLock.lock();
         try {
             if (hubConnectionState == HubConnectionState.DISCONNECTED) {
@@ -303,6 +305,8 @@ public class HubConnection {
                 }
             }
         });
+
+        return CompletableFuture.completedFuture(null);
     }
 
     /**
