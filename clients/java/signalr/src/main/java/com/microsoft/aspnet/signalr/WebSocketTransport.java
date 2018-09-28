@@ -12,7 +12,7 @@ import okhttp3.*;
 
 class WebSocketTransport implements Transport {
     private WebSocket websocketClient;
-    private SignalRWebSocketListener webSocketListener = new SignalRWebSocketListener();
+    private SignalRWebSocketListener webSocketListener;
     private OnReceiveCallBack onReceiveCallBack;
     private URI url;
     private Logger logger;
@@ -56,6 +56,7 @@ class WebSocketTransport implements Transport {
     @Override
     public CompletableFuture start() {
             logger.log(LogLevel.Debug, "Starting Websocket connection.");
+            webSocketListener = new SignalRWebSocketListener();
             websocketClient = createUpdatedWebSocket(webSocketListener);
             return startFuture;
     }
@@ -116,7 +117,7 @@ class WebSocketTransport implements Transport {
         @Override
         public void onClosing(WebSocket webSocket, int code, String reason) {
             logger.log(LogLevel.Information, "WebSocket connection stopping with " +
-                    "code %d and reason %d", code, reason);
+                    "code %d and reason %s", code, reason);
             // If the start future hasn't completed yet, then we need to complete it exceptionally.
             checkStartFailure();
         }

@@ -85,7 +85,7 @@ public class HubConnection {
                     public List<Cookie> loadForRequest(HttpUrl url) {
                         List<Cookie> matchedCookies = new ArrayList<>();
                         List<Cookie> expiredCookies = new ArrayList<>();
-                        for (Cookie cookie: cookieList) {
+                        for (Cookie cookie : cookieList) {
                             if (cookie.expiresAt() < System.currentTimeMillis()) {
                                 expiredCookies.add(cookie);
                             } else if (cookie.matches(url)) {
