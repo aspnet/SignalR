@@ -50,8 +50,10 @@ public class HubConnection {
         } else {
             this.logger = new NullLogger();
         }
-        this.httpClient = client;
-        if (client == null) {
+
+        if (client != null) {
+            this.httpClient = client;
+        } else {
             this.httpClient = new DefaultHttpClient(this.logger);
         }
 
@@ -192,6 +194,8 @@ public class HubConnection {
         }
 
         return negotiate.thenCompose((response) -> {
+            // If we didn't skip negotiate and got a null response then exit start because we
+            // are probably disconnected
             if (response == null && !skipNegotiate) {
                 return CompletableFuture.completedFuture(null);
             }

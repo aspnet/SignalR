@@ -908,14 +908,7 @@ class HubConnectionTest {
         HubConnection hubConnection = new HubConnectionBuilder().withUrl("http://example.com")
                 .configureHttpClient(client).build();
 
-        Exception exception = null;
-        try {
-            hubConnection.start().get(1000, TimeUnit.MILLISECONDS);
-        } catch (ExecutionException ex) {
-            exception = ex;
-        }
-
-        assertNotNull(exception);
+        ExecutionException exception = assertThrows(ExecutionException.class, () -> hubConnection.start().get(1000, TimeUnit.MILLISECONDS));
         assertEquals("Negotiate redirection limit exceeded.", exception.getCause().getMessage());
     }
 
@@ -940,7 +933,7 @@ class HubConnectionTest {
     }
 
     @Test
-    public void ngeotiateThatReturnsErrorThrowsFromStart() {
+    public void negotiateThatReturnsErrorThrowsFromStart() {
         TestHttpClient client = new TestHttpClient().on("POST", "http://example.com/negotiate",
                 (req) -> CompletableFuture.completedFuture(new HttpResponse(200, "", "{\"error\":\"Test error.\"}")));
 
@@ -950,14 +943,27 @@ class HubConnectionTest {
         HubConnection hubConnection = new HubConnectionBuilder().withUrl("http://example.com", options)
                 .configureHttpClient(client).build();
 
-        Exception exception = null;
-        try {
-            hubConnection.start().get(1000, TimeUnit.MILLISECONDS);
-        } catch (Exception ex) {
-            exception = ex;
-        }
-
-        assertNotNull(exception);
+        ExecutionException exception = assertThrows(ExecutionException.class, () -> hubConnection.start().get(1000, TimeUnit.MILLISECONDS));
         assertEquals("Test error.", exception.getCause().getCause().getMessage());
+    }
+
+    @Test
+    public void negotiateRedirectIsFollowed()
+            throws InterruptedException, ExecutionException, TimeoutException, Exception {
+        TestHttpClient client = new TestHttpClient().on("POST", "http://example.com/negotiate",
+                (req) -> CompletableFuture.completedFuture(new HttpResponse(200, "", "{\"url\":\"http://testexample.com/\"}")))
+                .on("POST", "http://testexample.com/negotiate",
+                (req) -> CompletableFuture.completedFuture(new HttpResponse(200, "", "{\"connectionId\":\"bVOiRPG8-6YiJ6d7ZcTOVQ\",\""
+                + "availableTransports\":[{\"transport\":\"WebSockets\",\"transferFormats\":[\"Text\",\"Binary\"]}]}")));
+
+        MockTransport transport = new MockTransport();
+        HttpConnectionOptions options = new HttpConnectionOptions();
+        options.setTransport(transport);
+        HubConnection hubConnection = new HubConnectionBuilder().withUrl("http://example.com", options)
+                .configureHttpClient(client).build();
+
+        hubConnection.start().get(1000, TimeUnit.MILLISECONDS);
+        assertEquals(HubConnectionState.CONNECTED, hubConnection.getConnectionState());
+        hubConnection.stop();
     }
 }
