@@ -3,10 +3,7 @@
 
 package com.microsoft.aspnet.signalr;
 
-public class HubException extends Exception {
-    public HubException() {
-    }
-
+public class HubException extends RuntimeException {
     public HubException(String errorMessage) {
         super(errorMessage);
     }

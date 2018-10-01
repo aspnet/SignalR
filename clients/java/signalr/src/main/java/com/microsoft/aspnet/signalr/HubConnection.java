@@ -242,11 +242,7 @@ public class HubConnection {
 
             if (response.getRedirectUrl() == null) {
                 if (!response.getAvailableTransports().contains("WebSockets")) {
-                    try {
-                        throw new HubException("There were no compatible transports on the server.");
-                    } catch (HubException e) {
-                        throw new RuntimeException(e);
-                    }
+                    throw new HubException("There were no compatible transports on the server.");
                 }
                 return CompletableFuture.completedFuture(response);
             }
