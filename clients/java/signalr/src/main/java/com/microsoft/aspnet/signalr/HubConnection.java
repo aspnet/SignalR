@@ -143,20 +143,8 @@ public class HubConnection {
                 throw new RuntimeException(negotiateResponse.getError());
             }
 
-            if (negotiateResponse.getConnectionId() != null) {
-                if (url.contains("?")) {
-                    url = url + "&id=" + negotiateResponse.getConnectionId();
-                } else {
-                    url = url + "?id=" + negotiateResponse.getConnectionId();
-                }
-            }
-
             if (negotiateResponse.getAccessToken() != null) {
                 this.headers.put("Authorization", "Bearer " + negotiateResponse.getAccessToken());
-            }
-
-            if (negotiateResponse.getRedirectUrl() != null) {
-                url = negotiateResponse.getRedirectUrl();
             }
 
             return CompletableFuture.completedFuture(negotiateResponse);
@@ -181,19 +169,18 @@ public class HubConnection {
         if (hubConnectionState != HubConnectionState.DISCONNECTED) {
             return CompletableFuture.completedFuture(null);
         }
-        String url = baseUrl;
 
-        CompletableFuture<NegotiateResponse> negotiate = null;
+        CompletableFuture<String> negotiate = null;
         if (!skipNegotiate) {
-            negotiate = startNegotiate(0);
+            negotiate = startNegotiate(0, baseUrl);
         } else {
             negotiate = CompletableFuture.completedFuture(null);
         }
 
-        return negotiate.thenCompose((response) -> {
+        return negotiate.thenCompose((url) -> {
             // If we didn't skip negotiate and got a null response then exit start because we
             // are probably disconnected
-            if (response == null && !skipNegotiate) {
+            if (url == null && !skipNegotiate) {
                 return CompletableFuture.completedFuture(null);
             }
 
@@ -231,12 +218,12 @@ public class HubConnection {
         });
     }
 
-    private CompletableFuture<NegotiateResponse> startNegotiate(int negotiateAttempts) throws IOException, InterruptedException, ExecutionException {
+    private CompletableFuture<String> startNegotiate(int negotiateAttempts, String url) throws IOException, InterruptedException, ExecutionException {
         if (hubConnectionState != HubConnectionState.DISCONNECTED) {
             return CompletableFuture.completedFuture(null);
         }
 
-        return handleNegotiate().thenCompose((response) -> {
+        return handleNegotiate(url).thenCompose((response) -> {
             if (response.getRedirectUrl() != null && negotiateAttempts >= MAX_NEGOTIATE_ATTEMPTS) {
                 throw new RuntimeException("Negotiate redirection limit exceeded.");
             }
@@ -249,11 +236,21 @@ public class HubConnection {
                         throw new RuntimeException(e);
                     }
                 }
-                return CompletableFuture.completedFuture(response);
+
+                String finalUrl = url;
+                if (response.getConnectionId() != null) {
+                    if (url.contains("?")) {
+                        finalUrl = url + "&id=" + response.getConnectionId();
+                    } else {
+                        finalUrl = url + "?id=" + response.getConnectionId();
+                    }
+                }
+
+                return CompletableFuture.completedFuture(finalUrl);
             }
 
             try {
-                return startNegotiate(negotiateAttempts + 1);
+                return startNegotiate(negotiateAttempts + 1, response.getRedirectUrl());
             } catch (IOException | InterruptedException | ExecutionException e) {
                 throw new RuntimeException(e);
             }
@@ -264,7 +261,6 @@ public class HubConnection {
      * Stops a connection to the server.
      */
     private CompletableFuture<Void> stop(String errorMessage) {
-        HubException hubException = null;
         hubConnectionStateLock.lock();
         try {
             if (hubConnectionState == HubConnectionState.DISCONNECTED) {
@@ -305,8 +301,6 @@ public class HubConnection {
                 }
             }
         });
-
-        return CompletableFuture.completedFuture(null);
     }
 
     /**
