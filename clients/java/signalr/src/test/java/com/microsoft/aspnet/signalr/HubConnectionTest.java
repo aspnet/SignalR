@@ -944,7 +944,7 @@ class HubConnectionTest {
                 .configureHttpClient(client).build();
 
         ExecutionException exception = assertThrows(ExecutionException.class, () -> hubConnection.start().get(1000, TimeUnit.MILLISECONDS));
-        assertEquals("Test error.", exception.getCause().getCause().getMessage());
+        assertEquals("Test error.", exception.getCause().getMessage());
     }
 
     @Test

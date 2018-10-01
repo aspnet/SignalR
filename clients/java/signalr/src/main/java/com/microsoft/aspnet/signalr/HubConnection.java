@@ -140,11 +140,7 @@ public class HubConnection {
             }
 
             if (negotiateResponse.getError() != null) {
-                try {
-                    throw new HubException(negotiateResponse.getError());
-                } catch (HubException e) {
-                    throw new RuntimeException(e);
-                }
+                throw new RuntimeException(negotiateResponse.getError());
             }
 
             if (negotiateResponse.getConnectionId() != null) {

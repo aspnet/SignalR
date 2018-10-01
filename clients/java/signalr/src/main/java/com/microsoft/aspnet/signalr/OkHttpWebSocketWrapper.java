@@ -56,7 +56,8 @@ class OkHttpWebSocketWrapper extends WebSocketWrapper {
 
     @Override
     public CompletableFuture<Void> send(String message) {
-        return CompletableFuture.runAsync(() -> websocketClient.send(message));
+        websocketClient.send(message);
+        return CompletableFuture.completedFuture(null);
     }
 
     @Override
