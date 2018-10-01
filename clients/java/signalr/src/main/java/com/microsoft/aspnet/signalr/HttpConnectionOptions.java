@@ -3,31 +3,28 @@
 
 package com.microsoft.aspnet.signalr;
 
+import java.util.function.Supplier;
+
 public class HttpConnectionOptions {
-    private String url;
     private Transport transport;
     private LogLevel loglevel;
-
     private Logger logger;
     private boolean skipNegotiate;
+    private Supplier<String> accessTokenFactory;
+    private HttpClient client;
 
     public HttpConnectionOptions() {}
 
-    public HttpConnectionOptions(String url, Transport transport, LogLevel logLevel, boolean skipNegotiate) {
-        this.url = url;
+    public HttpConnectionOptions(Transport transport, LogLevel logLevel, boolean skipNegotiate) {
         this.transport = transport;
         this.skipNegotiate = skipNegotiate;
         this.loglevel = logLevel;
     }
 
-    public HttpConnectionOptions(String url, Transport transport, Logger logger, boolean skipNegotiate) {
-        this.url = url;
+    public HttpConnectionOptions(Transport transport, Logger logger, boolean skipNegotiate) {
         this.transport = transport;
         this.skipNegotiate = skipNegotiate;
         this.logger = logger;
-    }
-    public void setUrl(String url) {
-        this.url = url;
     }
 
     public void setTransport(Transport transport) {
@@ -40,10 +37,6 @@ public class HttpConnectionOptions {
 
     public void setSkipNegotiate(boolean skipNegotiate) {
         this.skipNegotiate = skipNegotiate;
-    }
-
-    public String getUrl() {
-        return url;
     }
 
     public Transport getTransport() {
@@ -64,5 +57,21 @@ public class HttpConnectionOptions {
 
     public void setLogger(Logger logger) {
         this.logger = logger;
+    }
+
+    public void setAccessTokenFactory(Supplier<String> accessTokenFactory) {
+        this.accessTokenFactory = accessTokenFactory;
+    }
+
+    public Supplier<String> getAccessTokenFactory() {
+        return accessTokenFactory;
+    }
+
+    void setHttpClient(HttpClient client) {
+        this.client = client;
+    }
+
+    HttpClient getHttpClient() {
+        return client;
     }
 }
