@@ -144,7 +144,7 @@ class JsonHubProtocol implements HubProtocol {
 
     private ArrayList<Object> bindArguments(JsonArray argumentsToken, List<Class<?>> paramTypes) {
         if (argumentsToken.size() != paramTypes.size()) {
-            throw new RuntimeException(String.format("Invocation provides %d argument(s) but target expects %d.", argumentsToken.size(), paramTypes.size()));
+            throw new HubException(String.format("Invocation provides %d argument(s) but target expects %d.", argumentsToken.size(), paramTypes.size()));
         }
 
         ArrayList<Object> arguments = null;
@@ -173,7 +173,7 @@ class JsonHubProtocol implements HubProtocol {
         }
 
         if (paramCount != argCount) {
-            throw new RuntimeException(String.format("Invocation provides %d argument(s) but target expects %d.", argCount, paramCount));
+            throw new HubException(String.format("Invocation provides %d argument(s) but target expects %d.", argCount, paramCount));
         }
 
         reader.endArray();

@@ -233,7 +233,7 @@ class JsonHubProtocolTest {
         String stringifiedMessage = "{\"type\":1,\"target\":\"test\",\"arguments\":[42, 24]}\u001E";
         TestBinder binder = new TestBinder(new InvocationMessage(null, "test", new Object[] { 42 }));
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> jsonHubProtocol.parseMessages(stringifiedMessage, binder));
+        RuntimeException exception = assertThrows(HubException.class, () -> jsonHubProtocol.parseMessages(stringifiedMessage, binder));
         assertEquals("Invocation provides 2 argument(s) but target expects 1.", exception.getMessage());
     }
 
@@ -242,7 +242,7 @@ class JsonHubProtocolTest {
         String stringifiedMessage = "{\"type\":1,\"target\":\"test\",\"arguments\":[42]}\u001E";
         TestBinder binder = new TestBinder(new InvocationMessage(null, "test", new Object[] { 42, 24 }));
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> jsonHubProtocol.parseMessages(stringifiedMessage, binder));
+        RuntimeException exception = assertThrows(HubException.class, () -> jsonHubProtocol.parseMessages(stringifiedMessage, binder));
         assertEquals("Invocation provides 1 argument(s) but target expects 2.", exception.getMessage());
     }
 
