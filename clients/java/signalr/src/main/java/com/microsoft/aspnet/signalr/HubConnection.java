@@ -174,13 +174,11 @@ public class HubConnection {
         if (!skipNegotiate) {
             negotiate = startNegotiate(0, baseUrl);
         } else {
-            negotiate = CompletableFuture.completedFuture(null);
+            negotiate = CompletableFuture.completedFuture(baseUrl);
         }
 
         return negotiate.thenCompose((url) -> {
-            // If we didn't skip negotiate and got a null response then exit start because we
-            // are probably disconnected
-            if (url == null && !skipNegotiate) {
+            if (url == null) {
                 return CompletableFuture.completedFuture(null);
             }
 
