@@ -132,7 +132,7 @@ public class HubConnection {
         };
     }
 
-    private CompletableFuture<NegotiateResponse> handleNegotiate(String url) throws IOException, InterruptedException, ExecutionException {
+    private CompletableFuture<NegotiateResponse> handleNegotiate(String url) {
         HttpRequest request = new HttpRequest();
         request.setHeaders(this.headers);
 
@@ -190,7 +190,7 @@ public class HubConnection {
                     }
                 });
 
-        CompletableFuture<NegotiateResponse> negotiate = null;
+        CompletableFuture<String> negotiate = null;
         if (!skipNegotiate) {
             negotiate = tokenFuture.thenCompose((v) -> startNegotiate(baseUrl, 0));
         } else {
@@ -228,7 +228,7 @@ public class HubConnection {
         });
     }
 
-    private CompletableFuture<String> startNegotiate(String url, int negotiateAttempts) throws IOException, InterruptedException, ExecutionException {
+    private CompletableFuture<String> startNegotiate(String url, int negotiateAttempts) {
         if (hubConnectionState != HubConnectionState.DISCONNECTED) {
             return CompletableFuture.completedFuture(null);
         }
@@ -259,11 +259,7 @@ public class HubConnection {
                 return CompletableFuture.completedFuture(finalUrl);
             }
 
-            try {
-                return startNegotiate(response.getRedirectUrl(), negotiateAttempts + 1);
-            } catch (IOException | InterruptedException | ExecutionException e) {
-                throw new RuntimeException(e);
-            }
+            return startNegotiate(response.getRedirectUrl(), negotiateAttempts + 1);
         });
     }
 

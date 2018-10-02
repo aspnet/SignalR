@@ -1025,8 +1025,11 @@ class HubConnectionTest {
 
     @Test
     public void hubConnectionCanBeStartedAfterBeingStopped() throws Exception {
-        MockTransport mockTransport = new MockTransport();
-        HubConnection hubConnection = new HubConnection("http://example.com", mockTransport, new NullLogger(), true, new TestHttpClient());
+        MockTransport transport = new MockTransport();
+        HttpConnectionOptions options = new HttpConnectionOptions();
+        options.setTransport(transport);
+        options.setSkipNegotiate(true);
+        HubConnection hubConnection = new HubConnectionBuilder().withUrl("http://example.com", options).build();
 
         hubConnection.start().get(1000, TimeUnit.MILLISECONDS);
         assertEquals(HubConnectionState.CONNECTED, hubConnection.getConnectionState());
@@ -1047,7 +1050,10 @@ class HubConnectionTest {
                 .on("POST", "http://testexample.com/negotiate", (req) -> CompletableFuture
                     .completedFuture(new HttpResponse(200, "", "{\"connectionId\":\"bVOiRPG8-6YiJ6d7ZcTOVQ\",\""
                         + "availableTransports\":[{\"transport\":\"WebSockets\",\"transferFormats\":[\"Text\",\"Binary\"]}]}")));
-        HubConnection hubConnection = new HubConnection("http://example.com", mockTransport, new NullLogger(), false, client);
+        HttpConnectionOptions options = new HttpConnectionOptions();
+        options.setTransport(mockTransport);
+        options.setHttpClient(client);
+        HubConnection hubConnection = new HubConnectionBuilder().withUrl("http://example.com", options).build();
 
         hubConnection.start().get(1000, TimeUnit.MILLISECONDS);
         assertEquals(HubConnectionState.CONNECTED, hubConnection.getConnectionState());
