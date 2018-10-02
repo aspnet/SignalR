@@ -948,8 +948,7 @@ class HubConnectionTest {
     }
 
     @Test
-    public void negotiateRedirectIsFollowed()
-            throws InterruptedException, ExecutionException, TimeoutException, Exception {
+    public void negotiateRedirectIsFollowed() throws Exception {
         TestHttpClient client = new TestHttpClient().on("POST", "http://example.com/negotiate",
                 (req) -> CompletableFuture.completedFuture(new HttpResponse(200, "", "{\"url\":\"http://testexample.com/\"}")))
                 .on("POST", "http://testexample.com/negotiate",
@@ -968,8 +967,7 @@ class HubConnectionTest {
     }
 
     @Test
-    public void hubConnectionCanBeStartedAfterBeingStopped()
-            throws InterruptedException, ExecutionException, TimeoutException, Exception {
+    public void hubConnectionCanBeStartedAfterBeingStopped() throws Exception {
         MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport, new NullLogger(), true, new TestHttpClient());
 
@@ -984,8 +982,7 @@ class HubConnectionTest {
     }
 
     @Test
-    public void hubConnectionCanBeStartedAfterBeingStoppedAndRedirected()
-            throws InterruptedException, ExecutionException, TimeoutException, Exception {
+    public void hubConnectionCanBeStartedAfterBeingStoppedAndRedirected() throws Exception {
         MockTransport mockTransport = new MockTransport();
         TestHttpClient client = new TestHttpClient()
                 .on("POST", "http://example.com/negotiate", (req) -> CompletableFuture
