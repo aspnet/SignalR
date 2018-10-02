@@ -1001,4 +1001,21 @@ class HubConnectionTest {
         hubConnection.stop().get(1000, TimeUnit.MILLISECONDS);
         assertEquals(HubConnectionState.DISCONNECTED, hubConnection.getConnectionState());
     }
+
+    @Test
+    public void non200FromNegotiateThrowsError() {
+        TestHttpClient client = new TestHttpClient()
+                .on("POST", "http://example.com/negotiate",
+                        (req) -> CompletableFuture
+                                .completedFuture(new HttpResponse(500, "", "")));
+
+        MockTransport transport = new MockTransport();
+        HttpConnectionOptions options = new HttpConnectionOptions();
+        options.setTransport(transport);
+        HubConnection hubConnection = new HubConnectionBuilder().withUrl("http://example.com", options)
+                .configureHttpClient(client).build();
+
+        ExecutionException exception = assertThrows(ExecutionException.class, () -> hubConnection.start().get(1000, TimeUnit.MILLISECONDS));
+        assertEquals("Unexpected status code returned from negotiate 500.", exception.getCause().getMessage());
+    }
 }
