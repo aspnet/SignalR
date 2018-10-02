@@ -33,6 +33,7 @@ public class HubConnection {
     private Map<String, String> headers = new HashMap<>();
     private ConnectionState connectionState = null;
     private HttpClient httpClient;
+    private String stopError;
 
     private static ArrayList<Class<?>> emptyArray = new ArrayList<>();
     private static int MAX_NEGOTIATE_ATTEMPTS = 100;
@@ -194,6 +195,7 @@ public class HubConnection {
                     }
                 });
 
+        stopError = null;        
         CompletableFuture<String> negotiate = null;
         if (!skipNegotiate) {
             negotiate = tokenFuture.thenCompose((v) -> startNegotiate(baseUrl, 0));
@@ -208,6 +210,7 @@ public class HubConnection {
             }
 
             transport.setOnReceive(this.callback);
+            transport.setOnClose((message) -> stopConnection(message));
 
             try {
                 return transport.start(url).thenCompose((future) -> {
@@ -281,35 +284,13 @@ public class HubConnection {
                 logger.log(LogLevel.Error, "HubConnection disconnected with an error: %s.", errorMessage);
             } else {
                 logger.log(LogLevel.Debug, "Stopping HubConnection.");
+                stopError = errorMessage;
             }
         } finally {
             hubConnectionStateLock.unlock();
         }
 
-        return transport.stop().whenComplete((i, t) -> {
-            HubException hubException = null;
-            hubConnectionStateLock.lock();
-            try {
-                if (errorMessage != null) {
-                    hubException = new HubException(errorMessage);
-                } else if (t != null) {
-                    hubException = new HubException(t.getMessage());
-                }
-                connectionState.cancelOutstandingInvocations(hubException);
-                connectionState = null;
-                logger.log(LogLevel.Information, "HubConnection stopped.");
-                hubConnectionState = HubConnectionState.DISCONNECTED;
-            } finally {
-                hubConnectionStateLock.unlock();
-            }
-
-            // Do not run these callbacks inside the hubConnectionStateLock
-            if (onClosedCallbackList != null) {
-                for (Consumer<Exception> callback : onClosedCallbackList) {
-                    callback.accept(hubException);
-                }
-            }
-        });
+        return transport.stop();
     }
 
     /**
@@ -317,6 +298,36 @@ public class HubConnection {
      */
     public CompletableFuture<Void> stop() {
         return stop(null);
+    }
+
+    private void stopConnection(String errorMessage) {
+        HubException hubException = null;
+        hubConnectionStateLock.lock();
+        try {
+            hubConnectionState = HubConnectionState.DISCONNECTED;
+
+            // errorMessage gets passed in from the transport. An already existing stopError value
+            // should take precedence.
+            if (stopError != null) {
+                errorMessage = stopError;
+            }
+            if (errorMessage != null) {
+                hubException = new HubException(errorMessage);
+                logger.log(LogLevel.Error, "HubConnection disconnected with an error %s.", errorMessage);
+            }
+            connectionState.cancelOutstandingInvocations(hubException);
+            connectionState = null;
+            logger.log(LogLevel.Information, "HubConnection stopped.");
+        } finally {
+            hubConnectionStateLock.unlock();
+        }
+
+        // Do not run these callbacks inside the hubConnectionStateLock
+        if (onClosedCallbackList != null) {
+            for (Consumer<Exception> callback : onClosedCallbackList) {
+                callback.accept(hubException);
+            }
+        }
     }
 
     /**

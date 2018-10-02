@@ -30,6 +30,34 @@ class HubConnectionTest {
     }
 
     @Test
+    public void transportCloseTriggersStopInHubConnection() throws Exception {
+        MockTransport mockTransport = new MockTransport();
+        HubConnection hubConnection = new HubConnection("http://example.com", mockTransport, new NullLogger(), true, new TestHttpClient());
+        hubConnection.start();
+        assertEquals(HubConnectionState.CONNECTED, hubConnection.getConnectionState());
+        mockTransport.stop();
+
+        assertEquals(HubConnectionState.DISCONNECTED, hubConnection.getConnectionState());
+    }
+
+    @Test
+    public void transportCloseWithErrorTriggersStopInHubConnection() throws Exception {
+        MockTransport mockTransport = new MockTransport();
+        HubConnection hubConnection = new HubConnection("http://example.com", mockTransport, new NullLogger(), true, new TestHttpClient());
+        String errorMessage = "Example transport error.";
+
+        hubConnection.onClosed((error) -> {
+            assertEquals(error.getMessage(), errorMessage);
+        });
+
+        hubConnection.start();
+        assertEquals(HubConnectionState.CONNECTED, hubConnection.getConnectionState());
+        mockTransport.stopWithError(errorMessage);
+
+        assertEquals(HubConnectionState.DISCONNECTED, hubConnection.getConnectionState());
+    }
+
+    @Test
     public void constructHubConnectionWithHttpConnectionOptions() throws Exception {
         Transport mockTransport = new MockTransport();
         HttpConnectionOptions options = new HttpConnectionOptions();
