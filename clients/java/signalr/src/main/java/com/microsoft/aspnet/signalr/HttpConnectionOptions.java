@@ -11,7 +11,7 @@ public class HttpConnectionOptions {
     private LogLevel loglevel;
     private Logger logger;
     private boolean skipNegotiate;
-    private Supplier<CompletableFuture<String>> accessTokenFactory;
+    private Supplier<CompletableFuture<String>> accessTokenProvider;
     private HttpClient client;
 
     public HttpConnectionOptions() {}
@@ -60,12 +60,12 @@ public class HttpConnectionOptions {
         this.logger = logger;
     }
 
-    public void setAccessTokenFactory(Supplier<CompletableFuture<String>> accessTokenFactory) {
-        this.accessTokenFactory = accessTokenFactory;
+    public void setAccessTokenProvider(Supplier<CompletableFuture<String>> accessTokenProvider) {
+        this.accessTokenProvider = accessTokenProvider;
     }
 
-    public Supplier<CompletableFuture<String>> getAccessTokenFactory() {
-        return accessTokenFactory;
+    public Supplier<CompletableFuture<String>> getAccessTokenProvider() {
+        return accessTokenProvider;
     }
 
     void setHttpClient(HttpClient client) {

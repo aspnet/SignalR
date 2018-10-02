@@ -972,7 +972,7 @@ class HubConnectionTest {
     }
 
     @Test
-    public void accessTokenFactoryIsUsedForNegotiate()
+    public void accessTokenProviderIsUsedForNegotiate()
             throws InterruptedException, ExecutionException, TimeoutException, Exception {
         AtomicReference<String> token = new AtomicReference<>();
         TestHttpClient client = new TestHttpClient()
@@ -988,7 +988,7 @@ class HubConnectionTest {
         HttpConnectionOptions options = new HttpConnectionOptions();
         options.setTransport(transport);
         options.setHttpClient(client);
-        options.setAccessTokenFactory(() -> CompletableFuture.completedFuture("secretToken"));
+        options.setAccessTokenProvider(() -> CompletableFuture.completedFuture("secretToken"));
         HubConnection hubConnection = new HubConnectionBuilder().withUrl("http://example.com", options).build();
 
         hubConnection.start().get(1000, TimeUnit.MILLISECONDS);
@@ -998,7 +998,7 @@ class HubConnectionTest {
     }
 
     @Test
-    public void accessTokenFactoryIsOverriddenFromRedirectNegotiate()
+    public void accessTokenProviderIsOverriddenFromRedirectNegotiate()
             throws InterruptedException, ExecutionException, TimeoutException, Exception {
         AtomicReference<String> token = new AtomicReference<>();
         TestHttpClient client = new TestHttpClient()
@@ -1014,7 +1014,7 @@ class HubConnectionTest {
         HttpConnectionOptions options = new HttpConnectionOptions();
         options.setTransport(transport);
         options.setHttpClient(client);
-        options.setAccessTokenFactory(() -> CompletableFuture.completedFuture("secretToken"));
+        options.setAccessTokenProvider(() -> CompletableFuture.completedFuture("secretToken"));
         HubConnection hubConnection = new HubConnectionBuilder().withUrl("http://example.com", options).build();
 
         hubConnection.start().get(1000, TimeUnit.MILLISECONDS);

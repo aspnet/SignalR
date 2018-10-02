@@ -29,7 +29,7 @@ public class HubConnection {
     private Logger logger;
     private List<Consumer<Exception>> onClosedCallbackList;
     private boolean skipNegotiate = false;
-    private Supplier<CompletableFuture<String>> accessTokenFactory;
+    private Supplier<CompletableFuture<String>> accessTokenProvider;
     private Map<String, String> headers = new HashMap<>();
     private ConnectionState connectionState = null;
     private HttpClient httpClient;
@@ -45,10 +45,10 @@ public class HubConnection {
         this.baseUrl = url;
         this.protocol = new JsonHubProtocol();
 
-        if (options.getAccessTokenFactory() != null) {
-            this.accessTokenFactory = options.getAccessTokenFactory();
+        if (options.getAccessTokenProvider() != null) {
+            this.accessTokenProvider = options.getAccessTokenProvider();
         } else {
-            this.accessTokenFactory = () -> CompletableFuture.completedFuture(null);
+            this.accessTokenProvider = () -> CompletableFuture.completedFuture(null);
         }
 
         if (options.getLogger() != null) {
@@ -149,12 +149,12 @@ public class HubConnection {
             }
 
             if (negotiateResponse.getAccessToken() != null) {
-                this.accessTokenFactory = () -> CompletableFuture.completedFuture(negotiateResponse.getAccessToken());
+                this.accessTokenProvider = () -> CompletableFuture.completedFuture(negotiateResponse.getAccessToken());
                 String token = "";
                 try {
                     // We know the future is already completed in this case
                     // It's fine to call get() on it.
-                    token = this.accessTokenFactory.get().get();
+                    token = this.accessTokenProvider.get().get();
                 } catch (InterruptedException | ExecutionException e) {
                 }
                 this.headers.put("Authorization", "Bearer " + token);
@@ -183,7 +183,7 @@ public class HubConnection {
             return CompletableFuture.completedFuture(null);
         }
 
-        CompletableFuture<Void> tokenFuture = accessTokenFactory.get()
+        CompletableFuture<Void> tokenFuture = accessTokenProvider.get()
                 .thenAccept((token) -> {
                     if (token != null) {
                         this.headers.put("Authorization", "Bearer " + token);
