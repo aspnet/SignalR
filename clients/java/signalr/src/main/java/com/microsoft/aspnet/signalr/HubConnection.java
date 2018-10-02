@@ -198,11 +198,7 @@ public class HubConnection {
 
             logger.log(LogLevel.Debug, "Starting HubConnection");
             if (transport == null) {
-                try {
                     transport = new WebSocketTransport(url, headers, httpClient, logger);
-                } catch (URISyntaxException e) {
-                    throw new RuntimeException(e);
-                }
             }
 
             transport.setOnReceive(this.callback);
