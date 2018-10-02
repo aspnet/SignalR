@@ -972,6 +972,58 @@ class HubConnectionTest {
     }
 
     @Test
+    public void accessTokenFactoryIsUsedForNegotiate()
+            throws InterruptedException, ExecutionException, TimeoutException, Exception {
+        AtomicReference<String> token = new AtomicReference<>();
+        TestHttpClient client = new TestHttpClient()
+                .on("POST", "http://example.com/negotiate",
+                        (req) -> {
+                            token.set(req.getHeaders().get("Authorization"));
+                            return CompletableFuture
+                                .completedFuture(new HttpResponse(200, "", "{\"connectionId\":\"bVOiRPG8-6YiJ6d7ZcTOVQ\",\""
+                                + "availableTransports\":[{\"transport\":\"WebSockets\",\"transferFormats\":[\"Text\",\"Binary\"]}]}"));
+                        });
+
+        MockTransport transport = new MockTransport();
+        HttpConnectionOptions options = new HttpConnectionOptions();
+        options.setTransport(transport);
+        options.setHttpClient(client);
+        options.setAccessTokenFactory(() -> "secretToken");
+        HubConnection hubConnection = new HubConnectionBuilder().withUrl("http://example.com", options).build();
+
+        hubConnection.start().get(1000, TimeUnit.MILLISECONDS);
+        assertEquals(HubConnectionState.CONNECTED, hubConnection.getConnectionState());
+        hubConnection.stop();
+        assertEquals("Bearer secretToken", token.get());
+    }
+
+    @Test
+    public void accessTokenFactoryIsOverriddenFromRedirectNegotiate()
+            throws InterruptedException, ExecutionException, TimeoutException, Exception {
+        AtomicReference<String> token = new AtomicReference<>();
+        TestHttpClient client = new TestHttpClient()
+            .on("POST", "http://example.com/negotiate", (req) -> CompletableFuture.completedFuture(new HttpResponse(200, "", "{\"url\":\"http://testexample.com/\",\"accessToken\":\"newToken\"}")))
+            .on("POST", "http://testexample.com/negotiate", (req) -> {
+                token.set(req.getHeaders().get("Authorization"));
+                return CompletableFuture
+                .completedFuture(new HttpResponse(200, "", "{\"connectionId\":\"bVOiRPG8-6YiJ6d7ZcTOVQ\",\""
+                + "availableTransports\":[{\"transport\":\"WebSockets\",\"transferFormats\":[\"Text\",\"Binary\"]}]}"));
+            });
+
+        MockTransport transport = new MockTransport();
+        HttpConnectionOptions options = new HttpConnectionOptions();
+        options.setTransport(transport);
+        options.setHttpClient(client);
+        options.setAccessTokenFactory(() -> "secretToken");
+        HubConnection hubConnection = new HubConnectionBuilder().withUrl("http://example.com", options).build();
+
+        hubConnection.start().get(1000, TimeUnit.MILLISECONDS);
+        assertEquals(HubConnectionState.CONNECTED, hubConnection.getConnectionState());
+        hubConnection.stop();
+        assertEquals("Bearer newToken", token.get());
+    }
+
+    @Test
     public void hubConnectionCanBeStartedAfterBeingStopped() throws Exception {
         MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = new HubConnection("http://example.com", mockTransport, new NullLogger(), true, new TestHttpClient());
