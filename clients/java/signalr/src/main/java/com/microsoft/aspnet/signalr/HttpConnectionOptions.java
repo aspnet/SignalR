@@ -3,6 +3,7 @@
 
 package com.microsoft.aspnet.signalr;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
 public class HttpConnectionOptions {
@@ -10,7 +11,7 @@ public class HttpConnectionOptions {
     private LogLevel loglevel;
     private Logger logger;
     private boolean skipNegotiate;
-    private Supplier<String> accessTokenFactory;
+    private Supplier<CompletableFuture<String>> accessTokenFactory;
     private HttpClient client;
 
     public HttpConnectionOptions() {}
@@ -59,11 +60,11 @@ public class HttpConnectionOptions {
         this.logger = logger;
     }
 
-    public void setAccessTokenFactory(Supplier<String> accessTokenFactory) {
+    public void setAccessTokenFactory(Supplier<CompletableFuture<String>> accessTokenFactory) {
         this.accessTokenFactory = accessTokenFactory;
     }
 
-    public Supplier<String> getAccessTokenFactory() {
+    public Supplier<CompletableFuture<String>> getAccessTokenFactory() {
         return accessTokenFactory;
     }
 

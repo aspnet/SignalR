@@ -29,7 +29,7 @@ public class HubConnection {
     private Logger logger;
     private List<Consumer<Exception>> onClosedCallbackList;
     private boolean skipNegotiate = false;
-    private Supplier<String> accessTokenFactory;
+    private Supplier<CompletableFuture<String>> accessTokenFactory;
     private Map<String, String> headers = new HashMap<>();
     private ConnectionState connectionState = null;
     private HttpClient httpClient;
@@ -48,7 +48,7 @@ public class HubConnection {
         if (options.getAccessTokenFactory() != null) {
             this.accessTokenFactory = options.getAccessTokenFactory();
         } else {
-            this.accessTokenFactory = () -> null;
+            this.accessTokenFactory = () -> CompletableFuture.completedFuture(null);
         }
 
         if (options.getLogger() != null) {
@@ -149,8 +149,15 @@ public class HubConnection {
             }
 
             if (negotiateResponse.getAccessToken() != null) {
-                this.accessTokenFactory  = () -> negotiateResponse.getAccessToken();
-                this.headers.put("Authorization", "Bearer " + this.accessTokenFactory.get());
+                this.accessTokenFactory = () -> CompletableFuture.completedFuture(negotiateResponse.getAccessToken());
+                String token = "";
+                try {
+                    // We know the future is already completed in this case
+                    // It's fine to call get() on it.
+                    token = this.accessTokenFactory.get().get();
+                } catch (InterruptedException | ExecutionException e) {
+                }
+                this.headers.put("Authorization", "Bearer " + token);
             }
 
             return CompletableFuture.completedFuture(negotiateResponse);
@@ -176,13 +183,18 @@ public class HubConnection {
             return CompletableFuture.completedFuture(null);
         }
 
-        this.headers.put("Authorization", "Bearer " + accessTokenFactory.get());
+        CompletableFuture<Void> tokenFuture = accessTokenFactory.get()
+                .thenAccept((token) -> {
+                    if (token != null) {
+                        this.headers.put("Authorization", "Bearer " + token);
+                    }
+                });
 
         CompletableFuture<NegotiateResponse> negotiate = null;
         if (!skipNegotiate) {
-            negotiate = startNegotiate(baseUrl, 0);
+            negotiate = tokenFuture.thenCompose((v) -> startNegotiate(baseUrl, 0));
         } else {
-            negotiate = CompletableFuture.completedFuture(baseUrl);
+            negotiate = tokenFuture.thenCompose((v) -> CompletableFuture.completedFuture(baseUrl));
         }
 
         return negotiate.thenCompose((url) -> {

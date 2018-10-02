@@ -988,7 +988,7 @@ class HubConnectionTest {
         HttpConnectionOptions options = new HttpConnectionOptions();
         options.setTransport(transport);
         options.setHttpClient(client);
-        options.setAccessTokenFactory(() -> "secretToken");
+        options.setAccessTokenFactory(() -> CompletableFuture.completedFuture("secretToken"));
         HubConnection hubConnection = new HubConnectionBuilder().withUrl("http://example.com", options).build();
 
         hubConnection.start().get(1000, TimeUnit.MILLISECONDS);
@@ -1014,7 +1014,7 @@ class HubConnectionTest {
         HttpConnectionOptions options = new HttpConnectionOptions();
         options.setTransport(transport);
         options.setHttpClient(client);
-        options.setAccessTokenFactory(() -> "secretToken");
+        options.setAccessTokenFactory(() -> CompletableFuture.completedFuture("secretToken"));
         HubConnection hubConnection = new HubConnectionBuilder().withUrl("http://example.com", options).build();
 
         hubConnection.start().get(1000, TimeUnit.MILLISECONDS);
