@@ -172,16 +172,12 @@ public class HubConnection {
 
         CompletableFuture<String> negotiate = null;
         if (!skipNegotiate) {
-            negotiate = startNegotiate(0, baseUrl);
+            negotiate = startNegotiate(baseUrl, 0);
         } else {
             negotiate = CompletableFuture.completedFuture(baseUrl);
         }
 
         return negotiate.thenCompose((url) -> {
-            if (url == null) {
-                return CompletableFuture.completedFuture(null);
-            }
-
             logger.log(LogLevel.Debug, "Starting HubConnection");
             if (transport == null) {
                 try {
@@ -216,7 +212,7 @@ public class HubConnection {
         });
     }
 
-    private CompletableFuture<String> startNegotiate(int negotiateAttempts, String url) throws IOException, InterruptedException, ExecutionException {
+    private CompletableFuture<String> startNegotiate(String url, int negotiateAttempts) throws IOException, InterruptedException, ExecutionException {
         if (hubConnectionState != HubConnectionState.DISCONNECTED) {
             return CompletableFuture.completedFuture(null);
         }
@@ -248,7 +244,7 @@ public class HubConnection {
             }
 
             try {
-                return startNegotiate(negotiateAttempts + 1, response.getRedirectUrl());
+                return startNegotiate(response.getRedirectUrl(), negotiateAttempts + 1);
             } catch (IOException | InterruptedException | ExecutionException e) {
                 throw new RuntimeException(e);
             }
