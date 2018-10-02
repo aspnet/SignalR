@@ -292,6 +292,9 @@ public class HubConnection {
                                         sendHubMessage(PingMessage.getInstance());
                                     }
                                 } catch (Exception e) {
+                                    logger.log(LogLevel.Warning, String.format("Error sending ping: %s", e.getMessage()));
+                                    // The connection is probably in a bad or closed state now, cleanup the timer so
+                                    // it stops triggering
                                     pingTimer.cancel();
                                 }
                             }
