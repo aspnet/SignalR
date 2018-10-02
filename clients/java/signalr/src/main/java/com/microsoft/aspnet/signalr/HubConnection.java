@@ -197,7 +197,7 @@ public class HubConnection {
 
             logger.log(LogLevel.Debug, "Starting HubConnection");
             if (transport == null) {
-                    transport = new WebSocketTransport(url, headers, httpClient, logger);
+                transport = new WebSocketTransport(url, headers, httpClient, logger);
             }
 
             transport.setOnReceive(this.callback);
