@@ -195,7 +195,7 @@ public class HubConnection {
                     }
                 });
 
-        stopError = null;        
+        stopError = null;
         CompletableFuture<String> negotiate = null;
         if (!skipNegotiate) {
             negotiate = tokenFuture.thenCompose((v) -> startNegotiate(baseUrl, 0));
