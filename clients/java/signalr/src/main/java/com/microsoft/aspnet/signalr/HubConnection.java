@@ -32,6 +32,7 @@ public class HubConnection {
     private Supplier<CompletableFuture<String>> accessTokenProvider;
     private Map<String, String> headers = new HashMap<>();
     private ConnectionState connectionState = null;
+    private boolean logMessageContent;
     private HttpClient httpClient;
 
     private static ArrayList<Class<?>> emptyArray = new ArrayList<>();
@@ -68,6 +69,7 @@ public class HubConnection {
         }
 
         this.skipNegotiate = options.getSkipNegotiate();
+        this.logMessageContent = options.getLogMessageContent();
 
         this.callback = (payload) -> {
             if (!handshakeReceived) {
@@ -204,7 +206,7 @@ public class HubConnection {
         return negotiate.thenCompose((url) -> {
             logger.log(LogLevel.Debug, "Starting HubConnection.");
             if (transport == null) {
-                transport = new WebSocketTransport(headers, httpClient, logger);
+                transport = new WebSocketTransport(headers, httpClient, logger, logMessageContent);
             }
 
             transport.setOnReceive(this.callback);

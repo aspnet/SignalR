@@ -13,16 +13,18 @@ class WebSocketTransport implements Transport {
     private Logger logger;
     private HttpClient client;
     private Map<String, String> headers;
+    private final boolean logMessageContent;
 
     private static final String HTTP = "http";
     private static final String HTTPS = "https";
     private static final String WS = "ws";
     private static final String WSS = "wss";
 
-    public WebSocketTransport(Map<String, String> headers, HttpClient client, Logger logger) {
+    public WebSocketTransport(Map<String, String> headers, HttpClient client, Logger logger, boolean logMessageContent) {
         this.logger = logger;
         this.client = client;
         this.headers = headers;
+        this.logMessageContent = logMessageContent;
     }
 
     String getUrl() {
@@ -51,6 +53,11 @@ class WebSocketTransport implements Transport {
 
     @Override
     public CompletableFuture<Void> send(String message) {
+        String logMessage = String.format("(WebSockets transport) sending data. String data of length %d.", message.length());
+        if (logMessageContent) {
+            logMessage += String.format(" Content: '%s'.", message);
+        }
+        logger.log(LogLevel.Debug, logMessage);
         return webSocketClient.send(message);
     }
 
@@ -62,6 +69,11 @@ class WebSocketTransport implements Transport {
 
     @Override
     public void onReceive(String message) throws Exception {
+        String logMessage = String.format("(WebSockets transport) data received. String data of length %d.", message.length());
+        if (logMessageContent) {
+            logMessage += String.format(" Content: '%s'.", message);
+        }
+        logger.log(LogLevel.Debug, logMessage);
         this.onReceiveCallBack.invoke(message);
     }
 

@@ -12,6 +12,7 @@ public class HttpConnectionOptions {
     private Logger logger;
     private boolean skipNegotiate;
     private Supplier<CompletableFuture<String>> accessTokenProvider;
+    private boolean logMessageContent;
     private HttpClient client;
 
     public HttpConnectionOptions() {}
@@ -66,6 +67,14 @@ public class HttpConnectionOptions {
 
     public Supplier<CompletableFuture<String>> getAccessTokenProvider() {
         return accessTokenProvider;
+    }
+
+    public void setLogMessageContent(boolean logContent) {
+        this.logMessageContent = logContent;
+    }
+
+    public boolean getLogMessageContent() {
+        return logMessageContent;
     }
 
     // For testing purposes only
