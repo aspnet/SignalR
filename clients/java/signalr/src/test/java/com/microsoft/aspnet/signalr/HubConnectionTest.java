@@ -1007,7 +1007,7 @@ class HubConnectionTest {
         TestHttpClient client = new TestHttpClient()
                 .on("POST", "http://example.com/negotiate",
                         (req) -> CompletableFuture
-                                .completedFuture(new HttpResponse(500, "", "")));
+                                .completedFuture(new HttpResponse(500, "Internal server error", "")));
 
         MockTransport transport = new MockTransport();
         HttpConnectionOptions options = new HttpConnectionOptions();
@@ -1016,6 +1016,6 @@ class HubConnectionTest {
                 .configureHttpClient(client).build();
 
         ExecutionException exception = assertThrows(ExecutionException.class, () -> hubConnection.start().get(1000, TimeUnit.MILLISECONDS));
-        assertEquals("Unexpected status code returned from negotiate 500.", exception.getCause().getMessage());
+        assertEquals("Unexpected status code returned from negotiate: 500 Internal server error.", exception.getCause().getMessage());
     }
 }
