@@ -68,6 +68,7 @@ public class HttpConnectionOptions {
         return accessTokenProvider;
     }
 
+    // For testing purposes only
     void setHttpClient(HttpClient client) {
         this.client = client;
     }
