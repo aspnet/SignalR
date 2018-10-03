@@ -48,7 +48,7 @@ public class HubConnection {
     private AtomicLong nextPingActivation = new AtomicLong();
     private Duration keepAliveInterval = Duration.ofSeconds(15);
     private Duration serverTimeout = Duration.ofSeconds(30);
-    private long tickRate = 1000;
+    private Duration tickRate = Duration.ofSeconds(1);
     private CompletableFuture<Void> handshakeResponseFuture;
     private Duration handshakeResponseTimeout = Duration.ofSeconds(15);
 
@@ -69,7 +69,7 @@ public class HubConnection {
     }
 
     // For testing purposes
-    void setTickRate(long tickRate) {
+    void setTickRate(Duration tickRate) {
         this.tickRate = tickRate;
     }
 
@@ -304,8 +304,7 @@ public class HubConnection {
                                     // it stops triggering
                                     pingTimer.cancel();
                                 }
-                            }
-                        }, new Date(0), tickRate);
+                            }, new Date(0), tickRate.toMillis());
                         } finally {
                             hubConnectionStateLock.unlock();
                         }

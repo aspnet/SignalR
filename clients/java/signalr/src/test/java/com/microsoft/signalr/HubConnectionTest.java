@@ -1095,7 +1095,7 @@ class HubConnectionTest {
     public void connectionTimesOutIfServerDoesNotSendMessage() throws Exception {
         HubConnection hubConnection = TestUtils.createHubConnection("http://example.com");
         hubConnection.setServerTimeout(Duration.ofMillis(1));
-        hubConnection.setTickRate(1);
+        hubConnection.setTickRate(Duration.ofMillis(1));
         CompletableFuture<Exception> closedFuture = new CompletableFuture<>();
         hubConnection.onClosed((e) -> {
             closedFuture.complete(e);
@@ -1111,7 +1111,7 @@ class HubConnectionTest {
         MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = TestUtils.createHubConnection("http://example.com", mockTransport);
         hubConnection.setKeepAliveInterval(Duration.ofMillis(1));
-        hubConnection.setTickRate(1);
+        hubConnection.setTickRate(Duration.ofMillis(1));
 
         hubConnection.start().get(1000, TimeUnit.MILLISECONDS);
 
