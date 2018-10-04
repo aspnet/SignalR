@@ -87,7 +87,7 @@ export class HttpConnection implements IConnection {
             }
         }
 
-        this.httpClient = options.httpClient || new DefaultHttpClient(this.logger);
+        this.httpClient = options.httpClient || new DefaultHttpClient(this.logger, { disableXhrWithCredentials: options.disableXhrWithCredentials });
         this.connectionState = ConnectionState.Disconnected;
         this.options = options;
         this.onreceive = null;
