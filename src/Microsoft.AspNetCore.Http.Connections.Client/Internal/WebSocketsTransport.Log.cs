@@ -135,7 +135,11 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
                     var messageContent = string.Empty;
                     if (messageType == WebSocketMessageType.Text)
                     {
+#if NETCOREAPP2_2
+                        messageContent = $"String data: {Encoding.UTF8.GetString(message.Slice(0, count).Span)}";
+#else
                         messageContent = $"String data: {Encoding.UTF8.GetString(message.Slice(0, count).ToArray())}";
+#endif
                     }
                     else
                     {
