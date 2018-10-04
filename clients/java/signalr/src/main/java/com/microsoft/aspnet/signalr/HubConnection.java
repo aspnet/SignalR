@@ -281,10 +281,10 @@ public class HubConnection {
             }
 
             if (errorMessage != null) {
+                stopError = errorMessage;
                 logger.log(LogLevel.Error, "HubConnection disconnected with an error: %s.", errorMessage);
             } else {
                 logger.log(LogLevel.Debug, "Stopping HubConnection.");
-                stopError = errorMessage;
             }
         } finally {
             hubConnectionStateLock.unlock();

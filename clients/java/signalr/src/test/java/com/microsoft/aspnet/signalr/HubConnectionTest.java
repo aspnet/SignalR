@@ -32,7 +32,7 @@ class HubConnectionTest {
     @Test
     public void transportCloseTriggersStopInHubConnection() throws Exception {
         MockTransport mockTransport = new MockTransport();
-        HubConnection hubConnection = new HubConnection("http://example.com", mockTransport, new NullLogger(), true, new TestHttpClient());
+        HubConnection hubConnection = TestUtils.createHubConnection("http://example.com", mockTransport);
         hubConnection.start();
         assertEquals(HubConnectionState.CONNECTED, hubConnection.getConnectionState());
         mockTransport.stop();
@@ -43,7 +43,7 @@ class HubConnectionTest {
     @Test
     public void transportCloseWithErrorTriggersStopInHubConnection() throws Exception {
         MockTransport mockTransport = new MockTransport();
-        HubConnection hubConnection = new HubConnection("http://example.com", mockTransport, new NullLogger(), true, new TestHttpClient());
+        HubConnection hubConnection = TestUtils.createHubConnection("http://example.com", mockTransport);
         String errorMessage = "Example transport error.";
 
         hubConnection.onClosed((error) -> {
