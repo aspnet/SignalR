@@ -12,7 +12,7 @@ export interface IHttpConnectionOptions {
     httpClient?: HttpClient;
 
     /** Disable withCredentials for the default {@link @aspnet/signalr.HttpClient} */
-    disableXhrWithCredentials?: boolean,
+    disableXhrWithCredentials?: boolean;
 
     /** An {@link @aspnet/signalr.HttpTransportType} value specifying the transport to use for the connection. */
     transport?: HttpTransportType | ITransport;

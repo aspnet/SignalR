@@ -3,8 +3,8 @@
 
 import { AbortError, HttpError, TimeoutError } from "./Errors";
 import { HttpClient, HttpRequest, HttpResponse } from "./HttpClient";
-import { ILogger, LogLevel } from "./ILogger";
 import { IHttpClientOptions } from "./IHttpClientOptions";
+import { ILogger, LogLevel } from "./ILogger";
 
 export class XhrHttpClient extends HttpClient {
     private readonly logger: ILogger;

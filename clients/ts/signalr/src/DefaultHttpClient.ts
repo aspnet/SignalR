@@ -3,9 +3,9 @@
 
 import { AbortError } from "./Errors";
 import { HttpClient, HttpRequest, HttpResponse } from "./HttpClient";
+import { IHttpClientOptions } from "./IHttpClientOptions";
 import { ILogger } from "./ILogger";
 import { XhrHttpClient } from "./XhrHttpClient";
-import { IHttpClientOptions } from "./IHttpClientOptions";
 
 let nodeHttpClientModule: any;
 if (typeof XMLHttpRequest === "undefined") {
