@@ -3,6 +3,7 @@
 
 using System;
 using System.Net.WebSockets;
+using System.Text;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.Extensions.Logging;
 
@@ -68,6 +69,12 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
 
             private static readonly Action<ILogger, Exception> _startedTransport =
                 LoggerMessage.Define(LogLevel.Debug, new EventId(19, "StartedTransport"), "Started transport.");
+
+            private static readonly Action<ILogger, WebSocketMessageType, int, bool, string, Exception> _messageReceivedString =
+                LoggerMessage.Define<WebSocketMessageType, int, bool, string>(LogLevel.Debug, new EventId(20, "MessageReceivedString"), "Message received. Type: {MessageType}, size: {Count}, EndOfMessage: {EndOfMessage}. String data: {Message}.");
+
+            private static readonly Action<ILogger, WebSocketMessageType, int, bool, string, Exception> _messageReceivedByte =
+                LoggerMessage.Define<WebSocketMessageType, int, bool, string>(LogLevel.Debug, new EventId(21, "MessageReceivedByte"), "Message received. Type: {MessageType}, size: {Count}, EndOfMessage: {EndOfMessage}. Byte data: {Message}.");
 
             public static void StartTransport(ILogger logger, TransferFormat transferFormat, Uri webSocketUrl)
             {
@@ -162,6 +169,22 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
             public static void StartedTransport(ILogger logger)
             {
                 _startedTransport(logger, null);
+            }
+
+            public static void MessageReceivedString(ILogger logger, ReadOnlyMemory<byte> message, WebSocketMessageType messageType, int count, bool endOfMessage)
+            {
+                if (logger.IsEnabled(LogLevel.Debug))
+                {
+                    _messageReceivedString(logger, messageType, count, endOfMessage, Encoding.UTF8.GetString(message.Slice(0, count).ToArray()), null);
+                }
+            }
+
+            public static void MessageReceivedByte(ILogger logger, ReadOnlyMemory<byte> message, WebSocketMessageType messageType, int count, bool endOfMessage)
+            {
+                if (logger.IsEnabled(LogLevel.Debug))
+                {
+                    _messageReceivedByte(logger, messageType, count, endOfMessage, BitConverter.ToString(message.Slice(0, count).ToArray()).Replace("-", " 0x").Insert(0, "0x"), null);
+                }
             }
         }
     }
