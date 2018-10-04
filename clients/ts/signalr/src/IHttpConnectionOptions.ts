@@ -11,6 +11,9 @@ export interface IHttpConnectionOptions {
     /** An {@link @aspnet/signalr.HttpClient} that will be used to make HTTP requests. */
     httpClient?: HttpClient;
 
+    /** Disable withCredentials for the default {@link @aspnet/signalr.HttpClient} */
+    disableXhrWithCredentials?: boolean,
+
     /** An {@link @aspnet/signalr.HttpTransportType} value specifying the transport to use for the connection. */
     transport?: HttpTransportType | ITransport;
 

@@ -5,6 +5,7 @@ import { AbortError } from "./Errors";
 import { HttpClient, HttpRequest, HttpResponse } from "./HttpClient";
 import { ILogger } from "./ILogger";
 import { XhrHttpClient } from "./XhrHttpClient";
+import { IHttpClientOptions } from "./IHttpClientOptions";
 
 let nodeHttpClientModule: any;
 if (typeof XMLHttpRequest === "undefined") {
@@ -17,11 +18,13 @@ export class DefaultHttpClient extends HttpClient {
     private readonly httpClient: HttpClient;
 
     /** Creates a new instance of the {@link @aspnet/signalr.DefaultHttpClient}, using the provided {@link @aspnet/signalr.ILogger} to log messages. */
-    public constructor(logger: ILogger) {
+    public constructor(logger: ILogger, options: IHttpClientOptions) {
         super();
 
+        options = options || {};
+
         if (typeof XMLHttpRequest !== "undefined") {
-            this.httpClient = new XhrHttpClient(logger);
+            this.httpClient = new XhrHttpClient(logger, options);
         } else if (typeof nodeHttpClientModule !== "undefined") {
             this.httpClient = new nodeHttpClientModule.NodeHttpClient(logger);
         } else {

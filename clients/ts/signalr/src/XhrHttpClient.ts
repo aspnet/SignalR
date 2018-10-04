@@ -4,13 +4,16 @@
 import { AbortError, HttpError, TimeoutError } from "./Errors";
 import { HttpClient, HttpRequest, HttpResponse } from "./HttpClient";
 import { ILogger, LogLevel } from "./ILogger";
+import { IHttpClientOptions } from "./IHttpClientOptions";
 
 export class XhrHttpClient extends HttpClient {
     private readonly logger: ILogger;
+    public readonly options: IHttpClientOptions;
 
-    public constructor(logger: ILogger) {
+    public constructor(logger: ILogger, options: IHttpClientOptions) {
         super();
         this.logger = logger;
+        this.options = options || {};
     }
 
     /** @inheritDoc */
@@ -31,7 +34,7 @@ export class XhrHttpClient extends HttpClient {
             const xhr = new XMLHttpRequest();
 
             xhr.open(request.method!, request.url!, true);
-            xhr.withCredentials = true;
+            xhr.withCredentials = !this.options.disableXhrWithCredentials;
             xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
             // Explicitly setting the Content-Type header for React Native on Android platform.
             xhr.setRequestHeader("Content-Type", "text/plain;charset=UTF-8");
