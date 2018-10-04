@@ -117,5 +117,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client
         /// has been applied.
         /// </remarks>
         public Action<ClientWebSocketOptions> WebSocketConfiguration { get; set; }
+
+        public bool LogMessageContent { get; set; }
     }
 }

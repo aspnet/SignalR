@@ -213,7 +213,6 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
 #endif
                     var memory = _application.Output.GetMemory();
 #if NETCOREAPP2_2
-                    // Because we checked the CloseStatus from the 0 byte read above, we don't need to check again after reading
                     var receiveResult = await socket.ReceiveAsync(memory, CancellationToken.None);
 #else
                     var isArray = MemoryMarshal.TryGetArray<byte>(memory, out var arraySegment);
@@ -236,6 +235,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
                     }
 
                     Log.MessageReceived(_logger, receiveResult.MessageType, receiveResult.Count, receiveResult.EndOfMessage);
+                    Console.WriteLine(memory.Slice(0, receiveResult.Count));
 
                     _application.Output.Advance(receiveResult.Count);
 
