@@ -234,14 +234,7 @@ namespace Microsoft.AspNetCore.Http.Connections.Client.Internal
                         return;
                     }
 
-                    if (receiveResult.MessageType == WebSocketMessageType.Binary)
-                    {
-                        Log.MessageReceivedByte(_logger, memory, receiveResult.MessageType, receiveResult.Count, receiveResult.EndOfMessage);
-                    }
-                    else
-                    {
-                        Log.MessageReceivedString(_logger, memory, receiveResult.MessageType, receiveResult.Count, receiveResult.EndOfMessage);
-                    }
+                    Log.MessageReceived(_logger, memory, receiveResult.MessageType, receiveResult.Count, receiveResult.EndOfMessage);
 
                     _application.Output.Advance(receiveResult.Count);
 
