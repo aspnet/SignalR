@@ -410,9 +410,7 @@ public class HubConnection {
      */
     public Subscription on(String target, Action callback) {
         ActionBase action = args -> callback.invoke();
-        InvocationHandler handler = handlers.put(target, action, emptyArray);
-        logger.log(LogLevel.Trace, "Registering handler for client method: %s.", target);
-        return new Subscription(handlers, handler, target);
+        return registerHandler(target, action);
     }
 
     /**
@@ -426,11 +424,8 @@ public class HubConnection {
      */
     public <T1> Subscription on(String target, Action1<T1> callback, Class<T1> param1) {
         ActionBase action = params -> callback.invoke(param1.cast(params[0]));
-        ArrayList<Class<?>> classes = new ArrayList<>(1);
-        classes.add(param1);
-        InvocationHandler handler = handlers.put(target, action, classes);
-        logger.log(LogLevel.Trace, "Registering handler for client method: %s.", target);
-        return new Subscription(handlers, handler, target);
+        return registerHandler(target, action, param1);
+
     }
 
     /**
@@ -448,12 +443,7 @@ public class HubConnection {
         ActionBase action = params -> {
             callback.invoke(param1.cast(params[0]), param2.cast(params[1]));
         };
-        ArrayList<Class<?>> classes = new ArrayList<>(2);
-        classes.add(param1);
-        classes.add(param2);
-        InvocationHandler handler = handlers.put(target, action, classes);
-        logger.log(LogLevel.Trace, "Registering handler for client method: %s.", target);
-        return new Subscription(handlers, handler, target);
+        return registerHandler(target, action, param1, param2);
     }
 
     /**
@@ -474,13 +464,7 @@ public class HubConnection {
         ActionBase action = params -> {
             callback.invoke(param1.cast(params[0]), param2.cast(params[1]), param3.cast(params[2]));
         };
-        ArrayList<Class<?>> classes = new ArrayList<>(3);
-        classes.add(param1);
-        classes.add(param2);
-        classes.add(param3);
-        InvocationHandler handler = handlers.put(target, action, classes);
-        logger.log(LogLevel.Trace, "Registering handler for client method: %s.", target);
-        return new Subscription(handlers, handler, target);
+        return registerHandler(target, action, param1, param2, param3);
     }
 
     /**
@@ -503,14 +487,7 @@ public class HubConnection {
         ActionBase action = params -> {
             callback.invoke(param1.cast(params[0]), param2.cast(params[1]), param3.cast(params[2]), param4.cast(params[3]));
         };
-        ArrayList<Class<?>> classes = new ArrayList<>(4);
-        classes.add(param1);
-        classes.add(param2);
-        classes.add(param3);
-        classes.add(param4);
-        InvocationHandler handler = handlers.put(target, action, classes);
-        logger.log(LogLevel.Trace, "Registering handler for client method: %s.", target);
-        return new Subscription(handlers, handler, target);
+        return registerHandler(target, action, param1, param2, param3, param4);
     }
 
     /**
@@ -536,15 +513,7 @@ public class HubConnection {
             callback.invoke(param1.cast(params[0]), param2.cast(params[1]), param3.cast(params[2]), param4.cast(params[3]),
                     param5.cast(params[4]));
         };
-        ArrayList<Class<?>> classes = new ArrayList<>(5);
-        classes.add(param1);
-        classes.add(param2);
-        classes.add(param3);
-        classes.add(param4);
-        classes.add(param5);
-        InvocationHandler handler = handlers.put(target, action, classes);
-        logger.log(LogLevel.Trace, "Registering handler for client method: %s.", target);
-        return new Subscription(handlers, handler, target);
+        return registerHandler(target, action, param1, param2, param3, param4, param5);
     }
 
     /**
@@ -572,16 +541,7 @@ public class HubConnection {
             callback.invoke(param1.cast(params[0]), param2.cast(params[1]), param3.cast(params[2]), param4.cast(params[3]),
                     param5.cast(params[4]), param6.cast(params[5]));
         };
-        ArrayList<Class<?>> classes = new ArrayList<>(6);
-        classes.add(param1);
-        classes.add(param2);
-        classes.add(param3);
-        classes.add(param4);
-        classes.add(param5);
-        classes.add(param6);
-        InvocationHandler handler = handlers.put(target, action, classes);
-        logger.log(LogLevel.Trace, "Registering handler for client method: %s.", target);
-        return new Subscription(handlers, handler, target);
+        return registerHandler(target, action, param1, param2, param3, param4, param5, param6);
     }
 
     /**
@@ -611,17 +571,7 @@ public class HubConnection {
             callback.invoke(param1.cast(params[0]), param2.cast(params[1]), param3.cast(params[2]), param4.cast(params[3]),
                     param5.cast(params[4]), param6.cast(params[5]), param7.cast(params[6]));
         };
-        ArrayList<Class<?>> classes = new ArrayList<>(7);
-        classes.add(param1);
-        classes.add(param2);
-        classes.add(param3);
-        classes.add(param4);
-        classes.add(param5);
-        classes.add(param6);
-        classes.add(param7);
-        InvocationHandler handler = handlers.put(target, action, classes);
-        logger.log(LogLevel.Trace, "Registering handler for client method: %s.", target);
-        return new Subscription(handlers, handler, target);
+        return registerHandler(target, action, param1, param2, param3, param4, param5, param6, param7);
     }
 
     /**
@@ -653,25 +603,20 @@ public class HubConnection {
             callback.invoke(param1.cast(params[0]), param2.cast(params[1]), param3.cast(params[2]), param4.cast(params[3]),
                     param5.cast(params[4]), param6.cast(params[5]), param7.cast(params[6]), param8.cast(params[7]));
         };
-        ArrayList<Class<?>> classes = new ArrayList<>(8);
-        classes.add(param1);
-        classes.add(param2);
-        classes.add(param3);
-        classes.add(param4);
-        classes.add(param5);
-        classes.add(param6);
-        classes.add(param7);
-        classes.add(param8);
-        InvocationHandler handler = handlers.put(target, action, classes);
-        logger.log(LogLevel.Trace, "Registering handler for client method: %s.", target);
+        return registerHandler(target, action, param1, param2, param3, param4, param5, param6, param7, param8);
+    }
+
+    private Subscription registerHandler(String target, ActionBase action, Class<?>... types) {
+        InvocationHandler handler = handlers.put(target, action, types);
+        logger.log(LogLevel.Debug, "Registering handler for client method: " + target);
         return new Subscription(handlers, handler, target);
     }
 
-    private class ConnectionState implements InvocationBinder {
-        private HubConnection connection;
-        private AtomicInteger nextId = new AtomicInteger(0);
-        private HashMap<String, InvocationRequest> pendingInvocations = new HashMap<>();
-        private Lock lock = new ReentrantLock();
+    private final class ConnectionState implements InvocationBinder {
+        private final HubConnection connection;
+        private final AtomicInteger nextId = new AtomicInteger(0);
+        private final HashMap<String, InvocationRequest> pendingInvocations = new HashMap<>();
+        private final Lock lock = new ReentrantLock();
 
         public ConnectionState(HubConnection connection) {
             this.connection = connection;
@@ -751,7 +696,7 @@ public class HubConnection {
                 return emptyArray;
             }
 
-            if (handlers.size() == 0) {
+            if (handlers.isEmpty()) {
                 throw new Exception(String.format("There are no callbacks registered for the method '%s'.", methodName));
             }
 

@@ -9,9 +9,9 @@ import java.util.concurrent.ConcurrentHashMap;
 class CallbackMap {
     private Map<String, List<InvocationHandler>> handlers = new ConcurrentHashMap<>();
 
-    public InvocationHandler put(String target, ActionBase action, List<Class<?>> classes) {
-        InvocationHandler handler = new InvocationHandler(action, Collections.unmodifiableList(classes));
-        handlers.computeIfAbsent(target, (ac) -> new ArrayList<>()).add(handler);
+    public InvocationHandler put(String target, ActionBase action, Class<?>... classes) {
+        InvocationHandler handler = new InvocationHandler(action, classes);
+        handlers.computeIfAbsent(target, ac -> new ArrayList<>()).add(handler);
         return handler;
     }
 
