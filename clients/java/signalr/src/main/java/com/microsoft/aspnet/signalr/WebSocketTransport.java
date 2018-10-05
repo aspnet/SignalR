@@ -3,7 +3,6 @@
 
 package com.microsoft.aspnet.signalr;
 
-import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -20,8 +19,7 @@ class WebSocketTransport implements Transport {
     private static final String WS = "ws";
     private static final String WSS = "wss";
 
-    public WebSocketTransport(String url, Map<String, String> headers, HttpClient client, Logger logger) throws URISyntaxException {
-        this.url = formatUrl(url);
+    public WebSocketTransport(Map<String, String> headers, HttpClient client, Logger logger) {
         this.logger = logger;
         this.client = client;
         this.headers = headers;
@@ -31,7 +29,7 @@ class WebSocketTransport implements Transport {
         return url;
     }
 
-    private String formatUrl(String url) throws URISyntaxException {
+    private String formatUrl(String url) {
         if (url.startsWith(HTTPS)) {
             url = WSS + url.substring(HTTPS.length());
         } else if (url.startsWith(HTTP)) {
@@ -42,9 +40,10 @@ class WebSocketTransport implements Transport {
     }
 
     @Override
-    public CompletableFuture<Void> start() {
+    public CompletableFuture<Void> start(String url) {
+        this.url = formatUrl(url);
         logger.log(LogLevel.Debug, "Starting Websocket connection.");
-        this.webSocketClient = client.createWebSocket(this.url.toString(), this.headers);
+        this.webSocketClient = client.createWebSocket(this.url, this.headers);
         this.webSocketClient.setOnReceive((message) -> onReceive(message));
         this.webSocketClient.setOnClose((code, reason) -> onClose(code, reason));
         return webSocketClient.start().thenRun(() -> logger.log(LogLevel.Information, "WebSocket transport connected to: %s.", this.url));
@@ -58,7 +57,7 @@ class WebSocketTransport implements Transport {
     @Override
     public void setOnReceive(OnReceiveCallBack callback) {
         this.onReceiveCallBack = callback;
-        logger.log(LogLevel.Debug, "OnReceived callback has been set");
+        logger.log(LogLevel.Debug, "OnReceived callback has been set.");
     }
 
     @Override

@@ -4,7 +4,6 @@
 package com.microsoft.aspnet.signalr;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -15,9 +14,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public class HubConnection {
-    private String url;
+    private String baseUrl;
     private Transport transport;
     private OnReceiveCallBack callback;
     private CallbackMap handlers = new CallbackMap();
@@ -29,7 +29,7 @@ public class HubConnection {
     private Logger logger;
     private List<Consumer<Exception>> onClosedCallbackList;
     private boolean skipNegotiate = false;
-    private String accessToken;
+    private Supplier<CompletableFuture<String>> accessTokenProvider;
     private Map<String, String> headers = new HashMap<>();
     private ConnectionState connectionState = null;
     private HttpClient httpClient;
@@ -37,34 +37,39 @@ public class HubConnection {
     private static ArrayList<Class<?>> emptyArray = new ArrayList<>();
     private static int MAX_NEGOTIATE_ATTEMPTS = 100;
 
-    public HubConnection(String url, Transport transport, Logger logger, boolean skipNegotiate, HttpClient client) {
+    public HubConnection(String url, HttpConnectionOptions options) {
         if (url == null || url.isEmpty()) {
             throw new IllegalArgumentException("A valid url is required.");
         }
 
-        this.url = url;
+        this.baseUrl = url;
         this.protocol = new JsonHubProtocol();
 
-        if (logger != null) {
-            this.logger = logger;
+        if (options.getAccessTokenProvider() != null) {
+            this.accessTokenProvider = options.getAccessTokenProvider();
+        } else {
+            this.accessTokenProvider = () -> CompletableFuture.completedFuture(null);
+        }
+
+        if (options.getLogger() != null) {
+            this.logger = options.getLogger();
         } else {
             this.logger = new NullLogger();
         }
 
-        if (client != null) {
-            this.httpClient = client;
+        if (options.getHttpClient() != null) {
+            this.httpClient = options.getHttpClient();
         } else {
             this.httpClient = new DefaultHttpClient(this.logger);
         }
 
-        if (transport != null) {
-            this.transport = transport;
+        if (options.getTransport() != null) {
+            this.transport = options.getTransport();
         }
 
-        this.skipNegotiate = skipNegotiate;
+        this.skipNegotiate = options.getSkipNegotiate();
 
         this.callback = (payload) -> {
-
             if (!handshakeReceived) {
                 int handshakeLength = payload.indexOf(RECORD_SEPARATOR) + 1;
                 String handshakeResponseString = payload.substring(0, handshakeLength - 1);
@@ -96,7 +101,7 @@ public class HubConnection {
                                 handler.getAction().invoke(invocationMessage.getArguments());
                             }
                         } else {
-                            logger.log(LogLevel.Warning, "Failed to find handler for %s method.", invocationMessage.getMessageType());
+                            logger.log(LogLevel.Warning, "Failed to find handler for '%s' method.", invocationMessage.getTarget());
                         }
                         break;
                     case CLOSE:
@@ -127,11 +132,14 @@ public class HubConnection {
         };
     }
 
-    private CompletableFuture<NegotiateResponse> handleNegotiate() throws IOException, InterruptedException, ExecutionException {
+    private CompletableFuture<NegotiateResponse> handleNegotiate(String url) {
         HttpRequest request = new HttpRequest();
         request.setHeaders(this.headers);
 
         return httpClient.post(Negotiate.resolveNegotiateUrl(url), request).thenCompose((response) -> {
+            if (response.getStatusCode() != 200) {
+                throw new RuntimeException(String.format("Unexpected status code returned from negotiate: %d %s.", response.getStatusCode(), response.getStatusText()));
+            }
             NegotiateResponse negotiateResponse;
             try {
                 negotiateResponse = new NegotiateResponse(response.getContent());
@@ -143,20 +151,16 @@ public class HubConnection {
                 throw new RuntimeException(negotiateResponse.getError());
             }
 
-            if (negotiateResponse.getConnectionId() != null) {
-                if (url.contains("?")) {
-                    url = url + "&id=" + negotiateResponse.getConnectionId();
-                } else {
-                    url = url + "?id=" + negotiateResponse.getConnectionId();
-                }
-            }
-
             if (negotiateResponse.getAccessToken() != null) {
-                this.headers.put("Authorization", "Bearer " + negotiateResponse.getAccessToken());
-            }
-
-            if (negotiateResponse.getRedirectUrl() != null) {
-                this.url = negotiateResponse.getRedirectUrl();
+                this.accessTokenProvider = () -> CompletableFuture.completedFuture(negotiateResponse.getAccessToken());
+                String token = "";
+                try {
+                    // We know the future is already completed in this case
+                    // It's fine to call get() on it.
+                    token = this.accessTokenProvider.get().get();
+                } catch (InterruptedException | ExecutionException e) {
+                }
+                this.headers.put("Authorization", "Bearer " + token);
             }
 
             return CompletableFuture.completedFuture(negotiateResponse);
@@ -182,33 +186,31 @@ public class HubConnection {
             return CompletableFuture.completedFuture(null);
         }
 
-        CompletableFuture<NegotiateResponse> negotiate = null;
+        handshakeReceived = false;
+        CompletableFuture<Void> tokenFuture = accessTokenProvider.get()
+                .thenAccept((token) -> {
+                    if (token != null) {
+                        this.headers.put("Authorization", "Bearer " + token);
+                    }
+                });
+
+        CompletableFuture<String> negotiate = null;
         if (!skipNegotiate) {
-            negotiate = startNegotiate(0);
+            negotiate = tokenFuture.thenCompose((v) -> startNegotiate(baseUrl, 0));
         } else {
-            negotiate = CompletableFuture.completedFuture(null);
+            negotiate = tokenFuture.thenCompose((v) -> CompletableFuture.completedFuture(baseUrl));
         }
 
-        return negotiate.thenCompose((response) -> {
-            // If we didn't skip negotiate and got a null response then exit start because we
-            // are probably disconnected
-            if (response == null && !skipNegotiate) {
-                return CompletableFuture.completedFuture(null);
-            }
-
-            logger.log(LogLevel.Debug, "Starting HubConnection");
+        return negotiate.thenCompose((url) -> {
+            logger.log(LogLevel.Debug, "Starting HubConnection.");
             if (transport == null) {
-                try {
-                    transport = new WebSocketTransport(url, headers, httpClient, logger);
-                } catch (URISyntaxException e) {
-                    throw new RuntimeException(e);
-                }
+                transport = new WebSocketTransport(headers, httpClient, logger);
             }
 
             transport.setOnReceive(this.callback);
 
             try {
-                return transport.start().thenCompose((future) -> {
+                return transport.start(url).thenCompose((future) -> {
                     String handshake = HandshakeProtocol.createHandshakeRequestMessage(
                             new HandshakeRequestMessage(protocol.getName(), protocol.getVersion()));
                     return transport.send(handshake).thenRun(() -> {
@@ -230,12 +232,12 @@ public class HubConnection {
         });
     }
 
-    private CompletableFuture<NegotiateResponse> startNegotiate(int negotiateAttempts) throws IOException, InterruptedException, ExecutionException {
+    private CompletableFuture<String> startNegotiate(String url, int negotiateAttempts) {
         if (hubConnectionState != HubConnectionState.DISCONNECTED) {
             return CompletableFuture.completedFuture(null);
         }
 
-        return handleNegotiate().thenCompose((response) -> {
+        return handleNegotiate(url).thenCompose((response) -> {
             if (response.getRedirectUrl() != null && negotiateAttempts >= MAX_NEGOTIATE_ATTEMPTS) {
                 throw new RuntimeException("Negotiate redirection limit exceeded.");
             }
@@ -248,14 +250,20 @@ public class HubConnection {
                         throw new RuntimeException(e);
                     }
                 }
-                return CompletableFuture.completedFuture(response);
+
+                String finalUrl = url;
+                if (response.getConnectionId() != null) {
+                    if (url.contains("?")) {
+                        finalUrl = url + "&id=" + response.getConnectionId();
+                    } else {
+                        finalUrl = url + "?id=" + response.getConnectionId();
+                    }
+                }
+
+                return CompletableFuture.completedFuture(finalUrl);
             }
 
-            try {
-                return startNegotiate(negotiateAttempts + 1);
-            } catch (IOException | InterruptedException | ExecutionException e) {
-                throw new RuntimeException(e);
-            }
+            return startNegotiate(response.getRedirectUrl(), negotiateAttempts + 1);
         });
     }
 
@@ -270,7 +278,7 @@ public class HubConnection {
             }
 
             if (errorMessage != null) {
-                logger.log(LogLevel.Error, "HubConnection disconnected with an error %s.", errorMessage);
+                logger.log(LogLevel.Error, "HubConnection disconnected with an error: %s.", errorMessage);
             } else {
                 logger.log(LogLevel.Debug, "Stopping HubConnection.");
             }
@@ -282,8 +290,6 @@ public class HubConnection {
             HubException hubException = null;
             hubConnectionStateLock.lock();
             try {
-                hubConnectionState = HubConnectionState.DISCONNECTED;
-
                 if (errorMessage != null) {
                     hubException = new HubException(errorMessage);
                 } else if (t != null) {
@@ -292,6 +298,7 @@ public class HubConnection {
                 connectionState.cancelOutstandingInvocations(hubException);
                 connectionState = null;
                 logger.log(LogLevel.Information, "HubConnection stopped.");
+                hubConnectionState = HubConnectionState.DISCONNECTED;
             } finally {
                 hubConnectionStateLock.unlock();
             }
@@ -377,7 +384,7 @@ public class HubConnection {
      */
     public void remove(String name) {
         handlers.remove(name);
-        logger.log(LogLevel.Trace, "Removing handlers for client method %s", name);
+        logger.log(LogLevel.Trace, "Removing handlers for client method: %s.", name);
     }
 
     public void onClosed(Consumer<Exception> callback) {
@@ -398,7 +405,7 @@ public class HubConnection {
     public Subscription on(String target, Action callback) {
         ActionBase action = args -> callback.invoke();
         InvocationHandler handler = handlers.put(target, action, emptyArray);
-        logger.log(LogLevel.Trace, "Registering handler for client method: %s", target);
+        logger.log(LogLevel.Trace, "Registering handler for client method: %s.", target);
         return new Subscription(handlers, handler, target);
     }
 
@@ -416,7 +423,7 @@ public class HubConnection {
         ArrayList<Class<?>> classes = new ArrayList<>(1);
         classes.add(param1);
         InvocationHandler handler = handlers.put(target, action, classes);
-        logger.log(LogLevel.Trace, "Registering handler for client method: %s", target);
+        logger.log(LogLevel.Trace, "Registering handler for client method: %s.", target);
         return new Subscription(handlers, handler, target);
     }
 
@@ -439,7 +446,7 @@ public class HubConnection {
         classes.add(param1);
         classes.add(param2);
         InvocationHandler handler = handlers.put(target, action, classes);
-        logger.log(LogLevel.Trace, "Registering handler for client method: %s", target);
+        logger.log(LogLevel.Trace, "Registering handler for client method: %s.", target);
         return new Subscription(handlers, handler, target);
     }
 
@@ -466,7 +473,7 @@ public class HubConnection {
         classes.add(param2);
         classes.add(param3);
         InvocationHandler handler = handlers.put(target, action, classes);
-        logger.log(LogLevel.Trace, "Registering handler for client method: %s", target);
+        logger.log(LogLevel.Trace, "Registering handler for client method: %s.", target);
         return new Subscription(handlers, handler, target);
     }
 
@@ -496,7 +503,7 @@ public class HubConnection {
         classes.add(param3);
         classes.add(param4);
         InvocationHandler handler = handlers.put(target, action, classes);
-        logger.log(LogLevel.Trace, "Registering handler for client method: %s", target);
+        logger.log(LogLevel.Trace, "Registering handler for client method: %s.", target);
         return new Subscription(handlers, handler, target);
     }
 
@@ -530,7 +537,7 @@ public class HubConnection {
         classes.add(param4);
         classes.add(param5);
         InvocationHandler handler = handlers.put(target, action, classes);
-        logger.log(LogLevel.Trace, "Registering handler for client method: %s", target);
+        logger.log(LogLevel.Trace, "Registering handler for client method: %s.", target);
         return new Subscription(handlers, handler, target);
     }
 
@@ -567,7 +574,7 @@ public class HubConnection {
         classes.add(param5);
         classes.add(param6);
         InvocationHandler handler = handlers.put(target, action, classes);
-        logger.log(LogLevel.Trace, "Registering handler for client method: %s", target);
+        logger.log(LogLevel.Trace, "Registering handler for client method: %s.", target);
         return new Subscription(handlers, handler, target);
     }
 
@@ -607,7 +614,7 @@ public class HubConnection {
         classes.add(param6);
         classes.add(param7);
         InvocationHandler handler = handlers.put(target, action, classes);
-        logger.log(LogLevel.Trace, "Registering handler for client method: %s", target);
+        logger.log(LogLevel.Trace, "Registering handler for client method: %s.", target);
         return new Subscription(handlers, handler, target);
     }
 
@@ -650,7 +657,7 @@ public class HubConnection {
         classes.add(param7);
         classes.add(param8);
         InvocationHandler handler = handlers.put(target, action, classes);
-        logger.log(LogLevel.Trace, "Registering handler for client method: %s", target);
+        logger.log(LogLevel.Trace, "Registering handler for client method: %s.", target);
         return new Subscription(handlers, handler, target);
     }
 
