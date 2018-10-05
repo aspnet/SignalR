@@ -89,12 +89,12 @@ class HubConnectionTest {
     }
 
     @Test
-    public void hubConnectionReceiveHandshakeResponseWithError() throws Exception {
+    public void hubConnectionReceiveHandshakeResponseWithError() {
         MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = TestUtils.createHubConnection("http://example.com", mockTransport);
 
         hubConnection.start();
-        Throwable exception = assertThrows(HubException.class, () -> mockTransport.receiveMessage("{\"error\":\"Requested protocol 'messagepack' is not available.\"}" + RECORD_SEPARATOR));
+        Throwable exception = assertThrows(RuntimeException.class, () -> mockTransport.receiveMessage("{\"error\":\"Requested protocol 'messagepack' is not available.\"}" + RECORD_SEPARATOR));
         assertEquals("Error in handshake Requested protocol 'messagepack' is not available.", exception.getMessage());
     }
 

@@ -17,26 +17,26 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class HubConnection {
+    private static final String RECORD_SEPARATOR = "\u001e";
+    private static List<Class<?>> emptyArray = new ArrayList<>();
+    private static int MAX_NEGOTIATE_ATTEMPTS = 100;
+
     private String baseUrl;
     private Transport transport;
     private OnReceiveCallBack callback;
     private CallbackMap handlers = new CallbackMap();
     private HubProtocol protocol;
     private Boolean handshakeReceived = false;
-    private static final String RECORD_SEPARATOR = "\u001e";
     private HubConnectionState hubConnectionState = HubConnectionState.DISCONNECTED;
     private Lock hubConnectionStateLock = new ReentrantLock();
     private Logger logger;
     private List<Consumer<Exception>> onClosedCallbackList;
-    private boolean skipNegotiate = false;
+    private boolean skipNegotiate;
     private Supplier<CompletableFuture<String>> accessTokenProvider;
     private Map<String, String> headers = new HashMap<>();
     private ConnectionState connectionState = null;
     private HttpClient httpClient;
     private String stopError;
-
-    private static ArrayList<Class<?>> emptyArray = new ArrayList<>();
-    private static int MAX_NEGOTIATE_ATTEMPTS = 100;
 
     public HubConnection(String url, HttpConnectionOptions options) {
         if (url == null || url.isEmpty()) {
@@ -75,10 +75,10 @@ public class HubConnection {
                 int handshakeLength = payload.indexOf(RECORD_SEPARATOR) + 1;
                 String handshakeResponseString = payload.substring(0, handshakeLength - 1);
                 HandshakeResponseMessage handshakeResponse = HandshakeProtocol.parseHandshakeResponse(handshakeResponseString);
-                if (handshakeResponse.error != null) {
-                    String errorMessage = "Error in handshake " + handshakeResponse.error;
+                if (handshakeResponse.getHandshakeError() != null) {
+                    String errorMessage = "Error in handshake " + handshakeResponse.getHandshakeError();
                     logger.log(LogLevel.Error, errorMessage);
-                    throw new HubException(errorMessage);
+                    throw new RuntimeException(errorMessage);
                 }
                 handshakeReceived = true;
 
@@ -135,7 +135,7 @@ public class HubConnection {
 
     private CompletableFuture<NegotiateResponse> handleNegotiate(String url) {
         HttpRequest request = new HttpRequest();
-        request.setHeaders(this.headers);
+        request.addHeaders(this.headers);
 
         return httpClient.post(Negotiate.resolveNegotiateUrl(url), request).thenCompose((response) -> {
             if (response.getStatusCode() != 200) {
@@ -179,10 +179,10 @@ public class HubConnection {
 
     /**
      * Starts a connection to the server.
-     *
+     * @return A completable future that represents starting.
      * @throws Exception An error occurred while connecting.
      */
-    public CompletableFuture<Void> start() throws Exception {
+    public CompletableFuture<Void> start() {
         if (hubConnectionState != HubConnectionState.DISCONNECTED) {
             return CompletableFuture.completedFuture(null);
         }
@@ -247,11 +247,7 @@ public class HubConnection {
 
             if (response.getRedirectUrl() == null) {
                 if (!response.getAvailableTransports().contains("WebSockets")) {
-                    try {
-                        throw new HubException("There were no compatible transports on the server.");
-                    } catch (HubException e) {
-                        throw new RuntimeException(e);
-                    }
+                    throw new RuntimeException("There were no compatible transports on the server.");
                 }
 
                 String finalUrl = url;
