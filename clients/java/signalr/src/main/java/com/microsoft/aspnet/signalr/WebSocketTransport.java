@@ -91,6 +91,5 @@ class WebSocketTransport implements Transport {
         else {
             onClose.accept(null);
         }
-
     }
 }

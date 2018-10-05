@@ -33,7 +33,7 @@ class HubConnectionTest {
     public void transportCloseTriggersStopInHubConnection() throws Exception {
         MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = TestUtils.createHubConnection("http://example.com", mockTransport);
-        hubConnection.start();
+        hubConnection.start().get(1000, TimeUnit.MILLISECONDS);
         assertEquals(HubConnectionState.CONNECTED, hubConnection.getConnectionState());
         mockTransport.stop();
 
@@ -43,17 +43,18 @@ class HubConnectionTest {
     @Test
     public void transportCloseWithErrorTriggersStopInHubConnection() throws Exception {
         MockTransport mockTransport = new MockTransport();
+        AtomicReference<String> message = new AtomicReference<>();
         HubConnection hubConnection = TestUtils.createHubConnection("http://example.com", mockTransport);
         String errorMessage = "Example transport error.";
 
         hubConnection.onClosed((error) -> {
-            assertEquals(error.getMessage(), errorMessage);
+            message.set(error.getMessage());
         });
 
-        hubConnection.start();
+        hubConnection.start().get(1000, TimeUnit.MILLISECONDS);
         assertEquals(HubConnectionState.CONNECTED, hubConnection.getConnectionState());
         mockTransport.stopWithError(errorMessage);
-
+        assertEquals(errorMessage, message.get());
         assertEquals(HubConnectionState.DISCONNECTED, hubConnection.getConnectionState());
     }
 

@@ -304,8 +304,6 @@ public class HubConnection {
         HubException hubException = null;
         hubConnectionStateLock.lock();
         try {
-            hubConnectionState = HubConnectionState.DISCONNECTED;
-
             // errorMessage gets passed in from the transport. An already existing stopError value
             // should take precedence.
             if (stopError != null) {
@@ -318,6 +316,7 @@ public class HubConnection {
             connectionState.cancelOutstandingInvocations(hubException);
             connectionState = null;
             logger.log(LogLevel.Information, "HubConnection stopped.");
+            hubConnectionState = HubConnectionState.DISCONNECTED;
         } finally {
             hubConnectionStateLock.unlock();
         }
