@@ -25,7 +25,7 @@ public class HubConnectionBuilder {
         return this;
     }
 
-    public HubConnectionBuilder withOptions(HttpConnectionOptions options){
+    public HubConnectionBuilder withOptions(HttpConnectionOptions options) {
         this.options = options;
         return this;
     }
