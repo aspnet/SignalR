@@ -301,7 +301,7 @@ public class HubConnection {
     }
 
     private void stopConnection(String errorMessage) {
-        HubException hubException = null;
+        RuntimeException exception = null;
         hubConnectionStateLock.lock();
         try {
             // errorMessage gets passed in from the transport. An already existing stopError value
@@ -310,10 +310,10 @@ public class HubConnection {
                 errorMessage = stopError;
             }
             if (errorMessage != null) {
-                hubException = new HubException(errorMessage);
+                exception = new RuntimeException(errorMessage);
                 logger.log(LogLevel.Error, "HubConnection disconnected with an error %s.", errorMessage);
             }
-            connectionState.cancelOutstandingInvocations(hubException);
+            connectionState.cancelOutstandingInvocations(exception);
             connectionState = null;
             logger.log(LogLevel.Information, "HubConnection stopped.");
             hubConnectionState = HubConnectionState.DISCONNECTED;
@@ -324,7 +324,7 @@ public class HubConnection {
         // Do not run these callbacks inside the hubConnectionStateLock
         if (onClosedCallbackList != null) {
             for (Consumer<Exception> callback : onClosedCallbackList) {
-                callback.accept(hubException);
+                callback.accept(exception);
             }
         }
     }
