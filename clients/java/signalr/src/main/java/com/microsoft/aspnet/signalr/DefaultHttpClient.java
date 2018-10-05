@@ -11,6 +11,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import io.reactivex.Observable;
+import io.reactivex.subjects.SingleSubject;
+import io.reactivex.subjects.Subject;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.Cookie;
@@ -80,7 +83,7 @@ class DefaultHttpClient extends HttpClient {
     }
 
     @Override
-    public CompletableFuture<HttpResponse> send(HttpRequest httpRequest) {
+    public Observable<HttpResponse> send(HttpRequest httpRequest) {
         Request.Builder requestBuilder = new Request.Builder().url(httpRequest.getUrl());
         if (httpRequest.getMethod() == "GET") {
             requestBuilder.get();
@@ -99,24 +102,24 @@ class DefaultHttpClient extends HttpClient {
 
         Request request = requestBuilder.build();
 
-        CompletableFuture<HttpResponse> responseFuture = new CompletableFuture<>();
+        SingleSubject<HttpResponse> responseSubject = SingleSubject.create();
 
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                responseFuture.completeExceptionally(e.getCause());
+                responseSubject.onError(e.getCause());
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 try (ResponseBody body = response.body()) {
                     HttpResponse httpResponse = new HttpResponse(response.code(), response.message(), body.string());
-                    responseFuture.complete(httpResponse);
+                    responseSubject.onSuccess(httpResponse);
                 }
             }
         });
 
-        return responseFuture;
+        return responseSubject.toObservable();
     }
 
     @Override

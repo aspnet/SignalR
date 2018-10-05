@@ -6,12 +6,14 @@ package com.microsoft.aspnet.signalr;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
+import io.reactivex.Observable;
+
 public class HttpConnectionOptions {
     private Transport transport;
     private LogLevel loglevel;
     private Logger logger;
     private boolean skipNegotiate;
-    private Supplier<CompletableFuture<String>> accessTokenProvider;
+    private Supplier<Observable<String>> accessTokenProvider;
     private HttpClient client;
 
     public HttpConnectionOptions() {}
@@ -60,11 +62,11 @@ public class HttpConnectionOptions {
         this.logger = logger;
     }
 
-    public void setAccessTokenProvider(Supplier<CompletableFuture<String>> accessTokenProvider) {
+    public void setAccessTokenProvider(Supplier<Observable<String>> accessTokenProvider) {
         this.accessTokenProvider = accessTokenProvider;
     }
 
-    public Supplier<CompletableFuture<String>> getAccessTokenProvider() {
+    public Supplier<Observable<String>> getAccessTokenProvider() {
         return accessTokenProvider;
     }
 

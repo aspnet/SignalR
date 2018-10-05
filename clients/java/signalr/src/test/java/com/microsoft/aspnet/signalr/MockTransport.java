@@ -4,7 +4,8 @@
 package com.microsoft.aspnet.signalr;
 
 import java.util.ArrayList;
-import java.util.concurrent.CompletableFuture;
+
+import io.reactivex.Observable;
 
 class MockTransport implements Transport {
     private OnReceiveCallBack onReceiveCallBack;
@@ -12,15 +13,15 @@ class MockTransport implements Transport {
     private String url;
 
     @Override
-    public CompletableFuture start(String url) {
+    public Observable<Void> start(String url) {
         this.url = url;
-        return CompletableFuture.completedFuture(null);
+        return Observable.empty();
     }
 
     @Override
-    public CompletableFuture send(String message) {
+    public Observable<Void> send(String message) {
         sentMessages.add(message);
-        return CompletableFuture.completedFuture(null);
+        return Observable.empty();
     }
 
     @Override
@@ -34,8 +35,8 @@ class MockTransport implements Transport {
     }
 
     @Override
-    public CompletableFuture stop() {
-        return CompletableFuture.completedFuture(null);
+    public Observable<Void> stop() {
+        return Observable.empty();
     }
 
     public void receiveMessage(String message) throws Exception {

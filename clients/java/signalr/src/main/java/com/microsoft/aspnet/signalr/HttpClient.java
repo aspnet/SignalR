@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+import io.reactivex.Observable;
+
 class HttpRequest {
     private String method;
     private String url;
@@ -77,46 +79,46 @@ class HttpResponse {
 }
 
 abstract class HttpClient {
-    public CompletableFuture<HttpResponse> get(String url) {
+    public Observable<HttpResponse> get(String url) {
         HttpRequest request = new HttpRequest();
         request.setUrl(url);
         request.setMethod("GET");
         return this.send(request);
     }
 
-    public CompletableFuture<HttpResponse> get(String url, HttpRequest options) {
+    public Observable<HttpResponse> get(String url, HttpRequest options) {
         options.setUrl(url);
         options.setMethod("GET");
         return this.send(options);
     }
 
-    public CompletableFuture<HttpResponse> post(String url) {
+    public Observable<HttpResponse> post(String url) {
         HttpRequest request = new HttpRequest();
         request.setUrl(url);
         request.setMethod("POST");
         return this.send(request);
     }
 
-    public CompletableFuture<HttpResponse> post(String url, HttpRequest options) {
+    public Observable<HttpResponse> post(String url, HttpRequest options) {
         options.setUrl(url);
         options.setMethod("POST");
         return this.send(options);
     }
 
-    public CompletableFuture<HttpResponse> delete(String url) {
+    public Observable<HttpResponse> delete(String url) {
         HttpRequest request = new HttpRequest();
         request.setUrl(url);
         request.setMethod("DELETE");
         return this.send(request);
     }
 
-    public CompletableFuture<HttpResponse> delete(String url, HttpRequest options) {
+    public Observable<HttpResponse> delete(String url, HttpRequest options) {
         options.setUrl(url);
         options.setMethod("DELETE");
         return this.send(options);
     }
 
-    public abstract CompletableFuture<HttpResponse> send(HttpRequest request);
+    public abstract Observable<HttpResponse> send(HttpRequest request);
 
     public abstract WebSocketWrapper createWebSocket(String url, Map<String, String> headers);
 }

@@ -16,6 +16,9 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import io.reactivex.Observable;
+import io.reactivex.Maybe;
+
 public class HubConnection {
     private String baseUrl;
     private Transport transport;
@@ -29,7 +32,7 @@ public class HubConnection {
     private Logger logger;
     private List<Consumer<Exception>> onClosedCallbackList;
     private boolean skipNegotiate = false;
-    private Supplier<CompletableFuture<String>> accessTokenProvider;
+    private Supplier<Observable<String>> accessTokenProvider;
     private Map<String, String> headers = new HashMap<>();
     private ConnectionState connectionState = null;
     private HttpClient httpClient;
@@ -48,7 +51,7 @@ public class HubConnection {
         if (options.getAccessTokenProvider() != null) {
             this.accessTokenProvider = options.getAccessTokenProvider();
         } else {
-            this.accessTokenProvider = () -> CompletableFuture.completedFuture(null);
+            this.accessTokenProvider = () -> Observable.empty();
         }
 
         if (options.getLogger() != null) {
@@ -132,11 +135,11 @@ public class HubConnection {
         };
     }
 
-    private CompletableFuture<NegotiateResponse> handleNegotiate(String url) {
+    private Observable<NegotiateResponse> handleNegotiate(String url) {
         HttpRequest request = new HttpRequest();
         request.setHeaders(this.headers);
 
-        return httpClient.post(Negotiate.resolveNegotiateUrl(url), request).thenCompose((response) -> {
+        return httpClient.post(Negotiate.resolveNegotiateUrl(url), request).flatMap((response) -> {
             if (response.getStatusCode() != 200) {
                 throw new RuntimeException(String.format("Unexpected status code returned from negotiate: %d %s.", response.getStatusCode(), response.getStatusText()));
             }
@@ -152,18 +155,15 @@ public class HubConnection {
             }
 
             if (negotiateResponse.getAccessToken() != null) {
-                this.accessTokenProvider = () -> CompletableFuture.completedFuture(negotiateResponse.getAccessToken());
+                this.accessTokenProvider = () -> Observable.just(negotiateResponse.getAccessToken());
                 String token = "";
-                try {
-                    // We know the future is already completed in this case
-                    // It's fine to call get() on it.
-                    token = this.accessTokenProvider.get().get();
-                } catch (InterruptedException | ExecutionException e) {
-                }
+                // We know the future is already completed in this case
+                // It's fine to call get() on it.
+                token = this.accessTokenProvider.get().firstElement().blockingGet();
                 this.headers.put("Authorization", "Bearer " + token);
             }
 
-            return CompletableFuture.completedFuture(negotiateResponse);
+            return Observable.just(negotiateResponse);
         });
     }
 
@@ -181,27 +181,27 @@ public class HubConnection {
      *
      * @throws Exception An error occurred while connecting.
      */
-    public CompletableFuture<Void> start() throws Exception {
+    public Observable<Void> start() throws Exception {
         if (hubConnectionState != HubConnectionState.DISCONNECTED) {
-            return CompletableFuture.completedFuture(null);
+            return Observable.empty();
         }
 
         handshakeReceived = false;
-        CompletableFuture<Void> tokenFuture = accessTokenProvider.get()
-                .thenAccept((token) -> {
-                    if (token != null) {
-                        this.headers.put("Authorization", "Bearer " + token);
-                    }
-                });
+        // TODO: This is probably wrong
+        Observable<String> tokenFuture = accessTokenProvider.get().firstElement().doOnEvent((token, t) -> {
+            if (token != null) {
+                this.headers.put("Authorization", "Bearer " + token);
+            }
+        }).toObservable();
 
-        CompletableFuture<String> negotiate = null;
+        Observable<String> negotiate = null;
         if (!skipNegotiate) {
-            negotiate = tokenFuture.thenCompose((v) -> startNegotiate(baseUrl, 0));
+            negotiate = tokenFuture.singleElement().ignoreElement().toObservable().flatMap((t) -> startNegotiate(baseUrl, 0));
         } else {
-            negotiate = tokenFuture.thenCompose((v) -> CompletableFuture.completedFuture(baseUrl));
+            negotiate = Observable.concat(tokenFuture.take(1), Observable.just(baseUrl));
         }
 
-        return negotiate.thenCompose((url) -> {
+        return negotiate.concatMap((url) -> {
             logger.log(LogLevel.Debug, "Starting HubConnection.");
             if (transport == null) {
                 transport = new WebSocketTransport(headers, httpClient, logger);
@@ -210,10 +210,10 @@ public class HubConnection {
             transport.setOnReceive(this.callback);
 
             try {
-                return transport.start(url).thenCompose((future) -> {
+                return transport.start(url).ignoreElements().andThen(Observable.defer(() -> {
                     String handshake = HandshakeProtocol.createHandshakeRequestMessage(
                             new HandshakeRequestMessage(protocol.getName(), protocol.getVersion()));
-                    return transport.send(handshake).thenRun(() -> {
+                    return transport.send(handshake).doOnComplete(() -> {
                         hubConnectionStateLock.lock();
                         try {
                             hubConnectionState = HubConnectionState.CONNECTED;
@@ -223,7 +223,7 @@ public class HubConnection {
                             hubConnectionStateLock.unlock();
                         }
                     });
-                });
+                }));
             } catch (RuntimeException e) {
                 throw e;
             } catch (Exception e) {
@@ -232,12 +232,12 @@ public class HubConnection {
         });
     }
 
-    private CompletableFuture<String> startNegotiate(String url, int negotiateAttempts) {
+    private Observable<String> startNegotiate(String url, int negotiateAttempts) {
         if (hubConnectionState != HubConnectionState.DISCONNECTED) {
-            return CompletableFuture.completedFuture(null);
+            return Observable.empty();
         }
 
-        return handleNegotiate(url).thenCompose((response) -> {
+        return handleNegotiate(url).take(1).flatMap((response) -> {
             if (response.getRedirectUrl() != null && negotiateAttempts >= MAX_NEGOTIATE_ATTEMPTS) {
                 throw new RuntimeException("Negotiate redirection limit exceeded.");
             }
@@ -260,7 +260,7 @@ public class HubConnection {
                     }
                 }
 
-                return CompletableFuture.completedFuture(finalUrl);
+                return Observable.just(finalUrl);
             }
 
             return startNegotiate(response.getRedirectUrl(), negotiateAttempts + 1);
@@ -270,11 +270,11 @@ public class HubConnection {
     /**
      * Stops a connection to the server.
      */
-    private CompletableFuture<Void> stop(String errorMessage) {
+    private Observable<Void> stop(String errorMessage) {
         hubConnectionStateLock.lock();
         try {
             if (hubConnectionState == HubConnectionState.DISCONNECTED) {
-                return CompletableFuture.completedFuture(null);
+                return Observable.empty();
             }
 
             if (errorMessage != null) {
@@ -286,7 +286,7 @@ public class HubConnection {
             hubConnectionStateLock.unlock();
         }
 
-        return transport.stop().whenComplete((i, t) -> {
+        return transport.stop().firstElement().doOnEvent((i, t) -> {
             HubException hubException = null;
             hubConnectionStateLock.lock();
             try {
@@ -309,13 +309,13 @@ public class HubConnection {
                     callback.accept(hubException);
                 }
             }
-        });
+        }).toObservable();
     }
 
     /**
      * Stops a connection to the server.
      */
-    public CompletableFuture<Void> stop() {
+    public Observable<Void> stop() {
         return stop(null);
     }
 

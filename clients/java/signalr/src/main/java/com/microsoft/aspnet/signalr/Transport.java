@@ -3,12 +3,13 @@
 
 package com.microsoft.aspnet.signalr;
 
-import java.util.concurrent.CompletableFuture;
+import io.reactivex.Observable;
 
 interface Transport {
-    CompletableFuture<Void> start(String url);
-    CompletableFuture<Void> send(String message);
+    Observable<Void> start(String url);
+    
+    Observable<Void> send(String message);
     void setOnReceive(OnReceiveCallBack callback);
     void onReceive(String message) throws Exception;
-    CompletableFuture<Void> stop();
+    Observable<Void> stop();
 }

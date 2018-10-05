@@ -3,15 +3,16 @@
 
 package com.microsoft.aspnet.signalr;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 
+import io.reactivex.Observable;
+
 abstract class WebSocketWrapper {
-    public abstract CompletableFuture<Void> start();
+    public abstract Observable<Void> start();
 
-    public abstract CompletableFuture<Void> stop();
+    public abstract Observable<Void> stop();
 
-    public abstract CompletableFuture<Void> send(String message);
+    public abstract Observable<Void> send(String message);
 
     public abstract void setOnReceive(OnReceiveCallBack onReceive);
 

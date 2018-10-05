@@ -4,7 +4,8 @@
 package com.microsoft.aspnet.signalr;
 
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
+
+import io.reactivex.Observable;
 
 class WebSocketTransport implements Transport {
     private WebSocketWrapper webSocketClient;
@@ -40,17 +41,17 @@ class WebSocketTransport implements Transport {
     }
 
     @Override
-    public CompletableFuture<Void> start(String url) {
+    public Observable<Void> start(String url) {
         this.url = formatUrl(url);
         logger.log(LogLevel.Debug, "Starting Websocket connection.");
         this.webSocketClient = client.createWebSocket(this.url, this.headers);
         this.webSocketClient.setOnReceive((message) -> onReceive(message));
         this.webSocketClient.setOnClose((code, reason) -> onClose(code, reason));
-        return webSocketClient.start().thenRun(() -> logger.log(LogLevel.Information, "WebSocket transport connected to: %s.", this.url));
+        return webSocketClient.start().doOnComplete(() -> logger.log(LogLevel.Information, "WebSocket transport connected to: %s.", this.url));
     }
 
     @Override
-    public CompletableFuture<Void> send(String message) {
+    public Observable<Void> send(String message) {
         return webSocketClient.send(message);
     }
 
@@ -66,8 +67,8 @@ class WebSocketTransport implements Transport {
     }
 
     @Override
-    public CompletableFuture<Void> stop() {
-        return webSocketClient.stop().whenComplete((i, j) -> logger.log(LogLevel.Information, "WebSocket connection stopped."));
+    public Observable<Void> stop() {
+        return webSocketClient.stop().doOnComplete(() -> logger.log(LogLevel.Information, "WebSocket connection stopped."));
     }
 
     void onClose(int code, String reason) {
