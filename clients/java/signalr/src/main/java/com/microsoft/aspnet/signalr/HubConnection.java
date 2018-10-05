@@ -38,7 +38,7 @@ public class HubConnection {
     private HttpClient httpClient;
     private String stopError;
 
-    public HubConnection(String url, HttpConnectionOptions options) {
+    HubConnection(String url, HttpConnectionOptions options) {
         if (url == null || url.isEmpty()) {
             throw new IllegalArgumentException("A valid url is required.");
         }
@@ -180,7 +180,6 @@ public class HubConnection {
     /**
      * Starts a connection to the server.
      * @return A completable future that represents starting.
-     * @throws Exception An error occurred while connecting.
      */
     public CompletableFuture<Void> start() {
         if (hubConnectionState != HubConnectionState.DISCONNECTED) {
@@ -268,6 +267,8 @@ public class HubConnection {
 
     /**
      * Stops a connection to the server.
+     * @param errorMessage
+     * @return A completable future that represents stopping the {@link HubConnection}.
      */
     private CompletableFuture<Void> stop(String errorMessage) {
         hubConnectionStateLock.lock();
@@ -291,6 +292,7 @@ public class HubConnection {
 
     /**
      * Stops a connection to the server.
+     * @return A completable future that represents stopping the {@link HubConnection}.
      */
     public CompletableFuture<Void> stop() {
         return stop(null);
