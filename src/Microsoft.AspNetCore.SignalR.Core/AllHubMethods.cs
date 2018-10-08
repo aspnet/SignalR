@@ -26,7 +26,7 @@ namespace Microsoft.AspNetCore.SignalR
                 return _methods[hubType];
             }
 
-            var hubMethods = new Dictionary<string, HubMethodDescriptor>();
+            var hubMethods = new Dictionary<string, HubMethodDescriptor>(StringComparer.OrdinalIgnoreCase);
 
             var hubTypeInfo = hubType.GetTypeInfo();
             var hubName = hubType.Name;

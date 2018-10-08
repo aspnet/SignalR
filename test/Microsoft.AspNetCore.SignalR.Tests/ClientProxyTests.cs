@@ -194,7 +194,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
             var o = new Mock<HubLifetimeManager<FakeHub>>();
             o.Setup(m => m.InvokeConnectionAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Type>(), It.IsAny<object[]>(), It.IsAny<CancellationToken>()))
-                .Callback<string, string, object[], CancellationToken>((connectionId, methodName, args, _) => { resultArgs = args; })
+                .Callback<string, string, Type, object[], CancellationToken>((connectionId, returnType, methodName, args, _) => { resultArgs = args; })
                 .Returns(Task.FromResult(returnResult));
 
             var proxy = new SingleClientProxy<FakeHub>(o.Object, string.Empty);
