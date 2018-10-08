@@ -5,6 +5,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\Microsoft.AspNetCore.SignalR.StackExchangeRedis.Tests\Docker.cs" Link="Docker.cs" />
+    <Compile Include="..\Microsoft.AspNetCore.SignalR.StackExchangeRedis.Tests\EchoHub.cs" Link="EchoHub.cs" />
+    <Compile Include="..\Microsoft.AspNetCore.SignalR.StackExchangeRedis.Tests\RedisDependencyInjectionExtensionsTests.cs" Link="RedisDependencyInjectionExtensionsTests.cs" />
+    <Compile Include="..\Microsoft.AspNetCore.SignalR.StackExchangeRedis.Tests\RedisEndToEnd.cs" Link="RedisEndToEnd.cs" />
+    <Compile Include="..\Microsoft.AspNetCore.SignalR.StackExchangeRedis.Tests\RedisProtocolTests.cs" Link="RedisProtocolTests.cs" />
+    <Compile Include="..\Microsoft.AspNetCore.SignalR.StackExchangeRedis.Tests\RedisServerFixture.cs" Link="RedisServerFixture.cs" />
+    <Compile Include="..\Microsoft.AspNetCore.SignalR.StackExchangeRedis.Tests\SkipIfDockerNotPresentAttribute.cs" Link="SkipIfDockerNotPresentAttribute.cs" />
+    <Compile Include="..\Microsoft.AspNetCore.SignalR.StackExchangeRedis.Tests\Startup.cs" Link="Startup.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Include="..\xunit.runner.json" Link="xunit.runner.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

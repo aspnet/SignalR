@@ -34,7 +34,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         [Params(2, 20)]
         public int ProtocolCount { get; set; }
 
-        [GlobalSetup]
+        // [GlobalSetup]
         public void GlobalSetup()
         {
             var server = new TestRedisServer();
@@ -111,55 +111,55 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
             }
         }
 
-        [Benchmark]
+        //[Benchmark]
         public async Task SendAll()
         {
             await _manager1.SendAllAsync("Test", _args);
         }
 
-        [Benchmark]
+        //[Benchmark]
         public async Task SendGroup()
         {
             await _manager1.SendGroupAsync("Everyone", "Test", _args);
         }
 
-        [Benchmark]
+        //[Benchmark]
         public async Task SendUser()
         {
             await _manager1.SendUserAsync("EvenUser", "Test", _args);
         }
 
-        [Benchmark]
+        //[Benchmark]
         public async Task SendConnection()
         {
             await _manager1.SendConnectionAsync(_clients[0].Connection.ConnectionId, "Test", _args);
         }
 
-        [Benchmark]
+        //[Benchmark]
         public async Task SendConnections()
         {
             await _manager1.SendConnectionsAsync(_sendIds, "Test", _args);
         }
 
-        [Benchmark]
+        //[Benchmark]
         public async Task SendAllExcept()
         {
             await _manager1.SendAllExceptAsync("Test", _args, _excludedConnectionIds);
         }
 
-        [Benchmark]
+        //[Benchmark]
         public async Task SendGroupExcept()
         {
             await _manager1.SendGroupExceptAsync("Everyone", "Test", _args, _excludedConnectionIds);
         }
 
-        [Benchmark]
+        //[Benchmark]
         public async Task SendGroups()
         {
             await _manager1.SendGroupsAsync(_groups, "Test", _args);
         }
 
-        [Benchmark]
+        //[Benchmark]
         public async Task SendUsers()
         {
             await _manager1.SendUsersAsync(_users, "Test", _args);

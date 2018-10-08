@@ -8,6 +8,17 @@
   <ItemGroup>
     <Compile Include="..\Common\JsonUtils.cs" Link="Internal\JsonUtils.cs" />
     <Compile Include="..\Common\MemoryBufferWriter.cs" Link="Internal\MemoryBufferWriter.cs" />
+    <Compile Include="..\Microsoft.AspNetCore.SignalR.StackExchangeRedis\RedisOptions.cs" Link="RedisOptions.cs" />
+    <Compile Include="..\Microsoft.AspNetCore.SignalR.StackExchangeRedis\RedisDependencyInjectionExtensions.cs" Link="RedisDependencyInjectionExtensions.cs" />
+    <Compile Include="..\Microsoft.AspNetCore.SignalR.StackExchangeRedis\Internal\AckHandler.cs" Link="Internal\AckHandler.cs" />
+    <Compile Include="..\Microsoft.AspNetCore.SignalR.StackExchangeRedis\Internal\GroupAction.cs" Link="Internal\GroupAction.cs" />
+    <Compile Include="..\Microsoft.AspNetCore.SignalR.StackExchangeRedis\Internal\MessagePackUtil.cs" Link="Internal\MessagePackUtil.cs" />
+    <Compile Include="..\Microsoft.AspNetCore.SignalR.StackExchangeRedis\Internal\RedisChannels.cs" Link="Internal\RedisChannels.cs" />
+    <Compile Include="..\Microsoft.AspNetCore.SignalR.StackExchangeRedis\Internal\RedisGroupCommand.cs" Link="Internal\RedisGroupCommand.cs" />
+    <Compile Include="..\Microsoft.AspNetCore.SignalR.StackExchangeRedis\Internal\RedisInvocation.cs" Link="Internal\RedisInvocation.cs" />
+    <Compile Include="..\Microsoft.AspNetCore.SignalR.StackExchangeRedis\Internal\RedisLog.cs" Link="Internal\RedisLog.cs" />
+    <Compile Include="..\Microsoft.AspNetCore.SignalR.StackExchangeRedis\Internal\RedisProtocol.cs" Link="Internal\RedisProtocol.cs" />
+    <Compile Include="..\Microsoft.AspNetCore.SignalR.StackExchangeRedis\Internal\RedisSubscriptionManager.cs" Link="Internal\RedisSubscriptionManager.cs" />
   </ItemGroup>
 
   <ItemGroup>
