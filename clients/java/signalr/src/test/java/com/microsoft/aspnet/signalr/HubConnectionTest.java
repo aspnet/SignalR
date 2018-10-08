@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
 import io.reactivex.Observable;
+import io.reactivex.subjects.CompletableSubject;
 
 
 class HubConnectionTest {
@@ -50,6 +51,8 @@ class HubConnectionTest {
     public void hubConnectionClosesAfterCloseMessage() throws Exception {
         MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = TestUtils.createHubConnection("http://example.com", mockTransport);
+        CompletableSubject closed = CompletableSubject.create();
+        hubConnection.onClosed(e -> closed.onComplete());
 
         hubConnection.start().firstElement().timeout(1, TimeUnit.SECONDS).blockingGet();
         mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
@@ -58,8 +61,7 @@ class HubConnectionTest {
 
         mockTransport.receiveMessage("{\"type\":7,\"error\": \"There was an error\"}" + RECORD_SEPARATOR);
 
-        mockTransport.getStopTask().firstElement().timeout(1, TimeUnit.SECONDS).blockingGet();
-        Thread.sleep(10000);
+        assertTrue(closed.blockingAwait(1, TimeUnit.SECONDS));
         assertEquals(HubConnectionState.DISCONNECTED, hubConnection.getConnectionState());
     }
 
@@ -821,7 +823,7 @@ class HubConnectionTest {
         hubConnection.stop().firstElement().timeout(1, TimeUnit.SECONDS).blockingGet();
 
         assertEquals(HubConnectionState.DISCONNECTED, hubConnection.getConnectionState());
-        assertEquals("Closed callback ran.",value1.get());
+        assertEquals("Closed callback ran.", value1.get());
         assertEquals("The second onClosed callback ran", value2.get());
     }
 
@@ -830,8 +832,10 @@ class HubConnectionTest {
         MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = TestUtils.createHubConnection("http://example.com", mockTransport);
         AtomicReference<String> exceptionMessage = new AtomicReference<>();
+        CompletableSubject closed = CompletableSubject.create();
         hubConnection.onClosed((ex) -> {
             exceptionMessage.set(ex.getMessage());
+            closed.onComplete();
         });
         hubConnection.start().firstElement().timeout(1, TimeUnit.SECONDS).blockingGet();
         mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
@@ -840,6 +844,7 @@ class HubConnectionTest {
 
         mockTransport.receiveMessage("{\"type\":7,\"error\": \"There was an error\"}" + RECORD_SEPARATOR);
 
+        assertTrue(closed.blockingAwait(1, TimeUnit.SECONDS));
         assertEquals("There was an error", exceptionMessage.get());
         assertEquals(HubConnectionState.DISCONNECTED, hubConnection.getConnectionState());
     }
@@ -874,10 +879,9 @@ class HubConnectionTest {
             assertTrue(false);
         }, String.class);
 
-        Observable<Void> startFuture = hubConnection.start();
+        hubConnection.start().firstElement().timeout(1, TimeUnit.SECONDS).blockingGet();
         mockTransport.receiveMessage("{}" + RECORD_SEPARATOR);
 
-        startFuture.firstElement().timeout(1, TimeUnit.SECONDS).blockingGet();//timeout(1000, TimeUnit.MILLISECONDS);
         RuntimeException exception = assertThrows(RuntimeException.class, () -> mockTransport.receiveMessage("{\"type\":1,\"target\":\"Send\",\"arguments\":[]}" + RECORD_SEPARATOR));
         assertEquals("Invocation provides 0 argument(s) but target expects 1.", exception.getMessage());
     }
@@ -974,7 +978,7 @@ class HubConnectionTest {
 
         hubConnection.start().firstElement().timeout(1, TimeUnit.SECONDS).blockingGet();
         assertEquals(HubConnectionState.CONNECTED, hubConnection.getConnectionState());
-        hubConnection.stop();
+        hubConnection.stop().firstElement().timeout(1, TimeUnit.SECONDS).blockingGet();
     }
 
     @Test

@@ -9,7 +9,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -17,7 +16,6 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import io.reactivex.Observable;
-import io.reactivex.Maybe;
 
 public class HubConnection {
     private String baseUrl;
@@ -110,7 +108,7 @@ public class HubConnection {
                     case CLOSE:
                         logger.log(LogLevel.Information, "Close message received from server.");
                         CloseMessage closeMessage = (CloseMessage) message;
-                        stop(closeMessage.getError());
+                        stop(closeMessage.getError()).subscribe();
                         break;
                     case PING:
                         // We don't need to do anything in the case of a ping message.
