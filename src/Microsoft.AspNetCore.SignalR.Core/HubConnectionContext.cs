@@ -6,6 +6,7 @@ using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO.Pipelines;
 using System.Security.Claims;
 using System.Threading;
@@ -37,6 +38,9 @@ namespace Microsoft.AspNetCore.SignalR
         private ReadOnlyMemory<byte> _cachedPingMessage;
         private bool _clientTimeoutActive;
         private bool _connectedAborted;
+
+        // Transient state to a connection
+        internal ConnectionState ConnectionState { get; set; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HubConnectionContext"/> class.
@@ -166,6 +170,40 @@ namespace Microsoft.AspNetCore.SignalR
 
             return default;
         }
+
+        public async Task<object> InvokeAsync(string method, Type returnType, object[] args, CancellationToken cancellationToken)
+        {
+            return await InvokeCoreAsyncCore(method, returnType, args, cancellationToken);
+        }
+
+        private async Task<object> InvokeCoreAsyncCore(string methodName, Type returnType, object[] args, CancellationToken cancellationToken)
+        {
+            var irq = InvocationRequest.Invoke(cancellationToken, returnType, ConnectionState.GetNextId(), _logger, this, out var invocationTask);
+            await InvokeCore(methodName, irq, args, cancellationToken);
+
+
+            // Wait for this outside the lock, because it won't complete until the server responds.
+            return await invocationTask;
+        }
+
+        private async Task InvokeCore(string methodName, InvocationRequest irq, object[] args, CancellationToken cancellationToken)
+        {
+            // Client invocations are always blocking
+            var invocationMessage = new InvocationMessage(irq.InvocationId, methodName, args);
+
+            ConnectionState.AddInvocation(irq);
+
+            try
+            {
+                await WriteAsync(invocationMessage, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                ConnectionState.TryRemoveInvocation(invocationMessage.InvocationId, out _);
+                irq.Fail(ex);
+            }
+        }
+
 
         private ValueTask<FlushResult> WriteCore(HubMessage message)
         {
@@ -536,7 +574,7 @@ namespace Microsoft.AspNetCore.SignalR
 
         private static class Log
         {
-            // Category: HubConnectionContext
+            // Category: HubConnection
             private static readonly Action<ILogger, string, Exception> _handshakeComplete =
                 LoggerMessage.Define<string>(LogLevel.Information, new EventId(1, "HandshakeComplete"), "Completed connection handshake. Using HubProtocol '{Protocol}'.");
 
@@ -563,6 +601,9 @@ namespace Microsoft.AspNetCore.SignalR
 
             private static readonly Action<ILogger, int, Exception> _clientTimeout =
                 LoggerMessage.Define<int>(LogLevel.Debug, new EventId(9, "ClientTimeout"), "Client timeout ({ClientTimeout}ms) elapsed without receiving a message from the client. Closing connection.");
+
+            private static readonly Action<ILogger, string, Exception> _receivedUnexpectedResponse =
+                LoggerMessage.Define<string>(LogLevel.Error, new EventId(23, "ReceivedUnexpectedResponse"), "Unsolicited response received for invocation '{InvocationId}'.");
 
             public static void HandshakeComplete(ILogger logger, string hubProtocol)
             {
@@ -608,6 +649,90 @@ namespace Microsoft.AspNetCore.SignalR
             {
                 _clientTimeout(logger, (int)timeout.TotalMilliseconds, null);
             }
+
+            public static void ReceivedUnexpectedResponse(ILogger logger, string invocationId)
+            {
+                _receivedUnexpectedResponse(logger, invocationId, null);
+            }
+        }
+    }
+
+    internal class ConnectionState : IInvocationBinder
+    {
+        private readonly HubConnectionContext _hubConnection;
+
+        private readonly Type _hubType;
+
+        private readonly object _lock = new object();
+        private readonly Dictionary<string, InvocationRequest> _pendingCalls = new Dictionary<string, InvocationRequest>(StringComparer.Ordinal);
+        private int _nextId;
+
+        public Task ReceiveTask { get; set; }
+
+        public ConnectionState(HubConnectionContext hubConnection, Type hubType)
+        {
+            _hubConnection = hubConnection;
+            _hubType = hubType;
+        }
+
+        public string GetNextId() => Interlocked.Increment(ref _nextId).ToString(CultureInfo.InvariantCulture);
+
+        public void AddInvocation(InvocationRequest irq)
+        {
+            lock (_lock)
+            {
+                if (_pendingCalls.ContainsKey(irq.InvocationId))
+                {
+                    throw new InvalidOperationException($"Invocation ID '{irq.InvocationId}' is already in use.");
+                }
+                else
+                {
+                    _pendingCalls.Add(irq.InvocationId, irq);
+                }
+            }
+        }
+
+        public bool TryGetInvocation(string invocationId, out InvocationRequest irq)
+        {
+            lock (_lock)
+            {
+                return _pendingCalls.TryGetValue(invocationId, out irq);
+            }
+        }
+
+        public bool TryRemoveInvocation(string invocationId, out InvocationRequest irq)
+        {
+            lock (_lock)
+            {
+                if (_pendingCalls.TryGetValue(invocationId, out irq))
+                {
+                    _pendingCalls.Remove(invocationId);
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+        }
+
+        public Type GetReturnType(string invocationId)
+        {
+            if (!TryGetInvocation(invocationId, out var irq))
+            {
+                return null;
+            }
+            return irq.ResultType;
+        }
+
+        public IReadOnlyList<Type> GetParameterTypes(string methodName)
+        {
+            var methods = AllHubMethods.DiscoverHubMethods(_hubType);
+            if (!methods.TryGetValue(methodName, out var descriptor))
+            {
+                throw new HubException("Method does not exist.");
+            }
+            return descriptor.ParameterTypes;
         }
     }
 }

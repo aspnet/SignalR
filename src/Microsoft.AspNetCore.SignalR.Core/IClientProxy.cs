@@ -1,6 +1,7 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -24,5 +25,18 @@ namespace Microsoft.AspNetCore.SignalR
         /// <param name="cancellationToken">The token to monitor for cancellation requests. The default value is <see cref="CancellationToken.None" />.</param>
         /// <returns>A <see cref="Task"/> that represents the asynchronous invoke.</returns>
         Task SendCoreAsync(string method, object[] args, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Invokes a method on the connection(s) represented by the <see cref="IClientProxy"/> instance.
+        /// Does not wait for a response from the receiver.
+        /// </summary>
+        /// <param name="method">Name of the method to invoke.</param>
+        /// <param name="args">A collection of arguments to pass to the client.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests. The default value is <see cref="CancellationToken.None" />.</param>
+        /// <returns>
+        /// A <see cref="Task{TResult}"/> that represents the asynchronous invoke.
+        /// The <see cref="Task{TResult}.Result"/> property returns an <see cref="object"/> for the client method return value.
+        /// </returns>
+        Task<TResult> InvokeCoreAsync<TResult>(string method, object[] args, CancellationToken cancellationToken = default);
     }
 }

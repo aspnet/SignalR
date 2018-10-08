@@ -21,7 +21,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 {
     public partial class DefaultHubDispatcher<THub> : HubDispatcher<THub> where THub : Hub
     {
-        private readonly Dictionary<string, HubMethodDescriptor> _methods = new Dictionary<string, HubMethodDescriptor>(StringComparer.OrdinalIgnoreCase);
+        private Dictionary<string, HubMethodDescriptor> _methods;
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly IHubContext<THub> _hubContext;
         private readonly ILogger<HubDispatcher<THub>> _logger;
@@ -87,6 +87,17 @@ namespace Microsoft.AspNetCore.SignalR.Internal
                     Log.ReceivedHubInvocation(_logger, invocationMessage);
                     return ProcessInvocation(connection, invocationMessage, isStreamedInvocation: false);
 
+                case CompletionMessage completionMessage:
+                    if (connection.ConnectionState.TryRemoveInvocation(completionMessage.InvocationId, out var irq))
+                    {
+                        ProcessInvocationCompletion(completionMessage, irq);
+                        irq.Dispose();
+                    }
+                    else
+                    {
+                        Log.DroppedCompletionMessage(_logger, completionMessage.InvocationId);
+                    }
+                    break;
                 case StreamInvocationMessage streamInvocationMessage:
                     Log.ReceivedStreamHubInvocation(_logger, streamInvocationMessage);
                     return ProcessInvocation(connection, streamInvocationMessage, isStreamedInvocation: true);
@@ -117,6 +128,20 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             }
 
             return Task.CompletedTask;
+        }
+
+        private void ProcessInvocationCompletion(CompletionMessage completion, InvocationRequest irq)
+        {
+            Log.ReceivedInvocationCompletion(_logger, completion.InvocationId);
+
+            if (irq.CancellationToken.IsCancellationRequested)
+            {
+                Log.CancelingInvocationCompletion(_logger, irq.InvocationId);
+            }
+            else
+            {
+                irq.Complete(completion);
+            }
         }
 
         private Task ProcessBindingFailure(HubConnectionContext connection, InvocationBindingFailureMessage bindingFailureMessage)
@@ -431,27 +456,7 @@ namespace Microsoft.AspNetCore.SignalR.Internal
 
         private void DiscoverHubMethods()
         {
-            var hubType = typeof(THub);
-            var hubTypeInfo = hubType.GetTypeInfo();
-            var hubName = hubType.Name;
-
-            foreach (var methodInfo in HubReflectionHelper.GetHubMethods(hubType))
-            {
-                var methodName =
-                    methodInfo.GetCustomAttribute<HubMethodNameAttribute>()?.Name ??
-                    methodInfo.Name;
-
-                if (_methods.ContainsKey(methodName))
-                {
-                    throw new NotSupportedException($"Duplicate definitions of '{methodName}'. Overloading is not supported.");
-                }
-
-                var executor = ObjectMethodExecutor.Create(methodInfo, hubTypeInfo);
-                var authorizeAttributes = methodInfo.GetCustomAttributes<AuthorizeAttribute>(inherit: true);
-                _methods[methodName] = new HubMethodDescriptor(executor, authorizeAttributes);
-
-                Log.HubMethodBound(_logger, hubName, methodName);
-            }
+            _methods = AllHubMethods.DiscoverHubMethods<THub>();
         }
     }
 }

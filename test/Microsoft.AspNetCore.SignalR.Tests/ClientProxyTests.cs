@@ -1,6 +1,7 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
@@ -181,6 +182,31 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
             Assert.NotNull(resultArgs);
             var arg = (byte[])Assert.Single(resultArgs);
+
+            Assert.Same(data, arg);
+        }
+
+        [Fact]
+        public async Task SingleClientProxy_InvokeAsync_ArrayArgumentNotExpanded()
+        {
+            object[] resultArgs = null;
+            object returnResult = "method call result";
+
+            var o = new Mock<HubLifetimeManager<FakeHub>>();
+            o.Setup(m => m.InvokeConnectionAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Type>(), It.IsAny<object[]>(), It.IsAny<CancellationToken>()))
+                .Callback<string, string, object[], CancellationToken>((connectionId, methodName, args, _) => { resultArgs = args; })
+                .Returns(Task.FromResult(returnResult));
+
+            var proxy = new SingleClientProxy<FakeHub>(o.Object, string.Empty);
+
+            var data = Encoding.UTF8.GetBytes("Hello world");
+            //await proxy.SendAsync("Method", data);
+            var result = await proxy.InvokeCoreAsync<object>("ReturnMethod", new object[] {data});
+
+            Assert.NotNull(resultArgs);
+            var arg = (byte[])Assert.Single(resultArgs);
+
+            Assert.Same(returnResult, result);
 
             Assert.Same(data, arg);
         }

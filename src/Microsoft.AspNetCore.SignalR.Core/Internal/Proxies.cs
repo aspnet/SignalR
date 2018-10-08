@@ -1,6 +1,7 @@
 // Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -22,6 +23,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         {
             return _lifetimeManager.SendUserAsync(_userId, method, args, cancellationToken);
         }
+
+        public Task<TResult> InvokeCoreAsync<TResult>(string method, object[] args, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     internal class MultipleUserProxy<THub> : IClientProxy where THub : Hub
@@ -38,6 +44,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         public Task SendCoreAsync(string method, object[] args, CancellationToken cancellationToken = default)
         {
             return _lifetimeManager.SendUsersAsync(_userIds, method, args, cancellationToken);
+        }
+
+        public Task<TResult> InvokeCoreAsync<TResult>(string method, object[] args, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
         }
     }
 
@@ -56,6 +67,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         {
             return _lifetimeManager.SendGroupAsync(_groupName, method, args, cancellationToken);
         }
+
+        public Task<TResult> InvokeCoreAsync<TResult>(string method, object[] args, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     internal class MultipleGroupProxy<THub> : IClientProxy where THub : Hub
@@ -72,6 +88,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         public Task SendCoreAsync(string method, object[] args, CancellationToken cancellationToken = default)
         {
             return _lifetimeManager.SendGroupsAsync(_groupNames, method, args, cancellationToken);
+        }
+
+        public Task<TResult> InvokeCoreAsync<TResult>(string method, object[] args, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
         }
     }
 
@@ -92,6 +113,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         {
             return _lifetimeManager.SendGroupExceptAsync(_groupName, method, args, _excludedConnectionIds, cancellationToken);
         }
+
+        public Task<TResult> InvokeCoreAsync<TResult>(string method, object[] args, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     internal class AllClientProxy<THub> : IClientProxy where THub : Hub
@@ -106,6 +132,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         public Task SendCoreAsync(string method, object[] args, CancellationToken cancellationToken = default)
         {
             return _lifetimeManager.SendAllAsync(method, args);
+        }
+
+        public Task<TResult> InvokeCoreAsync<TResult>(string method, object[] args, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
         }
     }
 
@@ -124,6 +155,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         {
             return _lifetimeManager.SendAllExceptAsync(method, args, _excludedConnectionIds, cancellationToken);
         }
+
+        public Task<TResult> InvokeCoreAsync<TResult>(string method, object[] args, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     internal class SingleClientProxy<THub> : IClientProxy where THub : Hub
@@ -141,6 +177,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         {
             return _lifetimeManager.SendConnectionAsync(_connectionId, method, args, cancellationToken);
         }
+
+        public async Task<TResult> InvokeCoreAsync<TResult>(string method, object[] args, CancellationToken cancellationToken = default)
+        {
+            return (TResult)await _lifetimeManager.InvokeConnectionAsync(_connectionId, method, typeof(TResult), args, cancellationToken);
+        }
     }
 
     internal class MultipleClientProxy<THub> : IClientProxy where THub : Hub
@@ -157,6 +198,11 @@ namespace Microsoft.AspNetCore.SignalR.Internal
         public Task SendCoreAsync(string method, object[] args, CancellationToken cancellationToken = default)
         {
             return _lifetimeManager.SendConnectionsAsync(_connectionIds, method, args, cancellationToken);
+        }
+
+        public Task<TResult> InvokeCoreAsync<TResult>(string method, object[] args, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
         }
     }
 }

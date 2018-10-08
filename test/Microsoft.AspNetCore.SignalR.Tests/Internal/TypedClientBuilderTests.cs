@@ -201,6 +201,15 @@ namespace Microsoft.AspNetCore.SignalR.Tests.Internal
 
                 return tcs.Task;
             }
+
+            public Task<TResult> InvokeCoreAsync<TResult>(string method, object[] args, CancellationToken cancellationToken = default)
+            {
+                var tcs = new TaskCompletionSource<object>();
+
+                Sends.Add(new SendContext(method, args, cancellationToken, tcs));
+
+                return Task.FromResult((TResult)tcs.Task.Result);
+            }
         }
 
         private struct SendContext

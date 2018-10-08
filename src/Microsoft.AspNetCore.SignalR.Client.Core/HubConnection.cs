@@ -191,6 +191,15 @@ namespace Microsoft.AspNetCore.SignalR.Client
         /// </remarks>
         public IDisposable On(string methodName, Type[] parameterTypes, Func<object[], object, Task> handler, object state)
         {
+            return On(methodName, parameterTypes, null, (args1, args2) =>
+            {
+                handler(args1, args2);
+                return Task.FromResult<object>(null);
+            }, state);
+        }
+
+        public IDisposable On(string methodName, Type[] parameterTypes, Type returnType, Func<object[], object, Task<object>> handler, object state)
+        {
             Log.RegisteringHandler(_logger, methodName);
 
             CheckDisposed();
@@ -627,11 +636,24 @@ namespace Microsoft.AspNetCore.SignalR.Client
 
             // Grabbing the current handlers
             var copiedHandlers = invocationHandlerList.GetHandlers();
+
             foreach (var handler in copiedHandlers)
             {
                 try
                 {
-                    await handler.InvokeAsync(invocation.Arguments);
+                    var result = await handler.InvokeAsync(invocation.Arguments);
+                    if (result != null)
+                    {
+                        await WaitConnectionLockAsync();
+                        try
+                        {
+                            await SendHubMessage(CompletionMessage.WithResult(invocation.InvocationId, result));
+                        }
+                        finally
+                        {
+                            ReleaseConnectionLock();
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -1085,17 +1107,17 @@ namespace Microsoft.AspNetCore.SignalR.Client
         private readonly struct InvocationHandler
         {
             public Type[] ParameterTypes { get; }
-            private readonly Func<object[], object, Task> _callback;
+            private readonly Func<object[], object, Task<object>> _callback;
             private readonly object _state;
 
-            public InvocationHandler(Type[] parameterTypes, Func<object[], object, Task> callback, object state)
+            public InvocationHandler(Type[] parameterTypes, Func<object[], object, Task<object>> callback, object state)
             {
                 _callback = callback;
                 ParameterTypes = parameterTypes;
                 _state = state;
             }
 
-            public Task InvokeAsync(object[] parameters)
+            public Task<object> InvokeAsync(object[] parameters)
             {
                 return _callback(parameters, _state);
             }

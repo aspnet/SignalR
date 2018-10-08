@@ -1,6 +1,7 @@
 ﻿// Copyright(c) .NET Foundation.All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -166,6 +167,12 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         public override Task SendConnectionsAsync(IReadOnlyList<string> connectionIds, string methodName, object[] args, CancellationToken cancellationToken = default)
         {
             throw new System.NotImplementedException();
+        }
+
+        public override Task<object> InvokeConnectionAsync(string connectionId, string method, Type returnType, object[] args,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
         }
 
         public override Task SendGroupAsync(string groupName, string methodName, object[] args, CancellationToken cancellationToken = default)

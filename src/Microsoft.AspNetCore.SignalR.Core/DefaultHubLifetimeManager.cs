@@ -4,9 +4,11 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Protocol;
 using Microsoft.Extensions.Logging;
@@ -177,7 +179,7 @@ namespace Microsoft.AspNetCore.SignalR
 
             return connection.WriteAsync(message).AsTask();
         }
-
+       
         /// <inheritdoc />
         public override Task SendGroupAsync(string groupName, string methodName, object[] args, CancellationToken cancellationToken = default)
         {
@@ -306,5 +308,23 @@ namespace Microsoft.AspNetCore.SignalR
         {
             return SendToAllConnections(methodName, args, connection => userIds.Contains(connection.UserIdentifier));
         }
+
+        public override async Task<object> InvokeConnectionAsync(string connectionId, string method, Type returnType, object[] args, CancellationToken cancellationToken)
+        {
+            if (connectionId == null)
+            {
+                throw new ArgumentNullException(nameof(connectionId));
+            }
+
+            var connection = _connections[connectionId];
+
+            if (connection == null)
+            {
+                return null;
+            }
+
+            return await connection.InvokeAsync(method, returnType, args, cancellationToken);
+        }
+
     }
 }

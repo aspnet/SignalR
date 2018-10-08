@@ -204,6 +204,12 @@ namespace Microsoft.AspNetCore.SignalR.Redis
             return SendGroupActionAndWaitForAck(connectionId, groupName, GroupAction.Remove);
         }
 
+        public override Task<object> InvokeConnectionAsync(string connectionId, string method, Type returnType, object[] args,
+            CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
         public override Task SendConnectionsAsync(IReadOnlyList<string> connectionIds, string methodName, object[] args, CancellationToken cancellationToken = default)
         {
             if (connectionIds == null)
