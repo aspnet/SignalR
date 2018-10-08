@@ -57,6 +57,16 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             private static readonly Action<ILogger, string, Exception> _invalidReturnValueFromStreamingMethod =
                 LoggerMessage.Define<string>(LogLevel.Error, new EventId(15, "InvalidReturnValueFromStreamingMethod"), "A streaming method returned a value that cannot be used to build enumerator {HubMethod}.");
 
+            private static readonly Action<ILogger, string, Exception> _droppedCompletionMessage =
+                LoggerMessage.Define<string>(LogLevel.Warning, new EventId(9, "DroppedCompletionMessage"), "Dropped unsolicited Completion message for invocation '{InvocationId}'.");
+
+            private static readonly Action<ILogger, string, Exception> _receivedInvocationCompletion =
+                LoggerMessage.Define<string>(LogLevel.Trace, new EventId(18, "ReceivedInvocationCompletion"), "Received Completion for Invocation {InvocationId}.");
+
+            private static readonly Action<ILogger, string, Exception> _cancelingInvocationCompletion =
+                LoggerMessage.Define<string>(LogLevel.Trace, new EventId(19, "CancelingInvocationCompletion"), "Canceling dispatch of Completion message for Invocation {InvocationId}. The invocation was canceled.");
+
+
             public static void ReceivedHubInvocation(ILogger logger, InvocationMessage invocationMessage)
             {
                 _receivedHubInvocation(logger, invocationMessage, null);
@@ -132,6 +142,21 @@ namespace Microsoft.AspNetCore.SignalR.Internal
             public static void InvalidReturnValueFromStreamingMethod(ILogger logger, string hubMethod)
             {
                 _invalidReturnValueFromStreamingMethod(logger, hubMethod, null);
+            }
+
+            public static void DroppedCompletionMessage(ILogger<HubDispatcher<THub>> logger, string invocationId)
+            {
+                _droppedCompletionMessage(logger, invocationId, null);
+            }
+
+            public static void ReceivedInvocationCompletion(ILogger logger, string invocationId)
+            {
+                _receivedInvocationCompletion(logger, invocationId, null);
+            }
+
+            public static void CancelingInvocationCompletion(ILogger logger, string invocationId)
+            {
+                _cancelingInvocationCompletion(logger, invocationId, null);
             }
         }
     }

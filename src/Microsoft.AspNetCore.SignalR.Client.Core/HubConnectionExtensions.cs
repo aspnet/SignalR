@@ -242,5 +242,14 @@ namespace Microsoft.AspNetCore.SignalR.Client
                 return currentHandler(parameters);
             }, handler);
         }
+
+        public static IDisposable On<TResult>(this HubConnection hubConnection, string methodName, Func<Task<TResult>> handler)
+        {
+            return hubConnection.On(methodName, Type.EmptyTypes, typeof(TResult), async (parameters, state) =>
+            {
+                var currentHandler = (Func<Task<TResult>>) state;
+                return Task.FromResult<object>(await currentHandler());
+            }, handler);
+        }
     }
 }

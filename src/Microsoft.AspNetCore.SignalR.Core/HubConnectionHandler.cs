@@ -81,6 +81,7 @@ namespace Microsoft.AspNetCore.SignalR
             Log.ConnectedStarting(_logger);
 
             var connectionContext = new HubConnectionContext(connection, keepAlive, _loggerFactory, clientTimeout);
+            connectionContext.ConnectionState = new ConnectionState(connectionContext, typeof(THub));
 
             var resolvedSupportedProtocols = (supportedProtocols as IReadOnlyList<string>) ?? supportedProtocols.ToList();
             if (!await connectionContext.HandshakeAsync(handshakeTimeout, resolvedSupportedProtocols, _protocolResolver, _userIdProvider, _enableDetailedErrors))
@@ -186,6 +187,7 @@ namespace Microsoft.AspNetCore.SignalR
         {
             var input = connection.Input;
             var protocol = connection.Protocol;
+            var builder = connection.ConnectionState;
             while (true)
             {
                 var result = await input.ReadAsync();
@@ -202,7 +204,7 @@ namespace Microsoft.AspNetCore.SignalR
                     {
                         connection.ResetClientTimeout();
 
-                        while (protocol.TryParseMessage(ref buffer, _dispatcher, out var message))
+                        while (protocol.TryParseMessage(ref buffer, builder, out var message))
                         {
                             await _dispatcher.DispatchMessageAsync(connection, message);
                         }
