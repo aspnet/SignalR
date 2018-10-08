@@ -14,27 +14,9 @@ using Xunit;
 
 namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 {
-    public class RedisHubLifetimeManagerTests : ScaleoutHubLifetimeManagerTests<TestRedisServer>
+    // Add ScaleoutHubLifetimeManagerTests<TestRedisServer> back after https://github.com/aspnet/SignalR/issues/3088
+    public class RedisHubLifetimeManagerTests
     {
-        private TestRedisServer _server;
-
-        public override HubLifetimeManager<MyHub> CreateNewHubLifetimeManager(TestRedisServer backplane)
-        {
-            return CreateLifetimeManager(backplane);
-        }
-
-        public override TestRedisServer CreateBackplane()
-        {
-            return new TestRedisServer();
-        }
-
-        public override HubLifetimeManager<MyHub> CreateNewHubLifetimeManager()
-        {
-            _server = new TestRedisServer();
-
-            return CreateLifetimeManager(_server);
-        }
-
         public class TestObject
         {
             public string TestProperty { get; set; }
@@ -55,7 +37,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
                 }, NullLogger<DefaultHubProtocolResolver>.Instance));
         }
 
-        [Fact]
+        [Fact(Skip = "https://github.com/aspnet/SignalR/issues/3088")]
         public async Task CamelCasedJsonIsPreservedAcrossRedisBoundary()
         {
             var server = new TestRedisServer();
