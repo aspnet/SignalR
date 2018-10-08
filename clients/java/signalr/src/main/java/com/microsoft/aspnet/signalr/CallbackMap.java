@@ -11,7 +11,13 @@ class CallbackMap {
 
     public InvocationHandler put(String target, ActionBase action, Class<?>... classes) {
         InvocationHandler handler = new InvocationHandler(action, classes);
-        handlers.computeIfAbsent(target, ac -> new ArrayList<>()).add(handler);
+        handlers.compute(target, (key, value) -> {
+            if (value == null) {
+                value = new ArrayList<>();
+            }
+            value.add(handler);
+            return value;
+        });
         return handler;
     }
 

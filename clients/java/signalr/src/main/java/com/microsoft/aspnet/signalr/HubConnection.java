@@ -179,7 +179,7 @@ public class HubConnection {
 
     /**
      * Starts a connection to the server.
-     * @return A completable future that represents starting.
+     * @return A completable future that completes when the connection has been established.
      */
     public CompletableFuture<Void> start() {
         if (hubConnectionState != HubConnectionState.DISCONNECTED) {
@@ -267,8 +267,8 @@ public class HubConnection {
 
     /**
      * Stops a connection to the server.
-     * @param errorMessage
-     * @return A completable future that represents stopping the {@link HubConnection}.
+     * @param errorMessage An error message if the connected needs to be stopped because of an error.
+     * @return A completable future that completes when the connection has been stopped.
      */
     private CompletableFuture<Void> stop(String errorMessage) {
         hubConnectionStateLock.lock();
@@ -292,7 +292,7 @@ public class HubConnection {
 
     /**
      * Stops a connection to the server.
-     * @return A completable future that represents stopping the {@link HubConnection}.
+     * @return A completable future that completes when the connection has been stopped.
      */
     public CompletableFuture<Void> stop() {
         return stop(null);
@@ -610,7 +610,7 @@ public class HubConnection {
 
     private Subscription registerHandler(String target, ActionBase action, Class<?>... types) {
         InvocationHandler handler = handlers.put(target, action, types);
-        logger.log(LogLevel.Debug, "Registering handler for client method: " + target);
+        logger.log(LogLevel.Debug, "Registering handler for client method: '%s'.", target);
         return new Subscription(handlers, handler, target);
     }
 
