@@ -41,6 +41,9 @@ connection.start()
 ```JavaScript
 const signalR = require("@aspnet/signalr");
 
+XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest
+WebSocket = require("websocket").w3cwebsocket
+
 let connection = new signalR.HubConnectionBuilder()
     .withUrl("/chat")
     .build();
