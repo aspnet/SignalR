@@ -5,7 +5,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\Microsoft.AspNetCore.SignalR.StackExchangeRedis.Tests\Docker.cs" Link="Docker.cs" />
     <Compile Include="..\Microsoft.AspNetCore.SignalR.StackExchangeRedis.Tests\EchoHub.cs" Link="EchoHub.cs" />
     <Compile Include="..\Microsoft.AspNetCore.SignalR.StackExchangeRedis.Tests\RedisDependencyInjectionExtensionsTests.cs" Link="RedisDependencyInjectionExtensionsTests.cs" />
     <Compile Include="..\Microsoft.AspNetCore.SignalR.StackExchangeRedis.Tests\RedisEndToEnd.cs" Link="RedisEndToEnd.cs" />
