@@ -58,6 +58,8 @@ class HubConnectionTest {
 
         mockTransport.receiveMessage("{\"type\":7,\"error\": \"There was an error\"}" + RECORD_SEPARATOR);
 
+        mockTransport.getStopTask().firstElement().timeout(1, TimeUnit.SECONDS).blockingGet();
+        Thread.sleep(10000);
         assertEquals(HubConnectionState.DISCONNECTED, hubConnection.getConnectionState());
     }
 

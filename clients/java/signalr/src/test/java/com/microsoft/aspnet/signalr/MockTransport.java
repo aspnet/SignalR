@@ -6,16 +6,20 @@ package com.microsoft.aspnet.signalr;
 import java.util.ArrayList;
 
 import io.reactivex.Observable;
+import io.reactivex.subjects.CompletableSubject;
 
 class MockTransport implements Transport {
     private OnReceiveCallBack onReceiveCallBack;
     private ArrayList<String> sentMessages = new ArrayList<>();
     private String url;
+    private CompletableSubject startTask = CompletableSubject.create();
+    private CompletableSubject stopTask = CompletableSubject.create();
 
     @Override
     public Observable<Void> start(String url) {
         this.url = url;
-        return Observable.empty();
+        startTask.onComplete();
+        return startTask.toObservable();
     }
 
     @Override
@@ -36,7 +40,8 @@ class MockTransport implements Transport {
 
     @Override
     public Observable<Void> stop() {
-        return Observable.empty();
+        stopTask.onComplete();
+        return stopTask.toObservable();
     }
 
     public void receiveMessage(String message) throws Exception {
@@ -49,5 +54,13 @@ class MockTransport implements Transport {
 
     public String getUrl() {
         return this.url;
+    }
+
+    public Observable<Void> getStartTask() {
+        return startTask.toObservable();
+    }
+
+    public Observable<Void> getStopTask() {
+        return stopTask.toObservable();
     }
 }

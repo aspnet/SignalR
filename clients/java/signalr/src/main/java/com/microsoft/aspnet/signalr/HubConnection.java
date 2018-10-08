@@ -187,21 +187,22 @@ public class HubConnection {
         }
 
         handshakeReceived = false;
-        // TODO: This is probably wrong
-        Observable<String> tokenFuture = accessTokenProvider.get().firstElement().doOnEvent((token, t) -> {
+        Observable<Boolean> tokenFuture = accessTokenProvider.get().take(1).any((token) -> {
             if (token != null) {
                 this.headers.put("Authorization", "Bearer " + token);
             }
+            return true;
         }).toObservable();
 
         Observable<String> negotiate = null;
         if (!skipNegotiate) {
-            negotiate = tokenFuture.singleElement().ignoreElement().toObservable().flatMap((t) -> startNegotiate(baseUrl, 0));
+            negotiate = tokenFuture.flatMap((t) -> startNegotiate(baseUrl, 0));
         } else {
-            negotiate = Observable.concat(tokenFuture.take(1), Observable.just(baseUrl));
+            negotiate = tokenFuture.flatMap((t) -> 
+            Observable.just(baseUrl));
         }
 
-        return negotiate.concatMap((url) -> {
+        return negotiate.flatMap((url) -> {
             logger.log(LogLevel.Debug, "Starting HubConnection.");
             if (transport == null) {
                 transport = new WebSocketTransport(headers, httpClient, logger);
@@ -210,7 +211,7 @@ public class HubConnection {
             transport.setOnReceive(this.callback);
 
             try {
-                return transport.start(url).ignoreElements().andThen(Observable.defer(() -> {
+                return transport.start(url).concatWith(Observable.defer(() -> {
                     String handshake = HandshakeProtocol.createHandshakeRequestMessage(
                             new HandshakeRequestMessage(protocol.getName(), protocol.getVersion()));
                     return transport.send(handshake).doOnComplete(() -> {
@@ -286,7 +287,7 @@ public class HubConnection {
             hubConnectionStateLock.unlock();
         }
 
-        return transport.stop().firstElement().doOnEvent((i, t) -> {
+        return transport.stop().ignoreElements().doOnEvent((t) -> {
             HubException hubException = null;
             hubConnectionStateLock.lock();
             try {
