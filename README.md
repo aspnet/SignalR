@@ -62,3 +62,7 @@ To run a complete build on command line only, execute `build.cmd` or `build.sh` 
 If this is your first time building *SignalR* please see the [Getting Started](docs/GettingStarted.md) for more information about project dependencies and other build-related information specific to *SignalR*. 
 
 See [developer documentation](https://github.com/aspnet/Home/wiki) for general information on building and contributing to this and other [aspnet](https://github.com/aspnet) repositories.
+
+## License
+
+This project is licensed under the Apache 2.0 License - see the [LICENSE.txt](https://github.com/aspnet/SignalR/blob/release/2.2/LICENSE.txt) file for details
