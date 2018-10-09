@@ -8,10 +8,9 @@ using System.IO;
 using System.Runtime.InteropServices;
 using MessagePack;
 using Microsoft.AspNetCore.Internal;
-using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Protocol;
 
-namespace Microsoft.AspNetCore.SignalR.Internal
+namespace Microsoft.AspNetCore.SignalR.Redis.Internal
 {
     public class RedisProtocol
     {

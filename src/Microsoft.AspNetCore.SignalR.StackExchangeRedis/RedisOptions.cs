@@ -7,7 +7,7 @@ using System.Net;
 using System.Threading.Tasks;
 using StackExchange.Redis;
 
-namespace Microsoft.AspNetCore.SignalR.StackExchangeRedis
+namespace Microsoft.AspNetCore.SignalR.Redis
 {
     /// <summary>
     /// Options used to configure <see cref="RedisHubLifetimeManager{THub}"/>.
