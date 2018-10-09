@@ -16,7 +16,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
         private static readonly string _exeSuffix = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".exe" : string.Empty;
 
         private static readonly string _dockerContainerName = "redisTestContainer-1x";
-        private static readonly string _dockerMonitorContainerName = _dockerContainerName + "Monitor";
+        private static readonly string _dockerMonitorContainerName = _dockerContainerName + "Monitor-1x";
         private static readonly Lazy<Docker> _instance = new Lazy<Docker>(Create);
 
         public static Docker Default => _instance.Value;
