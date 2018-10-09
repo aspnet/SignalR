@@ -14,7 +14,7 @@ using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Microsoft.AspNetCore.SignalR.StackExchangeRedis.Tests
+namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 {
     // Disable running server tests in parallel so server logs can accurately be captured per test
     [CollectionDefinition(Name, DisableParallelization = true)]

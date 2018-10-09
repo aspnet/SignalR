@@ -3,7 +3,7 @@
 
 using System;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.AspNetCore.SignalR.StackExchangeRedis;
+using Microsoft.AspNetCore.SignalR.Redis;
 using StackExchange.Redis;
 
 namespace Microsoft.Extensions.DependencyInjection
@@ -18,9 +18,9 @@ namespace Microsoft.Extensions.DependencyInjection
         /// </summary>
         /// <param name="signalrBuilder">The <see cref="ISignalRServerBuilder"/>.</param>
         /// <returns>The same instance of the <see cref="ISignalRServerBuilder"/> for chaining.</returns>
-        public static ISignalRServerBuilder AddStackExchangeRedis(this ISignalRServerBuilder signalrBuilder)
+        public static ISignalRServerBuilder AddRedis(this ISignalRServerBuilder signalrBuilder)
         {
-            return AddStackExchangeRedis(signalrBuilder, o => { });
+            return AddRedis(signalrBuilder, o => { });
         }
 
         /// <summary>
@@ -29,9 +29,9 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <param name="signalrBuilder">The <see cref="ISignalRServerBuilder"/>.</param>
         /// <param name="redisConnectionString">The connection string used to connect to the Redis server.</param>
         /// <returns>The same instance of the <see cref="ISignalRServerBuilder"/> for chaining.</returns>
-        public static ISignalRServerBuilder AddStackExchangeRedis(this ISignalRServerBuilder signalrBuilder, string redisConnectionString)
+        public static ISignalRServerBuilder AddRedis(this ISignalRServerBuilder signalrBuilder, string redisConnectionString)
         {
-            return AddStackExchangeRedis(signalrBuilder, o =>
+            return AddRedis(signalrBuilder, o =>
             {
                 o.Configuration = ConfigurationOptions.Parse(redisConnectionString);
             });
@@ -43,7 +43,7 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <param name="signalrBuilder">The <see cref="ISignalRServerBuilder"/>.</param>
         /// <param name="configure">A callback to configure the Redis options.</param>
         /// <returns>The same instance of the <see cref="ISignalRServerBuilder"/> for chaining.</returns>
-        public static ISignalRServerBuilder AddStackExchangeRedis(this ISignalRServerBuilder signalrBuilder, Action<RedisOptions> configure)
+        public static ISignalRServerBuilder AddRedis(this ISignalRServerBuilder signalrBuilder, Action<RedisOptions> configure)
         {
             signalrBuilder.Services.Configure(configure);
             signalrBuilder.Services.AddSingleton(typeof(HubLifetimeManager<>), typeof(RedisHubLifetimeManager<>));
@@ -57,9 +57,9 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <param name="redisConnectionString">The connection string used to connect to the Redis server.</param>
         /// <param name="configure">A callback to configure the Redis options.</param>
         /// <returns>The same instance of the <see cref="ISignalRServerBuilder"/> for chaining.</returns>
-        public static ISignalRServerBuilder AddStackExchangeRedis(this ISignalRServerBuilder signalrBuilder, string redisConnectionString, Action<RedisOptions> configure)
+        public static ISignalRServerBuilder AddRedis(this ISignalRServerBuilder signalrBuilder, string redisConnectionString, Action<RedisOptions> configure)
         {
-            return AddStackExchangeRedis(signalrBuilder, o =>
+            return AddRedis(signalrBuilder, o =>
             {
                 o.Configuration = ConfigurationOptions.Parse(redisConnectionString);
                 configure(o);

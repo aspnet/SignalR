@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace Microsoft.AspNetCore.SignalR.Redis.Tests
+namespace Microsoft.AspNetCore.SignalR.StackExchangeRedis.Tests
 {
     public class Docker
     {

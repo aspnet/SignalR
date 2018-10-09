@@ -4,7 +4,7 @@
 using System;
 using Microsoft.AspNetCore.Testing.xunit;
 
-namespace Microsoft.AspNetCore.SignalR.StackExchangeRedis.Tests
+namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 {
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
     public class SkipIfDockerNotPresentAttribute : Attribute, ITestCondition
@@ -14,7 +14,7 @@ namespace Microsoft.AspNetCore.SignalR.StackExchangeRedis.Tests
 
         private bool CheckDocker()
         {
-            if (Docker.Default != null)
+            if(Docker.Default != null)
             {
                 // Docker is present, but is it working?
                 if (Docker.Default.RunCommand("ps", "docker ps", out var output) != 0)

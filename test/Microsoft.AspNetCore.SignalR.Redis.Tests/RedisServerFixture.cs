@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.SignalR.Tests;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 
-namespace Microsoft.AspNetCore.SignalR.StackExchangeRedis.Tests
+namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 {
     public class RedisServerFixture<TStartup> : IDisposable
         where TStartup : class

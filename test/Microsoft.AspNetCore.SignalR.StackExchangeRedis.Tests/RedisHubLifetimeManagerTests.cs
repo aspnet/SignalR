@@ -12,7 +12,7 @@ using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 using Xunit;
 
-namespace Microsoft.AspNetCore.SignalR.Redis.Tests
+namespace Microsoft.AspNetCore.SignalR.StackExchangeRedis.Tests
 {
     // Add ScaleoutHubLifetimeManagerTests<TestRedisServer> back after https://github.com/aspnet/SignalR/issues/3088
     public class RedisHubLifetimeManagerTests

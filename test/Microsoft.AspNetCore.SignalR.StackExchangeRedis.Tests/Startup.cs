@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
 
-namespace Microsoft.AspNetCore.SignalR.Redis.Tests
+namespace Microsoft.AspNetCore.SignalR.StackExchangeRedis.Tests
 {
     public class Startup
     {
@@ -18,7 +18,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
                 options.EnableDetailedErrors = true;
             })
                 .AddMessagePackProtocol()
-                .AddRedis(options =>
+                .AddStackExchangeRedis(options =>
                 {
                     // We start the servers before starting redis so we want to time them out ASAP
                     options.Configuration.ConnectTimeout = 1;

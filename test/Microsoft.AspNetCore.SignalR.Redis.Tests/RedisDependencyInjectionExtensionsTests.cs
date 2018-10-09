@@ -9,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Xunit;
 
-namespace Microsoft.AspNetCore.SignalR.StackExchangeRedis.Tests
+namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 {
     public class RedisDependencyInjectionExtensionsTests
     {
@@ -21,7 +21,7 @@ namespace Microsoft.AspNetCore.SignalR.StackExchangeRedis.Tests
         public void AddRedisWithConnectionStringProperlyParsesOptions(string connectionString, string host, int port, string password, bool useSsl)
         {
             var services = new ServiceCollection();
-            services.AddSignalR().AddStackExchangeRedis(connectionString);
+            services.AddSignalR().AddRedis(connectionString);
             var provider = services.BuildServiceProvider();
 
             var options = provider.GetService<IOptions<RedisOptions>>();
