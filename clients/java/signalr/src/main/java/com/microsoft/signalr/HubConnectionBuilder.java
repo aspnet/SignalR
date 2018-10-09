@@ -3,65 +3,14 @@
 
 package com.microsoft.signalr;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Supplier;
+public abstract class HubConnectionBuilder {
 
-public class HubConnectionBuilder {
-    private String url;
-    private Transport transport;
-    private Logger logger;
-    private HttpClient httpClient;
-    private boolean skipNegotiate;
-    private Supplier<CompletableFuture<String>> accessTokenProvider;
-
-    private HubConnectionBuilder(String url) {
-        this.url = url;
-    }
-
-    public static HubConnectionBuilder create(String url) {
+    public static HttpHubConnectionBuilder create(String url) {
         if (url == null || url.isEmpty()) {
             throw new IllegalArgumentException("A valid url is required.");
         }
-        return new HubConnectionBuilder(url);
+     return new HttpHubConnectionBuilder(url);
     }
 
-    public HubConnectionBuilder withTransport(Transport transport) {
-        this.transport = transport;
-        return this;
-    }
-
-
-    public HubConnectionBuilder withHttpClient(HttpClient httpClient) {
-        this.httpClient = httpClient;
-        return this;
-    }
-
-    public HubConnectionBuilder configureLogging(LogLevel logLevel) {
-        this.logger = new ConsoleLogger(logLevel);
-        return this;
-    }
-
-    public HubConnectionBuilder withSkipNegotiate(boolean skipNegotiate) {
-        this.skipNegotiate = skipNegotiate;
-        return this;
-    }
-
-    public HubConnectionBuilder withAccessTokenProvider(Supplier<CompletableFuture<String>> accessTokenProvider) {
-        this.accessTokenProvider = accessTokenProvider;
-        return this;
-    }
-
-    public HubConnectionBuilder configureLogging(Logger logger) {
-        this.logger = logger;
-        return this;
-    }
-
-    public HubConnectionBuilder withLogger(Logger logger) {
-        this.logger = logger;
-        return this;
-    }
-
-    public HubConnection build() {
-        return new HubConnection(url, transport, skipNegotiate, logger, httpClient, accessTokenProvider);
-    }
+    public abstract HubConnection build();
 }

@@ -13,7 +13,7 @@ class TestUtils {
     }
 
     static HubConnection createHubConnection(String url, Transport transport, Logger logger, boolean skipNegotiate, HttpClient client) {
-        HubConnectionBuilder builder = HubConnectionBuilder.create(url)
+        HttpHubConnectionBuilder builder = HubConnectionBuilder.create(url)
                 .withTransport(transport)
                 .withHttpClient(client)
                 .withSkipNegotiate(skipNegotiate)
