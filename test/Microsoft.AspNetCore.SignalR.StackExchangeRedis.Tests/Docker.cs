@@ -30,7 +30,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
 
         private static Docker Create()
         {
-            var location = GetDockerLocation();
+            string location = null;// GetDockerLocation();
             if (location == null)
             {
                 return null;
