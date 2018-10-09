@@ -90,7 +90,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             output = output.Trim().Replace(Environment.NewLine, "");
 
             // variable used by Startup.cs
-            Environment.SetEnvironmentVariable("REDIS_CONNECTION-PREV", $"{output}:6380");
+            Environment.SetEnvironmentVariable("REDIS_CONNECTION-PREV", $"{output}:6379");
 
             var (monitorProcess, monitorOutput) = RunProcess(_path, $"run -i --name {_dockerMonitorContainerName} --link {_dockerContainerName}:redis --rm redis redis-cli -h redis -p 6379", "redis monitor", logger);
             monitorProcess.StandardInput.WriteLine("MONITOR");
