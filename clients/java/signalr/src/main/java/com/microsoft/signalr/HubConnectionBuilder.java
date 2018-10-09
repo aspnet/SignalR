@@ -3,11 +3,16 @@
 
 package com.microsoft.signalr;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
+
 public class HubConnectionBuilder {
     private String url;
     private Transport transport;
     private Logger logger;
-    private HttpConnectionOptions options = null;
+    private HttpClient httpClient;
+    private boolean skipNegotiate;
+    private Supplier<CompletableFuture<String>> accessTokenProvider;
 
     private HubConnectionBuilder(String url) {
         this.url = url;
@@ -25,8 +30,9 @@ public class HubConnectionBuilder {
         return this;
     }
 
-    public HubConnectionBuilder withOptions(HttpConnectionOptions options) {
-        this.options = options;
+
+    public HubConnectionBuilder withHttpClient(HttpClient httpClient) {
+        this.httpClient = httpClient;
         return this;
     }
 
@@ -35,25 +41,27 @@ public class HubConnectionBuilder {
         return this;
     }
 
+    public HubConnectionBuilder withSkipNegotiate(boolean skipNegotiate){
+        this.skipNegotiate = skipNegotiate;
+        return this;
+    }
+
+    public HubConnectionBuilder withAccessTokenProvider(Supplier<CompletableFuture<String>> accessTokenProvider) {
+        this.accessTokenProvider = accessTokenProvider;
+        return this;
+    }
+
     public HubConnectionBuilder configureLogging(Logger logger) {
         this.logger = logger;
         return this;
     }
 
-    public HubConnection build() {
-        if (options == null) {
-            options = new HttpConnectionOptions();
-        }
-        if (options.getTransport() == null && this.transport != null) {
-            options.setTransport(this.transport);
-        }
-        if (options.getLogger() == null && options.getLoglevel() != null) {
-            options.setLogger(new ConsoleLogger(options.getLoglevel()));
-        }
-        if (options.getLogger() == null && this.logger != null) {
-            options.setLogger(this.logger);
-        }
+    public HubConnectionBuilder withLogger(Logger logger) {
+        this.logger = logger;
+        return this;
+    }
 
-        return new HubConnection(url, options);
+    public HubConnection build() {
+        return new HubConnection(url, transport, skipNegotiate, logger, httpClient, accessTokenProvider);
     }
 }
