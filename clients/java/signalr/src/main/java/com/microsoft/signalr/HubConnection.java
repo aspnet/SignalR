@@ -58,7 +58,7 @@ public class HubConnection {
             this.httpClient = new DefaultHttpClient(this.logger);
         }
 
-        if(logger != null) {
+        if (logger != null) {
             this.logger = logger;
         } else {
             this.logger = new NullLogger();

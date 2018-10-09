@@ -41,7 +41,7 @@ public class HubConnectionBuilder {
         return this;
     }
 
-    public HubConnectionBuilder withSkipNegotiate(boolean skipNegotiate){
+    public HubConnectionBuilder withSkipNegotiate(boolean skipNegotiate) {
         this.skipNegotiate = skipNegotiate;
         return this;
     }
