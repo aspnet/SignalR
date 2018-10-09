@@ -13,7 +13,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 import io.reactivex.Completable;
 import io.reactivex.Single;
@@ -34,13 +33,13 @@ public class HubConnection {
     private Logger logger;
     private List<Consumer<Exception>> onClosedCallbackList;
     private boolean skipNegotiate;
-    private Supplier<Single<String>> accessTokenProvider;
+    private Single<String> accessTokenProvider;
     private Map<String, String> headers = new HashMap<>();
     private ConnectionState connectionState = null;
     private HttpClient httpClient;
     private String stopError;
 
-    HubConnection(String url, Transport transport, boolean skipNegotiate, Logger logger, HttpClient httpClient, Supplier<Single<String>> accessTokenProvider) {
+    HubConnection(String url, Transport transport, boolean skipNegotiate, Logger logger, HttpClient httpClient, Single<String> accessTokenProvider) {
         if (url == null || url.isEmpty()) {
             throw new IllegalArgumentException("A valid url is required.");
         }
@@ -51,7 +50,7 @@ public class HubConnection {
         if (accessTokenProvider != null) {
             this.accessTokenProvider = accessTokenProvider;
         } else {
-            this.accessTokenProvider = () -> Single.just("");
+            this.accessTokenProvider = Single.just("");
         }
 
         if (httpClient != null) {
@@ -155,11 +154,11 @@ public class HubConnection {
             }
 
             if (negotiateResponse.getAccessToken() != null) {
-                this.accessTokenProvider = () -> Single.just(negotiateResponse.getAccessToken());
+                this.accessTokenProvider = Single.just(negotiateResponse.getAccessToken());
                 String token = "";
-                // We know the future is already completed in this case
-                // It's fine to call get() on it.
-                token = this.accessTokenProvider.get().blockingGet();
+                // We know the Single is non blocking in this case
+                // It's fine to call blockingGet() on it.
+                token = this.accessTokenProvider.blockingGet();
                 this.headers.put("Authorization", "Bearer " + token);
             }
 
@@ -178,7 +177,7 @@ public class HubConnection {
 
     /**
      * Starts a connection to the server.
-     * @return A completable future that completes when the connection has been established.
+     * @return A Completable that completes when the connection has been established.
      */
     public Completable start() {
         if (hubConnectionState != HubConnectionState.DISCONNECTED) {
@@ -187,7 +186,7 @@ public class HubConnection {
 
         handshakeReceived = false;
         CompletableFuture<Void> tokenFuture = new CompletableFuture<>(); 
-        accessTokenProvider.get().subscribe(token -> {
+        accessTokenProvider.subscribe(token -> {
             if (token != null && !token.isEmpty()) {
                 this.headers.put("Authorization", "Bearer " + token);
             }
@@ -262,7 +261,7 @@ public class HubConnection {
     /**
      * Stops a connection to the server.
      * @param errorMessage An error message if the connected needs to be stopped because of an error.
-     * @return A completable future that completes when the connection has been stopped.
+     * @return A Completable that completes when the connection has been stopped.
      */
     private CompletableFuture<Void> stop(String errorMessage) {
         hubConnectionStateLock.lock();
@@ -286,7 +285,7 @@ public class HubConnection {
 
     /**
      * Stops a connection to the server.
-     * @return A completable future that completes when the connection has been stopped.
+     * @return A Completable that completes when the connection has been stopped.
      */
     public Completable stop() {
         return Completable.fromFuture(stop(null));

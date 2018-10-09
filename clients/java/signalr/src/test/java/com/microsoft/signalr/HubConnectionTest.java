@@ -1027,7 +1027,7 @@ class HubConnectionTest {
                 .create("http://example.com")
                 .withTransport(transport)
                 .withHttpClient(client)
-                .withAccessTokenProvider(() -> Single.just("secretToken"))
+                .withAccessTokenProvider(Single.just("secretToken"))
                 .build();
 
         hubConnection.start().blockingAwait(1000, TimeUnit.MILLISECONDS);
@@ -1053,7 +1053,7 @@ class HubConnectionTest {
                 .create("http://example.com")
                 .withTransport(transport)
                 .withHttpClient(client)
-                .withAccessTokenProvider(() -> Single.just("secretToken"))
+                .withAccessTokenProvider(Single.just("secretToken"))
                 .build();
 
         hubConnection.start().blockingAwait(1000, TimeUnit.MILLISECONDS);

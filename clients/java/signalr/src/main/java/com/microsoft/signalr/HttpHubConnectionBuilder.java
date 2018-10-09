@@ -14,7 +14,7 @@ public class HttpHubConnectionBuilder {
     private Logger logger;
     private HttpClient httpClient;
     private boolean skipNegotiate;
-    private Supplier<Single<String>> accessTokenProvider;
+    private Single<String> accessTokenProvider;
 
     HttpHubConnectionBuilder(String url) {
         this.url = url;
@@ -41,7 +41,7 @@ public class HttpHubConnectionBuilder {
         return this;
     }
 
-    public HttpHubConnectionBuilder withAccessTokenProvider(Supplier<Single<String>> accessTokenProvider) {
+    public HttpHubConnectionBuilder withAccessTokenProvider(Single<String> accessTokenProvider) {
         this.accessTokenProvider = accessTokenProvider;
         return this;
     }
