@@ -40,7 +40,7 @@ public class HubConnection {
     private HttpClient httpClient;
     private String stopError;
 
-    HubConnection(String url, Transport transport, boolean skipNegotiate, Logger logger, HttpClient httpClient, Supplier<CompletableFuture<String>> accessTokenProvider) {
+    HubConnection(String url, Transport transport, boolean skipNegotiate, Logger logger, HttpClient httpClient, Supplier<Single<String>> accessTokenProvider) {
         if (url == null || url.isEmpty()) {
             throw new IllegalArgumentException("A valid url is required.");
         }
