@@ -3,7 +3,7 @@
 
 using System.Runtime.CompilerServices;
 
-namespace Microsoft.AspNetCore.SignalR.Redis.Internal
+namespace Microsoft.AspNetCore.SignalR.Internal
 {
     internal class RedisChannels
     {

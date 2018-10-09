@@ -8,7 +8,6 @@
   <ItemGroup>
     <Compile Include="..\Common\JsonUtils.cs" Link="Internal\JsonUtils.cs" />
     <Compile Include="..\Common\MemoryBufferWriter.cs" Link="Internal\MemoryBufferWriter.cs" />
-    <Compile Include="..\Microsoft.AspNetCore.SignalR.StackExchangeRedis\RedisOptions.cs" Link="RedisOptions.cs" />
     <Compile Include="..\Microsoft.AspNetCore.SignalR.StackExchangeRedis\RedisDependencyInjectionExtensions.cs" Link="RedisDependencyInjectionExtensions.cs" />
     <Compile Include="..\Microsoft.AspNetCore.SignalR.StackExchangeRedis\Internal\AckHandler.cs" Link="Internal\AckHandler.cs" />
     <Compile Include="..\Microsoft.AspNetCore.SignalR.StackExchangeRedis\Internal\GroupAction.cs" Link="Internal\GroupAction.cs" />

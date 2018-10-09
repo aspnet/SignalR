@@ -34,6 +34,7 @@ namespace Microsoft.AspNetCore.SignalR.Microbenchmarks
         [Params(2, 20)]
         public int ProtocolCount { get; set; }
 
+        // Re-enable micro-benchmark when https://github.com/aspnet/SignalR/issues/3088 is fixed
         // [GlobalSetup]
         public void GlobalSetup()
         {

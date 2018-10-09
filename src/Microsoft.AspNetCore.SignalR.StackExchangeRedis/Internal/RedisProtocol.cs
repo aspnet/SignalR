@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Internal;
 using Microsoft.AspNetCore.SignalR.Internal;
 using Microsoft.AspNetCore.SignalR.Protocol;
 
-namespace Microsoft.AspNetCore.SignalR.Redis.Internal
+namespace Microsoft.AspNetCore.SignalR.Internal
 {
     public class RedisProtocol
     {
