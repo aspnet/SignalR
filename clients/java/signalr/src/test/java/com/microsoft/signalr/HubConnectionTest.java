@@ -1052,7 +1052,7 @@ class HubConnectionTest {
         HubConnection hubConnection = HubConnectionBuilder
                 .create("http://example.com")
                 .withTransport(transport)
-                .withSkipNegotiate(true)
+                .shouldSkipNegotiate(true)
                 .build();
 
         hubConnection.start().get(1000, TimeUnit.MILLISECONDS);

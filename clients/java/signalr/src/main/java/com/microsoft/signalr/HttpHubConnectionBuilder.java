@@ -34,7 +34,7 @@ public class HttpHubConnectionBuilder {
         return this;
     }
 
-    public HttpHubConnectionBuilder withSkipNegotiate(boolean skipNegotiate) {
+    public HttpHubConnectionBuilder shouldSkipNegotiate(boolean skipNegotiate) {
         this.skipNegotiate = skipNegotiate;
         return this;
     }

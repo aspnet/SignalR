@@ -16,7 +16,7 @@ class TestUtils {
         HttpHubConnectionBuilder builder = HubConnectionBuilder.create(url)
                 .withTransport(transport)
                 .withHttpClient(client)
-                .withSkipNegotiate(skipNegotiate)
+                .shouldSkipNegotiate(skipNegotiate)
                 .withLogger(logger);
 
         return builder.build();
