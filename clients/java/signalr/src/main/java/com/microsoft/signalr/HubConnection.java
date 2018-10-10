@@ -278,25 +278,19 @@ public class HubConnection {
                             connectionState = new ConnectionState(this);
                             logger.log(LogLevel.Information, "HubConnection started.");
 
-                            resetServerTimeout();
-                            this.pingTimer = new Timer();
-                            this.pingTimer.schedule(new TimerTask() {
-                                @Override
-                                public void run() {
-                                    try {
-                                        if (System.currentTimeMillis() > nextServerTimeout.get()) {
-                                            stop("Server timeout elapsed without receiving a message from the server.");
-                                            return;
-                                        }
+                        resetServerTimeout();
+                        this.pingTimer = new Timer();
+                        this.pingTimer.schedule(new TimerTask() {
+                            @Override
+                            public void run() {
+                                try {
+                                    if (System.currentTimeMillis() > nextServerTimeout.get()) {
+                                        stop("Server timeout elapsed without receiving a message from the server.");
+                                        return;
+                                    }
 
-                                        if (System.currentTimeMillis() > nextPingActivation.get()) {
-                                            sendHubMessage(PingMessage.getInstance());
-                                        }
-                                    } catch (Exception e) {
-                                        logger.log(LogLevel.Warning, String.format("Error sending ping: %s", e.getMessage()));
-                                        // The connection is probably in a bad or closed state now, cleanup the timer so
-                                        // it stops triggering
-                                        pingTimer.cancel();
+                                    if (System.currentTimeMillis() > nextPingActivation.get()) {
+                                        sendHubMessage(PingMessage.getInstance());
                                     }
                                 } catch (Exception e) {
                                     logger.log(LogLevel.Warning, String.format("Error sending ping: %s", e.getMessage()));
@@ -304,11 +298,11 @@ public class HubConnection {
                                     // it stops triggering
                                     pingTimer.cancel();
                                 }
-                            }, new Date(0), tickRate.toMillis());
-                        } finally {
-                            hubConnectionStateLock.unlock();
-                        }
-                    });
+                            }
+                        }, new Date(0), tickRate.toMillis());
+                    } finally {
+                        hubConnectionStateLock.unlock();
+                    }
                 });
             });
         }));

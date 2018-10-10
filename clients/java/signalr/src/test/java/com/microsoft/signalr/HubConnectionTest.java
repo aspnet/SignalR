@@ -1101,7 +1101,7 @@ class HubConnectionTest {
             closedFuture.complete(e);
         });
 
-        hubConnection.start().get(1000, TimeUnit.MILLISECONDS);
+        hubConnection.start().blockingAwait(1000, TimeUnit.MILLISECONDS);
 
         assertEquals("Server timeout elapsed without receiving a message from the server.", closedFuture.get(1000, TimeUnit.MILLISECONDS).getMessage());
     }
@@ -1113,7 +1113,7 @@ class HubConnectionTest {
         hubConnection.setKeepAliveInterval(Duration.ofMillis(1));
         hubConnection.setTickRate(Duration.ofMillis(1));
 
-        hubConnection.start().get(1000, TimeUnit.MILLISECONDS);
+        hubConnection.start().blockingAwait(1000, TimeUnit.MILLISECONDS);
 
         TimeUnit.MILLISECONDS.sleep(100);
         hubConnection.stop();
