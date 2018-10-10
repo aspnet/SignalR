@@ -35,7 +35,7 @@ class HubConnectionTest {
 
     @Test
     public void transportCloseTriggersStopInHubConnection() throws Exception {
-        MockTransport mockTransport = new MockTransport(true);
+        MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = TestUtils.createHubConnection("http://example.com", mockTransport);
         hubConnection.start().blockingAwait(1000, TimeUnit.MILLISECONDS);
         assertEquals(HubConnectionState.CONNECTED, hubConnection.getConnectionState());
@@ -46,7 +46,7 @@ class HubConnectionTest {
 
     @Test
     public void transportCloseWithErrorTriggersStopInHubConnection() throws Exception {
-        MockTransport mockTransport = new MockTransport(true);
+        MockTransport mockTransport = new MockTransport();
         AtomicReference<String> message = new AtomicReference<>();
         HubConnection hubConnection = TestUtils.createHubConnection("http://example.com", mockTransport);
         String errorMessage = "Example transport error.";
@@ -79,7 +79,7 @@ class HubConnectionTest {
 
     @Test
     public void constructHubConnectionWithHttpConnectionOptions() {
-        Transport mockTransport = new MockTransport(true);
+        Transport mockTransport = new MockTransport();
         HubConnection hubConnection = TestUtils.createHubConnection("http://example.com", mockTransport);
 
         hubConnection.start();
@@ -370,7 +370,7 @@ class HubConnectionTest {
 
     @Test
     public void invokeWaitsForCompletionMessage() throws Exception {
-        MockTransport mockTransport = new MockTransport(true);
+        MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = TestUtils.createHubConnection("http://example.com", mockTransport);
 
         hubConnection.start();
@@ -388,7 +388,7 @@ class HubConnectionTest {
 
     @Test
     public void multipleInvokesWaitForOwnCompletionMessage() throws Exception {
-        MockTransport mockTransport = new MockTransport(true);
+        MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = TestUtils.createHubConnection("http://example.com", mockTransport);
 
         hubConnection.start();
@@ -1100,7 +1100,7 @@ class HubConnectionTest {
 
     @Test
     public void hubConnectionCanBeStartedAfterBeingStopped() throws Exception {
-        MockTransport transport = new MockTransport(true);
+        MockTransport transport = new MockTransport();
         HubConnection hubConnection = HubConnectionBuilder
                 .create("http://example.com")
                 .withTransport(transport)
@@ -1119,7 +1119,7 @@ class HubConnectionTest {
 
     @Test
     public void hubConnectionCanBeStartedAfterBeingStoppedAndRedirected() throws Exception {
-        MockTransport mockTransport = new MockTransport(true);
+        MockTransport mockTransport = new MockTransport();
         TestHttpClient client = new TestHttpClient()
                 .on("POST", "http://example.com/negotiate", (req) -> CompletableFuture
                     .completedFuture(new HttpResponse(200, "", "{\"url\":\"http://testexample.com/\"}")))
