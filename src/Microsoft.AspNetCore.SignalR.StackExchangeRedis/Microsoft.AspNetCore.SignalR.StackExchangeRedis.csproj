@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>Redis for ASP.NET Core SignalR.</Description>
+    <Description>Provides scale-out support for ASP.NET Core SignalR using a Redis server and the StackExchange.Redis client.</Description>
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
 
