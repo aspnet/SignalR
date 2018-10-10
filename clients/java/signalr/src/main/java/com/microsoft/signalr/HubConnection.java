@@ -86,7 +86,7 @@ public class HubConnection {
                 try {
                     handshakeResponse = HandshakeProtocol.parseHandshakeResponse(handshakeResponseString);
                 } catch (RuntimeException ex) {
-                    RuntimeException exception = new RuntimeException("An invalid handshake response was received from the server.");
+                    RuntimeException exception = new RuntimeException("An invalid handshake response was received from the server.", ex);
                     handshakeResponseFuture.completeExceptionally(exception);
                     throw exception;
                 }
