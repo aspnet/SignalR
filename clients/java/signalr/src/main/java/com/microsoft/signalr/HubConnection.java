@@ -209,7 +209,7 @@ public class HubConnection {
 
         handshakeResponseFuture = new CompletableFuture<>();
         handshakeReceived = false;
-        CompletableFuture<Void> tokenFuture = new CompletableFuture<>(); 
+        CompletableFuture<Void> tokenFuture = new CompletableFuture<>();
         accessTokenProvider.subscribe(token -> {
             if (token != null && !token.isEmpty()) {
                 this.headers.put("Authorization", "Bearer " + token);

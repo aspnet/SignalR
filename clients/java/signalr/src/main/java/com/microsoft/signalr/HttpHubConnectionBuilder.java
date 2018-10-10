@@ -4,8 +4,6 @@
 package com.microsoft.signalr;
 
 import java.time.Duration;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Supplier;
 
 import io.reactivex.Single;
 
