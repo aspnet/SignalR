@@ -8,18 +8,21 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 class MockTransport implements Transport {
-    private static final String RECORD_SEPARATOR = "\u001e";
-
     private OnReceiveCallBack onReceiveCallBack;
     private ArrayList<String> sentMessages = new ArrayList<>();
     private String url;
     private Consumer<String> onClose;
-    private boolean ignorePings;
-    private boolean autoHandshake;
+    final private boolean ignorePings;
+    final private boolean autoHandshake;
 
     private static final String RECORD_SEPARATOR = "\u001e";
 
     public MockTransport() {
+        this(true, true);
+    }
+
+    public MockTransport(boolean autoHandshake) {
+        this(autoHandshake, true);
     }
 
     public MockTransport(boolean autoHandshake, boolean ignorePings) {
