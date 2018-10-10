@@ -11,7 +11,7 @@ namespace Microsoft.Extensions.DependencyInjection
     /// <summary>
     /// Extension methods for configuring Redis-based scale-out for a SignalR Server in an <see cref="ISignalRServerBuilder" />.
     /// </summary>
-    public static class RedisDependencyInjectionExtensions
+    public static class StackExchangeRedisDependencyInjectionExtensions
     {
         /// <summary>
         /// Adds scale-out to a <see cref="ISignalRServerBuilder"/>, using a shared Redis server.
