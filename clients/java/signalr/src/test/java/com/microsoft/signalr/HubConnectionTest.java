@@ -104,7 +104,7 @@ class HubConnectionTest {
     }
 
     @Test
-    public void invalidHandShakeResponse() throws Exception {
+    public void invalidHandShakeResponse() {
         MockTransport mockTransport = new MockTransport(false);
         HubConnection hubConnection = TestUtils.createHubConnection("http://example.com", mockTransport);
 
@@ -1064,7 +1064,7 @@ class HubConnectionTest {
     }
 
     @Test
-    public void connectionTimesOutIfServerDoesNotSendMessage() {
+    public void connectionTimesOutIfServerDoesNotSendMessage() throws InterruptedException, ExecutionException, TimeoutException {
         HubConnection hubConnection = TestUtils.createHubConnection("http://example.com");
         hubConnection.setServerTimeout(Duration.ofMillis(1));
         hubConnection.setTickRate(Duration.ofMillis(1));
@@ -1079,7 +1079,7 @@ class HubConnectionTest {
     }
 
     @Test
-    public void connectionSendsPingsRegularly() {
+    public void connectionSendsPingsRegularly() throws InterruptedException {
         MockTransport mockTransport = new MockTransport(true, false);
         HubConnection hubConnection = TestUtils.createHubConnection("http://example.com", mockTransport);
         hubConnection.setKeepAliveInterval(Duration.ofMillis(1));
