@@ -107,7 +107,7 @@ public class HubConnection {
             this.handshakeResponseTimeout = handshakeResponseTimeout;
         }
 
-        if (headers != null){
+        if (headers != null) {
             this.headers.putAll(headers);
         }
 

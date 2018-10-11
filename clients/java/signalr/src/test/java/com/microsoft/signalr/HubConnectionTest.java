@@ -6,9 +6,7 @@ package com.microsoft.signalr;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
