@@ -11,9 +11,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.Cookie;
@@ -27,8 +24,6 @@ import okhttp3.ResponseBody;
 
 final class DefaultHttpClient extends HttpClient {
     private final OkHttpClient client;
-    private final Logger logger = LoggerFactory.getLogger(DefaultHttpClient.class);
-
 
     public DefaultHttpClient() {
         this.client = new OkHttpClient.Builder().cookieJar(new CookieJar() {

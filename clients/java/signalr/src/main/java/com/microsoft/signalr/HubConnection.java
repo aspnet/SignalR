@@ -52,6 +52,8 @@ public class HubConnection {
     private Duration tickRate = Duration.ofSeconds(1);
     private CompletableFuture<Void> handshakeResponseFuture;
     private Duration handshakeResponseTimeout = Duration.ofSeconds(15);
+    private final Logger logger = LoggerFactory.getLogger(HubConnection.class);
+
 
     public void setServerTimeout(Duration serverTimeout) {
         this.serverTimeout = serverTimeout;
@@ -74,7 +76,6 @@ public class HubConnection {
         this.tickRate = tickRate;
     }
 
-    private final Logger logger = LoggerFactory.getLogger(HubConnection.class);
 
 
     HubConnection(String url, Transport transport, boolean skipNegotiate, HttpClient httpClient,
