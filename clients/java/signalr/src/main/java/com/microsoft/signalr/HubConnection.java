@@ -76,8 +76,6 @@ public class HubConnection {
         this.tickRate = tickRate;
     }
 
-
-
     HubConnection(String url, Transport transport, boolean skipNegotiate, HttpClient httpClient,
                   Single<String> accessTokenProvider, Duration handshakeResponseTimeout, Map<String, String> headers) {
         if (url == null || url.isEmpty()) {
@@ -98,7 +96,6 @@ public class HubConnection {
         } else {
             this.httpClient = new DefaultHttpClient();
         }
-
 
         if (transport != null) {
             this.transport = transport;
