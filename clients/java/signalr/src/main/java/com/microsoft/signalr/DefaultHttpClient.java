@@ -21,13 +21,15 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 final class DefaultHttpClient extends HttpClient {
     private final OkHttpClient client;
-    private Logger logger;
+    private final Logger logger = LoggerFactory.getLogger(HubConnection.class);
 
-    public DefaultHttpClient(Logger logger) {
-        this.logger = logger;
+
+    public DefaultHttpClient() {
         this.client = new OkHttpClient.Builder().cookieJar(new CookieJar() {
             private List<Cookie> cookieList = new ArrayList<>();
             private Lock cookieLock = new ReentrantLock();
@@ -124,6 +126,6 @@ final class DefaultHttpClient extends HttpClient {
 
     @Override
     public WebSocketWrapper createWebSocket(String url, Map<String, String> headers) {
-        return new OkHttpWebSocketWrapper(url, headers, client, logger);
+        return new OkHttpWebSocketWrapper(url, headers, client);
     }
 }
