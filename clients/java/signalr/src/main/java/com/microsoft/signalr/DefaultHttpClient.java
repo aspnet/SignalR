@@ -27,7 +27,7 @@ import okhttp3.ResponseBody;
 
 final class DefaultHttpClient extends HttpClient {
     private final OkHttpClient client;
-    private final Logger logger = LoggerFactory.getLogger(HubConnection.class);
+    private final Logger logger = LoggerFactory.getLogger(DefaultHttpClient.class);
 
 
     public DefaultHttpClient() {
