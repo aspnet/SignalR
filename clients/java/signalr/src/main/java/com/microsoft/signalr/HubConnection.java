@@ -18,10 +18,11 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
-import io.reactivex.Completable;
-import io.reactivex.Single;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.reactivex.Completable;
+import io.reactivex.Single;
 
 public class HubConnection {
     private static final String RECORD_SEPARATOR = "\u001e";
