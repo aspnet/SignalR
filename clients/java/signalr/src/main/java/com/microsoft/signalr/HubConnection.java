@@ -782,7 +782,7 @@ public class HubConnection {
             }
 
             if (handlers.isEmpty()) {
-                throw new RuntimeException(String.format("There are no callbacks registered for the method '{}'.", methodName));
+                throw new RuntimeException(String.format("There are no callbacks registered for the method '%s'.", methodName));
             }
 
             return handlers.get(0).getClasses();
