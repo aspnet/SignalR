@@ -368,6 +368,7 @@ namespace Microsoft.AspNetCore.SignalR
                             if (result.IsCanceled)
                             {
                                 Log.HandshakeCanceled(_logger);
+                                await WriteHandshakeResponseAsync(new HandshakeResponseMessage("Handshake was canceled."));
                                 return false;
                             }
 
