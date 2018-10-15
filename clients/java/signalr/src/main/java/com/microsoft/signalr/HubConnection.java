@@ -57,6 +57,7 @@ public class HubConnection {
 
     /**
      * Sets the server timeout interval for the connection.
+     *
      * @param serverTimeout The timeout duration.
      */
     public void setServerTimeout(Duration serverTimeout) {
@@ -64,7 +65,8 @@ public class HubConnection {
     }
 
     /**
-     * Gets the server timeout duration,
+     * Gets the server timeout duration.
+     *
      * @return The server timeout duration.
      */
     public Duration getServerTimeout() {
@@ -73,6 +75,7 @@ public class HubConnection {
 
     /**
      * Sets the connections Keep Alive Interval duration.
+     *
      * @param keepAliveInterval The interval at which the connection should send keep alive messages.
      */
     public void setKeepAliveInterval(Duration keepAliveInterval) {
@@ -81,6 +84,7 @@ public class HubConnection {
 
     /**
      * Gets the keep alive interval
+     * 
      * @return The interval durations between keep alive messages.
      */
     public Duration getKeepAliveInterval() {
