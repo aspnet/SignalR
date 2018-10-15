@@ -3,6 +3,9 @@
 
 package com.microsoft.signalr;
 
+/**
+ * A callback that has no parameters.
+ */
 @FunctionalInterface
 public interface Action {
     void invoke();

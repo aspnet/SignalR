@@ -3,6 +3,9 @@
 
 package com.microsoft.signalr;
 
+/**
+ * Indicates the state of the <see cref="HubConnection"/> to the server.
+ */
 public enum HubConnectionState {
     CONNECTED,
     DISCONNECTED,

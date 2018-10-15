@@ -416,6 +416,14 @@ public class HubConnection {
         sendHubMessage(invocationMessage);
     }
 
+    /**
+     *
+     * @param returnType
+     * @param method
+     * @param args
+     * @param <T>
+     * @return
+     */
     @SuppressWarnings("unchecked")
     public <T> Single<T> invoke(Class<T> returnType, String method, Object... args) {
         String id = connectionState.getNextInvocationId();
@@ -478,6 +486,10 @@ public class HubConnection {
         logger.trace("Removing handlers for client method: {}.", name);
     }
 
+    /**
+     *
+     * @param callback
+     */
     public void onClosed(Consumer<Exception> callback) {
         if (onClosedCallbackList == null) {
             onClosedCallbackList = new ArrayList<>();
