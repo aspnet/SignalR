@@ -27,6 +27,7 @@ public class HttpHubConnectionBuilder {
 
     /**
      * Sets the transport to be used by the {@link HubConnection}.
+     *
      * @param transport
      * @return This instance of the HttpHubConnectionBuilder
      */
@@ -37,6 +38,7 @@ public class HttpHubConnectionBuilder {
 
     /**
      * Sets the HttpClient to be used by the {@link HubConnection}.
+     *
      * @param httpClient The HttpClient to be used by the {@link HubConnection}.
      * @return This instance of the HttpHubConnectionBuilder
      */
@@ -46,7 +48,9 @@ public class HttpHubConnectionBuilder {
     }
 
     /**
-     * Indicates to the {@link HubConnection}
+     * Indicates to the {@link HubConnection} that it should skip the negotiate process.
+     * Note: The Azure SignalR Service require the negotiate step.
+     *
      * @param skipNegotiate Boolean indicating if the {@link HubConnection} should skip the negotiate step.
      * @return This instance of the HttpHubConnectionBuilder
      */
@@ -56,7 +60,8 @@ public class HttpHubConnectionBuilder {
     }
 
     /**
-     * Sets the access token provider for
+     * Sets the access token provider for the {@link HubConnection}.
+     *
      * @param accessTokenProvider The Access Token Provider to be used by the {@link HubConnection}.
      * @return This instance of the HttpHubConnectionBuilder
      */
@@ -67,6 +72,7 @@ public class HttpHubConnectionBuilder {
 
     /**
      * Sets the duration the {@link HubConnection} should wait for a Handshake Response from the server.
+     *
      * @param timeout The duration that the {@link HubConnection} should wait for a Handshake Response from the server.
      * @return This instance of the HttpHubConnectionBuilder
      */
@@ -77,6 +83,7 @@ public class HttpHubConnectionBuilder {
 
     /**
      * Sets a collection of Headers for the {@link HubConnection} to send.
+     *
      * @param headers A Map representing the collection of Headers that the {@link HubConnection} should send
      * @return This instance of the HttpHubConnectionBuilder
      */
@@ -87,6 +94,7 @@ public class HttpHubConnectionBuilder {
 
     /**
      * Sets a single header for the {@link HubConnection} to send.
+     *
      * @param name The name of the header to set.
      * @param value The value
      * @return
@@ -100,6 +108,7 @@ public class HttpHubConnectionBuilder {
     }
 
     /**
+     * Builds a new instance of {@link HubConnection}.
      *
      * @return A new instance of {@link HubConnection}.
      */
