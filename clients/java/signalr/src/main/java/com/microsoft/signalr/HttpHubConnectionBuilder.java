@@ -28,7 +28,7 @@ public class HttpHubConnectionBuilder {
     /**
      * Sets the transport to be used by the {@link HubConnection}.
      *
-     * @param transport
+     * @param transport The transport to be set.
      * @return This instance of the HttpHubConnectionBuilder
      */
     HttpHubConnectionBuilder withTransport(Transport transport) {
@@ -96,7 +96,7 @@ public class HttpHubConnectionBuilder {
      * Sets a single header for the {@link HubConnection} to send.
      *
      * @param name The name of the header to set.
-     * @param value The value
+     * @param value The value of the header to be set.
      * @return
      */
     public HttpHubConnectionBuilder withHeader(String name, String value) {
