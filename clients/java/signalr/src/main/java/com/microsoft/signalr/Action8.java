@@ -5,6 +5,7 @@ package com.microsoft.signalr;
 
 /**
  * A callback that takes eight parameters.
+ *
  * @param <T1> The type of the first parameter to the callback.
  * @param <T2> The type of the second parameter to the callback.
  * @param <T3> The type of the third parameter to the callback.
@@ -12,7 +13,7 @@ package com.microsoft.signalr;
  * @param <T5> The type of the fifth parameter to the callback.
  * @param <T6> The type of the sixth parameter to the callback.
  * @param <T7> The type of the seventh parameter to the callback.
- * @param <T8> The type of the eigth parameter to the callback.
+ * @param <T8> The type of the eighth parameter to the callback.
  */
 @FunctionalInterface
 public interface Action8<T1, T2, T3, T4, T5, T6, T7, T8> {

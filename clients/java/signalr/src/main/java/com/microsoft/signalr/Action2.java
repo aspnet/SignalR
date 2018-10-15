@@ -5,6 +5,7 @@ package com.microsoft.signalr;
 
 /**
  * A callback that takes two parameters.
+ *
  * @param <T1> The type of the first parameter to the callback.
  * @param <T2> The type of the second parameter to the callback.
  */
