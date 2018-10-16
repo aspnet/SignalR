@@ -3,6 +3,5 @@
 
 /**
  * This package contains the classes for SignalR Java client.
- * SignalR Java client.
  */
 package com.microsoft.signalr;
