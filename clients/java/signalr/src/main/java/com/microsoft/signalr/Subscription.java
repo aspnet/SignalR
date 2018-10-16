@@ -6,7 +6,7 @@ package com.microsoft.signalr;
 import java.util.List;
 
 /**
- * Represents the registration of a handler for a client method
+ * Represents the registration of a handler for a client method.
  */
 public class Subscription {
     private final CallbackMap handlers;
@@ -20,7 +20,7 @@ public class Subscription {
     }
 
     /**
-     * Removes the client method handler represented by this subscription"
+     * Removes the client method handler represented by this subscription.
      */
     public void unsubscribe() {
         List<InvocationHandler> handler = this.handlers.get(target);

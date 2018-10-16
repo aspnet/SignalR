@@ -84,7 +84,7 @@ public class HubConnection {
 
     /**
      * Gets the keep alive interval
-     * 
+     *
      * @return The interval between keep alive messages.
      */
     public Duration getKeepAliveInterval() {
