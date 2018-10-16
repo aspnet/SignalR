@@ -4,7 +4,7 @@
 package com.microsoft.signalr;
 
 /**
- * The exception thrown from a hub when an error occurs.
+ * An exception thrown when the server fails to invoke a Hub method.
  */
 public class HubException extends RuntimeException {
     private static final long serialVersionUID = -572019264269821519L;
