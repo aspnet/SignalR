@@ -4,7 +4,7 @@
 package com.microsoft.signalr;
 
 /**
- * A callback that has no parameters.
+ * A callback that takes no parameters.
  */
 @FunctionalInterface
 public interface Action {

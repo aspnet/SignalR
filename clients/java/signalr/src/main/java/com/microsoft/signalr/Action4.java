@@ -6,7 +6,7 @@ package com.microsoft.signalr;
 /**
  * A callback that takes four parameters.
  *
- * @param <T1> The type of the one parameter to the callback.
+ * @param <T1> The type of the first parameter to the callback.
  * @param <T2> The type of the second parameter to the callback.
  * @param <T3> The type of the third parameter to the callback.
  * @param <T4> The type of the fourth parameter to the callback.

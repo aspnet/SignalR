@@ -58,7 +58,7 @@ public class HubConnection {
     /**
      * Sets the server timeout interval for the connection.
      *
-     * @param serverTimeout The timeout duration.
+     * @param serverTimeout The server timeout duration.
      */
     public void setServerTimeout(Duration serverTimeout) {
         this.serverTimeout = serverTimeout;
@@ -74,7 +74,7 @@ public class HubConnection {
     }
 
     /**
-     * Sets the connections Keep Alive Interval duration.
+     * Sets the keep alive interval duration.
      *
      * @param keepAliveInterval The interval at which the connection should send keep alive messages.
      */
@@ -85,7 +85,7 @@ public class HubConnection {
     /**
      * Gets the keep alive interval
      * 
-     * @return The interval durations between keep alive messages.
+     * @return The interval between keep alive messages.
      */
     public Duration getKeepAliveInterval() {
         return this.keepAliveInterval;
@@ -439,12 +439,13 @@ public class HubConnection {
     }
 
     /**
-     * Invokes a hub method on the server using the specified name and arguments.
+     * Invokes a hub method on the server using the specified method name and arguments.
+     *
      * @param returnType The expected return type.
      * @param method The name of the server method to invoke.
      * @param args The arguments used to invoke the server method.
      * @param <T> The expected return type.
-     * @return A Single of the expected return type.
+     * @return A Single that yields the return value when the invocation has completed
      */
     @SuppressWarnings("unchecked")
     public <T> Single<T> invoke(Class<T> returnType, String method, Object... args) {
@@ -509,7 +510,7 @@ public class HubConnection {
     }
 
     /**
-     * Registers callbacks to run when the connection closes.
+     * Registers a callback to run when the connection is closed.
      * @param callback A callback to run when the connection closes.
      */
     public void onClosed(Consumer<Exception> callback) {
