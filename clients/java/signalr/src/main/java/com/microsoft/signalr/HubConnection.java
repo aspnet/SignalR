@@ -208,8 +208,15 @@ public class HubConnection {
 
     private void timeoutHandshakeResponse(long timeout, TimeUnit unit) {
         ScheduledExecutorService scheduledThreadPool = Executors.newSingleThreadScheduledExecutor();
-        scheduledThreadPool.schedule(() -> handshakeResponseSubject.onError(
-                new TimeoutException("Timed out waiting for the server to respond to the handshake message.")), timeout, unit);
+        scheduledThreadPool.schedule(() -> {
+            // If onError is called on a completed subject the global error handler is called
+            // REVIEW: Should we lock?
+            if (!(handshakeResponseSubject.hasComplete() || handshakeResponseSubject.hasThrowable()))
+            {
+                handshakeResponseSubject.onError(
+                    new TimeoutException("Timed out waiting for the server to respond to the handshake message."));
+            }
+        }, timeout, unit);
     }
 
     private Single<NegotiateResponse> handleNegotiate(String url) {
