@@ -83,7 +83,7 @@ public class HubConnection {
     }
 
     /**
-     * Gets the keep alive interval
+     * Gets the keep alive interval.
      *
      * @return The interval between keep alive messages.
      */
@@ -445,7 +445,7 @@ public class HubConnection {
      * @param method The name of the server method to invoke.
      * @param args The arguments used to invoke the server method.
      * @param <T> The expected return type.
-     * @return A Single that yields the return value when the invocation has completed
+     * @return A Single that yields the return value when the invocation has completed.
      */
     @SuppressWarnings("unchecked")
     public <T> Single<T> invoke(Class<T> returnType, String method, Object... args) {

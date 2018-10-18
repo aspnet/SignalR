@@ -9,7 +9,7 @@ package com.microsoft.signalr;
 public abstract class HubConnectionBuilder {
     /**
      * Creates a new instance of {@link HttpHubConnectionBuilder}.
-     * @param url The URL of the SignalR server to connect to.
+     * @param url The URL of the SignalR hub to connect to.
      * @return An instance of {@link HttpHubConnectionBuilder}.
      */
     public static HttpHubConnectionBuilder create(String url) {

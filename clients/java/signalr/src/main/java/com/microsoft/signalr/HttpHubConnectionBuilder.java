@@ -49,7 +49,7 @@ public class HttpHubConnectionBuilder {
 
     /**
      * Indicates to the {@link HubConnection} that it should skip the negotiate process.
-     * Note: The Azure SignalR Service require the negotiate step.
+     * Note: This option only works with the Websockets transport and the Azure SignalR Service require the negotiate step.
      *
      * @param skipNegotiate Boolean indicating if the {@link HubConnection} should skip the negotiate step.
      * @return This instance of the HttpHubConnectionBuilder.
@@ -82,7 +82,7 @@ public class HttpHubConnectionBuilder {
     }
 
     /**
-     * Sets a collection of Headers for the {@link HubConnection} to send.
+     * Sets a collection of Headers for the {@link HubConnection} to send with every Http request.
      *
      * @param headers A Map representing the collection of Headers that the {@link HubConnection} should send.
      * @return This instance of the HttpHubConnectionBuilder.
