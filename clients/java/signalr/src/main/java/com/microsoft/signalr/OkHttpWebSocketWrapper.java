@@ -106,7 +106,7 @@ class OkHttpWebSocketWrapper extends WebSocketWrapper {
         }
 
         private void checkStartFailure() {
-            // If the start future hasn't completed yet, then we need to complete it
+            // If the start task hasn't completed yet, then we need to complete it
             // exceptionally.
             if (!startSubject.hasComplete()) {
                 String errorMessage = "There was an error starting the Websockets transport.";

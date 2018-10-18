@@ -3,11 +3,11 @@
 
 package com.microsoft.signalr;
 
-import java.util.concurrent.CompletableFuture;
+import io.reactivex.subjects.SingleSubject;
 
 class InvocationRequest {
     private final Class<?> returnType;
-    private final CompletableFuture<Object> pendingCall = new CompletableFuture<>();
+    private final SingleSubject<Object> pendingCall = SingleSubject.create();
     private final String invocationId;
 
     InvocationRequest(Class<?> returnType, String invocationId) {
@@ -17,21 +17,21 @@ class InvocationRequest {
 
     public void complete(CompletionMessage completion) {
         if (completion.getResult() != null) {
-            pendingCall.complete(completion.getResult());
+            pendingCall.onSuccess(completion.getResult());
         } else {
-            pendingCall.completeExceptionally(new HubException(completion.getError()));
+            pendingCall.onError(new HubException(completion.getError()));
         }
     }
 
     public void fail(Exception ex) {
-        pendingCall.completeExceptionally(ex);
+        pendingCall.onError(ex);
     }
 
     public void cancel() {
-        pendingCall.cancel(false);
+        pendingCall.onError(new RuntimeException("Invocation was canceled."));
     }
 
-    public CompletableFuture<Object> getPendingCall() {
+    public SingleSubject<Object> getPendingCall() {
         return pendingCall;
     }
 
