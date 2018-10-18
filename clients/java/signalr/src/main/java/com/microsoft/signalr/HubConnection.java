@@ -337,6 +337,7 @@ public class HubConnection {
                     }));
                 }));
             }));
+        // subscribe makes this a "hot" completable so this runs immediately
         }).subscribe(() -> start.onComplete(),
             e -> start.onError(e));
 
