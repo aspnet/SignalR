@@ -3,6 +3,7 @@
 
 package com.microsoft.signalr;
 
+import io.reactivex.Single;
 import io.reactivex.subjects.SingleSubject;
 
 class InvocationRequest {
@@ -31,7 +32,7 @@ class InvocationRequest {
         pendingCall.onError(new RuntimeException("Invocation was canceled."));
     }
 
-    public SingleSubject<Object> getPendingCall() {
+    public Single<Object> getPendingCall() {
         return pendingCall;
     }
 
