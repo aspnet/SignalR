@@ -4,6 +4,7 @@
   </PropertyGroup>
   <PropertyGroup Label="Package Versions">
     <BenchmarkDotNetPackageVersion>0.10.13</BenchmarkDotNetPackageVersion>
+    <GoogleProtobufPackageVersion>3.1.0</GoogleProtobufPackageVersion>
     <InternalAspNetCoreAnalyzersPackageVersion>3.0.0-alpha1-10605</InternalAspNetCoreAnalyzersPackageVersion>
     <InternalAspNetCoreSdkPackageVersion>3.0.0-alpha1-20181011.3</InternalAspNetCoreSdkPackageVersion>
     <MessagePackPackageVersion>1.7.3.4</MessagePackPackageVersion>
