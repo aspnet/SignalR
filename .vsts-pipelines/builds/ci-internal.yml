@@ -10,7 +10,7 @@ resources:
     ref: refs/heads/release/2.2
 
 phases:
-- template: .vsts-pipelines/templates/phases/default-build.yml@buildtools
+- template: .azure/templates/jobs/default-build.yml@buildtools
   parameters:
     agentOs: Windows
     beforeBuild:
@@ -19,7 +19,7 @@ phases:
       inputs:
         versionSpec: 8.x
 
-- template: .vsts-pipelines/templates/phases/default-build.yml@buildtools
+- template: .azure/templates/jobs/default-build.yml@buildtools
   parameters:
     agentOs: macOS
     beforeBuild:
@@ -28,7 +28,7 @@ phases:
       inputs:
         versionSpec: 8.x
 
-- template: .vsts-pipelines/templates/phases/default-build.yml@buildtools
+- template: .azure/templates/jobs/default-build.yml@buildtools
   parameters:
     agentOs: Linux
     beforeBuild:
