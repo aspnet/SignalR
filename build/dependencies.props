@@ -14,7 +14,7 @@
     <MicrosoftAspNetCoreAuthenticationJwtBearerPackageVersion>2.2.0-preview3-35457</MicrosoftAspNetCoreAuthenticationJwtBearerPackageVersion>
     <MicrosoftAspNetCoreAuthorizationPackageVersion>2.2.0-preview3-35457</MicrosoftAspNetCoreAuthorizationPackageVersion>
     <MicrosoftAspNetCoreAuthorizationPolicyPackageVersion>2.2.0-preview3-35457</MicrosoftAspNetCoreAuthorizationPolicyPackageVersion>
-    <MicrosoftAspNetCoreBenchmarkRunnerSourcesPackageVersion>2.2.0-preview3-35457</MicrosoftAspNetCoreBenchmarkRunnerSourcesPackageVersion>
+    <MicrosoftAspNetCoreBenchmarkRunnerSourcesPackageVersion>2.2.0-preview3-35496</MicrosoftAspNetCoreBenchmarkRunnerSourcesPackageVersion>
     <MicrosoftAspNetCoreConnectionsAbstractionsPackageVersion>2.2.0-preview3-35457</MicrosoftAspNetCoreConnectionsAbstractionsPackageVersion>
     <MicrosoftAspNetCoreCorsPackageVersion>2.2.0-preview3-35457</MicrosoftAspNetCoreCorsPackageVersion>
     <MicrosoftAspNetCoreDiagnosticsEntityFrameworkCorePackageVersion>2.2.0-preview3-35457</MicrosoftAspNetCoreDiagnosticsEntityFrameworkCorePackageVersion>
