@@ -11,28 +11,9 @@ resources:
     name: aspnet/BuildTools
     ref: refs/heads/release/2.2
 
-phases:
+jobs:
 - template: .azure/templates/jobs/default-build.yml@buildtools
   parameters:
-    agentOs: Windows
-    beforeBuild:
-    - task: NodeTool@0
-      displayName: Use Node 8.x
-      inputs:
-        versionSpec: 8.x
-
-- template: .azure/templates/jobs/default-build.yml@buildtools
-  parameters:
-    agentOs: macOS
-    beforeBuild:
-    - task: NodeTool@0
-      displayName: Use Node 8.x
-      inputs:
-        versionSpec: 8.x
-
-- template: .azure/templates/jobs/default-build.yml@buildtools
-  parameters:
-    agentOs: Linux
     beforeBuild:
     - task: NodeTool@0
       displayName: Use Node 8.x
