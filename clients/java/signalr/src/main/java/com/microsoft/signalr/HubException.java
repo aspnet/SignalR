@@ -16,7 +16,8 @@ public class HubException extends RuntimeException {
     }
 
     /**
-     * Initializes a new instance of the {@link HubException} class with a specified error message
+     * Initializes a new instance of the {@link HubException} class with a specified error message.
+     *
      * @param errorMessage The error message that explains the reason for the exception.
      */
     public HubException(String errorMessage) {
@@ -26,6 +27,7 @@ public class HubException extends RuntimeException {
     /**
      * Initializes a new instance of the {@link HubException} class with a specified error message and a reference
      * to the exception that is the cause of this exception.
+     *
      * @param errorMessage The error message that explains the reason for the exception.
      * @param innerException The exception that is the cause of the current exception, or null if no inner exception is specified.
      */

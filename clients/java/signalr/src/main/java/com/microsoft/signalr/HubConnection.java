@@ -511,6 +511,7 @@ public class HubConnection {
 
     /**
      * Registers a callback to run when the connection is closed.
+     *
      * @param callback A callback to run when the connection closes.
      */
     public void onClosed(Consumer<Exception> callback) {
