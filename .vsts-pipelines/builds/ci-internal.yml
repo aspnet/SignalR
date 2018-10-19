@@ -10,7 +10,7 @@ resources:
     ref: refs/heads/release/2.2
 
 jobs:
-- template: .azure/templates/jobs/default-build.yml@buildtools
+- template: .azure/templates/project-ci.yml@buildtools
   parameters:
     beforeBuild:
     - task: NodeTool@0
