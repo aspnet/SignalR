@@ -13,7 +13,6 @@ package com.microsoft.signalr;
  * @param <T5> The type of the fifth parameter to the callback.
  * @param <T6> The type of the sixth parameter to the callback.
  */
-@FunctionalInterface
 public interface Action6<T1, T2, T3, T4, T5, T6> {
     void invoke(T1 param1, T2 param2, T3 param3, T4 param4, T5 param5, T6 param6);
 }

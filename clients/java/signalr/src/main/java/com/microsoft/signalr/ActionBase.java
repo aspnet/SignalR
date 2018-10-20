@@ -3,7 +3,6 @@
 
 package com.microsoft.signalr;
 
-@FunctionalInterface
 interface ActionBase {
     void invoke(Object ... params);
 }

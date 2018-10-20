@@ -8,7 +8,6 @@ package com.microsoft.signalr;
  *
  * @param <T1> The type of the first parameter to the callback.
  */
-@FunctionalInterface
 public interface Action1<T1> {
     void invoke(T1 param1);
 }
