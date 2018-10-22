@@ -17,6 +17,7 @@ const LOGS_DIR = path.resolve(ARTIFACTS_DIR, "logs");
 
 // Promisify things from fs we want to use.
 const fs = {
+    createWriteStream: _fs.createWriteStream,
     exists: promisify(_fs.exists),
     mkdir: promisify(_fs.mkdir),
 };
@@ -206,6 +207,9 @@ function runJest(url: string) {
                 dotnet.kill();
             }
         }
+
+        const logStream = fs.createWriteStream(path.resolve(__dirname, "..", "..", "..", "..", "artifacts", "logs", "ts.functionaltests.dotnet.log"));
+        dotnet.stdout.pipe(logStream);
 
         process.on("SIGINT", cleanup);
         process.on("exit", cleanup);
