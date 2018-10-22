@@ -120,7 +120,7 @@ public class HubConnection {
             this.transport = transport;
         }
 
-        if (handshakeResponseTimeout != 0) {
+        if (handshakeResponseTimeout > 0) {
             this.handshakeResponseTimeout = handshakeResponseTimeout;
         }
 
