@@ -34,6 +34,9 @@ export class NodeHttpClient extends HttpClient {
                 port: url.port,
             };
 
+            // "any" is used here because require() can't be correctly resolved by the compiler
+            // when httpOrHttps is typeof http | typeof https. Change to http when editing to get
+            // intellisense.
             const httpOrHttps: any = url.protocol === "https" ? https : http;
 
             const req = httpOrHttps.request(options, (res: http.IncomingMessage) => {
