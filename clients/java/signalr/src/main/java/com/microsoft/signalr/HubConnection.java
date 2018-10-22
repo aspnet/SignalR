@@ -84,7 +84,7 @@ public class HubConnection {
     /**
      * Gets the keep alive interval.
      *
-     * @return The interval between keep alive messages.
+     * @return The interval (specified in milliseconds) between keep alive messages.
      */
     public long getKeepAliveInterval() {
         return this.keepAliveInterval;
