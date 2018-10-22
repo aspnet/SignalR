@@ -59,7 +59,7 @@ public class HubConnection {
      *
       * @param serverTimeout The server timeout duration (specified in milliseconds).
      */
-    public void setServerTimeout(long serverTimeout) {
+    public void setServerTimeout(long serverTimeoutInMilliseconds) {
         this.serverTimeout = serverTimeout;
     }
 
