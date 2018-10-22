@@ -28,8 +28,8 @@ namespace FunctionalTests
                 .ConfigureLogging(factory =>
                 {
                     factory.AddConsole(options => options.IncludeScopes = true);
-                    factory.AddFilter("Console", level => level >= LogLevel.Information);
                     factory.AddDebug();
+                    factory.SetMinimumLevel(LogLevel.Debug);
                 })
                 .UseKestrel()
                 .UseContentRoot(Directory.GetCurrentDirectory())

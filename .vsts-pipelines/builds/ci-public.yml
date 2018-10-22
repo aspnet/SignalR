@@ -19,3 +19,5 @@ jobs:
       displayName: Use Node 8.x
       inputs:
         versionSpec: 8.x
+  variables:
+    ASPNETCORE_SIGNALR_TEST_ALL_BROWSERS: true
