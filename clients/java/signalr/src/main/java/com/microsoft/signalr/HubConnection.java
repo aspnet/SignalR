@@ -91,7 +91,7 @@ public class HubConnection {
     }
 
     // For testing purposes
-    void setTickRate(long tickRate) {
+    void setTickRate(long tickRateInMilliseconds) {
         this.tickRate = tickRate;
     }
 
