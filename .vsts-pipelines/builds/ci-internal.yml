@@ -10,6 +10,8 @@ resources:
     ref: refs/heads/release/2.2
 
 jobs:
+  variables:
+    ASPNETCORE_SIGNALR_TEST_ALL_BROWSERS: true
 - template: .azure/templates/project-ci.yml@buildtools
   parameters:
     beforeBuild:
@@ -17,5 +19,3 @@ jobs:
       displayName: Use Node 8.x
       inputs:
         versionSpec: 8.x
-  variables:
-    ASPNETCORE_SIGNALR_TEST_ALL_BROWSERS: true
