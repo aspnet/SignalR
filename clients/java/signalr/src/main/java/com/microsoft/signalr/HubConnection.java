@@ -66,7 +66,7 @@ public class HubConnection {
     /**
      * Gets the server timeout duration.
      *
-     * @return The server timeout duration.
+     * @return The server timeout duration (specified in milliseconds).
      */
     public long getServerTimeout() {
         return this.serverTimeout;
