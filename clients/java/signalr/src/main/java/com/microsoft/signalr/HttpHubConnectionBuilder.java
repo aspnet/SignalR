@@ -72,10 +72,10 @@ public class HttpHubConnectionBuilder {
     /**
      * Sets the duration the {@link HubConnection} should wait for a Handshake Response from the server.
      *
-     * @param timeout The duration that the {@link HubConnection} should wait for a Handshake Response from the server.
+      * @param timeout The duration (specified in milliseconds) that the {@link HubConnection} should wait for a Handshake Response from the server.
      * @return This instance of the HttpHubConnectionBuilder.
      */
-    public HttpHubConnectionBuilder withHandshakeResponseTimeout(long timeout) {
+    public HttpHubConnectionBuilder withHandshakeResponseTimeout(long timeoutInMilliseconds) {
         this.handshakeResponseTimeout = timeout;
         return this;
     }

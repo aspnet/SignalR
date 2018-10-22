@@ -57,16 +57,16 @@ public class HubConnection {
     /**
      * Sets the server timeout interval for the connection.
      *
-     * @param serverTimeout The server timeout duration.
+      * @param serverTimeout The server timeout duration (specified in milliseconds).
      */
-    public void setServerTimeout(long serverTimeout) {
+    public void setServerTimeout(long serverTimeoutInMilliseconds) {
         this.serverTimeout = serverTimeout;
     }
 
     /**
      * Gets the server timeout duration.
      *
-     * @return The server timeout duration.
+     * @return The server timeout duration (specified in milliseconds).
      */
     public long getServerTimeout() {
         return this.serverTimeout;
@@ -75,23 +75,23 @@ public class HubConnection {
     /**
      * Sets the keep alive interval duration.
      *
-     * @param keepAliveInterval The interval at which the connection should send keep alive messages.
+     * @param keepAliveInterval The interval (specified in milliseconds) at which the connection should send keep alive messages.
      */
-    public void setKeepAliveInterval(long keepAliveInterval) {
+    public void setKeepAliveInterval(long keepAliveIntervalInMilliseconds) {
         this.keepAliveInterval = keepAliveInterval;
     }
 
     /**
      * Gets the keep alive interval.
      *
-     * @return The interval between keep alive messages.
+     * @return The interval (specified in milliseconds) between keep alive messages.
      */
     public long getKeepAliveInterval() {
         return this.keepAliveInterval;
     }
 
     // For testing purposes
-    void setTickRate(long tickRate) {
+    void setTickRate(long tickRateInMilliseconds) {
         this.tickRate = tickRate;
     }
 
