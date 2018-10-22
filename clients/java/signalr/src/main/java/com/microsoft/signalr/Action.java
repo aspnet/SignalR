@@ -7,7 +7,7 @@ package com.microsoft.signalr;
  * A callback that takes no parameters.
  */
 public interface Action {
-    // We can't use @FunctionalInterface because it's only
+    // We can't use the @FunctionalInterface annotation because it's only
     // available on Android API Level 24 and above.
     void invoke();
 }
