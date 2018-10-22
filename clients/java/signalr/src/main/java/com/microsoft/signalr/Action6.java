@@ -14,5 +14,7 @@ package com.microsoft.signalr;
  * @param <T6> The type of the sixth parameter to the callback.
  */
 public interface Action6<T1, T2, T3, T4, T5, T6> {
+    // We can't use @FunctionalInterface because it's only
+    // available on Android API Level 24 and above.
     void invoke(T1 param1, T2 param2, T3 param3, T4 param4, T5 param5, T6 param6);
 }

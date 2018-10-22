@@ -4,5 +4,7 @@
 package com.microsoft.signalr;
 
 interface ActionBase {
+    // We can't use @FunctionalInterface because it's only
+    // available on Android API Level 24 and above.
     void invoke(Object ... params);
 }
