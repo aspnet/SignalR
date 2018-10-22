@@ -16,7 +16,7 @@
     <MicrosoftAspNetCoreAuthorizationPolicyPackageVersion>2.2.0-rtm-35532</MicrosoftAspNetCoreAuthorizationPolicyPackageVersion>
     <MicrosoftAspNetCoreBenchmarkRunnerSourcesPackageVersion>2.2.0-rtm-35532</MicrosoftAspNetCoreBenchmarkRunnerSourcesPackageVersion>
     <MicrosoftAspNetCoreConnectionsAbstractionsPackageVersion>2.2.0-rtm-35532</MicrosoftAspNetCoreConnectionsAbstractionsPackageVersion>
-    <MicrosoftAspNetCoreCorsPackageVersion>2.2.0-rtm-35532</MicrosoftAspNetCoreCorsPackageVersion>
+    <MicrosoftAspNetCoreCorsPackageVersion>2.2.0-preview3-35457</MicrosoftAspNetCoreCorsPackageVersion>
     <MicrosoftAspNetCoreDiagnosticsEntityFrameworkCorePackageVersion>2.2.0-rtm-35532</MicrosoftAspNetCoreDiagnosticsEntityFrameworkCorePackageVersion>
     <MicrosoftAspNetCoreDiagnosticsPackageVersion>2.2.0-rtm-35532</MicrosoftAspNetCoreDiagnosticsPackageVersion>
     <MicrosoftAspNetCoreHostingAbstractionsPackageVersion>2.2.0-rtm-35532</MicrosoftAspNetCoreHostingAbstractionsPackageVersion>
