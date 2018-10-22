@@ -138,7 +138,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
                 {
                     app.UseSignalR(options => configure(options));
                 })
-                .UseUrls("http://*:0")
+                .UseUrls("http://127.0.0.1:0")
                 .Build();
         }
     }
