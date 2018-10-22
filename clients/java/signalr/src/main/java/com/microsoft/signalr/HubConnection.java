@@ -57,7 +57,7 @@ public class HubConnection {
     /**
      * Sets the server timeout interval for the connection.
      *
-      * @param serverTimeoutInMilliseconds The server timeout duration (specified in milliseconds).
+     * @param serverTimeoutInMilliseconds The server timeout duration (specified in milliseconds).
      */
     public void setServerTimeout(long serverTimeoutInMilliseconds) {
         this.serverTimeout = serverTimeoutInMilliseconds;
@@ -248,6 +248,7 @@ public class HubConnection {
 
     /**
      * Starts a connection to the server.
+     * 
      * @return A Completable that completes when the connection has been established.
      */
     public Completable start() {

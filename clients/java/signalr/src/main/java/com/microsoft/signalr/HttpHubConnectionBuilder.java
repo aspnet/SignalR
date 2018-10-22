@@ -17,7 +17,7 @@ public class HttpHubConnectionBuilder {
     private HttpClient httpClient;
     private boolean skipNegotiate;
     private Single<String> accessTokenProvider;
-    private long  handshakeResponseTimeout = 0;
+    private long handshakeResponseTimeout = 0;
     private Map<String, String> headers;
 
     HttpHubConnectionBuilder(String url) {
@@ -72,7 +72,7 @@ public class HttpHubConnectionBuilder {
     /**
      * Sets the duration the {@link HubConnection} should wait for a Handshake Response from the server.
      *
-      * @param timeoutInMilliseconds The duration (specified in milliseconds) that the {@link HubConnection} should wait for a Handshake Response from the server.
+     * @param timeoutInMilliseconds The duration (specified in milliseconds) that the {@link HubConnection} should wait for a Handshake Response from the server.
      * @return This instance of the HttpHubConnectionBuilder.
      */
     public HttpHubConnectionBuilder withHandshakeResponseTimeout(long timeoutInMilliseconds) {
