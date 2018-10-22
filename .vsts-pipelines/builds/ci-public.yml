@@ -12,7 +12,7 @@ resources:
     ref: refs/heads/release/2.2
 
 variables:
-  ASPNETCORE_SIGNALR_TEST_ALL_BROWSERS: true
+  ASPNETCORE_SIGNALR_TEST_ALL_BROWSERS: "true"
 jobs:
 - template: .azure/templates/project-ci.yml@buildtools
   parameters:
