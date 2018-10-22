@@ -77,7 +77,7 @@ public class HubConnection {
      *
      * @param keepAliveInterval The interval (specified in milliseconds) at which the connection should send keep alive messages.
      */
-    public void setKeepAliveInterval(long keepAliveInterval) {
+    public void setKeepAliveInterval(long keepAliveIntervalInMilliseconds) {
         this.keepAliveInterval = keepAliveInterval;
     }
 
