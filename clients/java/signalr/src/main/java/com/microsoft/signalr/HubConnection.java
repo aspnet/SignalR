@@ -248,7 +248,7 @@ public class HubConnection {
 
     /**
      * Starts a connection to the server.
-     * 
+     *
      * @return A Completable that completes when the connection has been established.
      */
     public Completable start() {
