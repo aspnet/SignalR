@@ -4,6 +4,8 @@ ASP.NET Core SignalR
 **IMPORTANT**: This repository hosts code and project management for ASP.NET **Core** SignalR, for use in ASP.NET Core applications using `Microsoft.AspNetCore.App`. If you are looking for information on ASP.NET SignalR (used in .NET Framework applications using System.Web and/or Katana), see the https://github.com/SignalR/SignalR repository.
 
 [![Build Status](https://dnceng.visualstudio.com/public/_apis/build/status/aspnet/SignalR/SignalR-ci)](https://dnceng.visualstudio.com/public/_build/latest?definitionId=26)
+[![NuGet version](https://badge.fury.io/nu/microsoft.aspnetcore.signalr.svg)](https://badge.fury.io/nu/microsoft.aspnetcore.signalr)
+[![npm version](https://badge.fury.io/js/%40aspnet%2Fsignalr.svg)](https://badge.fury.io/js/%40aspnet%2Fsignalr)
 
 [![Join the chat at https://gitter.im/aspnet/SignalR](https://badges.gitter.im/aspnet/SignalR.svg)](https://gitter.im/aspnet/SignalR?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
