@@ -84,14 +84,19 @@ class JsonHubProtocol implements HubProtocol {
                             break;
                         case "arguments":
                             if (target != null) {
+                                boolean startedArray = false;
                                 try {
                                     List<Class<?>> types = binder.getParameterTypes(target);
+                                    startedArray = true;
                                     arguments = bindArguments(reader, types);
                                 } catch (Exception ex) {
                                     argumentBindingException = ex;
 
                                     // Could be at any point in argument array JSON when an error is thrown
                                     // Read until the end of the argument JSON array
+                                    if (!startedArray) {
+                                        reader.beginArray();
+                                    }
                                     while (reader.hasNext()) {
                                         reader.skipValue();
                                     }
