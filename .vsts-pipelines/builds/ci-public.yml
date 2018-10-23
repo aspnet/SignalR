@@ -14,6 +14,8 @@ resources:
 jobs:
 - template: .azure/templates/project-ci.yml@buildtools
   parameters:
+    variables:
+      ASPNETCORE_SIGNALR_TEST_ALL_BROWSERS: true
     beforeBuild:
     - task: NodeTool@0
       displayName: Use Node 8.x
