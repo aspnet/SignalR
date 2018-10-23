@@ -29,7 +29,7 @@ namespace FunctionalTests
                 {
                     factory.AddConsole(options => options.IncludeScopes = true);
                     factory.AddDebug();
-                    factory.SetMinimumLevel(LogLevel.Debug);
+                    factory.SetMinimumLevel(LogLevel.Information);
                 })
                 .UseKestrel()
                 .UseContentRoot(Directory.GetCurrentDirectory())
