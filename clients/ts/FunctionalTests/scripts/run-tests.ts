@@ -111,7 +111,7 @@ for (let i = 2; i < process.argv.length; i += 1) {
             console.log("Running on SauceLabs.");
             break;
         case "-a":
-        case "--all":
+        case "--all-browsers":
             allBrowsers = true;
             break;
         case "--no-color":
