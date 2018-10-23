@@ -170,7 +170,7 @@ function runJest(url: string) {
         console.log(error.message);
         console.log(error.stderr);
         console.log(error.stdout);
-        return error.status;
+        return error.status || 1;
     }
 }
 
@@ -245,13 +245,10 @@ function runJest(url: string) {
 
         const results = await runKarma(conf);
 
-        let jestExit = runJest(url);
+        const jestExit = runJest(url);
 
         console.log(`karma exit code: ${results.exitCode}`);
         console.log(`jest exit code: ${jestExit}`);
-
-        // jest can exit with 'null' exit code sometimes on failures, force it to be an error exit code in that case
-        jestExit = jestExit === null ? 1 : jestExit;
 
         process.exit(results.exitCode !== 0 ? results.exitCode : jestExit);
     } catch (e) {
