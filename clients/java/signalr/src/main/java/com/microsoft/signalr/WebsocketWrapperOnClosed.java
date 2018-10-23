@@ -4,5 +4,5 @@
 package com.microsoft.signalr;
 
 interface WebsocketWrapperOnClosed {
-    void invoke(Integer code, String string);
+    void invoke(Integer code, String reason);
 }
