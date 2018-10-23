@@ -13,7 +13,7 @@ class MockTransport implements Transport {
     private OnReceiveCallBack onReceiveCallBack;
     private ArrayList<String> sentMessages = new ArrayList<>();
     private String url;
-    private Consumer<String> onClose;
+    private TransportOnClosedCallback onClose;
     final private boolean ignorePings;
     final private boolean autoHandshake;
     final private CompletableSubject startSubject = CompletableSubject.create();
@@ -67,19 +67,19 @@ class MockTransport implements Transport {
     }
 
     @Override
-    public void setOnClose(Consumer<String> onCloseCallback) {
+    public void setOnClose(TransportOnClosedCallback onCloseCallback) {
         this.onClose = onCloseCallback;
     }
 
     @Override
     public Completable stop() {
-        onClose.accept(null);
+        onClose.invoke(null);
         stopSubject.onComplete();
         return stopSubject;
     }
 
     public void stopWithError(String errorMessage) {
-        onClose.accept(errorMessage);
+        onClose.invoke(errorMessage);
     }
 
     public void receiveMessage(String message) {
