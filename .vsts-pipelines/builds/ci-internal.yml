@@ -9,8 +9,6 @@ resources:
     name: aspnet-BuildTools
     ref: refs/heads/release/2.2
 
-parameters:
-
 jobs:
 - template: .azure/templates/project-ci.yml@buildtools
   parameters:

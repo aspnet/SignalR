@@ -245,10 +245,14 @@ function runJest(url: string) {
 
         const results = await runKarma(conf);
 
-        const jestExit = runJest(url);
+        let jestExit = runJest(url);
 
         console.log(`karma exit code: ${results.exitCode}`);
         console.log(`jest exit code: ${jestExit}`);
+
+        // jest can exit with 'null' exit code sometimes on failures, force it to be an error exit code in that case
+        jestExit = jestExit === null ? 1 : jestExit;
+
         process.exit(results.exitCode !== 0 ? results.exitCode : jestExit);
     } catch (e) {
         console.error(e);
