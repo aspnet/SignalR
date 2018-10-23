@@ -41,11 +41,7 @@
 
   <Target Name="RunBrowserTests">
     <Message Text="Running JavaScript client Browser tests" Importance="high" />
-    <PropertyGroup>
-      <BrowserTestsType>inner</BrowserTestsType>
-      <BrowserTestsType Condition="'$(CI)' == 'true'">all</BrowserTestsType>
-    </PropertyGroup>
-    <Exec Command="npm run test:$(BrowserTestsType) -- --no-color --configuration $(Configuration)" WorkingDirectory="$(RepositoryRoot)clients/ts/FunctionalTests" IgnoreStandardErrorWarningFormat="true" />
+    <Exec Command="npm run test:inner -- --no-color --configuration $(Configuration)" WorkingDirectory="$(RepositoryRoot)clients/ts/FunctionalTests" IgnoreStandardErrorWarningFormat="true" />
   </Target>
 
   <Target Name="RunJavaTests" Condition="'$(HasJava)' == 'true' AND '$(SkipJavaClient)' != 'true' ">
