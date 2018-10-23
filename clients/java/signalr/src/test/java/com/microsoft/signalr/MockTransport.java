@@ -4,7 +4,6 @@
 package com.microsoft.signalr;
 
 import java.util.ArrayList;
-import java.util.function.Consumer;
 
 import io.reactivex.Completable;
 import io.reactivex.subjects.CompletableSubject;
