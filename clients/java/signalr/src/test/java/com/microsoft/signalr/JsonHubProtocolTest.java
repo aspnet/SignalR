@@ -227,8 +227,8 @@ class JsonHubProtocolTest {
         HubMessage[] messages = jsonHubProtocol.parseMessages(stringifiedMessage, binder);
         assertEquals(1, messages.length);
         assertEquals(InvocationBindingFailureMessage.class, messages[0].getClass());
-        assertEquals("Invocation provides 2 argument(s) but target expects 1.",
-            ((InvocationBindingFailureMessage)messages[0]).getException().getMessage());
+        InvocationBindingFailureMessage message = (InvocationBindingFailureMessage)messages[0];
+        assertEquals("Invocation provides 2 argument(s) but target expects 1.", message.getException().getMessage());
     }
 
     @Test
@@ -239,8 +239,8 @@ class JsonHubProtocolTest {
         HubMessage[] messages = jsonHubProtocol.parseMessages(stringifiedMessage, binder);
         assertEquals(1, messages.length);
         assertEquals(InvocationBindingFailureMessage.class, messages[0].getClass());
-        assertEquals("Invocation provides 2 argument(s) but target expects 1.",
-            ((InvocationBindingFailureMessage) messages[0]).getException().getMessage());
+        InvocationBindingFailureMessage message = (InvocationBindingFailureMessage) messages[0];
+        assertEquals("Invocation provides 2 argument(s) but target expects 1.", message.getException().getMessage());
     }
 
     @Test
@@ -251,8 +251,8 @@ class JsonHubProtocolTest {
         HubMessage[] messages = jsonHubProtocol.parseMessages(stringifiedMessage, binder);
         assertEquals(1, messages.length);
         assertEquals(InvocationBindingFailureMessage.class, messages[0].getClass());
-        assertEquals("Invocation provides 1 argument(s) but target expects 2.",
-            ((InvocationBindingFailureMessage) messages[0]).getException().getMessage());
+        InvocationBindingFailureMessage message = (InvocationBindingFailureMessage) messages[0];
+        assertEquals("Invocation provides 1 argument(s) but target expects 2.", message.getException().getMessage());
     }
 
     @Test
@@ -263,8 +263,8 @@ class JsonHubProtocolTest {
         HubMessage[] messages = jsonHubProtocol.parseMessages(stringifiedMessage, binder);
         assertEquals(1, messages.length);
         assertEquals(InvocationBindingFailureMessage.class, messages[0].getClass());
-        assertEquals("java.lang.NumberFormatException: For input string: \"true\"",
-                ((InvocationBindingFailureMessage) messages[0]).getException().getMessage());
+        InvocationBindingFailureMessage message = (InvocationBindingFailureMessage) messages[0];
+        assertEquals("java.lang.NumberFormatException: For input string: \"true\"", message.getException().getMessage());
     }
 
     @Test
