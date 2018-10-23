@@ -126,7 +126,9 @@ const configFile = sauce ?
 debug(`Loading Karma config file: ${configFile}`);
 
 // Gross but it works
-process.env.ASPNETCORE_SIGNALR_TEST_ALL_BROWSERS = allBrowsers ? "true" : null;
+if (allBrowsers) {
+    process.env.ASPNETCORE_SIGNALR_TEST_ALL_BROWSERS = "true";
+}
 const config = (karma as any).config.parseConfig(configFile);
 
 if (sauce) {
