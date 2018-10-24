@@ -3,6 +3,6 @@
 
 package com.microsoft.signalr;
 
-interface WebsocketWrapperOnClosed {
+interface WebSocketOnClosedCallback {
     void invoke(Integer code, String reason);
 }
