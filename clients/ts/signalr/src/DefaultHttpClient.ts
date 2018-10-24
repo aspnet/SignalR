@@ -45,4 +45,12 @@ export class DefaultHttpClient extends HttpClient {
 
         return this.httpClient.send(request);
     }
+
+    // @ts-ignore
+    private getCookies(url: string): string {
+        if ((this.httpClient as any).getCookies) {
+            return (this.httpClient as any).getCookies(url);
+        }
+        return "";
+    }
 }
