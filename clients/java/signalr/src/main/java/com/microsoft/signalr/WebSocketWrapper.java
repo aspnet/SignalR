@@ -14,5 +14,5 @@ abstract class WebSocketWrapper {
 
     public abstract void setOnReceive(OnReceiveCallBack onReceive);
 
-    public abstract void setOnClose(WebsocketWrapperOnClosed onClose);
+    public abstract void setOnClose(WebSocketOnClosedCallback onClose);
 }

@@ -10,7 +10,7 @@ import java.util.Map;
 import io.reactivex.Single;
 
 class TestHttpClient extends HttpClient {
-    private TestHttpClientHandler handler;
+    private TestHttpRequestHandler handler;
     private List<HttpRequest> sentRequests;
 
     public TestHttpClient() {
@@ -30,13 +30,13 @@ class TestHttpClient extends HttpClient {
         return sentRequests;
     }
 
-    public TestHttpClient on(TestHttpClientHandler handler) {
+    public TestHttpClient on(TestHttpRequestHandler handler) {
         this.handler = (req) -> handler.invoke(req);
         return this;
     }
 
-    public TestHttpClient on(String method, TestHttpClientHandler handler) {
-        TestHttpClientHandler oldHandler = this.handler;
+    public TestHttpClient on(String method, TestHttpRequestHandler handler) {
+        TestHttpRequestHandler oldHandler = this.handler;
         this.handler = (req) -> {
             if (req.getMethod().equals(method)) {
                 return handler.invoke(req);
@@ -48,8 +48,8 @@ class TestHttpClient extends HttpClient {
         return this;
     }
 
-    public TestHttpClient on(String method, String url, TestHttpClientHandler handler) {
-        TestHttpClientHandler oldHandler = this.handler;
+    public TestHttpClient on(String method, String url, TestHttpRequestHandler handler) {
+        TestHttpRequestHandler oldHandler = this.handler;
         this.handler = (req) -> {
             if (req.getMethod().equals(method) && req.getUrl().equals(url)) {
                 return handler.invoke(req);
@@ -66,7 +66,7 @@ class TestHttpClient extends HttpClient {
         throw new RuntimeException("WebSockets isn't supported in testing currently.");
     }
 
-    interface TestHttpClientHandler {
+    interface TestHttpRequestHandler {
         Single<HttpResponse> invoke(HttpRequest request);
     }
 }

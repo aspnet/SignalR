@@ -23,7 +23,7 @@ class OkHttpWebSocketWrapper extends WebSocketWrapper {
     private Map<String, String> headers;
     private OkHttpClient client;
     private OnReceiveCallBack onReceive;
-    private WebsocketWrapperOnClosed onClose;
+    private WebSocketOnClosedCallback onClose;
     private CompletableSubject startSubject = CompletableSubject.create();
     private CompletableSubject closeSubject = CompletableSubject.create();
 
@@ -69,7 +69,7 @@ class OkHttpWebSocketWrapper extends WebSocketWrapper {
     }
 
     @Override
-    public void setOnClose(WebsocketWrapperOnClosed onClose) {
+    public void setOnClose(WebSocketOnClosedCallback onClose) {
         this.onClose = onClose;
     }
 
