@@ -16,7 +16,7 @@ plugins {
 
 apply plugin: "com.diffplug.gradle.spotless"
 
-group 'com.microsoft.aspnet'
+group 'com.microsoft.signalr'
 
 // If we're run from outside MSBuild, just assign a bogus dev version.
 version project.findProperty('packageVersion') ?: "99.99.99-dev"
@@ -31,8 +31,11 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.3.1'
     testCompile 'org.junit.jupiter:junit-jupiter-params:5.3.1'
     testRuntime 'org.junit.jupiter:junit-jupiter-engine:5.3.1'
+    testCompile 'org.slf4j:slf4j-jdk14:1.7.25'
     implementation 'com.google.code.gson:gson:2.8.5'
     implementation 'com.squareup.okhttp3:okhttp:3.11.0'
+    implementation 'io.reactivex.rxjava2:rxjava:2.2.2'
+    implementation 'org.slf4j:slf4j-api:1.7.25'
 }
 
 spotless {
