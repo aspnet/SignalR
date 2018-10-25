@@ -3,7 +3,7 @@
 
 import * as Request from "request";
 
-import { AbortError, HttpError , TimeoutError } from "./Errors";
+import { AbortError, HttpError, TimeoutError } from "./Errors";
 import { HttpClient, HttpRequest, HttpResponse } from "./HttpClient";
 import { ILogger, LogLevel } from "./ILogger";
 import { isArrayBuffer } from "./Utils";

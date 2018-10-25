@@ -673,10 +673,6 @@ describe("hubConnection", () => {
                 }
                 return defaultClient.send(request);
             }
-
-            public getCookies(): string {
-                return "";
-            }
         }
 
         const testClient = new TestClient();
