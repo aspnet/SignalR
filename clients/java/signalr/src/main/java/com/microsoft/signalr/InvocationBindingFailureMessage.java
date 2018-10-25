@@ -28,6 +28,6 @@ class InvocationBindingFailureMessage extends HubMessage {
 
     @Override
     public HubMessageType getMessageType() {
-        return HubMessageType.INVOCATIONBINDINGFAILURE;
+        return HubMessageType.INVOCATION_BINDING_FAILURE;
     }
 }

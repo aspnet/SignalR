@@ -11,7 +11,7 @@ enum HubMessageType {
     CANCEL_INVOCATION(5),
     PING(6),
     CLOSE(7),
-    INVOCATIONBINDINGFAILURE(-1);
+    INVOCATION_BINDING_FAILURE(-1);
 
     public int value;
     HubMessageType(int id) { this.value = id; }

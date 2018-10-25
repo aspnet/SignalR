@@ -268,6 +268,19 @@ class JsonHubProtocolTest {
     }
 
     @Test
+    public void invocationBindingFailureStillReadsJsonPayloadAfterFailure() {
+        String stringifiedMessage = "{\"type\":1,\"target\":\"test\",\"arguments\":[\"true\"],\"invocationId\":\"123\"}\u001E";
+        TestBinder binder = new TestBinder(new InvocationMessage(null, "test", new Object[] { 42 }));
+
+        HubMessage[] messages = jsonHubProtocol.parseMessages(stringifiedMessage, binder);
+        assertEquals(1, messages.length);
+        assertEquals(InvocationBindingFailureMessage.class, messages[0].getClass());
+        InvocationBindingFailureMessage message = (InvocationBindingFailureMessage) messages[0];
+        assertEquals("java.lang.NumberFormatException: For input string: \"true\"", message.getException().getMessage());
+        assertEquals("123", message.getInvocationId());
+    }
+
+    @Test
     public void errorWhileParsingIncompleteMessage() {
         String stringifiedMessage = "{\"type\":1,\"target\":\"test\",\"arguments\":";
         TestBinder binder = new TestBinder(new InvocationMessage(null, "test", new Object[] { 42, 24 }));
