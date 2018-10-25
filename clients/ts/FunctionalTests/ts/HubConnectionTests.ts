@@ -567,7 +567,9 @@ describe("hubConnection", () => {
                 const hubConnection = getConnectionBuilder(transportType).build();
                 await hubConnection.start();
                 const cookieValue = await hubConnection.invoke<string>("GetCookie", "testCookie");
+                const cookieValue2 = await hubConnection.invoke<string>("GetCookie", "testCookie2");
                 expect(cookieValue).toEqual("testValue");
+                expect(cookieValue2).toEqual("testValue2");
                 await hubConnection.stop();
                 done();
             });

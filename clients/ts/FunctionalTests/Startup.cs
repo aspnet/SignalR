@@ -108,6 +108,7 @@ namespace FunctionalTests
                 if (context.Request.Path.Value.Contains("/negotiate"))
                 {
                     context.Response.Cookies.Append("testCookie", "testValue");
+                    context.Response.Cookies.Append("testCookie2", "testValue2");
                     context.Response.Cookies.Append("expiredCookie", "doesntmatter", new CookieOptions() { Expires = DateTimeOffset.Now.AddHours(-1) });
                 }
                 await next.Invoke();
