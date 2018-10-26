@@ -3,7 +3,9 @@
 
 package com.microsoft.signalr;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 class CallbackMap {
@@ -11,13 +13,10 @@ class CallbackMap {
 
     public InvocationHandler put(String target, ActionBase action, Class<?>... classes) {
         InvocationHandler handler = new InvocationHandler(action, classes);
-        handlers.compute(target, (key, value) -> {
-            if (value == null) {
-                value = new ArrayList<>();
-            }
-            value.add(handler);
-            return value;
-        });
+        if (!handlers.containsKey(target)){
+            handlers.put(target, new ArrayList<>());
+        }
+        handlers.get(target).add(handler);
         return handler;
     }
 
