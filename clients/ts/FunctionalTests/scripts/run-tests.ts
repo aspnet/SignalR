@@ -247,9 +247,9 @@ function runJest(url: string) {
         // Pass server URL to tests
         conf.client.args = ["--server", url];
 
-        const results = await runKarma(conf);
-
         const jestExit = await runJest(url);
+        // Run other processes before karma
+        const results = await runKarma(conf);
 
         console.log(`karma exit code: ${results.exitCode}`);
         console.log(`jest exit code: ${jestExit}`);
