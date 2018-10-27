@@ -1,4 +1,4 @@
-import { ChildProcess, execSync, spawn } from "child_process";
+import { ChildProcess, exec, spawn } from "child_process";
 import { EOL } from "os";
 import { Readable } from "stream";
 
@@ -163,15 +163,19 @@ function runJest(url: string) {
     const configPath = path.resolve(__dirname, "..", "func.jest.config.js");
 
     console.log("Starting Node tests using Jest.");
-    try {
-        execSync(`"${process.execPath}" "${jestPath}" --config "${configPath}"`, { env: { SERVER_URL: url }, timeout: 200000 });
-        return 0;
-    } catch (error) {
-        console.log(error.message);
-        console.log(error.stderr);
-        console.log(error.stdout);
-        return error.status || 1;
-    }
+    return new Promise<number>((resolve, reject) => {
+        const logStream = fs.createWriteStream(path.resolve(__dirname, "..", "..", "..", "..", "artifacts", "logs", "node.functionaltests.log"));
+        const p = exec(`"${process.execPath}" "${jestPath}" --config "${configPath}"`, { env: { SERVER_URL: url }, timeout: 200000, maxBuffer: 10 * 1024 * 1024 },
+            (error: any, stdout, stderr) => {
+                if (error) {
+                    console.log(error.message);
+                    return resolve(error.code);
+                }
+                return resolve(0);
+            });
+        p.stdout.pipe(logStream);
+        p.stderr.pipe(logStream);
+    });
 }
 
 (async () => {
@@ -245,7 +249,7 @@ function runJest(url: string) {
 
         const results = await runKarma(conf);
 
-        const jestExit = runJest(url);
+        const jestExit = await runJest(url);
 
         console.log(`karma exit code: ${results.exitCode}`);
         console.log(`jest exit code: ${jestExit}`);

@@ -8,6 +8,7 @@ import { AbortError, DefaultHttpClient, HttpClient, HttpRequest, HttpResponse, H
 import { MessagePackHubProtocol } from "@aspnet/signalr-protocol-msgpack";
 
 import { eachTransport, eachTransportAndProtocol, ENDPOINT_BASE_URL } from "./Common";
+import "./LogBannerReporter";
 import { TestLogger } from "./TestLogger";
 
 const TESTHUBENDPOINT_URL = ENDPOINT_BASE_URL + "/testhub";
