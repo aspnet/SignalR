@@ -24,23 +24,23 @@ There are two sets of open-source libraries that make this possible:
 
 No. SignalR clients need to be manually reconnected. Below you will see some example JavaScript code that demonstrates one method of performing a reconnection. 
 
-    ```javascript
-    const start = () => {
-        connection.start()
-            .then(() => {
-                console.log('connected');
-            })
-            .catch(err => {
-                console.error(err.toString());
-                setTimeout(function () {
-                    start();
-                }, 5000);
-            });
-    };
+```javascript
+const start = () => {
+    connection.start()
+        .then(() => {
+            console.log('connected');
+        })
+        .catch(err => {
+            console.error(err.toString());
+            setTimeout(function () {
+                start();
+            }, 5000);
+        });
+};
 
-    connection.onclose(function () {
-        start();
-    });
-
+connection.onclose(function () {
     start();
-    ```
+});
+
+start();
+```
