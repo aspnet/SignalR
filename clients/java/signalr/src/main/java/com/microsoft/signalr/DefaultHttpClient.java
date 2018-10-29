@@ -99,7 +99,7 @@ final class DefaultHttpClient extends HttpClient {
         if (httpRequest.getHeaders() != null) {
             httpRequest.getHeaders().forEach(requestBuilder::addHeader);
             Collection<String> keys = httpRequest.getHeaders().keySet();
-            for (String key: keys) {
+            for (String key : keys) {
                 requestBuilder.addHeader(key, httpRequest.getHeaders().get(key));
             }
         }
