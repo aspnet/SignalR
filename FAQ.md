@@ -13,12 +13,15 @@ SignalR is a series of libraries for both the server and client that make it inc
 
 There are two sets of open-source libraries that make this possible: 
 
-1. The server-side package, which is used by .NET developers to build server-side SignalR Hubs. This package is distributed via [NuGet](https://nuget.org) in the [Microsoft.AspNetCore.SignalR](https://www.nuget.org/packages/Microsoft.AspNetCore.SignalR) package. This server-side package is not required if your applications make use of the [SignalR Azure Service](https://azure.microsoft.com/en-us/services/signalr-service/). 
-2. Various client-side packages that enable the real-time functionality are available. These clients can be used with either a server-side [Hub](https://docs.microsoft.com/en-us/aspnet/core/signalr/hubs?view=aspnetcore-2.2) instance authored in .NET, or with the [SignalR Azure Service](https://azure.microsoft.com/en-us/services/signalr-service/). 
+1. Various client-side packages that enable the real-time functionality are available. These clients can be used with either a server-side [Hub](https://docs.microsoft.com/en-us/aspnet/core/signalr/hubs?view=aspnetcore-2.2) instance authored in .NET, or with the [SignalR Azure Service](https://azure.microsoft.com/en-us/services/signalr-service/). 
 
     1. [Java](https://aka.ms/signalr-client-java)
     1. [JavaScript](https://aka.ms/signalr-client-javascript)
     1. [.NET](https://aka.ms/signalr-client-dotnet)
+
+1. Developers who are using .NET Core on the server side to build custom real-time endpoints use [SignalR Hubs](https://docs.microsoft.com/en-us/aspnet/core/signalr/hubs), which are available as a part of .NET Core (via the [ASP.NET Core NuGet](https://www.nuget.org/packages/Microsoft.AspNetCore.App)). 
+
+1. Developers who simply need the real-time endpoint and who want to use custom client-side code to handle all events coming from the server should use of the [SignalR Azure Service](https://azure.microsoft.com/en-us/services/signalr-service/). 
 
 **Does SignalR Reconnect Automatically?**
 
