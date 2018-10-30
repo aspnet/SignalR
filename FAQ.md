@@ -29,21 +29,16 @@ No. SignalR clients need to be manually reconnected. Below you will see some exa
 
 ```javascript
 const start = () => {
-    connection.start()
-        .then(() => {
-            console.log('connected');
-        })
-        .catch((err) => {
-            console.error(err.toString());
-            setTimeout(function () {
-                start();
-            }, 5000);
-        });
-};
+    try {
+        await connection.start()
+        console.log('connected')
+    } catch (err) {
+        console.log(err)
+        setTimeout(() => start(), 5000)
+    }
+}
 
 connection.onclose(function () {
     start();
 });
-
-start();
 ```
