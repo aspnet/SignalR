@@ -47,18 +47,24 @@ export class WebSocketTransport implements ITransport {
 
         return new Promise<void>((resolve, reject) => {
             url = url.replace(/^http/, "ws");
-            let webSocket: WebSocket;
+            let webSocket: WebSocket | undefined;
             let cookies: string = "";
             if ((this.httpClient as any).getCookies) {
                 cookies = (this.httpClient as any).getCookies(url);
             }
-            if (cookies !== "") {
-                webSocket = new this.webSocketConstructor(url, undefined, {
-                    headers: {
-                        Cookie: `${cookies}`,
-                    },
-                });
-            } else {
+
+            if (typeof window === "undefined") {
+                if (cookies) {
+                    // Only pass cookies when in non-browser environments
+                    webSocket = new this.webSocketConstructor(url, undefined, {
+                        headers: {
+                            Cookie: `${cookies}`,
+                        },
+                    });
+                }
+            }
+
+            if (!webSocket) {
                 // Chrome is not happy with passing 'undefined' as protocol
                 webSocket = new this.webSocketConstructor(url);
             }
