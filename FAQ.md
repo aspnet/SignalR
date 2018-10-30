@@ -33,7 +33,7 @@ const start = () => {
         .then(() => {
             console.log('connected');
         })
-        .catch(err => {
+        .catch((err) => {
             console.error(err.toString());
             setTimeout(function () {
                 start();
