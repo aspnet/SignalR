@@ -73,7 +73,7 @@ export class NodeHttpClient extends HttpClient {
         });
     }
 
-    public getCookies(url: string): string {
+    public getCookieString(url: string): string {
         return this.cookieJar.getCookieString(url);
     }
 }

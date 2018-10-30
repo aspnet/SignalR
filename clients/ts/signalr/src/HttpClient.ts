@@ -142,7 +142,7 @@ export abstract class HttpClient {
      */
     public abstract send(request: HttpRequest): Promise<HttpResponse>;
 
-    /**
+    /** Gets all cookies that apply to the specified URL.
      *
      * @param url The URL that the cookies are valid for.
      * @returns {string} A string containing all the key-value cookie pairs for the specified URL.
