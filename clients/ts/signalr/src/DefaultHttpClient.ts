@@ -48,7 +48,7 @@ export class DefaultHttpClient extends HttpClient {
 
     public getCookies(url: string): string {
         if ((this.httpClient as any).getCookies) {
-            return (this.httpClient as any).getCookies(url);
+            return this.httpClient.getCookieString(url);
         }
         return "";
     }
