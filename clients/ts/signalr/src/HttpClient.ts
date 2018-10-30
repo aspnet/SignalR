@@ -148,7 +148,7 @@ export abstract class HttpClient {
      * @returns {string} A string containing all the key-value cookie pairs for the specified URL.
      */
     // @ts-ignore
-    public getCookies(url: string): string {
+    public getCookieString(url: string): string {
         return "";
     }
 }
