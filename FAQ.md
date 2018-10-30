@@ -7,7 +7,7 @@ This document will condense some of the more popular questions and themes that h
 
 **What is SignalR?**
 
-SignalR is a series of libraries for both the server and client that make it incredibly simple to add real-time web functionality to your apps. You can learn more about SignalR in the [SignalR documentation](https://docs.microsoft.com/en-us/aspnet/core/signalr/introduction). 
+SignalR is a series of libraries for both the server and client that make it incredibly simple to add real-time functionality to your apps. You can learn more about SignalR in the [SignalR documentation](https://docs.microsoft.com/en-us/aspnet/core/signalr/introduction). 
 
 **How does SignalR enable "real-time HTTP?"**
 
