@@ -23,7 +23,7 @@ using Xunit.Abstractions;
 namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
 {
     // Disable running server tests in parallel so server logs can accurately be captured per test
-    [CollectionDefinition(Name, DisableParallelization = true)]
+    //[CollectionDefinition(Name, DisableParallelization = true)]
     public class HubConnectionTestsCollection : ICollectionFixture<ServerFixture<Startup>>
     {
         public const string Name = nameof(HubConnectionTestsCollection);
@@ -34,11 +34,14 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
     {
         private const string DefaultHubDispatcherLoggerName = "SERVER Microsoft.AspNetCore.SignalR.Internal.DefaultHubDispatcher";
 
-        public HubConnectionTests(ServerFixture<Startup> serverFixture, ITestOutputHelper output) : base(serverFixture, output)
+        // Pass null for server fixture as tests should provide their own
+        // This is to prevent logs from previous tests affecting running tests
+        public HubConnectionTests(ITestOutputHelper output) : base(null, output)
         {
         }
 
         private HubConnection CreateHubConnection(
+            string url,
             string path = null,
             HttpTransportType? transportType = null,
             IHubProtocol protocol = null,
@@ -49,18 +52,18 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             hubConnectionBuilder.WithLoggerFactory(loggerFactory);
 
             var delegateConnectionFactory = new DelegateConnectionFactory(
-                GetHttpConnectionFactory(loggerFactory, path, transportType ?? HttpTransportType.LongPolling | HttpTransportType.WebSockets | HttpTransportType.ServerSentEvents),
+                GetHttpConnectionFactory(url, loggerFactory, path, transportType ?? HttpTransportType.LongPolling | HttpTransportType.WebSockets | HttpTransportType.ServerSentEvents),
                 connection => ((HttpConnection)connection).DisposeAsync());
             hubConnectionBuilder.Services.AddSingleton<IConnectionFactory>(delegateConnectionFactory);
 
             return hubConnectionBuilder.Build();
         }
 
-        private Func<TransferFormat, Task<ConnectionContext>> GetHttpConnectionFactory(ILoggerFactory loggerFactory, string path, HttpTransportType transportType)
+        private Func<TransferFormat, Task<ConnectionContext>> GetHttpConnectionFactory(string url, ILoggerFactory loggerFactory, string path, HttpTransportType transportType)
         {
             return async format =>
             {
-                var connection = new HttpConnection(new Uri(ServerFixture.Url + path), transportType, loggerFactory);
+                var connection = new HttpConnection(new Uri(url + path), transportType, loggerFactory);
                 await connection.StartAsync(format);
                 return connection;
             };
@@ -71,11 +74,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         public async Task CheckFixedMessage(string protocolName, HttpTransportType transportType, string path)
         {
             var protocol = HubProtocols[protocolName];
-            using (StartVerifiableLog(out var loggerFactory, $"{nameof(CheckFixedMessage)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
+            using (StartVerifiableServerLog<Startup>(out var loggerFactory, out var fixture, $"{nameof(CheckFixedMessage)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
             {
                 var connectionBuilder = new HubConnectionBuilder()
                     .WithLoggerFactory(loggerFactory)
-                    .WithUrl(ServerFixture.Url + path, transportType);
+                    .WithUrl(fixture.Url + path, transportType);
                 connectionBuilder.Services.AddSingleton(protocol);
 
                 var connection = connectionBuilder.Build();
@@ -105,10 +108,10 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         public async Task CanSendAndReceiveMessage(string protocolName, HttpTransportType transportType, string path)
         {
             var protocol = HubProtocols[protocolName];
-            using (StartVerifiableLog(out var loggerFactory, $"{nameof(CanSendAndReceiveMessage)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
+            using (StartVerifiableServerLog<Startup>(out var loggerFactory, out var fixture, $"{nameof(CanSendAndReceiveMessage)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
             {
                 const string originalMessage = "SignalR";
-                var connection = CreateHubConnection(path, transportType, protocol, loggerFactory);
+                var connection = CreateHubConnection(fixture.Url, path, transportType, protocol, loggerFactory);
                 try
                 {
                     await connection.StartAsync().OrTimeout();
@@ -134,10 +137,10 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         public async Task CanStopAndStartConnection(string protocolName, HttpTransportType transportType, string path)
         {
             var protocol = HubProtocols[protocolName];
-            using (StartVerifiableLog(out var loggerFactory, LogLevel.Trace, $"{nameof(CanStopAndStartConnection)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
+            using (StartVerifiableServerLog<Startup>(out var loggerFactory, out var fixture, LogLevel.Trace, $"{nameof(CanStopAndStartConnection)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
             {
                 const string originalMessage = "SignalR";
-                var connection = CreateHubConnection(path, transportType, protocol, loggerFactory);
+                var connection = CreateHubConnection(fixture.Url, path, transportType, protocol, loggerFactory);
                 try
                 {
                     await connection.StartAsync().OrTimeout();
@@ -165,12 +168,12 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         public async Task CanStartConnectionFromClosedEvent(string protocolName, HttpTransportType transportType, string path)
         {
             var protocol = HubProtocols[protocolName];
-            using (StartVerifiableLog(out var loggerFactory, LogLevel.Trace, $"{nameof(CanStartConnectionFromClosedEvent)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
+            using (StartVerifiableServerLog<Startup>(out var loggerFactory, out var fixture, LogLevel.Trace, $"{nameof(CanStartConnectionFromClosedEvent)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
             {
                 var logger = loggerFactory.CreateLogger<HubConnectionTests>();
                 const string originalMessage = "SignalR";
 
-                var connection = CreateHubConnection(path, transportType, protocol, loggerFactory);
+                var connection = CreateHubConnection(fixture.Url, path, transportType, protocol, loggerFactory);
                 var restartTcs = new TaskCompletionSource<object>();
                 connection.Closed += async e =>
                 {
@@ -227,10 +230,10 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         public async Task MethodsAreCaseInsensitive(string protocolName, HttpTransportType transportType, string path)
         {
             var protocol = HubProtocols[protocolName];
-            using (StartVerifiableLog(out var loggerFactory, $"{nameof(MethodsAreCaseInsensitive)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
+            using (StartVerifiableServerLog<Startup>(out var loggerFactory, out var fixture, $"{nameof(MethodsAreCaseInsensitive)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
             {
                 const string originalMessage = "SignalR";
-                var connection = CreateHubConnection(path, transportType, protocol, loggerFactory);
+                var connection = CreateHubConnection(fixture.Url, path, transportType, protocol, loggerFactory);
                 try
                 {
                     await connection.StartAsync().OrTimeout();
@@ -256,11 +259,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         public async Task CanInvokeClientMethodFromServer(string protocolName, HttpTransportType transportType, string path)
         {
             var protocol = HubProtocols[protocolName];
-            using (StartVerifiableLog(out var loggerFactory, LogLevel.Trace, $"{nameof(CanInvokeClientMethodFromServer)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
+            using (StartVerifiableServerLog<Startup>(out var loggerFactory, out var fixture, LogLevel.Trace, $"{nameof(CanInvokeClientMethodFromServer)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
             {
                 const string originalMessage = "SignalR";
 
-                var connection = CreateHubConnection(path, transportType, protocol, loggerFactory);
+                var connection = CreateHubConnection(fixture.Url, path, transportType, protocol, loggerFactory);
                 try
                 {
                     await connection.StartAsync().OrTimeout();
@@ -289,9 +292,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         public async Task InvokeNonExistantClientMethodFromServer(string protocolName, HttpTransportType transportType, string path)
         {
             var protocol = HubProtocols[protocolName];
-            using (StartVerifiableLog(out var loggerFactory, LogLevel.Trace, $"{nameof(InvokeNonExistantClientMethodFromServer)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
+            using (StartVerifiableServerLog<Startup>(out var loggerFactory, out var fixture, LogLevel.Trace, $"{nameof(InvokeNonExistantClientMethodFromServer)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
             {
-                var connection = CreateHubConnection(path, transportType, protocol, loggerFactory);
+                var connection = CreateHubConnection(fixture.Url, path, transportType, protocol, loggerFactory);
                 var closeTcs = new TaskCompletionSource<object>();
                 connection.Closed += e =>
                 {
@@ -330,9 +333,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         public async Task CanStreamClientMethodFromServer(string protocolName, HttpTransportType transportType, string path)
         {
             var protocol = HubProtocols[protocolName];
-            using (StartVerifiableLog(out var loggerFactory, LogLevel.Trace, $"{nameof(CanStreamClientMethodFromServer)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
+            using (StartVerifiableServerLog<Startup>(out var loggerFactory, out var fixture, LogLevel.Trace, $"{nameof(CanStreamClientMethodFromServer)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
             {
-                var connection = CreateHubConnection(path, transportType, protocol, loggerFactory);
+                var connection = CreateHubConnection(fixture.Url, path, transportType, protocol, loggerFactory);
                 try
                 {
                     await connection.StartAsync().OrTimeout();
@@ -359,9 +362,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         public async Task CanCloseStreamMethodEarly(string protocolName, HttpTransportType transportType, string path)
         {
             var protocol = HubProtocols[protocolName];
-            using (StartVerifiableLog(out var loggerFactory, LogLevel.Trace, $"{nameof(CanCloseStreamMethodEarly)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
+            using (StartVerifiableServerLog<Startup>(out var loggerFactory, out var fixture, LogLevel.Trace, $"{nameof(CanCloseStreamMethodEarly)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
             {
-                var connection = CreateHubConnection(path, transportType, protocol, loggerFactory);
+                var connection = CreateHubConnection(fixture.Url, path, transportType, protocol, loggerFactory);
                 try
                 {
                     await connection.StartAsync().OrTimeout();
@@ -399,9 +402,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         public async Task StreamDoesNotStartIfTokenAlreadyCanceled(string protocolName, HttpTransportType transportType, string path)
         {
             var protocol = HubProtocols[protocolName];
-            using (StartVerifiableLog(out var loggerFactory, LogLevel.Trace, $"{nameof(StreamDoesNotStartIfTokenAlreadyCanceled)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
+            using (StartVerifiableServerLog<Startup>(out var loggerFactory, out var fixture, LogLevel.Trace, $"{nameof(StreamDoesNotStartIfTokenAlreadyCanceled)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}"))
             {
-                var connection = CreateHubConnection(path, transportType, protocol, loggerFactory);
+                var connection = CreateHubConnection(fixture.Url, path, transportType, protocol, loggerFactory);
                 try
                 {
                     await connection.StartAsync().OrTimeout();
@@ -434,9 +437,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             }
 
             var protocol = HubProtocols[protocolName];
-            using (StartVerifiableLog(out var loggerFactory, $"{nameof(ExceptionFromStreamingSentToClient)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}", expectedErrorsFilter: ExpectedErrors))
+            using (StartVerifiableServerLog<Startup>(out var loggerFactory, out var fixture, $"{nameof(ExceptionFromStreamingSentToClient)}_{protocol.Name}_{transportType}_{path.TrimStart('/')}", expectedErrorsFilter: ExpectedErrors))
             {
-                var connection = CreateHubConnection(path, transportType, protocol, loggerFactory);
+                var connection = CreateHubConnection(fixture.Url, path, transportType, protocol, loggerFactory);
                 try
                 {
                     await connection.StartAsync().OrTimeout();
@@ -468,9 +471,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             }
 
             var hubProtocol = HubProtocols[hubProtocolName];
-            using (StartVerifiableLog(out var loggerFactory, $"{nameof(ServerThrowsHubExceptionIfHubMethodCannotBeResolved)}_{hubProtocol.Name}_{transportType}_{hubPath.TrimStart('/')}", expectedErrorsFilter: ExpectedErrors))
+            using (StartVerifiableServerLog<Startup>(out var loggerFactory, out var fixture, $"{nameof(ServerThrowsHubExceptionIfHubMethodCannotBeResolved)}_{hubProtocol.Name}_{transportType}_{hubPath.TrimStart('/')}", expectedErrorsFilter: ExpectedErrors))
             {
-                var connection = CreateHubConnection(hubPath, transportType, hubProtocol, loggerFactory);
+                var connection = CreateHubConnection(fixture.Url, hubPath, transportType, hubProtocol, loggerFactory);
                 try
                 {
                     await connection.StartAsync().OrTimeout();
@@ -501,9 +504,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             }
 
             var hubProtocol = HubProtocols[hubProtocolName];
-            using (StartVerifiableLog(out var loggerFactory, $"{nameof(ServerThrowsHubExceptionIfHubMethodCannotBeResolvedAndArgumentsPassedIn)}_{hubProtocol.Name}_{transportType}_{hubPath.TrimStart('/')}", expectedErrorsFilter: ExpectedErrors))
+            using (StartVerifiableServerLog<Startup>(out var loggerFactory, out var fixture,  $"{nameof(ServerThrowsHubExceptionIfHubMethodCannotBeResolvedAndArgumentsPassedIn)}_{hubProtocol.Name}_{transportType}_{hubPath.TrimStart('/')}", expectedErrorsFilter: ExpectedErrors))
             {
-                var connection = CreateHubConnection(hubPath, transportType, hubProtocol, loggerFactory);
+                var connection = CreateHubConnection(fixture.Url, hubPath, transportType, hubProtocol, loggerFactory);
                 try
                 {
                     await connection.StartAsync().OrTimeout();
@@ -534,9 +537,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             }
 
             var hubProtocol = HubProtocols[hubProtocolName];
-            using (StartVerifiableLog(out var loggerFactory, $"{nameof(ServerThrowsHubExceptionOnHubMethodArgumentCountMismatch)}_{hubProtocol.Name}_{transportType}_{hubPath.TrimStart('/')}", expectedErrorsFilter: ExpectedErrors))
+            using (StartVerifiableServerLog<Startup>(out var loggerFactory, out var fixture, $"{nameof(ServerThrowsHubExceptionOnHubMethodArgumentCountMismatch)}_{hubProtocol.Name}_{transportType}_{hubPath.TrimStart('/')}", expectedErrorsFilter: ExpectedErrors))
             {
-                var connection = CreateHubConnection(hubPath, transportType, hubProtocol, loggerFactory);
+                var connection = CreateHubConnection(fixture.Url, hubPath, transportType, hubProtocol, loggerFactory);
                 try
                 {
                     await connection.StartAsync().OrTimeout();
@@ -567,9 +570,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             }
 
             var hubProtocol = HubProtocols[hubProtocolName];
-            using (StartVerifiableLog(out var loggerFactory, $"{nameof(ServerThrowsHubExceptionOnHubMethodArgumentTypeMismatch)}_{hubProtocol.Name}_{transportType}_{hubPath.TrimStart('/')}", expectedErrorsFilter: ExpectedErrors))
+            using (StartVerifiableServerLog<Startup>(out var loggerFactory, out var fixture, $"{nameof(ServerThrowsHubExceptionOnHubMethodArgumentTypeMismatch)}_{hubProtocol.Name}_{transportType}_{hubPath.TrimStart('/')}", expectedErrorsFilter: ExpectedErrors))
             {
-                var connection = CreateHubConnection(hubPath, transportType, hubProtocol, loggerFactory);
+                var connection = CreateHubConnection(fixture.Url, hubPath, transportType, hubProtocol, loggerFactory);
                 try
                 {
                     await connection.StartAsync().OrTimeout();
@@ -600,9 +603,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             }
 
             var hubProtocol = HubProtocols[hubProtocolName];
-            using (StartVerifiableLog(out var loggerFactory, $"{nameof(ServerThrowsHubExceptionIfStreamingHubMethodCannotBeResolved)}_{hubProtocol.Name}_{transportType}_{hubPath.TrimStart('/')}", expectedErrorsFilter: ExpectedErrors))
+            using (StartVerifiableServerLog<Startup>(out var loggerFactory, out var fixture, $"{nameof(ServerThrowsHubExceptionIfStreamingHubMethodCannotBeResolved)}_{hubProtocol.Name}_{transportType}_{hubPath.TrimStart('/')}", expectedErrorsFilter: ExpectedErrors))
             {
-                var connection = CreateHubConnection(hubPath, transportType, hubProtocol, loggerFactory);
+                var connection = CreateHubConnection(fixture.Url, hubPath, transportType, hubProtocol, loggerFactory);
                 try
                 {
                     await connection.StartAsync().OrTimeout();
@@ -634,10 +637,10 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             }
 
             var hubProtocol = HubProtocols[hubProtocolName];
-            using (StartVerifiableLog(out var loggerFactory, $"{nameof(ServerThrowsHubExceptionOnStreamingHubMethodArgumentCountMismatch)}_{hubProtocol.Name}_{transportType}_{hubPath.TrimStart('/')}", expectedErrorsFilter: ExpectedErrors))
+            using (StartVerifiableServerLog<Startup>(out var loggerFactory, out var fixture, $"{nameof(ServerThrowsHubExceptionOnStreamingHubMethodArgumentCountMismatch)}_{hubProtocol.Name}_{transportType}_{hubPath.TrimStart('/')}", expectedErrorsFilter: ExpectedErrors))
             {
                 loggerFactory.AddConsole(LogLevel.Trace);
-                var connection = CreateHubConnection(hubPath, transportType, hubProtocol, loggerFactory);
+                var connection = CreateHubConnection(fixture.Url, hubPath, transportType, hubProtocol, loggerFactory);
                 try
                 {
                     await connection.StartAsync().OrTimeout();
@@ -669,9 +672,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             }
 
             var hubProtocol = HubProtocols[hubProtocolName];
-            using (StartVerifiableLog(out var loggerFactory, $"{nameof(ServerThrowsHubExceptionOnStreamingHubMethodArgumentTypeMismatch)}_{hubProtocol.Name}_{transportType}_{hubPath.TrimStart('/')}", expectedErrorsFilter: ExpectedErrors))
+            using (StartVerifiableServerLog<Startup>(out var loggerFactory, out var fixture, $"{nameof(ServerThrowsHubExceptionOnStreamingHubMethodArgumentTypeMismatch)}_{hubProtocol.Name}_{transportType}_{hubPath.TrimStart('/')}", expectedErrorsFilter: ExpectedErrors))
             {
-                var connection = CreateHubConnection(hubPath, transportType, hubProtocol, loggerFactory);
+                var connection = CreateHubConnection(fixture.Url, hubPath, transportType, hubProtocol, loggerFactory);
                 try
                 {
                     await connection.StartAsync().OrTimeout();
@@ -703,9 +706,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             }
 
             var hubProtocol = HubProtocols[hubProtocolName];
-            using (StartVerifiableLog(out var loggerFactory, $"{nameof(ServerThrowsHubExceptionIfNonStreamMethodInvokedWithStreamAsync)}_{hubProtocol.Name}_{transportType}_{hubPath.TrimStart('/')}", expectedErrorsFilter: ExpectedErrors))
+            using (StartVerifiableServerLog<Startup>(out var loggerFactory, out var fixture, $"{nameof(ServerThrowsHubExceptionIfNonStreamMethodInvokedWithStreamAsync)}_{hubProtocol.Name}_{transportType}_{hubPath.TrimStart('/')}", expectedErrorsFilter: ExpectedErrors))
             {
-                var connection = CreateHubConnection(hubPath, transportType, hubProtocol, loggerFactory);
+                var connection = CreateHubConnection(fixture.Url, hubPath, transportType, hubProtocol, loggerFactory);
                 try
                 {
                     await connection.StartAsync().OrTimeout();
@@ -736,9 +739,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             }
 
             var hubProtocol = HubProtocols[hubProtocolName];
-            using (StartVerifiableLog(out var loggerFactory, $"{nameof(ServerThrowsHubExceptionIfStreamMethodInvokedWithInvoke)}_{hubProtocol.Name}_{transportType}_{hubPath.TrimStart('/')}", expectedErrorsFilter: ExpectedErrors))
+            using (StartVerifiableServerLog<Startup>(out var loggerFactory, out var fixture, $"{nameof(ServerThrowsHubExceptionIfStreamMethodInvokedWithInvoke)}_{hubProtocol.Name}_{transportType}_{hubPath.TrimStart('/')}", expectedErrorsFilter: ExpectedErrors))
             {
-                var connection = CreateHubConnection(hubPath, transportType, hubProtocol, loggerFactory);
+                var connection = CreateHubConnection(fixture.Url, hubPath, transportType, hubProtocol, loggerFactory);
                 try
                 {
                     await connection.StartAsync().OrTimeout();
@@ -769,9 +772,9 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
             }
 
             var hubProtocol = HubProtocols[hubProtocolName];
-            using (StartVerifiableLog(out var loggerFactory, $"{nameof(ServerThrowsHubExceptionIfBuildingAsyncEnumeratorIsNotPossible)}_{hubProtocol.Name}_{transportType}_{hubPath.TrimStart('/')}", expectedErrorsFilter: ExpectedErrors))
+            using (StartVerifiableServerLog<Startup>(out var loggerFactory, out var fixture, $"{nameof(ServerThrowsHubExceptionIfBuildingAsyncEnumeratorIsNotPossible)}_{hubProtocol.Name}_{transportType}_{hubPath.TrimStart('/')}", expectedErrorsFilter: ExpectedErrors))
             {
-                var connection = CreateHubConnection(hubPath, transportType, hubProtocol, loggerFactory);
+                var connection = CreateHubConnection(fixture.Url, hubPath, transportType, hubProtocol, loggerFactory);
                 try
                 {
                     await connection.StartAsync().OrTimeout();
@@ -795,18 +798,18 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         [MemberData(nameof(TransportTypes))]
         public async Task ClientCanUseJwtBearerTokenForAuthentication(HttpTransportType transportType)
         {
-            using (StartVerifiableLog(out var loggerFactory, $"{nameof(ClientCanUseJwtBearerTokenForAuthentication)}_{transportType}"))
+            using (StartVerifiableServerLog<Startup>(out var loggerFactory, out var fixture, $"{nameof(ClientCanUseJwtBearerTokenForAuthentication)}_{transportType}"))
             {
                 async Task<string> AccessTokenProvider()
                 {
-                    var httpResponse = await new HttpClient().GetAsync(ServerFixture.Url + "/generateJwtToken");
+                    var httpResponse = await new HttpClient().GetAsync(fixture.Url + "/generateJwtToken");
                     httpResponse.EnsureSuccessStatusCode();
                     return await httpResponse.Content.ReadAsStringAsync();
                 };
 
                 var hubConnection = new HubConnectionBuilder()
                     .WithLoggerFactory(loggerFactory)
-                    .WithUrl(ServerFixture.Url + "/authorizedhub", transportType, options =>
+                    .WithUrl(fixture.Url + "/authorizedhub", transportType, options =>
                     {
                         options.AccessTokenProvider = AccessTokenProvider;
                     })
@@ -833,11 +836,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         [MemberData(nameof(TransportTypes))]
         public async Task ClientCanUseJwtBearerTokenForAuthenticationWhenRedirected(HttpTransportType transportType)
         {
-            using (StartVerifiableLog(out var loggerFactory, $"{nameof(ClientCanUseJwtBearerTokenForAuthenticationWhenRedirected)}_{transportType}"))
+            using (StartVerifiableServerLog<Startup>(out var loggerFactory, out var fixture, $"{nameof(ClientCanUseJwtBearerTokenForAuthenticationWhenRedirected)}_{transportType}"))
             {
                 var hubConnection = new HubConnectionBuilder()
                     .WithLoggerFactory(loggerFactory)
-                    .WithUrl(ServerFixture.Url + "/redirect", transportType)
+                    .WithUrl(fixture.Url + "/redirect", transportType)
                     .Build();
                 try
                 {
@@ -861,11 +864,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         [MemberData(nameof(TransportTypes))]
         public async Task ClientCanSendHeaders(HttpTransportType transportType)
         {
-            using (StartVerifiableLog(out var loggerFactory, $"{nameof(ClientCanSendHeaders)}_{transportType}"))
+            using (StartVerifiableServerLog<Startup>(out var loggerFactory, out var fixture, $"{nameof(ClientCanSendHeaders)}_{transportType}"))
             {
                 var hubConnection = new HubConnectionBuilder()
                     .WithLoggerFactory(loggerFactory)
-                    .WithUrl(ServerFixture.Url + "/default", transportType, options =>
+                    .WithUrl(fixture.Url + "/default", transportType, options =>
                     {
                         options.Headers["X-test"] = "42";
                         options.Headers["X-42"] = "test";
@@ -893,15 +896,15 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         [WebSocketsSupportedCondition]
         public async Task WebSocketOptionsAreApplied()
         {
-            using (StartVerifiableLog(out var loggerFactory, $"{nameof(WebSocketOptionsAreApplied)}"))
+            using (StartVerifiableServerLog<Startup>(out var loggerFactory, out var fixture, $"{nameof(WebSocketOptionsAreApplied)}"))
             {
                 // System.Net has a HttpTransportType type which means we need to fully-qualify this rather than 'use' the namespace
                 var cookieJar = new System.Net.CookieContainer();
-                cookieJar.Add(new System.Net.Cookie("Foo", "Bar", "/", new Uri(ServerFixture.Url).Host));
+                cookieJar.Add(new System.Net.Cookie("Foo", "Bar", "/", new Uri(fixture.Url).Host));
 
                 var hubConnection = new HubConnectionBuilder()
                     .WithLoggerFactory(loggerFactory)
-                    .WithUrl(ServerFixture.Url + "/default", HttpTransportType.WebSockets, options =>
+                    .WithUrl(fixture.Url + "/default", HttpTransportType.WebSockets, options =>
                     {
                         options.WebSocketConfiguration = o => o.Cookies = cookieJar;
                     })
@@ -927,11 +930,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         [Fact]
         public async Task CheckHttpConnectionFeatures()
         {
-            using (StartVerifiableLog(out var loggerFactory))
+            using (StartVerifiableServerLog<Startup>(out var loggerFactory, out var fixture))
             {
                 var hubConnection = new HubConnectionBuilder()
                     .WithLoggerFactory(loggerFactory)
-                    .WithUrl(ServerFixture.Url + "/default")
+                    .WithUrl(fixture.Url + "/default")
                     .Build();
                 try
                 {
@@ -963,11 +966,11 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         [Fact]
         public async Task UserIdProviderCanAccessHttpContext()
         {
-            using (StartVerifiableLog(out var loggerFactory))
+            using (StartVerifiableServerLog<Startup>(out var loggerFactory, out var fixture))
             {
                 var hubConnection = new HubConnectionBuilder()
                     .WithLoggerFactory(loggerFactory)
-                    .WithUrl(ServerFixture.Url + "/default", options =>
+                    .WithUrl(fixture.Url + "/default", options =>
                     {
                         options.Headers.Add(HeaderUserIdProvider.HeaderName, "SuperAdmin");
                     })
@@ -994,12 +997,12 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         [Fact]
         public async Task NegotiationSkipsServerSentEventsWhenUsingBinaryProtocol()
         {
-            using (StartVerifiableLog(out var loggerFactory))
+            using (StartVerifiableServerLog<Startup>(out var loggerFactory, out var fixture))
             {
                 var hubConnectionBuilder = new HubConnectionBuilder()
                     .WithLoggerFactory(loggerFactory)
                     .AddMessagePackProtocol()
-                    .WithUrl(ServerFixture.Url + "/default-nowebsockets");
+                    .WithUrl(fixture.Url + "/default-nowebsockets");
 
                 var hubConnection = hubConnectionBuilder.Build();
                 try
@@ -1024,12 +1027,12 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         [Fact]
         public async Task StopCausesPollToReturnImmediately()
         {
-            using (StartVerifiableLog(out var loggerFactory))
+            using (StartVerifiableServerLog<Startup>(out var loggerFactory, out var fixture))
             {
                 PollTrackingMessageHandler pollTracker = null;
                 var hubConnection = new HubConnectionBuilder()
                     .WithLoggerFactory(loggerFactory)
-                    .WithUrl(ServerFixture.Url + "/default", options =>
+                    .WithUrl(fixture.Url + "/default", options =>
                     {
                         options.Transports = HttpTransportType.LongPolling;
                         options.HttpMessageHandlerFactory = handler =>

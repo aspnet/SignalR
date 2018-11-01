@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.WebSockets;
 using System.Runtime.CompilerServices;
@@ -42,6 +43,37 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
                 return _globalExpectedErrorsFilter(writeContext);
             };
+        }
+
+        public IDisposable StartVerifiableServerLog<T>(out ILoggerFactory loggerFactory, out ServerFixture<T> serverFixture, LogLevel minLogLevel, [CallerMemberName] string testName = null, Func<WriteContext, bool> expectedErrorsFilter = null) where T : class
+        {
+            var disposable = base.StartVerifiableLog(out loggerFactory, minLogLevel, testName, ResolveExpectedErrorsFilter(expectedErrorsFilter));
+            serverFixture = new ServerFixture<T>();
+            return new MultiDisposable(disposable, new ServerLogScope(serverFixture, loggerFactory, disposable), serverFixture);
+        }
+
+        private class MultiDisposable : IDisposable
+        {
+            List<IDisposable> _disposables;
+            public MultiDisposable(params IDisposable[] disposables)
+            {
+                _disposables = new List<IDisposable>(disposables);
+            }
+
+            public void Dispose()
+            {
+                foreach (var disposable in _disposables)
+                {
+                    disposable.Dispose();
+                }
+            }
+        }
+
+        public IDisposable StartVerifiableServerLog<T>(out ILoggerFactory loggerFactory, out ServerFixture<T> serverFixture, [CallerMemberName] string testName = null, Func<WriteContext, bool> expectedErrorsFilter = null) where T : class
+        {
+            var disposable = base.StartVerifiableLog(out loggerFactory, testName, ResolveExpectedErrorsFilter(expectedErrorsFilter));
+            serverFixture = new ServerFixture<T>();
+            return new MultiDisposable(disposable, new ServerLogScope(serverFixture, loggerFactory, disposable), serverFixture);
         }
 
         public override IDisposable StartVerifiableLog(out ILoggerFactory loggerFactory, LogLevel minLogLevel, [CallerMemberName] string testName = null, Func<WriteContext, bool> expectedErrorsFilter = null)
