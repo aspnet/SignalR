@@ -19,7 +19,7 @@ class WebSocketTransportTest {
     @Test
     public void WebSocketThrowsIfItCantConnect() {
         Transport transport = new WebSocketTransport(new HashMap<>(), new DefaultHttpClient());
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> transport.start("http://url.fake").blockingAwait(1, TimeUnit.SECONDS));
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> transport.start("http://url.fake.example").blockingAwait(1, TimeUnit.SECONDS));
         assertEquals("There was an error starting the WebSocket transport.", exception.getMessage());
     }
 
