@@ -127,7 +127,7 @@ export class WebSocketTransport implements ITransport {
         this.logger.log(LogLevel.Trace, "(WebSockets transport) socket closed.");
         if (this.onclose) {
             if (event && (event.wasClean === false || event.code !== 1000)) {
-                this.onclose(new Error(`Websocket closed with status code: ${event.code} (${event.reason}).`));
+                this.onclose(new Error(`WebSocket closed with status code: ${event.code} (${event.reason}).`));
             } else {
                 this.onclose();
             }
