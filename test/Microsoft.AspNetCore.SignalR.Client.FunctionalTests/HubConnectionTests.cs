@@ -32,7 +32,7 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
     [Collection(HubConnectionTestsCollection.Name)]
     public class HubConnectionTests : VerifiableServerLoggedTest
     {
-        private const string DefaultHubDispatcherLoggerName = "SERVER Microsoft.AspNetCore.SignalR.Internal.DefaultHubDispatcher";
+        private const string DefaultHubDispatcherLoggerName = "Microsoft.AspNetCore.SignalR.Internal.DefaultHubDispatcher";
 
         // Pass null for server fixture as tests should provide their own
         // This is to prevent logs from previous tests affecting running tests

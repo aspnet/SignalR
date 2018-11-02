@@ -3,8 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Net.Http;
-using System.Net.WebSockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
@@ -48,32 +46,15 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         public IDisposable StartVerifiableServerLog<T>(out ILoggerFactory loggerFactory, out ServerFixture<T> serverFixture, LogLevel minLogLevel, [CallerMemberName] string testName = null, Func<WriteContext, bool> expectedErrorsFilter = null) where T : class
         {
             var disposable = base.StartVerifiableLog(out loggerFactory, minLogLevel, testName, ResolveExpectedErrorsFilter(expectedErrorsFilter));
-            serverFixture = new ServerFixture<T>();
-            return new MultiDisposable(disposable, new ServerLogScope(serverFixture, loggerFactory, disposable), serverFixture);
-        }
-
-        private class MultiDisposable : IDisposable
-        {
-            List<IDisposable> _disposables;
-            public MultiDisposable(params IDisposable[] disposables)
-            {
-                _disposables = new List<IDisposable>(disposables);
-            }
-
-            public void Dispose()
-            {
-                foreach (var disposable in _disposables)
-                {
-                    disposable.Dispose();
-                }
-            }
+            serverFixture = new ServerFixture<T>(loggerFactory);
+            return new MultiDisposable(serverFixture, disposable);
         }
 
         public IDisposable StartVerifiableServerLog<T>(out ILoggerFactory loggerFactory, out ServerFixture<T> serverFixture, [CallerMemberName] string testName = null, Func<WriteContext, bool> expectedErrorsFilter = null) where T : class
         {
             var disposable = base.StartVerifiableLog(out loggerFactory, testName, ResolveExpectedErrorsFilter(expectedErrorsFilter));
-            serverFixture = new ServerFixture<T>();
-            return new MultiDisposable(disposable, new ServerLogScope(serverFixture, loggerFactory, disposable), serverFixture);
+            serverFixture = new ServerFixture<T>(loggerFactory);
+            return new MultiDisposable(serverFixture, disposable);
         }
 
         public override IDisposable StartVerifiableLog(out ILoggerFactory loggerFactory, LogLevel minLogLevel, [CallerMemberName] string testName = null, Func<WriteContext, bool> expectedErrorsFilter = null)
@@ -95,6 +76,23 @@ namespace Microsoft.AspNetCore.SignalR.Tests
             // by giving the server time to finish any in-progress request logic.
             Thread.Sleep(TimeSpan.FromMilliseconds(100));
             base.Dispose();
+        }
+
+        private class MultiDisposable : IDisposable
+        {
+            List<IDisposable> _disposables;
+            public MultiDisposable(params IDisposable[] disposables)
+            {
+                _disposables = new List<IDisposable>(disposables);
+            }
+
+            public void Dispose()
+            {
+                foreach (var disposable in _disposables)
+                {
+                    disposable.Dispose();
+                }
+            }
         }
     }
 }
