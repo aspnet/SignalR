@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -79,6 +80,7 @@ namespace Microsoft.AspNetCore.SignalR.Redis.Tests
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error starting redis docker container, retrying.");
+                Thread.Sleep(1000);
                 Run();
             }
 
