@@ -1,0 +1,13 @@
+{
+    "Kestrel": {
+        "Certificates": {
+            "Default": {
+                "Path": "testcert.pfx",
+                "Password": "testPassword"
+            }
+        },
+        "EndPointDefaults": {
+            "Protocols": "Http1"
+        }
+    }
+}

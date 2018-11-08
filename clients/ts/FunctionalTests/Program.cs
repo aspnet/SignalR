@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace FunctionalTests
@@ -24,14 +25,23 @@ namespace FunctionalTests
                 }
             }
 
+            var config = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("config.json")
+                .Build();
+
             var hostBuilder = new WebHostBuilder()
+                .UseConfiguration(config)
                 .ConfigureLogging(factory =>
                 {
                     factory.AddConsole(options => options.IncludeScopes = true);
                     factory.AddDebug();
                     factory.SetMinimumLevel(LogLevel.Information);
                 })
-                .UseKestrel()
+                .UseKestrel((builderContext, options) =>
+                {
+                    options.Configure(builderContext.Configuration.GetSection("Kestrel"));
+                })
                 .UseContentRoot(Directory.GetCurrentDirectory())
                 .UseIISIntegration()
                 .UseStartup<Startup>();
