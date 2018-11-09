@@ -42,7 +42,6 @@
     <MicrosoftExtensionsCommandLineUtilsSourcesPackageVersion>2.2.0-rtm-181106-13</MicrosoftExtensionsCommandLineUtilsSourcesPackageVersion>
     <MicrosoftExtensionsConfigurationCommandLinePackageVersion>2.2.0-rtm-181106-13</MicrosoftExtensionsConfigurationCommandLinePackageVersion>
     <MicrosoftExtensionsConfigurationEnvironmentVariablesPackageVersion>2.2.0-rtm-181106-13</MicrosoftExtensionsConfigurationEnvironmentVariablesPackageVersion>
-    <MicrosoftExtensionsConfigurationJsonPackageVersion>2.2.0-rtm-181106-13</MicrosoftExtensionsConfigurationJsonPackageVersion>
     <MicrosoftExtensionsConfigurationUserSecretsPackageVersion>2.2.0-rtm-181106-13</MicrosoftExtensionsConfigurationUserSecretsPackageVersion>
     <MicrosoftExtensionsDependencyInjectionAbstractionsPackageVersion>2.2.0-rtm-181106-13</MicrosoftExtensionsDependencyInjectionAbstractionsPackageVersion>
     <MicrosoftExtensionsDependencyInjectionPackageVersion>2.2.0-rtm-181106-13</MicrosoftExtensionsDependencyInjectionPackageVersion>

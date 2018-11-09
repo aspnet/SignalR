@@ -58,7 +58,7 @@ namespace FunctionalTests
 
                         if (useRSA)
                         {
-                            // RSA cert, won't work on Windows 8.1 & Windows 2012 R2 using HTTP2, and some Node environments
+                            // RSA cert, won't work on Windows 8.1 & Windows 2012 R2 using HTTP2, and ECC won't work in some Node environments
                             var certPath = Path.Combine(Directory.GetCurrentDirectory(), "testCert.pfx");
                             httpsOptions.ServerCertificate = new X509Certificate2(certPath, "testPassword");
                         }
