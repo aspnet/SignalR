@@ -128,7 +128,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task MissingHandshakeAndMessageSentFromHubConnectionCanBeDisposedCleanly()
         {
-            using (StartVerifiableLog())
+            bool ExpectedErrors(WriteContext writeContext)
+            {
+                return writeContext.LoggerName == typeof(HubConnectionContext).FullName &&
+                       writeContext.EventId.Name == "HandshakeFailed";
+            }
+
+            using (StartVerifiableLog(ExpectedErrors))
             {
                 var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(null, LoggerFactory);
                 var connectionHandler = serviceProvider.GetService<HubConnectionHandler<SimpleHub>>();
@@ -210,7 +216,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task HandshakeFailureFromUnknownProtocolSendsResponseWithError()
         {
-            using (StartVerifiableLog())
+            bool ExpectedErrors(WriteContext writeContext)
+            {
+                return writeContext.LoggerName == typeof(HubConnectionContext).FullName &&
+                       writeContext.EventId.Name == "HandshakeFailed";
+            }
+
+            using (StartVerifiableLog(ExpectedErrors))
             {
                 var hubProtocolMock = new Mock<IHubProtocol>();
                 hubProtocolMock.Setup(m => m.Name).Returns("CustomProtocol");
@@ -234,7 +246,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task HandshakeFailureFromUnsupportedFormatSendsResponseWithError()
         {
-            using (StartVerifiableLog())
+            bool ExpectedErrors(WriteContext writeContext)
+            {
+                return writeContext.LoggerName == typeof(HubConnectionContext).FullName &&
+                       writeContext.EventId.Name == "HandshakeFailed";
+            }
+
+            using (StartVerifiableLog(ExpectedErrors))
             {
                 var hubProtocolMock = new Mock<IHubProtocol>();
                 hubProtocolMock.Setup(m => m.Name).Returns("CustomProtocol");
@@ -430,7 +448,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task ConnectionClosesOnServerWithPartialHandshakeMessageAndCompletedPipe()
         {
-            using (StartVerifiableLog())
+            bool ExpectedErrors(WriteContext writeContext)
+            {
+                return writeContext.LoggerName == typeof(HubConnectionContext).FullName &&
+                       writeContext.EventId.Name == "HandshakeFailed";
+            }
+
+            using (StartVerifiableLog(ExpectedErrors))
             {
                 var connectionHandler = HubConnectionHandlerTestUtils.GetHubConnectionHandler(typeof(HubT), LoggerFactory);
 
@@ -500,7 +524,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task HubOnDisconnectedAsyncCalledIfHubOnConnectedAsyncThrows()
         {
-            using (StartVerifiableLog())
+            bool ExpectedErrors(WriteContext writeContext)
+            {
+                return writeContext.LoggerName == "Microsoft.AspNetCore.SignalR.HubConnectionHandler" &&
+                       writeContext.EventId.Name == "ErrorDispatchingHubEvent";
+            }
+
+            using (StartVerifiableLog(ExpectedErrors))
             {
                 var mockLifetimeManager = new Mock<HubLifetimeManager<OnConnectedThrowsHub>>();
                 var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(services =>
@@ -526,7 +556,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task LifetimeManagerOnDisconnectedAsyncCalledIfHubOnDisconnectedAsyncThrows()
         {
-            using (StartVerifiableLog())
+            bool ExpectedErrors(WriteContext writeContext)
+            {
+                return writeContext.LoggerName == "Microsoft.AspNetCore.SignalR.HubConnectionHandler" &&
+                       writeContext.EventId.Name == "ErrorDispatchingHubEvent";
+            }
+
+            using (StartVerifiableLog(ExpectedErrors))
             {
                 var mockLifetimeManager = new Mock<HubLifetimeManager<OnDisconnectedThrowsHub>>();
                 var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(services =>
@@ -605,7 +641,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [InlineData(nameof(MethodHub.MethodThatYieldsFailedTask), false)]
         public async Task HubMethodCanThrowOrYieldFailedTask(string methodName, bool detailedErrors)
         {
-            using (StartVerifiableLog())
+            bool ExpectedErrors(WriteContext writeContext)
+            {
+                return writeContext.LoggerName == "Microsoft.AspNetCore.SignalR.Internal.DefaultHubDispatcher" &&
+                       writeContext.EventId.Name == "FailedInvokingHubMethod";
+            }
+
+            using (StartVerifiableLog(ExpectedErrors))
             {
                 var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(builder =>
                 {
@@ -643,7 +685,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task DetailedExceptionEvenWhenNotExplicitlySet()
         {
-            using (StartVerifiableLog())
+            bool ExpectedErrors(WriteContext writeContext)
+            {
+                return writeContext.LoggerName == "Microsoft.AspNetCore.SignalR.Internal.DefaultHubDispatcher" &&
+                       writeContext.EventId.Name == "FailedInvokingHubMethod";
+            }
+
+            using (StartVerifiableLog(ExpectedErrors))
             {
                 var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(null, LoggerFactory);
 
@@ -784,7 +832,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [InlineData(nameof(MethodHub.ValueMethod))]
         public async Task NonBlockingInvocationDoesNotSendCompletion(string methodName)
         {
-            using (StartVerifiableLog())
+            bool ExpectedErrors(WriteContext writeContext)
+            {
+                return methodName == nameof(MethodHub.MethodThatThrows) && writeContext.LoggerName == "Microsoft.AspNetCore.SignalR.Internal.DefaultHubDispatcher" &&
+                       writeContext.EventId.Name == "FailedInvokingHubMethod";
+            }
+
+            using (StartVerifiableLog(ExpectedErrors))
             {
                 var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(null, LoggerFactory);
 
@@ -887,7 +941,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task CannotCallOverriddenBaseHubMethod()
         {
-            using (StartVerifiableLog())
+            bool ExpectedErrors(WriteContext writeContext)
+            {
+                return writeContext.LoggerName == "Microsoft.AspNetCore.SignalR.Internal.DefaultHubDispatcher" &&
+                       writeContext.EventId.Name == "FailedInvokingHubMethod";
+            }
+
+            using (StartVerifiableLog(ExpectedErrors))
             {
                 var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(null, LoggerFactory);
 
@@ -931,7 +991,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task CannotCallStaticHubMethods()
         {
-            using (StartVerifiableLog())
+            bool ExpectedErrors(WriteContext writeContext)
+            {
+                return writeContext.LoggerName == "Microsoft.AspNetCore.SignalR.Internal.DefaultHubDispatcher" &&
+                       writeContext.EventId.Name == "FailedInvokingHubMethod";
+            }
+
+            using (StartVerifiableLog(ExpectedErrors))
             {
                 var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(null, LoggerFactory);
 
@@ -956,7 +1022,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task CannotCallObjectMethodsOnHub()
         {
-            using (StartVerifiableLog())
+            bool ExpectedErrors(WriteContext writeContext)
+            {
+                return writeContext.LoggerName == "Microsoft.AspNetCore.SignalR.Internal.DefaultHubDispatcher" &&
+                       writeContext.EventId.Name == "FailedInvokingHubMethod";
+            }
+
+            using (StartVerifiableLog(ExpectedErrors))
             {
                 var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(null, LoggerFactory);
 
@@ -989,7 +1061,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task CannotCallDisposeMethodOnHub()
         {
-            using (StartVerifiableLog())
+            bool ExpectedErrors(WriteContext writeContext)
+            {
+                return writeContext.LoggerName == "Microsoft.AspNetCore.SignalR.Internal.DefaultHubDispatcher" &&
+                       writeContext.EventId.Name == "FailedInvokingHubMethod";
+            }
+
+            using (StartVerifiableLog(ExpectedErrors))
             {
                 var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(null, LoggerFactory);
 
@@ -1169,7 +1247,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task FailsToInitializeInvalidTypedHub()
         {
-            using (StartVerifiableLog())
+            bool ExpectedErrors(WriteContext writeContext)
+            {
+                return writeContext.LoggerName == "Microsoft.AspNetCore.SignalR.HubConnectionHandler" &&
+                       writeContext.EventId.Name == "ErrorDispatchingHubEvent";
+            }
+
+            using (StartVerifiableLog(ExpectedErrors))
             {
                 var connectionHandler = HubConnectionHandlerTestUtils.GetHubConnectionHandler(typeof(SimpleVoidReturningTypedHub), LoggerFactory);
 
@@ -2391,7 +2475,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [InlineData(false)]
         public async Task ErrorInHubOnConnectSendsCloseMessageWithError(bool detailedErrors)
         {
-            using (StartVerifiableLog())
+            bool ExpectedErrors(WriteContext writeContext)
+            {
+                return writeContext.LoggerName == "Microsoft.AspNetCore.SignalR.HubConnectionHandler" &&
+                       writeContext.EventId.Name == "ErrorDispatchingHubEvent";
+            }
+
+            using (StartVerifiableLog(ExpectedErrors))
             {
                 var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(builder =>
                 {
@@ -2560,7 +2650,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task ServerSendsCloseWithErrorWhenConnectionClosedWithPartialMessage()
         {
-            using (StartVerifiableLog())
+            bool ExpectedErrors(WriteContext writeContext)
+            {
+                return writeContext.LoggerName == "Microsoft.AspNetCore.SignalR.HubConnectionHandler" &&
+                       writeContext.EventId.Name == "ErrorProcessingRequest";
+            }
+
+            using (StartVerifiableLog(ExpectedErrors))
             {
                 var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(services =>
                 {
@@ -2595,7 +2691,14 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task ConnectionAbortedIfSendFailsWithProtocolError()
         {
-            using (StartVerifiableLog())
+            bool ExpectedErrors(WriteContext writeContext)
+            {
+                // Self referencing class will cause write failure
+                return writeContext.LoggerName == typeof(HubConnectionContext).FullName &&
+                       writeContext.EventId.Name == "FailedWritingMessage";
+            }
+
+            using (StartVerifiableLog(ExpectedErrors))
             {
                 var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(services =>
                 {
@@ -2691,7 +2794,13 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [Fact]
         public async Task InvokeHubMethodCannotAcceptCancellationTokenAsArgument()
         {
-            using (StartVerifiableLog())
+            bool ExpectedErrors(WriteContext writeContext)
+            {
+                return writeContext.LoggerName == "Microsoft.AspNetCore.SignalR.Internal.DefaultHubDispatcher" &&
+                       writeContext.EventId.Name == "FailedInvokingHubMethod";
+            }
+
+            using (StartVerifiableLog(ExpectedErrors))
             {
                 var serviceProvider = HubConnectionHandlerTestUtils.CreateServiceProvider(null, LoggerFactory);
                 var connectionHandler = serviceProvider.GetService<HubConnectionHandler<MethodHub>>();
