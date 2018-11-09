@@ -259,7 +259,7 @@ function runJest(httpsUrl: string, httpUrl: string) {
         if (config.browsers.length === 0) {
             console.log("Unable to locate any suitable browsers. Skipping browser functional tests.");
         } else {
-            karmaExit = 0; // (await runKarma(conf)).exitCode;
+            karmaExit = (await runKarma(conf)).exitCode;
         }
 
         if (karmaExit) {
