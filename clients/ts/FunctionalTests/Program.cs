@@ -3,9 +3,11 @@
 
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Win32;
 
 namespace FunctionalTests
 {
@@ -36,8 +38,36 @@ namespace FunctionalTests
                 {
                     options.ConfigureHttpsDefaults(httpsOptions =>
                     {
-                        var certPath = Path.Combine(Directory.GetCurrentDirectory(), "testCert.pfx");
-                        httpsOptions.ServerCertificate = new X509Certificate2(certPath, "testPassword");
+                        bool useRSA = false;
+                        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                        {
+                            // Detect Win10+
+                            var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion");
+                            var major = key.GetValue("CurrentMajorVersionNumber") as int?;
+                            var minor = key.GetValue("CurrentMinorVersionNumber") as int?;
+
+                            if (major.HasValue && minor.HasValue)
+                            {
+                                useRSA = true;
+                            }
+                        }
+                        else
+                        {
+                            useRSA = true;
+                        }
+
+                        if (useRSA)
+                        {
+                            // RSA cert, won't work on Windows 8 and below using HTTP2, and some Node environments
+                            var certPath = Path.Combine(Directory.GetCurrentDirectory(), "testCert.pfx");
+                            httpsOptions.ServerCertificate = new X509Certificate2(certPath, "testPassword");
+                        }
+                        else
+                        {
+                            // ECC cert, works on Windows 8 and below using HTTP2
+                            var certPath = Path.Combine(Directory.GetCurrentDirectory(), "testCertECC.pfx");
+                            httpsOptions.ServerCertificate = new X509Certificate2(certPath, "testPassword");
+                        }
                     });
                 })
                 .UseContentRoot(Directory.GetCurrentDirectory())
