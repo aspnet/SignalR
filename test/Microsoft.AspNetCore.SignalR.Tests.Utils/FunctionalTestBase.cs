@@ -14,7 +14,7 @@ namespace Microsoft.AspNetCore.SignalR.Tests
     {
         private readonly Func<WriteContext, bool> _globalExpectedErrorsFilter;
 
-        public FunctionalTestBase(ITestOutputHelper output) : base(output)
+        public FunctionalTestBase(ITestOutputHelper output = null) : base(output)
         {
             // Suppress errors globally here
             _globalExpectedErrorsFilter = (writeContext) => false;
@@ -40,14 +40,16 @@ namespace Microsoft.AspNetCore.SignalR.Tests
 
         public IDisposable StartServer<T>(out ILoggerFactory loggerFactory, out InProcessTestServer<T> testServer, LogLevel minLogLevel, [CallerMemberName] string testName = null, Func<WriteContext, bool> expectedErrorsFilter = null) where T : class
         {
-            var disposable = base.StartVerifiableLog(out loggerFactory, minLogLevel, testName, ResolveExpectedErrorsFilter(expectedErrorsFilter));
+            var disposable = base.StartVerifiableLog(minLogLevel, testName, ResolveExpectedErrorsFilter(expectedErrorsFilter));
+            loggerFactory = LoggerFactory;
             testServer = new InProcessTestServer<T>(loggerFactory);
             return new MultiDisposable(testServer, disposable);
         }
 
         public IDisposable StartServer<T>(out ILoggerFactory loggerFactory, out InProcessTestServer<T> testServer, [CallerMemberName] string testName = null, Func<WriteContext, bool> expectedErrorsFilter = null) where T : class
         {
-            var disposable = base.StartVerifiableLog(out loggerFactory, testName, ResolveExpectedErrorsFilter(expectedErrorsFilter));
+            var disposable = base.StartVerifiableLog(testName, ResolveExpectedErrorsFilter(expectedErrorsFilter));
+            loggerFactory = LoggerFactory;
             testServer = new InProcessTestServer<T>(loggerFactory);
             return new MultiDisposable(testServer, disposable);
         }

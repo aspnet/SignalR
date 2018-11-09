@@ -178,9 +178,9 @@ namespace Microsoft.AspNetCore.SignalR.Tests
         [WebSocketsSupportedCondition]
         public async Task WebSocketsTransportThrowsForInvalidTransferFormat(TransferFormat transferFormat)
         {
-            using (StartVerifiableLog(out var loggerFactory))
+            using (StartVerifiableLog())
             {
-                var webSocketsTransport = new WebSocketsTransport(httpConnectionOptions: null, loggerFactory: loggerFactory, accessTokenProvider: null);
+                var webSocketsTransport = new WebSocketsTransport(httpConnectionOptions: null, LoggerFactory, accessTokenProvider: null);
                 var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
                     webSocketsTransport.StartAsync(new Uri("http://fakeuri.org"), transferFormat));
 
