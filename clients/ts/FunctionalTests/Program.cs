@@ -5,7 +5,6 @@ using System;
 using System.IO;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace FunctionalTests
@@ -26,13 +25,7 @@ namespace FunctionalTests
                 }
             }
 
-            var config = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("config.json")
-                .Build();
-
             var hostBuilder = new WebHostBuilder()
-                .UseConfiguration(config)
                 .ConfigureLogging(factory =>
                 {
                     factory.AddConsole(options => options.IncludeScopes = true);

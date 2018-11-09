@@ -63,8 +63,8 @@ describe("hubConnection", () => {
                 });
             });
 
-            // Run test in Node or Chrome
-            if (typeof navigator === "undefined" || navigator.userAgent.search("Chrome") !== -1) {
+            // Run test in Node or Chrome, but not on macOS
+            if ((process && process.platform !== "darwin") && (typeof navigator === "undefined" || navigator.userAgent.search("Chrome") !== -1)) {
                 it("using https, can invoke server method and receive result", (done) => {
                     const message = "你好，世界！";
 
