@@ -30,10 +30,14 @@ namespace FunctionalTests
                 {
                     factory.AddConsole(options => options.IncludeScopes = true);
                     factory.AddDebug();
-                    factory.SetMinimumLevel(LogLevel.Information);
+                    factory.SetMinimumLevel(LogLevel.Trace);
                 })
                 .UseKestrel((builderContext, options) =>
                 {
+                    options.ConfigureEndpointDefaults(o =>
+                    {
+                        o.UseConnectionLogging();
+                    });
                     options.ConfigureHttpsDefaults(httpsOptions =>
                     {
                         var certPath = Path.Combine(Directory.GetCurrentDirectory(), "testCert.pfx");
