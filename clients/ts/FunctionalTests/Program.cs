@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -40,7 +41,11 @@ namespace FunctionalTests
                 })
                 .UseKestrel((builderContext, options) =>
                 {
-                    options.Configure(builderContext.Configuration.GetSection("Kestrel"));
+                    options.ConfigureHttpsDefaults(httpsOptions =>
+                    {
+                        var certPath = Path.Combine(Directory.GetCurrentDirectory(), "testCert.pfx");
+                        httpsOptions.ServerCertificate = new X509Certificate2(certPath, "testPassword");
+                    });
                 })
                 .UseContentRoot(Directory.GetCurrentDirectory())
                 .UseIISIntegration()
