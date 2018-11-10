@@ -91,30 +91,34 @@ namespace FunctionalTests
             app.UseFileServer();
 
             // Custom CORS to allow any origin + credentials (which isn't allowed by the CORS spec)
-            app.Use(async (context, next) =>
+            app.Use((context, next) =>
             {
                 var originHeader = context.Request.Headers[HeaderNames.Origin];
-                if (string.Equals(context.Request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase) && !StringValues.IsNullOrEmpty(originHeader))
+                if (!StringValues.IsNullOrEmpty(originHeader))
                 {
                     context.Response.Headers[HeaderNames.AccessControlAllowOrigin] = originHeader;
                     context.Response.Headers[HeaderNames.AccessControlAllowCredentials] = "true";
-                    context.Response.Headers[HeaderNames.AccessControlAllowMethods] = "*";
+
+                    var requestMethod = context.Request.Headers[HeaderNames.AccessControlRequestMethod];
+                    if (!StringValues.IsNullOrEmpty(requestMethod))
+                    {
+                        context.Response.Headers[HeaderNames.AccessControlAllowMethods] = requestMethod;
+                    }
 
                     var requestHeaders = context.Request.Headers[HeaderNames.AccessControlRequestHeaders];
                     if (!StringValues.IsNullOrEmpty(requestHeaders))
                     {
                         context.Response.Headers[HeaderNames.AccessControlAllowHeaders] = requestHeaders;
                     }
-
-                    context.Response.StatusCode = StatusCodes.Status204NoContent;
-                    return;
-                } else if (!StringValues.IsNullOrEmpty(originHeader))
-                {
-                    context.Response.Headers[HeaderNames.AccessControlAllowOrigin] = originHeader;
-                    context.Response.Headers[HeaderNames.AccessControlAllowCredentials] = "true";
                 }
 
-                await next.Invoke();
+                if (string.Equals(context.Request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase))
+                {
+                    context.Response.StatusCode = StatusCodes.Status204NoContent;
+                    return Task.CompletedTask;
+                }
+
+                return next.Invoke();
             });
 
             app.UseConnections(routes =>
