@@ -91,6 +91,7 @@ namespace FunctionalTests
             app.UseFileServer();
 
             // Custom CORS to allow any origin + credentials (which isn't allowed by the CORS spec)
+            // This is for testing purposes only (karma hosts the client on its own server), never do this in production
             app.Use((context, next) =>
             {
                 var originHeader = context.Request.Headers[HeaderNames.Origin];
