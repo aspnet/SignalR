@@ -17,14 +17,13 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import io.reactivex.Observable;
-import io.reactivex.Observer;
-import io.reactivex.subjects.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.reactivex.Completable;
+import io.reactivex.Observable;
 import io.reactivex.Single;
+import io.reactivex.subjects.*;
 
 /**
  * A connection used to invoke hub methods on a SignalR Server.
@@ -518,7 +517,7 @@ public class HubConnection {
         return subject;
     }
 
-    public <T> Observable<T> stream(Class<T> returnType, String target, Object ... args){
+    public <T> Observable<T> stream(Class<T> returnType, String target, Object ... args) {
         String invocationId = connectionState.getNextInvocationId();
         StreamInvocationMessage streamInvocationMessage = new StreamInvocationMessage(invocationId, target, args);
         //public StreamInvocationMessage(String invocationId, String target, Object[] arguments) {
@@ -536,7 +535,7 @@ public class HubConnection {
                     break;
                 case COMPLETION:
                     CompletionMessage completionMessage = (CompletionMessage)hubMessage;
-                    if(completionMessage.getError() != null){
+                    if (completionMessage.getError() != null) {
                         subject.onError(new Exception(completionMessage.getError()));
                     }
                     else {
