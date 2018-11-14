@@ -5,6 +5,7 @@ package com.microsoft.signalr;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -381,7 +382,7 @@ class HubConnectionTest {
         result.subscribe((item) -> {
             /*OnNext*/
             onNextCalled.set(true);
-            assertEquals("message", item);
+            assertEquals("First", item);
         },(error) -> {
             /*OnError*/System.out.println(error);
             }, () -> {
@@ -396,6 +397,10 @@ class HubConnectionTest {
         assertTrue(onNextCalled.get());
 
         mockTransport.receiveMessage("{\"type\":3,\"invocationId\":\"1\",\"result\":\"null\"}" + RECORD_SEPARATOR);
+        assertTrue(completed.get());
+
+        assertEquals("First", result.timeout(1000, TimeUnit.MILLISECONDS).blockingFirst());
+        String test = "e";
     }
 
     @Test
@@ -407,11 +412,10 @@ class HubConnectionTest {
 
         AtomicBoolean completed = new AtomicBoolean();
         Observable<String> result = hubConnection.stream(String.class, "echo", "message");
-        result.subscribe((item) -> {
-            /*OnNext*/ assertEquals("message", item);},(error) -> {
-            /*OnError*/System.out.println(error);}, () -> {
-            /*OnCompleted*/completed.set(true);});
-        //result.doOnSuccess(value -> done.set(true));
+        result.subscribe((item) -> {/*OnNext*/ },
+                (error) -> {/*OnError*/},
+                () -> {/*OnCompleted*/completed.set(true);});
+
         assertEquals("{\"type\":4,\"invocationId\":\"1\",\"target\":\"echo\",\"arguments\":[\"message\"]}" + RECORD_SEPARATOR, mockTransport.getSentMessages()[1]);
         assertFalse(completed.get());
 
@@ -420,7 +424,9 @@ class HubConnectionTest {
 
         mockTransport.receiveMessage("{\"type\":3,\"invocationId\":\"1\",\"result\":\"null\"}" + RECORD_SEPARATOR);
 
-        assertEquals("First", result.timeout(2000, TimeUnit.MILLISECONDS).blockingFirst());
+        Iterator<String> resultIterator = result.timeout(1000, TimeUnit.MILLISECONDS).blockingIterable().iterator();
+        assertEquals("First", resultIterator.next());
+        assertEquals("Second", resultIterator.next());
     }
 
 

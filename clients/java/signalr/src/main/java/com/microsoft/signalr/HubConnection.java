@@ -19,15 +19,12 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import io.reactivex.Observable;
 import io.reactivex.Observer;
-import io.reactivex.subjects.PublishSubject;
-import io.reactivex.subjects.Subject;
+import io.reactivex.subjects.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.reactivex.Completable;
 import io.reactivex.Single;
-import io.reactivex.subjects.CompletableSubject;
-import io.reactivex.subjects.SingleSubject;
 
 /**
  * A connection used to invoke hub methods on a SignalR Server.
@@ -529,7 +526,7 @@ public class HubConnection {
 
         connectionState.addInvocation(irq);
 
-        PublishSubject<T> subject = PublishSubject.create();
+        ReplaySubject<T> subject = ReplaySubject.create();
 
         Action1<HubMessage> streamInvocationCallbackHandler = (hubMessage) -> {
             switch (hubMessage.getMessageType()) {
