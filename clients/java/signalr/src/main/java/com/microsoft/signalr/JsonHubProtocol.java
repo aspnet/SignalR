@@ -146,8 +146,13 @@ class JsonHubProtocol implements HubProtocol {
                         }
                         hubMessages.add(new CompletionMessage(invocationId, result, error));
                         break;
-                    case STREAM_INVOCATION:
                     case STREAM_ITEM:
+                        if (resultToken != null) {
+                            result = gson.fromJson(resultToken, binder.getReturnType(invocationId));
+                        }
+                        hubMessages.add(new StreamItem(invocationId, result));
+                        break;
+                    case STREAM_INVOCATION:
                     case CANCEL_INVOCATION:
                         throw new UnsupportedOperationException(String.format("The message type %s is not supported yet.", messageType));
                     case PING:

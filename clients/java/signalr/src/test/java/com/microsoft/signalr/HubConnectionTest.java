@@ -13,6 +13,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import io.reactivex.Observable;
 import org.junit.jupiter.api.Test;
 
 import io.reactivex.Single;
@@ -366,6 +367,62 @@ class HubConnectionTest {
         // Confirming that our handler was called and the correct message was passed in.
         assertEquals(Double.valueOf(24), value.get());
     }
+
+    @Test
+    public void checkStreamSingleItem() {
+        MockTransport mockTransport = new MockTransport();
+        HubConnection hubConnection = TestUtils.createHubConnection("http://example.com", mockTransport);
+
+        hubConnection.start().timeout(1, TimeUnit.SECONDS).blockingAwait();
+
+        AtomicBoolean completed = new AtomicBoolean();
+        AtomicBoolean onNextCalled = new AtomicBoolean();
+        Observable<String> result = hubConnection.stream(String.class, "echo", "message");
+        result.subscribe((item) -> {
+            /*OnNext*/
+            onNextCalled.set(true);
+            assertEquals("message", item);
+        },(error) -> {
+            /*OnError*/System.out.println(error);
+            }, () -> {
+            /*OnCompleted*/completed.set(true);});
+        //result.doOnSuccess(value -> done.set(true));
+        assertEquals("{\"type\":4,\"invocationId\":\"1\",\"target\":\"echo\",\"arguments\":[\"message\"]}" + RECORD_SEPARATOR, mockTransport.getSentMessages()[1]);
+        assertFalse(completed.get());
+        assertFalse(onNextCalled.get());
+
+        mockTransport.receiveMessage("{\"type\":2,\"invocationId\":\"1\",\"result\":\"First\"}" + RECORD_SEPARATOR);
+
+        assertTrue(onNextCalled.get());
+
+        mockTransport.receiveMessage("{\"type\":3,\"invocationId\":\"1\",\"result\":\"null\"}" + RECORD_SEPARATOR);
+    }
+
+    @Test
+    public void checkStreamMultipleItems() {
+        MockTransport mockTransport = new MockTransport();
+        HubConnection hubConnection = TestUtils.createHubConnection("http://example.com", mockTransport);
+
+        hubConnection.start().timeout(1, TimeUnit.SECONDS).blockingAwait();
+
+        AtomicBoolean completed = new AtomicBoolean();
+        Observable<String> result = hubConnection.stream(String.class, "echo", "message");
+        result.subscribe((item) -> {
+            /*OnNext*/ assertEquals("message", item);},(error) -> {
+            /*OnError*/System.out.println(error);}, () -> {
+            /*OnCompleted*/completed.set(true);});
+        //result.doOnSuccess(value -> done.set(true));
+        assertEquals("{\"type\":4,\"invocationId\":\"1\",\"target\":\"echo\",\"arguments\":[\"message\"]}" + RECORD_SEPARATOR, mockTransport.getSentMessages()[1]);
+        assertFalse(completed.get());
+
+        mockTransport.receiveMessage("{\"type\":2,\"invocationId\":\"1\",\"result\":\"First\"}" + RECORD_SEPARATOR);
+        mockTransport.receiveMessage("{\"type\":2,\"invocationId\":\"1\",\"result\":\"Second\"}" + RECORD_SEPARATOR);
+
+        mockTransport.receiveMessage("{\"type\":3,\"invocationId\":\"1\",\"result\":\"null\"}" + RECORD_SEPARATOR);
+
+        assertEquals("First", result.timeout(2000, TimeUnit.MILLISECONDS).blockingFirst());
+    }
+
 
     @Test
     public void invokeWaitsForCompletionMessage() {

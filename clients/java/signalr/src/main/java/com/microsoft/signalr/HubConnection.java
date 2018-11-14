@@ -17,6 +17,10 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import io.reactivex.Observable;
+import io.reactivex.Observer;
+import io.reactivex.subjects.PublishSubject;
+import io.reactivex.subjects.Subject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -201,9 +205,28 @@ public class HubConnection {
                             continue;
                         }
                         irq.complete(completionMessage);
+                        List<InvocationHandler> completionHandlers = this.handlers.get(completionMessage.getInvocationId());
+                        if (completionHandlers != null) {
+                            for (InvocationHandler handler : completionHandlers) {
+                                handler.getAction().invoke(completionMessage);
+                            }
+                        } else {
+                            logger.warn("Failed to find handler for Stream Invocation of Id '{}'", completionMessage.getInvocationId());
+                        }
                         break;
-                    case STREAM_INVOCATION:
                     case STREAM_ITEM:
+                        StreamItem streamItem = (StreamItem)message;
+                        List<InvocationHandler> streamInvocationHandlers = this.handlers.get(streamItem.getInvocationId());
+                        if (streamInvocationHandlers != null) {
+                            for (InvocationHandler handler : streamInvocationHandlers) {
+                                handler.getAction().invoke(streamItem);
+                            }
+                        } else {
+                            logger.warn("Failed to find handler for Stream Invocation of Id '{}'", streamItem.getInvocationId());
+                        }
+                        break;
+
+                    case STREAM_INVOCATION:
                     case CANCEL_INVOCATION:
                         logger.error("This client does not support {} messages.", message.getMessageType());
 
@@ -495,6 +518,42 @@ public class HubConnection {
         // where the map doesn't have the callbacks yet when the response is returned
         sendHubMessage(invocationMessage);
 
+        return subject;
+    }
+
+    public <T> Observable<T> stream(Class<T> returnType, String target, Object ... args){
+        String invocationId = connectionState.getNextInvocationId();
+        StreamInvocationMessage streamInvocationMessage = new StreamInvocationMessage(invocationId, target, args);
+        //public StreamInvocationMessage(String invocationId, String target, Object[] arguments) {
+        InvocationRequest irq = new InvocationRequest(returnType, invocationId);
+
+        connectionState.addInvocation(irq);
+
+        PublishSubject<T> subject = PublishSubject.create();
+
+        Action1<HubMessage> streamInvocationCallbackHandler = (hubMessage) -> {
+            switch (hubMessage.getMessageType()) {
+                case STREAM_ITEM:
+                    StreamItem streamItem = (StreamItem)hubMessage;
+                    subject.onNext((T)streamItem.getResult());
+                    break;
+                case COMPLETION:
+                    CompletionMessage completionMessage = (CompletionMessage)hubMessage;
+                    if(completionMessage.getError() != null){
+                        subject.onError(new Exception(completionMessage.getError()));
+                    }
+                    else {
+                        subject.onComplete();
+                    }
+                    break;
+                default:
+                    throw new RuntimeException("Unexpected Message type");
+            }
+        };
+
+        ActionBase action = params -> streamInvocationCallbackHandler.invoke(HubMessage.class.cast(params[0]));
+        handlers.put(invocationId, action, returnType);
+        sendHubMessage(streamInvocationMessage);
         return subject;
     }
 
