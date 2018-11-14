@@ -520,11 +520,8 @@ public class HubConnection {
     public <T> Observable<T> stream(Class<T> returnType, String target, Object ... args) {
         String invocationId = connectionState.getNextInvocationId();
         StreamInvocationMessage streamInvocationMessage = new StreamInvocationMessage(invocationId, target, args);
-        //public StreamInvocationMessage(String invocationId, String target, Object[] arguments) {
         InvocationRequest irq = new InvocationRequest(returnType, invocationId);
-
         connectionState.addInvocation(irq);
-
         ReplaySubject<T> subject = ReplaySubject.create();
 
         Action1<HubMessage> streamInvocationCallbackHandler = (hubMessage) -> {
