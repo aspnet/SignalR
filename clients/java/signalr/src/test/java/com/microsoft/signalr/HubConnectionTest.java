@@ -14,11 +14,11 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import io.reactivex.disposables.Disposable;
 import org.junit.jupiter.api.Test;
 
 import io.reactivex.Observable;
 import io.reactivex.Single;
+import io.reactivex.disposables.Disposable;
 import io.reactivex.subjects.SingleSubject;
 
 class HubConnectionTest {
