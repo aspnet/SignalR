@@ -14,6 +14,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import io.reactivex.disposables.Disposable;
 import org.junit.jupiter.api.Test;
 
 import io.reactivex.Observable;
@@ -400,7 +401,6 @@ class HubConnectionTest {
         assertTrue(completed.get());
 
         assertEquals("First", result.timeout(1000, TimeUnit.MILLISECONDS).blockingFirst());
-        String test = "e";
     }
 
     @Test
@@ -428,6 +428,36 @@ class HubConnectionTest {
         assertEquals("First", resultIterator.next());
         assertEquals("Second", resultIterator.next());
     }
+
+    @Test
+    public void checkStreamWithDispose() {
+        MockTransport mockTransport = new MockTransport();
+        HubConnection hubConnection = TestUtils.createHubConnection("http://example.com", mockTransport);
+
+        hubConnection.start().timeout(1, TimeUnit.SECONDS).blockingAwait();
+
+        AtomicBoolean completed = new AtomicBoolean();
+        Observable<String> result = hubConnection.stream(String.class, "echo", "message");
+
+        Disposable subscription = result.subscribe((item) -> {/*OnNext*/ System.out.println(item);},
+                (error) -> {/*OnError*/},
+                () -> {/*OnCompleted*/completed.set(true);});
+
+        assertEquals("{\"type\":4,\"invocationId\":\"1\",\"target\":\"echo\",\"arguments\":[\"message\"]}" + RECORD_SEPARATOR, mockTransport.getSentMessages()[1]);
+        assertFalse(completed.get());
+
+        mockTransport.receiveMessage("{\"type\":2,\"invocationId\":\"1\",\"result\":\"First\"}" + RECORD_SEPARATOR);
+
+        subscription.dispose();
+
+        mockTransport.receiveMessage("{\"type\":2,\"invocationId\":\"1\",\"result\":\"Second\"}" + RECORD_SEPARATOR);
+
+        mockTransport.receiveMessage("{\"type\":3,\"invocationId\":\"1\",\"result\":\"null\"}" + RECORD_SEPARATOR);
+
+        assertEquals("First", result.timeout(1000, TimeUnit.MILLISECONDS).blockingLast());
+        assertFalse(completed.get());
+    }
+
 
 
     @Test

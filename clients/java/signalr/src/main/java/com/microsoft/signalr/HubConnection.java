@@ -547,7 +547,12 @@ public class HubConnection {
         ActionBase action = params -> streamInvocationCallbackHandler.invoke(HubMessage.class.cast(params[0]));
         handlers.put(invocationId, action, returnType);
         sendHubMessage(streamInvocationMessage);
-        return subject;
+        return subject.doOnDispose(() -> {
+                    CancelInvocationMessage cancelInvocationMessage = new CancelInvocationMessage(invocationId);
+                    sendHubMessage(cancelInvocationMessage);
+                    handlers.remove(invocationId);
+                    subject.onComplete();
+                });
     }
 
     private void sendHubMessage(HubMessage message) {
