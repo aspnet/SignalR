@@ -445,7 +445,6 @@ class HubConnectionTest {
         subscription.dispose();
         mockTransport.receiveMessage("{\"type\":2,\"invocationId\":\"1\",\"result\":\"Second\"}" + RECORD_SEPARATOR);
 
-        mockTransport.receiveMessage("{\"type\":3,\"invocationId\":\"1\"}" + RECORD_SEPARATOR);
         assertEquals("First", result.timeout(1000, TimeUnit.MILLISECONDS).blockingLast());
     }
 

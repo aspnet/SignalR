@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
@@ -57,8 +58,6 @@ public class HubConnection {
     private CompletableSubject handshakeResponseSubject;
     private long handshakeResponseTimeout = 15*1000;
     private final Logger logger = LoggerFactory.getLogger(HubConnection.class);
-    private int subscriptionCount = 0;
-
 
     /**
      * Sets the server timeout interval for the connection.
@@ -212,12 +211,6 @@ public class HubConnection {
                         }
 
                         streamInvocationRequest.addItem(streamItem);
-//                        List<InvocationHandler> streamInvocationHandlers = this.handlers.get(streamItem.getInvocationId());
-//                        if (streamInvocationHandlers != null) {
-//                            for (InvocationHandler handler : streamInvocationHandlers) {
-//                                handler.getAction().invoke(streamItem);
-//                            }
-//                        }
                         break;
                     case STREAM_INVOCATION:
                     case CANCEL_INVOCATION:
@@ -514,9 +507,20 @@ public class HubConnection {
         return subject;
     }
 
-    public <T> Observable<T> stream(Class<T> returnType, String target, Object ... args) {
+    /**
+     * Invokes a streaming hub method on the server using the specified name and arguments.
+     *
+     * @param returnType The expected return type of the stream items.
+     * @param method The name of the server method to invoke.
+     * @param args The arguments used to invoke the server method.
+     * @param <T> The expected return type.
+     * @return An observable that yields the streaming results from the server.
+     */
+    @SuppressWarnings("unchecked")
+    public <T> Observable<T> stream(Class<T> returnType, String method, Object ... args) {
         String invocationId = connectionState.getNextInvocationId();
-        StreamInvocationMessage streamInvocationMessage = new StreamInvocationMessage(invocationId, target, args);
+        AtomicInteger subscriptionCount = new AtomicInteger();
+        StreamInvocationMessage streamInvocationMessage = new StreamInvocationMessage(invocationId, method, args);
         InvocationRequest irq = new InvocationRequest(returnType, invocationId);
         connectionState.addInvocation(irq);
         ReplaySubject<T> subject = ReplaySubject.create();
@@ -529,15 +533,14 @@ public class HubConnection {
             } else {
                 subject.onNext(returnType.cast(result));
             }
-        }, error -> {subject.onError(error);}
+        }, error -> subject.onError(error)
         , () -> subject.onComplete());
 
         sendHubMessage(streamInvocationMessage);
-
-        Observable<T> observable = subject.doOnSubscribe((subscriber) -> subscriptionCount++);
+        Observable<T> observable = subject.doOnSubscribe((subscriber) -> subscriptionCount.incrementAndGet());
 
         return observable.doOnDispose(() -> {
-            if (--subscriptionCount == 0) {
+            if (subscriptionCount.decrementAndGet() == 0) {
                 CancelInvocationMessage cancelInvocationMessage = new CancelInvocationMessage(invocationId);
                 sendHubMessage(cancelInvocationMessage);
                 connectionState.tryRemoveInvocation(invocationId);
