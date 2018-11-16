@@ -538,7 +538,7 @@ public class HubConnection {
 
         return observable.doOnDispose(() -> {
 
-            if(--subscriptionCount == 0) {
+            if (--subscriptionCount == 0) {
                 CancelInvocationMessage cancelInvocationMessage = new CancelInvocationMessage(invocationId);
                 sendHubMessage(cancelInvocationMessage);
                 connectionState.tryRemoveInvocation(invocationId);

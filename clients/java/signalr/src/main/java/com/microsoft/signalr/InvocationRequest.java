@@ -5,9 +5,7 @@ package com.microsoft.signalr;
 
 import java.util.concurrent.CancellationException;
 
-import io.reactivex.Single;
 import io.reactivex.subjects.ReplaySubject;
-import io.reactivex.subjects.SingleSubject;
 import io.reactivex.subjects.Subject;
 
 class InvocationRequest {
@@ -22,7 +20,7 @@ class InvocationRequest {
 
     public void complete(CompletionMessage completion) {
         if (completion.getError() == null) {
-            if(completion.getResult() != null){
+            if (completion.getResult() != null) {
                 pendingCall.onNext(completion.getResult());
             }
             pendingCall.onComplete();
@@ -32,7 +30,7 @@ class InvocationRequest {
     }
 
     public void addItem(StreamItem streamItem) {
-        if(streamItem.getResult() != null) {
+        if (streamItem.getResult() != null) {
             pendingCall.onNext(streamItem.getResult());
         }
     }
