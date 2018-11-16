@@ -6,7 +6,7 @@
     <BenchmarkDotNetPackageVersion>0.10.13</BenchmarkDotNetPackageVersion>
     <GoogleProtobufPackageVersion>3.1.0</GoogleProtobufPackageVersion>
     <InternalAspNetCoreAnalyzersPackageVersion>3.0.0-preview-181108-06</InternalAspNetCoreAnalyzersPackageVersion>
-    <InternalAspNetCoreSdkPackageVersion>3.0.0-alpha1-20181011.3</InternalAspNetCoreSdkPackageVersion>
+    <InternalAspNetCoreSdkPackageVersion>3.0.0-build-20181114.5</InternalAspNetCoreSdkPackageVersion>
     <MessagePackPackageVersion>1.7.3.4</MessagePackPackageVersion>
     <MicrosoftAspNetCoreAllPackageVersion>3.0.0-alpha1-10660</MicrosoftAspNetCoreAllPackageVersion>
     <MicrosoftAspNetCoreAuthenticationCookiesPackageVersion>3.0.0-alpha1-10727</MicrosoftAspNetCoreAuthenticationCookiesPackageVersion>
