@@ -427,6 +427,53 @@ class HubConnectionTest {
     }
 
     @Test
+    public void checkCancelIsSentAfterDispose() {
+        MockTransport mockTransport = new MockTransport();
+        HubConnection hubConnection = TestUtils.createHubConnection("http://example.com", mockTransport);
+
+        hubConnection.start().timeout(1, TimeUnit.SECONDS).blockingAwait();
+
+        AtomicBoolean completed = new AtomicBoolean();
+        Observable<String> result = hubConnection.stream(String.class, "echo", "message");
+        Disposable subscription = result.subscribe((item) -> {/*OnNext*/ },
+                (error) -> {/*OnError*/},
+                () -> {/*OnCompleted*/completed.set(true);});
+
+        assertEquals("{\"type\":4,\"invocationId\":\"1\",\"target\":\"echo\",\"arguments\":[\"message\"]}" + RECORD_SEPARATOR, mockTransport.getSentMessages()[1]);
+        assertFalse(completed.get());
+
+        subscription.dispose();
+        assertEquals("{\"type\":5,\"invocationId\":\"1\"}" + RECORD_SEPARATOR, mockTransport.getSentMessages()[2]);
+    }
+
+    @Test
+    public void checkCancelIsSentAfterAllSubscriptionsAreDisposed() {
+        MockTransport mockTransport = new MockTransport();
+        HubConnection hubConnection = TestUtils.createHubConnection("http://example.com", mockTransport);
+
+        hubConnection.start().timeout(1, TimeUnit.SECONDS).blockingAwait();
+
+        Observable<String> result = hubConnection.stream(String.class, "echo", "message");
+        Disposable subscription = result.subscribe((item) -> {/*OnNext*/ },
+                (error) -> {/*OnError*/},
+                () -> {/*OnCompleted*/});
+
+        Disposable secondSubscription = result.subscribe((item) -> {/*OnNext*/ },
+                (error) -> {/*OnError*/},
+                () -> {/*OnCompleted*/});
+
+        subscription.dispose();
+        assertEquals(2, mockTransport.getSentMessages().length);
+        assertEquals("{\"type\":4,\"invocationId\":\"1\",\"target\":\"echo\",\"arguments\":[\"message\"]}" + RECORD_SEPARATOR,
+                mockTransport.getSentMessages()[mockTransport.getSentMessages().length - 1]);
+
+        secondSubscription.dispose();
+        assertEquals(3, mockTransport.getSentMessages().length);
+        assertEquals("{\"type\":5,\"invocationId\":\"1\"}" + RECORD_SEPARATOR,
+                mockTransport.getSentMessages()[mockTransport.getSentMessages().length - 1]);
+    }
+
+    @Test
     public void checkStreamWithDispose() {
         MockTransport mockTransport = new MockTransport();
         HubConnection hubConnection = TestUtils.createHubConnection("http://example.com", mockTransport);
