@@ -380,11 +380,9 @@ class HubConnectionTest {
         AtomicBoolean completed = new AtomicBoolean();
         AtomicBoolean onNextCalled = new AtomicBoolean();
         Observable<String> result = hubConnection.stream(String.class, "echo", "message");
-        result.subscribe((item) -> {
-            /*OnNext*/
-            onNextCalled.set(true);
-        },(error) -> {}
-        , () -> {/*OnCompleted*/completed.set(true);});
+        result.subscribe((item) -> onNextCalled.set(true), (error) -> {}
+        , () -> completed.set(true));
+
         assertEquals("{\"type\":4,\"invocationId\":\"1\",\"target\":\"echo\",\"arguments\":[\"message\"]}" + RECORD_SEPARATOR, mockTransport.getSentMessages()[1]);
         assertFalse(completed.get());
         assertFalse(onNextCalled.get());

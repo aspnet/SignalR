@@ -141,14 +141,16 @@ class JsonHubProtocol implements HubProtocol {
                         }
                         break;
                     case COMPLETION:
-                        if (resultToken != null && binder.getReturnType(invocationId) != null) {
-                            result = gson.fromJson(resultToken, binder.getReturnType(invocationId));
+                        if (resultToken != null) {
+                            Class<?> returnType = binder.getReturnType(invocationId);
+                            result = gson.fromJson(resultToken, returnType != null ? returnType : Object.class);
                         }
                         hubMessages.add(new CompletionMessage(invocationId, result, error));
                         break;
                     case STREAM_ITEM:
-                        if (resultToken != null && binder.getReturnType(invocationId) != null) {
-                            result = gson.fromJson(resultToken, binder.getReturnType(invocationId));
+                        if (resultToken != null) {
+                            Class<?> returnType = binder.getReturnType(invocationId);
+                            result = gson.fromJson(resultToken, returnType != null ? returnType : Object.class);
                         }
                         hubMessages.add(new StreamItem(invocationId, result));
                         break;
