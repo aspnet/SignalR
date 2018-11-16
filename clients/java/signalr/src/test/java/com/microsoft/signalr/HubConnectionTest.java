@@ -383,11 +383,8 @@ class HubConnectionTest {
         result.subscribe((item) -> {
             /*OnNext*/
             onNextCalled.set(true);
-        },(error) -> {
-            /*OnError*/System.out.println(error);
-            }, () -> {
-            /*OnCompleted*/completed.set(true);});
-        //result.doOnSuccess(value -> done.set(true));
+        },(error) -> {}
+        , () -> {/*OnCompleted*/completed.set(true);});
         assertEquals("{\"type\":4,\"invocationId\":\"1\",\"target\":\"echo\",\"arguments\":[\"message\"]}" + RECORD_SEPARATOR, mockTransport.getSentMessages()[1]);
         assertFalse(completed.get());
         assertFalse(onNextCalled.get());

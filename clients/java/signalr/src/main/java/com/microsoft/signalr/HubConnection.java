@@ -537,7 +537,6 @@ public class HubConnection {
         Observable<T> observable = subject.doOnSubscribe((subscriber) -> subscriptionCount++);
 
         return observable.doOnDispose(() -> {
-
             if (--subscriptionCount == 0) {
                 CancelInvocationMessage cancelInvocationMessage = new CancelInvocationMessage(invocationId);
                 sendHubMessage(cancelInvocationMessage);
