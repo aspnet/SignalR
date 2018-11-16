@@ -73,7 +73,7 @@ class JsonHubProtocol implements HubProtocol {
                             error = reader.nextString();
                             break;
                         case "result":
-                            if (invocationId == null) {
+                            if (invocationId == null || binder.getReturnType(invocationId) == null) {
                                 resultToken = jsonParser.parse(reader);
                             } else {
                                 result = gson.fromJson(reader, binder.getReturnType(invocationId));
@@ -141,13 +141,13 @@ class JsonHubProtocol implements HubProtocol {
                         }
                         break;
                     case COMPLETION:
-                        if (resultToken != null) {
+                        if (resultToken != null && binder.getReturnType(invocationId) != null) {
                             result = gson.fromJson(resultToken, binder.getReturnType(invocationId));
                         }
                         hubMessages.add(new CompletionMessage(invocationId, result, error));
                         break;
                     case STREAM_ITEM:
-                        if (resultToken != null) {
+                        if (resultToken != null && binder.getReturnType(invocationId) != null) {
                             result = gson.fromJson(resultToken, binder.getReturnType(invocationId));
                         }
                         hubMessages.add(new StreamItem(invocationId, result));

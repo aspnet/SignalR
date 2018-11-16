@@ -57,6 +57,7 @@ public class HubConnection {
     private CompletableSubject handshakeResponseSubject;
     private long handshakeResponseTimeout = 15*1000;
     private final Logger logger = LoggerFactory.getLogger(HubConnection.class);
+    private int subscriptionCount = 0;
 
 
     /**
@@ -201,27 +202,23 @@ public class HubConnection {
                             continue;
                         }
                         irq.complete(completionMessage);
-                        List<InvocationHandler> completionHandlers = this.handlers.get(completionMessage.getInvocationId());
-                        if (completionHandlers != null) {
-                            for (InvocationHandler handler : completionHandlers) {
-                                handler.getAction().invoke(completionMessage);
-                            }
-                        } else {
-                            logger.warn("Failed to find handler for Stream Invocation of Id '{}'", completionMessage.getInvocationId());
-                        }
                         break;
                     case STREAM_ITEM:
                         StreamItem streamItem = (StreamItem)message;
-                        List<InvocationHandler> streamInvocationHandlers = this.handlers.get(streamItem.getInvocationId());
-                        if (streamInvocationHandlers != null) {
-                            for (InvocationHandler handler : streamInvocationHandlers) {
-                                handler.getAction().invoke(streamItem);
-                            }
-                        } else {
-                            logger.warn("Failed to find handler for Stream Invocation of Id '{}'", streamItem.getInvocationId());
+                        InvocationRequest streamInvocationRequest = connectionState.getInvocation(streamItem.getInvocationId());
+                        if (streamInvocationRequest == null) {
+                            logger.warn("Dropped unsolicited Completion message for invocation '{}'.", streamItem.getInvocationId());
+                            continue;
                         }
-                        break;
 
+                        streamInvocationRequest.addItem(streamItem);
+//                        List<InvocationHandler> streamInvocationHandlers = this.handlers.get(streamItem.getInvocationId());
+//                        if (streamInvocationHandlers != null) {
+//                            for (InvocationHandler handler : streamInvocationHandlers) {
+//                                handler.getAction().invoke(streamItem);
+//                            }
+//                        }
+                        break;
                     case STREAM_INVOCATION:
                     case CANCEL_INVOCATION:
                         logger.error("This client does not support {} messages.", message.getMessageType());
@@ -500,7 +497,7 @@ public class HubConnection {
 
         // forward the invocation result or error to the user
         // run continuations on a separate thread
-        Single<Object> pendingCall = irq.getPendingCall();
+        Subject<Object> pendingCall = irq.getPendingCall();
         pendingCall.subscribe(result -> {
             // Primitive types can't be cast with the Class cast function
             if (returnType.isPrimitive()) {
@@ -524,35 +521,30 @@ public class HubConnection {
         connectionState.addInvocation(irq);
         ReplaySubject<T> subject = ReplaySubject.create();
 
-        Action1<HubMessage> streamInvocationCallbackHandler = (hubMessage) -> {
-            switch (hubMessage.getMessageType()) {
-                case STREAM_ITEM:
-                    StreamItem streamItem = (StreamItem)hubMessage;
-                    subject.onNext((T)streamItem.getResult());
-                    break;
-                case COMPLETION:
-                    CompletionMessage completionMessage = (CompletionMessage)hubMessage;
-                    if (completionMessage.getError() != null) {
-                        subject.onError(new Exception(completionMessage.getError()));
-                    }
-                    else {
-                        subject.onComplete();
-                    }
-                    break;
-                default:
-                    throw new RuntimeException("Unexpected Message type");
+        Subject<Object> pendingCall = irq.getPendingCall();
+        pendingCall.subscribe(result -> {
+            // Primitive types can't be cast with the Class cast function
+            if (returnType.isPrimitive()) {
+                subject.onNext((T)result);
+            } else {
+                subject.onNext(returnType.cast(result));
             }
-        };
+        }, error -> {subject.onError(error);}
+        , () -> subject.onComplete());
 
-        ActionBase action = params -> streamInvocationCallbackHandler.invoke(HubMessage.class.cast(params[0]));
-        handlers.put(invocationId, action, returnType);
         sendHubMessage(streamInvocationMessage);
-        return subject.doOnDispose(() -> {
-                    CancelInvocationMessage cancelInvocationMessage = new CancelInvocationMessage(invocationId);
-                    sendHubMessage(cancelInvocationMessage);
-                    handlers.remove(invocationId);
-                    subject.onComplete();
-                });
+
+        Observable<T> observable = subject.doOnSubscribe((subscriber) -> subscriptionCount++);
+
+        return observable.doOnDispose(() -> {
+
+            if(--subscriptionCount == 0) {
+                CancelInvocationMessage cancelInvocationMessage = new CancelInvocationMessage(invocationId);
+                sendHubMessage(cancelInvocationMessage);
+                connectionState.tryRemoveInvocation(invocationId);
+                subject.onComplete();
+            }
+        });
     }
 
     private void sendHubMessage(HubMessage message) {

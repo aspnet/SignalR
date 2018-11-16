@@ -3,7 +3,7 @@
 
 package com.microsoft.signalr;
 
-class StreamInvocationMessage extends HubMessage {
+final class StreamInvocationMessage extends HubMessage {
     private final int type = HubMessageType.STREAM_INVOCATION.value;
     private final String invocationId;
     private final String target;
