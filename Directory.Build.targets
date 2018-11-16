@@ -1,5 +1,2 @@
 ﻿<Project>
   <PropertyGroup>
-    <RuntimeFrameworkVersion Condition=" '$(TargetFramework)' == 'netcoreapp3.0' ">$(MicrosoftNETCoreApp22PackageVersion)</RuntimeFrameworkVersion>
-  </PropertyGroup>
-</Project>
