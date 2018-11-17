@@ -532,8 +532,8 @@ public class HubConnection {
             } else {
                 subject.onNext(returnType.cast(result));
             }
-        }, error -> subject.onError(error)
-        , () -> subject.onComplete());
+        }, error -> subject.onError(error),
+                () -> subject.onComplete());
 
         sendHubMessage(streamInvocationMessage);
         Observable<T> observable = subject.doOnSubscribe((subscriber) -> subscriptionCount.incrementAndGet());
@@ -550,8 +550,10 @@ public class HubConnection {
 
     private void sendHubMessage(HubMessage message) {
         String serializedMessage = protocol.writeMessage(message);
-        if (message.getMessageType() == HubMessageType.INVOCATION) {
+        if (message.getMessageType() == HubMessageType.INVOCATION ) {
             logger.debug("Sending {} message '{}'.", message.getMessageType().name(), ((InvocationMessage)message).getInvocationId());
+        } else  if(message.getMessageType() == HubMessageType.STREAM_INVOCATION) {
+            logger.debug("Sending {} message '{}'.", message.getMessageType().name(), ((StreamInvocationMessage)message).getInvocationId());
         } else {
             logger.debug("Sending {} message.", message.getMessageType().name());
         }

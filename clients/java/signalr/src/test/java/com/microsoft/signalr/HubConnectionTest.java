@@ -380,8 +380,9 @@ class HubConnectionTest {
         AtomicBoolean completed = new AtomicBoolean();
         AtomicBoolean onNextCalled = new AtomicBoolean();
         Observable<String> result = hubConnection.stream(String.class, "echo", "message");
-        result.subscribe((item) -> onNextCalled.set(true), (error) -> {}
-        , () -> completed.set(true));
+        result.subscribe((item) -> onNextCalled.set(true),
+                (error) -> {},
+                () -> completed.set(true));
 
         assertEquals("{\"type\":4,\"invocationId\":\"1\",\"target\":\"echo\",\"arguments\":[\"message\"]}" + RECORD_SEPARATOR, mockTransport.getSentMessages()[1]);
         assertFalse(completed.get());
@@ -395,6 +396,67 @@ class HubConnectionTest {
         assertTrue(completed.get());
 
         assertEquals("First", result.timeout(1000, TimeUnit.MILLISECONDS).blockingFirst());
+    }
+
+    @Test
+    public void checkStreamCompletionResult() {
+        MockTransport mockTransport = new MockTransport();
+        HubConnection hubConnection = TestUtils.createHubConnection("http://example.com", mockTransport);
+
+        hubConnection.start().timeout(1, TimeUnit.SECONDS).blockingAwait();
+
+        AtomicBoolean completed = new AtomicBoolean();
+        AtomicBoolean onNextCalled = new AtomicBoolean();
+        Observable<String> result = hubConnection.stream(String.class, "echo", "message");
+        result.subscribe((item) -> onNextCalled.set(true),
+                (error) -> {},
+                () -> completed.set(true));
+
+        assertEquals("{\"type\":4,\"invocationId\":\"1\",\"target\":\"echo\",\"arguments\":[\"message\"]}" + RECORD_SEPARATOR, mockTransport.getSentMessages()[1]);
+        assertFalse(completed.get());
+        assertFalse(onNextCalled.get());
+
+        mockTransport.receiveMessage("{\"type\":2,\"invocationId\":\"1\",\"result\":\"First\"}" + RECORD_SEPARATOR);
+
+        assertTrue(onNextCalled.get());
+
+        mockTransport.receiveMessage("{\"type\":3,\"invocationId\":\"1\",\"result\":\"COMPLETED\"}" + RECORD_SEPARATOR);
+        assertTrue(completed.get());
+
+        assertEquals("First", result.timeout(1000, TimeUnit.MILLISECONDS).blockingFirst());
+        assertEquals("COMPLETED", result.timeout(1000, TimeUnit.MILLISECONDS).blockingLast());
+
+    }
+
+    @Test
+    public void checkStreamCompletionError() {
+        MockTransport mockTransport = new MockTransport();
+        HubConnection hubConnection = TestUtils.createHubConnection("http://example.com", mockTransport);
+
+        hubConnection.start().timeout(1, TimeUnit.SECONDS).blockingAwait();
+
+        AtomicBoolean onErrorCalled = new AtomicBoolean();
+        AtomicBoolean onNextCalled = new AtomicBoolean();
+        Observable<String> result = hubConnection.stream(String.class, "echo", "message");
+        result.subscribe((item) -> onNextCalled.set(true),
+                (error) -> onErrorCalled.set(true),
+                () -> {});
+
+        assertEquals("{\"type\":4,\"invocationId\":\"1\",\"target\":\"echo\",\"arguments\":[\"message\"]}" + RECORD_SEPARATOR, mockTransport.getSentMessages()[1]);
+        assertFalse(onErrorCalled.get());
+        assertFalse(onNextCalled.get());
+
+        mockTransport.receiveMessage("{\"type\":2,\"invocationId\":\"1\",\"result\":\"First\"}" + RECORD_SEPARATOR);
+
+        assertTrue(onNextCalled.get());
+
+        mockTransport.receiveMessage("{\"type\":3,\"invocationId\":\"1\",\"error\":\"There was an error\"}" + RECORD_SEPARATOR);
+        assertTrue(onErrorCalled.get());
+
+        assertEquals("First", result.timeout(1000, TimeUnit.MILLISECONDS).blockingFirst());
+        Throwable exception = assertThrows(HubException.class, () -> result.timeout(1000, TimeUnit.MILLISECONDS).blockingLast());
+        assertEquals("There was an error", exception.getMessage());
+
     }
 
     @Test
