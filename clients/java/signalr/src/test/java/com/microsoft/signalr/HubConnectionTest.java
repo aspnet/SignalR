@@ -456,7 +456,6 @@ class HubConnectionTest {
         assertEquals("First", result.timeout(1000, TimeUnit.MILLISECONDS).blockingFirst());
         Throwable exception = assertThrows(HubException.class, () -> result.timeout(1000, TimeUnit.MILLISECONDS).blockingLast());
         assertEquals("There was an error", exception.getMessage());
-
     }
 
     @Test
@@ -477,7 +476,6 @@ class HubConnectionTest {
 
         mockTransport.receiveMessage("{\"type\":2,\"invocationId\":\"1\",\"result\":\"First\"}" + RECORD_SEPARATOR);
         mockTransport.receiveMessage("{\"type\":2,\"invocationId\":\"1\",\"result\":\"Second\"}" + RECORD_SEPARATOR);
-
         mockTransport.receiveMessage("{\"type\":3,\"invocationId\":\"1\",\"result\":\"null\"}" + RECORD_SEPARATOR);
 
         Iterator<String> resultIterator = result.timeout(1000, TimeUnit.MILLISECONDS).blockingIterable().iterator();
