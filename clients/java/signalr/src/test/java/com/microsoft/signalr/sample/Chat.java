@@ -7,6 +7,7 @@ import java.util.Scanner;
 
 import com.microsoft.signalr.HubConnection;
 import com.microsoft.signalr.HubConnectionBuilder;
+
 import io.reactivex.Observable;
 
 public class Chat {
