@@ -552,7 +552,7 @@ public class HubConnection {
         String serializedMessage = protocol.writeMessage(message);
         if (message.getMessageType() == HubMessageType.INVOCATION ) {
             logger.debug("Sending {} message '{}'.", message.getMessageType().name(), ((InvocationMessage)message).getInvocationId());
-        } else  if(message.getMessageType() == HubMessageType.STREAM_INVOCATION) {
+        } else  if (message.getMessageType() == HubMessageType.STREAM_INVOCATION) {
             logger.debug("Sending {} message '{}'.", message.getMessageType().name(), ((StreamInvocationMessage)message).getInvocationId());
         } else {
             logger.debug("Sending {} message.", message.getMessageType().name());
