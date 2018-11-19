@@ -1,6 +1,5 @@
-trigger:
-- master
-- release/*
+# Uses Scheduled Triggers, which aren't supported in YAML yet.
+# https://docs.microsoft.com/en-us/azure/devops/pipelines/build/triggers?view=vsts&tabs=yaml#scheduled
 
 resources:
   repositories:
