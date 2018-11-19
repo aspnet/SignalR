@@ -8,7 +8,6 @@ import java.util.Scanner;
 import com.microsoft.signalr.HubConnection;
 import com.microsoft.signalr.HubConnectionBuilder;
 
-import io.reactivex.Observable;
 
 public class Chat {
     public static void main(String[] args) {
@@ -39,10 +38,6 @@ public class Chat {
             // Scans the next token of the input as an int.
             message = reader.nextLine();
             hubConnection.send("Send", enteredName, message);
-            Observable<Integer> result = hubConnection.stream(Integer.class,"ObservableCounter", 10, 100);
-            result.subscribe((item) -> {
-                System.out.println(item);
-            });
         }
 
         hubConnection.stop();
