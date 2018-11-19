@@ -2,6 +2,7 @@ import { ChildProcess, exec, spawn } from "child_process";
 import { EOL } from "os";
 import { Readable } from "stream";
 
+import * as os from "os";
 import * as _fs from "fs";
 import * as path from "path";
 import { promisify } from "util";
@@ -21,6 +22,10 @@ const fs = {
     exists: promisify(_fs.exists),
     mkdir: promisify(_fs.mkdir),
 };
+
+if (!_fs.existsSync(LOGS_DIR)) {
+    _fs.mkdirSync(LOGS_DIR);
+}
 
 process.on("unhandledRejection", (reason) => {
     console.error(`Unhandled promise rejection: ${reason}`);
@@ -96,6 +101,7 @@ let spec: string;
 let sauce = false;
 let allBrowsers = false;
 let noColor = false;
+let skipNode = false;
 
 for (let i = 2; i < process.argv.length; i += 1) {
     switch (process.argv[i]) {
@@ -117,6 +123,10 @@ for (let i = 2; i < process.argv.length; i += 1) {
             break;
         case "--sauce":
             sauce = true;
+            console.log("Running on SauceLabs.");
+            break;
+        case "--skip-node":
+            skipNode = true;
             console.log("Running on SauceLabs.");
             break;
         case "-a":
@@ -168,12 +178,17 @@ function runKarma(karmaConfig) {
 }
 
 function runJest(httpsUrl: string, httpUrl: string) {
+    if (skipNode) {
+        console.log("Skipping NodeJS tests because '--skip-node' was specified.");
+        return 0;
+    }
+
     const jestPath = path.resolve(__dirname, "..", "..", "common", "node_modules", "jest", "bin", "jest.js");
     const configPath = path.resolve(__dirname, "..", "func.jest.config.js");
 
     console.log("Starting Node tests using Jest.");
     return new Promise<number>((resolve, reject) => {
-        const logStream = fs.createWriteStream(path.resolve(__dirname, "..", "..", "..", "..", "artifacts", "logs", "node.functionaltests.log"));
+        const logStream = fs.createWriteStream(path.resolve(LOGS_DIR, "node.functionaltests.log"));
         // Use NODE_TLS_REJECT_UNAUTHORIZED to allow our test cert to be used by the Node tests (NEVER use this environment variable outside of testing)
         const p = exec(`"${process.execPath}" "${jestPath}" --config "${configPath}"`, { env: { SERVER_URL: `${httpsUrl};${httpUrl}`, NODE_TLS_REJECT_UNAUTHORIZED: 0 }, timeout: 200000, maxBuffer: 10 * 1024 * 1024 },
             (error: any, stdout, stderr) => {
@@ -199,7 +214,7 @@ function runJest(httpsUrl: string, httpUrl: string) {
         if (sauce) {
             // SauceLabs can only proxy certain ports for Edge and Safari.
             // https://wiki.saucelabs.com/display/DOCS/Sauce+Connect+Proxy+FAQS
-            desiredServerUrl = "http://127.0.0.1:9000";
+            desiredServerUrl = "http://0.0.0.0:9000;https://0.0.0.0:9001";
         }
 
         const dotnet = spawn("dotnet", [serverPath], {
@@ -216,7 +231,7 @@ function runJest(httpsUrl: string, httpUrl: string) {
             }
         }
 
-        const logStream = fs.createWriteStream(path.resolve(__dirname, "..", "..", "..", "..", "artifacts", "logs", "ts.functionaltests.dotnet.log"));
+        const logStream = fs.createWriteStream(path.resolve(LOGS_DIR, "ts.functionaltests.dotnet.log"));
         dotnet.stdout.pipe(logStream);
 
         process.on("SIGINT", cleanup);
@@ -224,11 +239,39 @@ function runJest(httpsUrl: string, httpUrl: string) {
 
         debug("Waiting for Functional Test Server to start");
         const matches = await waitForMatches("dotnet", dotnet, /Now listening on: (https?:\/\/[^\/]+:[\d]+)/, 2);
-        const httpsUrl = matches[1];
-        const httpUrl = matches[3];
+
+        // The order of HTTP and HTTPS isn't guaranteed
+        let httpsUrl;
+        let httpUrl;
+        if (matches[1].indexOf("https://") == 0) {
+            httpsUrl = matches[1];
+        } else if (matches[3].indexOf("https://") == 0) {
+            httpsUrl = matches[3];
+        }
+        if (matches[1].indexOf("http://") == 0) {
+            httpUrl = matches[1];
+        } else if (matches[3].indexOf("http://") == 0) {
+            httpUrl = matches[3];
+        }
+
+        if (!httpUrl || !httpsUrl) {
+            console.error("Unable to identify URLs");
+            process.exit(1);
+        }
+
+        // If running in sauce, use the full hostname
+        // Resolves issues in Safari: https://support.saucelabs.com/hc/en-us/articles/115009908527
+        if (sauce) {
+            const hostname = os.hostname();
+            httpUrl = httpUrl.replace(/\d+\.\d+\.\d+\.\d+/g, hostname);
+
+            // Disable SSL on Sauce too. The Sauce Connect proxy doesn't really work with it.
+            httpsUrl = "";
+        }
+
         debug(`Functional Test Server has started at ${httpsUrl} and ${httpUrl}`);
 
-        debug(`Using SignalR Server: ${httpsUrl} and ${httpUrl}`);
+        debug(`Using SignalR Servers: ${httpsUrl} (https) and ${httpUrl} (http)`);
 
         // Start karma server
         const conf = {
@@ -243,14 +286,23 @@ function runJest(httpsUrl: string, httpUrl: string) {
         if (!await fs.exists(LOGS_DIR)) {
             await fs.mkdir(LOGS_DIR);
         }
-        conf.browserConsoleLogOptions.path = path.resolve(LOGS_DIR, `browserlogs.console.${new Date().toISOString().replace(/:|\./g, "-")}`);
+        conf.browserConsoleLogOptions.path = path.resolve(LOGS_DIR, `browserlogs.console.log`);
 
         if (noColor) {
             conf.colors = false;
         }
 
         // Pass server URL to tests
-        conf.client.args = ["--server", `${httpsUrl};${httpUrl}`];
+        conf.client.args = ["--server", `${httpUrl};${httpsUrl}`];
+
+        if (sauce) {
+            // If running in sauce, use the full hostname
+            // Resolves issues in Safari: https://support.saucelabs.com/hc/en-us/articles/115009908527
+            conf.hostname = os.hostname();
+
+            // Configure Sauce Connect logging
+            conf.sauceLabs.connectOptions.logfile = path.resolve(LOGS_DIR, "sc.log");
+        }
 
         const jestExit = await runJest(httpsUrl, httpUrl);
 

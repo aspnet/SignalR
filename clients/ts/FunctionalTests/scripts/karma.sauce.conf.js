@@ -46,7 +46,6 @@ try {
     };
 
     // Mobile Browsers
-    // TODO: Fill this in.
     var mobileBrowsers = {};
 
     var customLaunchers = {

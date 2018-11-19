@@ -4,8 +4,8 @@
 import { HttpTransportType, IHubProtocol, JsonHubProtocol } from "@aspnet/signalr";
 import { MessagePackHubProtocol } from "@aspnet/signalr-protocol-msgpack";
 
-export let ENDPOINT_BASE_URL: string;
-export let ENDPOINT_BASE_HTTPS_URL: string;
+export let ENDPOINT_BASE_URL: string = "";
+export let ENDPOINT_BASE_HTTPS_URL: string = "";
 
 if (typeof window !== "undefined" && (window as any).__karma__) {
     const args = (window as any).__karma__.config.args as string[];
@@ -17,9 +17,8 @@ if (typeof window !== "undefined" && (window as any).__karma__) {
             case "--server":
                 i += 1;
                 const urls = args[i].split(";");
-                httpsServer = urls[0];
-                httpServer = urls[1];
-                console.log(httpServer);
+                httpServer = urls[0];
+                httpsServer = urls[1];
                 break;
         }
     }
@@ -27,16 +26,18 @@ if (typeof window !== "undefined" && (window as any).__karma__) {
     // Running in Karma? Need to use an absolute URL
     ENDPOINT_BASE_URL = httpServer;
     ENDPOINT_BASE_HTTPS_URL = httpsServer;
-    console.log(`Using SignalR Server: ${ENDPOINT_BASE_URL}`);
 } else if (typeof document !== "undefined") {
     ENDPOINT_BASE_URL = `${document.location.protocol}//${document.location.host}`;
 } else if (process && process.env && process.env.SERVER_URL) {
     const urls = process.env.SERVER_URL.split(";");
-    ENDPOINT_BASE_HTTPS_URL = urls[0];
-    ENDPOINT_BASE_URL = urls[1];
+    ENDPOINT_BASE_URL = urls[0];
+    ENDPOINT_BASE_HTTPS_URL = urls[1];
 } else {
     throw new Error("The server could not be found.");
 }
+
+console.log(`Using SignalR HTTP Server: '${ENDPOINT_BASE_URL}'`);
+console.log(`Using SignalR HTTPS Server: '${ENDPOINT_BASE_HTTPS_URL}'`);
 
 export const ECHOENDPOINT_URL = ENDPOINT_BASE_URL + "/echo";
 
