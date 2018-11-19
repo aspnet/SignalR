@@ -39,7 +39,7 @@ public class HubConnection {
     private final CallbackMap handlers = new CallbackMap();
     private HubProtocol protocol;
     private Boolean handshakeReceived = false;
-    private HubConnectionState hubConnectionState = HubConnectionState.DISCONNECTED;
+    private volatile HubConnectionState hubConnectionState = HubConnectionState.DISCONNECTED;
     private final Lock hubConnectionStateLock = new ReentrantLock();
     private List<OnClosedCallback> onClosedCallbackList;
     private final boolean skipNegotiate;
