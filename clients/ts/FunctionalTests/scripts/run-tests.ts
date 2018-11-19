@@ -102,6 +102,8 @@ let sauce = false;
 let allBrowsers = false;
 let noColor = false;
 let skipNode = false;
+let sauceUser = null;
+let sauceKey = null;
 
 for (let i = 2; i < process.argv.length; i += 1) {
     switch (process.argv[i]) {
@@ -136,7 +138,23 @@ for (let i = 2; i < process.argv.length; i += 1) {
         case "--no-color":
             noColor = true;
             break;
+        case "--sauce-user":
+            i += 1;
+            sauceUser = process.argv[i];
+            break;
+        case "--sauce-key":
+            i += 1;
+            sauceKey = process.argv[i];
+            break;
     }
+}
+
+if (sauceUser && !process.env.SAUCE_USERNAME) {
+    process.env.SAUCE_USERNAME = sauceUser;
+}
+
+if (sauceKey && !process.env.SAUCE_ACCESS_KEY) {
+    process.env.SAUCE_ACCESS_KEY = sauceKey;
 }
 
 const configFile = sauce ?
