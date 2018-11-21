@@ -356,6 +356,43 @@ namespace Microsoft.AspNetCore.SignalR.Client.FunctionalTests
         [Theory]
         [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
         [LogLevel(LogLevel.Trace)]
+        public async Task CanStreamToAndFromClientInSameInvocation(string protocolName, HttpTransportType transportType, string path)
+        {
+            var protocol = HubProtocols[protocolName];
+            using (StartServer<Startup>(out var server))
+            {
+                var connection = CreateHubConnection(server.Url, path, transportType, protocol, LoggerFactory);
+                try
+                {
+                    await connection.StartAsync().OrTimeout();
+
+                    var channelWriter = Channel.CreateBounded<string>(5);
+                    var channel = await connection.StreamAsChannelAsync<string>("StreamEcho", channelWriter.Reader).OrTimeout();
+
+                    await channelWriter.Writer.WriteAsync("1").AsTask().OrTimeout();
+                    Assert.Equal("1", await channel.ReadAsync().AsTask().OrTimeout());
+                    await channelWriter.Writer.WriteAsync("2").AsTask().OrTimeout();
+                    Assert.Equal("2", await channel.ReadAsync().AsTask().OrTimeout());
+                    channelWriter.Writer.Complete();
+
+                    var results = await channel.ReadAllAsync().OrTimeout();
+                    Assert.Empty(results);
+                }
+                catch (Exception ex)
+                {
+                    LoggerFactory.CreateLogger<HubConnectionTests>().LogError(ex, "{ExceptionType} from test", ex.GetType().FullName);
+                    throw;
+                }
+                finally
+                {
+                    await connection.DisposeAsync().OrTimeout();
+                }
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(HubProtocolsAndTransportsAndHubPaths))]
+        [LogLevel(LogLevel.Trace)]
         public async Task CanCloseStreamMethodEarly(string protocolName, HttpTransportType transportType, string path)
         {
             bool ExpectedErrors(WriteContext writeContext)

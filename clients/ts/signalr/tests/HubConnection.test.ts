@@ -10,6 +10,7 @@ import { JsonHubProtocol } from "../src/JsonHubProtocol";
 import { NullLogger } from "../src/Loggers";
 import { IStreamSubscriber } from "../src/Stream";
 import { TextMessageFormat } from "../src/TextMessageFormat";
+import { Subject } from "../src/Utils";
 
 import { VerifyLogger } from "./Common";
 import { delay, PromiseSource, registerUnhandledRejectionHandler } from "./Utils";
@@ -273,7 +274,7 @@ describe("HubConnection", () => {
             });
         });
 
-        it.only("start completes if connection closes and handshake not received yet", async () => {
+        it("start completes if connection closes and handshake not received yet", async () => {
             await VerifyLogger.run(async (logger) => {
                 const mockProtocol = new TestProtocol(TransferFormat.Text);
 
@@ -335,20 +336,23 @@ describe("HubConnection", () => {
                 const connection = new TestConnection();
                 const hubConnection = createHubConnection(connection, logger);
                 try {
-                    connection.receiveHandshakeResponse();
+                    await hubConnection.start();
 
-                    const stream = hubConnection.newUploadStream();
-                    const invokePromise = hubConnection.invoke("testMethod", "arg", stream.placeholder);
+                    const subject = new Subject();
+                    const invokePromise = hubConnection.invoke("testMethod", "arg", subject);
 
-                    expect(JSON.parse(connection.sentData[0])).toEqual({
-                        arguments: ["arg", {streamId: "1"}],
+                    expect(JSON.parse(connection.sentData[1])).toEqual({
+                        arguments: ["arg", {StreamId: "1"}],
                         invocationId: "0",
                         target: "testMethod",
                         type: MessageType.Invocation,
                     });
 
-                    await stream.write("item numero uno");
-                    expect(JSON.parse(connection.sentData[1])).toEqual({
+                    subject.next("item numero uno");
+                    await new Promise<void>((resolve) => {
+                        setTimeout(resolve, 50);
+                    });
+                    expect(JSON.parse(connection.sentData[2])).toEqual({
                         item: "item numero uno",
                         streamId: "1",
                         type: MessageType.StreamData,

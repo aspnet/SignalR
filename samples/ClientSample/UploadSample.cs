@@ -19,7 +19,7 @@ namespace ClientSample
             {
                 cmd.Description = "Tests a streaming invocation from client to hub";
 
-                CommandArgument baseUrlArgument = cmd.Argument("<BASEURL>", "The URL to the Chat Hub to test");
+                var baseUrlArgument = cmd.Argument("<BASEURL>", "The URL to the Chat Hub to test");
 
                 cmd.OnExecute(() => ExecuteAsync(baseUrlArgument.Value));
             });

@@ -31,6 +31,8 @@ In the SignalR protocol, the following types of messages can be sent:
 | `Completion`          | Callee         | Indicates a previous `Invocation` or `StreamInvocation` has completed. Contains an error if the invocation concluded with an error or the result of a non-streaming method invocation. The result will be absent for `void` methods. In case of streaming invocations no further `StreamItem` messages will be received. |
 | `CancelInvocation`    | Caller         | Sent by the client to cancel a streaming invocation on the server.                                                             |
 | `Ping`                | Caller, Callee | Sent by either party to check if the connection is active.                                                                     |
+| `StreamComplete`      | | |
+| `StreamData`          | | |
 
 After opening a connection to the server the client must send a `HandshakeRequest` message to the server as its first message. The handshake message is **always** a JSON message and contains the name of the format (protocol) as well as the version of the protocol that will be used for the duration of the connection. The server will reply with a `HandshakeResponse`, also always JSON, containing an error if the server does not support the protocol. If the server does not support the protocol requested by the client or the first message received from the client is not a `HandshakeRequest` message the server must close the connection. Both the `HandshakeRequest` and `HandshakeResponse` messages must be terminated by the ASCII character `0x1E` (record separator).
 
@@ -93,7 +95,7 @@ All messages, except the `Ping` message, can carry additional headers. Headers a
 
 Invocations can be sent without an `Invocation ID` value. This indicates that the invocation is "non-blocking", and thus the caller does not expect a response. When a Callee receives an invocation without an `Invocation ID` value, it **must not** send any response to that invocation.
 
-## Streaming
+## Streaming from server to client
 
 The SignalR protocol allows for multiple `StreamItem` messages to be transmitted in response to a `StreamingInvocation` message, and allows the receiver to dispatch these results as they arrive, to allow for streaming data from one endpoint to another.
 
@@ -452,6 +454,38 @@ Example - A `Close` message with an error
 {
     "type": 7,
     "error": "Connection closed because of an error!"
+}
+```
+
+### StreamComplete Message Encoding
+A `StreamComplete` message is a JSON object with the following properties
+
+* `type` - A `Number` with the literal value `8`, indicating that this message is a `StreamComplete`.
+* `streamId` - A `String` encoding the `Stream ID` the item is for.
+* `error` - A `String` encoding the optional error message.
+
+Example
+```json
+{
+    "type": 8,
+    "streamId": "123",
+    "error": "Something went wrong"
+}
+```
+
+### StreamData Message Encoding
+A `StreamData` message is a JSON object with the following properties
+
+* `type` - A `Number` with the literal value `9`, indicating that this message is a `StreamData`.
+* `streamId` - A `String` encoding the `Stream ID` the item is for.
+* `item` - A `Token` encoding the item value (see "JSON Payload Encoding" for details).
+
+Example
+```json
+{
+    "type": 9,
+    "streamId": "123",
+    "item": 42
 }
 ```
 
