@@ -403,31 +403,28 @@ namespace Microsoft.AspNetCore.Http.Connections.Tests
             using (var feature = new TestWebSocketConnectionFeature())
             {
                 var serverSocket = await feature.AcceptAsync();
-                using (var memory = MemoryPool<byte>.Shared.Rent(10))
-                {
-                    var sequence = ReadOnlySequenceFactory.CreateSegments(new byte[] { 1 }, new byte[] { 15 });
-                    Assert.False(sequence.IsSingleSegment);
+                var sequence = ReadOnlySequenceFactory.CreateSegments(new byte[] { 1 }, new byte[] { 15 });
+                Assert.False(sequence.IsSingleSegment);
 
-                    await serverSocket.SendAsync(sequence, WebSocketMessageType.Text);
+                await serverSocket.SendAsync(sequence, WebSocketMessageType.Text);
 
-                    // Run the client socket
-                    var client = feature.Client.ExecuteAndCaptureFramesAsync();
+                // Run the client socket
+                var client = feature.Client.ExecuteAndCaptureFramesAsync();
 
-                    await serverSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", default);
+                await serverSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", default);
 
-                    var messages = await client.OrTimeout();
-                    Assert.Equal(2, messages.Received.Count);
+                var messages = await client.OrTimeout();
+                Assert.Equal(2, messages.Received.Count);
 
-                    // First message: 1 byte, endOfMessage false
-                    Assert.Single(messages.Received[0].Buffer);
-                    Assert.Equal(1, messages.Received[0].Buffer[0]);
-                    Assert.False(messages.Received[0].EndOfMessage);
+                // First message: 1 byte, endOfMessage false
+                Assert.Single(messages.Received[0].Buffer);
+                Assert.Equal(1, messages.Received[0].Buffer[0]);
+                Assert.False(messages.Received[0].EndOfMessage);
 
-                    // Second message: 1 byte, endOfMessage true
-                    Assert.Single(messages.Received[1].Buffer);
-                    Assert.Equal(15, messages.Received[1].Buffer[0]);
-                    Assert.True(messages.Received[1].EndOfMessage);
-                }
+                // Second message: 1 byte, endOfMessage true
+                Assert.Single(messages.Received[1].Buffer);
+                Assert.Equal(15, messages.Received[1].Buffer[0]);
+                Assert.True(messages.Received[1].EndOfMessage);
             }
         }
     }
