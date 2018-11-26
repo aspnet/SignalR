@@ -17,7 +17,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +40,7 @@ public class HubConnection {
     private final CallbackMap handlers = new CallbackMap();
     private HubProtocol protocol;
     private Boolean handshakeReceived = false;
-    private volatile HubConnectionState hubConnectionState = HubConnectionState.DISCONNECTED;
+    private HubConnectionState hubConnectionState = HubConnectionState.DISCONNECTED;
     private final ReentrantReadWriteLock hubConnectionStateLock = new ReentrantReadWriteLock();
     private List<OnClosedCallback> onClosedCallbackList;
     private final boolean skipNegotiate;
