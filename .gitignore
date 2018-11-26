@@ -56,3 +56,5 @@ ipch/
 *.opendb
 *.db
 coverage/
+
+clients/java/signalr/local\.properties
