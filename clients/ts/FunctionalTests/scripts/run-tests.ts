@@ -147,9 +147,6 @@ for (let i = 2; i < process.argv.length; i += 1) {
             i += 1;
             sauceKey = process.argv[i];
             break;
-        case "--public-ip":
-            publicIp = true;
-            break;
     }
 }
 
@@ -233,12 +230,6 @@ function runJest(httpsUrl: string, httpUrl: string) {
         debug(`Launching Functional Test Server: ${serverPath}`);
         let desiredServerUrl = "https://127.0.0.1:0;http://127.0.0.1:0";
 
-        if (publicIp) {
-            // SauceLabs can only proxy certain ports for Edge and Safari.
-            // https://wiki.saucelabs.com/display/DOCS/Sauce+Connect+Proxy+FAQS
-            desiredServerUrl = "http://0.0.0.0:9000;https://0.0.0.0:9001";
-        }
-
         const dotnet = spawn("dotnet", [serverPath], {
             env: {
                 ...process.env,
@@ -279,21 +270,6 @@ function runJest(httpsUrl: string, httpUrl: string) {
         if (!httpUrl || !httpsUrl) {
             console.error("Unable to identify URLs");
             process.exit(1);
-        }
-
-        // If running in sauce, use the public IP
-        // Resolves issues in Safari: https://support.saucelabs.com/hc/en-us/articles/115009908527
-        if (publicIp) {
-            let eth = os.networkInterfaces()["Ethernet"];
-            for (let iface of eth) {
-                if (!iface.internal && iface.family === "IPv4") {
-                    httpUrl = httpUrl.replace(/\d+\.\d+\.\d+\.\d+/g, iface.address);
-                    break;
-                }
-            }
-
-            // Disable SSL on Sauce too. The Sauce Connect proxy doesn't really work with it.
-            httpsUrl = "";
         }
 
         debug(`Functional Test Server has started at ${httpsUrl} and ${httpUrl}`);

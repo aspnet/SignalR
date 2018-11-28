@@ -30,8 +30,8 @@ if (typeof window !== "undefined" && (window as any).__karma__) {
     ENDPOINT_BASE_URL = `${document.location.protocol}//${document.location.host}`;
 } else if (process && process.env && process.env.SERVER_URL) {
     const urls = process.env.SERVER_URL.split(";");
-    ENDPOINT_BASE_URL = urls[0];
-    ENDPOINT_BASE_HTTPS_URL = urls[1];
+    ENDPOINT_BASE_URL = urls[1];
+    ENDPOINT_BASE_HTTPS_URL = urls[0];
 } else {
     throw new Error("The server could not be found.");
 }

@@ -54,7 +54,6 @@
 
     <PropertyGroup>
       <_TestSauceArgs>--verbose --no-color --configuration $(Configuration) --sauce-user "$(SauceUser)" --sauce-key "$(SauceKey)"</_TestSauceArgs>
-      <_TestSauceArgs Condition="'$(CI)' == 'true'">$(_TestSauceArgs) --public-ip</_TestSauceArgs>
     </PropertyGroup>
     <Exec Command="npm run test:sauce -- $(_TestSauceArgs)"
           Condition="'$(DailyTests)' == 'true'"
