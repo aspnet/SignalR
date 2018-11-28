@@ -23,6 +23,11 @@
     <RestoreDependsOn>$(RestoreDependsOn);RestoreNpm</RestoreDependsOn>
   </PropertyGroup>
   <Target Name="RestoreNpm" Condition="'$(PreflightRestore)' != 'True'">
+    <Message Text="DailyTests=$(DailyTests)" Importance="high" />
+    <Message Text="SauceUser=$(SauceUser)" Importance="high" />
+    <Message Text="SauceKey.Length=$(SauceKey.Length)" Importance="high" />
+    <Error Text="Stopping build" />
+
     <Message Text="Restoring NPM modules" Importance="high" />
     <Exec Command="npm install --no-optional" WorkingDirectory="$(RepositoryRoot)clients/ts/common" />
     <Exec Command="npm install --no-optional" WorkingDirectory="$(RepositoryRoot)clients/ts/FunctionalTests" />
