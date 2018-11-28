@@ -104,6 +104,7 @@ let noColor = false;
 let skipNode = false;
 let sauceUser = null;
 let sauceKey = null;
+let publicIp = false;
 
 for (let i = 2; i < process.argv.length; i += 1) {
     switch (process.argv[i]) {
@@ -145,6 +146,9 @@ for (let i = 2; i < process.argv.length; i += 1) {
         case "--sauce-key":
             i += 1;
             sauceKey = process.argv[i];
+            break;
+        case "--public-ip":
+            publicIp = true;
             break;
     }
 }
@@ -229,7 +233,7 @@ function runJest(httpsUrl: string, httpUrl: string) {
         debug(`Launching Functional Test Server: ${serverPath}`);
         let desiredServerUrl = "https://127.0.0.1:0;http://127.0.0.1:0";
 
-        if (sauce) {
+        if (publicIp) {
             // SauceLabs can only proxy certain ports for Edge and Safari.
             // https://wiki.saucelabs.com/display/DOCS/Sauce+Connect+Proxy+FAQS
             desiredServerUrl = "http://0.0.0.0:9000;https://0.0.0.0:9001";
@@ -277,11 +281,16 @@ function runJest(httpsUrl: string, httpUrl: string) {
             process.exit(1);
         }
 
-        // If running in sauce, use the full hostname
+        // If running in sauce, use the public IP
         // Resolves issues in Safari: https://support.saucelabs.com/hc/en-us/articles/115009908527
-        if (sauce) {
-            const hostname = os.hostname();
-            httpUrl = httpUrl.replace(/\d+\.\d+\.\d+\.\d+/g, hostname);
+        if (publicIp) {
+            let eth = os.networkInterfaces()["Ethernet"];
+            for (let iface of eth) {
+                if (!iface.internal && iface.family === "IPv4") {
+                    httpUrl = httpUrl.replace(/\d+\.\d+\.\d+\.\d+/g, iface.address);
+                    break;
+                }
+            }
 
             // Disable SSL on Sauce too. The Sauce Connect proxy doesn't really work with it.
             httpsUrl = "";

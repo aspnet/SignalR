@@ -51,7 +51,11 @@
     <!-- Optionally run "daily test" run in Sauce Labs -->
     <Error Text="Required property 'SauceUser' is missing!" Condition="'$(DailyTests)' == 'true' And '$(SauceUser)' == ''" />
     <Error Text="Required property 'SauceKey' is missing!" Condition="'$(DailyTests)' == 'true' And '$(SauceKey)' == ''" />
-    <Exec Command="npm run test:sauce -- --no-color --configuration $(Configuration) --sauce-user &quot;$(SauceUser)&quot; --sauce-key &quot;$(SauceKey)&quot;"
+    <PropertyGroup>
+      <_TestSauceArgs>--verbose --no-color --configuration $(Configuration) --sauce-user "$(SauceUser)" --sauce-key "$(SauceKey)"</TestSauceArgs>
+      <_TestSauceArgs Condition="'$(CI)' == 'true'">$(_TestSauceArgs) --public-ip</_TestSauceArgs>
+    </PropertyGroup>
+    <Exec Command="npm run test:sauce -- $(_TestSauceArgs)"
           Condition="'$(DailyTests)' == 'true'"
           WorkingDirectory="$(RepositoryRoot)clients/ts/FunctionalTests"
           IgnoreStandardErrorWarningFormat="true" />
