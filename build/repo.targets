@@ -23,11 +23,6 @@
     <RestoreDependsOn>$(RestoreDependsOn);RestoreNpm</RestoreDependsOn>
   </PropertyGroup>
   <Target Name="RestoreNpm" Condition="'$(PreflightRestore)' != 'True'">
-    <Message Text="DailyTests=$(DailyTests)" Importance="high" />
-    <Message Text="SauceUser=$(SauceUser)" Importance="high" />
-    <Message Text="SauceKey.Length=$(SauceKey.Length)" Importance="high" />
-    <Error Text="Stopping build" />
-
     <Message Text="Restoring NPM modules" Importance="high" />
     <Exec Command="npm install --no-optional" WorkingDirectory="$(RepositoryRoot)clients/ts/common" />
     <Exec Command="npm install --no-optional" WorkingDirectory="$(RepositoryRoot)clients/ts/FunctionalTests" />
@@ -49,7 +44,7 @@
 
     <!-- Skip the "inner" test run when we're running DailyTests -->
     <Exec Command="npm run test:inner -- --no-color --configuration $(Configuration)"
-          Condition="'$(DailyTest)' != 'true'"
+          Condition="'$(DailyTests)' != 'true'"
           WorkingDirectory="$(RepositoryRoot)clients/ts/FunctionalTests"
           IgnoreStandardErrorWarningFormat="true" />
 
