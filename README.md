@@ -1,14 +1,9 @@
-ASP.NET Core SignalR
-========
+ASP.NET Core SignalR [Archived]
+===============================
+
+**This GitHub project has been archived.** Ongoing development on this project can be found in <https://github.com/aspnet/AspNetCore>.
 
 **IMPORTANT**: This repository hosts code and project management for ASP.NET **Core** SignalR, for use in ASP.NET Core applications using `Microsoft.AspNetCore.App`. If you are looking for information on ASP.NET SignalR (used in .NET Framework applications using System.Web and/or Katana), see the https://github.com/SignalR/SignalR repository.
-
-[![Build Status](https://dnceng.visualstudio.com/public/_apis/build/status/aspnet/SignalR/SignalR-ci)](https://dnceng.visualstudio.com/public/_build/latest?definitionId=26)
-[![NuGet version](https://badge.fury.io/nu/microsoft.aspnetcore.signalr.svg)](https://badge.fury.io/nu/microsoft.aspnetcore.signalr)
-[![npm version](https://badge.fury.io/js/%40aspnet%2Fsignalr.svg)](https://badge.fury.io/js/%40aspnet%2Fsignalr)
-[![Maven Version](https://maven-badges.herokuapp.com/maven-central/com.microsoft.signalr/signalr/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.microsoft.signalr/signalr)
-
-[![Join the chat at https://gitter.im/aspnet/SignalR](https://badges.gitter.im/aspnet/SignalR.svg)](https://gitter.im/aspnet/SignalR?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 ASP.NET Core SignalR is a new library for ASP.NET Core developers that makes it incredibly simple to add real-time web functionality to your applications. What is "real-time web" functionality? It's the ability to have your server-side code push content to the connected clients as it happens, in real-time.
 
