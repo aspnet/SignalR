@@ -21,6 +21,7 @@ const fs = {
     createWriteStream: _fs.createWriteStream,
     exists: promisify(_fs.exists),
     mkdir: promisify(_fs.mkdir),
+    appendFile: promisify(_fs.appendFile),
 };
 
 if (!_fs.existsSync(LOGS_DIR)) {
@@ -105,6 +106,7 @@ let skipNode = false;
 let sauceUser = null;
 let sauceKey = null;
 let publicIp = false;
+let hostname = null;
 
 for (let i = 2; i < process.argv.length; i += 1) {
     switch (process.argv[i]) {
@@ -146,6 +148,10 @@ for (let i = 2; i < process.argv.length; i += 1) {
         case "--sauce-key":
             i += 1;
             sauceKey = process.argv[i];
+            break;
+        case "--use-hostname":
+            i += 1;
+            hostname = process.argv[i];
             break;
     }
 }
@@ -230,6 +236,12 @@ function runJest(httpsUrl: string, httpUrl: string) {
         debug(`Launching Functional Test Server: ${serverPath}`);
         let desiredServerUrl = "https://127.0.0.1:0;http://127.0.0.1:0";
 
+        if(sauce) {
+            // SauceLabs can only proxy certain ports for Edge and Safari.
+            // https://wiki.saucelabs.com/display/DOCS/Sauce+Connect+Proxy+FAQS
+            desiredServerUrl = "http://127.0.0.1:9000;https://127.0.0.1:9001";// Sauce Labs can only proxy certain 
+        }
+
         const dotnet = spawn("dotnet", [serverPath], {
             env: {
                 ...process.env,
@@ -274,8 +286,6 @@ function runJest(httpsUrl: string, httpUrl: string) {
 
         debug(`Functional Test Server has started at ${httpsUrl} and ${httpUrl}`);
 
-        debug(`Using SignalR Servers: ${httpsUrl} (https) and ${httpUrl} (http)`);
-
         // Start karma server
         const conf = {
             ...config,
@@ -295,13 +305,32 @@ function runJest(httpsUrl: string, httpUrl: string) {
             conf.colors = false;
         }
 
-        // Pass server URL to tests
-        conf.client.args = ["--server", `${httpUrl};${httpsUrl}`];
+        if(hostname) {
+            // Register a custom hostname in the hosts file (requires Admin, but AzDO agents run as Admin)
+            // Used to work around issues in Sauce Labs
+            await fs.appendFile("C:\\Windows\\System32\\drivers\\etc\\hosts", `127.0.0.1 ${hostname}`);
+
+            conf.hostname = hostname;
+
+            // Rewrite the URL. Try with the host name and the IP address just to make sure
+            httpUrl = httpUrl.replace(/localhost/g, hostname);
+            httpsUrl = httpsUrl.replace(/localhost/g, hostname);
+            httpUrl = httpUrl.replace(/\d+\.\d+\.\d+\.\d+/g, hostname);
+            httpsUrl = httpsUrl.replace(/\d+\.\d+\.\d+\.\d+/g, hostname);
+        }
 
         if (sauce) {
             // Configure Sauce Connect logging
             conf.sauceLabs.connectOptions.logfile = path.resolve(LOGS_DIR, "sc.log");
+
+            // Don't use https, Safari and Edge don't trust the cert.
+            httpsUrl = "";
         }
+
+        debug(`Using SignalR Servers: ${httpsUrl} (https) and ${httpUrl} (http)`);
+
+        // Pass server URL to tests
+        conf.client.args = ["--server", `${httpUrl};${httpsUrl}`];
 
         const jestExit = await runJest(httpsUrl, httpUrl);
 
