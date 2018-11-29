@@ -16,7 +16,7 @@ const debug = _debug("signalr-functional-tests:run");
 const ARTIFACTS_DIR = path.resolve(__dirname, "..", "..", "..", "..", "artifacts");
 const LOGS_DIR = path.resolve(ARTIFACTS_DIR, "logs");
 
-const HOSTSFILE_PATH = "C:\\Users\\anurse\\Desktop\\hosts.txt";
+const HOSTSFILE_PATH = process.platform === "win32" ? `${process.env.SystemRoot}\\System32\\drivers\\etc\\hosts` : null;
 
 // Promisify things from fs we want to use.
 const fs = {
@@ -315,6 +315,7 @@ function runJest(httpsUrl: string, httpUrl: string) {
 
             // Register a custom hostname in the hosts file (requires Admin, but AzDO agents run as Admin)
             // Used to work around issues in Sauce Labs
+            debug(`Updating Hosts file (${HOSTSFILE_PATH}) to register host name '${hostname}'`);
             await fs.appendFile(HOSTSFILE_PATH, `${EOL}127.0.0.1 ${hostname}${EOL}`);
 
             const hostsContent = await fs.readFile(HOSTSFILE_PATH);
@@ -332,18 +333,23 @@ function runJest(httpsUrl: string, httpUrl: string) {
             httpsUrl = httpsUrl.replace(/\d+\.\d+\.\d+\.\d+/g, hostname);
         }
 
+        conf.client.args = [];
+
         if (sauce) {
             // Configure Sauce Connect logging
             conf.sauceLabs.connectOptions.logfile = path.resolve(LOGS_DIR, "sc.log");
 
             // Don't use https, Safari and Edge don't trust the cert.
             httpsUrl = "";
+
+            conf.client.args = [ ...conf.client.args, '--sauce' ];
         }
 
         debug(`Using SignalR Servers: ${httpsUrl} (https) and ${httpUrl} (http)`);
 
         // Pass server URL to tests
-        conf.client.args = ["--server", `${httpUrl};${httpsUrl}`];
+        conf.client.args = [ ...conf.client.args, "--server", `${httpUrl};${httpsUrl}`];
+        debug(`Passing client args: ${conf.client.args.join(" ")}`);
 
         const jestExit = await runJest(httpsUrl, httpUrl);
 
