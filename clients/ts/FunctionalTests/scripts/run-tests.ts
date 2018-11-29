@@ -299,10 +299,6 @@ function runJest(httpsUrl: string, httpUrl: string) {
         conf.client.args = ["--server", `${httpUrl};${httpsUrl}`];
 
         if (sauce) {
-            // If running in sauce, use the full hostname
-            // Resolves issues in Safari: https://support.saucelabs.com/hc/en-us/articles/115009908527
-            conf.hostname = os.hostname();
-
             // Configure Sauce Connect logging
             conf.sauceLabs.connectOptions.logfile = path.resolve(LOGS_DIR, "sc.log");
         }
