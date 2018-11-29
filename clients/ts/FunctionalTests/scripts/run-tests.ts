@@ -16,12 +16,15 @@ const debug = _debug("signalr-functional-tests:run");
 const ARTIFACTS_DIR = path.resolve(__dirname, "..", "..", "..", "..", "artifacts");
 const LOGS_DIR = path.resolve(ARTIFACTS_DIR, "logs");
 
+const HOSTSFILE_PATH = "C:\\Windows\\System32\\drivers\\etc\\hosts";
+
 // Promisify things from fs we want to use.
 const fs = {
     createWriteStream: _fs.createWriteStream,
     exists: promisify(_fs.exists),
     mkdir: promisify(_fs.mkdir),
     appendFile: promisify(_fs.appendFile),
+    readFile: promisify(_fs.readFile),
 };
 
 if (!_fs.existsSync(LOGS_DIR)) {
@@ -306,9 +309,19 @@ function runJest(httpsUrl: string, httpUrl: string) {
         }
 
         if(hostname) {
+            if(process.platform !== "win32") {
+                throw new Error("Can't use '--use-hostname' on non-Windows platform.");
+            }
+
             // Register a custom hostname in the hosts file (requires Admin, but AzDO agents run as Admin)
             // Used to work around issues in Sauce Labs
-            await fs.appendFile("C:\\Windows\\System32\\drivers\\etc\\hosts", `127.0.0.1 ${hostname}`);
+            await fs.appendFile(HOSTSFILE_PATH, `127.0.0.1 ${hostname}`);
+
+            const hostsContent = await fs.readFile(HOSTSFILE_PATH);
+            debug('Hosts file contents:');
+            debug('-- START OF HOSTS FILE --');
+            debug(hostsContent.toString());
+            debug('-- END OF HOSTS FILE --');
 
             conf.hostname = hostname;
 

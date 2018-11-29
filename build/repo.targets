@@ -53,8 +53,11 @@
     <Error Text="Required property 'SauceKey' is missing!" Condition="'$(DailyTests)' == 'true' And '$(SauceKey)' == ''" />
 
     <PropertyGroup>
+      <BrowserTestHostName Condition="'$(CI)' == 'true'">sauce.local</BrowserTestHostName>
       <_TestSauceArgs>--verbose --no-color --configuration $(Configuration) --sauce-user "$(SauceUser)" --sauce-key "$(SauceKey)"</_TestSauceArgs>
+      <_TestSauceArgs Condition="'$(BrowserTestHostName)' != ''">$(_TestSauceArgs) --use-hostname "$(BrowserTestHostName)"</_TestSauceArgs>
     </PropertyGroup>
+    <Message Text="test:sauce Args = $(_TestSauceArgs)" Importance="high" />
     <Exec Command="npm run test:sauce -- $(_TestSauceArgs)"
           Condition="'$(DailyTests)' == 'true'"
           WorkingDirectory="$(RepositoryRoot)clients/ts/FunctionalTests"

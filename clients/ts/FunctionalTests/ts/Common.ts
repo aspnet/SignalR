@@ -11,6 +11,7 @@ if (typeof window !== "undefined" && (window as any).__karma__) {
     const args = (window as any).__karma__.config.args as string[];
     let httpsServer = "";
     let httpServer = "";
+    let sauce = false;
 
     for (let i = 0; i < args.length; i += 1) {
         switch (args[i]) {
@@ -20,7 +21,16 @@ if (typeof window !== "undefined" && (window as any).__karma__) {
                 httpServer = urls[0];
                 httpsServer = urls[1];
                 break;
+            case "--sauce":
+                sauce = true;
+                break;
         }
+    }
+
+    // Increase test timeout in sauce because of the proxy
+    if (sauce) {
+        // Double the timeout.
+        jasmine.DEFAULT_TIMEOUT_INTERVAL *= 2;
     }
 
     // Running in Karma? Need to use an absolute URL
