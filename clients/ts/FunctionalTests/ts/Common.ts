@@ -4,6 +4,9 @@
 import { HttpTransportType, IHubProtocol, JsonHubProtocol } from "@aspnet/signalr";
 import { MessagePackHubProtocol } from "@aspnet/signalr-protocol-msgpack";
 
+// On slower CI machines, these tests sometimes take longer than 5s
+jasmine.DEFAULT_TIMEOUT_INTERVAL = 10 * 1000;
+
 export let ENDPOINT_BASE_URL: string = "";
 export let ENDPOINT_BASE_HTTPS_URL: string = "";
 
@@ -48,6 +51,7 @@ if (typeof window !== "undefined" && (window as any).__karma__) {
 
 console.log(`Using SignalR HTTP Server: '${ENDPOINT_BASE_URL}'`);
 console.log(`Using SignalR HTTPS Server: '${ENDPOINT_BASE_HTTPS_URL}'`);
+console.log(`Jasmine DEFAULT_TIMEOUT_INTERVAL: ${jasmine.DEFAULT_TIMEOUT_INTERVAL}`);
 
 export const ECHOENDPOINT_URL = ENDPOINT_BASE_URL + "/echo";
 

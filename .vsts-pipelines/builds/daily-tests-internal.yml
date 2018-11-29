@@ -20,3 +20,10 @@ phases:
       displayName: Use Node 8.x
       inputs:
         versionSpec: 8.x
+    afterBuild:
+    - task: PublishTestResults@2
+      displayName: Publish junit test results
+      condition: always()
+      inputs:
+        testRunner: junit
+        testResultsFiles: 'artifacts/logs/**/*.junit.xml'
