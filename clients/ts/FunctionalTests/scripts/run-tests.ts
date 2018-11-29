@@ -16,7 +16,7 @@ const debug = _debug("signalr-functional-tests:run");
 const ARTIFACTS_DIR = path.resolve(__dirname, "..", "..", "..", "..", "artifacts");
 const LOGS_DIR = path.resolve(ARTIFACTS_DIR, "logs");
 
-const HOSTSFILE_PATH = "C:\\Windows\\System32\\drivers\\etc\\hosts";
+const HOSTSFILE_PATH = "C:\\Users\\anurse\\Desktop\\hosts.txt";
 
 // Promisify things from fs we want to use.
 const fs = {
@@ -315,7 +315,7 @@ function runJest(httpsUrl: string, httpUrl: string) {
 
             // Register a custom hostname in the hosts file (requires Admin, but AzDO agents run as Admin)
             // Used to work around issues in Sauce Labs
-            await fs.appendFile(HOSTSFILE_PATH, `127.0.0.1 ${hostname}`);
+            await fs.appendFile(HOSTSFILE_PATH, `${EOL}127.0.0.1 ${hostname}${EOL}`);
 
             const hostsContent = await fs.readFile(HOSTSFILE_PATH);
             debug('Hosts file contents:');
