@@ -4,20 +4,20 @@ try {
 
     // "Evergreen" Desktop Browsers
     var evergreenBrowsers = {
-        // Microsoft Edge Latest, Windows 10
-        sl_edge_win10: {
-            base: "SauceLabs",
-            browserName: "microsoftedge",
-            version: "latest",
-        },
+        // // Microsoft Edge Latest, Windows 10
+        // sl_edge_win10: {
+        //     base: "SauceLabs",
+        //     browserName: "microsoftedge",
+        //     version: "latest",
+        // },
 
-        // Apple Safari Latest, macOS 10.13 (High Sierra)
-        sl_safari_macOS1013: {
-            base: "SauceLabs",
-            browserName: "safari",
-            version: "latest",
-            platform: "macOS 10.13",
-        },
+        // // Apple Safari Latest, macOS 10.13 (High Sierra)
+        // sl_safari_macOS1013: {
+        //     base: "SauceLabs",
+        //     browserName: "safari",
+        //     version: "latest",
+        //     platform: "macOS 10.13",
+        // },
 
         // Google Chrome Latest, any OS.
         sl_chrome: {
@@ -36,13 +36,13 @@ try {
 
     // Legacy Browsers
     var legacyBrowsers = {
-        // Microsoft Internet Explorer 11, Windows 7
-        sl_ie11_win7: {
-            base: "SauceLabs",
-            browserName: "internet explorer",
-            version: "11",
-            platform: "Windows 7",
-        },
+        // // Microsoft Internet Explorer 11, Windows 7
+        // sl_ie11_win7: {
+        //     base: "SauceLabs",
+        //     browserName: "internet explorer",
+        //     version: "11",
+        //     platform: "Windows 7",
+        // },
     };
 
     // Mobile Browsers
